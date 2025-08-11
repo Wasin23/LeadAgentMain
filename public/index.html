@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ExaMark Chat</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+      font-family: 'Roboto', Arial, sans-serif;
+      background: #343541; color: #fff;
+      height: 100vh; width: 100vw;
+      overflow: hidden;
+    }
+
+    #container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #sidebar {
+      width: 700px;
+      background: #23242a;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 8px #0002;
+    }
+
+    .tools-header {
+      margin: 0 0 1rem 0;
+      font-size: 1.4rem;
+      color: #2196f3;
+      letter-spacing: 1px;
+      background: #343541;
+      padding: 0.8rem 1rem;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .tabs-container {
+      display: flex;
+      flex: 1;
+      gap: 1rem;
+    }
+
+    .horizontal-tabs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 160px;
+    }
+
+    .horizontal-tab-button {
+      background: #444654;
+      color: #fff;
+      border: none;
+      padding: 0.8rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .horizontal-tab-button:hover {
+      background: #565869;
+    }
+
+    .horizontal-tab-button.active {
+      background: #2196f3;
+      color: white;
+    }
+
+    .tab-content-area {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 85vh;
+    }
+
+    .tab-content {
+      background: #343541;
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-y: auto;
+      min-height: 700px;
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+
+    #title {
+      width: 100%;
+      text-align: left;
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #2196f3;
+      padding: 1.2rem 0 0.5rem 720px;
+      letter-spacing: 2px;
+      background: #343541;
+      border-bottom: 1px solid #444654;
+      border-radius: 6px;
+    }
+
+    #chat-area {
+      display: flex;
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+
+    #chat {
+      flex: 1;
+      max-height: calc(100vh - 220px);
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: #343541;
+      min-width: 0;
+    }
+
+    .bubble {
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      max-width: 75%;
+      white-space: pre-wrap;
+    }
+
+    .bubble.user {
+      background: #2196f3;
+      color: white;
+      align-self: flex-end;
+    }
+
+    .bubble.ai {
+      background: #444654;
+      color: #fff;
+      align-self: flex-start;
+    }
+
+    #input-area {
+      background: #40414f;
+      padding: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      border-top: 1px solid #444654;
+    }
+
+    #message {
+      flex: 1;
+      background: #40414f;
+      color: white;
+      border: 1px solid #565869;
+      border-radius: 6px;
+      padding: 0.8rem;
+      font-size: 1rem;
+      resize: none;
+      min-height: 24px;
+      max-height: 120px;
+    }
+
+    #message:focus {
+      outline: none;
+      border-color: #2196f3;
+    }
+
+    #send {
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.8rem 1.2rem;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.2s ease;
+    }
+
+    #send:hover {
+      background: #1976d2;
+    }
+
+    #send:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+
+    #history-list {
+      color: #ccc;
+      font-size: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      margin-bottom: 1rem;
+      padding: 0.8rem;
+      background: #23242a;
+      border-radius: 6px;
+      border-left: 3px solid #2196f3;
+    }
+
+    .history-input {
+      color: #90caf9;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .history-output {
+      color: #ccc;
+    }
+
+    #email-log-list {
+      color: #ccc;
+      font-size: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .email-log-item {
+      margin-bottom: 1rem;
+      padding: 0.8rem;
+      background: #23242a;
+      border-radius: 6px;
+      border-left: 3px solid #4caf50;
+    }
+
+    .email-log-to {
+      color: #81c784;
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+    }
+
+    .email-log-subject {
+      color: #90caf9;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .email-log-content {
+      color: #ccc;
+      font-size: 0.85rem;
+      max-height: 100px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .email-log-timestamp {
+      color: #888;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="sidebar">
+      <div class="tools-header">TOOLS</div>
+      
+      <div class="tabs-container">
+        <div class="horizontal-tabs">
+          <button class="horizontal-tab-button active" data-tab="history">📝 Chat History</button>
+          <button class="horizontal-tab-button" data-tab="deepresearch">🚀 Deep Research</button>
+          <button class="horizontal-tab-button" data-tab="outreach">📧 Email Outreach</button>
+        </div>
+        
+        <div class="tab-content-area">
+          <!-- Chat History Tab Content -->
+          <div id="history-content" class="tab-content active">
+            <h3 style="margin:0 0 1rem 0;color:#2196f3;">Chat History</h3>
+            <div id="history-list"></div>
+          </div>
+          
+          <!-- Research Tool Tab Content -->
+          <div id="research-content" class="tab-content" style="display:none;">
+            <h3 style="margin:0 0 1rem 0;color:#2196f3;">Background Research</h3>
+            
+            <div style="margin-bottom:1rem;">
+              <input type="text" id="research-query" placeholder="Enter research query (e.g., 'Find B2B SaaS companies in fintech with 10-500 employees')" 
+                style="width:100%;padding:0.8rem;border:1px solid #444;background:#23242a;color:#fff;border-radius:4px;margin-bottom:0.5rem;">
+              <button id="start-research" style="background:#2196f3;color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:4px;cursor:pointer;width:100%;">
+                🔬 Start Research (5-10 min)
+              </button>
+            </div>
+            
+            <div id="research-progress" style="background:#23242a;border-radius:8px;padding:1rem;margin-bottom:1rem;display:none;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                <span id="research-status">Starting research...</span>
+                <span style="display:flex;align-items:center;gap:0.5rem;">
+                  <span id="research-percentage">0%</span>
+                  <span id="research-time" style="font-size:0.8rem;color:#888;"></span>
+                </span>
+              </div>
+              <div style="background:#444;border-radius:4px;height:8px;overflow:hidden;">
+                <div id="research-progress-bar" style="background:#2196f3;height:100%;width:0%;transition:width 0.3s ease;"></div>
+              </div>
+              <div id="research-current-task" style="font-size:0.85em;color:#ccc;margin-top:0.5rem;font-style:italic;"></div>
+              <div id="research-stats" style="font-size:0.8rem;color:#888;margin-top:0.5rem;display:none;">
+                <span id="results-found">0 companies found</span> • 
+                <span id="tasks-completed">0/0 tasks</span> • 
+                <span id="cache-hits">0 cached</span>
+              </div>
+            </div>
+            
+            <div id="research-results" style="background:#23242a;border-radius:8px;padding:1rem;max-height:400px;overflow-y:auto;">
+              <div style="color:#ccc;font-style:italic;">No research results yet. Start a research session to see structured data here.</div>
+            </div>
+          </div>
+          
+          <!-- Deep Research Tab Content -->
+          <div id="deepresearch-content" class="tab-content" style="display:none;">
+            <h3 style="margin:0 0 1rem 0;color:#2196f3;">🚀 Multi-Source Deep Research</h3>
+            <div style="background:#1a1a1a;border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #2196f3;">
+              <div style="font-size:0.9rem;color:#ccc;margin-bottom:0.5rem;">
+                <strong>Sources:</strong> Wikipedia • arXiv Papers • GitHub Repos • Web Search
+              </div>
+              <div style="font-size:0.85rem;color:#888;">
+                Advanced research with query expansion, intelligent ranking, and structured summarization with citations.
+              </div>
+            </div>
+            
+            <div style="margin-bottom:1rem;">
+              <input type="text" id="deep-research-query" placeholder="Enter research topic (e.g., 'quantum computing startups', 'machine learning research 2025', 'blockchain development tools')" 
+                style="width:95%;padding:0.8rem;border:1px solid #444;background:#23242a;color:#fff;border-radius:4px;margin-bottom:0.5rem;">
+              
+              <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+                <select id="research-mode" style="flex:1;padding:0.8rem;border:1px solid #444;background:#23242a;color:#fff;border-radius:4px;">
+                  <option value="fresh">🔥 Fresh Mode (Recent developments)</option>
+                  <option value="academic">🎓 Academic Mode (Research papers)</option>
+                  <option value="product">⚙️ Product Mode (Tools & implementations)</option>
+                </select>
+                <select id="research-limit" style="flex:0 0 120px;padding:0.8rem;border:1px solid #444;background:#23242a;color:#fff;border-radius:4px;">
+                  <option value="10">10 results</option>
+                  <option value="15" selected>15 results</option>
+                  <option value="20">20 results</option>
+                </select>
+              </div>
+              
+              <button id="start-deep-research" style="background:#2196f3;color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:4px;cursor:pointer;width:100%;">
+                🚀 Start Deep Research (2-3 min)
+              </button>
+            </div>
+            
+            <div id="deep-research-progress" style="background:#23242a;border-radius:8px;padding:1rem;margin-bottom:1rem;display:none;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                <span id="deep-research-status">Starting deep research...</span>
+                <span style="display:flex;align-items:center;gap:0.5rem;">
+                  <span id="deep-research-percentage">0%</span>
+                  <span id="deep-research-time" style="font-size:0.8rem;color:#888;"></span>
+                </span>
+              </div>
+              <div style="background:#444;border-radius:4px;height:8px;overflow:hidden;">
+                <div id="deep-research-progress-bar" style="background:#2196f3;height:100%;width:0%;transition:width 0.3s ease;"></div>
+              </div>
+              <div id="deep-research-current-task" style="font-size:0.85em;color:#ccc;margin-top:0.5rem;font-style:italic;"></div>
+              <div id="deep-research-stats" style="font-size:0.8rem;color:#888;margin-top:0.5rem;display:none;">
+                <span id="deep-sources-found">0 sources</span> • 
+                <span id="deep-variants-used">0 variants</span> • 
+                <span id="deep-source-types">0 source types</span>
+              </div>
+            </div>
+            
+            <div id="deep-research-results" style="background:#23242a;border-radius:8px;padding:1rem;max-height:500px;overflow-y:auto;">
+              <div style="color:#ccc;font-style:italic;">No deep research results yet. Start a research session to see comprehensive analysis with citations.</div>
+            </div>
+          </div>
+          
+          <!-- Email Outreach Tab Content -->
+          <div id="outreach-content" class="tab-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+              <h3 style="margin:0;color:#2196f3;">Email Outreach Log</h3>
+              <button onclick="loadEmailLogs()" style="background:#2196f3;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.9rem;">
+                🔄 Refresh
+              </button>
+            </div>
+            <div id="email-log-list">
+              <div style="color:#ccc;font-style:italic;">No emails sent yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="main">
+      <div id="title">ExaMark</div>
+      
+      <div id="chat-area">
+        <div id="chat"></div>
+      </div>
+      
+      <div id="input-area">
+        <textarea id="message" placeholder="Type your message..." rows="1"></textarea>
+        <button id="send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('message');
+    const send = document.getElementById('send');
+    const historyList = document.getElementById('history-list');
+    let chatHistory = [];
+
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMessage(text, 'user');
+      input.value = '';
+
+      // Normal chat flow
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'bubble ai';
+      aiBubble.textContent = '⏳ Thinking...';
+      chat.appendChild(aiBubble);
+      chat.scrollTop = chat.scrollHeight;
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'cole',
+          userInput: text,
+          chatHistory: chatHistory
+        })
+      });
+
+      const data = await res.json();
+      aiBubble.textContent = data.response || '⚠️ No response';
+      chatHistory.push({ input: text, output: data.response });
+      updateHistoryTab();
+      
+      // Check if the response indicates an email was sent
+      if (data.response && data.response.includes('✅ Email sent to')) {
+        // Refresh email logs after a short delay to ensure the log file is updated
+        setTimeout(loadEmailLogs, 1000);
+      }
+    }
+
+    function appendMessage(text, sender) {
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${sender}`;
+      bubble.textContent = text;
+      chat.appendChild(bubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function updateHistoryTab() {
+      historyList.innerHTML = '';
+      chatHistory.forEach((msg, index) => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        
+        const input = document.createElement('div');
+        input.className = 'history-input';
+        input.textContent = `You: ${msg.input}`;
+        
+        const output = document.createElement('div');
+        output.className = 'history-output';
+        output.textContent = `AI: ${msg.output}`;
+        
+        item.appendChild(input);
+        item.appendChild(output);
+        historyList.appendChild(item);
+      });
+    }
+
+    // Tab functionality
+    document.querySelectorAll('.horizontal-tab-button').forEach(button => {
+      button.addEventListener('click', () => {
+        // Remove active class from all buttons and content
+        document.querySelectorAll('.horizontal-tab-button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        
+        // Add active class to clicked button
+        button.classList.add('active');
+        
+        // Show corresponding content
+        const tabId = button.getAttribute('data-tab');
+        const content = document.getElementById(`${tabId}-content`);
+        if (content) {
+          content.style.display = 'block';
+        }
+      });
+    });
+
+    // Email logging functionality
+    function logEmailOutreach(to, subject, content) {
+      const emailLogList = document.getElementById('email-log-list');
+      
+      // Remove "No emails sent yet" message if it exists
+      const noEmailsMsg = emailLogList.querySelector('div[style*="font-style:italic"]');
+      if (noEmailsMsg) {
+        noEmailsMsg.remove();
+      }
+      
+      const emailItem = document.createElement('div');
+      emailItem.className = 'email-log-item';
+      
+      const toDiv = document.createElement('div');
+      toDiv.className = 'email-log-to';
+      toDiv.textContent = `To: ${to}`;
+      
+      const subjectDiv = document.createElement('div');
+      subjectDiv.className = 'email-log-subject';
+      subjectDiv.textContent = `Subject: ${subject}`;
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'email-log-content';
+      contentDiv.textContent = content;
+      
+      const timestampDiv = document.createElement('div');
+      timestampDiv.className = 'email-log-timestamp';
+      timestampDiv.textContent = `Sent: ${new Date().toLocaleString()}`;
+      
+      emailItem.appendChild(toDiv);
+      emailItem.appendChild(subjectDiv);
+      emailItem.appendChild(contentDiv);
+      emailItem.appendChild(timestampDiv);
+      
+      // Insert at the top of the list
+      emailLogList.insertBefore(emailItem, emailLogList.firstChild);
+    }
+
+    // Enter key handling
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    send.addEventListener('click', sendMessage);
+
+    // Auto-greeting initialization
+    async function initializeChat() {
+      try {
+        const userId = 'cole'; // You can make this dynamic if needed
+        const response = await fetch('/chat/init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
+        });
+        
+        const data = await response.json();
+        console.log('[FRONTEND] Init response:', data);
+        
+        if (data.greeting && data.isNewSession) {
+          console.log('[FRONTEND] Showing greeting for new session');
+          // Display the greeting message automatically
+          appendMessage(data.greeting, 'ai');
+          // Add to local chat history
+          chatHistory.push({ input: '[System Init]', output: data.greeting });
+        } else if (data.chatHistory && data.chatHistory.length > 0) {
+          console.log('[FRONTEND] Restoring chat history for returning user, count:', data.chatHistory.length);
+          // Restore previous chat history for returning users
+          data.chatHistory.forEach(msg => {
+            if (msg.input !== '[System Init]') {
+              appendMessage(msg.input, 'user');
+            }
+            appendMessage(msg.output, 'ai');
+          });
+          chatHistory = data.chatHistory;
+        } else {
+          console.log('[FRONTEND] No greeting or history to display');
+        }
+        
+        updateHistoryTab();
+      } catch (err) {
+        console.error('Failed to initialize chat:', err);
+      }
+    }
+    
+    // Initialize chat on page load
+    initializeChat();
+
+    // Research Tool Functionality
+    let currentResearchSession = null;
+    let researchEventSource = null;
+
+    document.getElementById('start-research').addEventListener('click', startResearch);
+    document.getElementById('research-query').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        startResearch();
+      }
+    });
+
+    async function startResearch() {
+      const query = document.getElementById('research-query').value.trim();
+      if (!query) {
+        alert('Please enter a research query');
+        return;
+      }
+
+      const sessionId = `research_${Date.now()}`;
+      currentResearchSession = sessionId;
+
+      // Show progress area
+      document.getElementById('research-progress').style.display = 'block';
+      document.getElementById('start-research').disabled = true;
+      document.getElementById('start-research').textContent = 'Research Running...';
+      
+      // Track start time for elapsed time display
+      window.researchStartTime = Date.now();
+
+      // Clear previous results
+      document.getElementById('research-results').innerHTML = '<div style="color:#ccc;font-style:italic;">Research starting...</div>';
+
+      try {
+        // Start research session
+        const response = await fetch('/api/research/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, sessionId })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to start research');
+        }
+
+        // Set up progress monitoring
+        monitorResearchProgress(sessionId);
+
+      } catch (err) {
+        console.error('Research error:', err);
+        document.getElementById('research-status').textContent = 'Research failed to start';
+        resetResearchUI();
+      }
+    }
+
+    function monitorResearchProgress(sessionId) {
+      if (researchEventSource) {
+        researchEventSource.close();
+      }
+
+      researchEventSource = new EventSource(`/api/research/progress/${sessionId}`);
+
+      researchEventSource.onmessage = function(event) {
+        const progress = JSON.parse(event.data);
+        updateResearchProgress(progress);
+      };
+
+      researchEventSource.addEventListener('end', function(event) {
+        const finalData = JSON.parse(event.data);
+        updateResearchProgress(finalData);
+        
+        if (finalData.completed || finalData.status === 'completed') {
+          loadResearchResults(sessionId);
+        }
+        
+        researchEventSource.close();
+        resetResearchUI();
+      });
+
+      researchEventSource.onerror = function() {
+        console.error('Research progress connection lost');
+        researchEventSource.close();
+        resetResearchUI();
+      };
+    }
+
+    function updateResearchProgress(progress) {
+      const statusEl = document.getElementById('research-status');
+      const percentageEl = document.getElementById('research-percentage');
+      const progressBarEl = document.getElementById('research-progress-bar');
+      const currentTaskEl = document.getElementById('research-current-task');
+      const timeEl = document.getElementById('research-time');
+      const statsEl = document.getElementById('research-stats');
+
+      // Update status text
+      const statusText = {
+        'starting': 'Starting research...',
+        'generating_tasks': 'Breaking down your query...',
+        'tasks_generated': 'Research tasks created',
+        'executing_tasks': 'Gathering data from multiple sources...',
+        'consolidating': 'Processing and organizing results...',
+        'finalizing': 'Creating final report...',
+        'completed': 'Research completed!',
+        'failed': 'Research failed'
+      };
+
+      statusEl.textContent = statusText[progress.status] || progress.status;
+      percentageEl.textContent = `${Math.round(progress.progress || 0)}%`;
+      progressBarEl.style.width = `${progress.progress || 0}%`;
+
+      // Show current task
+      if (progress.currentTask) {
+        currentTaskEl.textContent = `Current: ${progress.currentTask}`;
+      } else if (progress.taskProgress) {
+        currentTaskEl.textContent = `Task ${progress.taskProgress}`;
+      }
+
+      // Show time elapsed
+      if (progress.status === 'executing_tasks' || progress.status === 'consolidating') {
+        const elapsed = Date.now() - (window.researchStartTime || Date.now());
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        timeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Show stats if available
+        if (progress.totalResults || progress.completedTasks) {
+          statsEl.style.display = 'block';
+          document.getElementById('results-found').textContent = `${progress.totalResults || 0} companies found`;
+          document.getElementById('tasks-completed').textContent = `${progress.completedTasks || 0}/${progress.totalTasks || 0} tasks`;
+          if (progress.cacheHits) {
+            document.getElementById('cache-hits').textContent = `${progress.cacheHits} cached`;
+          }
+        }
+      }
+    }
+
+    async function loadResearchResults(sessionId) {
+      try {
+        const response = await fetch(`/api/research/results/${sessionId}`);
+        const data = await response.json();
+
+        if (data.success && data.results) {
+          displayResearchResults(data.results, data.summary);
+        } else {
+          document.getElementById('research-results').innerHTML = 
+            '<div style="color:#f44336;">Research completed but no results found</div>';
+        }
+      } catch (err) {
+        console.error('Failed to load results:', err);
+        document.getElementById('research-results').innerHTML = 
+          '<div style="color:#f44336;">Failed to load research results</div>';
+      }
+    }
+
+    function displayResearchResults(results, summary) {
+      const resultsEl = document.getElementById('research-results');
+      
+      if (!results || results.length === 0) {
+        resultsEl.innerHTML = '<div style="color:#ccc;">No companies found matching your criteria.</div>';
+        return;
+      }
+
+      let html = `
+        <div style="margin-bottom:1rem;padding:0.8rem;background:#343541;border-radius:6px;">
+          <strong>Research Summary:</strong><br>
+          Found ${results.length} companies • ${summary?.completedTasks || 0}/${summary?.totalTasks || 0} tasks completed
+          ${summary?.duration ? ` • ${Math.round(summary.duration / 1000)}s duration` : ''}
+        </div>
+      `;
+
+      results.slice(0, 50).forEach((company, index) => {
+        html += `
+          <div style="margin-bottom:1rem;padding:1rem;background:#343541;border-radius:6px;border-left:3px solid #2196f3;">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.5rem;">
+              <strong style="color:#90caf9;">${company.company_name || 'Unknown Company'}</strong>
+              <span style="background:#444;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem;">
+                ${Math.round((company.confidence || 0) * 100)}% confidence
+              </span>
+            </div>
+            
+            ${company.industry ? `<div style="color:#81c784;font-size:0.9rem;margin-bottom:0.3rem;">${company.industry}</div>` : ''}
+            ${company.size ? `<div style="color:#ccc;font-size:0.85rem;margin-bottom:0.3rem;">Size: ${company.size}</div>` : ''}
+            ${company.description ? `<div style="color:#ccc;font-size:0.85rem;margin-bottom:0.5rem;">${company.description}</div>` : ''}
+            
+            ${company.contacts && company.contacts.length > 0 ? `
+              <div style="margin-top:0.5rem;">
+                <strong style="color:#90caf9;font-size:0.9rem;">Contacts:</strong>
+                ${company.contacts.map(contact => `
+                  <div style="margin-left:1rem;margin-top:0.3rem;font-size:0.85rem;">
+                    <span style="color:#81c784;">${contact.name}</span> - ${contact.title}
+                    ${contact.email ? `<br><a href="mailto:${contact.email}" style="color:#64b5f6;">${contact.email}</a>` : ''}
+                    ${contact.linkedin ? `<br><a href="${contact.linkedin}" target="_blank" style="color:#64b5f6;">LinkedIn</a>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            
+            ${company.website ? `
+              <div style="margin-top:0.5rem;">
+                <a href="${company.website}" target="_blank" style="color:#64b5f6;font-size:0.85rem;">🌐 ${company.website}</a>
+              </div>
+            ` : ''}
+            
+            ${company.source_urls && company.source_urls.length > 0 ? `
+              <div style="margin-top:0.5rem;font-size:0.8rem;color:#888;">
+                Sources: ${company.source_urls.slice(0, 2).map(url => `<a href="${url}" target="_blank" style="color:#888;">link</a>`).join(', ')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      resultsEl.innerHTML = html;
+    }
+
+    function resetResearchUI() {
+      document.getElementById('start-research').disabled = false;
+      document.getElementById('start-research').textContent = '🔬 Start Research (5-10 min)';
+      
+      // Hide progress after delay
+      setTimeout(() => {
+        document.getElementById('research-progress').style.display = 'none';
+      }, 3000);
+    }
+
+    // Deep Research Tool Functionality
+    document.getElementById('start-deep-research').addEventListener('click', startDeepResearch);
+    document.getElementById('deep-research-query').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        startDeepResearch();
+      }
+    });
+
+    async function startDeepResearch() {
+      const query = document.getElementById('deep-research-query').value.trim();
+      if (!query) {
+        alert('Please enter a research query');
+        return;
+      }
+
+      const mode = document.getElementById('research-mode').value;
+      const limit = parseInt(document.getElementById('research-limit').value);
+
+      // Show progress area
+      document.getElementById('deep-research-progress').style.display = 'block';
+      document.getElementById('start-deep-research').disabled = true;
+      document.getElementById('start-deep-research').textContent = 'Deep Research Running...';
+      
+      // Track start time
+      window.deepResearchStartTime = Date.now();
+
+      // Clear previous results
+      document.getElementById('deep-research-results').innerHTML = '<div style="color:#ccc;font-style:italic;">Deep research starting...</div>';
+
+      try {
+        // Start progress simulation immediately
+        simulateDeepResearchProgress();
+
+        // Start deep research
+        const response = await fetch('/api/research/deep', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, mode, limit })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to start deep research');
+        }
+
+        const data = await response.json();
+        
+        // Stop the simulation
+        if (window.deepResearchProgressInterval) {
+          clearInterval(window.deepResearchProgressInterval);
+        }
+
+        // Show completion
+        document.getElementById('deep-research-status').textContent = 'Research completed!';
+        document.getElementById('deep-research-percentage').textContent = '100%';
+        document.getElementById('deep-research-progress-bar').style.width = '100%';
+        
+        if (data.success) {
+          displayDeepResearchResults(data);
+        } else {
+          document.getElementById('deep-research-results').innerHTML = 
+            `<div style="color:#f44336;">Deep research failed: ${data.error || 'Unknown error'}</div>`;
+        }
+
+      } catch (err) {
+        console.error('Deep research error:', err);
+        
+        // Stop the simulation
+        if (window.deepResearchProgressInterval) {
+          clearTimeout(window.deepResearchProgressInterval);
+        }
+        
+        document.getElementById('deep-research-results').innerHTML = 
+          '<div style="color:#f44336;">Failed to start deep research. Please try again.</div>';
+      } finally {
+        resetDeepResearchUI();
+      }
+    }
+
+    function simulateDeepResearchProgress() {
+      const statusEl = document.getElementById('deep-research-status');
+      const percentageEl = document.getElementById('deep-research-percentage');
+      const progressBarEl = document.getElementById('deep-research-progress-bar');
+      const timeEl = document.getElementById('deep-research-time');
+      const currentTaskEl = document.getElementById('deep-research-current-task');
+      const statsEl = document.getElementById('deep-research-stats');
+
+      const stages = [
+        { stage: 'starting', progress: 5, text: 'Initializing deep research...', duration: 500 },
+        { stage: 'expanding', progress: 15, text: 'Expanding query variants...', task: 'Generating search variants', duration: 800 },
+        { stage: 'fetching', progress: 30, text: 'Fetching from multiple sources...', task: 'Searching Wikipedia, arXiv, GitHub, Web', duration: 1200 },
+        { stage: 'wikipedia', progress: 45, text: 'Fetching Wikipedia articles...', task: 'Encyclopedia and knowledge base search', duration: 1000 },
+        { stage: 'arxiv', progress: 60, text: 'Searching arXiv papers...', task: 'Academic research papers', duration: 1000 },
+        { stage: 'github', progress: 75, text: 'Scanning GitHub repositories...', task: 'Code repositories and documentation', duration: 800 },
+        { stage: 'processing', progress: 85, text: 'Processing and deduplicating...', task: 'Normalizing and removing duplicates', duration: 600 },
+        { stage: 'summarizing', progress: 95, text: 'Creating summary...', task: 'Generating comprehensive analysis', duration: 800 }
+      ];
+
+      let currentStage = 0;
+
+      const nextStage = () => {
+        if (currentStage < stages.length) {
+          const stage = stages[currentStage];
+          
+          statusEl.textContent = stage.text;
+          percentageEl.textContent = `${stage.progress}%`;
+          progressBarEl.style.width = `${stage.progress}%`;
+          
+          if (stage.task) {
+            currentTaskEl.textContent = stage.task;
+          }
+
+          // Show time elapsed
+          const elapsed = Date.now() - (window.deepResearchStartTime || Date.now());
+          const minutes = Math.floor(elapsed / 60000);
+          const seconds = Math.floor((elapsed % 60000) / 1000);
+          timeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+          // Show stats for later stages
+          if (currentStage > 2) {
+            statsEl.style.display = 'block';
+            const variants = Math.min(currentStage - 1, 3);
+            const sources = Math.min((currentStage - 2) * 6, 25);
+            const sourceTypes = Math.min(Math.floor(currentStage / 2), 4);
+            
+            document.getElementById('deep-variants-used').textContent = `${variants} variants`;
+            document.getElementById('deep-sources-found').textContent = `${sources} sources`;
+            document.getElementById('deep-source-types').textContent = `${sourceTypes} source types`;
+          }
+
+          currentStage++;
+          
+          // Schedule next stage
+          if (currentStage < stages.length) {
+            window.deepResearchProgressInterval = setTimeout(nextStage, stage.duration);
+          }
+        }
+      };
+
+      // Start the first stage immediately
+      nextStage();
+    }
+
+    function updateDeepResearchProgress(progress) {
+      const statusEl = document.getElementById('deep-research-status');
+      const percentageEl = document.getElementById('deep-research-percentage');
+      const progressBarEl = document.getElementById('deep-research-progress-bar');
+      const timeEl = document.getElementById('deep-research-time');
+      const currentTaskEl = document.getElementById('deep-research-current-task');
+      const statsEl = document.getElementById('deep-research-stats');
+
+      // Update status text
+      const statusText = {
+        'starting': 'Starting research...',
+        'variants': 'Generating query variants...',
+        'searching': 'Searching multiple sources...',
+        'processing': 'Processing results...',
+        'summarizing': 'Creating summary...',
+        'completed': 'Research completed!',
+        'failed': 'Research failed'
+      };
+
+      statusEl.textContent = progress.message || statusText[progress.stage] || progress.stage;
+      percentageEl.textContent = `${Math.round(progress.progress || 0)}%`;
+      progressBarEl.style.width = `${progress.progress || 0}%`;
+
+      // Show current task details
+      if (progress.currentVariant && progress.totalVariants) {
+        currentTaskEl.textContent = `Variant ${progress.currentVariant}/${progress.totalVariants}`;
+      } else if (progress.message) {
+        currentTaskEl.textContent = progress.message;
+      }
+
+      // Show time elapsed
+      const elapsed = Date.now() - (window.deepResearchStartTime || Date.now());
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+      timeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      // Show stats for later stages
+      if (progress.progress > 50) {
+        statsEl.style.display = 'block';
+        const variants = progress.totalVariants || 3;
+        const sources = Math.min(progress.progress - 30, 25);
+        const sourceTypes = 4;
+        
+        document.getElementById('deep-variants-used').textContent = `${variants} variants`;
+        document.getElementById('deep-sources-found').textContent = `${sources} sources`;
+        document.getElementById('deep-source-types').textContent = `${sourceTypes} source types`;
+      }
+    }
+
+    function parseMarkdownToHTML(markdown) {
+      if (!markdown) return '';
+      
+      return markdown
+        // Headers
+        .replace(/^### (.*$)/gm, '<h3 style="color:#4caf50;margin:1rem 0 0.5rem 0;font-size:1.1rem;">$1</h3>')
+        .replace(/^## (.*$)/gm, '<h2 style="color:#2196f3;margin:1.2rem 0 0.6rem 0;font-size:1.2rem;">$1</h2>')
+        .replace(/^# (.*$)/gm, '<h1 style="color:#fff;margin:1.4rem 0 0.8rem 0;font-size:1.3rem;">$1</h1>')
+        // Bold text
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#fff;">$1</strong>')
+        // Italic text
+        .replace(/\*(.*?)\*/g, '<em style="color:#ccc;">$1</em>')
+        // Line breaks and paragraphs
+        .replace(/\n\n/g, '</p><p style="margin:0.5rem 0;line-height:1.5;">')
+        .replace(/\n/g, '<br>')
+        // Wrap in paragraph tags
+        .replace(/^(?!<[h123]|<p)(.+)/gm, '<p style="margin:0.5rem 0;line-height:1.5;">$1</p>')
+        // Clean up any double paragraph tags
+        .replace(/<p[^>]*><\/p>/g, '')
+        .replace(/^<\/p>/, '')
+        .replace(/<p[^>]*>$/, '');
+    }
+
+    function displayDeepResearchResults(data) {
+      const resultsEl = document.getElementById('deep-research-results');
+      
+      if (!data.summary || !data.sources || data.sources.length === 0) {
+        resultsEl.innerHTML = '<div style="color:#f44336;">No results found</div>';
+        return;
+      }
+
+      const { summary, sources, metadata } = data;
+      
+      let html = `
+        <!-- Executive Summary -->
+        <div style="background:#1a1a1a;border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #4caf50;">
+          <h4 style="margin:0 0 0.5rem 0;color:#4caf50;font-size:1rem;">📊 Research Summary</h4>
+          <div style="font-size:0.9rem;line-height:1.5;">${parseMarkdownToHTML(summary)}</div>
+          <div style="margin-top:0.5rem;font-size:0.8rem;color:#888;">
+            ${metadata.totalResults} total • ${metadata.uniqueResults} unique • ${sources.length} final results
+          </div>
+        </div>
+
+        <!-- Source Results -->
+        <div style="margin-bottom:1rem;">
+          <h4 style="margin:0 0 0.5rem 0;color:#2196f3;font-size:1rem;">🔍 Sources (${sources.length})</h4>
+      `;
+
+      sources.forEach((result, index) => {
+        const sourceIcon = {
+          'Wikipedia': '📖',
+          'arXiv': '📄', 
+          'GitHub': '💻',
+          'Web': '🌐'
+        }[result.source] || '📄';
+
+        const sourceColor = {
+          'Wikipedia': '#ff9800',
+          'arXiv': '#9c27b0',
+          'GitHub': '#2196f3', 
+          'Web': '#4caf50'
+        }[result.source] || '#888';
+
+        html += `
+          <div style="background:#23242a;border-radius:6px;padding:1rem;margin-bottom:0.8rem;border-left:3px solid ${sourceColor};">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.5rem;">
+              <div style="font-weight:bold;color:#fff;flex:1;margin-right:1rem;">
+                ${sourceIcon} ${result.title}
+              </div>
+              <div style="font-size:0.75rem;color:${sourceColor};text-transform:uppercase;font-weight:bold;white-space:nowrap;">
+                ${result.source}
+              </div>
+            </div>
+            
+            <div style="color:#ccc;font-size:0.9rem;line-height:1.4;margin-bottom:0.5rem;">
+              ${result.snippet}
+            </div>
+            
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;color:#888;">
+              <a href="${result.url}" target="_blank" style="color:#64b5f6;text-decoration:none;">
+                🔗 View Source
+              </a>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+
+      // Source breakdown
+      if (metadata.sourceBreakdown) {
+        html += `
+          <div style="margin-top:1rem;">
+            <h4 style="margin:0 0 0.5rem 0;color:#ff9800;font-size:1rem;">📊 Source Breakdown</h4>
+            <div style="font-size:0.85rem;color:#ccc;display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;">
+              <div>🌐 Web: ${metadata.sourceBreakdown.web}</div>
+              <div>📖 Wikipedia: ${metadata.sourceBreakdown.wikipedia}</div>
+              <div>📄 arXiv: ${metadata.sourceBreakdown.arxiv}</div>
+              <div>💻 GitHub: ${metadata.sourceBreakdown.github}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      resultsEl.innerHTML = html;
+    }
+
+    function resetDeepResearchUI() {
+      document.getElementById('start-deep-research').disabled = false;
+      document.getElementById('start-deep-research').textContent = '🚀 Start Deep Research (2-3 min)';
+      
+      // Hide progress after delay
+      setTimeout(() => {
+        document.getElementById('deep-research-progress').style.display = 'none';
+      }, 3000);
+    }
+
+    // Load email logs on page load
+    async function loadEmailLogs() {
+      try {
+        console.log('[FRONTEND] Loading email logs...');
+        const response = await fetch('/api/email/logs');
+        const logs = await response.json();
+        console.log('[FRONTEND] Received email logs:', logs);
+        
+        const emailLogList = document.getElementById('email-log-list');
+        emailLogList.innerHTML = ''; // Clear existing content
+        
+        if (logs.length === 0) {
+          console.log('[FRONTEND] No email logs found');
+          emailLogList.innerHTML = '<div style="color:#ccc;font-style:italic;">No emails sent yet.</div>';
+          return;
+        }
+        
+        console.log('[FRONTEND] Displaying', logs.length, 'email logs');
+        logs.forEach(log => {
+          const emailItem = document.createElement('div');
+          emailItem.className = 'email-log-item';
+          
+          const toDiv = document.createElement('div');
+          toDiv.className = 'email-log-to';
+          toDiv.textContent = `To: ${log.to}`;
+          
+          const subjectDiv = document.createElement('div');
+          subjectDiv.className = 'email-log-subject';
+          subjectDiv.textContent = `Subject: ${log.subject}`;
+          
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'email-log-content';
+          contentDiv.textContent = log.body;
+          
+          const timestampDiv = document.createElement('div');
+          timestampDiv.className = 'email-log-timestamp';
+          const date = new Date(log.timestamp);
+          timestampDiv.textContent = `Sent: ${date.toLocaleString()} (${log.status})`;
+          
+          emailItem.appendChild(toDiv);
+          emailItem.appendChild(subjectDiv);
+          emailItem.appendChild(contentDiv);
+          emailItem.appendChild(timestampDiv);
+          
+          emailLogList.appendChild(emailItem);
+        });
+      } catch (error) {
+        console.error('[FRONTEND] Failed to load email logs:', error);
+      }
+    }
+
+    // Load email logs when page loads
+    document.addEventListener('DOMContentLoaded', loadEmailLogs);
+  </script>
+</body>
+</html>

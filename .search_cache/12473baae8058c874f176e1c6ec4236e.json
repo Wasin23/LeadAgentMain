@@ -1,0 +1,81 @@
+{
+  "searchParameters": {
+    "q": "research improvements in quantum computing running ai",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Quantum Computers Will Make AI Better",
+      "link": "https://www.quantinuum.com/blog/quantum-computers-will-make-ai-better",
+      "snippet": "Quantum computers will drive AI to new heights, enabling better accuracy and therefore better performance, and scalable sustainable growth.",
+      "date": "Jan 22, 2025",
+      "position": 1
+    },
+    {
+      "title": "Your Guide to Quantum AI - The future of computing?",
+      "link": "https://meetiqm.com/blog/quantum-ai-the-future-of-computing-or-just-hype/",
+      "snippet": "Better quantum hardware: More stable qubits, improved coherence times, and larger qubit counts. · Hybrid quantum-classical computing: In the near ...",
+      "date": "Apr 16, 2025",
+      "position": 2
+    },
+    {
+      "title": "Quantum machine learning: A comprehensive review of ...",
+      "link": "https://www.sciencedirect.com/science/article/pii/S2215016125001645",
+      "snippet": "by RM Devadas · 2025 — The survey outlines open research problems in quantum machine learning, including improving quantum kernel methods, developing noise-tolerant quantum circuits, ...",
+      "position": 3
+    },
+    {
+      "title": "Enabling Quantum Computing with AI",
+      "link": "https://developer.nvidia.com/blog/enabling-quantum-computing-with-ai/",
+      "snippet": "This post explores three key aspects of quantum computing that are supported by AI—the processor, error correction, and algorithms ...",
+      "date": "May 12, 2024",
+      "position": 4
+    },
+    {
+      "title": "The Relationship Between AI and Quantum Computing | CSA",
+      "link": "https://cloudsecurityalliance.org/blog/2025/01/20/quantum-artificial-intelligence-exploring-the-relationship-between-ai-and-quantum-computing",
+      "snippet": "Quantum computing going mainstream would help us more efficiently and effectively clean data before we teach AI. That's going to result in the ...",
+      "date": "Jan 20, 2025",
+      "position": 5
+    },
+    {
+      "title": "Harnessing the Power of Quantum Computing for AI",
+      "link": "https://scsp222.substack.com/p/quantum-ai-harnessing-the-power-of",
+      "snippet": "Beyond speed improvements, quantum computing could revolutionize AI through enhanced optimization algorithms, more sophisticated model ...",
+      "date": "8 months ago",
+      "position": 6
+    },
+    {
+      "title": "Chinese Researchers Use Quantum Computer to Fine ...",
+      "link": "https://thequantuminsider.com/2025/04/07/chinese-researchers-use-quantum-computer-to-fine-tune-billion-parameter-ai-model/",
+      "snippet": "Chinese scientists used a quantum computer to fine-tune a billion-parameter artificial intelligence (AI) model, marking what they claim is a global first.",
+      "date": "Apr 7, 2025",
+      "position": 7
+    },
+    {
+      "title": "Quantum computing and artificial intelligence: status and ...",
+      "link": "https://arxiv.org/html/2505.23860v3",
+      "snippet": "Many AI-driven techniques are already enabling significant progress in quantum computing research and industry developments, from optimizing ...",
+      "date": "Jun 30, 2025",
+      "position": 8
+    },
+    {
+      "title": "Quantum computing and AI – A superpower in the making?",
+      "link": "https://www.rolandberger.com/en/Insights/Publications/Quantum-computing-and-AI-A-superpower-in-the-making.html",
+      "snippet": "This new Roland Berger publication explores the potential – and the problems – in bringing proven artificial intelligence (AI) together with emerging quantum ...",
+      "date": "Dec 20, 2024",
+      "position": 9
+    },
+    {
+      "title": "Perspective Transforming research with quantum computing",
+      "link": "https://www.sciencedirect.com/science/article/pii/S2949948824000295",
+      "snippet": "by SS Gill · 2024 · Cited by 41 — Collaboration between quantum computing and AI could enable possible advances in fields such as encryption, finance modelling, materials research, and health ...",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

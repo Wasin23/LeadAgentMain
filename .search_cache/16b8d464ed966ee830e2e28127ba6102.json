@@ -1,0 +1,120 @@
+{
+  "searchParameters": {
+    "q": "battle of verdun death toll latest",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "The Battle of Verdun",
+      "link": "https://memorial-verdun.fr/en/ressources/la-bataille-de-verdun",
+      "snippet": "Intended to ease pressure on Verdun, it became a deadlocked battle of attrition, failing to break through the German front. After ten months of fighting, the Battle of Verdun ended on 18 December 1916. There were 700,000 victims: 306,000 dead or missing and around 400,000 injured.",
+      "position": 1
+    },
+    {
+      "title": "Battle of Verdun - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/Battle_of_Verdun",
+      "snippet": "In 2014, William Philpott wrote of 714,000 casualties suffered by both sides during the Battle of Verdun in 1916 and that about 1,250,000 casualties were ...",
+      "sitelinks": [
+        {
+          "title": "Battle of Verdun (1792)",
+          "link": "https://en.wikipedia.org/wiki/Battle_of_Verdun_(1792)"
+        },
+        {
+          "title": "Second Battle of Champagne",
+          "link": "https://en.wikipedia.org/wiki/Second_Battle_of_Champagne"
+        },
+        {
+          "title": "Fort Douaumont",
+          "link": "https://en.wikipedia.org/wiki/Fort_Douaumont"
+        },
+        {
+          "title": "Fort Vaux",
+          "link": "https://en.wikipedia.org/wiki/Fort_Vaux"
+        }
+      ],
+      "position": 2
+    },
+    {
+      "title": "Battle of Verdun | Map, Casualties, Significance, Summary, & Facts",
+      "link": "https://www.britannica.com/event/Battle-of-Verdun",
+      "snippet": "It was one of the longest, bloodiest, and most-ferocious battles of the war; French casualties amounted to about 400,000, German ones to about ...",
+      "date": "Aug 2, 2025",
+      "position": 3
+    },
+    {
+      "title": "What Was The Battle Of Verdun? - Imperial War Museums",
+      "link": "https://www.iwm.org.uk/history/what-was-the-battle-of-verdun",
+      "snippet": "The French had lost 377,000 men and the Germans 330,000. Falkenhayn's plan to destroy the French army had failed. Even worse from a German perspective, the ...",
+      "position": 4
+    },
+    {
+      "title": "The Battle of Verdun and the number of casualties",
+      "link": "https://www.wereldoorlog1418.nl/battleverdun/slachtoffers.htm",
+      "snippet": "Of this number 162,308 are dead or missing. The most reliable estimates of the German losses mention 337,000 of which 100,000 dead, wounded or missing ( ...",
+      "position": 5
+    },
+    {
+      "title": "Battle of Verdun - WWI, French, German - Britannica",
+      "link": "https://www.britannica.com/event/Battle-of-Verdun/The-tide-turns-at-Verdun",
+      "snippet": "The general Allied infantry assault began on July 1, and the British suffered nearly 60,000 casualties—with 20,000 killed—on the first day alone.",
+      "position": 6
+    },
+    {
+      "title": "1916: Year of attrition | National Army Museum",
+      "link": "https://www.nam.ac.uk/explore/1916-year-attrition",
+      "snippet": "On 21 February 1916, the Germans attacked Verdun in what became the longest battle of the war. ... German losses were at least 450,000 killed and wounded.",
+      "position": 7
+    },
+    {
+      "title": "10 Things You May Not Know About the Battle of Verdun | HISTORY",
+      "link": "https://www.history.com/articles/10-things-you-may-not-know-about-the-battle-of-verdun",
+      "snippet": "By the end, casualties numbered about 400,000 for the French and 350,000 for the Germans. In total, about 300,000 were killed. 1. The Germans ...",
+      "date": "Feb 19, 2016",
+      "position": 8
+    },
+    {
+      "title": "The End of the Battle of Verdun - History of the Germans Podcast",
+      "link": "https://historyofthegermans.com/2021/12/18/the-end-of-the-battle-of-verdun/",
+      "snippet": "The number of casualties are disputed but numbers go up to 300,000 deaths and maybe another 500,000 severely wounded. The German strategic plan ...",
+      "date": "Dec 18, 2021",
+      "position": 9
+    },
+    {
+      "title": "WW1: What caused Verdun to be the longest battle of the war? - BBC",
+      "link": "https://www.bbc.co.uk/teach/articles/z73v6v4",
+      "snippet": "It was also the longest battle, lasting 300 days and leaving an estimated 800,000 soldiers dead, wounded or missing. At the end of the bloodshed, France emerged ...",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "who won the battle of verdun"
+    },
+    {
+      "query": "battle of verdun casualties"
+    },
+    {
+      "query": "battle of verdun significance"
+    },
+    {
+      "query": "battle of verdun summary"
+    },
+    {
+      "query": "battle of verdun map"
+    },
+    {
+      "query": "battle of verdun facts"
+    },
+    {
+      "query": "how long was the battle of verdun"
+    },
+    {
+      "query": "why did the battle of verdun happen"
+    }
+  ],
+  "credits": 1
+}

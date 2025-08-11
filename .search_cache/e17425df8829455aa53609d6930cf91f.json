@@ -1,0 +1,82 @@
+{
+  "searchParameters": {
+    "q": "research the largest cloud run systems 2024",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "21+ Top Cloud Service Providers Globally In 2025",
+      "link": "https://www.cloudzero.com/blog/cloud-service-providers/",
+      "snippet": "AWS, Azure, and Google Cloud control 63% of worldwide cloud infrastructure. Here are the other major cloud service providers (CSPs) by market share today.",
+      "date": "May 21, 2025",
+      "position": 1
+    },
+    {
+      "title": "Top 10 Cloud Service Providers Globally in 2024",
+      "link": "https://dgtlinfra.com/top-cloud-service-providers/",
+      "snippet": "The top 10 cloud service providers globally in 2024 are Amazon Web Services (AWS), Microsoft Azure, Google Cloud Platform (GCP), Alibaba Cloud, Oracle Cloud, ...",
+      "position": 2
+    },
+    {
+      "title": "Amazon and Microsoft Stay Ahead in Global Cloud Market",
+      "link": "https://www.statista.com/chart/18819/worldwide-market-share-of-leading-cloud-infrastructure-service-providers/",
+      "snippet": "Amazon's market share in the worldwide cloud infrastructure market amounted to 30 percent in the fourth quarter of 2024, ahead of Microsoft's Azure platform at ...",
+      "date": "Feb 27, 2025",
+      "position": 3
+    },
+    {
+      "title": "90+ Cloud Computing Statistics: A 2025 Market Snapshot",
+      "link": "https://www.cloudzero.com/blog/cloud-computing-statistics/",
+      "snippet": "AWS led the cloud market with 32% share in 2024 (Source: Synergy Research Group) AWS remains the top provider. Azure follows at 23%, and Google ...",
+      "date": "May 12, 2025",
+      "position": 4
+    },
+    {
+      "title": "Re-evaluating cloud providers for 2024? : r/ExperiencedDevs",
+      "link": "https://www.reddit.com/r/ExperiencedDevs/comments/180oq3k/reevaluating_cloud_providers_for_2024/",
+      "snippet": "AWS has been the most reliable, followed by Azure and GCP.",
+      "date": "1 year ago",
+      "position": 5
+    },
+    {
+      "title": "2024 Cloud Market Share Analysis: Decoding Industry ...",
+      "link": "https://www.hava.io/blog/2024-cloud-market-share-analysis-decoding-industry-leaders-and-trends",
+      "snippet": "We'll evaluate the standing of leaders like AWS, Microsoft Azure, and Google Cloud, disclose notable trends, and discuss the industry's trajectory.",
+      "date": "Jan 11, 2024",
+      "position": 6
+    },
+    {
+      "title": "2024 Gartner Magic Quadrant for Cloud Database ...",
+      "link": "https://cloud.google.com/blog/products/databases/2024-gartner-magic-quadrant-for-cloud-database-management-systems",
+      "snippet": "Gartner has recognized Google as a Leader in the 2024 Gartner Magic Quadrant for Cloud Database Management Systems for the fifth year in a row.",
+      "date": "Dec 24, 2024",
+      "position": 7
+    },
+    {
+      "title": "Forbes Cloud 100 2024 List",
+      "link": "https://www.forbes.com/lists/cloud100/",
+      "snippet": "Discover the Forbes Cloud 100 list, the ninth annual ranking of the top private cloud computing companies. See how AI is driving change ...",
+      "date": "Aug 6, 2024",
+      "position": 8
+    },
+    {
+      "title": "How Many Companies Use Cloud Computing in 2024? [10 ...",
+      "link": "https://edgedelta.com/company/blog/how-many-companies-use-cloud-computing",
+      "snippet": "The top 3 cloud service providers comprised of AWS, Microsoft Azure, and Google Cloud grew by 21%, accounting for 66% or $78.1 billion of total ...",
+      "date": "May 17, 2024",
+      "position": 9
+    },
+    {
+      "title": "The 100 Hottest Cloud Computing Companies Of 2024",
+      "link": "https://www.crn.com/news/cloud/2024/the-100-hottest-cloud-computing-companies-of-2024",
+      "snippet": "Here are the 100 cloud computing companies of 2024 with the most innovative offerings around cloud security, software, infrastructure, storage and management ...",
+      "date": "Jan 22, 2024",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

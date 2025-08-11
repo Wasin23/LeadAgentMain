@@ -1,0 +1,72 @@
+{
+  "searchParameters": {
+    "q": "research colonia eigniead",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "searchInformation": {
+    "didYouMean": "research colonial engineer"
+  },
+  "organic": [
+    {
+      "title": "Master Integrated Design Research - KISD",
+      "link": "https://kisd.de/en/application/ma-integrated-design/",
+      "snippet": "Missing: colonia eigniead",
+      "position": 1
+    },
+    {
+      "title": "Integrated Design Research (Master's program) - TH Köln",
+      "link": "https://www.th-koeln.de/en/academics/integrated-design-master_5833.php",
+      "snippet": "The Master's program »Integrated Design Research« offers you a specific range of design perspectives in four thematic clusters.",
+      "position": 2
+    },
+    {
+      "title": "Integrated Design Research (Master's program) - TH Köln",
+      "link": "https://www.th-koeln.de/en/academics/integrated-design-masters-program_12368.php",
+      "snippet": "Missing: colonia eigniead",
+      "position": 3
+    },
+    {
+      "title": "Integrated Design Research (Master of Arts) - International ... - DAAD",
+      "link": "https://www2.daad.de/deutschland/studienangebote/international-programmes/en/detail/3990/",
+      "snippet": "The new group of Master of Arts (MA) students starts in mid-September in Cologne with two introductory weeks. During this time, students will get to know ...",
+      "position": 4
+    },
+    {
+      "title": "MA Integrated Design Research | TH Cologne - My German University",
+      "link": "https://www.mygermanuniversity.com/master/integrated-design-research/687",
+      "snippet": "Missing: colonia eigniead",
+      "position": 5
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "integrated design research"
+    },
+    {
+      "query": "cologne university of applied sciences"
+    },
+    {
+      "query": "university of cologne data science"
+    },
+    {
+      "query": "university of cologne computer science"
+    },
+    {
+      "query": "kisd"
+    },
+    {
+      "query": "design research master's"
+    },
+    {
+      "query": "universities in cologne"
+    },
+    {
+      "query": "köln"
+    }
+  ],
+  "credits": 1
+}

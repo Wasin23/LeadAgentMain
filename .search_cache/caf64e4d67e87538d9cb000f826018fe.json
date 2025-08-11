@@ -1,0 +1,117 @@
+{
+  "searchParameters": {
+    "q": "research improvements in quantum computing running ai 2024",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Quantum Computing 2024: AI, Innovation & Research Trends",
+      "link": "https://www.firstignite.com/exploring-the-latest-quantum-computing-advancements-in-2024/",
+      "snippet": "Innovations in Quantum Computing in 2024  Researchers are making significant strides in increasing qubit counts and improving coherence times , enabling more complex and powerful quantum systems. Advancements in quantum software and programming frameworks will enhance the accessibility of quantum computing.",
+      "position": 1
+    },
+    {
+      "title": "The Relationship Between AI and Quantum Computing | CSA",
+      "link": "https://cloudsecurityalliance.org/blog/2025/01/20/quantum-artificial-intelligence-exploring-the-relationship-between-ai-and-quantum-computing",
+      "snippet": "Quantum computing going mainstream would help us more efficiently and effectively clean data before we teach AI. That's going to result in the ...",
+      "date": "Jan 20, 2025",
+      "position": 2
+    },
+    {
+      "title": "Discover How AI is Transforming Quantum Computing",
+      "link": "https://thequantuminsider.com/2024/11/13/discover-how-ai-is-transforming-quantum-computing/",
+      "snippet": "This article covers AI and quantum technologies with QAI Ventures, a financial partner and ecosystem builder in emerging technologies.",
+      "date": "Nov 13, 2024",
+      "position": 3
+    },
+    {
+      "title": "A comprehensive review of integrating AI with quantum computing ...",
+      "link": "https://www.sciencedirect.com/science/article/pii/S2215016125001645",
+      "snippet": "The survey outlines open research problems in quantum machine learning, including improving quantum kernel methods, developing noise-tolerant quantum circuits, ...",
+      "position": 4
+    },
+    {
+      "title": "Harnessing the Power of Quantum Computing for AI",
+      "link": "https://scsp222.substack.com/p/quantum-ai-harnessing-the-power-of",
+      "snippet": "Beyond speed improvements, quantum computing could revolutionize AI through enhanced optimization algorithms, more sophisticated model ...",
+      "date": "Nov 22, 2024",
+      "position": 5
+    },
+    {
+      "title": "10 quantum computing milestones | Network World",
+      "link": "https://www.networkworld.com/article/3618098/10-quantum-computing-milestones-of-2024.html",
+      "snippet": "But major vendors have made significant progress in improving capabilities and reducing error rates, and investment hit an all-time high in 2024 ...",
+      "date": "Dec 16, 2024",
+      "position": 6
+    },
+    {
+      "title": "Quantum computing to improve AI models - Reddit",
+      "link": "https://www.reddit.com/r/QuantumComputing/comments/1fw0h01/quantum_computing_to_improve_ai_models/",
+      "snippet": "Quantum Computing is fantastic for modeling natural things. Like physics, biology, chemistry, and so on. Not so much for language. Perhaps ...",
+      "date": "Oct 4, 2024",
+      "position": 7
+    },
+    {
+      "title": "The Long-Term Forecast for Quantum Computing Still Looks Bright",
+      "link": "https://www.bcg.com/publications/2024/long-term-forecast-for-quantum-computing-still-looks-bright",
+      "snippet": "We also remain confident about our projection that quantum computing will create $450 billion to $850 billion of economic value.",
+      "date": "Jul 18, 2024",
+      "position": 8
+    },
+    {
+      "title": "What Is Quantum Computing? | IBM",
+      "link": "https://www.ibm.com/think/topics/quantum-computing",
+      "snippet": "Quantum computing is a rapidly-emerging technology that harnesses the laws of quantum mechanics to solve problems too complex for classical ...",
+      "date": "Jun 10, 2025",
+      "sitelinks": [
+        {
+          "title": "What is quantum computing?",
+          "link": "https://www.ibm.com/think/topics/quantum-computing#What+is+quantum+computing%3F"
+        },
+        {
+          "title": "Practical applications for...",
+          "link": "https://www.ibm.com/think/topics/quantum-computing#Practical+applications+for+quantum+computing"
+        }
+      ],
+      "position": 9
+    },
+    {
+      "title": "What is quantum computing? - McKinsey",
+      "link": "https://www.mckinsey.com/featured-insights/mckinsey-explainers/what-is-quantum-computing",
+      "snippet": "AI can enhance quantum-system simulations for algorithm and hardware testing, as well as aid research by emulating quantum processes on ...",
+      "date": "Mar 31, 2025",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "how will quantum computing affect artificial intelligence applications"
+    },
+    {
+      "query": "is quantum computing the next ai"
+    },
+    {
+      "query": "quantum computing combined with ai"
+    },
+    {
+      "query": "future of quantum ai"
+    },
+    {
+      "query": "quantum computing company news"
+    },
+    {
+      "query": "quantum computing breakthrough"
+    },
+    {
+      "query": "quantum computing updates"
+    },
+    {
+      "query": "quantum computing scientific american"
+    }
+  ],
+  "credits": 1
+}

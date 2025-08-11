@@ -1,0 +1,129 @@
+{
+  "searchParameters": {
+    "q": "artificial intelligence 2024",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "The State of AI: Global survey - McKinsey",
+      "link": "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai",
+      "snippet": "Individual use of gen AI by our respondents also increased significantly in 2024, with C-level executives leading the way (exhibit). Fifty-three ...",
+      "date": "Mar 12, 2025",
+      "sitelinks": [
+        {
+          "title": "McKinsey's 2024 AI Adoption...",
+          "link": "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai-2024"
+        },
+        {
+          "title": "Digital and AI leaders",
+          "link": "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/rewired-and-running-ahead-digital-and-ai-leaders-are-leaving-the-rest-behind"
+        },
+        {
+          "title": "A generative AI reset",
+          "link": "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/a-generative-ai-reset-rewiring-to-turn-potential-into-value-in-2024"
+        }
+      ],
+      "position": 1
+    },
+    {
+      "title": "The 2024 AI Index Report | Stanford HAI",
+      "link": "https://hai.stanford.edu/ai-index/2024-ai-index-report",
+      "snippet": "The AI Index report tracks, collates, distills, and visualizes data related to artificial intelligence (AI).",
+      "position": 2
+    },
+    {
+      "title": "2024: A year of extraordinary progress and advancement in AI",
+      "link": "https://blog.google/technology/ai/2024-ai-extraordinary-progress-advancement/",
+      "snippet": "At the start of 2024, we introduced ImageFX, a new generative AI tool that creates images from text prompts, and MusicFX, a tool for creating up ...",
+      "date": "Jan 23, 2025",
+      "position": 3
+    },
+    {
+      "title": "How the Benefits—and Harms—of AI Grew in 2024 - Time Magazine",
+      "link": "https://time.com/7200444/how-ai-benefits-harms-grew-in-2024/",
+      "snippet": "In 2024, both cutting-edge technology and the companies controlling it grew increasingly powerful, provoking euphoric wonderment and ...",
+      "date": "Dec 30, 2024",
+      "position": 4
+    },
+    {
+      "title": "131 AI Statistics and Trends for (2024) | National University",
+      "link": "https://www.nu.edu/blog/ai-statistics-trends/",
+      "snippet": "AI Jobs and Market · AI is expected to improve employee productivity by 40%. · 83% of companies reported that using AI in their business strategies is a top ...",
+      "position": 5
+    },
+    {
+      "title": "Summary Artificial Intelligence 2024 Legislation",
+      "link": "https://www.ncsl.org/technology-and-communication/artificial-intelligence-2024-legislation",
+      "snippet": "In the 2024 legislative session, at least 40 states, Puerto Rico, the U.S. Virgin Islands and the District of Columbia introduced artificial ...",
+      "date": "Sep 9, 2024",
+      "position": 6
+    },
+    {
+      "title": "[PDF] Artificial Intelligence Index Report 2024 - AWS",
+      "link": "https://hai-production.s3.amazonaws.com/files/hai_ai-index-report-2024-smaller2.pdf",
+      "snippet": "Featuring more original data than ever before, this edition introduces new estimates on AI training costs, detailed analyses of the responsible AI landscape, ...",
+      "position": 7
+    },
+    {
+      "title": "State of Generative AI in the Enterprise 2024 | Deloitte US",
+      "link": "https://www.deloitte.com/us/en/what-we-do/capabilities/applied-artificial-intelligence/content/state-of-generative-ai-in-enterprise.html",
+      "snippet": "Explore the Deloitte AI Institute's quarterly Generative AI report tracking Generative AI investments, adoption, impacts on business, and challenges across ...",
+      "position": 8
+    },
+    {
+      "title": "In 2024, artificial intelligence was all about putting AI tools to work",
+      "link": "https://apnews.com/article/ai-artificial-intelligence-0b6ab89193265c3f60f382bae9bbabc9",
+      "snippet": "If 2023 was a year of wonder about artificial intelligence, 2024 was the year to try to get that wonder to do something useful without ...",
+      "date": "Dec 30, 2024",
+      "position": 9
+    },
+    {
+      "title": "What Is Artificial Intelligence (AI)? - IBM",
+      "link": "https://www.ibm.com/think/topics/artificial-intelligence",
+      "snippet": "AI is technology that enables computers and machines to simulate human learning, comprehension, problem solving, decision making, creativity and autonomy.",
+      "date": "Aug 9, 2024",
+      "sitelinks": [
+        {
+          "title": "Cole Stryker, Editorial Lead, AI...",
+          "link": "https://www.ibm.com/think/author/cole-stryker"
+        },
+        {
+          "title": "Eda Kavlakoglu, Author at IBM",
+          "link": "https://www.ibm.com/think/author/eda-kavlakoglu"
+        }
+      ],
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "mckinsey state of ai 2024"
+    },
+    {
+      "query": "artificial intelligence growth statistics"
+    },
+    {
+      "query": "mckinsey ai report 2025"
+    },
+    {
+      "query": "mckinsey generative ai report pdf"
+    },
+    {
+      "query": "artificial intelligence report pdf"
+    },
+    {
+      "query": "state of ai 2025"
+    },
+    {
+      "query": "ai statistics 2025"
+    },
+    {
+      "query": "state of ai report 2025"
+    }
+  ],
+  "credits": 1
+}

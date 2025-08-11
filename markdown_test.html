@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Markdown Test</title>
+    <style>
+        body { background: #343541; color: #fff; font-family: Arial; padding: 20px; }
+        .test-result { background: #1a1a1a; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Markdown Parsing Test</h1>
+    
+    <div class="test-result" id="result"></div>
+    
+    <script>
+        function parseMarkdownToHTML(markdown) {
+          if (!markdown) return '';
+          
+          return markdown
+            // Headers
+            .replace(/^### (.*$)/gm, '<h3 style="color:#4caf50;margin:1rem 0 0.5rem 0;font-size:1.1rem;">$1</h3>')
+            .replace(/^## (.*$)/gm, '<h2 style="color:#2196f3;margin:1.2rem 0 0.6rem 0;font-size:1.2rem;">$1</h2>')
+            .replace(/^# (.*$)/gm, '<h1 style="color:#fff;margin:1.4rem 0 0.8rem 0;font-size:1.3rem;">$1</h1>')
+            // Bold text
+            .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#fff;">$1</strong>')
+            // Italic text
+            .replace(/\*(.*?)\*/g, '<em style="color:#ccc;">$1</em>')
+            // Line breaks and paragraphs
+            .replace(/\n\n/g, '</p><p style="margin:0.5rem 0;line-height:1.5;">')
+            .replace(/\n/g, '<br>')
+            // Wrap in paragraph tags
+            .replace(/^(?!<[h123]|<p)(.+)/gm, '<p style="margin:0.5rem 0;line-height:1.5;">$1</p>')
+            // Clean up any double paragraph tags
+            .replace(/<p[^>]*><\/p>/g, '')
+            .replace(/^<\/p>/, '')
+            .replace(/<p[^>]*>$/, '');
+        }
+
+        const testMarkdown = `The Battle of Verdun, fought from February 21 to December 18, 1916, during World War I, stands as one of the longest and most devastating battles in history. The battle resulted in significant casualties for both the French and German forces, with estimates indicating over 700,000 total casualties. This summary synthesizes the key findings from various sources, highlighting the main themes, significant insights, and any consensus or differing perspectives.
+
+### Main Themes and Key Points
+
+1. **Duration and Intensity**: The Battle of Verdun lasted for ten months, making it one of the longest engagements of World War I. It is characterized by its ferocity and the heavy toll it took on both sides.
+
+2. **Casualty Figures**: The battle resulted in approximately 700,000 casualties, including both dead and wounded. Sources provide slightly varying figures:
+   - The Memorial de Verdun notes 306,000 dead or missing and around 400,000 injured.
+   - Wikipedia and other sources cite a total of around 714,231 casualties, with 262,308 dead, wounded, or missing.
+   - Britannica mentions about 300,000 killed.
+
+3. **Balanced Losses**: Both the French and German armies suffered nearly equal losses, reflecting the intense and evenly matched nature of the conflict. French casualties are estimated at around 377,231, while German casualties are around 337,000, according to some sources.
+
+### Significant Findings
+
+- The Battle of Verdun is emblematic of the trench warfare and attrition strategy that defined much of World War I, with both sides incurring massive losses for minimal territorial gain.
+- The battle's high casualty rate underscores the devastating human cost of the war and the harsh conditions faced by soldiers on the front lines.`;
+
+        document.getElementById('result').innerHTML = parseMarkdownToHTML(testMarkdown);
+    </script>
+</body>
+</html>

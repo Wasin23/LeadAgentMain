@@ -1,0 +1,82 @@
+{
+  "searchParameters": {
+    "q": "what is colonia eigniead",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "searchInformation": {
+    "showingResultsFor": "what is colonia dignidad"
+  },
+  "organic": [
+    {
+      "title": "Colonia Dignidad",
+      "link": "https://en.wikipedia.org/wiki/Colonia_Dignidad",
+      "snippet": "Colonia Dignidad was an isolated colony established in post-World War II Chile by emigrant Germans which became notorious for the internment, torture, ...",
+      "position": 1
+    },
+    {
+      "title": "Colonia Dignidad remains a dark chapter of German legal ...",
+      "link": "https://www.ecchr.eu/en/case/colonia-dignidad-remains-a-dark-chapter-of-german-legal-history/",
+      "snippet": "Torture and child abuse are just two of the crimes committed in Colonia Dignidad, a German sect in Chile known as.",
+      "position": 2
+    },
+    {
+      "title": "Colonia Dignidad as Digital History",
+      "link": "https://blackhistory.news.columbia.edu/events/colonia-dignidad-digital-history",
+      "snippet": "Colonia Dignidad was a settlement of Germans in Chile. Starting in 1961 as an isolated sect under the leadership of Paul Schäfer, the colony became notorious ...",
+      "position": 3
+    },
+    {
+      "title": "Colonia Dignidad: Germany to compensate Chile ...",
+      "link": "https://www.bbc.com/news/world-latin-america-48318295",
+      "snippet": "Victims of an abusive sect founded by a former Nazi soldier in southern Chile will be compensated.",
+      "date": "May 17, 2019",
+      "position": 4
+    },
+    {
+      "title": "The Dark History of Colonia Dignidad",
+      "link": "https://www.thenation.com/article/culture/sinister-sect-colonia-dignidad/",
+      "snippet": "The Netflix series A Sinister Sect examines not only the history of a German community led by a Nazi in Chile but also the relationship between Latin American ...",
+      "date": "Mar 24, 2022",
+      "position": 5
+    },
+    {
+      "title": "Hunting Hitler: A Brief Summary of Colonia Dignidad ...",
+      "link": "https://www.youtube.com/watch?v=YlyLQyPeBuc",
+      "snippet": "Winferd Hempel recalls living in Colonia Dignidad, a location Hitler could have used to gain access to parts of the colony, in this clip ...",
+      "date": "8 years ago",
+      "position": 6
+    },
+    {
+      "title": "Remembering the horrors of Colonia Dignidad in Chile",
+      "link": "https://www.dw.com/en/remembering-the-horrors-of-colonia-dignidad-in-chile/a-65477428",
+      "snippet": "Chile and Germany have agreed to push for a memorial for the victims of sexual violence, torture and murder in the former German cult.",
+      "date": "May 1, 2023",
+      "position": 7
+    },
+    {
+      "title": "Reclaiming Colonia Dignidad - Sites ...",
+      "link": "https://www.sitesofconscience.org/2016/04/colonia-dignidad-declared-national-monument/",
+      "snippet": "The Association for Memory and Human Rights in Dignity Colony recently sought and won the right to make Colonial Dignidad a National Monument.",
+      "position": 8
+    },
+    {
+      "title": "Memory and Impunity Clash at Chile's Colonia Dignidad",
+      "link": "https://inkstickmedia.com/memory-and-impunity-clash-at-chiles-colonia-dignidad/",
+      "snippet": "In 1961, a German Nazi fugitive, child molester, and preacher named Paul Schäfer established a German colony in Maule, Chile. To make matters ...",
+      "date": "Feb 4, 2025",
+      "position": 9
+    },
+    {
+      "title": "Surviving a Sinister Sect: Chile's Colonia Dignidad",
+      "link": "https://www.youtube.com/watch?v=M6CpMgxO_JA&pp=ygUKIzIzY29sb25pYQ%3D%3D",
+      "snippet": "In 2003, Franz Baar escaped Colonia Dignidad, a German cult-like sect in Chile, hoping for freedom. After surviving decades of torture and ...",
+      "date": "2 years ago",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

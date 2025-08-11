@@ -1,0 +1,102 @@
+{
+  "searchParameters": {
+    "q": "research the death toll of the battle of verdun latest",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "The Battle of Verdun",
+      "link": "https://memorial-verdun.fr/en/ressources/la-bataille-de-verdun",
+      "snippet": "Outcome of the battle  Losses totalled 163,000 dead and 216,000 injured on the French side and 143,000 dead and 190,000 injured on the German side , making a total of almost 700,000 killed or injured on the Verdun Battlefield in 1916.",
+      "position": 1
+    },
+    {
+      "title": "Battle of Verdun - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/Battle_of_Verdun",
+      "snippet": "In 2014, William Philpott wrote of 714,000 casualties suffered by both sides during the Battle of Verdun in 1916 and that about 1,250,000 casualties were ...",
+      "position": 2
+    },
+    {
+      "title": "Battle of Verdun | Map, Casualties, Significance, Summary, & Facts",
+      "link": "https://www.britannica.com/event/Battle-of-Verdun",
+      "snippet": "It was one of the longest, bloodiest, and most-ferocious battles of the war; French casualties amounted to about 400,000, German ones to about ...",
+      "date": "Aug 2, 2025",
+      "position": 3
+    },
+    {
+      "title": "Battle of Verdun | EBSCO Research Starters",
+      "link": "https://www.ebsco.com/research-starters/military-history-and-science/battle-verdun",
+      "snippet": "The French sustained some five hundred thousand casualties, and the Germans, four hundred thousand. Nevertheless, the battle did considerable psychological ...",
+      "position": 4
+    },
+    {
+      "title": "The Battle of Verdun and the number of casualties",
+      "link": "https://www.wereldoorlog1418.nl/battleverdun/slachtoffers.htm",
+      "snippet": "The total amount of casualties would then be: 714,231 of which 262,308 dead, wounded or missing. (Note: this number does not yet include the number of prisoners ...",
+      "position": 5
+    },
+    {
+      "title": "Battle of Verdun - WWI, French, German - Britannica",
+      "link": "https://www.britannica.com/event/Battle-of-Verdun/The-tide-turns-at-Verdun",
+      "snippet": "Over 10 months in 1916, the two armies at Verdun suffered over 700,000 casualties, including some 300,000 killed. The pastoral landscape surrounding the city ...",
+      "position": 6
+    },
+    {
+      "title": "WW1: What caused Verdun to be the longest battle of the war? - BBC",
+      "link": "https://www.bbc.co.uk/teach/articles/z73v6v4",
+      "snippet": "It was also the longest battle, lasting 300 days and leaving an estimated 800,000 soldiers dead, wounded or missing. At the end of the bloodshed, France emerged ...",
+      "position": 7
+    },
+    {
+      "title": "What Was The Battle Of Verdun? - Imperial War Museums",
+      "link": "https://www.iwm.org.uk/history/what-was-the-battle-of-verdun",
+      "snippet": "The seizure of ground became the priority and by the end of February, German losses at Verdun were similar to the French casualties. General Philippe Petain ...",
+      "position": 8
+    },
+    {
+      "title": "Verdun: Setting the scene - The History Press",
+      "link": "https://thehistorypress.co.uk/article/verdun-setting-the-scene/",
+      "snippet": "The brutal Battle of Verdun was fought between the German and French armies from February to December 1916, claiming one million casualties ...",
+      "date": "Feb 19, 2016",
+      "position": 9
+    },
+    {
+      "title": "Battle of Verdun Facts, Worksheets & German Offensive Plans For Kids",
+      "link": "https://kidskonnect.com/history/battle-of-verdun/",
+      "snippet": "There were a total of about 400,000 French casualties, and about 350,000 Germans. See the fact file below for more information on the Battle of ...",
+      "date": "Jun 4, 2021",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "who won the battle of verdun"
+    },
+    {
+      "query": "how many people died in the battle of verdun"
+    },
+    {
+      "query": "battle of verdun summary"
+    },
+    {
+      "query": "why did the battle of verdun happen"
+    },
+    {
+      "query": "how long was the battle of verdun"
+    },
+    {
+      "query": "facts about the battle of verdun"
+    },
+    {
+      "query": "battle of verdun significance"
+    },
+    {
+      "query": "battle of verdun map"
+    }
+  ],
+  "credits": 1
+}

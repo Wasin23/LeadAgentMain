@@ -1,0 +1,80 @@
+{
+  "searchParameters": {
+    "q": "find ai startups that use gpu compute 2024",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Top 30 Cloud GPU Providers & Their GPUs in 2025",
+      "link": "https://research.aimultiple.com/cloud-gpu-providers/",
+      "snippet": "1. Amazon EC2 (Elastic Compute Cloud) offers GPU-powered virtual machine instances facilitating accelerated computations for deep learning tasks.",
+      "position": 1
+    },
+    {
+      "title": "Top 10 Cloud GPU Providers for AI and Deep Learning",
+      "link": "https://www.hyperstack.cloud/blog/case-study/top-cloud-gpu-providers",
+      "snippet": "Providers like Hyperstack, Lambda Labs, and Runpod offer access to high-performance GPUs such as the NVIDIA A100 and H100 series, which are ...",
+      "date": "Dec 4, 2024",
+      "position": 2
+    },
+    {
+      "title": "Inception Program for Startups",
+      "link": "https://www.nvidia.com/en-us/startups/",
+      "snippet": "Inception is a free program that guides AI startups through the NVIDIA platform and ecosystem. From prototype to production, Inception meets you where you ...",
+      "position": 3
+    },
+    {
+      "title": "The leading generative AI companies",
+      "link": "https://iot-analytics.com/leading-generative-ai-companies/",
+      "snippet": "Generative AI market: NVIDIA leads data center GPU segment with a 92% market share. Microsoft and AWS lead the foundation models and[...]",
+      "date": "Mar 4, 2025",
+      "position": 4
+    },
+    {
+      "title": "Top GPUs start-ups",
+      "link": "https://www.ventureradar.com/startup/GPUs",
+      "snippet": "Top GPUs Start-ups · Nebius Group · Mistral AI · Liquid AI · Celestial AI · Pipeshift · HPC-AI Tech · Enfabrica · NexQloud.",
+      "position": 5
+    },
+    {
+      "title": "Meet the Startups Taking on Big Tech With Smarter AI Chips",
+      "link": "https://www.vktr.com/ai-market/meet-the-startups-taking-on-big-tech-with-smarter-ai-chips/",
+      "snippet": "Meet the Startups Taking on Big Tech With Smarter AI Chips · 1. Cerebras Systems · 2. Etched · 3. Astera Labs · 4. Lightmatter · 5. Axelera · 6.",
+      "date": "Feb 12, 2025",
+      "position": 6
+    },
+    {
+      "title": "What are the opportunities for startups? GPUs are in high ...",
+      "link": "https://www.unusual.vc/post/gpu-cloud-startups",
+      "snippet": "GPU cloud startups will be forced to innovate. They will be challenged to compete with large cloud providers with established customer bases.",
+      "date": "Jan 19, 2024",
+      "position": 7
+    },
+    {
+      "title": "[N] Tech giants are developing their AI chips. Here's the list",
+      "link": "https://www.reddit.com/r/MachineLearning/comments/1b0ira9/n_tech_giants_are_developing_their_ai_chips_heres/",
+      "snippet": "There is a shortage of NVIDIA GPUs, which has led several companies to create their own AI chips. Here's a list of those companies.",
+      "date": "1 year ago",
+      "position": 8
+    },
+    {
+      "title": "Estimates of GPU or equivalent resources of large AI ...",
+      "link": "https://www.lesswrong.com/posts/bdQhzQsHjNrQp7cNS/estimates-of-gpu-or-equivalent-resources-of-large-ai-players",
+      "snippet": "Here I try to get estimates for how many chips (expressed as H100 equivalents) each of Microsoft, Meta, Google, Amazon and XAI will have access to at Year End ...",
+      "date": "Nov 28, 2024",
+      "position": 9
+    },
+    {
+      "title": "Startups pursue GPU alternatives for AI",
+      "link": "https://www.networkworld.com/article/1306554/startups-pursue-gpu-alternatives-for-ai.html",
+      "snippet": "These companies include SambaNova, Cerebras, GraphCore, Groq, xAI, and more. At the same time, Intel is pursuing a GPU alternative as well with ...",
+      "date": "Feb 9, 2024",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

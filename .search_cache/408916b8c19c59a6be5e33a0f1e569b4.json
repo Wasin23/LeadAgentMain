@@ -1,0 +1,187 @@
+{
+  "searchParameters": {
+    "q": "artificial intelligence latest",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "AI News | Latest AI News, Analysis & Events",
+      "link": "https://www.artificialintelligence-news.com/",
+      "snippet": "AI News reports on the latest artificial intelligence news and insights. Explore industry trends from the frontline of AI.",
+      "sitelinks": [
+        {
+          "title": "Artificial Intelligence",
+          "link": "https://www.artificialintelligence-news.com/categories/artificial-intelligence/"
+        },
+        {
+          "title": "AI in business intelligence",
+          "link": "https://www.artificialintelligence-news.com/news/ai-in-business-intelligence-caveat-emptor-strategising-with-ai/"
+        },
+        {
+          "title": "OpenAI's latest LLM opens...",
+          "link": "https://www.artificialintelligence-news.com/news/openai-latest-llm-opens-doors-for-china-ai-startups/"
+        }
+      ],
+      "position": 1
+    },
+    {
+      "title": "Artificial Intelligence - Latest AI News and Analysis - WSJ.com",
+      "link": "https://www.wsj.com/tech/ai?gaa_at=eafs&gaa_n=ASWzDAjB5FzZto23lBEfLC-LD3Kw9Av0PN60Ro2F-Wnn_LVunrkJJAV-cKBS&gaa_ts=689a6286&gaa_sig=OB-GGXktrxC-5nmIPApyn1IlMpkmqYtDjVk6YSvUz0F7q0kDSP98hMFfmfEXYsBZ_wbmVMkHsJ1LRblOtlZ08Q%3D%3D",
+      "snippet": "The latest artificial intelligence news coverage focusing on the technology, tools and the companies building AI technology.",
+      "sitelinks": [
+        {
+          "title": "What’s Ahead for Artificial...",
+          "link": "https://www.wsj.com/tech/ai/whats-ahead-for-artificial-intelligence-b1c9b8a7"
+        },
+        {
+          "title": "Artificial: The OpenAI Story",
+          "link": "https://www.wsj.com/tech/ai/artificial-the-openai-story-21587cbd"
+        },
+        {
+          "title": "How WSJ Readers Use AI",
+          "link": "https://www.wsj.com/tech/ai/using-ai-readers-tips-8462bb35"
+        }
+      ],
+      "position": 2
+    },
+    {
+      "title": "Artificial intelligence - BBC News",
+      "link": "https://www.bbc.com/news/topics/ce1qrvleleqt",
+      "snippet": "OpenAI claims GPT-5 model boosts ChatGPT to 'PhD level'. GPT-5's release comes as tech firms continue to compete in an effort to claim the world's most advanced ...",
+      "sitelinks": [
+        {
+          "title": "Meta AI book scraping",
+          "link": "https://www.bbc.com/news/articles/c70w24j7jk1o"
+        },
+        {
+          "title": "ChatGPT AI action dolls",
+          "link": "https://www.bbc.com/news/articles/c5yg690e9eno"
+        },
+        {
+          "title": "Films made with AI can win...",
+          "link": "https://www.bbc.com/news/articles/cqx4y1lrz2vo"
+        }
+      ],
+      "position": 3
+    },
+    {
+      "title": "Latest AI Breakthroughs and News: June, July, August 2025",
+      "link": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
+      "snippet": "Summary: DeepCogito v2, an open-source AI model, has been released with improved logical reasoning and task planning. Developers say it outperforms many closed ...",
+      "position": 4
+    },
+    {
+      "title": "Artificial intelligence | Massachusetts Institute of Technology",
+      "link": "https://news.mit.edu/topic/artificial-intelligence2",
+      "snippet": "New algorithms enable efficient machine learning with symmetric data. This new approach could lead to enhanced AI models for drug and materials discovery.",
+      "sitelinks": [
+        {
+          "title": "Artificial intelligence",
+          "link": "https://news.mit.edu/topic/artificial-intelligence2?page=1"
+        },
+        {
+          "title": "Hybrid AI model crafts smooth...",
+          "link": "https://news.mit.edu/2025/causevid-hybrid-ai-model-crafts-smooth-high-quality-videos-in-seconds-0506"
+        },
+        {
+          "title": "Making AI models more...",
+          "link": "https://news.mit.edu/2025/making-ai-models-more-trustworthy-high-stakes-settings-0501"
+        }
+      ],
+      "position": 5
+    },
+    {
+      "title": "Artificial Intelligence - AI News - Reuters",
+      "link": "https://www.reuters.com/technology/artificial-intelligence/",
+      "snippet": "Tunisian startup develops AI-powered prosthetics for amputees · AI helps detect barn owls through their screech, aiding conservation · Trump calls on 'highly ...",
+      "position": 6
+    },
+    {
+      "title": "AI News & Artificial Intelligence | TechCrunch",
+      "link": "https://techcrunch.com/category/artificial-intelligence/",
+      "snippet": "Read the latest on artificial intelligence and machine learning tech, the companies that are building them, and the ethical issues AI raises today.",
+      "sitelinks": [
+        {
+          "title": "Anthropic's latest flagship AI...",
+          "link": "https://techcrunch.com/2025/05/22/anthropics-latest-flagship-ai-sure-seems-to-love-using-the-cyclone-emoji/"
+        },
+        {
+          "title": "AI",
+          "link": "https://techcrunch.com/category/artificial-intelligence/page/2/"
+        },
+        {
+          "title": "ChatGPT",
+          "link": "https://techcrunch.com/2025/07/31/chatgpt-everything-to-know-about-the-ai-chatbot/"
+        },
+        {
+          "title": "DeepSeek",
+          "link": "https://techcrunch.com/2025/05/28/deepseek-everything-you-need-to-know-about-the-ai-chatbot-app/"
+        }
+      ],
+      "position": 7
+    },
+    {
+      "title": "Artificial Intelligence | Latest News, Photos & Videos - WIRED",
+      "link": "https://www.wired.com/tag/artificial-intelligence/",
+      "snippet": "OpenAI Finally Launched GPT-5. Here's Everything You Need to Know. By Kylie Robison. Age Verification Is Sweeping Gaming. Is It Ready for the Age of AI ...",
+      "position": 8
+    },
+    {
+      "title": "Artificial intelligence - NBC News",
+      "link": "https://www.nbcnews.com/artificial-intelligence",
+      "snippet": "The latest news and top stories on artificial intelligence, including AI chatbots like Microsoft's ChatGPT, Apple's AI Chatbot and Google's Bard.",
+      "position": 9
+    }
+  ],
+  "topStories": [
+    {
+      "title": "OpenAI’s latest step towards advanced artificial intelligence",
+      "link": "https://www.economist.com/science-and-technology/2025/08/08/openais-latest-step-towards-advanced-artificial-intelligence",
+      "date": "3 days ago",
+      "source": "The Economist"
+    },
+    {
+      "title": "21 Ways People Are Using A.I. at Work",
+      "link": "https://www.nytimes.com/interactive/2025/08/11/upshot/ai-jobs.html",
+      "date": "12 hours ago",
+      "source": "The New York Times"
+    },
+    {
+      "title": "AI is creating new billionaires at a record pace",
+      "link": "https://www.cnbc.com/2025/08/10/ai-artificial-intelligence-billionaires-wealth.html",
+      "date": "1 day ago",
+      "source": "CNBC"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "artificial intelligence news today"
+    },
+    {
+      "query": "ai news today live"
+    },
+    {
+      "query": "future of ai news"
+    },
+    {
+      "query": "ai news websites"
+    },
+    {
+      "query": "artificial intelligence articles for students"
+    },
+    {
+      "query": "news articles about ai taking over"
+    },
+    {
+      "query": "latest ai tools"
+    },
+    {
+      "query": "ai news google"
+    }
+  ],
+  "credits": 1
+}

@@ -1,0 +1,156 @@
+{
+  "searchParameters": {
+    "q": "artificial intelligence",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Artificial intelligence - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+      "snippet": "Artificial intelligence (AI) is the capability of computational systems to perform tasks typically associated with human intelligence",
+      "sitelinks": [
+        {
+          "title": "Applications of artificial...",
+          "link": "https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence"
+        },
+        {
+          "title": "History",
+          "link": "https://en.wikipedia.org/wiki/History_of_artificial_intelligence"
+        },
+        {
+          "title": "Generative artificial",
+          "link": "https://en.wikipedia.org/wiki/Generative_artificial_intelligence"
+        },
+        {
+          "title": "Timeline of artificial...",
+          "link": "https://en.wikipedia.org/wiki/Timeline_of_artificial_intelligence"
+        }
+      ],
+      "position": 1
+    },
+    {
+      "title": "What Is Artificial Intelligence (AI)? - IBM",
+      "link": "https://www.ibm.com/think/topics/artificial-intelligence",
+      "snippet": "Artificial intelligence (AI) is technology that enables computers and machines to simulate human learning, comprehension, problem solving, ...",
+      "date": "Aug 9, 2024",
+      "position": 2
+    },
+    {
+      "title": "What is Artificial Intelligence? - NASA",
+      "link": "https://www.nasa.gov/what-is-artificial-intelligence/",
+      "snippet": "Artificial intelligence refers to computer systems that can perform complex tasks normally done by human-reasoning, decision making, creating, etc.",
+      "date": "May 13, 2024",
+      "position": 3
+    },
+    {
+      "title": "What Is Artificial Intelligence (AI)? | Google Cloud",
+      "link": "https://cloud.google.com/learn/what-is-artificial-intelligence",
+      "snippet": "Artificial intelligence is a technology that allows you to generate, classify, and perform tasks like image analysis and speech recognition.",
+      "position": 4
+    },
+    {
+      "title": "Artificial Intelligence (AI) - EDUCAUSE Library",
+      "link": "https://library.educause.edu/topics/infrastructure-and-research-technologies/artificial-intelligence-ai",
+      "snippet": "Artificial Intelligence or AI refers to the simulated human intelligence in machines or computers that are programmed to undertake tasks usually thought to ...",
+      "position": 5
+    },
+    {
+      "title": "Artificial Intelligence (AI): What it is and why it matters - SAS",
+      "link": "https://www.sas.com/en_us/insights/analytics/what-is-artificial-intelligence.html",
+      "snippet": "Artificial intelligence (AI) makes it possible for machines to learn from experience, adjust to new inputs and perform human-like tasks.",
+      "position": 6
+    },
+    {
+      "title": "Artificial intelligence (AI) | Definition, Examples, Types, Applications ...",
+      "link": "https://www.britannica.com/technology/artificial-intelligence",
+      "snippet": "Artificial intelligence (AI), the ability of a digital computer or computer-controlled robot to perform tasks commonly associated with intelligent beings.",
+      "date": "4 days ago",
+      "sitelinks": [
+        {
+          "title": "Methods and goals in AI",
+          "link": "https://www.britannica.com/technology/artificial-intelligence/Methods-and-goals-in-AI"
+        },
+        {
+          "title": "Artificial intelligence",
+          "link": "https://www.britannica.com/technology/artificial-intelligence/Is-artificial-general-intelligence-AGI-possible"
+        },
+        {
+          "title": "Reasoning",
+          "link": "https://www.britannica.com/technology/artificial-intelligence/Reasoning"
+        },
+        {
+          "title": "At a Glance",
+          "link": "https://www.britannica.com/topic/Artificial-Intelligence-AI-At-a-Glance-2235722"
+        }
+      ],
+      "position": 7
+    },
+    {
+      "title": "The Association for the Advancement of Artificial Intelligence",
+      "link": "https://aaai.org/",
+      "snippet": "AAAI is the premier scientific society dedicated to advancing the scientific understanding of the mechanisms underlying thought and intelligent behavior.",
+      "position": 8
+    },
+    {
+      "title": "AIJ | Artificial Intelligence | Journal | ScienceDirect.com by Elsevier",
+      "link": "https://www.sciencedirect.com/journal/artificial-intelligence",
+      "snippet": "The journal of Artificial Intelligence (AIJ) welcomes papers on broad aspects of AI that constitute advances in the overall field.",
+      "position": 9
+    },
+    {
+      "title": "Artificial intelligence | NIST",
+      "link": "https://www.nist.gov/artificial-intelligence",
+      "snippet": "NIST promotes innovation and cultivates trust in the design, development, use and governance of artificial intelligence (AI) technologies and systems.",
+      "sitelinks": [
+        {
+          "title": "AI Risk Management Framework",
+          "link": "https://www.nist.gov/itl/ai-risk-management-framework"
+        },
+        {
+          "title": "AI Standards",
+          "link": "https://www.nist.gov/artificial-intelligence/ai-standards"
+        },
+        {
+          "title": "Zero Drafts Pilot Project",
+          "link": "https://www.nist.gov/artificial-intelligence/ai-research/nists-ai-standards-zero-drafts-pilot-project-accelerate"
+        },
+        {
+          "title": "Bias",
+          "link": "https://www.nist.gov/artificial-intelligence/ai-research-identifying-managing-harmful-bias-ai"
+        }
+      ],
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "what is artificial intelligence with examples"
+    },
+    {
+      "query": "artificial intelligence app"
+    },
+    {
+      "query": "artificial intelligence course"
+    },
+    {
+      "query": "best definition of artificial intelligence"
+    },
+    {
+      "query": "artificial intelligence movie"
+    },
+    {
+      "query": "artificial intelligence website"
+    },
+    {
+      "query": "artificial intelligence paragraph"
+    },
+    {
+      "query": "what is artificial intelligence in simple words"
+    }
+  ],
+  "credits": 1
+}

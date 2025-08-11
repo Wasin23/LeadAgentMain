@@ -1,0 +1,115 @@
+{
+  "searchParameters": {
+    "q": "find ai startups that need gpu compute 2024",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "17 Best AI Startup Companies to Watch (Investor Guide 2025)",
+      "link": "https://www.startupbooted.com/17-best-ai-startup-companies-to-watch-investor-guide-2025",
+      "snippet": "Discover the 17 top AI startups in 2024, from OpenAI to Mistral AI, driving innovation with billions in funding.",
+      "date": "Feb 3, 2025",
+      "position": 1
+    },
+    {
+      "title": "Top 20 AI Chip Makers: NVIDIA & Its Competitors in 2025",
+      "link": "https://research.aimultiple.com/ai-chip-makers/",
+      "snippet": "Companies like AMD and numerous startups, including Untether AI and Groq, are developing chips that aim to provide more cost-effective inference solutions, ...",
+      "position": 2
+    },
+    {
+      "title": "[N] Tech giants are developing their AI chips. Here's the list - Reddit",
+      "link": "https://www.reddit.com/r/MachineLearning/comments/1b0ira9/n_tech_giants_are_developing_their_ai_chips_heres/",
+      "snippet": "There is a shortage of NVIDIA GPUs, which has led several companies to create their own AI chips. Here's a list of those companies.",
+      "date": "Feb 26, 2024",
+      "sitelinks": [
+        {
+          "title": "Startups for the GPU poor? - LocalLLaMA - Reddit",
+          "link": "https://www.reddit.com/r/LocalLLaMA/comments/1as2dtx/startups_for_the_gpu_poor/"
+        },
+        {
+          "title": "Getting Cloud Credits — A short guide for bootstrapped AI startups",
+          "link": "https://www.reddit.com/r/SaaS/comments/1g25hmp/getting_cloud_credits_a_short_guide_for/"
+        }
+      ],
+      "position": 3
+    },
+    {
+      "title": "AI (Artificial Intelligence) Startups funded by Y Combinator (YC) 2025",
+      "link": "https://www.ycombinator.com/companies/industry/ai",
+      "snippet": "We need billions of qubits to make a useful quantum computer. Therefore, automation software will be vital to realizing this goal. Conductor Quantum will ...",
+      "position": 4
+    },
+    {
+      "title": "Top 20 AI Accelerators, Incubators & Startup Programs - StartupBlink",
+      "link": "https://www.startupblink.com/blog/ai-accelerators-incubators-and-startup-programs/",
+      "snippet": "Top AI Startup Programs · 1. IBM for Startups · 2. NVIDIA Inception · 3. Google AI First · 4. Intel® Liftoff for startups · 5. Microsoft for Startups.",
+      "date": "Sep 25, 2024",
+      "position": 5
+    },
+    {
+      "title": "GPUs are in high demand: What are the opportunities for startups?",
+      "link": "https://www.unusual.vc/post/gpu-cloud-startups",
+      "snippet": "GPU cloud startups will be forced to innovate. They will be challenged to compete with large cloud providers with established customer bases.",
+      "date": "Jan 19, 2024",
+      "position": 6
+    },
+    {
+      "title": "Inception Program for Startups - NVIDIA",
+      "link": "https://www.nvidia.com/en-us/startups/",
+      "snippet": "Inception is a free program that guides AI startups through the NVIDIA platform and ecosystem. From prototype to production, Inception meets you where you ...",
+      "position": 7
+    },
+    {
+      "title": "Top 16 AI Companies Hiring in 2025 - Startup & Enterprise | Reclaim",
+      "link": "https://reclaim.ai/blog/top-ai-companies-hiring",
+      "snippet": "In this blog post, explore the best AI companies to work for in 2024 and the exciting career opportunities they offer.",
+      "position": 8
+    },
+    {
+      "title": "The leading generative AI companies - IoT Analytics",
+      "link": "https://iot-analytics.com/leading-generative-ai-companies/",
+      "snippet": "Generative AI market: NVIDIA leads data center GPU segment with a 92% market share. Microsoft and AWS lead the foundation models and[...]",
+      "date": "Mar 4, 2025",
+      "position": 9
+    },
+    {
+      "title": "These are the 10 hottest AI hardware companies to follow in 2025",
+      "link": "https://www.yolegroup.com/industry-news/these-are-the-10-hottest-ai-hardware-companies-to-follow-in-2025/",
+      "snippet": "Several startups are making significant strides in AI hardware, including the likes of Tenstorrent, Groq, Celestial AI, Enfabrica, SambaNova, and Hailo.",
+      "date": "Jan 7, 2025",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "list of ai chip companies"
+    },
+    {
+      "query": "ai chip companies to invest in"
+    },
+    {
+      "query": "ai chip manufacturers in usa"
+    },
+    {
+      "query": "who makes ai chips besides nvidia"
+    },
+    {
+      "query": "top ai chip companies"
+    },
+    {
+      "query": "ai accelerator startups"
+    },
+    {
+      "query": "ai startups to invest in"
+    },
+    {
+      "query": "ai chip manufacturers etf"
+    }
+  ],
+  "credits": 1
+}
