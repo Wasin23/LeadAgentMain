@@ -24,14 +24,18 @@ router.post('/email', async (req, res) => {
 
 // New endpoint to get email logs
 router.get('/logs', async (req, res) => {
+  console.log('[EMAIL LOGS] GET /logs request received');
   try {
     const logPath = path.join(process.cwd(), 'email_logs.json');
+    console.log('[EMAIL LOGS] Reading from:', logPath);
     
     try {
       const logsData = await fs.readFile(logPath, 'utf8');
       const logs = JSON.parse(logsData);
+      console.log('[EMAIL LOGS] Found', logs.length, 'logs');
       res.json(logs || []);
     } catch (error) {
+      console.log('[EMAIL LOGS] File not found or empty, returning empty array');
       // File doesn't exist or is empty
       res.json([]);
     }

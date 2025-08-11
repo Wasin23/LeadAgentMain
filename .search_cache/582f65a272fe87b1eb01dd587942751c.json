@@ -1,0 +1,128 @@
+{
+  "searchParameters": {
+    "q": "how does quantum computing work latest",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "What is quantum computing and how does it work? - Iberdrola",
+      "link": "https://www.iberdrola.com/innovation/what-is-quantum-computing",
+      "snippet": "Quantum computing uses superconducting qubits to exponentially boost computing speed . Linear qubit segments have been replaced by four superconducting qubits on a one-quarter-square-inch chip. Exposure to heat makes qubits more error-prone, but we already know how to identify bit-flip and phase-flip errors.",
+      "position": 1
+    },
+    {
+      "title": "What Is Quantum Computing? | IBM",
+      "link": "https://www.ibm.com/think/topics/quantum-computing",
+      "snippet": "Quantum algorithms work by manipulating information in a way inaccessible to classical computers, which can provide dramatic speed-ups for ...",
+      "date": "Jun 10, 2025",
+      "sitelinks": [
+        {
+          "title": "What is quantum computing?",
+          "link": "https://www.ibm.com/think/topics/quantum-computing#What+is+quantum+computing%3F"
+        },
+        {
+          "title": "Practical applications for...",
+          "link": "https://www.ibm.com/think/topics/quantum-computing#Practical+applications+for+quantum+computing"
+        }
+      ],
+      "position": 2
+    },
+    {
+      "title": "Quantum Computing Explained | NIST",
+      "link": "https://www.nist.gov/quantum-information-science/quantum-computing-explained",
+      "snippet": "These computers work by harnessing quantum physics — the strange, often counterintuitive laws that govern the universe at its smallest scales ...",
+      "date": "Mar 18, 2025",
+      "position": 3
+    },
+    {
+      "title": "What is quantum computing? - McKinsey",
+      "link": "https://www.mckinsey.com/featured-insights/mckinsey-explainers/what-is-quantum-computing",
+      "snippet": "Quantum computing is a new approach to calculation that uses principles of fundamental physics to solve extremely complex problems very quickly.",
+      "date": "Mar 31, 2025",
+      "position": 4
+    },
+    {
+      "title": "Explain it like I'm 5? : r/QuantumComputing - Reddit",
+      "link": "https://www.reddit.com/r/QuantumComputing/comments/yjnvwh/explain_it_like_im_5/",
+      "snippet": "Quantum Computers work by using the laws of Quantum Physics which enable it to perform selected applications at a faster rate.",
+      "date": "Nov 1, 2022",
+      "sitelinks": [
+        {
+          "title": "What are some areas that quantum computers are used for today?",
+          "link": "https://www.reddit.com/r/QuantumComputing/comments/159evb8/what_are_some_areas_that_quantum_computers_are/"
+        },
+        {
+          "title": "Can someone explain quantum computing to me like I'm 5 post ...",
+          "link": "https://www.reddit.com/r/QuantumComputing/comments/1itwpdl/can_someone_explain_quantum_computing_to_me_like/"
+        }
+      ],
+      "position": 5
+    },
+    {
+      "title": "How Does a Quantum Computer Work? Simple Explanation - SpinQ",
+      "link": "https://www.spinquanta.com/news-detail/how-does-a-quantum-computer-work",
+      "snippet": "Quantum computers operate on the principles of quantum mechanics, utilizing qubits, superposition, entanglement, and quantum gates to perform powerful ...",
+      "date": "Mar 9, 2025",
+      "position": 6
+    },
+    {
+      "title": "A new problem that only quantum computing can solve | LANL",
+      "link": "https://www.lanl.gov/media/news/0528-quantum-computing",
+      "snippet": "Quantum computing harnesses the unique laws of quantum physics, such as superposition, entanglement and interference, which allow for ...",
+      "date": "May 28, 2025",
+      "position": 7
+    },
+    {
+      "title": "Quantum Computers Explained: How Quantum Computing Works",
+      "link": "https://www.youtube.com/watch?v=B3U1NDUiwSA",
+      "snippet": "Quantum computers use the principles of quantum mechanics to process information in ways that classical computers can't.",
+      "date": "Sep 23, 2024",
+      "position": 8
+    },
+    {
+      "title": "What Is Quantum Computing and How Does It Work? - BlueQubit",
+      "link": "https://www.bluequbit.io/how-does-quantum-computing-work",
+      "snippet": "Quantum computing uses the principles of quantum mechanics to process information—useful for tasks like optimization, simulations, and ...",
+      "date": "Jan 9, 2025",
+      "position": 9
+    },
+    {
+      "title": "Quantum computing: What leaders need to know now | MIT Sloan",
+      "link": "https://mitsloan.mit.edu/ideas-made-to-matter/quantum-computing-what-leaders-need-to-know-now",
+      "snippet": "Quantum computing applies the laws of quantum mechanics to simulate and solve complex problems that are too difficult for the current genre of ...",
+      "date": "Jan 11, 2024",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "what is quantum computing with example"
+    },
+    {
+      "query": "who invented quantum computing"
+    },
+    {
+      "query": "advantages of quantum computing"
+    },
+    {
+      "query": "quantum computer price"
+    },
+    {
+      "query": "what is quantum computing used for"
+    },
+    {
+      "query": "first quantum computer"
+    },
+    {
+      "query": "google quantum computer"
+    },
+    {
+      "query": "quantum computing course"
+    }
+  ],
+  "credits": 1
+}
