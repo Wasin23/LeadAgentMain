@@ -88,6 +88,12 @@
       padding: 1rem;
       overflow-y: auto;
       min-height: 700px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #outreach-content {
+      height: 100%;
     }
 
     #main {
@@ -223,8 +229,9 @@
     #email-log-list {
       color: #ccc;
       font-size: 0.9rem;
-      max-height: 400px;
+      max-height: calc(85vh - 120px);
       overflow-y: auto;
+      height: 100%;
     }
 
     .email-log-item {
@@ -378,13 +385,13 @@
           
           <!-- Email Outreach Tab Content -->
           <div id="outreach-content" class="tab-content" style="display:none;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-shrink:0;">
               <h3 style="margin:0;color:#2196f3;">Email Outreach Log</h3>
               <button onclick="loadEmailLogs()" style="background:#2196f3;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.9rem;">
                 🔄 Refresh
               </button>
             </div>
-            <div id="email-log-list">
+            <div id="email-log-list" style="flex:1;">
               <div style="color:#ccc;font-style:italic;">No emails sent yet.</div>
             </div>
           </div>
@@ -1122,7 +1129,7 @@
     async function loadEmailLogs() {
       try {
         console.log('[FRONTEND] Loading email logs...');
-        const response = await fetch('/api/email/logs');
+        const response = await fetch('/api/logs');
         const logs = await response.json();
         console.log('[FRONTEND] Received email logs:', logs);
         
