@@ -1,0 +1,138 @@
+{
+  "searchParameters": {
+    "q": "researchquantum computing running ai",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "searchInformation": {
+    "showingResultsFor": "research quantum computing running ai"
+  },
+  "organic": [
+    {
+      "title": "Quantum Computers Will Make AI Better - Quantinuum",
+      "link": "https://www.quantinuum.com/blog/quantum-computers-will-make-ai-better",
+      "snippet": "As quantum computing hardware continues to improve, quantum AI models may increasingly complement or even replace classical systems . By leveraging quantum superposition, entanglement, and interference, these models offer the potential for significant reductions in both computational cost and energy consumption.",
+      "position": 1
+    },
+    {
+      "title": "Google Quantum AI",
+      "link": "https://quantumai.google/",
+      "snippet": "Our focus is to unlock the full potential of quantum computing by developing a large-scale computer capable of complex, error-corrected computations.",
+      "sitelinks": [
+        {
+          "title": "Research Publications",
+          "link": "https://quantumai.google/research"
+        },
+        {
+          "title": "About",
+          "link": "https://quantumai.google/team"
+        },
+        {
+          "title": "Open Source Tools",
+          "link": "https://quantumai.google/software"
+        },
+        {
+          "title": "Discover",
+          "link": "https://quantumai.google/discover/whatisqc"
+        }
+      ],
+      "position": 2
+    },
+    {
+      "title": "Enabling Quantum Computing with AI | NVIDIA Technical Blog",
+      "link": "https://developer.nvidia.com/blog/enabling-quantum-computing-with-ai/",
+      "snippet": "This post explores three key aspects of quantum computing that are supported by AI—the processor, error correction, and algorithms ...",
+      "date": "May 12, 2024",
+      "position": 3
+    },
+    {
+      "title": "Your Guide to Quantum AI - The future of computing?",
+      "link": "https://meetiqm.com/blog/quantum-ai-the-future-of-computing-or-just-hype/",
+      "snippet": "Running useful quantum applications requires optimizing how quantum operations are mapped onto the hardware. AI can help by designing smarter ...",
+      "date": "Apr 16, 2025",
+      "position": 4
+    },
+    {
+      "title": "Impact of Quantum Computing on AI : r/QuantumComputing - Reddit",
+      "link": "https://www.reddit.com/r/QuantumComputing/comments/186r2go/impact_of_quantum_computing_on_ai/",
+      "snippet": "There are proposed algorithms to use quantum computers to speed up AI, but we won't know how effective they are until we have a lot more qubits to test them ...",
+      "date": "Nov 29, 2023",
+      "sitelinks": [
+        {
+          "title": "Quantum computing to improve AI models - Reddit",
+          "link": "https://www.reddit.com/r/QuantumComputing/comments/1fw0h01/quantum_computing_to_improve_ai_models/"
+        },
+        {
+          "title": "How Quantum AI Will Change the World: What You Need to Know",
+          "link": "https://www.reddit.com/r/ArtificialInteligence/comments/1fywdfq/how_quantum_ai_will_change_the_world_what_you/"
+        }
+      ],
+      "position": 5
+    },
+    {
+      "title": "Quantum Computers Can Run Powerful AI That Works like the Brain",
+      "link": "https://www.scientificamerican.com/article/quantum-computers-can-run-powerful-ai-that-works-like-the-brain/",
+      "snippet": "The influential AI design that makes chatbots tick now runs on quantum computers.",
+      "date": "Apr 22, 2024",
+      "position": 6
+    },
+    {
+      "title": "How quantum computing will affect artificial intelligence applications ...",
+      "link": "https://www.lerner.ccf.org/news/article/?title=+How+quantum+computing+will+affect+artificial+intelligence+applications+in+healthcare+&id=79c89a1fcb93c39e8321c3313ded4b84005e9d44",
+      "snippet": "Quantum computing can potentially enhance AI's capabilities by removing the limitations of data size, complexity, and the speed of problem solving.",
+      "date": "Jul 29, 2024",
+      "position": 7
+    },
+    {
+      "title": "The Relationship Between AI and Quantum Computing | CSA",
+      "link": "https://cloudsecurityalliance.org/blog/2025/01/20/quantum-artificial-intelligence-exploring-the-relationship-between-ai-and-quantum-computing",
+      "snippet": "And actually running the AI on the quantum computer will allow it to think faster. You'll get that real-time processing of the data and faster ...",
+      "date": "Jan 20, 2025",
+      "position": 8
+    },
+    {
+      "title": "Quantum computing and AI: less compatible than expected?",
+      "link": "https://www.polytechnique-insights.com/en/columns/science/quantum-computing-and-ai-less-compatible-than-expected/",
+      "snippet": "However, quantum computing will not necessarily advance AI because it encounters difficulties in processing information from neural networks ...",
+      "date": "Oct 9, 2024",
+      "position": 9
+    },
+    {
+      "title": "Harnessing the Power of Quantum Computing for AI",
+      "link": "https://scsp222.substack.com/p/quantum-ai-harnessing-the-power-of",
+      "snippet": "Research to jump-start quantum computing, AI, and drug and material discovery is currently underway, with researchers from quantum computing ...",
+      "date": "Nov 22, 2024",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "what is the relationship between ai and quantum computing"
+    },
+    {
+      "query": "quantum computing and ai research paper"
+    },
+    {
+      "query": "quantum artificial intelligence lab"
+    },
+    {
+      "query": "google quantum ai"
+    },
+    {
+      "query": "quantum computing ai course"
+    },
+    {
+      "query": "quantum computing ai applications"
+    },
+    {
+      "query": "google quantum chip"
+    },
+    {
+      "query": "google quantum computer"
+    }
+  ],
+  "credits": 1
+}

@@ -154,7 +154,7 @@
     .bubble {
       padding: 0.4rem 0.6rem;
       border-radius: 8px;
-      max-width: 75%;
+      max-width: 55%;
       white-space: pre-wrap;
       position: relative;
       margin-bottom: 0.3rem;
@@ -308,8 +308,17 @@
       padding-left: 1.5rem;
     }
 
+    .message-content ol {
+      list-style-type: decimal;
+    }
+
+    .message-content ul {
+      list-style-type: disc;
+    }
+
     .message-content li {
       margin: 0.1rem 0;
+      line-height: 1.4;
     }
 
     .message-content blockquote {
@@ -600,6 +609,11 @@
       </div>
       
       <div id="input-area">
+        <div id="streaming-controls" style="display: none; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; text-align: center;">
+          <button id="pause-btn" style="margin-right: 8px; padding: 8px 12px; font-size: 16px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">⏸️</button>
+          <button id="stop-btn" style="padding: 8px 12px; font-size: 16px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">⏹️</button>
+          <span id="streaming-status" style="margin-left: 12px; font-size: 12px; opacity: 0.6;">AI is typing...</span>
+        </div>
         <textarea id="message" placeholder="Type your message..." rows="1"></textarea>
         <button id="send">Send</button>
       </div>
@@ -644,8 +658,8 @@
         // Remove thinking indicator
         thinkingBubble.remove();
         
-        // Add AI response with ID tracking
-        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai');
+        // Add AI response with streaming effect
+        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai', null, true);
         
         // Update chat history with message IDs
         chatHistory.push({ 
@@ -671,7 +685,7 @@
 
     // Simple but effective markdown parser
     function parseMarkdown(text) {
-      console.log('🔍 parseMarkdown INPUT:', text);
+      console.log('🔍 parseMarkdown INPUT (first 500 chars):', text.substring(0, 500));
       
       // Escape HTML first to prevent XSS
       let html = text
@@ -679,12 +693,17 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
       
-      console.log('📝 After HTML escape:', html);
+      console.log('📝 After HTML escape (first 200 chars):', html.substring(0, 200));
 
-      // Bold and italic
-      html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      // PRE-PROCESS: Add newlines before headers if they don't exist
+      html = html.replace(/([^\n])\s+(#{1,6}\s)/g, '$1\n$2');
+      console.log('📋 AFTER adding newlines before headers:', html.substring(0, 300));
+
+      // Bold and italic - improved patterns to handle newlines better
+      html = html.replace(/\*\*\*([^*]+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+      console.log('💪 AFTER bold/italic processing:', html.substring(0, 300));
 
       // Code blocks (triple backticks)
       html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
@@ -695,45 +714,69 @@
       // Links
       html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
-      // Headers (process BEFORE line breaks)
-      console.log('🏷️ BEFORE header processing (with \\n):', html.substring(0, 200));
-      html = html.replace(/^######\s+(.+?)$/gm, '<h6>$1</h6>');
-      html = html.replace(/^#####\s+(.+?)$/gm, '<h5>$1</h5>');
-      html = html.replace(/^####\s+(.+?)$/gm, '<h4>$1</h4>');
-      html = html.replace(/^###\s+(.+?)$/gm, '<h3>$1</h3>');
-      html = html.replace(/^##\s+(.+?)$/gm, '<h2>$1</h2>');
-      html = html.replace(/^#\s+(.+?)$/gm, '<h1>$1</h1>');
-      console.log('🏷️ AFTER header processing:', html.substring(0, 200));
+      // Headers (process BEFORE line breaks) - debug and fix bleeding
+      console.log('🏷️ BEFORE header processing:', html.substring(0, 400));
+      
+      // Process headers one at a time with better regex and debug each
+      const headerPatterns = [
+        { level: 6, pattern: /^######\s+(.+?)$/gm, tag: 'h6' },
+        { level: 5, pattern: /^#####\s+(.+?)$/gm, tag: 'h5' },
+        { level: 4, pattern: /^####\s+(.+?)$/gm, tag: 'h4' },
+        { level: 3, pattern: /^###\s+(.+?)$/gm, tag: 'h3' },
+        { level: 2, pattern: /^##\s+(.+?)$/gm, tag: 'h2' },
+        { level: 1, pattern: /^#\s+(.+?)$/gm, tag: 'h1' }
+      ];
 
-      // Unordered lists
-      html = html.replace(/^[\s]*[-*+] (.*)$/gm, '<li>$1</li>');
-      html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+      headerPatterns.forEach(({ level, pattern, tag }) => {
+        const matches = html.match(pattern);
+        if (matches) {
+          console.log(`🔍 Found h${level} headers:`, matches);
+        }
+        html = html.replace(pattern, `<${tag}>$1</${tag}>`);
+      });
+      
+      console.log('🏷️ AFTER header processing:', html.substring(0, 400));
 
-      // Ordered lists
-      html = html.replace(/^[\s]*\d+\. (.*)$/gm, '<li>$1</li>');
-      // Note: This is a simplified approach. More complex parsing would be needed for nested lists.
+      // Clean up any double-bold in headers (remove <strong> tags from inside headers)
+      html = html.replace(/(<h[1-6]>)<strong>(.*?)<\/strong>(<\/h[1-6]>)/g, '$1$2$3');
+      console.log('🧹 AFTER header cleanup:', html.substring(0, 200));
 
       // Blockquotes
       html = html.replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>');
 
-      // Line breaks (convert double newlines to paragraphs, single newlines to <br>)
-      html = html.replace(/\n\n/g, '</p><p>');
-      html = html.replace(/\n/g, '<br>');
-      
-      console.log('🔄 After line breaks:', html);
-      
-      console.log('🏷️ After headers:', html);
-      
-      // Wrap in paragraph if not already wrapped
-      if (!html.includes('<p>') && !html.includes('<h1>') && !html.includes('<h2>') && !html.includes('<h3>') && !html.includes('<h4>') && !html.includes('<h5>') && !html.includes('<h6>')) {
-        html = '<p>' + html + '</p>';
-      }
+      // Unordered lists (process BEFORE line breaks are converted)
+      html = html.replace(/^[\s]*[-*+] (.*)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
-      console.log('✅ parseMarkdown FINAL OUTPUT:', html);
+      // Numbered lists (ordered lists) - process BEFORE line breaks are converted
+      console.log('📝 BEFORE numbered list processing:', html.substring(0, 500));
+      
+      // Simple approach: Find each numbered item and convert it
+      html = html.replace(/^(\s*\d+\.\s+.*)$/gm, '<li>$1</li>');
+      
+      // Remove the number prefix from inside the <li> tags
+      html = html.replace(/<li>\s*\d+\.\s+(.*?)<\/li>/g, '<li>$1</li>');
+      
+      // Wrap consecutive <li> tags in <ol>
+      html = html.replace(/(<li>.*?<\/li>)(\s*<li>.*?<\/li>)*/gs, '<ol>$1</ol>');
+      
+      console.log('📝 AFTER numbered list processing:', html.substring(0, 500));
+
+      // Line breaks - simple approach
+      console.log('🔄 BEFORE line breaks:', html.substring(0, 300));
+      html = html.replace(/\n/g, '<br>');
+      console.log('🔄 AFTER line breaks:', html.substring(0, 300));
+
+      // Safety check: ensure all header tags are properly closed
+      // This prevents header formatting from bleeding through
+      html = html.replace(/<(h[1-6])>([^<]*?)(?=<|$)/g, '<$1>$2</$1>');
+      console.log('🔒 AFTER safety check:', html.substring(0, 300));
+
+      console.log('✅ parseMarkdown FINAL OUTPUT (first 500 chars):', html.substring(0, 500));
       return html;
     }
 
-    function appendMessage(text, sender, messageId = null) {
+    function appendMessage(text, sender, messageId = null, streaming = false) {
       const bubble = document.createElement('div');
       bubble.className = `bubble ${sender}`;
       
@@ -746,8 +789,25 @@
       // Create message content wrapper
       const content = document.createElement('div');
       content.className = 'message-content';
-      content.innerHTML = parseMarkdown(text);
-      bubble.appendChild(content);
+      
+      if (streaming && sender === 'ai') {
+        // For AI messages, start with empty content and stream
+        content.innerHTML = '';
+        bubble.appendChild(content);
+        
+        // Add to chat first so we can see it
+        chat.appendChild(bubble);
+        chat.scrollTop = chat.scrollHeight;
+        
+        // Start streaming the text
+        streamText(content, text);
+      } else {
+        // For user messages or non-streaming, show immediately
+        content.innerHTML = parseMarkdown(text);
+        bubble.appendChild(content);
+        chat.appendChild(bubble);
+        chat.scrollTop = chat.scrollHeight;
+      }
       
       // Create message actions (edit and copy icons)
       const actions = document.createElement('div');
@@ -769,10 +829,91 @@
       actions.appendChild(copyIcon);
       bubble.appendChild(actions);
       
-      chat.appendChild(bubble);
-      chat.scrollTop = chat.scrollHeight;
-      
       return msgId;
+    }
+
+    // Function to stream text character by character
+    function streamText(contentElement, text, speed = 6) {
+      let currentText = '';
+      let index = 0;
+      let isPaused = false;
+      let isStopped = false;
+      let timeoutId;
+      
+      // Get the input area streaming controls
+      const streamingControls = document.getElementById('streaming-controls');
+      const pauseBtn = document.getElementById('pause-btn');
+      const stopBtn = document.getElementById('stop-btn');
+      const streamingStatus = document.getElementById('streaming-status');
+      
+      // Show streaming controls
+      streamingControls.style.display = 'block';
+      streamingStatus.textContent = 'AI is typing...';
+      
+      // Reset button states
+      pauseBtn.textContent = '⏸️';
+      pauseBtn.style.background = 'rgba(255,255,255,0.1)';
+      pauseBtn.style.border = '1px solid rgba(255,255,255,0.2)';
+      isPaused = false;
+      isStopped = false;
+      
+      function typeNextChar() {
+        if (isStopped || index >= text.length) {
+          // Hide controls when done or stopped
+          streamingControls.style.display = 'none';
+          // Remove event listeners
+          pauseBtn.replaceWith(pauseBtn.cloneNode(true));
+          stopBtn.replaceWith(stopBtn.cloneNode(true));
+          return;
+        }
+        
+        if (!isPaused) {
+          currentText += text[index];
+          // Parse and update the markdown as we go
+          contentElement.innerHTML = parseMarkdown(currentText);
+          
+          // Auto-scroll to keep up with the streaming
+          chat.scrollTop = chat.scrollHeight;
+          
+          index++;
+          
+          if (index < text.length) {
+            timeoutId = setTimeout(typeNextChar, speed);
+          } else {
+            // Finished streaming
+            streamingControls.style.display = 'none';
+            // Remove event listeners
+            pauseBtn.replaceWith(pauseBtn.cloneNode(true));
+            stopBtn.replaceWith(stopBtn.cloneNode(true));
+          }
+        } else {
+          // If paused, check again in 100ms
+          timeoutId = setTimeout(typeNextChar, 100);
+        }
+      }
+      
+      // Get fresh references to the buttons (in case they were cloned)
+      const currentPauseBtn = document.getElementById('pause-btn');
+      const currentStopBtn = document.getElementById('stop-btn');
+      
+      // Pause/Resume functionality
+      currentPauseBtn.addEventListener('click', () => {
+        isPaused = !isPaused;
+        currentPauseBtn.textContent = isPaused ? '▶️' : '⏸️';
+        currentPauseBtn.style.background = isPaused ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)';
+        currentPauseBtn.style.border = isPaused ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.2)';
+        streamingStatus.textContent = isPaused ? 'Paused' : 'AI is typing...';
+      });
+      
+      // Stop functionality
+      currentStopBtn.addEventListener('click', () => {
+        isStopped = true;
+        clearTimeout(timeoutId);
+        streamingControls.style.display = 'none';
+      });
+      
+      // Start typing immediately
+      typeNextChar();
     }
 
     function copyMessage(text) {
@@ -947,8 +1088,8 @@
         // Remove thinking indicator
         thinkingBubble.remove();
         
-        // Add AI response
-        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai');
+        // Add AI response with streaming effect
+        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai', null, true);
         
         // Update chat history
         chatHistory.push({ 
