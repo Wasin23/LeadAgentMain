@@ -1,0 +1,109 @@
+{
+  "searchParameters": {
+    "q": "research improvements in humanoid robotics",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Advancements in Humanoid Robots: A Comprehensive Review and ...",
+      "link": "https://www.ieee-jas.net/article/doi/10.1109/JAS.2023.124140",
+      "snippet": "This paper provides a comprehensive review of the current status, advancements, and future prospects of humanoid robots.",
+      "date": "Jan 12, 2024",
+      "position": 1
+    },
+    {
+      "title": "Humanoid robots offer both disruption and promise. Here's why",
+      "link": "https://www.weforum.org/stories/2025/06/humanoid-robots-offer-disruption-and-promise/",
+      "snippet": "Billions of humanoid robots could be operating across the world by 2040, doing work well beyond the scope of today's factory robots. · The robots ...",
+      "date": "Jun 16, 2025",
+      "position": 2
+    },
+    {
+      "title": "Humanoid robotics: A deep dive into automation's next frontier",
+      "link": "https://www.jpmorgan.com/insights/podcast-hub/research-recap/humanoid-robotics-automation-next-frontier",
+      "snippet": "Humanoid robots, AI-powered machines resembling humans, are poised to transform automation by addressing labor shortages and revolutionize sectors.",
+      "date": "May 16, 2025",
+      "position": 3
+    },
+    {
+      "title": "Advancements in Humanoid Robots: A Comprehensive Review and ...",
+      "link": "https://ieeexplore.ieee.org/document/10415857/",
+      "snippet": "This paper provides a comprehensive review of the current status, advancements, and future prospects of humanoid robots.",
+      "date": "Jan 29, 2024",
+      "position": 4
+    },
+    {
+      "title": "Bowen Weng's research aims to make humanoid robots not only ...",
+      "link": "https://news.las.iastate.edu/2025/02/21/bowen-wengs-research-aims-to-make-humanoid-robots-not-only-cool-but-safe/",
+      "snippet": "Weng's research revealed that the new algorithm works reliably and with high probability, and that future testing with other robot types is ...",
+      "date": "Feb 21, 2025",
+      "position": 5
+    },
+    {
+      "title": "Humanoid Robot Market Expected to Reach $5 Trillion by 2050",
+      "link": "https://www.morganstanley.com/insights/articles/humanoid-robot-market-5-trillion-by-2050",
+      "snippet": "Adoption of humanoids is likely to accelerate in the late 2030s with improved technology as well as greater regulatory and societal support.",
+      "date": "May 14, 2025",
+      "position": 6
+    },
+    {
+      "title": "Human-Robot Interaction and Social Robot: The Emerging Field of ...",
+      "link": "http://e-neurospine.org/journal/view.php?doi=10.14245/ns.2448432.216",
+      "snippet": "The aim of this review paper is to introduce the fundamental concepts of HRI and social robots, examine their current applications in the medical field,",
+      "date": "Sep 30, 2024",
+      "position": 7
+    },
+    {
+      "title": "The Future of Humanoid Robots: Trends, Applications, and ...",
+      "link": "https://digitopia.co/blog/future-of-humanoid-robots/",
+      "snippet": "In this article, we explore the future of humanoid robots, highlighting key trends, breakthrough applications, leading companies, and visionary insights.",
+      "date": "Apr 10, 2025",
+      "position": 8
+    },
+    {
+      "title": "Humanoid Robots on the Rise: Industry Advances, Key Players, and ...",
+      "link": "https://www.topbots.com/humanoid-robots-overview-2024/",
+      "snippet": "1. Affordable Hardware Enables Broader Research · 2. AI-Powered “Robot Brains” Revolutionize Capabilities · 3. Imitation Learning Enhances Skill ...",
+      "date": "Aug 13, 2024",
+      "position": 9
+    },
+    {
+      "title": "The Rise of the Humanoid Robotic Machines Is Nearing - Forbes",
+      "link": "https://www.forbes.com/sites/chuckbrooks/2025/05/07/the-rise-of-the-humanoid-robotic-machines-is-nearing/",
+      "snippet": "Improvements in design and materials are also making humanoid robots more realistic. To build robots that resemble humans in appearance and ...",
+      "date": "May 7, 2025",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "advancements in humanoid robots: a comprehensive review and future prospects"
+    },
+    {
+      "query": "advancements in humanoid robots: a comprehensive review and future prospects pdf"
+    },
+    {
+      "query": "humanoid robot research paper"
+    },
+    {
+      "query": "research on humanoid robots"
+    },
+    {
+      "query": "humanoid robot motion planning approaches: a survey"
+    },
+    {
+      "query": "expressive whole-body control for humanoid robots"
+    },
+    {
+      "query": "humanoid robot survey"
+    },
+    {
+      "query": "a comprehensive survey on humanoid robot development"
+    }
+  ],
+  "credits": 1
+}

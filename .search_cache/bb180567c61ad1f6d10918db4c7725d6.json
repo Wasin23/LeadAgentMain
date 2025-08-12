@@ -1,0 +1,81 @@
+{
+  "searchParameters": {
+    "q": "research improvements in humanoid robotics latest",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "New IFR position paper on humanoid robots published",
+      "link": "https://ifr.org/ifr-press-releases/news/new-ifr-position-paper-on-humanoid-robots-published",
+      "snippet": "In particular, generative AI has led to new methods by which humanoids acquire their capabilities. They can learn from demonstration and even figure out tasks ...",
+      "position": 1
+    },
+    {
+      "title": "Advancements in humanoid robot dynamics and learning ...",
+      "link": "https://www.oaepublish.com/articles/ir.2025.32",
+      "snippet": "This review systematically categorizes and summarizes existing methods for motion control and planning in humanoid robots, dividing the control ...",
+      "date": "Jul 24, 2025",
+      "position": 2
+    },
+    {
+      "title": "Humanoid robots offer disruption and promise. Here's why",
+      "link": "https://www.weforum.org/stories/2025/06/humanoid-robots-offer-disruption-and-promise/",
+      "snippet": "Analysts predict that humanoid robots could become a common presence in our daily lives within the next decade.",
+      "date": "Jun 16, 2025",
+      "position": 3
+    },
+    {
+      "title": "Recent Advances in Human–Robot Interactions",
+      "link": "https://www.mdpi.com/2076-3417/15/12/6850",
+      "snippet": "Innovations in robotic design, such as the centipede-type rescue robot, along with advancements in computer vision further demonstrate their potential for real- ...",
+      "date": "by J Han · 2025",
+      "position": 4
+    },
+    {
+      "title": "Future of Humanoid Robots in North America: A New Era ...",
+      "link": "https://www.marketsandmarkets.com/blog/SE/humanoid-robot-north-america",
+      "snippet": "Increased Precision: As humanoid robots become more sophisticated, their ability to handle intricate tasks—such as assembly of small parts or ...",
+      "date": "Apr 7, 2025",
+      "position": 5
+    },
+    {
+      "title": "Top 12 Humanoid Robots of 2025",
+      "link": "https://humanoidroboticstechnology.com/articles/top-12-humanoid-robots-of-2025/",
+      "snippet": "Discover the top 12 humanoid robots of 2025, with AI advancements, robotics, and human-robot interaction shaping the future of automation.",
+      "position": 6
+    },
+    {
+      "title": "Humanoids: A $5 Trillion Market",
+      "link": "https://www.morganstanley.com/insights/articles/humanoid-robot-market-5-trillion-by-2050",
+      "snippet": "Adoption of humanoids is likely to accelerate in the late 2030s with improved technology as well as greater regulatory and societal support.",
+      "date": "May 14, 2025",
+      "position": 7
+    },
+    {
+      "title": "Humanoid Robots Research Report 2025: A $38 Billion ...",
+      "link": "https://aijourn.com/humanoid-robots-research-report-2025-a-38-billion-market-driven-by-advances-in-ai-and-autonomous-systems-technical-advancements-market-dynamics-and-potential-across-multiple-verticals-researc/",
+      "snippet": "Ongoing research and development will be critical in determining the long-term viability and economic impact of humanoid robotic technologies.",
+      "date": "Mar 19, 2025",
+      "position": 8
+    },
+    {
+      "title": "Humanoid Robots | U.S.",
+      "link": "https://www.uscc.gov/research/humanoid-robots",
+      "snippet": "Recent advances in artificial intelligence (AI) have improved the degree of autonomy in humanoid robots, allowing them to handle more complex ...",
+      "date": "Oct 10, 2024",
+      "position": 9
+    },
+    {
+      "title": "The Future of Humanoid Robots: Trends, Applications, and ...",
+      "link": "https://digitopia.co/blog/future-of-humanoid-robots/",
+      "snippet": "In this article, we explore the future of humanoid robots, highlighting key trends, breakthrough applications, leading companies, and visionary insights.",
+      "date": "Apr 10, 2025",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

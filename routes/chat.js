@@ -324,4 +324,64 @@ router.post('/research/deep', async (req, res) => {
   }
 });
 
+// Deep Research with Real-time Progress Updates
+router.post('/research/deep-stream', async (req, res) => {
+  try {
+    const { query, mode, limit } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Missing required field: query' });
+    }
+
+    console.log(`[DeepResearch] Starting streamed research for: "${query}" (mode: ${mode || 'fresh'})`);
+
+    // Set up Server-Sent Events
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control'
+    });
+
+    // Import the deep research tool
+    const { deepResearch } = await import('../tools/deepResearch.js');
+    
+    // Configure options with progress callback
+    const options = {
+      mode: mode || 'fresh',
+      limit: limit || 15,
+      progressCallback: (progress) => {
+        console.log(`[DeepResearch] Progress: ${progress.stage} - ${progress.progress}% - ${progress.message}`);
+        res.write(`data: ${JSON.stringify(progress)}\n\n`);
+      }
+    };
+
+    // Execute deep research with progress updates
+    const result = await deepResearch(query, options);
+    
+    console.log(`[DeepResearch] Completed: ${result.success ? 'SUCCESS' : 'FAILED'}`);
+    
+    // Send final result
+    res.write(`data: ${JSON.stringify({ 
+      stage: 'complete', 
+      progress: 100, 
+      message: 'Research completed!', 
+      result 
+    })}\n\n`);
+    
+    res.end();
+    
+  } catch (err) {
+    console.error('[DeepResearch] Stream Error:', err);
+    res.write(`data: ${JSON.stringify({ 
+      stage: 'error', 
+      progress: 0, 
+      message: 'Research failed: ' + err.message,
+      error: err.message 
+    })}\n\n`);
+    res.end();
+  }
+});
+
 export default router;

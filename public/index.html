@@ -78,22 +78,37 @@
 
     .tab-content-area {
       flex: 1;
-      overflow-y: auto;
-      max-height: 85vh;
+      overflow-y: visible;
+      max-height: 90vh;
+      margin-bottom: 1rem;
     }
 
     .tab-content {
       background: #343541;
       border-radius: 8px;
       padding: 1rem;
+      margin: 1rem;
       overflow-y: auto;
       min-height: 700px;
+      max-height: calc(85vh - 2rem);
       display: flex;
       flex-direction: column;
     }
 
     #outreach-content {
       height: 100%;
+      overflow-y: visible;
+    }
+
+    #history-content {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #history-list {
+      flex: 1;
+      overflow-y: auto;
     }
 
     #main {
@@ -110,7 +125,7 @@
       font-size: 2.2rem;
       font-weight: bold;
       color: #2196f3;
-      padding: 1.2rem 0 0.5rem 720px;
+      padding: 1.2rem 0 0.5rem 1rem;
       letter-spacing: 2px;
       background: #343541;
       border-bottom: 1px solid #444654;
@@ -126,7 +141,7 @@
 
     #chat {
       flex: 1;
-      max-height: calc(100vh - 220px);
+      max-height: calc(95vh - 140px);
       overflow-y: auto;
       padding: 1rem;
       display: flex;
@@ -137,10 +152,13 @@
     }
 
     .bubble {
-      padding: 0.8rem 1rem;
+      padding: 0.4rem 0.6rem;
       border-radius: 8px;
       max-width: 75%;
       white-space: pre-wrap;
+      position: relative;
+      margin-bottom: 0.3rem;
+      line-height: 1.4;
     }
 
     .bubble.user {
@@ -155,12 +173,188 @@
       align-self: flex-start;
     }
 
+    .message-content {
+      line-height: 1.4;
+    }
+
+    .message-content p {
+      margin: 0;
+      padding: 0;
+    }
+
+    .message-actions {
+      position: absolute;
+      bottom: -25px;
+      right: 10px;
+      display: none;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .bubble:hover .message-actions {
+      display: flex;
+      opacity: 1;
+    }
+
+    .action-icon {
+      background: #40414f;
+      border: 1px solid #565869;
+      border-radius: 4px;
+      padding: 4px 6px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #c5c5d2;
+      transition: background 0.2s ease;
+    }
+
+    .action-icon:hover {
+      background: #565869;
+      color: #fff;
+    }
+
+    .bubble.editing {
+      background: #2d2d30 !important;
+      border: 2px solid #2196f3;
+    }
+
+    .bubble.editing .message-content {
+      display: none;
+    }
+
+    .edit-textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      resize: none;
+      outline: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .edit-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .edit-btn {
+      background: #2196f3;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .edit-btn.cancel {
+      background: #666;
+    }
+
+    .edit-btn:hover {
+      opacity: 0.8;
+    }
+
+    /* Markdown styling for chat messages */
+    .message-content h1, .message-content h2, .message-content h3, 
+    .message-content h4, .message-content h5, .message-content h6 {
+      margin: 0.3rem 0;
+      color: inherit;
+    }
+
+    .message-content h1 { font-size: 1.4rem; font-weight: bold; }
+    .message-content h2 { font-size: 1.2rem; font-weight: bold; }
+    .message-content h3 { font-size: 1.05rem; font-weight: bold; }
+    .message-content h4 { font-size: 1.0rem; font-weight: bold; }
+    .message-content h5 { font-size: 0.95rem; font-weight: bold; }
+    .message-content h6 { font-size: 0.9rem; font-weight: bold; }
+
+    .message-content strong { font-weight: bold; }
+    .message-content em { font-style: italic; }
+
+    .message-content code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+
+    .message-content pre {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin: 0.3rem 0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    .message-content pre code {
+      background: none;
+      padding: 0;
+      border-radius: 0;
+      font-size: 0.85em;
+    }
+
+    .message-content ul, .message-content ol {
+      margin: 0.3rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .message-content li {
+      margin: 0.1rem 0;
+    }
+
+    .message-content blockquote {
+      border-left: 3px solid #2196f3;
+      padding-left: 1rem;
+      margin: 0.3rem 0;
+      opacity: 0.8;
+      font-style: italic;
+    }
+
+    .message-content a {
+      color: #64b5f6;
+      text-decoration: none;
+    }
+
+    .message-content a:hover {
+      text-decoration: underline;
+    }
+
+    .message-content table {
+      border-collapse: collapse;
+      margin: 0.3rem 0;
+      width: 100%;
+    }
+
+    .message-content th, .message-content td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.4rem;
+      text-align: left;
+    }
+
+    .message-content th {
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: bold;
+    }
+
     #input-area {
       background: #40414f;
       padding: 1rem;
       display: flex;
       gap: 0.5rem;
       border-top: 1px solid #444654;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
     }
 
     #message {
@@ -204,7 +398,6 @@
     #history-list {
       color: #ccc;
       font-size: 0.9rem;
-      max-height: 400px;
       overflow-y: auto;
     }
 
@@ -424,44 +617,361 @@
       const text = input.value.trim();
       if (!text) return;
 
-      appendMessage(text, 'user');
+      // Add user message with ID tracking
+      const userMessageId = appendMessage(text, 'user');
       input.value = '';
 
-      // Normal chat flow
-      const aiBubble = document.createElement('div');
-      aiBubble.className = 'bubble ai';
-      aiBubble.textContent = '⏳ Thinking...';
-      chat.appendChild(aiBubble);
+      // Show thinking indicator
+      const thinkingBubble = document.createElement('div');
+      thinkingBubble.className = 'bubble ai thinking';
+      thinkingBubble.innerHTML = '<div class="message-content">⏳ Thinking...</div>';
+      chat.appendChild(thinkingBubble);
       chat.scrollTop = chat.scrollHeight;
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'cole',
-          userInput: text,
-          chatHistory: chatHistory
-        })
-      });
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: 'cole',
+            userInput: text,
+            chatHistory: chatHistory
+          })
+        });
 
-      const data = await res.json();
-      aiBubble.textContent = data.response || '⚠️ No response';
-      chatHistory.push({ input: text, output: data.response });
-      updateHistoryTab();
-      
-      // Check if the response indicates an email was sent
-      if (data.response && data.response.includes('✅ Email sent to')) {
-        // Refresh email logs after a short delay to ensure the log file is updated
-        setTimeout(loadEmailLogs, 1000);
+        const data = await res.json();
+        
+        // Remove thinking indicator
+        thinkingBubble.remove();
+        
+        // Add AI response with ID tracking
+        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai');
+        
+        // Update chat history with message IDs
+        chatHistory.push({ 
+          input: text, 
+          output: data.response,
+          userMessageId: userMessageId,
+          aiMessageId: aiMessageId
+        });
+        updateHistoryTab();
+        
+        // Check if the response indicates an email was sent
+        if (data.response && data.response.includes('✅ Email sent to')) {
+          setTimeout(loadEmailLogs, 1000);
+        }
+        
+      } catch (error) {
+        // Remove thinking indicator
+        thinkingBubble.remove();
+        console.error('Error sending message:', error);
+        appendMessage('Sorry, I encountered an error. Please try again.', 'ai');
       }
     }
 
-    function appendMessage(text, sender) {
+    // Simple but effective markdown parser
+    function parseMarkdown(text) {
+      console.log('🔍 parseMarkdown INPUT:', text);
+      
+      // Escape HTML first to prevent XSS
+      let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
+      console.log('📝 After HTML escape:', html);
+
+      // Bold and italic
+      html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+      // Code blocks (triple backticks)
+      html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+      
+      // Inline code (single backticks)
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Links
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+      // Headers (process BEFORE line breaks)
+      console.log('🏷️ BEFORE header processing (with \\n):', html.substring(0, 200));
+      html = html.replace(/^######\s+(.+?)$/gm, '<h6>$1</h6>');
+      html = html.replace(/^#####\s+(.+?)$/gm, '<h5>$1</h5>');
+      html = html.replace(/^####\s+(.+?)$/gm, '<h4>$1</h4>');
+      html = html.replace(/^###\s+(.+?)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^##\s+(.+?)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^#\s+(.+?)$/gm, '<h1>$1</h1>');
+      console.log('🏷️ AFTER header processing:', html.substring(0, 200));
+
+      // Unordered lists
+      html = html.replace(/^[\s]*[-*+] (.*)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+      // Ordered lists
+      html = html.replace(/^[\s]*\d+\. (.*)$/gm, '<li>$1</li>');
+      // Note: This is a simplified approach. More complex parsing would be needed for nested lists.
+
+      // Blockquotes
+      html = html.replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>');
+
+      // Line breaks (convert double newlines to paragraphs, single newlines to <br>)
+      html = html.replace(/\n\n/g, '</p><p>');
+      html = html.replace(/\n/g, '<br>');
+      
+      console.log('🔄 After line breaks:', html);
+      
+      console.log('🏷️ After headers:', html);
+      
+      // Wrap in paragraph if not already wrapped
+      if (!html.includes('<p>') && !html.includes('<h1>') && !html.includes('<h2>') && !html.includes('<h3>') && !html.includes('<h4>') && !html.includes('<h5>') && !html.includes('<h6>')) {
+        html = '<p>' + html + '</p>';
+      }
+
+      console.log('✅ parseMarkdown FINAL OUTPUT:', html);
+      return html;
+    }
+
+    function appendMessage(text, sender, messageId = null) {
       const bubble = document.createElement('div');
       bubble.className = `bubble ${sender}`;
-      bubble.textContent = text;
+      
+      // Generate a unique message ID if not provided
+      const msgId = messageId || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      bubble.setAttribute('data-message-id', msgId);
+      bubble.setAttribute('data-sender', sender);
+      bubble.setAttribute('data-original-text', text);
+      
+      // Create message content wrapper
+      const content = document.createElement('div');
+      content.className = 'message-content';
+      content.innerHTML = parseMarkdown(text);
+      bubble.appendChild(content);
+      
+      // Create message actions (edit and copy icons)
+      const actions = document.createElement('div');
+      actions.className = 'message-actions';
+      
+      const editIcon = document.createElement('div');
+      editIcon.className = 'action-icon';
+      editIcon.innerHTML = '✏️';
+      editIcon.title = 'Edit message';
+      editIcon.onclick = () => startEditMessage(bubble);
+      
+      const copyIcon = document.createElement('div');
+      copyIcon.className = 'action-icon';
+      copyIcon.innerHTML = '📋';
+      copyIcon.title = 'Copy message';
+      copyIcon.onclick = () => copyMessage(text);
+      
+      actions.appendChild(editIcon);
+      actions.appendChild(copyIcon);
+      bubble.appendChild(actions);
+      
       chat.appendChild(bubble);
       chat.scrollTop = chat.scrollHeight;
+      
+      return msgId;
+    }
+
+    function copyMessage(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        // Show a brief confirmation
+        console.log('Message copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy message:', err);
+      });
+    }
+
+    function startEditMessage(bubble) {
+      const originalText = bubble.getAttribute('data-original-text');
+      const sender = bubble.getAttribute('data-sender');
+      const messageId = bubble.getAttribute('data-message-id');
+      
+      // Don't allow editing AI messages
+      if (sender === 'ai') {
+        console.log('Cannot edit AI messages');
+        return;
+      }
+      
+      // Add editing class
+      bubble.classList.add('editing');
+      
+      // Create textarea for editing
+      const textarea = document.createElement('textarea');
+      textarea.className = 'edit-textarea';
+      textarea.value = originalText;
+      textarea.rows = Math.max(2, originalText.split('\n').length);
+      
+      // Auto-resize textarea
+      textarea.addEventListener('input', () => {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+      });
+      
+      // Create edit action buttons
+      const editActions = document.createElement('div');
+      editActions.className = 'edit-actions';
+      
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'edit-btn';
+      saveBtn.textContent = 'Save';
+      saveBtn.onclick = () => saveEditedMessage(bubble, textarea.value, messageId);
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'edit-btn cancel';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.onclick = () => cancelEditMessage(bubble);
+      
+      editActions.appendChild(saveBtn);
+      editActions.appendChild(cancelBtn);
+      
+      // Add textarea and actions to bubble
+      bubble.appendChild(textarea);
+      bubble.appendChild(editActions);
+      
+      // Focus and select text
+      textarea.focus();
+      textarea.select();
+      
+      // Handle Enter+Ctrl to save
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          saveEditedMessage(bubble, textarea.value, messageId);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelEditMessage(bubble);
+        }
+      });
+    }
+
+    function cancelEditMessage(bubble) {
+      // Remove editing elements
+      const textarea = bubble.querySelector('.edit-textarea');
+      const editActions = bubble.querySelector('.edit-actions');
+      
+      if (textarea) textarea.remove();
+      if (editActions) editActions.remove();
+      
+      // Remove editing class
+      bubble.classList.remove('editing');
+    }
+
+    function saveEditedMessage(bubble, newText, messageId) {
+      if (!newText.trim()) {
+        alert('Message cannot be empty');
+        return;
+      }
+      
+      // Update the original text attribute
+      bubble.setAttribute('data-original-text', newText);
+      
+      // Update the message content with markdown rendering
+      const content = bubble.querySelector('.message-content');
+      content.innerHTML = parseMarkdown(newText);
+      
+      // Remove editing elements and class
+      cancelEditMessage(bubble);
+      
+      // Remove all messages after this one (conversation branching)
+      removeMessagesAfter(messageId);
+      
+      // Update chat history
+      updateChatHistoryAfterEdit(messageId, newText);
+      
+      // Send new message to AI for response
+      regenerateAIResponse(newText);
+    }
+
+    function removeMessagesAfter(messageId) {
+      const allBubbles = chat.querySelectorAll('.bubble');
+      let foundTarget = false;
+      const bubblesToRemove = [];
+      
+      // Find all bubbles after the edited message
+      for (const bubble of allBubbles) {
+        if (bubble.getAttribute('data-message-id') === messageId) {
+          foundTarget = true;
+          continue;
+        }
+        if (foundTarget) {
+          bubblesToRemove.push(bubble);
+        }
+      }
+      
+      // Remove the bubbles
+      bubblesToRemove.forEach(bubble => bubble.remove());
+    }
+
+    function updateChatHistoryAfterEdit(messageId, newText) {
+      // Find the message in chat history and update it
+      const messageIndex = chatHistory.findIndex(msg => msg.messageId === messageId);
+      
+      if (messageIndex !== -1) {
+        // Update the message text
+        chatHistory[messageIndex].input = newText;
+        
+        // Remove all history entries after this message
+        chatHistory.splice(messageIndex + 1);
+        
+        updateHistoryTab();
+      }
+    }
+
+    async function regenerateAIResponse(userMessage) {
+      try {
+        // Show thinking indicator
+        const thinkingBubble = document.createElement('div');
+        thinkingBubble.className = 'bubble ai thinking';
+        thinkingBubble.innerHTML = '<div class="message-content">🤔 Thinking...</div>';
+        chat.appendChild(thinkingBubble);
+        chat.scrollTop = chat.scrollHeight;
+        
+        // Send to AI using the same format as the working sendMessage function
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: 'cole',
+            userInput: userMessage,
+            chatHistory: chatHistory
+          })
+        });
+        
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        
+        // Remove thinking indicator
+        thinkingBubble.remove();
+        
+        // Add AI response
+        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai');
+        
+        // Update chat history
+        chatHistory.push({ 
+          input: userMessage, 
+          output: data.response,
+          userMessageId: null, // This was an edit, not a new user message
+          aiMessageId: aiMessageId
+        });
+        updateHistoryTab();
+        
+        // Auto-refresh email logs if email was mentioned
+        if (userMessage.toLowerCase().includes('email') || (data.response && data.response.toLowerCase().includes('email'))) {
+          setTimeout(loadEmailLogs, 1000);
+        }
+        
+      } catch (error) {
+        // Remove thinking indicator
+        const thinking = chat.querySelector('.thinking');
+        if (thinking) thinking.remove();
+        
+        console.error('Error regenerating AI response:', error);
+        appendMessage('Sorry, I encountered an error. Please try again.', 'ai');
+      }
     }
 
     function updateHistoryTab() {
@@ -472,11 +982,11 @@
         
         const input = document.createElement('div');
         input.className = 'history-input';
-        input.textContent = `You: ${msg.input}`;
+        input.innerHTML = `<strong>You:</strong> ${parseMarkdown(msg.input)}`;
         
         const output = document.createElement('div');
         output.className = 'history-output';
-        output.textContent = `AI: ${msg.output}`;
+        output.innerHTML = `<strong>AI:</strong> ${parseMarkdown(msg.output)}`;
         
         item.appendChild(input);
         item.appendChild(output);
@@ -575,9 +1085,13 @@
           // Restore previous chat history for returning users
           data.chatHistory.forEach(msg => {
             if (msg.input !== '[System Init]') {
-              appendMessage(msg.input, 'user');
+              const userMsgId = appendMessage(msg.input, 'user', msg.userMessageId);
+              // Update message ID if it was auto-generated
+              if (!msg.userMessageId) msg.userMessageId = userMsgId;
             }
-            appendMessage(msg.output, 'ai');
+            const aiMsgId = appendMessage(msg.output, 'ai', msg.aiMessageId);
+            // Update message ID if it was auto-generated
+            if (!msg.aiMessageId) msg.aiMessageId = aiMsgId;
           });
           chatHistory = data.chatHistory;
         } else {
@@ -847,52 +1361,83 @@
       document.getElementById('deep-research-results').innerHTML = '<div style="color:#ccc;font-style:italic;">Deep research starting...</div>';
 
       try {
-        // Start progress simulation immediately
-        simulateDeepResearchProgress();
-
-        // Start deep research
-        const response = await fetch('/api/research/deep', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, mode, limit })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to start deep research');
-        }
-
-        const data = await response.json();
+        // Start real-time progress monitoring
+        monitorDeepResearchProgress(query, mode, limit);
         
-        // Stop the simulation
-        if (window.deepResearchProgressInterval) {
-          clearInterval(window.deepResearchProgressInterval);
-        }
-
-        // Show completion
-        document.getElementById('deep-research-status').textContent = 'Research completed!';
-        document.getElementById('deep-research-percentage').textContent = '100%';
-        document.getElementById('deep-research-progress-bar').style.width = '100%';
-        
-        if (data.success) {
-          displayDeepResearchResults(data);
-        } else {
-          document.getElementById('deep-research-results').innerHTML = 
-            `<div style="color:#f44336;">Deep research failed: ${data.error || 'Unknown error'}</div>`;
-        }
-
       } catch (err) {
         console.error('Deep research error:', err);
-        
-        // Stop the simulation
-        if (window.deepResearchProgressInterval) {
-          clearTimeout(window.deepResearchProgressInterval);
-        }
-        
         document.getElementById('deep-research-results').innerHTML = 
           '<div style="color:#f44336;">Failed to start deep research. Please try again.</div>';
-      } finally {
         resetDeepResearchUI();
       }
+    }
+
+    // Real-time deep research progress monitoring
+    function monitorDeepResearchProgress(query, mode, limit) {
+      console.log('[FRONTEND] Starting real-time deep research progress monitoring');
+      
+      // Initialize progress UI
+      document.getElementById('deep-research-status').textContent = 'Connecting to research engine...';
+      document.getElementById('deep-research-percentage').textContent = '0%';
+      document.getElementById('deep-research-progress-bar').style.width = '0%';
+      document.getElementById('deep-research-current-task').textContent = 'Initializing...';
+      document.getElementById('deep-research-stats').style.display = 'none';
+      
+      // Start the streaming request
+      fetch('/api/research/deep-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, mode, limit })
+      })
+      .then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        function processStream() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              console.log('[FRONTEND] Deep research stream completed');
+              return;
+            }
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            lines.forEach(line => {
+              if (line.startsWith('data: ')) {
+                try {
+                  const progressData = JSON.parse(line.slice(6));
+                  updateDeepResearchProgress(progressData);
+                  
+                  // Handle completion
+                  if (progressData.stage === 'complete' && progressData.result) {
+                    console.log('[FRONTEND] Research completed, displaying results');
+                    displayDeepResearchResults(progressData.result);
+                    resetDeepResearchUI();
+                  } else if (progressData.stage === 'error') {
+                    console.error('[FRONTEND] Research error:', progressData.message);
+                    document.getElementById('deep-research-results').innerHTML = 
+                      `<div style="color:#f44336;">Research failed: ${progressData.message}</div>`;
+                    resetDeepResearchUI();
+                  }
+                } catch (err) {
+                  console.error('[FRONTEND] Failed to parse progress data:', err);
+                }
+              }
+            });
+            
+            processStream();
+          });
+        }
+        
+        processStream();
+      })
+      .catch(err => {
+        console.error('[FRONTEND] Stream error:', err);
+        document.getElementById('deep-research-results').innerHTML = 
+          '<div style="color:#f44336;">Failed to connect to research engine. Please try again.</div>';
+        resetDeepResearchUI();
+      });
     }
 
     function simulateDeepResearchProgress() {
