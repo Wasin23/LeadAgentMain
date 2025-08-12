@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { ChatOpenAI } from "@langchain/openai";
 import { AgentExecutor, initializeAgentExecutorWithOptions } from "langchain/agents";
-import { DynamicTool } from "langchain/tools";
+import { DynamicTool, DynamicStructuredTool } from "langchain/tools";
+import { z } from "zod";
 import { internetSearch } from "../tools/internetSearch.js";
 import { deepResearch } from "../tools/deepResearch.js";
 import { sendEmailTool } from "../lib/myEmailTool.js";
@@ -96,56 +97,31 @@ const deepResearchTool = new DynamicTool({
 });
 
 // Wrap email sending as a LangChain tool
-const mailgunTool = new DynamicTool({
+// Wrap email tool as a LangChain tool
+const mailgunTool = new DynamicStructuredTool({
   name: "send_email",
-  description:
-    "Send an email. Input must be a JSON object with the following fields: 'to' (recipient email), 'subject' (email subject), and 'body' (email content). Example: {\"to\": \"someone@example.com\", \"subject\": \"Hello\", \"body\": \"This is the message.\"}",
-  schema: {
-    type: "object",
-    properties: {
-      to: {
-        type: "string",
-        description: "Recipient email address"
-      },
-      subject: {
-        type: "string", 
-        description: "Email subject line"
-      },
-      body: {
-        type: "string",
-        description: "Email message content"
-      }
-    },
-    required: ["to", "subject", "body"]
-  },
-  func: async (input) => {
+  description: "Send an email. Provide the recipient email, subject, and body content.",
+  schema: z.object({
+    to: z.string().describe("Recipient email address"),
+    subject: z.string().describe("Email subject line"),
+    body: z.string().describe("Email message content")
+  }),
+  func: async ({ to, subject, body }) => {
     try {
-      let params;
-      
-      // Handle different input formats from OpenAI functions agent
-      if (typeof input === 'string') {
-        params = JSON.parse(input);
-      } else if (input && typeof input === 'object') {
-        // Check if input has nested 'input' property (common with OpenAI functions)
-        if (input.input) {
-          if (typeof input.input === 'string') {
-            params = JSON.parse(input.input);
-          } else {
-            params = input.input;
-          }
-        } else {
-          params = input;
-        }
-      }
+      console.log('[EMAIL TOOL] Received parameters:', { to, subject, body: body?.substring(0, 100) + '...' });
       
       // Validate required fields
-      if (!params || !params.to || !params.subject || !params.body) {
-        return "Invalid input for send_email tool. All fields ('to', 'subject', 'body') are required.";
+      if (!to || !subject || !body) {
+        console.log('[EMAIL TOOL] Validation failed - missing fields');
+        return "Error: All fields ('to', 'subject', 'body') are required.";
       }
       
-      // Call the email function with destructured parameters
-      return await sendEmailTool({ to: params.to, subject: params.subject, body: params.body });
+      // Call the email function
+      const result = await sendEmailTool({ to, subject, body });
+      console.log('[EMAIL TOOL] Result:', result);
+      return result;
     } catch (e) {
+      console.error('[EMAIL TOOL] Error:', e);
       return `Error sending email: ${e.message}`;
     }
   },

@@ -1,5 +1,19 @@
 [
   {
+    "to": "parkzrz@gmail.com",
+    "subject": "Hello from ExaMark!",
+    "body": "Hi there!\n\nI'm ExaMark, your enthusiastic and slightly geeky AI research assistant from Exabits! 🚀 I'm here to help with all things tech, research, and innovation. Whether you need insights, information, or just a friendly chat about the latest in technology, I'm your go-to resource.\n\nLooking forward to exploring new possibilities with you!\n\nBest regards,\nExaMark 🤖",
+    "status": "sent",
+    "timestamp": "2025-08-12T02:25:16.799Z"
+  },
+  {
+    "to": "colton.fidd@gmail.com",
+    "subject": "Test Email",
+    "body": "Hello Colton,\n\nThis is just a simple test email to check our connection. Please let me know if you receive it.\n\nBest regards,\nExaMark",
+    "status": "sent",
+    "timestamp": "2025-08-12T02:24:35.695Z"
+  },
+  {
     "to": "colton.fidd@gmail.com",
     "subject": "Test Email from AI Assistant",
     "body": "Hello Colton,\n\nThis is a test email sent by your friendly AI assistant. Please let me know if you received this message successfully.\n\nBest regards,\nAI Assistant",
