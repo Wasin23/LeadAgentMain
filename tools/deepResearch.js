@@ -193,34 +193,107 @@ async function searchGithub(query, limit = 4) {
   }
 }
 
-// Generate search query variants
+// Apollo API search for leads and contacts
+async function searchApollo(query, limit = 10) {
+  try {
+    console.log(`🎯 [Apollo] Searching for leads: ${query}`);
+    
+    // Apollo API configuration
+    const apolloApiKey = process.env.APOLLO_API_KEY;
+    console.log(`🔑 [Apollo] API Key check: ${apolloApiKey ? `Present (${apolloApiKey.substring(0, 10)}...)` : 'Missing'}`);
+    
+    if (!apolloApiKey || apolloApiKey === 'your_apollo_api_key_here') {
+      console.log(`⚠️ [Apollo] API key not configured (${apolloApiKey ? 'placeholder detected' : 'missing'}), skipping Apollo search`);
+      return [];
+    }
+
+    // Smart query processing for Apollo
+    const apolloQuery = query
+      .replace(/["']/g, '') // Remove quotes that might break Apollo
+      .replace(/\s+OR\s+/gi, ' ') // Simplify OR queries for Apollo
+      .trim();
+
+    // Apollo People Search API with intelligent filtering
+    const apolloUrl = 'https://api.apollo.io/v1/mixed_people/search';
+    const response = await fetch(apolloUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'X-Api-Key': apolloApiKey
+      },
+      body: JSON.stringify({
+        q_keywords: apolloQuery,
+        page: 1,
+        per_page: Math.min(limit, 25), // Apollo max is 25
+        person_locations: [],
+        person_seniorities: ['c_suite', 'vp', 'director', 'manager'], // Target decision makers
+        person_titles: [],
+        organization_num_employees_ranges: ['11-50', '51-200', '201-500', '501-1000', '1001-5000'], // Companies likely to need AI
+        organization_industries: [], // Let query determine industry
+        person_departments: ['engineering', 'technology', 'product', 'operations'] // Tech-focused departments
+      })
+    });
+
+    if (!response.ok) {
+      console.error(`Apollo API error: ${response.status} ${response.statusText}`);
+      return [];
+    }
+
+    const data = await response.json();
+    const results = data.people?.map(person => {
+      const company = person.organization || {};
+      const companySize = company.estimated_num_employees || 'Unknown size';
+      const funding = company.funding_stage_cd || 'Unknown funding';
+      
+      return {
+        title: `${person.first_name} ${person.last_name} - ${person.title || 'Unknown Title'}`,
+        url: person.linkedin_url || `mailto:${person.email}` || '#',
+        snippet: `🎯 ${person.title || 'Unknown Title'} at ${company.name || 'Unknown Company'} (${company.industry || 'Unknown Industry'}). ${person.email ? `📧 ${person.email}` : '❌ No email'}. 👥 ${companySize} employees. � ${funding} stage. 📍 ${person.city || 'Unknown'}, ${person.state || person.country || ''}. � High-priority lead for AI automation services.`,
+        source: 'Apollo'
+      };
+    }) || [];
+    
+    console.log(`✅ [Apollo] Found ${results.length} high-quality lead results`);
+    return results;
+  } catch (error) {
+    console.error('Apollo search error:', error);
+    return [];
+  }
+}
+
+// Generate search query variants with AI-powered optimization
 function generateQueryVariants(originalQuery, mode = 'fresh') {
   const variants = [originalQuery];
   
-  if (mode === 'academic') {
+  if (mode === 'lead') {
+    // Strategic lead search variants optimized for finding decision makers
     variants.push(
-      `${originalQuery} research`,
-      `${originalQuery} study`,
-      `${originalQuery} analysis`,
-      `${originalQuery} theory`
-    );
-  } else if (mode === 'product') {
-    variants.push(
-      `${originalQuery} product`,
-      `${originalQuery} solution`,
-      `${originalQuery} tool`,
-      `${originalQuery} review`
+      `"${extractCompanyType(originalQuery)}" "CTO" OR "VP Engineering" OR "Head of AI"`,
+      `${originalQuery} contact email LinkedIn decision maker`,
+      `"${extractCompanyType(originalQuery)}" funding artificial intelligence automation`,
+      `${originalQuery} technology stack engineering team size`
     );
   } else {
+    // Fresh mode with temporal and context-aware variants
+    const currentYear = new Date().getFullYear();
     variants.push(
-      `${originalQuery} 2024`,
-      `${originalQuery} latest`,
-      `${originalQuery} news`,
-      `${originalQuery} update`
+      `${originalQuery} ${currentYear} latest research breakthrough`,
+      `"${originalQuery}" state of the art recent developments`,
+      `${originalQuery} comprehensive analysis trends ${currentYear}`,
+      `${originalQuery} implementation guide best practices tutorial`,
+      `${originalQuery} market analysis industry report ${currentYear}`
     );
   }
   
-  return variants.slice(0, 3); // Limit variants
+  return variants.slice(0, 5); // Increased to 5 for better coverage
+}
+
+// Extract company type or industry from query for better targeting
+function extractCompanyType(query) {
+  const industries = ['fintech', 'healthcare', 'saas', 'startup', 'enterprise', 'manufacturing', 'retail', 'logistics', 'real estate'];
+  const found = industries.find(industry => query.toLowerCase().includes(industry));
+  return found || 'companies';
 }
 
 // Remove duplicates based on URL similarity
@@ -228,15 +301,71 @@ function removeDuplicates(results) {
   const seen = new Set();
   return results.filter(result => {
     const key = result.url.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const domain = key.split('/')[2] || key;
+    const normalizedKey = domain + '::' + result.title.toLowerCase().substring(0, 50);
+    
+    if (seen.has(normalizedKey)) {
+      return false;
+    }
+    seen.add(normalizedKey);
     return true;
   });
 }
 
+// Score and rank results for relevance and quality
+function scoreAndRankResults(results, query, mode) {
+  const queryWords = query.toLowerCase().split(/\s+/);
+  
+  return results.map(result => {
+    let score = 0;
+    const title = result.title.toLowerCase();
+    const snippet = result.snippet.toLowerCase();
+    const content = `${title} ${snippet}`;
+    
+    // Basic relevance scoring
+    queryWords.forEach(word => {
+      if (word.length > 2) {
+        if (title.includes(word)) score += 3;
+        if (snippet.includes(word)) score += 1;
+      }
+    });
+    
+    // Source authority scoring
+    const sourceScores = {
+      'Apollo': mode === 'lead' ? 10 : 2,
+      'Web': 5,
+      'Wikipedia': mode === 'lead' ? 2 : 8,
+      'arXiv': mode === 'lead' ? 1 : 9,
+      'GitHub': mode === 'lead' ? 3 : 7
+    };
+    score += sourceScores[result.source] || 1;
+    
+    // Quality indicators for lead mode
+    if (mode === 'lead') {
+      if (content.includes('cto') || content.includes('ceo') || content.includes('vp')) score += 5;
+      if (content.includes('email') || content.includes('contact')) score += 3;
+      if (content.includes('@') && content.includes('.com')) score += 4;
+      if (content.includes('linkedin')) score += 2;
+      if (content.includes('funding') || content.includes('series')) score += 3;
+    }
+    
+    // Quality indicators for research mode
+    if (mode === 'fresh') {
+      if (content.includes('2024') || content.includes('2025')) score += 2;
+      if (content.includes('research') || content.includes('study')) score += 2;
+      if (content.includes('analysis') || content.includes('report')) score += 2;
+    }
+    
+    // Penalty for thin content
+    if (snippet.length < 50) score -= 2;
+    
+    return { ...result, relevanceScore: score };
+  }).sort((a, b) => b.relevanceScore - a.relevanceScore);
+}
+
 // Main deep research function
 export async function deepResearch(query, options = {}) {
-  const { mode = 'fresh', limit = 20, progressCallback } = options;
+  const { mode = 'fresh', limit = 25, progressCallback } = options;
   
   console.log(`🔬 [DeepResearch] Starting research for: "${query}" (mode: ${mode})`);
   
@@ -269,18 +398,35 @@ export async function deepResearch(query, options = {}) {
         totalVariants
       });
       
-      // Parallel searches across ALL sources simultaneously
-      const [webRaw, wikiResults, arxivResults, githubResults] = await Promise.all([
-        internetSearch(variant),
-        searchWikipedia(variant, 5),
-        searchArxiv(variant, 4),
-        searchGithub(variant, 4)
-      ]);
-
-      // Map Serper 'organic' results to unified format
+      // Parallel searches - optimized for better results
+      let searchPromises;
+      console.log(`🔧 [DeepResearch] Mode check: "${mode}" === "lead"? ${mode === 'lead'}`);
+      
+      if (mode === 'lead') {
+        console.log(`🎯 [LeadMode] Using ONLY Web + Apollo search (no Wikipedia/GitHub)`);
+        // Lead mode: High-quality web results + comprehensive Apollo search
+        searchPromises = [
+          internetSearch(variant),
+          searchApollo(variant, 15) // Increased for better lead coverage
+        ];
+      } else {
+        console.log(`🔍 [FreshMode] Using comprehensive research sources`);
+        // Fresh mode: Comprehensive research across all sources
+        searchPromises = [
+          internetSearch(variant),
+          searchWikipedia(variant, 6), // Slightly increased
+          searchArxiv(variant, 5),     // Slightly increased  
+          searchGithub(variant, 5)     // Slightly increased
+        ];
+      }
+      
+      const searchResults = await Promise.all(searchPromises);
+      
+      // Map Serper 'organic' results to unified format with increased limits
       let webResults = [];
-      if (webRaw && Array.isArray(webRaw.organic)) {
-        webResults = webRaw.organic.slice(0, 6).map(item => ({
+      if (searchResults[0] && Array.isArray(searchResults[0].organic)) {
+        const webLimit = mode === 'lead' ? 10 : 8; // More results for lead searches
+        webResults = searchResults[0].organic.slice(0, webLimit).map(item => ({
           title: item.title,
           url: item.link,
           snippet: item.snippet || '',
@@ -288,16 +434,26 @@ export async function deepResearch(query, options = {}) {
         }));
       }
 
-      allResults.push(...webResults, ...wikiResults, ...arxivResults, ...githubResults);
+      // Combine all results based on mode
+      if (mode === 'lead') {
+        // For lead mode: Web + Apollo only
+        const apolloResults = searchResults[1] || [];
+        allResults.push(...webResults, ...apolloResults);
+      } else {
+        // For fresh mode: Web + Wikipedia + arXiv + GitHub  
+        const [, wikiResults, arxivResults, githubResults] = searchResults;
+        allResults.push(...webResults, ...wikiResults, ...arxivResults, ...githubResults);
+      }
     }
     
-    sendProgress('processing', 75, 'Processing and deduplicating results...');
+    sendProgress('processing', 75, 'Processing, scoring and ranking results...');
     
-    // Remove duplicates and limit results
+    // Remove duplicates, score, and rank results for quality
     const uniqueResults = removeDuplicates(allResults);
-    const limitedResults = uniqueResults.slice(0, limit);
+    const rankedResults = scoreAndRankResults(uniqueResults, query, mode);
+    const limitedResults = rankedResults.slice(0, limit);
     
-    console.log(`📊 [DeepResearch] Found ${allResults.length} total, ${uniqueResults.length} unique, showing ${limitedResults.length}`);
+    console.log(`📊 [DeepResearch] Found ${allResults.length} total, ${uniqueResults.length} unique, showing top ${limitedResults.length} ranked results`);
     
     sendProgress('summarizing', 85, 'Creating comprehensive summary...');
     
@@ -306,7 +462,33 @@ export async function deepResearch(query, options = {}) {
       `${index + 1}. **${result.title}** (${result.source})\n   ${result.snippet}\n   URL: ${result.url}`
     ).join('\n\n');
     
-    const summaryPrompt = `Based on the following research results about "${query}", provide a comprehensive and well-structured summary that synthesizes the key information. Focus on the most important insights and present them in a clear, organized manner.
+    let summaryPrompt;
+    
+    if (mode === 'lead') {
+      summaryPrompt = `You are conducting lead research for Exabits, a company that specializes in:
+- Custom AI automation solutions for businesses
+- LLM integration and implementation services
+- Intelligent workflow automation
+- AI-powered business process optimization
+- Machine learning model development and deployment
+- AI consulting and strategy services
+
+Based on the following research results about "${query}", identify and analyze potential leads who would benefit from Exabits' AI automation services. Focus on companies and contacts that would be ideal prospects for AI implementation projects.
+
+Research Results:
+${resultsText}
+
+Please provide a comprehensive lead analysis that:
+1. Identifies companies that could benefit from AI automation
+2. Highlights key decision makers and their contact information
+3. Explains why each lead would be a good fit for Exabits' services
+4. Suggests potential AI use cases for each prospect
+5. Prioritizes leads based on their AI readiness and budget potential
+6. Notes any current technology stack or competitors mentioned
+
+Lead Analysis:`;
+    } else {
+      summaryPrompt = `Based on the following research results about "${query}", provide a comprehensive and well-structured summary that synthesizes the key information. Focus on the most important insights and present them in a clear, organized manner.
 
 Research Results:
 ${resultsText}
@@ -319,6 +501,7 @@ Please provide a thorough summary that:
 5. Organizes information logically
 
 Summary:`;
+    }
 
     const summary = await chatWithTextOnly(summaryPrompt);
     

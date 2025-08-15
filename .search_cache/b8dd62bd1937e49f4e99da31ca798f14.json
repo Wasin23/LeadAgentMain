@@ -1,0 +1,80 @@
+{
+  "searchParameters": {
+    "q": "ai startups",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence ...",
+      "link": "https://www.forbes.com/lists/ai50/",
+      "snippet": "The Forbes Artificial Intelligence 50 List of 2025 spotlights promising AI-driven businesses. See the leaders driving the future of the ...",
+      "date": "Apr 10, 2025",
+      "position": 1
+    },
+    {
+      "title": "Top 154 AI Startups 2025 | Funded by Sequoia, YC, A16Z",
+      "link": "https://topstartups.io/?industries=Artificial%20Intelligence",
+      "snippet": "Top AI startups and new AI companies hiring now. Sort by valuation and recent funding. Funded by Sequoia, YC, A16Z, Benchmark - the very best.",
+      "position": 2
+    },
+    {
+      "title": "AI (Artificial Intelligence) Startups funded by ...",
+      "link": "https://www.ycombinator.com/companies/industry/ai",
+      "snippet": "Browse 100 of the top AI startups funded by Y Combinator.",
+      "position": 3
+    },
+    {
+      "title": "60 Growing AI Companies & Startups (2025)",
+      "link": "https://explodingtopics.com/blog/ai-startups",
+      "snippet": "60 Growing AI Companies & Startups (2025) · 1. DeepL · 2. Frame AI · 3. Uizard · 4. Moveworks · 5. Databricks · 6. Synthesia · 7. Codeium · 8.",
+      "date": "Jul 31, 2025",
+      "position": 4
+    },
+    {
+      "title": "AI startup program",
+      "link": "https://cloud.google.com/startup/ai",
+      "snippet": "Our AI Program is Built to Accelerate AI Startups · Build new experiences and infuse AI into existing apps faster · Make smarter decisions across your business.",
+      "position": 5
+    },
+    {
+      "title": "AI is already creating a billionaire boom: There are now ...",
+      "link": "https://fortune.com/2025/08/13/ai-creating-billionaire-boom-record-pace-now-498-ai-unicorns-worth-2-7-trillion/",
+      "snippet": "AI is minting billion-dollar startups faster than the dot-com era, with 100 unicorns born in the last two years, including OpenAI, Anthropic, ...",
+      "date": "2 days ago",
+      "position": 6
+    },
+    {
+      "title": "99% of AI Startups Will Be Dead by 2026 — Here's Why",
+      "link": "https://skooloflife.medium.com/99-of-ai-startups-will-be-dead-by-2026-heres-why-bfc974edd968",
+      "snippet": "Dozens of AI tools promise to revolutionize note-taking, health records, podcasting, journaling — all with clean branding, all powered by GPT, ...",
+      "date": "3 months ago",
+      "position": 7
+    },
+    {
+      "title": "New trend: extreme hours at AI startups",
+      "link": "https://blog.pragmaticengineer.com/new-trend-extreme-hours-at-ai-startups/",
+      "snippet": "Pulling 80+ hour work weeks – including weekends – is becoming the norm across AI startups, and is unlikely to stop while AI is so hot.",
+      "date": "1 day ago",
+      "position": 8
+    },
+    {
+      "title": "Prediction: 'AI startup' won't be a thing anymore",
+      "link": "https://www.reddit.com/r/Entrepreneur/comments/1mo55s5/prediction_ai_startup_wont_be_a_thing_anymore/",
+      "snippet": "\"AI startups\" are about to disappear (and that's actually a good thing). In like 1-2 years, nobody's gonna say \"AI startup\" anymore.",
+      "date": "3 days ago",
+      "position": 9
+    },
+    {
+      "title": "10 MIT AI startups to watch in 2025",
+      "link": "https://mitsloan.mit.edu/ideas-made-to-matter/10-mit-ai-startups-to-watch-2025",
+      "snippet": "From assessing bridge infrastructure to predicting worker fatigue risk via voice analysis, these startups are widening the scope of what artificial ...",
+      "date": "May 12, 2025",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

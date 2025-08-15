@@ -532,32 +532,33 @@
             <h3 style="margin:0 0 1rem 0;color:#2196f3;">🚀 Multi-Source Deep Research</h3>
             <div style="background:#1a1a1a;border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #2196f3;">
               <div style="font-size:0.9rem;color:#ccc;margin-bottom:0.5rem;">
-                <strong>Sources:</strong> Wikipedia • arXiv Papers • GitHub Repos • Web Search
+                <strong>Fresh Mode:</strong> Wikipedia • arXiv Papers • GitHub Repos • Web Search<br>
+                <strong>Lead Search:</strong> Apollo Lead Database • Web Search
               </div>
               <div style="font-size:0.85rem;color:#888;">
-                Advanced research with query expansion, intelligent ranking, and structured summarization with citations.
+                Advanced research with query expansion, intelligent ranking, and structured summarization with citations. Lead Search mode finds companies and contact information.
               </div>
             </div>
             
             <div style="margin-bottom:1rem;">
-              <input type="text" id="deep-research-query" placeholder="Enter research topic (e.g., 'quantum computing startups', 'machine learning research 2025', 'blockchain development tools')" 
+              <input type="text" id="deep-research-query" placeholder="Enter research topic or lead search (e.g., 'quantum computing startups', 'CTOs at fintech companies in NYC', 'blockchain development tools')" 
                 style="width:95%;padding:0.8rem;border:1px solid #444;background:#23242a;color:#fff;border-radius:4px;margin-bottom:0.5rem;">
               
               <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
                 <select id="research-mode" style="flex:1;padding:0.8rem;border:1px solid #444;background:#23242a;color:#fff;border-radius:4px;">
-                  <option value="fresh">🔥 Fresh Mode (Recent developments)</option>
-                  <option value="academic">🎓 Academic Mode (Research papers)</option>
-                  <option value="product">⚙️ Product Mode (Tools & implementations)</option>
+                  <option value="fresh">🔥 Fresh Mode (Comprehensive research)</option>
+                  <option value="lead">� Lead Search (Companies & contacts)</option>
                 </select>
                 <select id="research-limit" style="flex:0 0 120px;padding:0.8rem;border:1px solid #444;background:#23242a;color:#fff;border-radius:4px;">
-                  <option value="10">10 results</option>
-                  <option value="15" selected>15 results</option>
+                  <option value="15">15 results</option>
                   <option value="20">20 results</option>
+                  <option value="25" selected>25 results</option>
+                  <option value="30">30 results</option>
                 </select>
               </div>
               
               <button id="start-deep-research" style="background:#2196f3;color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:4px;cursor:pointer;width:100%;">
-                🚀 Start Deep Research (2-3 min)
+                🚀 Start Research (2-3 min)
               </button>
             </div>
             
@@ -1493,7 +1494,7 @@
       // Show progress area
       document.getElementById('deep-research-progress').style.display = 'block';
       document.getElementById('start-deep-research').disabled = true;
-      document.getElementById('start-deep-research').textContent = 'Deep Research Running...';
+      document.getElementById('start-deep-research').textContent = 'Research Running...';
       
       // Track start time
       window.deepResearchStartTime = Date.now();
@@ -1803,7 +1804,7 @@
 
     function resetDeepResearchUI() {
       document.getElementById('start-deep-research').disabled = false;
-      document.getElementById('start-deep-research').textContent = '🚀 Start Deep Research (2-3 min)';
+      document.getElementById('start-deep-research').textContent = '🚀 Start Research (2-3 min)';
       
       // Hide progress after delay
       setTimeout(() => {
@@ -1862,8 +1863,155 @@
       }
     }
 
-    // Load email logs when page loads
-    document.addEventListener('DOMContentLoaded', loadEmailLogs);
+    // Welcome message duplicate prevention flag
+    let welcomeMessageAdded = false;
+
+    // Add welcome message when page loads
+    function addWelcomeMessage() {
+      if (welcomeMessageAdded) {
+        console.log('Welcome message already added, skipping...');
+        return;
+      }
+      
+      const welcomeMessage = `
+# 🚀 Welcome to ExaMark AI!
+
+I'm ExaMark, your AI assistant here to help you learn about **Exabits** and leverage our powerful research tools!
+
+## 🎯 **About Exabits**
+Exabits specializes in cutting-edge AI automation solutions for businesses:
+- **Custom AI Automation** - Tailored workflows for your specific needs
+- **LLM Integration** - Seamless integration of language models into your systems  
+- **Intelligent Process Optimization** - AI-powered business process improvements
+- **Machine Learning Development** - Custom ML models and deployment
+- **AI Consulting & Strategy** - Expert guidance for your AI transformation
+
+## 🛠️ **My Tools & Capabilities**
+
+### 🔍 **Fresh Research Mode**
+Comprehensive research across:
+- 📖 Wikipedia knowledge base
+- 📄 arXiv academic papers  
+- 💻 GitHub repositories
+- 🌐 Web search results
+
+### 🎯 **Lead Search Mode** 
+Specialized for finding potential clients:
+- 🏢 Apollo lead database
+- 🌐 Targeted web search
+- 📧 Contact information discovery
+- 💼 Decision maker identification
+
+### 📧 **Email Outreach**
+- 📨 Automated email sending via Mailgun
+- 📋 Email campaign logging
+- 📊 Outreach tracking
+
+---
+
+**Ready to explore Exabits' AI solutions or need research assistance? Just ask me anything!**
+      `;
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message assistant-message';
+      
+      console.log('Creating welcome message...');
+      console.log('marked available:', typeof marked);
+      
+      messageDiv.innerHTML = `
+        <div class="message-content">
+          <div class="message-text">
+            <h1>🚀 Welcome to ExaMark AI!</h1>
+            <p>I'm ExaMark, your AI assistant here to help you learn about <strong>Exabits</strong> and leverage our powerful research tools!</p>
+            
+            <h2>� About Exabits</h2>
+            <ul>
+              <li><strong>Founded:</strong> 2021 in San Mateo, California</li>
+              <li><strong>Founders:</strong> Hoansoo Lee (CEO) & Zachary Bright (CTO, Princeton grad)</li>
+              <li><strong>Specialization:</strong> AI-powered High-Performance Computing (HPC) Solutions</li>
+            </ul>
+            
+            <h3>🔧 Core Services</h3>
+            <ul>
+              <li><strong>NVIDIA H100/H200 GPU Infrastructure</strong> - Specialized clusters for AI/ML workloads</li>
+              <li><strong>Custom AI Infrastructure</strong> - Purpose-built hardware configurations</li>
+              <li><strong>HPC Optimization</strong> - Scientific computing & research infrastructure</li>
+              <li><strong>AI Automation Solutions</strong> - Business process optimization & LLM integration</li>
+            </ul>
+            
+            <h3>💪 Competitive Advantages vs AWS/GCP/Azure</h3>
+            <ul>
+              <li><strong>AI-HPC Specialization</strong> - Dedicated infrastructure vs general cloud</li>
+              <li><strong>Performance Edge</strong> - Lower latency, higher throughput for AI workloads</li>
+              <li><strong>Expert Support</strong> - Deep AI/HPC expertise vs generalist cloud support</li>
+              <li><strong>Cost Efficiency</strong> - Better performance-per-dollar for AI-specific tasks</li>
+            </ul>
+            
+            <h2>🛠️ ExaMark Tools & Capabilities</h2>
+            
+            <h3>🔍 Fresh Research Mode</h3>
+            <p>Comprehensive research across multiple sources:</p>
+            <ul>
+              <li>📖 Wikipedia knowledge</li>
+              <li>📄 arXiv research papers</li>
+              <li>💻 GitHub repositories</li>
+              <li>🌐 Advanced web search</li>
+            </ul>
+            
+            <h3>🎯 Lead Search Mode</h3>
+            <p>Specialized for finding potential clients:</p>
+            <ul>
+              <li>🏢 Apollo lead database</li>
+              <li>🌐 Targeted web search</li>
+              <li>📧 Contact information discovery</li>
+              <li>💼 Decision maker identification</li>
+            </ul>
+            
+            <h3>📧 Email Outreach</h3>
+            <ul>
+              <li>📨 Automated email sending via Mailgun</li>
+              <li>📋 Email campaign logging</li>
+              <li>📊 Outreach tracking</li>
+            </ul>
+            
+            <hr>
+            <p><strong>Ready to help!</strong> Ask me anything about Exabits services, or try using my research tools in the sidebar! 🚀</p>
+          </div>
+        </div>
+      `;
+
+      const chatMessages = document.getElementById('chat');
+      console.log('Chat messages element found:', !!chatMessages);
+      
+      if (chatMessages) {
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        welcomeMessageAdded = true; // Set flag to prevent duplicates
+        console.log('Welcome message added to DOM');
+      } else {
+        console.error('chat element not found!');
+      }
+    }
+
+    // Load email logs and show welcome message when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, initializing...');
+      loadEmailLogs();
+      
+      // Add a longer delay to ensure all libraries are loaded and page is ready
+      setTimeout(() => {
+        console.log('Adding welcome message...');
+        addWelcomeMessage();
+      }, 500);
+    });
+    
+    // Also try adding welcome message when window fully loads
+    window.addEventListener('load', function() {
+      setTimeout(() => {
+        console.log('Window load - adding welcome message...');
+        addWelcomeMessage();
+      }, 200);
+    });
   </script>
 </body>
 </html>

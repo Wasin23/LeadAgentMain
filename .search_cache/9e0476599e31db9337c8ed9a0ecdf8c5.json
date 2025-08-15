@@ -1,0 +1,75 @@
+{
+  "searchParameters": {
+    "q": "find Ai startups company directory",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "AI (Artificial Intelligence) Startups funded by ...",
+      "link": "https://www.ycombinator.com/companies/industry/ai",
+      "snippet": "Browse 100 of the top AI startups funded by Y Combinator. We also have a Startup Directory where you can search through over 5,000 companies.",
+      "position": 1
+    },
+    {
+      "title": "Directory",
+      "link": "https://www.canada.ai/directory",
+      "snippet": "Directory. A growing list of AI startups, ventures, accelerators and research institutes contributing to the artificial intelligence industry in Canada.",
+      "position": 2
+    },
+    {
+      "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence ...",
+      "link": "https://www.forbes.com/lists/ai50/",
+      "snippet": "Forbes 2025 AI 50 List - Top Artificial Intelligence Companies Ranked · Anysphere · Mercor · Thinking Machine Labs · World Labs.",
+      "date": "Apr 10, 2025",
+      "position": 3
+    },
+    {
+      "title": "List of Artificial Intelligence Startups and companies (2025)",
+      "link": "https://finder.startupnationcentral.org/startups/search?alltags=artificial-intelligence",
+      "snippet": "Quickly and easily find and connect with Israeli tech companies that are positioned to scale up and fit your investment strategies.",
+      "position": 4
+    },
+    {
+      "title": "Directory of AI Companies - In AI Today",
+      "link": "https://inaitoday.com/directory-all/",
+      "snippet": "Here you will find a comprehensive directory of AI companies, showcasing hundreds of companies operating around the world.",
+      "position": 5
+    },
+    {
+      "title": "a2tm7a/Artificial-Intelligence-startups-companies-list",
+      "link": "https://github.com/a2tm7a/Artificial-Intelligence-startups-companies-list",
+      "snippet": "List of Artificial Intelligence startups companies - (lists at projectstartups.com);. Darktrace: Darktrace is an artificial intelligence company for cyber ...",
+      "position": 6
+    },
+    {
+      "title": "82 Artificial Intelligence (AI) Companies to Know",
+      "link": "https://builtin.com/artificial-intelligence/ai-companies-roundup",
+      "snippet": "From Google and Amazon to Apple and Microsoft, every major tech company is dedicating resources to breakthroughs in artificial intelligence.",
+      "position": 7
+    },
+    {
+      "title": "AI Companies Directory",
+      "link": "https://emerj.com/companies/",
+      "snippet": "Browse our complete lists artificial intelligence vendor companies across industries and business functions. These are the leaders in this field.",
+      "position": 8
+    },
+    {
+      "title": "The YC Startup Directory",
+      "link": "https://www.ycombinator.com/companies",
+      "snippet": "A list of companies YC has funded across many verticals including hardware, edtech, biotech, healthcare, developer tools, consumer and enterprise, ...",
+      "position": 9
+    },
+    {
+      "title": "List of interested Artificial Intelligence (AI) suppliers",
+      "link": "https://www.canada.ca/en/government/system/digital-government/digital-government-innovations/responsible-use-ai/list-interested-artificial-intelligence-ai-suppliers.html",
+      "snippet": "A list of suppliers who can provide the Government of Canada with responsible and effective AI services, solutions and products.",
+      "date": "Jul 15, 2025",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

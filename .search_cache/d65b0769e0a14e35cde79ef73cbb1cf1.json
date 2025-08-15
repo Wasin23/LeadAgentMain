@@ -1,0 +1,68 @@
+{
+  "searchParameters": {
+    "q": "latest pricing of exabit's h100 and h200 gpus 2024",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "NVIDIA H100 Price Guide 2025: Detailed Costs ...",
+      "link": "https://docs.jarvislabs.ai/blog/h100-price",
+      "snippet": "Direct Purchase Cost: Starting at ~$25,000 per GPU; multi-GPU setups can exceed $400,000. · Cloud GPU Pricing: Hourly rates range from $2.99 ( ...",
+      "date": "Apr 12, 2025",
+      "position": 1
+    },
+    {
+      "title": "Nvidia H200 Price: 2025 Cost Breakdown & Cheapest ...",
+      "link": "https://docs.jarvislabs.ai/blog/h200-price",
+      "snippet": "The Nvidia H200 costs $30 k–$40 k to buy outright and $3.72–$10.60 per GPU hour to rent (May 2025). Jarvislabs offers on‑demand H200 at $3.80/hr ...",
+      "date": "May 12, 2025",
+      "position": 2
+    },
+    {
+      "title": "NVIDIA H200 Price Guide",
+      "link": "https://www.trgdatacenters.com/resource/nvidia-h200-price-guide/",
+      "snippet": "A 4-GPU SXM board costs about $175,000.00, and an 8-GPU board costs anywhere from $308,000 to $315,000, depending on the manufacturer. A single SXM GPU chip is ...",
+      "position": 3
+    },
+    {
+      "title": "How much is an Nvidia H200?",
+      "link": "https://modal.com/blog/nvidia-h200-price-article",
+      "snippet": "The H200 GPU costs ~$30,000 per chip if you are purchasing it directly from a hardware vendor. However, it's important to note that ...",
+      "date": "Mar 15, 2025",
+      "position": 4
+    },
+    {
+      "title": "How much does an NVIDIA H100 GPU cost? | Blog",
+      "link": "https://northflank.com/blog/how-much-does-an-nvidia-h100-gpu-cost",
+      "snippet": "H100 pricing from NVIDIA · H100 80GB PCIe typically ranges from $25,000 to $30,000 · H100 80GB SXM ranges from $35,000 to $40,000.",
+      "date": "Aug 5, 2025",
+      "position": 5
+    },
+    {
+      "title": "NVIDIA H100 vs. H200: What is the Difference and Which ...",
+      "link": "https://www.linkedin.com/pulse/nvidia-h100-vs-h200-what-difference-which-should-you-buy-west-mba-ldm2c",
+      "snippet": "However, it is anticipated to be in a similar or slightly higher range than the H100, potentially $30,000 to $40,000 depending on the ...",
+      "date": "1 year ago",
+      "position": 6
+    },
+    {
+      "title": "NVIDIA H100 vs H200 vs B200: Complete GPU Comparison ...",
+      "link": "https://introl.com/blog/h100-vs-h200-vs-b200-choosing-the-right-nvidia-gpus-for-your-ai-workload",
+      "snippet": "The H100 started 2025 at around $8 per hour on cloud platforms, but increased supply has pushed that down to as low as $1.90 per hour, following ...",
+      "date": "Jun 12, 2025",
+      "position": 7
+    },
+    {
+      "title": "B200 & B100 vs H200 & H100",
+      "link": "https://www.exxactcorp.com/blog/hpc/comparing-nvidia-tensor-core-gpus",
+      "snippet": "Existing stock of H100 is still available but H200 will supersede any new orders. The NVIDIA B200 and B100 will be available to order soon and ...",
+      "date": "Jul 25, 2024",
+      "position": 8
+    }
+  ],
+  "credits": 1
+}

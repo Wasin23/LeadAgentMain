@@ -1,0 +1,77 @@
+{
+  "searchParameters": {
+    "q": "list me 10 ai startups contact information",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence ...",
+      "link": "https://www.forbes.com/lists/ai50/",
+      "snippet": "World Labs founder and CEO Fei-Fei Li has AI bona fides in spades: A pioneer in computer vision, the former head of AI for Google Cloud.",
+      "date": "Apr 10, 2025",
+      "position": 1
+    },
+    {
+      "title": "60 Growing AI Companies & Startups (2025)",
+      "link": "https://explodingtopics.com/blog/ai-startups",
+      "snippet": "We picked out some of the most promising AI startups with a broad range of use cases across different industries.",
+      "date": "Jul 31, 2025",
+      "position": 2
+    },
+    {
+      "title": "The 10 Hottest AI Startup Companies Of 2025 (So Far)",
+      "link": "https://www.crn.com/news/ai/2025/the-10-hottest-ai-startup-companies-of-2025-so-far",
+      "snippet": "AI startup companies leading GenAI, automation, LLMs, agentic AI and AI innovation in 2025 include Anthropic, Decagon, Cohere, AI Squared, ...",
+      "date": "Jun 24, 2025",
+      "position": 3
+    },
+    {
+      "title": "List of Funded AI Startups For 2025",
+      "link": "https://growthlist.co/ai-startups/",
+      "snippet": "Below, we listed the most recent 100 AI startups that have secured funding rounds. You'll find other interesting data points about these companies below the ...",
+      "date": "Feb 24, 2022",
+      "position": 4
+    },
+    {
+      "title": "Top San Francisco Bay Area, CA AI Companies 2025",
+      "link": "https://www.builtinsf.com/companies/type/artificial-intelligence-companies",
+      "snippet": "Check out this list of the top AI companies in San Francisco Bay Area, CA. See company benefits, info, interviews and more at Built In.",
+      "position": 5
+    },
+    {
+      "title": "Top NYC, NY AI Companies 2025",
+      "link": "https://www.builtinnyc.com/companies/type/artificial-intelligence-companies",
+      "snippet": "Check out this list of the top AI companies in NYC, NY. See company benefits, info, interviews and more at Built In.",
+      "position": 6
+    },
+    {
+      "title": "82 Artificial Intelligence (AI) Companies to Know",
+      "link": "https://builtin.com/artificial-intelligence/ai-companies-roundup",
+      "snippet": "From Google and Amazon to Apple and Microsoft, every major tech company is dedicating resources to breakthroughs in artificial intelligence.",
+      "position": 7
+    },
+    {
+      "title": "Top Los Angeles, CA AI Companies 2025",
+      "link": "https://www.builtinla.com/companies/type/artificial-intelligence-companies",
+      "snippet": "Check out this list of the top AI companies in Los Angeles, CA. See company benefits, info, interviews and more at Built In.",
+      "position": 8
+    },
+    {
+      "title": "Top 16 AI Companies Hiring in 2025 - Startup & Enterprise",
+      "link": "https://reclaim.ai/blog/top-ai-companies-hiring",
+      "snippet": "1. Reclaim.ai · 2. OpenAI · 4. Grammarly · 5. Hive · 6. Sanctuary · 7. Lambda · 8. Dataiku · 9. Tessian.",
+      "position": 9
+    },
+    {
+      "title": "Top Chicago, IL AI Companies 2025",
+      "link": "https://www.builtinchicago.org/companies/type/artificial-intelligence-companies",
+      "snippet": "Check out this list of the top AI companies in Chicago, IL. See company benefits, info, interviews and more at Built In.",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

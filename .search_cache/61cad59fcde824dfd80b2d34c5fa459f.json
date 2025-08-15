@@ -1,0 +1,75 @@
+{
+  "searchParameters": {
+    "q": "find Ai startups",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Harmonic.ai - The complete startup database",
+      "link": "https://harmonic.ai/",
+      "snippet": "Our ever-growing database of 30M+ companies and 190M+ people ensures you're never missing an opportunity. Create, tune and save hyper-specific searches.",
+      "position": 1
+    },
+    {
+      "title": "Top 154 AI Startups 2025 | Funded by Sequoia, YC, A16Z",
+      "link": "https://topstartups.io/?industries=Artificial%20Intelligence",
+      "snippet": "Top AI startups and new AI companies hiring now. Sort by valuation and recent funding. Funded by Sequoia, YC, A16Z, Benchmark - the very best.",
+      "position": 2
+    },
+    {
+      "title": "AI (Artificial Intelligence) Startups funded by ...",
+      "link": "https://www.ycombinator.com/companies/industry/ai",
+      "snippet": "Browse 100 of the top AI startups funded by Y Combinator. We also have a Startup Directory where you can search through over 5,000 companies.",
+      "position": 3
+    },
+    {
+      "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence ...",
+      "link": "https://www.forbes.com/lists/ai50/",
+      "snippet": "Model builders like OpenAI and Anthropic remain the biggest companies on the list, having raised large sums of cash from marquee Silicon Valley ...",
+      "date": "Apr 10, 2025",
+      "position": 4
+    },
+    {
+      "title": "AI Grants Finder",
+      "link": "https://grantsfinder.portkey.ai/",
+      "snippet": "Find startup credits, grants, and committed investment opportunities from companies like OpenAI, Stripe, Azure, Google, Nvidia, Coreweave, Cohere, and more.",
+      "position": 5
+    },
+    {
+      "title": "Requests for Startups",
+      "link": "https://www.ycombinator.com/rfs",
+      "snippet": "We want to fund startups building a new kind of vocational school for the AI economy to train people for these jobs. We think you could use AI to create ...",
+      "position": 6
+    },
+    {
+      "title": "Build With Us - For Founders",
+      "link": "https://aifund.ai/build-with-us/",
+      "snippet": "We partner with entrepreneurs to create the great AI companies of tomorrow. Building a startup is hard. From startup veterans and seasoned investors, ...",
+      "position": 7
+    },
+    {
+      "title": "Top 75 Generative AI Companies & Startups",
+      "link": "https://www.eweek.com/artificial-intelligence/generative-ai-startups/",
+      "snippet": "Discover the most innovative generative AI startups causing a stir. Explore their potential and find investment opportunities today.",
+      "position": 8
+    },
+    {
+      "title": "Look AI Ventures | Investing in early-stage AI startups",
+      "link": "https://lookai.vc/",
+      "snippet": "Look AI Ventures fund (LAIV) is the first investment fund in the Czech Republic that focuses exclusively on AI startups worldwide.",
+      "position": 9
+    },
+    {
+      "title": "Top AI Startups in 2025",
+      "link": "https://www.startupblink.com/blog/top-ai-startups/",
+      "snippet": "Top AI Startups in 2025 · 1. OpenAI · 2. DeepL · 3. Anthropic · 4. Bytedance · 5. Mistral AI · 6. ElevenLabs · 7. Shiprocket · 8. Highspot.",
+      "date": "Jun 24, 2025",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

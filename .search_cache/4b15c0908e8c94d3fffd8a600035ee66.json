@@ -1,0 +1,103 @@
+{
+  "searchParameters": {
+    "q": "list me 10 ai startups company directory",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "60 Growing AI Companies & Startups (2025) - Exploding Topics",
+      "link": "https://explodingtopics.com/blog/ai-startups",
+      "snippet": "DeepL.",
+      "position": 1
+    },
+    {
+      "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence Companies Ranked",
+      "link": "https://www.forbes.com/lists/ai50/",
+      "snippet": "Forbes 2025 AI 50 List - Top Artificial Intelligence Companies Ranked · Anysphere · Mercor · Thinking Machine Labs · World Labs.",
+      "date": "Apr 10, 2025",
+      "position": 2
+    },
+    {
+      "title": "Top Seattle, WA AI Companies 2025 | Built In",
+      "link": "https://www.builtinseattle.com/companies/type/artificial-intelligence-companies",
+      "snippet": "Top Seattle, WA AI Companies (137) · Anduril · Rokt · PwC · Qualtrics · Dropbox · MORSE Corp · Liberty Mutual Insurance · Hiya Inc.",
+      "position": 3
+    },
+    {
+      "title": "Top 10: AI Companies - AI Magazine",
+      "link": "https://aimagazine.com/top10/top-10-ai-companies-2025",
+      "snippet": "Missing: me directory",
+      "position": 4
+    },
+    {
+      "title": "82 Artificial Intelligence (AI) Companies to Know | Built In",
+      "link": "https://builtin.com/artificial-intelligence/ai-companies-roundup",
+      "snippet": "From Google and Amazon to Apple and Microsoft, every major tech company is dedicating resources to breakthroughs in artificial intelligence.",
+      "position": 5
+    },
+    {
+      "title": "The YC Startup Directory | Y Combinator",
+      "link": "https://www.ycombinator.com/companies",
+      "snippet": "A list of companies YC has funded across many verticals including hardware, edtech, biotech, healthcare, developer tools, consumer and enterprise, ...",
+      "position": 6
+    },
+    {
+      "title": "a2tm7a/Artificial-Intelligence-startups-companies-list - GitHub",
+      "link": "https://github.com/a2tm7a/Artificial-Intelligence-startups-companies-list",
+      "snippet": "Leena AI: Leena is smart AI powered HR companion dedicated towards engaging employees. Rokid: Rokid is an innovative technology company specializing in robotics ...",
+      "position": 7
+    },
+    {
+      "title": "Top AI Development Companies - August 2025 Reviews",
+      "link": "https://www.topdevelopers.co/directory/ai-companies",
+      "snippet": "Browse our directory to find the best listed AI development companies and get started with your AI project today! 4.6 Avg. Rating.",
+      "date": "4 days ago",
+      "position": 8
+    },
+    {
+      "title": "List of Funded AI Startups For 2025 - Growth List",
+      "link": "https://growthlist.co/ai-startups/",
+      "snippet": "Below, we listed the most recent 100 AI startups that have secured funding rounds. You'll find other interesting data points about these companies below the ...",
+      "date": "Feb 24, 2022",
+      "position": 9
+    },
+    {
+      "title": "OpenAI, Anthropic & 10 Of The Top AI Companies To Work For",
+      "link": "https://www.businessbecause.com/news/mba-jobs/9749/top-ai-companies-forbes",
+      "snippet": "10 Top AI companies to work for | Forbes · 1. OpenAI · 2. Anthropic · 3. Databricks · 4. Notion · 5. Perplexity AI · 6. Decagon · 7. DeepL.",
+      "date": "Apr 18, 2025",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "top ai companies to invest in"
+    },
+    {
+      "query": "top 10 companies using artificial intelligence"
+    },
+    {
+      "query": "fastest-growing ai companies"
+    },
+    {
+      "query": "top 100 ai companies"
+    },
+    {
+      "query": "top ai startups"
+    },
+    {
+      "query": "top ai companies in india"
+    },
+    {
+      "query": "ai startup ideas"
+    },
+    {
+      "query": "biggest ai companies"
+    }
+  ],
+  "credits": 1
+}
