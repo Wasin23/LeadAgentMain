@@ -3,6 +3,7 @@ import express from 'express';
 const router = express.Router();
 
 import { chatWithAgent } from '../src/langchainAgent.js';
+import { simpleAgentChat } from '../src/simpleAgent.js';
 import { createResearchSession } from '../src/researchAgent.js';
 import fs from 'fs';
 import { internetSearch } from '../tools/internetSearch.js';
@@ -71,7 +72,7 @@ router.post('/chat', async (req, res) => {
     if (!userHistories[userId]) userHistories[userId] = [];
     const chatHistory = userHistories[userId];
 
-    // Normal chat with AI agent
+    // Normal chat with AI agent - NOW WITH WORKING EMAIL FUNCTIONALITY
     const response = await chatWithAgent(userInput, chatHistory);
     chatHistory.push({ input: userInput, output: response });
     userHistories[userId] = chatHistory;

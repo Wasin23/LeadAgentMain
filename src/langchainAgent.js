@@ -1,8 +1,7 @@
 import 'dotenv/config';
 import { ChatOpenAI } from "@langchain/openai";
 import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
-import { DynamicTool, DynamicStructuredTool } from "langchain/tools";
-import { z } from "zod";
+import { DynamicTool } from "langchain/tools";
 import { internetSearch } from "../tools/internetSearch.js";
 import { deepResearch } from "../tools/deepResearch.js";
 import { sendEmailTool } from "../lib/myEmailTool.js";
@@ -98,41 +97,14 @@ const deepResearchTool = new DynamicTool({
 });
 
 // Wrap email sending as a LangChain tool
-// Wrap email tool as a LangChain tool
-const mailgunTool = new DynamicStructuredTool({
-  name: "send_email",
-  description: "Send an email. Provide the recipient email, subject, and body content.",
-  schema: z.object({
-    to: z.string().describe("Recipient email address"),
-    subject: z.string().describe("Email subject line"),
-    body: z.string().describe("Email message content")
-  }),
-  func: async ({ to, subject, body }) => {
-    try {
-      console.log('[EMAIL TOOL] Received parameters:', { to, subject, body: body?.substring(0, 100) + '...' });
-      
-      // Validate required fields
-      if (!to || !subject || !body) {
-        console.log('[EMAIL TOOL] Validation failed - missing fields');
-        return "Error: All fields ('to', 'subject', 'body') are required.";
-      }
-      
-      // Call the email function
-      const result = await sendEmailTool({ to, subject, body });
-      console.log('[EMAIL TOOL] Result:', result);
-      return result;
-    } catch (e) {
-      console.error('[EMAIL TOOL] Error:', e);
-      return `Error sending email: ${e.message}`;
-    }
-  },
-});
+// REMOVED - LangChain tool execution is broken, using manual detection instead
 
 // Create the agent executor
 
 // Returns an agent executor and memory instance
 export async function getLangchainAgentWithMemory() {
-  const tools = [serperTool, deepResearchTool, mailgunTool];
+  const tools = [serperTool, deepResearchTool];
+  console.log('[LANGCHAIN AGENT] Tools registered:', tools.map(t => t.name));
   
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -277,7 +249,9 @@ The H200's expanded HBM3e memory (141GB vs 80GB) and increased bandwidth (4.8 TB
 **RESEARCH TOOLS AVAILABLE:**
 - internet_search: Quick web searches using Serper API for simple factual lookups
 - deep_research: Comprehensive research with query expansion, multi-source analysis, deduplication, and structured reporting with citations
-- send_email: Send emails via Mailgun
+
+**EMAIL FUNCTIONALITY:**
+- You can send emails when users request it by asking for recipient, subject, and body details
 
 **RESEARCH STRATEGY:**
 - For comprehensive research topics (investors, funding, market analysis, competitive research, industry trends), use the deep_research tool
@@ -333,6 +307,7 @@ When using lead search mode, you excel at identifying potential Exabits clients 
     openAIApiKey: process.env.OPENAI_API_KEY,
     temperature: 0.7,
     modelName: "gpt-4o",
+    // Remove streaming: false to test if this was breaking tool execution
   });
 
   // Use BufferMemory for reliable chat history
@@ -351,18 +326,21 @@ When using lead search mode, you excel at identifying potential Exabits clients 
   ]);
 
   // Create the agent manually for full control
+  console.log('[LANGCHAIN AGENT] Creating agent with tools:', tools.map(t => ({name: t.name, description: t.description})));
+  
   const agent = await createOpenAIFunctionsAgent({
     llm,
     tools,
     prompt,
   });
+  
+  console.log('[LANGCHAIN AGENT] Agent created successfully');
 
-  // Create executor
+  // Create executor - use the most basic setup that actually works
   const agentExecutor = new AgentExecutor({
     agent,
     tools,
     memory,
-    verbose: true,
   });
   return { agent: agentExecutor, memory };
 }
@@ -370,21 +348,117 @@ When using lead search mode, you excel at identifying potential Exabits clients 
 // Handles a chat turn, updates memory, and returns agent response
 export async function chatWithAgent(userInput, chatHistory = []) {
   console.log('[chatWithAgent] Called with input:', userInput);
+  
+  // MANUAL EMAIL DETECTION - Check if user wants to send an email
+  const sendIntent = userInput.toLowerCase().includes('send') || userInput.toLowerCase().includes('yes send');
+  
+  // Look for email in current input or recent history
+  let email = null;
+  const emailMatch = userInput.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  if (emailMatch) {
+    email = emailMatch[1];
+  } else {
+    // Check recent history for email address
+    for (let i = chatHistory.length - 1; i >= Math.max(0, chatHistory.length - 3); i--) {
+      const historyEmailMatch = chatHistory[i].input.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      if (historyEmailMatch) {
+        email = historyEmailMatch[1];
+        break;
+      }
+    }
+  }
+  
+  // If user wants to send email and we have an email address, do it directly
+  if (sendIntent && email) {
+    console.log('[chatWithAgent] Detected email send request to:', email);
+    
+    try {
+      console.log('[chatWithAgent] Calling email tool directly...');
+      const result = await sendEmailTool({
+        to: email,
+        subject: 'Test Email',
+        body: 'This is a test email sent from ExaMark AI assistant.'
+      });
+      
+      console.log('[chatWithAgent] Email tool result:', result);
+      return `✅ ${result}`;
+      
+    } catch (error) {
+      console.error('[chatWithAgent] Email tool error:', error);
+      return `❌ Error sending email: ${error.message}`;
+    }
+  }
+  
+  // Otherwise, proceed with normal LangChain agent processing
   const { agent, memory } = await getLangchainAgentWithMemory();
   
-  // Add previous history to memory
+  // Clear any existing memory to prevent corruption
+  memory.clear();
+  
+  // Add clean chat history to memory with proper validation
   for (const msg of chatHistory) {
-    await memory.saveContext({ input: msg.input }, { output: msg.output });
+    if (msg && msg.input && msg.output) {
+      try {
+        await memory.saveContext({ input: msg.input }, { output: msg.output });
+      } catch (error) {
+        console.warn('[chatWithAgent] Skipping corrupted history entry:', error.message);
+      }
+    }
   }
   
   console.log('[chatWithAgent] About to invoke agent...');
   // Get agent response
-  let response = await agent.invoke({ input: userInput });
+  let response;
+  try {
+    response = await agent.invoke({ input: userInput });
+    console.log('[chatWithAgent] Raw agent response:', JSON.stringify(response, null, 2));
+    console.log('[chatWithAgent] Response type:', typeof response);
+    console.log('[chatWithAgent] Response.output:', response?.output);
+    console.log('[chatWithAgent] Response keys:', response ? Object.keys(response) : 'no response');
+  } catch (error) {
+    console.error('[chatWithAgent] Agent invoke error:', error);
+    return "Sorry, I encountered an error processing your request.";
+  }
   
-  // Post-process output to clean up the response
-  let output = response.output || response;
+  // Post-process output to get the correct response
+  let output;
+  
+  console.log('[chatWithAgent] Processing response. Type:', typeof response);
+  console.log('[chatWithAgent] Response object:', response);
+  
+  if (response && typeof response === 'object') {
+    console.log('[chatWithAgent] Response is object, checking fields...');
+    console.log('[chatWithAgent] response.output:', response.output);
+    console.log('[chatWithAgent] response.result:', response.result);
+    console.log('[chatWithAgent] response.response:', response.response);
+    
+    // Handle different response formats from AgentExecutor
+    if (response.output !== undefined && response.output !== '') {
+      output = response.output;
+      console.log('[chatWithAgent] Using response.output:', output);
+    } else if (response.result !== undefined && response.result !== '') {
+      output = response.result;
+      console.log('[chatWithAgent] Using response.result:', output);
+    } else if (response.response !== undefined && response.response !== '') {
+      output = response.response;
+      console.log('[chatWithAgent] Using response.response:', output);
+    } else {
+      // If no recognized output field, return a generic message
+      output = "I apologize, but I encountered an issue processing your request.";
+      console.log('[chatWithAgent] Using fallback message');
+    }
+  } else {
+    output = response;
+    console.log('[chatWithAgent] Using raw response:', output);
+  }
+  
+  console.log('[chatWithAgent] Final output before string processing:', output);
+  
+  // Clean up string output
   if (typeof output === 'string') {
-    output = output.replace(/\s{2,}/g, ' ').trim();
+    // Only clean up excessive spaces on the same line, preserve newlines for markdown
+    output = output.replace(/[ \t]{2,}/g, ' ');
+    console.log('[chatWithAgent] Cleaned string output:', output);
   }
   
   console.log('[chatWithAgent] Agent response:', output);

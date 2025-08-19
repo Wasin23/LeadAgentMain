@@ -1,0 +1,135 @@
+{
+  "searchParameters": {
+    "q": "\"startup\" \"CTO\" OR \"VP Engineering\" OR \"Head of AI\"",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Help, I'm becoming a startup CTO! : r/ExperiencedDevs - Reddit",
+      "link": "https://www.reddit.com/r/ExperiencedDevs/comments/13dp1ck/help_im_becoming_a_startup_cto/",
+      "snippet": "If it's a 3-5 person startup you'll be CTO in title, but mostly you'll be an architect and developer. Getting features to market will be on you ...",
+      "date": "May 10, 2023",
+      "sitelinks": [
+        {
+          "title": "How to go from CTO at a small startup to lead developer or ... - Reddit",
+          "link": "https://www.reddit.com/r/ExperiencedDevs/comments/13yt2oa/how_to_go_from_cto_at_a_small_startup_to_lead/"
+        },
+        {
+          "title": "Meaningful difference between CTO and VP of Engineering in a ...",
+          "link": "https://www.reddit.com/r/startups/comments/55lngy/meaningful_difference_between_cto_and_vp_of/"
+        }
+      ],
+      "position": 1
+    },
+    {
+      "title": "Startup CTO: role, responsibilities and how to find one - HeroHunt.ai",
+      "link": "https://www.herohunt.ai/blog/startup-cto-role-responsibilities",
+      "snippet": "The startup CTO has to bring a lot more than building the product. This guide will describe the CTO persona, the requirements and how you can find them.",
+      "position": 2
+    },
+    {
+      "title": "Do Startups Need a CTO- The Founders Network",
+      "link": "https://foundersnetwork.com/cto-for-startup/",
+      "snippet": "A startup CTO acts as the company's go-to person for any major technical questions, which makes this person's presence (or absence) especially crucial.",
+      "position": 3
+    },
+    {
+      "title": "803 Startup Cto jobs in United States (41 new) - LinkedIn",
+      "link": "https://www.linkedin.com/jobs/startup-cto-jobs",
+      "snippet": "Today's top 803 Startup Cto jobs in United States. Leverage your professional network, and get hired. New Startup Cto jobs added daily.",
+      "position": 4
+    },
+    {
+      "title": "ZachGoldberg/Startup-CTO-Handbook - GitHub",
+      "link": "https://github.com/ZachGoldberg/Startup-CTO-Handbook",
+      "snippet": "The Startup CTO's Handbook, a book covering leadership, management and technical topics for leaders of software engineering teams.",
+      "position": 5
+    },
+    {
+      "title": "Ai Startup CTO Jobs, Employment | Indeed",
+      "link": "https://www.indeed.com/q-ai-startup-cto-jobs.html",
+      "snippet": "... Ai Startup CTO jobs available on Indeed.com. Apply to Product Manager ... Head of AI Visibility Optimization / GEO. Often responds within 3 days.",
+      "position": 6
+    },
+    {
+      "title": "How to Find a CTO for Your Startup: The 2025 Entrepreneur's Guide",
+      "link": "https://altar.io/how-to-find-a-cto-for-your-startup-the-founders-guide/",
+      "snippet": "Although there's no formula to find a CTO for your startup, here is a structured process that will help you find the right person for the job.",
+      "position": 7
+    },
+    {
+      "title": "What salaries did startup CTOs earn in 2024? - Kruze Consulting",
+      "link": "https://kruzeconsulting.com/blog/startup-cto-salary/",
+      "snippet": "In 2024, based on the anonymized payroll data of over 250 startups, the average startup CTO salary was $157,000 and the median was $150,000. CTO ...",
+      "date": "Jul 8, 2024",
+      "position": 8
+    },
+    {
+      "title": "What is the role of a CTO in a startup? - Quora",
+      "link": "https://www.quora.com/What-is-the-role-of-a-CTO-in-a-startup",
+      "snippet": "A CTO is a top-level management function, immediately under (but a peer with) the CEO / founder. They do for a startup what a GM (general manager) does for a ...",
+      "position": 9
+    },
+    {
+      "title": "Lessons learned from becoming CTO of a small startup",
+      "link": "https://vadimkravcenko.com/en/switching-from-engineering-to-management/",
+      "snippet": "Lessons learned from becoming CTO of a small startup · Your friendship with your teammates will suffer once you're their boss. · Desire to do ...",
+      "date": "May 7, 2023",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "Is VP of Engineering higher than CTO?",
+      "snippet": "In a larger enterprise environment, the VP of engineering generally reports to the chief technology officer (CTO), whereas the CTO reports directly to the CEO his or herself. But in the case of a small business or startup organization, the VP may report to the CEO and take on the roles of CTO and VPE as one.",
+      "title": "What is the Difference Between a CTO and VP of Engineering? - Harness",
+      "link": "https://www.harness.io/blog/difference-cto-vp-engineering"
+    },
+    {
+      "question": "How much does a startup CTO make?",
+      "snippet": "Startup Cto Salary\nAnnual Salary\nMonthly Pay\nTop Earners\n$236,500\n$19,708\n75th Percentile\n$195,000\n$16,250\nAverage\n$166,511\n$13,875\n25th Percentile\n$132,000\n$11,000",
+      "title": "Salary: Startup Cto (July, 2025) United States - ZipRecruiter",
+      "link": "https://www.ziprecruiter.com/Salaries/Startup-Cto-Salary"
+    },
+    {
+      "question": "Who is the CEO of CTO AI?",
+      "snippet": "Kyle Campbell is the founder and CEO of CTO.ai, a platform for rapidly scaling DevOps teams.",
+      "title": "Kyle Campbell | CEO & Founder, CTO.ai - Forbes Councils",
+      "link": "https://councils.forbes.com/profile/Kyle-Campbell-CEO-Founder-CTO-ai-CTO-ai/d50e312e-48de-4c02-97ea-a99e1efd051a"
+    },
+    {
+      "question": "How much equity for CTO or VP engineering?",
+      "snippet": "At the seed and pre‑seed phase, CTOs are often responsible for building the initial product architecture, iterating on unvalidated ideas, and setting technical direction—tasks that carry significant execution risk. To offset this, companies typically grant 2–4 % equity, with 3 % as the industry midpoint.",
+      "title": "How Much Equity Should a CTO Get? [5 Key Factors] [2025] - DigitalDefynd",
+      "link": "https://digitaldefynd.com/IQ/cto-equity/"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Startup cto vp engineering head of ai salary"
+    },
+    {
+      "query": "Startup cto vp engineering head of ai reddit"
+    },
+    {
+      "query": "Startup CTO salary"
+    },
+    {
+      "query": "Startup CTO jobs"
+    },
+    {
+      "query": "CTO startup"
+    },
+    {
+      "query": "What does a CTO do in a startup"
+    },
+    {
+      "query": "CTO roles and responsibilities"
+    }
+  ],
+  "credits": 1
+}

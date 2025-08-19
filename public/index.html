@@ -749,18 +749,45 @@
       html = html.replace(/^[\s]*[-*+] (.*)$/gm, '<li>$1</li>');
       html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
-      // Numbered lists (ordered lists) - process BEFORE line breaks are converted
+      // Numbered lists (ordered lists) - improved to handle multi-line content
       console.log('📝 BEFORE numbered list processing:', html.substring(0, 500));
       
-      // Simple approach: Find each numbered item and convert it
-      html = html.replace(/^(\s*\d+\.\s+.*)$/gm, '<li>$1</li>');
+      // Split by lines and process numbered lists more carefully
+      const lines = html.split('\n');
+      let inOrderedList = false;
+      let processedLines = [];
       
-      // Remove the number prefix from inside the <li> tags
-      html = html.replace(/<li>\s*\d+\.\s+(.*?)<\/li>/g, '<li>$1</li>');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const numberedListMatch = line.match(/^(\s*\d+\.\s+)(.*)/);
+        
+        if (numberedListMatch) {
+          // Start of a numbered item
+          if (!inOrderedList) {
+            processedLines.push('<ol>');
+            inOrderedList = true;
+          }
+          processedLines.push(`<li>${numberedListMatch[2]}</li>`);
+        } else if (inOrderedList && (line.trim() === '' || line.match(/^\s+[-*+]/))) {
+          // Empty line or sub-bullet within a numbered item - keep as is but stay in list
+          processedLines.push(line);
+        } else if (inOrderedList && !line.match(/^\s*\d+\./)) {
+          // End of numbered list
+          processedLines.push('</ol>');
+          processedLines.push(line);
+          inOrderedList = false;
+        } else {
+          // Regular line
+          processedLines.push(line);
+        }
+      }
       
-      // Wrap consecutive <li> tags in <ol>
-      html = html.replace(/(<li>.*?<\/li>)(\s*<li>.*?<\/li>)*/gs, '<ol>$1</ol>');
+      // Close any open ordered list
+      if (inOrderedList) {
+        processedLines.push('</ol>');
+      }
       
+      html = processedLines.join('\n');
       console.log('📝 AFTER numbered list processing:', html.substring(0, 500));
 
       // Line breaks - simple approach
@@ -870,13 +897,22 @@
         
         if (!isPaused) {
           currentText += text[index];
-          // Parse and update the markdown as we go
-          contentElement.innerHTML = parseMarkdown(currentText);
+          // Just show raw text while streaming, parse markdown at the end
+          contentElement.textContent = currentText;
           
           // Auto-scroll to keep up with the streaming
           chat.scrollTop = chat.scrollHeight;
           
           index++;
+          
+          // Check if we're done streaming
+          if (index >= text.length) {
+            // Now parse the complete markdown
+            contentElement.innerHTML = parseMarkdown(currentText);
+            // Hide controls when done
+            streamingControls.style.display = 'none';
+            return;
+          }
           
           if (index < text.length) {
             timeoutId = setTimeout(typeNextChar, speed);
