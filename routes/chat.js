@@ -3,7 +3,6 @@ import express from 'express';
 const router = express.Router();
 
 import { chatWithAgent } from '../src/langchainAgent.js';
-import { simpleAgentChat } from '../src/simpleAgent.js';
 import { createResearchSession } from '../src/researchAgent.js';
 import fs from 'fs';
 import { internetSearch } from '../tools/internetSearch.js';

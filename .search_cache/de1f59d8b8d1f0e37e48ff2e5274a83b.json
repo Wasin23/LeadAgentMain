@@ -1,0 +1,80 @@
+{
+  "searchParameters": {
+    "q": "Ai startups contact email LinkedIn decision maker",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Unlocking the Power of AI to Identify Key Decision Makers ... - LinkedIn",
+      "link": "https://www.linkedin.com/pulse/unlocking-power-ai-identify-key-decision-makers-within-stephen-howell",
+      "snippet": "By analyzing social media data, email and other publicly available information, AI can help companies to understand the dynamics of a particular ...",
+      "date": "Jan 25, 2023",
+      "position": 1
+    },
+    {
+      "title": "Effective LinkedIn Outreach to Decision Makers: 7 Steps - Bardeen AI",
+      "link": "https://www.bardeen.ai/answers/how-to-reach-out-to-a-decision-maker-on-linkedin",
+      "snippet": "Use LinkedIn's advanced search to find decision makers. By the way, we're Bardeen, we build a free AI Agent for doing repetitive tasks.",
+      "date": "Feb 10, 2024",
+      "position": 2
+    },
+    {
+      "title": "How to Find Decision Makers on LinkedIn - Octopus CRM",
+      "link": "https://octopuscrm.io/blog/find-decision-makers-on-linkedin/",
+      "snippet": "For example, say you're looking for decision-makers in AI. You can create a Boolean search like this: (founder OR CEO) AND startup AND AI.",
+      "date": "May 1, 2024",
+      "position": 3
+    },
+    {
+      "title": "10+ Top AI Tools for LinkedIn You Actually Need in 2025 - Reply.io",
+      "link": "https://reply.io/blog/ai-tools-for-linkedin/",
+      "snippet": "For teams looking to offload the entire prospecting process across emails, LinkedIn, and other channels, Jason AI is definitely a top choice.",
+      "date": "May 27, 2025",
+      "position": 4
+    },
+    {
+      "title": "Top AI Tools to Supercharge Your B2B Outreach - LinkedIn",
+      "link": "https://www.linkedin.com/pulse/top-ai-tools-supercharge-your-b2b-outreach-sociosquares-ixxdc",
+      "snippet": "These tools make it easy to send emails at scale, automate LinkedIn messages, run smart drip campaigns, follow up with calls, and keep your CRM updated.",
+      "date": "Apr 4, 2025",
+      "position": 5
+    },
+    {
+      "title": "What's the latest of AI prospecting/email tools that work? - Reddit",
+      "link": "https://www.reddit.com/r/SaaS/comments/1f20fag/whats_the_latest_of_ai_prospectingemail_tools/",
+      "snippet": "The system would then use AI to look through a list of good titles and related titles and find new prospects along with their email and linkedin.",
+      "date": "Aug 26, 2024",
+      "position": 6
+    },
+    {
+      "title": "Outreachly: AI LinkedIn & Email Automation",
+      "link": "https://outreachly.ai/",
+      "snippet": "Outreachly is the #1 platform for LinkedIn AI outreach and email automation. Our AI-powered tools help you connect with new leads, send personalized messages,",
+      "position": 7
+    },
+    {
+      "title": "How To Find Decision-Makers In A Company: 9 Tools For 2025",
+      "link": "https://evaboot.com/blog/how-to-find-decision-makers-in-a-company",
+      "snippet": "Follow this guide to discover 9 tools for finding the right decision-maker in a company and nailing the LinkedIn lead-generation process.",
+      "date": "Feb 25, 2025",
+      "position": 8
+    },
+    {
+      "title": "AI-Powered Lead Generation System with Email Personalization ...",
+      "link": "https://n8n.io/workflows/6027-ai-powered-lead-generation-system-with-email-personalization-and-linkedin/",
+      "snippet": "This automation is a complete end-to-end system designed to find, qualify, and contact B2B leads — fully automated and powered by AI. 1. Lead Discovery & ...",
+      "position": 9
+    },
+    {
+      "title": "Use AI to Personalise Cold Emails and LinkedIn Messages for Better ...",
+      "link": "https://www.instituteofaistudies.com/insights/use-ai-to-personalise-cold-emails-and-linkedin-messages",
+      "snippet": "AI-powered tools like CustomGPTs and Claude Styles can now help you create highly personalised cold emails and LinkedIn messages that boost your conversion ...",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

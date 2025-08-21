@@ -1,0 +1,93 @@
+{
+  "searchParameters": {
+    "q": "Ai startups technology stack engineering team size",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "How to Choose the Right AI Tech Stack for Your Team (2025)",
+      "link": "https://www.linkedin.com/pulse/how-choose-right-ai-tech-stack-your-team-2025-ellenox-o5lcc",
+      "snippet": "Startups at the seed stage prioritize speed and simplicity. Teams are small, often cross-functional, and focused on getting an MVP to market ...",
+      "date": "Jul 29, 2025",
+      "position": 1
+    },
+    {
+      "title": "The AI Startup Stack: What Skills Your Engineering Team Actually ...",
+      "link": "https://www.leadgenius.com/resources/the-ai-startup-stack-what-skills-your-engineering-team-actually-needs-to-win",
+      "snippet": "Here's a breakdown of the 5 core engineering domains your early AI team should cover — along with the GitHub/LinkedIn tags and battle-tested ...",
+      "date": "Apr 24, 2025",
+      "position": 2
+    },
+    {
+      "title": "The Billion-Dollar Startup Formula: Why AI-Driven Small Teams Are ...",
+      "link": "https://www.thevccorner.com/p/the-billion-dollar-startup-formula",
+      "snippet": "The startup playbook is changing—AI is making tiny teams unstoppable. Forget hiring sprees—here's how small, lean startups are winning big.",
+      "date": "Mar 21, 2025",
+      "position": 3
+    },
+    {
+      "title": "The New Minimum Viable Team: How AI Is Shrinking Software...",
+      "link": "https://anshadameenza.com/blog/technology/ai-small-teams-software-development-revolution/",
+      "snippet": "We're witnessing a profound shift in the minimum viable team size needed to build sophisticated software.",
+      "date": "Apr 15, 2025",
+      "position": 4
+    },
+    {
+      "title": "AI Tech Stack: A Complete Guide to Data, Frameworks, MLOps",
+      "link": "https://www.coherentsolutions.com/insights/overview-of-ai-tech-stack-components-ai-frameworks-mlops-and-ides",
+      "snippet": "Discover the importance of a comprehensive AI tech stack and how our expertise can help you build, deploy, and maintain cutting-edge AI ...",
+      "date": "Apr 15, 2025",
+      "position": 5
+    },
+    {
+      "title": "Leading Effective Engineering Teams in the Age of GenAI",
+      "link": "https://addyo.substack.com/p/leading-effective-engineering-teams-c9b",
+      "snippet": "According to a 2024 report by Bain, in practice generative AI currently saves about 10–15% of software engineering time on average (Beyond Code ...",
+      "date": "Mar 18, 2025",
+      "position": 6
+    },
+    {
+      "title": "Building Your AI Engineering Tech Stack: A Cost-Effective Approach",
+      "link": "https://www.gynger.io/resources/blog/building-your-ai-engineering-tech-stack-a-cost-effective-approach",
+      "snippet": "Learn how to build a cost-effective and scalable AI tech stack with the right tools, cloud strategies, and financing options.",
+      "date": "Feb 11, 2025",
+      "position": 7
+    },
+    {
+      "title": "Will AI enable full stack startups? : r/ycombinator - Reddit",
+      "link": "https://www.reddit.com/r/ycombinator/comments/1kowqoy/will_ai_enable_full_stack_startups/",
+      "snippet": "AI will definitely enable more full stack startups, but success depends on execution, not just tech. ... Medical AI/tech startups. 42 ...",
+      "date": "May 17, 2025",
+      "sitelinks": [
+        {
+          "title": "[D] What is the tool stack of ML teams at startups? + intel from 41 ...",
+          "link": "https://www.reddit.com/r/MachineLearning/comments/gs23ks/d_what_is_the_tool_stack_of_ml_teams_at_startups/"
+        },
+        {
+          "title": "How are companies actually implementing AI into their tech stacks?",
+          "link": "https://www.reddit.com/r/ArtificialInteligence/comments/1m498q3/how_are_companies_actually_implementing_ai_into/"
+        }
+      ],
+      "position": 8
+    },
+    {
+      "title": "What's in your stack: The state of tech tools in 2025",
+      "link": "https://www.lennysnewsletter.com/p/whats-in-your-stack-the-state-of",
+      "snippet": "Cursor is rising at an astonishing pace, and there are at least five other AI-native coding platforms in the mix. Over 20% of engineers are ...",
+      "date": "Jan 21, 2025",
+      "position": 9
+    },
+    {
+      "title": "Master AI Tech Stacks for 2025: The Ultimate Guide | SmartDev",
+      "link": "https://smartdev.com/ai-tech-stacks-the-blueprint-for-2025/",
+      "snippet": "Discover the ultimate AI tech stack guide! Learn key components, tools, and best practices to build a scalable, future-proof AI system.",
+      "date": "Jan 31, 2025",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

@@ -1,6 +1,6 @@
 {
   "searchParameters": {
-    "q": "ai startups",
+    "q": "Ai startups",
     "gl": "us",
     "hl": "en",
     "type": "search",
@@ -9,7 +9,7 @@
   },
   "organic": [
     {
-      "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence ...",
+      "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence Companies Ranked",
       "link": "https://www.forbes.com/lists/ai50/",
       "snippet": "The Forbes Artificial Intelligence 50 List of 2025 spotlights promising AI-driven businesses. See the leaders driving the future of the ...",
       "date": "Apr 10, 2025",
@@ -22,58 +22,115 @@
       "position": 2
     },
     {
-      "title": "AI (Artificial Intelligence) Startups funded by ...",
+      "title": "AI (Artificial Intelligence) Startups funded by Y Combinator (YC) 2025",
       "link": "https://www.ycombinator.com/companies/industry/ai",
       "snippet": "Browse 100 of the top AI startups funded by Y Combinator.",
+      "sitelinks": [
+        {
+          "title": "Generative AI",
+          "link": "https://www.ycombinator.com/companies/industry/generative-ai"
+        },
+        {
+          "title": "Scale AI",
+          "link": "https://www.ycombinator.com/companies/scale-ai"
+        },
+        {
+          "title": "Ora AI",
+          "link": "https://www.ycombinator.com/companies/ora-ai"
+        },
+        {
+          "title": "AI Assistant",
+          "link": "https://www.ycombinator.com/companies/industry/ai-assistant"
+        }
+      ],
       "position": 3
     },
     {
-      "title": "60 Growing AI Companies & Startups (2025)",
+      "title": "60 Growing AI Companies & Startups (2025) - Exploding Topics",
       "link": "https://explodingtopics.com/blog/ai-startups",
       "snippet": "60 Growing AI Companies & Startups (2025) · 1. DeepL · 2. Frame AI · 3. Uizard · 4. Moveworks · 5. Databricks · 6. Synthesia · 7. Codeium · 8.",
-      "date": "Jul 31, 2025",
+      "date": "4 days ago",
       "position": 4
     },
     {
-      "title": "AI startup program",
-      "link": "https://cloud.google.com/startup/ai",
-      "snippet": "Our AI Program is Built to Accelerate AI Startups · Build new experiences and infuse AI into existing apps faster · Make smarter decisions across your business.",
+      "title": "99% of AI Startups Will Be Dead by 2026 — Here's Why - Srinivas Rao",
+      "link": "https://skooloflife.medium.com/99-of-ai-startups-will-be-dead-by-2026-heres-why-bfc974edd968",
+      "snippet": "Dozens of AI tools promise to revolutionize note-taking, health records, podcasting, journaling — all with clean branding, all powered by GPT, ...",
+      "date": "May 12, 2025",
       "position": 5
     },
     {
-      "title": "AI is already creating a billionaire boom: There are now ...",
-      "link": "https://fortune.com/2025/08/13/ai-creating-billionaire-boom-record-pace-now-498-ai-unicorns-worth-2-7-trillion/",
-      "snippet": "AI is minting billion-dollar startups faster than the dot-com era, with 100 unicorns born in the last two years, including OpenAI, Anthropic, ...",
-      "date": "2 days ago",
+      "title": "AI startup program | Google Cloud",
+      "link": "https://cloud.google.com/startup/ai",
+      "snippet": "Our AI Program is Built to Accelerate AI Startups · Build new experiences and infuse AI into existing apps faster · Make smarter decisions across your business.",
       "position": 6
     },
     {
-      "title": "99% of AI Startups Will Be Dead by 2026 — Here's Why",
-      "link": "https://skooloflife.medium.com/99-of-ai-startups-will-be-dead-by-2026-heres-why-bfc974edd968",
-      "snippet": "Dozens of AI tools promise to revolutionize note-taking, health records, podcasting, journaling — all with clean branding, all powered by GPT, ...",
-      "date": "3 months ago",
+      "title": "Top AI Startups in 2025 - StartupBlink",
+      "link": "https://www.startupblink.com/blog/top-ai-startups/",
+      "snippet": "Top AI Startups in 2025 · 1. OpenAI · 2. DeepL · 3. Anthropic · 4. Bytedance · 5. Mistral AI · 6. ElevenLabs · 7. Shiprocket · 8. Highspot. SB ...",
+      "date": "Jun 24, 2025",
       "position": 7
     },
     {
-      "title": "New trend: extreme hours at AI startups",
-      "link": "https://blog.pragmaticengineer.com/new-trend-extreme-hours-at-ai-startups/",
-      "snippet": "Pulling 80+ hour work weeks – including weekends – is becoming the norm across AI startups, and is unlikely to stop while AI is so hot.",
-      "date": "1 day ago",
+      "title": "New trend: extreme hours at AI startups : r/programming - Reddit",
+      "link": "https://www.reddit.com/r/programming/comments/1mr2sz6/new_trend_extreme_hours_at_ai_startups/",
+      "snippet": "This is (not personal experience) most startups and American tech culture in general. 60 hours a week is the sweet spot of productivity. I read ...",
+      "date": "6 days ago",
       "position": 8
-    },
-    {
-      "title": "Prediction: 'AI startup' won't be a thing anymore",
-      "link": "https://www.reddit.com/r/Entrepreneur/comments/1mo55s5/prediction_ai_startup_wont_be_a_thing_anymore/",
-      "snippet": "\"AI startups\" are about to disappear (and that's actually a good thing). In like 1-2 years, nobody's gonna say \"AI startup\" anymore.",
-      "date": "3 days ago",
-      "position": 9
     },
     {
       "title": "10 MIT AI startups to watch in 2025",
       "link": "https://mitsloan.mit.edu/ideas-made-to-matter/10-mit-ai-startups-to-watch-2025",
       "snippet": "From assessing bridge infrastructure to predicting worker fatigue risk via voice analysis, these startups are widening the scope of what artificial ...",
       "date": "May 12, 2025",
-      "position": 10
+      "position": 9
+    }
+  ],
+  "topStories": [
+    {
+      "title": "Seattle is a global AI hub — but where are the superstar startups?",
+      "link": "https://www.geekwire.com/2025/seattle-is-a-global-ai-epicenter-but-where-are-the-well-funded-superstar-startups/",
+      "date": "24 hours ago",
+      "source": "GeekWire"
+    },
+    {
+      "title": "Silicon Valley's AI deals are creating zombie startups: 'You hollowed out the organization'",
+      "link": "https://www.cnbc.com/2025/08/19/how-ai-zombie-deals-work-meta-google.html",
+      "date": "2 days ago",
+      "source": "CNBC"
+    },
+    {
+      "title": "AI Startup Leases Surge 700% in Bay Area",
+      "link": "https://www.connectcre.com/stories/ai-startup-leases-surge-700-in-bay-area/",
+      "date": "1 hour ago",
+      "source": "Connect CRE"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "ai startups jobs"
+    },
+    {
+      "query": "ai startups to invest in"
+    },
+    {
+      "query": "top ai startups"
+    },
+    {
+      "query": "ai startups list"
+    },
+    {
+      "query": "ai startup ideas"
+    },
+    {
+      "query": "top ai companies to invest in"
+    },
+    {
+      "query": "generative ai startups"
+    },
+    {
+      "query": "fastest-growing ai companies"
     }
   ],
   "credits": 1

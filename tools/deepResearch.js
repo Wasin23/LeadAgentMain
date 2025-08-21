@@ -225,13 +225,8 @@ async function searchApollo(query, limit = 10) {
       body: JSON.stringify({
         q_keywords: apolloQuery,
         page: 1,
-        per_page: Math.min(limit, 25), // Apollo max is 25
-        person_locations: [],
-        person_seniorities: ['c_suite', 'vp', 'director', 'manager'], // Target decision makers
-        person_titles: [],
-        organization_num_employees_ranges: ['11-50', '51-200', '201-500', '501-1000', '1001-5000'], // Companies likely to need AI
-        organization_industries: [], // Let query determine industry
-        person_departments: ['engineering', 'technology', 'product', 'operations'] // Tech-focused departments
+        per_page: Math.min(limit, 25) // Apollo max is 25
+        // Removed all filters to allow broader search results
       })
     });
 

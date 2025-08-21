@@ -18,13 +18,6 @@
   },
   "organic": [
     {
-      "title": "Startup Funding Outlook: VCs 'Chasing The AI Wave' But With Caution",
-      "link": "https://news.crunchbase.com/venture/startup-funding-ai-ipo-outlook-h2-2025/",
-      "snippet": "Startup Funding Regained Its Footing In 2024 As AI Became The Star Of The Show · Q2 Global Venture Funding Climbs In A Blockbuster Quarter For AI ...",
-      "date": "5 days ago",
-      "position": 1
-    },
-    {
       "title": "AI (Artificial Intelligence) Startups funded by Y Combinator (YC) 2025",
       "link": "https://www.ycombinator.com/companies/industry/ai",
       "snippet": "Browse 100 of the top AI startups funded by Y Combinator. We also have a Startup Directory where you can search through over 5,000 companies.",
@@ -46,67 +39,37 @@
           "link": "https://www.ycombinator.com/companies/casetext"
         }
       ],
-      "position": 2
+      "position": 1
     },
     {
       "title": "Top 154 AI Startups 2025 | Funded by Sequoia, YC, A16Z",
       "link": "https://topstartups.io/?industries=Artificial%20Intelligence",
       "snippet": "Funding: Sequoia $40M Series B in 2025 $1.3B valuation. Take action: See who works here · Check company site · View Jobs · Rad AI startup company logo · Rad ...",
-      "position": 3
-    },
-    {
-      "title": "AI startup program | Google Cloud",
-      "link": "https://cloud.google.com/startup/ai",
-      "snippet": "For AI Startups, the Google for Startups Cloud Program offers $350,000 in Cloud credits, resources to accelerate your startup journey, dedicated support and ...",
-      "position": 4
-    },
-    {
-      "title": "60 Growing AI Companies & Startups (2025) - Exploding Topics",
-      "link": "https://explodingtopics.com/blog/ai-startups",
-      "snippet": "In August 2024, the startup reached unicorn status after raising $150 million in Series C funding at a valuation of $1.25 billion.",
-      "date": "Jul 31, 2025",
-      "position": 5
-    },
-    {
-      "title": "AI Grant",
-      "link": "http://aigrant.com/",
-      "snippet": "AI Grant — accelerator for seed-stage AI startups. $250,000 on an uncapped SAFE for your AI-native product startup; $350,000 in Azure credits + $250,000 in ...",
-      "position": 6
-    },
-    {
-      "title": "Look AI Ventures | Investing in early-stage AI startups",
-      "link": "https://lookai.vc/",
-      "snippet": "Our goal is to nurture the AI startup ecosystem by investing in a new portfolio of promising early-stage AI startups. Opportunities. Look AI Ventures fund is a ...",
-      "sitelinks": [
-        {
-          "title": "I'm Startup",
-          "link": "https://lookai.vc/apply-now/"
-        },
-        {
-          "title": "Latest AI startup news",
-          "link": "https://lookai.vc/news/"
-        },
-        {
-          "title": "Co získají startupy",
-          "link": "https://lookai.vc/cs/"
-        },
-        {
-          "title": "I'm Investor",
-          "link": "https://lookai.vc/investors/"
-        }
-      ],
-      "position": 7
+      "position": 2
     },
     {
       "title": "The Latest VC Investment Deals in AI Startups - 2025 | News",
       "link": "https://www.crescendo.ai/news/latest-vc-investment-deals-in-ai-startups",
       "snippet": "‍Details: Liquid AI, a startup focused on developing more efficient AI models, has secured $250 million in funding. The company aims to reduce the computational ...",
-      "position": 8
+      "position": 3
+    },
+    {
+      "title": "AI Grant",
+      "link": "http://aigrant.com/",
+      "snippet": "AI Grant — accelerator for seed-stage AI startups. $250,000 on an uncapped SAFE for your AI-native product startup; $350,000 in Azure credits + $250,000 in ...",
+      "position": 4
+    },
+    {
+      "title": "DevOps automation startup SRE.ai launches with $7.2M in funding",
+      "link": "https://siliconangle.com/2025/08/20/devops-automation-startup-sre-ai-launches-7-2m-funding/",
+      "snippet": "SRE.ai Inc., a startup using artificial intelligence to make software teams more productive, launched today with $7.2 million in initial funding ...",
+      "date": "23 hours ago",
+      "position": 5
     },
     {
       "title": "Forbes 2025 AI 50 List - Top Artificial Intelligence Companies Ranked",
       "link": "https://www.forbes.com/lists/ai50/",
-      "snippet": "Meanwhile, Fei Fei Li, known as the “godmother of AI”, has launched her own startup too, World Labs ($291.5 million raised), to develop models ...",
+      "snippet": "Newcomers to the list include $2.5 billion-valued Anysphere (better known as Cursor), a three year-old AI startup that helps engineers write and ...",
       "date": "Apr 10, 2025",
       "sitelinks": [
         {
@@ -126,15 +89,34 @@
           "link": "https://www.forbes.com/profile/mercor/"
         }
       ],
+      "position": 6
+    },
+    {
+      "title": "AI startup program | Google Cloud",
+      "link": "https://cloud.google.com/startup/ai",
+      "snippet": "For AI Startups, the Google for Startups Cloud Program offers $350,000 in Cloud credits, resources to accelerate your startup journey, dedicated support and ...",
+      "position": 7
+    },
+    {
+      "title": "AI workflow automation startup Heron lands $16m Series A",
+      "link": "https://fintech.global/2025/07/16/ai-workflow-automation-startup-heron-lands-16m-series-a/",
+      "snippet": "Funding Rounds. AI workflow automation startup Heron lands $16m Series A. July 16, 2025.",
+      "date": "Jul 16, 2025",
+      "position": 8
+    },
+    {
+      "title": "Automation Startups funded by Y Combinator (YC) 2025",
+      "link": "https://www.ycombinator.com/companies/industry/automation",
+      "snippet": "Browse 67 of the top Automation startups funded by Y Combinator. We also have a Startup Directory where you can search through over 5,000 companies.",
       "position": 9
     }
   ],
   "relatedSearches": [
     {
-      "query": "Free startup funding artificial intelligence automation"
+      "query": "Techstars"
     },
     {
-      "query": "Startup funding artificial intelligence automation 2022"
+      "query": "Free startup funding artificial intelligence automation"
     },
     {
       "query": "AI startup ideas"
@@ -143,16 +125,19 @@
       "query": "YC AI Startup School"
     },
     {
-      "query": "AI startups to invest in"
-    },
-    {
       "query": "Scale AI"
     },
     {
       "query": "Top AI startups"
     },
     {
+      "query": "AI startups to invest in"
+    },
+    {
       "query": "Mistral AI"
+    },
+    {
+      "query": "Top AI startups 2025"
     }
   ],
   "credits": 1
