@@ -696,112 +696,224 @@
       
       console.log('📝 After HTML escape (first 200 chars):', html.substring(0, 200));
 
-      // PRE-PROCESS: Add newlines before headers if they don't exist
-      html = html.replace(/([^\n])\s+(#{1,6}\s)/g, '$1\n$2');
-      console.log('📋 AFTER adding newlines before headers:', html.substring(0, 300));
-
-      // Bold and italic - improved patterns to handle newlines better
-      html = html.replace(/\*\*\*([^*]+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-      html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
-      console.log('💪 AFTER bold/italic processing:', html.substring(0, 300));
-
-      // Code blocks (triple backticks)
-      html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-      
-      // Inline code (single backticks)
-      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-      // Links
-      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-
-      // Headers (process BEFORE line breaks) - debug and fix bleeding
-      console.log('🏷️ BEFORE header processing:', html.substring(0, 400));
-      
-      // Process headers one at a time with better regex and debug each
-      const headerPatterns = [
-        { level: 6, pattern: /^######\s+(.+?)$/gm, tag: 'h6' },
-        { level: 5, pattern: /^#####\s+(.+?)$/gm, tag: 'h5' },
-        { level: 4, pattern: /^####\s+(.+?)$/gm, tag: 'h4' },
-        { level: 3, pattern: /^###\s+(.+?)$/gm, tag: 'h3' },
-        { level: 2, pattern: /^##\s+(.+?)$/gm, tag: 'h2' },
-        { level: 1, pattern: /^#\s+(.+?)$/gm, tag: 'h1' }
-      ];
-
-      headerPatterns.forEach(({ level, pattern, tag }) => {
-        const matches = html.match(pattern);
-        if (matches) {
-          console.log(`🔍 Found h${level} headers:`, matches);
-        }
-        html = html.replace(pattern, `<${tag}>$1</${tag}>`);
-      });
-      
-      console.log('🏷️ AFTER header processing:', html.substring(0, 400));
-
-      // Clean up any double-bold in headers (remove <strong> tags from inside headers)
-      html = html.replace(/(<h[1-6]>)<strong>(.*?)<\/strong>(<\/h[1-6]>)/g, '$1$2$3');
-      console.log('🧹 AFTER header cleanup:', html.substring(0, 200));
-
-      // Blockquotes
-      html = html.replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>');
-
-      // Unordered lists (process BEFORE line breaks are converted)
-      html = html.replace(/^[\s]*[-*+] (.*)$/gm, '<li>$1</li>');
-      html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-
-      // Numbered lists (ordered lists) - improved to handle multi-line content
-      console.log('📝 BEFORE numbered list processing:', html.substring(0, 500));
-      
-      // Split by lines and process numbered lists more carefully
-      const lines = html.split('\n');
-      let inOrderedList = false;
+      // Split into lines for better processing
+      let lines = html.split('\n');
       let processedLines = [];
-      
+      let inCodeBlock = false;
+      let inUnorderedList = false;
+      let inOrderedList = false;
+      let inTable = false;
+      let tableRows = [];
+
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const numberedListMatch = line.match(/^(\s*\d+\.\s+)(.*)/);
+        let line = lines[i];
         
-        if (numberedListMatch) {
-          // Start of a numbered item
+        // Handle code blocks first (highest priority)
+        if (line.startsWith('```')) {
+          // Close any open table before code block
+          if (inTable) {
+            processedLines.push(processTable(tableRows));
+            tableRows = [];
+            inTable = false;
+          }
+          
+          if (inCodeBlock) {
+            processedLines.push('</code></pre>');
+            inCodeBlock = false;
+          } else {
+            processedLines.push('<pre><code>');
+            inCodeBlock = true;
+          }
+          continue;
+        }
+        
+        // If in code block, preserve line as-is
+        if (inCodeBlock) {
+          processedLines.push(line);
+          continue;
+        }
+        
+        // Table processing (check for | characters)
+        if (line.includes('|') && line.trim() !== '') {
+          // Close any open lists before starting table
+          if (inUnorderedList) {
+            processedLines.push('</ul>');
+            inUnorderedList = false;
+          }
+          if (inOrderedList) {
+            processedLines.push('</ol>');
+            inOrderedList = false;
+          }
+          
+          // Check if this looks like a table row
+          const tableMatch = line.match(/^\s*\|.*\|\s*$/);
+          if (tableMatch || line.includes('|')) {
+            inTable = true;
+            tableRows.push(line);
+            continue;
+          }
+        } else if (inTable) {
+          // End of table - process accumulated rows
+          processedLines.push(processTable(tableRows));
+          tableRows = [];
+          inTable = false;
+          // Continue processing this line normally
+        }
+        
+        // Headers (process before other formatting)
+        if (line.match(/^#{1,6}\s+/)) {
+          // Close any open lists
+          if (inUnorderedList) {
+            processedLines.push('</ul>');
+            inUnorderedList = false;
+          }
+          if (inOrderedList) {
+            processedLines.push('</ol>');
+            inOrderedList = false;
+          }
+          
+          const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
+          if (headerMatch) {
+            const level = headerMatch[1].length;
+            const content = processInlineFormatting(headerMatch[2]);
+            processedLines.push(`<h${level}>${content}</h${level}>`);
+            continue;
+          }
+        }
+        
+        // Unordered lists
+        const unorderedMatch = line.match(/^[\s]*[-*+]\s+(.*)$/);
+        if (unorderedMatch) {
+          if (!inUnorderedList) {
+            if (inOrderedList) {
+              processedLines.push('</ol>');
+              inOrderedList = false;
+            }
+            processedLines.push('<ul>');
+            inUnorderedList = true;
+          }
+          // Apply inline formatting to the list content
+          const formattedContent = processInlineFormatting(unorderedMatch[1]);
+          processedLines.push(`<li>${formattedContent}</li>`);
+          continue;
+        }
+        
+        // Ordered lists
+        const orderedMatch = line.match(/^\s*(\d+)\.\s+(.*)$/);
+        if (orderedMatch) {
           if (!inOrderedList) {
+            if (inUnorderedList) {
+              processedLines.push('</ul>');
+              inUnorderedList = false;
+            }
             processedLines.push('<ol>');
             inOrderedList = true;
           }
-          processedLines.push(`<li>${numberedListMatch[2]}</li>`);
-        } else if (inOrderedList && (line.trim() === '' || line.match(/^\s+[-*+]/))) {
-          // Empty line or sub-bullet within a numbered item - keep as is but stay in list
-          processedLines.push(line);
-        } else if (inOrderedList && !line.match(/^\s*\d+\./)) {
-          // End of numbered list
+          // Apply inline formatting to the list content
+          const formattedContent = processInlineFormatting(orderedMatch[2]);
+          processedLines.push(`<li>${formattedContent}</li>`);
+          continue;
+        }
+        
+        // Close lists if we hit a non-list line
+        if (inUnorderedList && !line.match(/^[\s]*[-*+]/)) {
+          processedLines.push('</ul>');
+          inUnorderedList = false;
+        }
+        if (inOrderedList && !line.match(/^\s*\d+\./)) {
           processedLines.push('</ol>');
-          processedLines.push(line);
           inOrderedList = false;
+        }
+        
+        // Blockquotes
+        if (line.match(/^>\s*/)) {
+          line = line.replace(/^>\s*(.*)$/, '<blockquote>$1</blockquote>');
+        }
+        
+        // Empty lines become paragraph breaks
+        if (line.trim() === '') {
+          processedLines.push('<br>');
+          continue;
+        }
+        
+        // Regular line - process inline formatting
+        line = processInlineFormatting(line);
+        processedLines.push(line);
+      }
+      
+      // Close any remaining open lists or tables
+      if (inUnorderedList) processedLines.push('</ul>');
+      if (inOrderedList) processedLines.push('</ol>');
+      if (inTable) processedLines.push(processTable(tableRows));
+      if (inCodeBlock) processedLines.push('</code></pre>');
+      
+      html = processedLines.join('<br>');
+      
+      console.log('✅ parseMarkdown FINAL OUTPUT (first 500 chars):', html.substring(0, 500));
+      return html;
+    }
+
+    // Helper function for inline formatting
+    function processInlineFormatting(text) {
+      return text
+        // Bold and italic
+        .replace(/\*\*\*([^*]+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    }
+
+    // Helper function for processing tables
+    function processTable(tableRows) {
+      if (tableRows.length === 0) return '';
+      
+      console.log('🔧 Processing table with', tableRows.length, 'rows');
+      
+      let tableHtml = '<table>';
+      let isFirstRow = true;
+      
+      for (let i = 0; i < tableRows.length; i++) {
+        const row = tableRows[i].trim();
+        
+        // Skip separator rows (like |---|---|)
+        if (row.match(/^\|[\s\-\|:]+\|$/)) {
+          continue;
+        }
+        
+        // Split by | and clean up cells
+        const cells = row.split('|')
+          .filter(cell => cell.trim() !== '') // Remove empty cells from start/end
+          .map(cell => cell.trim());
+        
+        if (cells.length === 0) continue;
+        
+        const cellTag = isFirstRow ? 'th' : 'td';
+        const rowHtml = cells.map(cell => {
+          const formattedCell = processInlineFormatting(cell);
+          return `<${cellTag}>${formattedCell}</${cellTag}>`;
+        }).join('');
+        
+        tableHtml += `<tr>${rowHtml}</tr>`;
+        
+        // After first data row, check if next row is separator
+        if (isFirstRow && i + 1 < tableRows.length) {
+          const nextRow = tableRows[i + 1].trim();
+          if (nextRow.match(/^\|[\s\-\|:]+\|$/)) {
+            isFirstRow = false; // Next data row will be tbody
+          } else {
+            isFirstRow = false; // No separator, treat as tbody anyway
+          }
         } else {
-          // Regular line
-          processedLines.push(line);
+          isFirstRow = false;
         }
       }
       
-      // Close any open ordered list
-      if (inOrderedList) {
-        processedLines.push('</ol>');
-      }
-      
-      html = processedLines.join('\n');
-      console.log('📝 AFTER numbered list processing:', html.substring(0, 500));
-
-      // Line breaks - simple approach
-      console.log('🔄 BEFORE line breaks:', html.substring(0, 300));
-      html = html.replace(/\n/g, '<br>');
-      console.log('🔄 AFTER line breaks:', html.substring(0, 300));
-
-      // Safety check: ensure all header tags are properly closed
-      // This prevents header formatting from bleeding through
-      html = html.replace(/<(h[1-6])>([^<]*?)(?=<|$)/g, '<$1>$2</$1>');
-      console.log('🔒 AFTER safety check:', html.substring(0, 300));
-
-      console.log('✅ parseMarkdown FINAL OUTPUT (first 500 chars):', html.substring(0, 500));
-      return html;
+      tableHtml += '</table>';
+      console.log('✅ Generated table HTML:', tableHtml);
+      return tableHtml;
     }
 
     function appendMessage(text, sender, messageId = null, streaming = false) {
@@ -897,8 +1009,12 @@
         
         if (!isPaused) {
           currentText += text[index];
-          // Just show raw text while streaming, parse markdown at the end
-          contentElement.textContent = currentText;
+          // Apply basic inline formatting during streaming for better UX
+          const basicFormatted = currentText
+            .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>');
+          contentElement.innerHTML = basicFormatted;
           
           // Auto-scroll to keep up with the streaming
           chat.scrollTop = chat.scrollHeight;

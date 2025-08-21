@@ -4,6 +4,13 @@
     "subject": "Test Email",
     "body": "This is a test email sent from ExaMark AI assistant.",
     "status": "sent",
+    "timestamp": "2025-08-21T21:59:07.438Z"
+  },
+  {
+    "to": "colton.fidd@gmail.com",
+    "subject": "Test Email",
+    "body": "This is a test email sent from ExaMark AI assistant.",
+    "status": "sent",
     "timestamp": "2025-08-19T23:08:56.959Z"
   },
   {
