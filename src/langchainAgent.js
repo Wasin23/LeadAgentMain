@@ -350,7 +350,9 @@ export async function chatWithAgent(userInput, chatHistory = []) {
   console.log('[chatWithAgent] Called with input:', userInput);
   
   // MANUAL EMAIL DETECTION - Check if user wants to send an email
-  const sendIntent = userInput.toLowerCase().includes('send') || userInput.toLowerCase().includes('yes send');
+  const sendIntent = userInput.toLowerCase().includes('send') || userInput.toLowerCase().includes('yes send') || 
+                     userInput.toLowerCase().includes('thats good') || userInput.toLowerCase().includes('that\'s good') ||
+                     userInput.toLowerCase().includes('yep send') || userInput.toLowerCase().includes('send it');
   
   // Look for email in current input or recent history
   let email = null;
@@ -359,8 +361,10 @@ export async function chatWithAgent(userInput, chatHistory = []) {
     email = emailMatch[1];
   } else {
     // Check recent history for email address
-    for (let i = chatHistory.length - 1; i >= Math.max(0, chatHistory.length - 3); i--) {
-      const historyEmailMatch = chatHistory[i].input.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    for (let i = chatHistory.length - 1; i >= Math.max(0, chatHistory.length - 5); i--) {
+      const historyInput = chatHistory[i].input || '';
+      const historyOutput = chatHistory[i].output || '';
+      const historyEmailMatch = (historyInput + ' ' + historyOutput).match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
       if (historyEmailMatch) {
         email = historyEmailMatch[1];
         break;
@@ -368,16 +372,66 @@ export async function chatWithAgent(userInput, chatHistory = []) {
     }
   }
   
-  // If user wants to send email and we have an email address, do it directly
+  // If user wants to send email and we have an email address, extract content from AI's drafts
   if (sendIntent && email) {
     console.log('[chatWithAgent] Detected email send request to:', email);
     
+    // Look for email content in the most recent AI responses
+    let subject = 'Message from ExaMark';
+    let body = 'Hello,\n\nThis is a message from ExaMark, the AI assistant for Exabits.\n\nBest regards,\nExaMark';
+    
+    // Check the last few AI responses for email drafts
+    for (let i = chatHistory.length - 1; i >= Math.max(0, chatHistory.length - 5); i--) {
+      const aiResponse = chatHistory[i].output || '';
+      if (aiResponse && (aiResponse.includes('Subject:') || aiResponse.includes('subject:')) && 
+          (aiResponse.includes('Body:') || aiResponse.includes('body:') || aiResponse.includes('Hello') || aiResponse.includes('Hi'))) {
+        
+        console.log('[chatWithAgent] Found email draft in AI response:', aiResponse.substring(0, 200) + '...');
+        
+        // Extract subject - try different patterns
+        let subjectMatch = aiResponse.match(/\*\*Subject:\*\*\s*(.+?)(?:\n|\*\*)/i);
+        if (!subjectMatch) {
+          subjectMatch = aiResponse.match(/Subject:\s*(.+?)(?:\n|Body:)/i);
+        }
+        if (subjectMatch) {
+          subject = subjectMatch[1].trim();
+          console.log('[chatWithAgent] Extracted subject:', subject);
+        }
+        
+        // Extract body - look for content between Body: and signature or end
+        let bodyMatch = aiResponse.match(/\*\*Body:\*\*\s*([\s\S]*?)(?:\n\n---|\nWarm regards|\nBest regards|$)/i);
+        if (!bodyMatch) {
+          bodyMatch = aiResponse.match(/Body:\s*([\s\S]*?)(?:\n\n---|\nWarm regards|\nBest regards|$)/i);
+        }
+        if (!bodyMatch) {
+          // Try to extract just the main content if no formal Body: marker
+          bodyMatch = aiResponse.match(/(Hello|Hi)\s+([\s\S]*?)(?:\n\n---|\nWarm regards|\nBest regards|$)/i);
+          if (bodyMatch) {
+            bodyMatch[1] = bodyMatch[0]; // Use the full match
+          }
+        }
+        
+        if (bodyMatch) {
+          body = bodyMatch[1].trim();
+          // Add signature if it was ExaMark
+          if (aiResponse.includes('ExaMark') && !body.includes('ExaMark')) {
+            body += '\n\nWarm regards,\nExaMark';
+          }
+          console.log('[chatWithAgent] Extracted body:', body.substring(0, 100) + '...');
+        }
+        break;
+      }
+    }
+    
     try {
-      console.log('[chatWithAgent] Calling email tool directly...');
+      console.log('[chatWithAgent] Calling email tool with extracted content...');
+      console.log('[chatWithAgent] Subject:', subject);
+      console.log('[chatWithAgent] Body preview:', body.substring(0, 100) + '...');
+      
       const result = await sendEmailTool({
         to: email,
-        subject: 'Test Email',
-        body: 'This is a test email sent from ExaMark AI assistant.'
+        subject: subject,
+        body: body
       });
       
       console.log('[chatWithAgent] Email tool result:', result);
