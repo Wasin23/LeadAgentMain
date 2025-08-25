@@ -34,7 +34,15 @@ const serperTool = new DynamicTool({
     } else if (input && typeof input === 'object') {
       query = input.query || input.input || input;
     }
-    return JSON.stringify(await internetSearch(query));
+    console.log('[SERPER TOOL] Executing search for query:', query);
+    try {
+      const result = await internetSearch(query);
+      console.log('[SERPER TOOL] Search completed, result length:', JSON.stringify(result).length);
+      return JSON.stringify(result);
+    } catch (error) {
+      console.error('[SERPER TOOL] Search failed:', error);
+      return JSON.stringify({ error: 'Search failed', message: error.message });
+    }
   },
 });
 
@@ -116,6 +124,16 @@ export async function getLangchainAgentWithMemory() {
   const systemPrompt = `You are ExaMark, the official AI chatbot for Exabits. Your primary role is to provide comprehensive, empathetic, and contextually relevant answers about Exabits and assist with general inquiries.
 
 **CRITICAL INSTRUCTION: NEVER give generic or vague responses about Exabits. ALWAYS use the specific information provided below. If asked about Exabits, provide concrete details, not marketing fluff.**
+
+**HANDLING QUERIES ABOUT INDIVIDUALS:**
+When asked about specific people (public figures, celebrities, etc.):
+1. MANDATORY: Use your internet_search tool to find publicly available information - DO NOT respond without using this tool first
+2. If the search returns results, provide a detailed summary of the information found
+3. If the search fails or returns no useful results, explain this clearly to the user with the specific search attempt made
+4. ABSOLUTELY NEVER return empty responses or refuse to answer without explanation
+5. Always be transparent: "I searched for [person] and found..." or "I searched for [person] but couldn't find..."
+6. Public figures, celebrities, historical figures - all are fair game for factual biographical information
+7. Use concrete search results to provide names, ages, careers, notable achievements, etc.
 
 **YOUR IDENTITY:**
 * You are ExaMark, developed specifically for Exabits
@@ -498,8 +516,13 @@ export async function chatWithAgent(userInput, chatHistory = []) {
       output = response.response;
       console.log('[chatWithAgent] Using response.response:', output);
     } else {
-      // If no recognized output field, return a generic message
-      output = "I apologize, but I encountered an issue processing your request.";
+      // If no recognized output field or empty output, check if this might be a personal info query
+      if (userInput.toLowerCase().includes('who is') || userInput.toLowerCase().includes('age') || 
+          userInput.toLowerCase().includes('how old') || userInput.toLowerCase().includes('about ')) {
+        output = "I don't have specific information about that person in my current dataset. Let me search for publicly available information using my tools. Please ask me again and I'll try to use my internet search to find details.";
+      } else {
+        output = "I apologize, but I encountered an issue processing your request. Could you please rephrase your question or try asking something different?";
+      }
       console.log('[chatWithAgent] Using fallback message');
     }
   } else {

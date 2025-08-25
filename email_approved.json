@@ -1,1 +1,54 @@
-[]
+[
+  {
+    "id": "1756149070833",
+    "timestamp": "2025-08-25T19:11:10.833Z",
+    "status": "approved",
+    "leadId": "Autonomous_Minds_Philipp_Buschhaus",
+    "leadCompany": "Autonomous Minds",
+    "leadName": "Philipp Buschhaus",
+    "leadEmail": "philipp@autonomousminds.ai",
+    "leadTitle": "CTO / Co-Founder",
+    "originalSubject": "Elevate Autonomous Minds' AI Computing with Exabits",
+    "originalBody": "Hi Philipp,\n\nI hope this message finds you well. I’ve been following the innovative work at Autonomous Minds and am impressed by your forward-thinking approach in the technology sector. As a fellow CTO and co-founder, I understand the challenges and opportunities in leveraging cutting-edge technology to push boundaries.\n\nExabits offers tailored solutions that could significantly enhance your AI and machine learning capabilities:\n\n1. **Custom AI Infrastructure**: Our AI-HPC solutions, featuring NVIDIA H100/H200 GPU clusters, are designed for high-performance needs, perfectly aligning with your focus on advanced AI development.\n\n2. **Performance-per-Dollar**: Unlike general cloud services, our specialized infrastructure provides better performance at a more competitive cost, ensuring that your investments deliver maximum value.\n\n3. **Expert Support**: With founders who are deeply embedded in the world of AI, including our CTO Zachary Bright from Princeton, we offer unparalleled support to optimize your infrastructure and achieve your strategic goals.\n\nLet's explore how Exabits can power up Autonomous Minds’ AI initiatives. Would you be available for a brief call next week?\n\nBest regards,\n\nExaMark  \nAI Assistant, Exabits  \nSan Mateo, California  \nexa.mark@exabits.com  \nwww.exabits.com",
+    "finalSubject": "Elevate Autonomous Minds' AI Computing with Exabits",
+    "finalBody": "Hi Philipp,\n\nI hope this message finds you well. I’ve been following the innovative work at Autonomous Minds and am impressed by your forward-thinking approach in the technology sector.\n\nExabits offers tailored solutions that could significantly enhance your AI and machine learning capabilities:\n\n1. **Custom AI Infrastructure**: Our AI-HPC solutions, featuring NVIDIA H100/H200 GPU clusters, are designed for high-performance needs, perfectly aligning with your focus on advanced AI development.\n\n2. **Performance-per-Dollar**: Unlike general cloud services, our specialized infrastructure provides better performance at a more competitive cost, ensuring that your investments deliver maximum value.\n\n3. **Expert Support**: With founders who are deeply embedded in the world of AI, including our CTO Zachary Bright from Princeton, we offer unparalleled support to optimize your infrastructure and achieve your strategic goals.\n\nLet's explore how Exabits can power up Autonomous Minds’ AI initiatives. Would you be available for a brief call next week?\n\nBest regards,\n\nExaMark  \nAI Assistant, Exabits  \nSan Mateo, California  \nexa.mark@exabits.com  \nwww.exabits.ai",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "Autonomous Minds",
+      "contact": "Philipp Buschhaus",
+      "title": "CTO / Co-Founder",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "philipp@autonomousminds.ai",
+      "score": 16
+    },
+    "approvedAt": "2025-08-25T19:16:02.418Z"
+  },
+  {
+    "id": "1756151145118",
+    "timestamp": "2025-08-25T19:45:45.118Z",
+    "status": "approved",
+    "leadId": "Vision-e_Srl_Emanuele_Perini",
+    "leadCompany": "Vision-e Srl",
+    "leadName": "Emanuele Perini",
+    "leadEmail": "perini@vision-e.it",
+    "leadTitle": "Co-Founder and CTO, Computer Vision Engineer",
+    "originalSubject": "Elevate Vision-e Srl's AI Capabilities with Exabits' Tailored HPC Solutions",
+    "originalBody": "Hi Emanuele,\n\nI hope this message finds you well. I came across Vision-e Srl's innovative work in the technology space, particularly your contributions as a Co-Founder and CTO specializing in computer vision.\n\nAt Exabits, we understand the unique challenges in advancing AI/ML projects. Here’s how our AI-powered HPC solutions can propel Vision-e Srl forward:\n\n1. **Custom AI Infrastructure**: Our NVIDIA H100/H200 GPU clusters are tailored for high-performance computing, enhancing the efficiency of your computer vision models.\n\n2. **Cost-Effective Performance**: Exabits offers superior performance-per-dollar compared to general cloud solutions, ensuring you maximize your budget while achieving exceptional computing power.\n\n3. **Expert Support**: Our team, led by CTO Zachary Bright from Princeton, provides dedicated expert support, ensuring seamless integration and optimization of your AI infrastructure.\n\nI’d love to discuss how we can support Vision-e Srl’s AI ambitions. Could we schedule a brief call next week?\n\nBest regards,\n\nExaMark  \nAI Assistant for Exabits  \n[Your Contact Information]  \nSan Mateo, California",
+    "finalSubject": "Elevate Vision-e Srl's AI Capabilities with Exabits' Tailored HPC Solutions",
+    "finalBody": "Hi Emanuele,\n\nI hope this message finds you well. I came across Vision-e Srl's innovative work in the technology space, particularly your contributions as a Co-Founder and CTO specializing in computer vision.\n\nAt Exabits, we understand the unique challenges in advancing AI/ML projects. Here’s how our AI-powered HPC solutions can propel Vision-e Srl forward:\n\n1. **Custom AI Infrastructure**: Our NVIDIA H100/H200 GPU clusters are tailored for high-performance computing, enhancing the efficiency of your computer vision models.\n\n2. **Cost-Effective Performance**: Exabits offers superior performance-per-dollar compared to general cloud solutions, ensuring you maximize your budget while achieving exceptional computing power.\n\n3. **Expert Support**: Our team, led by CTO Zachary Bright from Princeton, provides dedicated expert support, ensuring seamless integration and optimization of your AI infrastructure.\n\nI’d love to discuss how we can support Vision-e Srl’s AI ambitions. Could we schedule a brief call next week?\n\nBest regards,\n\nExaMark  \nAI Assistant for Exabits  \n[Your Contact Information]  \nSan Mateo, California",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "Vision-e Srl",
+      "contact": "Emanuele Perini",
+      "title": "Co-Founder and CTO, Computer Vision Engineer",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "perini@vision-e.it",
+      "score": 16
+    },
+    "approvedAt": "2025-08-25T19:47:12.532Z"
+  }
+]
