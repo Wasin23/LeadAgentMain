@@ -117,13 +117,13 @@ router.post('/:id/approve', async (req, res) => {
 router.post('/:id/reject', async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const reason = req.body?.reason || ''; // Handle undefined body
     
     const rejectedEmail = await emailQueue.rejectEmail(id, reason);
-    res.json(rejectedEmail);
+    res.json({ success: true, email: rejectedEmail });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error rejecting email:', error);
-    res.status(500).json({ error: 'Failed to reject email' });
+    res.status(500).json({ success: false, error: 'Failed to reject email' });
   }
 });
 

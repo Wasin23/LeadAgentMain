@@ -1,3 +1,5 @@
+import { logEmailToFile } from './emailMailgun.js';
+
 /**
  * Dedicated email function for Lead Contact Agent
  * Uses correct sender address for reliable delivery
@@ -66,13 +68,41 @@ export async function leadEmail(to, subject, body) {
     
     if (result.success) {
       console.log('[LEAD EMAIL] ✅ Email sent successfully');
+      
+      // Log the email to email logs
+      try {
+        await logEmailToFile(to, subject, body, 'sent');
+        console.log('[LEAD EMAIL] ✅ Email logged successfully');
+      } catch (logError) {
+        console.error('[LEAD EMAIL] ⚠️ Failed to log email:', logError);
+        // Don't fail the whole operation if logging fails
+      }
+      
       return { success: true, result };
     } else {
       console.error('[LEAD EMAIL] ❌ Mailgun returned error:', result);
+      
+      // Log failed email attempt
+      try {
+        await logEmailToFile(to, subject, body, 'failed');
+        console.log('[LEAD EMAIL] ✅ Failed email logged');
+      } catch (logError) {
+        console.error('[LEAD EMAIL] ⚠️ Failed to log failed email:', logError);
+      }
+      
       return { success: false, error: result.error || 'Unknown error from Mailgun' };
     }
   } catch (error) {
     console.error('[LEAD EMAIL] ❌ Exception occurred:', error);
+    
+    // Log error email attempt
+    try {
+      await logEmailToFile(to, subject, body, 'error');
+      console.log('[LEAD EMAIL] ✅ Error email logged');
+    } catch (logError) {
+      console.error('[LEAD EMAIL] ⚠️ Failed to log error email:', logError);
+    }
+    
     return { success: false, error: error.message || error };
   }
 }

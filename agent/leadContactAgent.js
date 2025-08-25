@@ -742,15 +742,15 @@ BODY: [email body]`;
       // File doesn't exist, that's fine
     }
     
-    // Optionally clear leads database (uncomment if you want to start fresh with leads too)
-    // try {
-    //   await fs.unlink(this.leadsFile);
-    // } catch (error) {
-    //   // File doesn't exist, that's fine
-    // }
+    // Clear leads database
+    try {
+      await fs.unlink(this.leadsFile);
+    } catch (error) {
+      // File doesn't exist, that's fine
+    }
     
-    console.log('[LEAD AGENT] Agent reset complete');
-    return { success: true, message: 'Agent reset successfully' };
+    console.log('[LEAD AGENT] Agent reset complete - cleared state and leads database');
+    return { success: true, message: 'Agent reset successfully - cleared state and leads database' };
   }
 }
 

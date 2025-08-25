@@ -53,6 +53,8 @@ async function logEmailToFile(to, subject, body, status) {
   }
 }
 
+export { logEmailToFile };
+
 export async function sendEmailMailgun(to, subject, body) {
   try {
     const result = await mg.messages.create(process.env.MAILGUN_DOMAIN, {

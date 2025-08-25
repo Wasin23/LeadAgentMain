@@ -107,8 +107,9 @@
     .tab-content-area {
       flex: 1;
       overflow: hidden;
-      max-height: 90vh;
-      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
       min-width: 200px;
     }
 
@@ -118,7 +119,8 @@
       padding: 1.5rem;
       margin: 1rem 0.5rem 1rem 1rem;
       overflow-y: auto;
-      height: calc(85vh - 2rem);
+      flex: 1;
+      min-height: 0;
       width: auto;
       min-width: 0;
       display: flex;
@@ -126,12 +128,12 @@
     }
 
     #outreach-content {
-      height: 100%;
-      overflow-y: visible;
+      flex: 1;
+      overflow-y: auto;
     }
 
     #history-content {
-      height: 100%;
+      flex: 1;
       display: flex;
       flex-direction: column;
     }
@@ -760,10 +762,6 @@
                 <div style="color: #4caf50; font-size: 2rem; margin-bottom: 0.5rem;" id="approved-count">0</div>
                 <div style="color: #ccc; font-size: 0.9rem;">Approved</div>
               </div>
-              <div style="background: #23242a; border-radius: 8px; padding: 1rem; text-align: center;">
-                <div style="color: #f44336; font-size: 2rem; margin-bottom: 0.5rem;" id="rejected-count">0</div>
-                <div style="color: #ccc; font-size: 0.9rem;">Rejected</div>
-              </div>
             </div>
             
             <!-- Queue Controls -->
@@ -781,9 +779,6 @@
                 </button>
                 <button id="reject-all" style="background: #f44336; color: #fff; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: bold;">
                   ❌ Reject All
-                </button>
-                <button id="clear-rejected" style="background: #ff9800; color: #fff; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; cursor: pointer;">
-                  🗑️ Clear Rejected
                 </button>
               </div>
             </div>
@@ -2234,40 +2229,84 @@
       const welcomeMessage = `
 # 🚀 Welcome to ExaMark AI!
 
-I'm ExaMark, your AI assistant here to help you learn about **Exabits** and leverage our powerful research tools!
+I'm ExaMark, your AI assistant for **Exabits** - your complete AI-powered business automation and research platform!
 
 ## 🎯 **About Exabits**
-Exabits specializes in cutting-edge AI automation solutions for businesses:
-- **Custom AI Automation** - Tailored workflows for your specific needs
-- **LLM Integration** - Seamless integration of language models into your systems  
-- **Intelligent Process Optimization** - AI-powered business process improvements
-- **Machine Learning Development** - Custom ML models and deployment
-- **AI Consulting & Strategy** - Expert guidance for your AI transformation
+**Founded:** 2021 in San Mateo, California  
+**Founders:** Hoansoo Lee (CEO) & Zachary Bright (CTO, Princeton grad)  
+**Specialization:** AI-powered High-Performance Computing (HPC) Solutions
 
-## 🛠️ **My Tools & Capabilities**
+### 🔧 **Core Services**
+- **NVIDIA H100/H200 GPU Infrastructure** - Specialized clusters for AI/ML workloads
+- **Custom AI Infrastructure** - Purpose-built hardware configurations  
+- **HPC Optimization** - Scientific computing & research infrastructure
+- **AI Automation Solutions** - Business process optimization & LLM integration
 
-### 🔍 **Fresh Research Mode**
-Comprehensive research across:
+### 💪 **Competitive Advantages vs AWS/GCP/Azure**
+- **AI-HPC Specialization** - Dedicated infrastructure vs general cloud
+- **Performance Edge** - Lower latency, higher throughput for AI workloads
+- **Expert Support** - Deep AI/HPC expertise vs generalist cloud support
+- **Cost Efficiency** - Better performance-per-dollar for AI-specific tasks
+
+## 🛠️ **ExaMark Tools & Capabilities**
+
+### 🤖 **Lead Contact Agent** (Automated Outreach)
+Fully automated lead generation and outreach system:
+- 🎯 **Apollo API Integration** - Real executive contact discovery from 275M+ database
+- 🔄 **Automated Cycles** - Configurable intervals (default 12 hours) for continuous lead generation
+- 📊 **Smart Lead Scoring** - AI-powered lead qualification and ranking
+- ✉️ **Personalized Email Generation** - GPT-4 powered custom emails for each prospect
+- 📧 **Email Queue System** - Manual approval workflow with editing capabilities
+- 📈 **Lead Database Management** - Persistent lead storage with duplicate prevention
+
+### 📬 **Email Queue Management**
+Professional email approval and delivery system:
+- ⏳ **Pending Review** - Queue emails for manual approval before sending
+- ✏️ **Email Editing** - Modify subject, body, and recipient before approval
+- ✅ **Batch Operations** - Approve or reject multiple emails at once
+- � **Automatic Logging** - All sent emails logged to email_logs.json
+- 🚫 **Smart Rejection** - Rejected emails immediately removed (no clutter)
+
+### 🔍 **Advanced Research Tools**
+
+#### **Fresh Research Mode**
+Comprehensive real-time research across multiple sources:
 - 📖 Wikipedia knowledge base
 - 📄 arXiv academic papers  
 - 💻 GitHub repositories
-- 🌐 Web search results
+- 🌐 Live web search results
 
-### 🎯 **Lead Search Mode** 
-Specialized for finding potential clients:
-- 🏢 Apollo lead database
-- 🌐 Targeted web search
-- 📧 Contact information discovery
-- 💼 Decision maker identification
+#### **Deep Research Mode** 
+Intensive research with advanced analysis:
+- � **Lead Search Mode** - Apollo + targeted web search for prospect discovery
+- 🔬 **Academic Mode** - arXiv + Wikipedia for scholarly research
+- 🌐 **General Mode** - Comprehensive web + repository search
+- � **Structured Results** - Organized findings with source attribution
 
-### 📧 **Email Outreach**
-- 📨 Automated email sending via Mailgun
-- 📋 Email campaign logging
-- 📊 Outreach tracking
+### 📧 **Email Outreach System**
+Professional email delivery infrastructure:
+- 📨 **Mailgun Integration** - Reliable email delivery via exa.mark@mg.examarkchat.com
+- � **Email Logging** - Complete audit trail of all sent emails
+- 📊 **Delivery Tracking** - Monitor email status (sent/failed/error)
+- 🎯 **Dedicated Lead Email Tool** - Optimized for automated outreach
+
+### � **Intelligent Chat Interface**
+Advanced conversational AI with:
+- 🧠 **GPT-4 Integration** - Sophisticated natural language understanding
+- ✏️ **Message Editing** - Edit and regenerate any conversation
+- � **Chat History** - Persistent conversation logging
+- � **Streaming Responses** - Real-time response generation
 
 ---
 
-**Ready to explore Exabits' AI solutions or need research assistance? Just ask me anything!**
+## 🚀 **Getting Started Guide**
+
+**🤖 Lead Generation:** Visit **Lead Contact Agent** tab to configure automated prospecting and outreach  
+**📬 Email Management:** Check **Email Queue** for pending approvals and review delivery logs  
+**🔍 Research:** Use **Fresh Research** or **Deep Research** for comprehensive information gathering  
+**💬 Chat:** Ask me anything about Exabits' AI-HPC solutions or request research on any topic!
+
+**Ready to transform your business with AI-powered automation and superior computing infrastructure? Let's accelerate your success!**
       `;
 
       const messageDiv = document.createElement('div');
@@ -2542,7 +2581,7 @@ Specialized for finding potential clients:
     }
 
     async function resetAgent() {
-      if (!confirm('Are you sure you want to reset the agent? This will clear the cycle count but keep the leads database.')) {
+      if (!confirm('Are you sure you want to reset the agent? This will completely clear both the agent state and the leads database, starting fresh.')) {
         return;
       }
       
@@ -2666,7 +2705,6 @@ Specialized for finding potential clients:
       document.getElementById('refresh-queue').addEventListener('click', refreshEmailQueue);
       document.getElementById('approve-all').addEventListener('click', approveAllEmails);
       document.getElementById('reject-all').addEventListener('click', rejectAllEmails);
-      document.getElementById('clear-rejected').addEventListener('click', clearRejectedEmails);
       
       // Auto-refresh queue every 30 seconds when email queue tab is active
       setInterval(() => {
@@ -2696,7 +2734,6 @@ Specialized for finding potential clients:
       // Update summary counts
       document.getElementById('pending-count').textContent = queueData.pending.length;
       document.getElementById('approved-count').textContent = queueData.approved.length;
-      document.getElementById('rejected-count').textContent = queueData.rejected.length;
       
       // Update email list
       const queueList = document.getElementById('email-queue-list');
@@ -2875,29 +2912,6 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       } catch (error) {
         console.error('Error rejecting all emails:', error);
         showNotification(`❌ Error rejecting emails: ${error.message}`, 'error');
-      }
-    }
-
-    async function clearRejectedEmails() {
-      if (!confirm('Are you sure you want to permanently delete all rejected emails?')) {
-        return;
-      }
-      
-      try {
-        const response = await fetch('/api/email-queue/clear-rejected', {
-          method: 'POST'
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-          refreshEmailQueue();
-          showNotification('Rejected emails cleared', 'info');
-        } else {
-          showNotification(`❌ Error clearing rejected emails: ${data.message}`, 'error');
-        }
-      } catch (error) {
-        console.error('Error clearing rejected emails:', error);
-        showNotification(`❌ Error clearing emails: ${error.message}`, 'error');
       }
     }
 

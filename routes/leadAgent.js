@@ -132,7 +132,7 @@ router.get('/status', async (req, res) => {
   }
 });
 
-// Reset the Lead Contact Agent (clears state but keeps leads database)
+// Reset the Lead Contact Agent (clears both state and leads database)
 router.post('/reset', async (req, res) => {
   try {
     console.log('[LEAD AGENT API] Resetting Lead Contact Agent...');
