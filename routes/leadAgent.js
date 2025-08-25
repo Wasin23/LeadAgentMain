@@ -46,7 +46,7 @@ router.post('/set-interval', async (req, res) => {
     }
     
     console.log(`[LEAD AGENT API] Setting custom cycle interval to ${minutes} minutes...`);
-    const result = leadContactAgent.setCycleInterval(minutes);
+    const result = await leadContactAgent.setCycleInterval(minutes);
     
     res.json({
       success: result.success,
@@ -70,7 +70,7 @@ router.post('/set-interval', async (req, res) => {
 router.post('/reset-interval', async (req, res) => {
   try {
     console.log('[LEAD AGENT API] Resetting to default cycle interval...');
-    const result = leadContactAgent.resetCycleInterval();
+    const result = await leadContactAgent.resetCycleInterval();
     
     res.json({
       success: result.success,

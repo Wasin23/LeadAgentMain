@@ -21,6 +21,7 @@ class LeadContactAgent {
   constructor() {
     this.isRunning = false;
     this.currentCycle = 0;
+    this.currentStatus = 'idle'; // Track detailed status
     this.stateFile = path.join(process.cwd(), 'agent', 'leadAgent_state.json');
     this.leadsFile = path.join(process.cwd(), 'agent', 'leads_database.json');
     this.intervalId = null;
@@ -71,7 +72,7 @@ class LeadContactAgent {
   }
 
   // Set custom cycle interval in minutes
-  setCycleInterval(minutes) {
+  async setCycleInterval(minutes) {
     if (typeof minutes !== 'number' || minutes <= 0) {
       throw new Error('Cycle interval must be a positive number of minutes');
     }
@@ -80,6 +81,9 @@ class LeadContactAgent {
     this.cycleInterval = this.customCycleInterval;
     
     console.log(`[LEAD AGENT] Custom cycle interval set to ${minutes} minutes`);
+    
+    // Save state immediately to persist custom interval
+    await this.saveState();
     
     // If agent is running, restart with new interval
     if (this.isRunning && this.intervalId) {
@@ -102,12 +106,15 @@ class LeadContactAgent {
   }
 
   // Reset to default cycle interval
-  resetCycleInterval() {
+  async resetCycleInterval() {
     this.customCycleInterval = null;
     this.cycleInterval = TESTING_MODE ? DEFAULT_TESTING_CYCLE_INTERVAL : DEFAULT_PRODUCTION_CYCLE_INTERVAL;
     
     const defaultMinutes = this.cycleInterval / (1000 * 60);
     console.log(`[LEAD AGENT] Reset to default cycle interval: ${defaultMinutes} minutes`);
+    
+    // Save state immediately to persist reset
+    await this.saveState();
     
     // If agent is running, restart with default interval
     if (this.isRunning && this.intervalId) {
@@ -141,11 +148,31 @@ class LeadContactAgent {
         this.setCycleInterval(customMinutes);
       }
       
-      // Load previous state if exists
-      await this.loadState();
+      // Just load the cycle count and status, don't call loadState() as it resets intervals
+      let wasPausedForLeads = false;
+      try {
+        const data = await fs.readFile(this.stateFile, 'utf8');
+        const state = JSON.parse(data);
+        this.currentCycle = state.currentCycle || 0;
+        this.currentStatus = state.currentStatus || 'idle';
+        wasPausedForLeads = (state.currentStatus === 'paused_no_leads');
+      } catch (error) {
+        // No state file, start fresh
+        this.currentCycle = 0;
+        this.currentStatus = 'idle';
+      }
       
       this.isRunning = true;
-      console.log('[LEAD AGENT] Starting Lead Contact Agent...');
+      this.currentStatus = 'starting';
+      
+      if (wasPausedForLeads) {
+        console.log('[LEAD AGENT] 🔄 Resuming agent after lead exhaustion - will attempt new research...');
+      } else {
+        console.log('[LEAD AGENT] 🚀 Starting Lead Contact Agent...');
+      }
+      
+      // Save state immediately to reflect running status
+      await this.saveState();
       
       // Run first cycle immediately
       await this.runCycle();
@@ -157,13 +184,15 @@ class LeadContactAgent {
         }
       }, this.cycleInterval);
       
+      // Update status after setup
+      this.currentStatus = 'waiting_next_cycle';
       await this.saveState();
       
       const intervalMinutes = this.cycleInterval / (1000 * 60);
       
       return { 
         success: true, 
-        message: `Lead Contact Agent started. Cycle ${this.currentCycle + 1} completed. Next cycle in ${intervalMinutes} minutes.`,
+        message: `Lead Contact Agent started. Cycle ${this.currentCycle} completed. Next cycle in ${intervalMinutes} minutes.`,
         currentCycle: this.currentCycle,
         nextCycleIn: `${intervalMinutes} minutes`,
         intervalMinutes: intervalMinutes,
@@ -174,6 +203,8 @@ class LeadContactAgent {
     } catch (error) {
       console.error('[LEAD AGENT] Error starting agent:', error);
       this.isRunning = false;
+      this.currentStatus = 'error';
+      await this.saveState();
       return { success: false, message: `Error starting agent: ${error.message}` };
     }
   }
@@ -183,16 +214,19 @@ class LeadContactAgent {
       return { success: false, message: 'Agent is not currently running' };
     }
 
+    console.log('[LEAD AGENT] 🛑 Stopping Lead Contact Agent...');
     this.isRunning = false;
+    this.currentStatus = 'stopped';
     
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
+      console.log('[LEAD AGENT] ✅ Cleared cycle interval');
     }
     
     await this.saveState();
     
-    console.log('[LEAD AGENT] Lead Contact Agent stopped');
+    console.log('[LEAD AGENT] ✅ Lead Contact Agent stopped successfully');
     return { 
       success: true, 
       message: 'Lead Contact Agent stopped successfully',
@@ -201,7 +235,21 @@ class LeadContactAgent {
   }
 
   async getStatus() {
-    const state = await this.loadState();
+    // Don't call loadState() here as it resets intervals - just read the file
+    let state;
+    try {
+      const data = await fs.readFile(this.stateFile, 'utf8');
+      state = JSON.parse(data);
+    } catch (error) {
+      state = {
+        currentCycle: 0,
+        isRunning: false,
+        currentStatus: 'idle',
+        lastCycleTime: null,
+        customCycleInterval: null
+      };
+    }
+    
     const leadsData = await this.loadLeadsDatabase();
     
     const totalLeads = leadsData.allLeads?.length || 0;
@@ -212,44 +260,77 @@ class LeadContactAgent {
     return {
       isRunning: this.isRunning,
       currentCycle: this.currentCycle,
+      currentStatus: this.currentStatus,
       totalLeadsFound: totalLeads,
-      companiesEmailed: emailedLeads,
+      emailQueueNote: "Go to Email Queue tab to approve pending emails",
       remainingLeads: remainingLeads,
       lastCycleTime: state.lastCycleTime,
       nextCycleTime: state.lastCycleTime ? new Date(state.lastCycleTime + this.cycleInterval).toISOString() : null,
       intervalMinutes: intervalMinutes,
-      customInterval: this.customCycleInterval !== null
+      customInterval: this.customCycleInterval !== null,
+      isPausedForLeads: this.currentStatus === 'paused_no_leads',
+      statusMessage: this.currentStatus === 'paused_no_leads' ? 
+        'Agent paused - no available leads found. Start again to resume research.' : 
+        null
     };
   }
 
   async runCycle() {
-    console.log(`[LEAD AGENT] Starting cycle ${this.currentCycle + 1}`);
+    console.log(`[LEAD AGENT] 🚀 Starting cycle ${this.currentCycle + 1}`);
     
     try {
+      // Update status to running
+      this.currentStatus = 'running_cycle';
+      await this.saveState();
+      
       // Step 1: Load existing leads database
+      console.log(`[LEAD AGENT] 📊 Loading leads database...`);
       let leadsData = await this.loadLeadsDatabase();
       
       // Step 2: If we need more leads, research new ones
       const availableLeads = this.getAvailableLeads(leadsData);
       
       if (availableLeads.length < 5) {
-        console.log('[LEAD AGENT] Need more leads, starting research...');
+        console.log('[LEAD AGENT] 🔍 Need more leads, starting research...');
+        this.currentStatus = 'researching_leads';
+        await this.saveState();
+        
         const newLeads = await this.researchNewLeads();
         leadsData = await this.addNewLeads(newLeads);
+        console.log(`[LEAD AGENT] ✅ Research complete, found ${newLeads.length} new leads`);
+        
+        // Check if we still have no leads after research
+        const updatedAvailableLeads = this.getAvailableLeads(leadsData);
+        if (updatedAvailableLeads.length === 0) {
+          console.log('[LEAD AGENT] 🚫 No leads available after research - pausing agent');
+          await this.pauseForLeadExhaustion();
+          return {
+            success: true,
+            cycle: this.currentCycle,
+            paused: true,
+            reason: 'No available leads found after research',
+            message: 'Agent paused - no leads available. Start agent again to resume research.'
+          };
+        }
       }
       
       // Step 3: Select top 5 leads for this cycle
+      console.log(`[LEAD AGENT] 🎯 Selecting top leads for outreach...`);
+      this.currentStatus = 'selecting_leads';
+      await this.saveState();
+      
       const selectedLeads = this.selectTopLeads(leadsData, 5);
       
       console.log(`[LEAD AGENT] Selected ${selectedLeads.length} leads for cycle ${this.currentCycle + 1}:`);
       selectedLeads.forEach((lead, index) => {
         console.log(`[LEAD AGENT] ${index + 1}. ${lead.company} - ${lead.name} (${lead.title}) - Score: ${lead.score}`);
       });
-      selectedLeads.forEach(lead => {
-        console.log(`[LEAD AGENT] - ${lead.company} (${lead.first_name} ${lead.last_name}, ${lead.title})`);
-      });
       
       // Step 4: Email the selected leads
+      console.log(`[LEAD AGENT] 📧 Generating and queueing emails...`);
+      this.currentStatus = 'generating_emails';
+      await this.saveState();
+      
       const emailResults = await this.emailSelectedLeads(selectedLeads);
       
       // Step 5: Update database with emailed companies
@@ -257,6 +338,7 @@ class LeadContactAgent {
       
       // Step 6: Update cycle counter and state
       this.currentCycle++;
+      this.currentStatus = 'waiting_next_cycle';
       await this.saveState();
       
       console.log(`[LEAD AGENT] 🎯 Cycle ${this.currentCycle} completed successfully!`);
@@ -274,6 +356,8 @@ class LeadContactAgent {
       
     } catch (error) {
       console.error(`[LEAD AGENT] ❌ Error in cycle ${this.currentCycle + 1}:`, error);
+      this.currentStatus = 'error';
+      await this.saveState();
       return {
         success: false,
         error: error.message
@@ -678,19 +762,30 @@ BODY: [email body]`;
       
       this.currentCycle = state.currentCycle || 0;
       this.isRunning = state.isRunning || false;
+      this.currentStatus = state.currentStatus || 'idle';
       
       // Restore custom cycle interval if it was set
-      if (state.customCycleInterval !== undefined) {
+      if (state.customCycleInterval !== undefined && state.customCycleInterval !== null) {
         this.customCycleInterval = state.customCycleInterval;
-        this.cycleInterval = state.customCycleInterval || (TESTING_MODE ? DEFAULT_TESTING_CYCLE_INTERVAL : DEFAULT_PRODUCTION_CYCLE_INTERVAL);
+        this.cycleInterval = state.customCycleInterval;
+        console.log(`[LEAD AGENT] Restored custom interval: ${state.customCycleInterval / (1000 * 60)} minutes`);
+      } else {
+        this.customCycleInterval = null;
+        this.cycleInterval = TESTING_MODE ? DEFAULT_TESTING_CYCLE_INTERVAL : DEFAULT_PRODUCTION_CYCLE_INTERVAL;
+        console.log(`[LEAD AGENT] Using default interval: ${this.cycleInterval / (1000 * 60)} minutes`);
       }
       
       return state;
     } catch (error) {
       // File doesn't exist or is invalid, start fresh
+      console.log('[LEAD AGENT] No state file found, starting fresh');
+      this.customCycleInterval = null;
+      this.cycleInterval = TESTING_MODE ? DEFAULT_TESTING_CYCLE_INTERVAL : DEFAULT_PRODUCTION_CYCLE_INTERVAL;
+      this.currentStatus = 'idle';
       return {
         currentCycle: 0,
         isRunning: false,
+        currentStatus: 'idle',
         lastCycleTime: null,
         customCycleInterval: null
       };
@@ -701,6 +796,7 @@ BODY: [email body]`;
     const state = {
       currentCycle: this.currentCycle,
       isRunning: this.isRunning,
+      currentStatus: this.currentStatus,
       lastCycleTime: Date.now(),
       customCycleInterval: this.customCycleInterval
     };
@@ -776,6 +872,35 @@ BODY: [email body]`;
     
     console.log('[LEAD AGENT] Agent reset complete - cleared state and leads database');
     return { success: true, message: 'Agent reset successfully - cleared state and leads database' };
+  }
+
+  async pauseForLeadExhaustion() {
+    console.log('[LEAD AGENT] ⏸️ Pausing agent due to lead exhaustion...');
+    
+    // Stop the agent
+    this.isRunning = false;
+    this.currentStatus = 'paused_no_leads';
+    
+    // Clear interval if running
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+      console.log('[LEAD AGENT] ✅ Cleared cycle interval');
+    }
+    
+    // Save paused state
+    await this.saveState();
+    
+    // Add notification to recent activity (assuming there's an activity log function)
+    try {
+      // This would integrate with the activity logging system if available
+      console.log('[LEAD AGENT] 📢 NOTIFICATION: Agent paused - no available leads found after research');
+      console.log('[LEAD AGENT] 📢 NOTIFICATION: Please start the agent again to resume lead research');
+    } catch (error) {
+      console.log('[LEAD AGENT] ⚠️ Could not add activity notification:', error.message);
+    }
+    
+    console.log('[LEAD AGENT] ⏸️ Agent paused successfully - restart to resume');
   }
 }
 

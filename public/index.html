@@ -2443,6 +2443,31 @@ Advanced conversational AI with:
     
     // Lead Contact Agent Functionality
     let agentStatusInterval = null;
+    let activeStatusMonitoringInterval = null;
+    let lastSeenCycle = 0; // Track cycle number to detect new cycles
+
+    // Start frequent status monitoring when agent is running
+    function startAgentStatusMonitoring() {
+      if (activeStatusMonitoringInterval) {
+        clearInterval(activeStatusMonitoringInterval);
+      }
+      
+      // Check status every 3 seconds when agent is active
+      activeStatusMonitoringInterval = setInterval(() => {
+        refreshAgentStatus();
+      }, 3000);
+      
+      addActivityLog('🔄 Started live status monitoring');
+    }
+
+    // Stop frequent status monitoring
+    function stopAgentStatusMonitoring() {
+      if (activeStatusMonitoringInterval) {
+        clearInterval(activeStatusMonitoringInterval);
+        activeStatusMonitoringInterval = null;
+        addActivityLog('⏹️ Stopped live status monitoring');
+      }
+    }
 
     // Initialize Lead Agent tab when it's selected
     document.addEventListener('DOMContentLoaded', function() {
@@ -2482,7 +2507,7 @@ Advanced conversational AI with:
         updateStatusDisplay({
           isRunning: false,
           currentCycle: 0,
-          companiesEmailed: 0,
+          emailQueueNote: "Check Email Queue tab",
           remainingLeads: 0,
           lastCycleTime: null,
           nextCycleTime: null
@@ -2493,10 +2518,48 @@ Advanced conversational AI with:
     function updateStatusDisplay(status) {
       console.log('[UI] Updating status display with:', status);
       
-      // Update status indicators
-      document.getElementById('agent-running-status').textContent = status.isRunning ? '🟢 Running' : '🔴 Stopped';
+      // Check if a new cycle has started
+      if (status.currentCycle > lastSeenCycle && lastSeenCycle > 0) {
+        addActivityLog(`🚀 Cycle ${status.currentCycle} started automatically`);
+      }
+      lastSeenCycle = status.currentCycle;
+      
+      // Update status indicators with detailed activity
+      let statusText = status.isRunning ? '🟢 Running' : '🔴 Stopped';
+      let activityText = '';
+      
+      if (status.isRunning && status.currentStatus) {
+        switch (status.currentStatus) {
+          case 'starting':
+            activityText = ' - Starting up...';
+            break;
+          case 'running_cycle':
+            activityText = ' - Running cycle...';
+            break;
+          case 'researching_leads':
+            activityText = ' - Researching leads...';
+            break;
+          case 'selecting_leads':
+            activityText = ' - Selecting prospects...';
+            break;
+          case 'generating_emails':
+            activityText = ' - Generating emails...';
+            break;
+          case 'waiting_next_cycle':
+            activityText = ' - Waiting for next cycle';
+            break;
+          case 'error':
+            activityText = ' - Error occurred';
+            statusText = '🔴 Error';
+            break;
+          default:
+            activityText = ' - Active';
+        }
+      }
+      
+      document.getElementById('agent-running-status').textContent = statusText + activityText;
       document.getElementById('agent-current-cycle').textContent = status.currentCycle || 0;
-      document.getElementById('agent-emailed-count').textContent = status.companiesEmailed || 0;
+      document.getElementById('agent-emailed-count').textContent = status.emailQueueNote || "No queue info available";
       document.getElementById('agent-remaining-leads').textContent = status.remainingLeads || 0;
       
       // Update next cycle time
@@ -2591,6 +2654,9 @@ Advanced conversational AI with:
           stopBtn.disabled = false;
           stopBtn.style.background = '#f44336';
           
+          // Start more frequent status updates when running
+          startAgentStatusMonitoring();
+          
           // Also refresh status after a delay to ensure consistency
           setTimeout(() => {
             refreshAgentStatus();
@@ -2640,6 +2706,9 @@ Advanced conversational AI with:
           stopBtn.disabled = true;
           stopBtn.style.background = '#666';
           stopBtn.textContent = '⏹️ Stop Agent';
+          
+          // Stop frequent status monitoring
+          stopAgentStatusMonitoring();
           
           // Also refresh status after a delay to ensure consistency
           setTimeout(() => {
