@@ -344,6 +344,26 @@ class LeadContactAgent {
   }
 
   extractLeadInfo(result) {
+    // Check if this is a structured Apollo result (new leadResearch.js format)
+    if (result && result.name && result.organization) {
+      console.log(`[LEAD AGENT] Processing structured Apollo lead: ${result.name} at ${result.organization.name}`);
+      
+      return {
+        name: result.name || 'Unknown Contact',
+        first_name: result.first_name || result.name?.split(' ')[0] || 'Unknown',
+        last_name: result.last_name || result.name?.split(' ').slice(1).join(' ') || 'Unknown',
+        title: result.title || 'Unknown Title',
+        company: result.organization.name || 'Unknown Company',
+        email: result.email || 'email_needed@example.com',
+        source: 'Apollo',
+        url: result.linkedin_url || '',
+        snippet: `${result.title} at ${result.organization.name}`,
+        score: 10,
+        industry: result.organization.industry || 'Technology'
+      };
+    }
+    
+    // Legacy text-based parsing for other sources
     const title = result.title || '';
     const snippet = result.snippet || '';
     const url = result.url || '';
