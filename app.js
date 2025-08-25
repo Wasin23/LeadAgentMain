@@ -27,6 +27,16 @@ try {
   leadAgentRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import email queue routes
+let emailQueueRoutes;
+try {
+  emailQueueRoutes = (await import('./routes/emailQueue.js')).default;
+  console.log('Email queue routes imported successfully');
+} catch (e) {
+  console.log('Email queue routes not available:', e.message);
+  emailQueueRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 const app = express();
 app.use(express.json());
 // Serve static files from public directory
@@ -37,6 +47,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', emailRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/lead-agent', leadAgentRoutes);
+app.use('/api/email-queue', emailQueueRoutes);
 
 const PORT = process.env.API_PORT || 8080;
 app.listen(PORT, () => {

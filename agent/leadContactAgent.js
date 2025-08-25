@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { deepResearch } from '../tools/deepResearch.js';
 import { leadResearch } from '../tools/leadResearch.js';
 import { leadEmail } from '../tools/leadEmail.js';
+import { emailQueue } from '../lib/emailQueue.js';
 import { ChatOpenAI } from "@langchain/openai";
 import fs from 'fs/promises';
 import path from 'path';
@@ -11,7 +12,7 @@ import path from 'path';
 // 1. Change TESTING_MODE to false
 // 2. Restart the server
 // 3. All emails will go to actual prospects instead of developer
-const TESTING_MODE = true; // Set to false for production
+const TESTING_MODE = false; // Set to false for production
 const DEVELOPER_EMAIL = 'colton.fidd@gmail.com';
 const DEFAULT_TESTING_CYCLE_INTERVAL = 2 * 60 * 1000; // 2 minutes for testing
 const DEFAULT_PRODUCTION_CYCLE_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours for production
@@ -65,7 +66,7 @@ class LeadContactAgent {
       'machine learning companies'
     ];
     
-    console.log(`[LEAD AGENT] Initialized Lead Contact Agent${TESTING_MODE ? ' (TESTING MODE)' : ' (PRODUCTION MODE)'}`);
+    console.log(`[LEAD AGENT] Initialized Lead Contact Agent (PRODUCTION MODE)`);
     console.log(`[LEAD AGENT] Cycle interval: ${this.cycleInterval / (1000 * 60)} minutes`);
   }
 
@@ -162,12 +163,12 @@ class LeadContactAgent {
       
       return { 
         success: true, 
-        message: `Lead Contact Agent started${TESTING_MODE ? ' (TESTING MODE)' : ''}. Cycle ${this.currentCycle + 1} completed. Next cycle in ${intervalMinutes} minutes.`,
+        message: `Lead Contact Agent started. Cycle ${this.currentCycle + 1} completed. Next cycle in ${intervalMinutes} minutes.`,
         currentCycle: this.currentCycle,
         nextCycleIn: `${intervalMinutes} minutes`,
         intervalMinutes: intervalMinutes,
         customInterval: this.customCycleInterval !== null,
-        testingMode: TESTING_MODE
+        testingMode: false
       };
       
     } catch (error) {
@@ -256,14 +257,14 @@ class LeadContactAgent {
       await this.saveState();
       
       console.log(`[LEAD AGENT] 🎯 Cycle ${this.currentCycle} completed successfully!`);
-      console.log(`[LEAD AGENT] ✅ Emails sent: ${emailResults.success}`);
-      console.log(`[LEAD AGENT] ❌ Emails failed: ${emailResults.failed}`);
+      console.log(`[LEAD AGENT] 📧 Emails queued for approval: ${emailResults.queued}`);
+      console.log(`[LEAD AGENT] ❌ Processing failed: ${emailResults.failed}`);
       console.log(`[LEAD AGENT] 📅 Next cycle in ${this.cycleInterval / (1000 * 60)} minutes`);
       
       return {
         success: true,
         cycle: this.currentCycle,
-        emailsSent: emailResults.success,
+        emailsQueued: emailResults.queued,
         emailsFailed: emailResults.failed,
         selectedCompanies: selectedLeads.map(lead => lead.company)
       };
@@ -563,7 +564,7 @@ BODY: [email body]`;
     let failedCount = 0;
     
     for (const lead of leads) {
-      if (!lead.email && !TESTING_MODE) {
+      if (!lead.email) {
         console.log(`[LEAD AGENT] Skipping ${lead.company} - no email address`);
         failedCount++;
         continue;
@@ -572,58 +573,50 @@ BODY: [email body]`;
       try {
         const emailContent = await this.generatePersonalizedEmail(lead);
         
-        // In testing mode, modify the email to show who it would have been sent to
+        // Set default recipient to developer email for safety (can be edited in queue)
         let finalSubject = emailContent.subject;
         let finalBody = emailContent.body;
-        let finalRecipient = lead.email;
+        let finalRecipient = DEVELOPER_EMAIL; // Default to safe recipient, can be edited
         
-        if (TESTING_MODE) {
-          finalRecipient = DEVELOPER_EMAIL;
-          finalSubject = `[TEST] ${emailContent.subject}`;
-          finalBody = `🧪 TESTING MODE - This email would have been sent to: ${lead.email} (${lead.first_name} ${lead.last_name}, ${lead.title} at ${lead.company})
-
----
-
-${emailContent.body}
-
----
-
-📊 LEAD DETAILS:
-• Company: ${lead.company}
-• Contact: ${lead.first_name} ${lead.last_name}
-• Title: ${lead.title}
-• Industry: ${lead.industry || 'Unknown'}
-• Employee Count: ${lead.employee_count || 'Unknown'}
-• Email: ${lead.email}
-• Score: ${lead.score || 'N/A'}
-
-This is a test email. In production mode, this would be sent to the actual prospect.`;
-        }
-        
-        const result = await leadEmail(finalRecipient, finalSubject, finalBody);
-        
-        if (result.success) {
-          if (TESTING_MODE) {
-            console.log(`[LEAD AGENT] ✅ [TEST] Emailed ${lead.company} (would go to ${lead.email}) -> sent to ${DEVELOPER_EMAIL}`);
-          } else {
-            console.log(`[LEAD AGENT] ✅ Emailed ${lead.company} (${lead.email})`);
+        // Add email to queue for approval instead of sending directly
+        const queueData = {
+          leadId: lead.id || `${lead.company}_${lead.name}`.replace(/\s+/g, '_'),
+          leadCompany: lead.company,
+          leadName: lead.name,
+          leadEmail: lead.email,
+          leadTitle: lead.title,
+          originalSubject: emailContent.subject,
+          originalBody: emailContent.body,
+          finalSubject: finalSubject,
+          finalBody: finalBody,
+          finalRecipient: finalRecipient,
+          testingMode: false, // No longer using testing mode
+          leadDetails: {
+            company: lead.company,
+            contact: `${lead.first_name} ${lead.last_name}`,
+            title: lead.title,
+            industry: lead.industry || 'Unknown',
+            employeeCount: lead.employee_count || 'Unknown',
+            email: lead.email,
+            score: lead.score || 'N/A'
           }
-          successCount++;
-        } else {
-          console.error(`[LEAD AGENT] ❌ Failed to email ${lead.company}:`, result.error);
-          failedCount++;
-        }
+        };
         
-        // Add delay between emails to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await emailQueue.addToQueue(queueData);
+        
+        console.log(`[LEAD AGENT] 📧 Added to email queue: ${lead.company} (${lead.email})`);
+        successCount++;
+        
+        // Add delay between processing to avoid overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 500));
         
       } catch (error) {
-        console.error(`[LEAD AGENT] ❌ Failed to email ${lead.company}:`, error);
+        console.error(`[LEAD AGENT] ❌ Failed to process ${lead.company}:`, error);
         failedCount++;
       }
     }
     
-    return { success: successCount, failed: failedCount };
+    return { queued: successCount, failed: failedCount };
   }
 
   getAvailableLeads(leadsData) {

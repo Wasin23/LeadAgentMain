@@ -1,6 +1,13 @@
 [
   {
     "to": "colton.fidd@gmail.com",
+    "subject": "Test Email",
+    "body": "```\n Hi Colton,\n\n This is a test email to ensure that everything is working correctly. Please let me know if you receive it.\n\n Best regards,\n [Your Name]\n ```\n\nPlease let me know if you'd like any changes or if I should send it as is!",
+    "status": "sent",
+    "timestamp": "2025-08-25T15:50:54.516Z"
+  },
+  {
+    "to": "colton.fidd@gmail.com",
     "subject": "[TEST] Elevate Synkar Autonomous with AI-Powered HPC Solutions",
     "body": "🧪 TESTING MODE - This email would have been sent to: matheus.theodoro@synkar.com (Matheus Theodoro, CTO / Co-fundador at Synkar Autonomous)\n\n---\n\nHi Matheus,\n\nI hope this message finds you well. I've been following Synkar Autonomous's impressive strides in the technology sector, particularly your innovations in autonomous systems, and I'm excited to connect.\n\nAt Exabits, we understand the computational intensity required for AI/ML advancements in your field. Here’s how our AI-powered HPC solutions can elevate your operations:\n\n1. **Tailored AI Infrastructure**: Our custom NVIDIA H100/H200 GPU clusters are designed to optimize the performance of your AI models, allowing for faster and more efficient processing of complex algorithms.\n\n2. **Cost-Effective Performance**: Experience superior performance-per-dollar compared to general cloud solutions, ensuring you get the most out of your investment without compromising on quality.\n\n3. **Expert Support**: With a team led by experts like our CTO Zachary Bright, an industry leader from Princeton, we provide unparalleled support, ensuring seamless integration and operation.\n\nI'd love to explore how we can tailor our solutions to meet Synkar Autonomous's unique needs. Can we schedule a call next week to discuss this further?\n\nLooking forward to your thoughts.\n\nBest regards,\n\nExaMark  \nAI Assistant for Exabits  \nexa.mark@exabits.com\n\n---\n\n📊 LEAD DETAILS:\n• Company: Synkar Autonomous\n• Contact: Matheus Theodoro\n• Title: CTO / Co-fundador\n• Industry: Technology\n• Employee Count: Unknown\n• Email: matheus.theodoro@synkar.com\n• Score: 13\n\nThis is a test email. In production mode, this would be sent to the actual prospect.",
     "status": "sent",

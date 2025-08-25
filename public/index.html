@@ -23,11 +23,33 @@
 
     #sidebar {
       width: 700px;
+      min-width: 400px;
+      max-width: 80vw;
       background: #23242a;
       padding: 1rem;
       display: flex;
       flex-direction: column;
       box-shadow: 2px 0 8px #0002;
+      position: relative;
+    }
+
+    .sidebar-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 5px;
+      height: 100%;
+      background: transparent;
+      cursor: col-resize;
+      z-index: 1000;
+    }
+
+    .sidebar-resizer:hover {
+      background: #2196f3;
+    }
+
+    .sidebar-resizer.resizing {
+      background: #2196f3;
     }
 
     .tools-header {
@@ -47,13 +69,15 @@
       display: flex;
       flex: 1;
       gap: 1rem;
+      min-height: 0;
     }
 
     .horizontal-tabs {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-      min-width: 160px;
+      width: 220px;
+      flex-shrink: 0;
     }
 
     .horizontal-tab-button {
@@ -67,6 +91,8 @@
       font-size: 0.9rem;
       transition: all 0.2s ease;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .horizontal-tab-button:hover {
@@ -80,19 +106,21 @@
 
     .tab-content-area {
       flex: 1;
-      overflow-y: visible;
+      overflow: hidden;
       max-height: 90vh;
       margin-bottom: 1rem;
+      min-width: 200px;
     }
 
     .tab-content {
       background: #343541;
       border-radius: 8px;
-      padding: 1rem;
-      margin: 1rem;
+      padding: 1.5rem;
+      margin: 1rem 0.5rem 1rem 1rem;
       overflow-y: auto;
-      min-height: 700px;
-      max-height: calc(85vh - 2rem);
+      height: calc(85vh - 2rem);
+      width: auto;
+      min-width: 0;
       display: flex;
       flex-direction: column;
     }
@@ -479,6 +507,7 @@
 <body>
   <div id="container">
     <div id="sidebar">
+      <div class="sidebar-resizer"></div>
       <div class="tools-header">TOOLS</div>
       
       <div class="tabs-container">
@@ -487,6 +516,7 @@
           <button class="horizontal-tab-button" data-tab="deepresearch">🚀 Deep Research</button>
           <button class="horizontal-tab-button" data-tab="outreach">📧 Email Outreach</button>
           <button class="horizontal-tab-button" data-tab="leadagent">🤖 Lead Contact Agent</button>
+          <button class="horizontal-tab-button" data-tab="emailqueue">📋 Email Queue</button>
         </div>
         
         <div class="tab-content-area">
@@ -621,15 +651,6 @@
               </div>
             </div>
             
-            <!-- Testing Mode Warning -->
-            <div style="background:#ff5722;border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #ff1744;">
-              <div style="color:#fff;font-weight:bold;margin-bottom:0.5rem;">🧪 TESTING MODE ACTIVE</div>
-              <div style="font-size:0.85rem;color:#fff;opacity:0.9;">
-                All emails will be sent to <strong>colton.fidd@gmail.com</strong> instead of actual prospects.<br>
-                Email content will show who the intended recipient would have been.
-              </div>
-            </div>
-            
             <!-- Agent Status -->
             <div id="agent-status-card" style="background:#23242a;border-radius:8px;padding:1rem;margin-bottom:1rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
@@ -724,8 +745,62 @@
               </div>
             </div>
           </div>
+          
+          <!-- Email Queue Tab Content -->
+          <div id="emailqueue-content" class="tab-content" style="display: none;">
+            <h3 style="margin:0 0 1rem 0;color:#2196f3;">📧 Email Queue</h3>
+            
+            <!-- Queue Summary -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+              <div style="background: #23242a; border-radius: 8px; padding: 1rem; text-align: center;">
+                <div style="color: #ff9800; font-size: 2rem; margin-bottom: 0.5rem;" id="pending-count">0</div>
+                <div style="color: #ccc; font-size: 0.9rem;">Pending Approval</div>
+              </div>
+              <div style="background: #23242a; border-radius: 8px; padding: 1rem; text-align: center;">
+                <div style="color: #4caf50; font-size: 2rem; margin-bottom: 0.5rem;" id="approved-count">0</div>
+                <div style="color: #ccc; font-size: 0.9rem;">Approved</div>
+              </div>
+              <div style="background: #23242a; border-radius: 8px; padding: 1rem; text-align: center;">
+                <div style="color: #f44336; font-size: 2rem; margin-bottom: 0.5rem;" id="rejected-count">0</div>
+                <div style="color: #ccc; font-size: 0.9rem;">Rejected</div>
+              </div>
+            </div>
+            
+            <!-- Queue Controls -->
+            <div style="background: #23242a; border-radius: 8px; padding: 1rem; margin-bottom: 2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: #2196f3;">Queue Management</h3>
+                <button id="refresh-queue" style="background: #666; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                  🔄 Refresh
+                </button>
+              </div>
+              
+              <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button id="approve-all" style="background: #4caf50; color: #fff; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                  ✅ Approve All
+                </button>
+                <button id="reject-all" style="background: #f44336; color: #fff; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                  ❌ Reject All
+                </button>
+                <button id="clear-rejected" style="background: #ff9800; color: #fff; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; cursor: pointer;">
+                  🗑️ Clear Rejected
+                </button>
+              </div>
+            </div>
+            
+            <!-- Email List -->
+            <div style="background: #23242a; border-radius: 8px; padding: 1rem;">
+              <h3 style="margin: 0 0 1rem 0; color: #2196f3;">Pending Emails</h3>
+              <div id="email-queue-list" style="max-height: 600px; overflow-y: auto;">
+                <div style="color: #888; text-align: center; padding: 2rem; font-style: italic;">
+                  No emails in queue. The Lead Contact Agent will add emails here for your approval.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+      
     </div>
 
     <div id="main">
@@ -1429,6 +1504,11 @@
         const content = document.getElementById(`${tabId}-content`);
         if (content) {
           content.style.display = 'block';
+        }
+        
+        // Load data when email queue tab is shown
+        if (tabId === 'emailqueue') {
+          refreshEmailQueue();
         }
       });
     });
@@ -2578,6 +2658,328 @@ Specialized for finding potential clients:
         console.log('Window load - adding welcome message...');
         addWelcomeMessage();
       }, 200);
+    });
+
+    // Email Queue functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set up Email Queue event listeners
+      document.getElementById('refresh-queue').addEventListener('click', refreshEmailQueue);
+      document.getElementById('approve-all').addEventListener('click', approveAllEmails);
+      document.getElementById('reject-all').addEventListener('click', rejectAllEmails);
+      document.getElementById('clear-rejected').addEventListener('click', clearRejectedEmails);
+      
+      // Auto-refresh queue every 30 seconds when email queue tab is active
+      setInterval(() => {
+        const queueTab = document.getElementById('emailqueue-content');
+        if (queueTab && queueTab.style.display !== 'none') {
+          refreshEmailQueue();
+        }
+      }, 30000);
+    });
+
+    async function refreshEmailQueue() {
+      try {
+        const response = await fetch('/api/email-queue');
+        const data = await response.json();
+        
+        if (data.success) {
+          updateQueueDisplay(data.data);
+        } else {
+          console.error('Error getting email queue:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching email queue:', error);
+      }
+    }
+
+    function updateQueueDisplay(queueData) {
+      // Update summary counts
+      document.getElementById('pending-count').textContent = queueData.pending.length;
+      document.getElementById('approved-count').textContent = queueData.approved.length;
+      document.getElementById('rejected-count').textContent = queueData.rejected.length;
+      
+      // Update email list
+      const queueList = document.getElementById('email-queue-list');
+      
+      if (queueData.pending.length === 0) {
+        queueList.innerHTML = `
+          <div style="color: #888; text-align: center; padding: 2rem; font-style: italic;">
+            No emails in queue. The Lead Contact Agent will add emails here for your approval.
+          </div>
+        `;
+        return;
+      }
+      
+      queueList.innerHTML = queueData.pending.map((email, index) => {
+        const escapedSubject = (email.finalSubject || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const escapedBody = (email.finalBody || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const recipient = email.finalRecipient || email.leadEmail || '';
+        
+        return `
+        <div style="background: #2d2d30; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #ff9800;" data-email-id="${email.id}">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <div>
+              <h4 style="margin: 0 0 0.5rem 0; color: #2196f3;">To: ${email.leadEmail}</h4>
+              <div style="color: #888; font-size: 0.9rem;">
+                ${email.leadCompany} • Added ${new Date(email.timestamp).toLocaleString()}
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button onclick="approveEmail('${email.id}')" style="background: #4caf50; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                ✅ Approve
+              </button>
+              <button onclick="rejectEmail('${email.id}')" style="background: #f44336; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                ❌ Reject
+              </button>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #2196f3;">Send To:</strong>
+            <div style="background: #40414f; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
+              <input type="email" value="${recipient}" onchange="updateEmailField('${email.id}', 'finalRecipient', this.value)" 
+                placeholder="Enter email address"
+                style="background: transparent; border: none; color: #fff; width: 100%; font-size: 0.9rem;">
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #2196f3;">Subject:</strong>
+            <div style="background: #40414f; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
+              <input type="text" value="${escapedSubject}" onchange="updateEmailField('${email.id}', 'finalSubject', this.value)" 
+                style="background: transparent; border: none; color: #fff; width: 100%; font-size: 0.9rem;">
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #2196f3;">Message:</strong>
+            <div style="background: #40414f; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
+              <textarea onchange="updateEmailField('${email.id}', 'finalBody', this.value)" 
+                style="background: transparent; border: none; color: #fff; width: 100%; min-height: 120px; resize: vertical; font-family: inherit; font-size: 0.9rem;">${escapedBody}</textarea>
+            </div>
+          </div>
+          
+          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #565869; font-size: 0.8rem; color: #888;">
+            <strong>Lead Research:</strong><br>
+            <div style="background: #1a1a1a; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow-y: auto;">
+${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research data'}
+            </div>
+          </div>
+        </div>
+        `;
+      }).join('');
+    }
+
+    async function approveEmail(emailId) {
+      try {
+        const response = await fetch(`/api/email-queue/${emailId}/approve`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          refreshEmailQueue();
+          showNotification('✅ Email approved and sent!', 'success');
+        } else {
+          showNotification(`❌ Error approving email: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error approving email:', error);
+        showNotification(`❌ Error approving email: ${error.message}`, 'error');
+      }
+    }
+
+    async function rejectEmail(emailId) {
+      try {
+        const response = await fetch(`/api/email-queue/${emailId}/reject`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          refreshEmailQueue();
+          showNotification('Email rejected', 'info');
+        } else {
+          showNotification(`❌ Error rejecting email: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error rejecting email:', error);
+        showNotification(`❌ Error rejecting email: ${error.message}`, 'error');
+      }
+    }
+
+    async function updateEmailField(emailId, field, value) {
+      try {
+        const response = await fetch(`/api/email-queue/${emailId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            [field]: value
+          })
+        });
+        const data = await response.json();
+        
+        if (!data.success) {
+          showNotification(`❌ Error updating email: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error updating email:', error);
+        showNotification(`❌ Error updating email: ${error.message}`, 'error');
+      }
+    }
+
+    async function approveAllEmails() {
+      if (!confirm('Are you sure you want to approve and send all pending emails?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/email-queue');
+        const data = await response.json();
+        
+        if (data.success && data.data.pending.length > 0) {
+          const promises = data.data.pending.map(email => 
+            fetch(`/api/email-queue/${email.id}/approve`, { method: 'POST' })
+          );
+          
+          await Promise.all(promises);
+          refreshEmailQueue();
+          showNotification(`✅ All emails approved and sent!`, 'success');
+        }
+      } catch (error) {
+        console.error('Error approving all emails:', error);
+        showNotification(`❌ Error approving emails: ${error.message}`, 'error');
+      }
+    }
+
+    async function rejectAllEmails() {
+      if (!confirm('Are you sure you want to reject all pending emails?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/email-queue');
+        const data = await response.json();
+        
+        if (data.success && data.data.pending.length > 0) {
+          const promises = data.data.pending.map(email => 
+            fetch(`/api/email-queue/${email.id}/reject`, { method: 'POST' })
+          );
+          
+          await Promise.all(promises);
+          refreshEmailQueue();
+          showNotification('All emails rejected', 'info');
+        }
+      } catch (error) {
+        console.error('Error rejecting all emails:', error);
+        showNotification(`❌ Error rejecting emails: ${error.message}`, 'error');
+      }
+    }
+
+    async function clearRejectedEmails() {
+      if (!confirm('Are you sure you want to permanently delete all rejected emails?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/email-queue/clear-rejected', {
+          method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          refreshEmailQueue();
+          showNotification('Rejected emails cleared', 'info');
+        } else {
+          showNotification(`❌ Error clearing rejected emails: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error clearing rejected emails:', error);
+        showNotification(`❌ Error clearing emails: ${error.message}`, 'error');
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-size: 0.9rem;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+      `;
+      notification.textContent = message;
+      
+      // Add slide-in animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      document.body.appendChild(notification);
+      
+      // Auto-remove after 4 seconds
+      setTimeout(() => {
+        notification.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, 4000);
+    }
+
+    // Sidebar resizer functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const sidebar = document.getElementById('sidebar');
+      const resizer = document.querySelector('.sidebar-resizer');
+      let isResizing = false;
+
+      resizer.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        resizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+
+        const containerRect = document.getElementById('container').getBoundingClientRect();
+        const newWidth = e.clientX - containerRect.left;
+        
+        // Constrain width between min and max
+        const minWidth = 400;
+        const maxWidth = window.innerWidth * 0.8;
+        
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
+          sidebar.style.width = newWidth + 'px';
+        }
+      });
+
+      document.addEventListener('mouseup', function() {
+        if (isResizing) {
+          isResizing = false;
+          resizer.classList.remove('resizing');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        }
+      });
     });
   </script>
 </body>
