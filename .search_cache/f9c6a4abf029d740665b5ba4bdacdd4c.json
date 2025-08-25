@@ -1,0 +1,105 @@
+{
+  "searchParameters": {
+    "q": "companies in scientific research that would need high-performance GPU computing for AI and machine learning workloads, specifically pharmaceutical companies",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Powering Pharma AI with NVIDIA H100 and Blackwell GPUs",
+      "link": "https://intuitionlabs.ai/articles/nvidia-gpus-in-pharma-industry",
+      "snippet": "A comprehensive analysis of how pharmaceutical and biotech companies are leveraging NVIDIA's latest H100 and Blackwell GPUs to accelerate ...",
+      "date": "Apr 19, 2025",
+      "position": 1
+    },
+    {
+      "title": "BioPharma Solutions for AI-Accelerated Drug Discovery - NVIDIA",
+      "link": "https://www.nvidia.com/en-gb/industries/healthcare-life-sciences/drug-discovery/",
+      "snippet": "NVIDIA AI solutions are helping pharmaceutical and biopharmaceutical companies to discover and develop drugs faster and at a lower cost.",
+      "position": 2
+    },
+    {
+      "title": "Top 20 AI Chip Makers: NVIDIA & Its Competitors in 2025",
+      "link": "https://research.aimultiple.com/ai-chip-makers/",
+      "snippet": "2. AMD. AMD is a fabless chip manufacturer with CPU, GPU and AI accelerator products. AMD launched MI300 for AI training workloads in June 2023 ...",
+      "date": "Aug 5, 2025",
+      "position": 3
+    },
+    {
+      "title": "Top 15+ Cloud GPU Providers for Machine Learning in 2025",
+      "link": "https://www.linkedin.com/pulse/top-15-cloud-gpu-providers-machine-learning-2025-quantumopenai-4v78c",
+      "snippet": "Microsoft Azure offers a mature and continuously evolving cloud GPU ecosystem designed to support advanced AI workloads, machine learning ...",
+      "date": "Jun 1, 2025",
+      "position": 4
+    },
+    {
+      "title": "Top GPUs for high-performance computing in business - Uvation",
+      "link": "https://uvation.com/articles/top-gpus-for-high-performance-computing-in-business",
+      "snippet": "Discover high-performance GPU solutions and business-focused GPU servers tailored for enterprise IT workloads and AI analytics.",
+      "date": "Feb 11, 2025",
+      "position": 5
+    },
+    {
+      "title": "[PDF] Powering Pharma AI with NVIDIA H100 and Blackwell GPUs",
+      "link": "https://intuitionlabs.ai/pdfs/powering-pharma-ai-with-nvidia-h100-and-blackwell-gpus.pdf",
+      "snippet": "A comprehensive analysis of how pharmaceutical and biotech companies are leveraging NVIDIA's latest H100 and Blackwell.",
+      "date": "Apr 18, 2025",
+      "position": 6
+    },
+    {
+      "title": "Top Companies List of GPU as a Service Industry",
+      "link": "https://www.marketsandmarkets.com/ResearchInsight/gpu-as-a-service-companies.asp",
+      "snippet": "The GPU as a Service market is consolidated, with the top five players: Amazon Web Services (AWS), Microsoft, Google, IBM, and Oracle Corporation collectively ...",
+      "date": "Mar 26, 2025",
+      "position": 7
+    },
+    {
+      "title": "AI-Powered Solutions for Healthcare & Life Sciences | NVIDIA",
+      "link": "https://www.nvidia.com/en-us/industries/healthcare-life-sciences/",
+      "snippet": "With NVIDIA, healthcare institutions can harness the power of AI and high-performance computing (HPC) to define the future of medicine.",
+      "position": 8
+    },
+    {
+      "title": "High-Performance Computing for Data-Intensive Applications",
+      "link": "https://www.scalecomputing.com/higher-performance-computing-data-applications",
+      "snippet": "High-performance computing (HPC) is used for data-intensive applications such as AI training, financial modeling, climate simulations, and real-time analytics.",
+      "position": 9
+    },
+    {
+      "title": "High-Performance Computing and AI: Powering GPU ... - HPCwire",
+      "link": "https://www.hpcwire.com/2024/08/12/high-performance-computing-and-ai-powering-gpu-computing-with-hyperscale-nas/",
+      "snippet": "Missing: companies",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "nvidia healthcare partners"
+    },
+    {
+      "query": "nvidia drug discovery jobs"
+    },
+    {
+      "query": "nvidia medical devices"
+    },
+    {
+      "query": "nvidia healthcare jobs"
+    },
+    {
+      "query": "nvidia life sciences jobs"
+    },
+    {
+      "query": "nvidia healthcare ai"
+    },
+    {
+      "query": "recursion pharmaceuticals"
+    },
+    {
+      "query": "vinbrain career"
+    }
+  ],
+  "credits": 1
+}

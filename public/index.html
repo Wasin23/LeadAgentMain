@@ -486,6 +486,7 @@
           <button class="horizontal-tab-button active" data-tab="history">📝 Chat History</button>
           <button class="horizontal-tab-button" data-tab="deepresearch">🚀 Deep Research</button>
           <button class="horizontal-tab-button" data-tab="outreach">📧 Email Outreach</button>
+          <button class="horizontal-tab-button" data-tab="leadagent">🤖 Lead Contact Agent</button>
         </div>
         
         <div class="tab-content-area">
@@ -600,6 +601,127 @@
             </div>
             <div id="email-log-list" style="flex:1;">
               <div style="color:#ccc;font-style:italic;">No emails sent yet.</div>
+            </div>
+          </div>
+          
+          <!-- Lead Contact Agent Tab Content -->
+          <div id="leadagent-content" class="tab-content" style="display:none;">
+            <h3 style="margin:0 0 1rem 0;color:#2196f3;">🤖 Lead Contact Agent</h3>
+            
+            <div style="background:#1a1a1a;border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #4caf50;">
+              <div style="font-size:0.9rem;color:#ccc;margin-bottom:0.5rem;">
+                <strong>Automated Lead Generation & Email Outreach</strong><br>
+                Finds high-quality prospects for Exabits every 12 hours and sends personalized emails
+              </div>
+              <div style="font-size:0.85rem;color:#888;">
+                • Researches AI/ML companies needing GPU infrastructure<br>
+                • Sends 5 personalized emails per cycle<br>
+                • Tracks and avoids duplicate outreach<br>
+                • Runs continuously in background
+              </div>
+            </div>
+            
+            <!-- Testing Mode Warning -->
+            <div style="background:#ff5722;border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #ff1744;">
+              <div style="color:#fff;font-weight:bold;margin-bottom:0.5rem;">🧪 TESTING MODE ACTIVE</div>
+              <div style="font-size:0.85rem;color:#fff;opacity:0.9;">
+                All emails will be sent to <strong>colton.fidd@gmail.com</strong> instead of actual prospects.<br>
+                Email content will show who the intended recipient would have been.
+              </div>
+            </div>
+            
+            <!-- Agent Status -->
+            <div id="agent-status-card" style="background:#23242a;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h4 style="margin:0;color:#2196f3;">Agent Status</h4>
+                <button id="refresh-status" style="background:#666;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">
+                  🔄 Refresh
+                </button>
+              </div>
+              
+              <div id="status-display" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div style="background:#2d2d30;padding:1rem;border-radius:6px;">
+                  <div style="color:#4caf50;font-weight:bold;margin-bottom:0.5rem;">Status</div>
+                  <div id="agent-running-status" style="color:#fff;">Loading...</div>
+                </div>
+                <div style="background:#2d2d30;padding:1rem;border-radius:6px;">
+                  <div style="color:#2196f3;font-weight:bold;margin-bottom:0.5rem;">Current Cycle</div>
+                  <div id="agent-current-cycle" style="color:#fff;">-</div>
+                </div>
+                <div style="background:#2d2d30;padding:1rem;border-radius:6px;">
+                  <div style="color:#ff9800;font-weight:bold;margin-bottom:0.5rem;">Companies Emailed</div>
+                  <div id="agent-emailed-count" style="color:#fff;">-</div>
+                </div>
+                <div style="background:#2d2d30;padding:1rem;border-radius:6px;">
+                  <div style="color:#9c27b0;font-weight:bold;margin-bottom:0.5rem;">Leads in Queue</div>
+                  <div id="agent-remaining-leads" style="color:#fff;">-</div>
+                </div>
+              </div>
+              
+              <div style="margin-top:1rem;padding:1rem;background:#2d2d30;border-radius:6px;">
+                <div style="color:#607d8b;font-weight:bold;margin-bottom:0.5rem;">Next Cycle</div>
+                <div id="agent-next-cycle" style="color:#ccc;">-</div>
+              </div>
+            </div>
+            
+            <!-- Agent Controls -->
+            <div style="background:#23242a;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+              <h4 style="margin:0 0 1rem 0;color:#2196f3;">Agent Controls</h4>
+              
+              <!-- Cycle Interval Controls -->
+              <div style="background:#2d2d30;border-radius:6px;padding:1rem;margin-bottom:1rem;">
+                <div style="color:#ff9800;font-weight:bold;margin-bottom:0.5rem;">⏰ Cycle Interval</div>
+                <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                  <input 
+                    type="number" 
+                    id="cycle-minutes" 
+                    min="1" 
+                    max="1440" 
+                    value="2" 
+                    style="background:#40414f;color:#fff;border:1px solid #565869;border-radius:4px;padding:0.5rem;width:80px;font-size:0.9rem;"
+                  >
+                  <span style="color:#ccc;font-size:0.9rem;">minutes</span>
+                  <button 
+                    id="set-interval" 
+                    style="background:#ff9800;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">
+                    Set
+                  </button>
+                  <button 
+                    id="reset-interval" 
+                    style="background:#666;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">
+                    Reset to Default
+                  </button>
+                </div>
+                <div style="font-size:0.8rem;color:#888;">
+                  Current: <span id="current-interval">2 minutes (default testing)</span>
+                </div>
+              </div>
+              
+              <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+                <button id="start-agent" style="flex:1;background:#4caf50;color:#fff;border:none;padding:1rem;border-radius:6px;cursor:pointer;font-weight:bold;">
+                  ▶️ Start Agent
+                </button>
+                <button id="stop-agent" style="flex:1;background:#f44336;color:#fff;border:none;padding:1rem;border-radius:6px;cursor:pointer;font-weight:bold;" disabled>
+                  ⏹️ Stop Agent
+                </button>
+              </div>
+              
+              <div style="display:flex;gap:0.5rem;">
+                <button id="run-cycle" style="flex:1;background:#2196f3;color:#fff;border:none;padding:0.8rem;border-radius:6px;cursor:pointer;">
+                  🔄 Run Cycle Now
+                </button>
+                <button id="reset-agent" style="flex:1;background:#ff9800;color:#fff;border:none;padding:0.8rem;border-radius:6px;cursor:pointer;">
+                  🔄 Reset Agent
+                </button>
+              </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div style="background:#23242a;border-radius:8px;padding:1rem;max-height:300px;overflow-y:auto;">
+              <h4 style="margin:0 0 1rem 0;color:#2196f3;">Recent Activity</h4>
+              <div id="agent-activity-log" style="color:#ccc;font-size:0.9rem;">
+                <div style="color:#888;font-style:italic;">No activity yet. Start the agent to see logs here.</div>
+              </div>
             </div>
           </div>
         </div>
@@ -2161,6 +2283,295 @@ Specialized for finding potential clients:
       }, 500);
     });
     
+    // Lead Contact Agent Functionality
+    let agentStatusInterval = null;
+
+    // Initialize Lead Agent tab when it's selected
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial status load
+      refreshAgentStatus();
+      
+      // Set up event listeners
+      document.getElementById('refresh-status').addEventListener('click', refreshAgentStatus);
+      document.getElementById('start-agent').addEventListener('click', startAgent);
+      document.getElementById('stop-agent').addEventListener('click', stopAgent);
+      document.getElementById('run-cycle').addEventListener('click', runCycle);
+      document.getElementById('reset-agent').addEventListener('click', resetAgent);
+      document.getElementById('set-interval').addEventListener('click', setCustomInterval);
+      document.getElementById('reset-interval').addEventListener('click', resetInterval);
+      
+      // Auto-refresh status every 30 seconds when agent tab is active
+      setInterval(() => {
+        const agentTab = document.getElementById('leadagent-content');
+        if (agentTab && agentTab.style.display !== 'none') {
+          refreshAgentStatus();
+        }
+      }, 30000);
+    });
+
+    async function refreshAgentStatus() {
+      try {
+        const response = await fetch('/api/lead-agent/status');
+        const data = await response.json();
+        
+        if (data.success) {
+          updateStatusDisplay(data.data);
+        } else {
+          console.error('Error getting agent status:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching agent status:', error);
+        updateStatusDisplay({
+          isRunning: false,
+          currentCycle: 0,
+          companiesEmailed: 0,
+          remainingLeads: 0,
+          lastCycleTime: null,
+          nextCycleTime: null
+        });
+      }
+    }
+
+    function updateStatusDisplay(status) {
+      // Update status indicators
+      document.getElementById('agent-running-status').textContent = status.isRunning ? '🟢 Running' : '🔴 Stopped';
+      document.getElementById('agent-current-cycle').textContent = status.currentCycle || 0;
+      document.getElementById('agent-emailed-count').textContent = status.companiesEmailed || 0;
+      document.getElementById('agent-remaining-leads').textContent = status.remainingLeads || 0;
+      
+      // Update next cycle time
+      if (status.nextCycleTime) {
+        const nextCycle = new Date(status.nextCycleTime);
+        const now = new Date();
+        const timeUntil = nextCycle - now;
+        
+        if (timeUntil > 0) {
+          const hours = Math.floor(timeUntil / (1000 * 60 * 60));
+          const minutes = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+          document.getElementById('agent-next-cycle').textContent = `${hours}h ${minutes}m`;
+        } else {
+          document.getElementById('agent-next-cycle').textContent = 'Overdue';
+        }
+      } else {
+        document.getElementById('agent-next-cycle').textContent = status.isRunning ? 'Calculating...' : 'Not scheduled';
+      }
+      
+      // Update button states
+      const startBtn = document.getElementById('start-agent');
+      const stopBtn = document.getElementById('stop-agent');
+      
+      if (status.isRunning) {
+        startBtn.disabled = true;
+        startBtn.style.background = '#666';
+        stopBtn.disabled = false;
+        stopBtn.style.background = '#f44336';
+      } else {
+        startBtn.disabled = false;
+        startBtn.style.background = '#4caf50';
+        stopBtn.disabled = true;
+        stopBtn.style.background = '#666';
+      }
+    }
+
+    async function startAgent() {
+      try {
+        addActivityLog('🚀 Starting Lead Contact Agent...');
+        
+        // Get custom interval if set
+        const minutesInput = document.getElementById('cycle-minutes');
+        const customMinutes = parseInt(minutesInput.value);
+        
+        const requestBody = {};
+        if (customMinutes && customMinutes !== 2) { // 2 is the default testing value
+          requestBody.minutes = customMinutes;
+          addActivityLog(`⏰ Using custom interval: ${customMinutes} minutes`);
+        }
+        
+        const response = await fetch('/api/lead-agent/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          addActivityLog(`✅ ${data.message}`);
+          if (data.data.customInterval) {
+            document.getElementById('current-interval').textContent = `${data.data.intervalMinutes} minutes (custom)`;
+          } else {
+            document.getElementById('current-interval').textContent = `${data.data.intervalMinutes} minutes (default)`;
+          }
+          refreshAgentStatus();
+        } else {
+          addActivityLog(`❌ Failed to start agent: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('Error starting agent:', error);
+        addActivityLog(`❌ Error starting agent: ${error.message}`);
+      }
+    }
+
+    async function stopAgent() {
+      try {
+        addActivityLog('⏹️ Stopping Lead Contact Agent...');
+        
+        const response = await fetch('/api/lead-agent/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          addActivityLog(`✅ ${data.message}`);
+          refreshAgentStatus();
+        } else {
+          addActivityLog(`❌ Failed to stop agent: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('Error stopping agent:', error);
+        addActivityLog(`❌ Error stopping agent: ${error.message}`);
+      }
+    }
+
+    async function runCycle() {
+      try {
+        addActivityLog('🔄 Running immediate cycle...');
+        
+        const response = await fetch('/api/lead-agent/run-cycle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          addActivityLog(`✅ Cycle completed! Emailed ${data.data.emailsSent} companies.`);
+          if (data.data.selectedCompanies) {
+            addActivityLog(`📧 Companies contacted: ${data.data.selectedCompanies.join(', ')}`);
+          }
+          refreshAgentStatus();
+        } else {
+          addActivityLog(`❌ Cycle failed: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('Error running cycle:', error);
+        addActivityLog(`❌ Error running cycle: ${error.message}`);
+      }
+    }
+
+    async function resetAgent() {
+      if (!confirm('Are you sure you want to reset the agent? This will clear the cycle count but keep the leads database.')) {
+        return;
+      }
+      
+      try {
+        addActivityLog('🔄 Resetting agent...');
+        
+        const response = await fetch('/api/lead-agent/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          addActivityLog(`✅ ${data.message}`);
+          refreshAgentStatus();
+        } else {
+          addActivityLog(`❌ Failed to reset agent: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('Error resetting agent:', error);
+        addActivityLog(`❌ Error resetting agent: ${error.message}`);
+      }
+    }
+
+    async function setCustomInterval() {
+      const minutesInput = document.getElementById('cycle-minutes');
+      const minutes = parseInt(minutesInput.value);
+      
+      if (!minutes || minutes < 1 || minutes > 1440) {
+        alert('Please enter a valid number of minutes (1-1440)');
+        return;
+      }
+      
+      try {
+        addActivityLog(`⏰ Setting cycle interval to ${minutes} minutes...`);
+        
+        const response = await fetch('/api/lead-agent/set-interval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ minutes: minutes })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          addActivityLog(`✅ ${data.message}`);
+          document.getElementById('current-interval').textContent = `${minutes} minutes (custom)`;
+          refreshAgentStatus();
+        } else {
+          addActivityLog(`❌ Failed to set interval: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('Error setting interval:', error);
+        addActivityLog(`❌ Error setting interval: ${error.message}`);
+      }
+    }
+
+    async function resetInterval() {
+      try {
+        addActivityLog('🔄 Resetting to default cycle interval...');
+        
+        const response = await fetch('/api/lead-agent/reset-interval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          addActivityLog(`✅ ${data.message}`);
+          document.getElementById('current-interval').textContent = `${data.data.intervalMinutes} minutes (default)`;
+          document.getElementById('cycle-minutes').value = data.data.intervalMinutes;
+          refreshAgentStatus();
+        } else {
+          addActivityLog(`❌ Failed to reset interval: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('Error resetting interval:', error);
+        addActivityLog(`❌ Error resetting interval: ${error.message}`);
+      }
+    }
+
+    function addActivityLog(message) {
+      const logContainer = document.getElementById('agent-activity-log');
+      const timestamp = new Date().toLocaleTimeString();
+      
+      // Create new log entry
+      const logEntry = document.createElement('div');
+      logEntry.style.cssText = 'margin-bottom:0.5rem;padding:0.5rem;background:#2d2d30;border-radius:4px;border-left:3px solid #2196f3;';
+      logEntry.innerHTML = `
+        <div style="font-size:0.8rem;color:#888;">${timestamp}</div>
+        <div style="margin-top:0.2rem;">${message}</div>
+      `;
+      
+      // Clear placeholder if it exists
+      if (logContainer.innerHTML.includes('No activity yet')) {
+        logContainer.innerHTML = '';
+      }
+      
+      // Add to top
+      logContainer.insertBefore(logEntry, logContainer.firstChild);
+      
+      // Keep only last 10 entries
+      while (logContainer.children.length > 10) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
+    }
+
     // Also try adding welcome message when window fully loads
     window.addEventListener('load', function() {
       setTimeout(() => {

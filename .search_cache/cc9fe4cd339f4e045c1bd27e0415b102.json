@@ -1,0 +1,80 @@
+{
+  "searchParameters": {
+    "q": "companies in scientific research that would need high-performance GPU computing for AI and machine learning workloads, specifically pharmaceutical companies technology stack engineering team size",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Top 20 AI Chip Makers: NVIDIA & Its Competitors in 2025",
+      "link": "https://research.aimultiple.com/ai-chip-makers/",
+      "snippet": "These are the top AI hardware companies for data center workloads. Follow the links to see our rationale behind each selection.",
+      "date": "5 ago 2025",
+      "position": 1
+    },
+    {
+      "title": "Top HP NVIDIA AI Workstations: Power & Performance",
+      "link": "https://www.hp.com/th-en/shop/tech-takes/post/nvidia-ai-workstation-hp-zbook-guide",
+      "snippet": "Discover HP's AI-ready workstations with NVIDIA RTX graphics for machine learning, deep learning, and AI development.",
+      "date": "18 jul 2025",
+      "position": 2
+    },
+    {
+      "title": "AI in the workplace: A report for 2025",
+      "link": "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/superagency-in-the-workplace-empowering-people-to-unlock-ais-full-potential-at-work",
+      "snippet": "This report explores companies' technology and business readiness for AI adoption (see sidebar “About the survey”). It concludes that employees are ready for ...",
+      "date": "28 ene 2025",
+      "position": 3
+    },
+    {
+      "title": "Top 20 artificial intelligence chips of choice in 2022",
+      "link": "https://www.aiacceleratorinstitute.com/top-20-chips-choice/",
+      "snippet": "We highlighted the key chip manufacturers in our Chips of Choice 2022 report, providing an overview of these companies' flagship chips.",
+      "position": 4
+    },
+    {
+      "title": "Powering Pharma AI with NVIDIA H100 and Blackwell GPUs",
+      "link": "https://intuitionlabs.ai/articles/nvidia-gpus-in-pharma-industry",
+      "snippet": "A comprehensive analysis of how pharmaceutical and biotech companies are leveraging NVIDIA's latest H100 and Blackwell GPUs to accelerate ...",
+      "date": "19 abr 2025",
+      "position": 5
+    },
+    {
+      "title": "From GPUs to AI and quantum: three waves of acceleration ...",
+      "link": "https://www.sciencedirect.com/science/article/pii/S1359644624001156",
+      "snippet": "por B Schmidt · 2024 · Mencionado por 20 — The enormous data growth in the life sciences has led to the adoption of massively parallel accelerators such as graphics processing units (GPUs).",
+      "position": 6
+    },
+    {
+      "title": "Top Cloud GPU Providers 2025: Best GPUs for AI Workloads",
+      "link": "https://compute.hivenet.com/post/top-cloud-gpu-providers-for-ai-and-machine-learning-in-2025",
+      "snippet": "Cloud GPUs are essential for handling demanding AI and machine learning workloads, providing flexibility in deployment and high-performance capabilities.",
+      "position": 7
+    },
+    {
+      "title": "(PDF) Powering Intelligence The Future of AI Hardware for ...",
+      "link": "https://www.researchgate.net/publication/388454770_Powering_Intelligence_The_Future_of_AI_Hardware_for_Training_Inference_and_Innovation",
+      "snippet": "This article provides a comprehensive analysis of the hardware requirements for AI, focusing on key providers, the latest research breakthroughs, and emerging ...",
+      "date": "28 ene 2025",
+      "position": 8
+    },
+    {
+      "title": "The semiconductor industry in the AI era",
+      "link": "https://www.capgemini.com/wp-content/uploads/2025/01/Semiconductors-report.pdf",
+      "snippet": "Technological advancements, including GPU computing for AI and machine learning and inference acceleration are important to these industries, ...",
+      "date": "6 ene 2025",
+      "position": 9
+    },
+    {
+      "title": "The 2023 IBM Research annual letter",
+      "link": "https://research.ibm.com/blog/research-annual-letter-2023",
+      "snippet": "We designed a cloud-native AI supercomputer with IBM Cloud, worked with Red Hat to power the future of enterprise AI, and teamed up with the ...",
+      "date": "2 feb 2024",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

@@ -1,0 +1,106 @@
+{
+  "searchParameters": {
+    "q": "companies in computer vision that would need high-performance GPU computing for AI and machine learning workloads, specifically financial services",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Top 30 Cloud GPU Providers & Their GPUs in 2025",
+      "link": "https://research.aimultiple.com/cloud-gpu-providers/",
+      "snippet": "RunPod is a cloud computing platform specializing in GPU-accelerated services tailored for artificial intelligence (AI) and machine learning (ML) ...",
+      "date": "Aug 5, 2025",
+      "position": 1
+    },
+    {
+      "title": "AI Solutions for Finance Industries - NVIDIA",
+      "link": "https://www.nvidia.com/en-us/industries/finance/",
+      "snippet": "Banking, trading, fintech, insurance companies, and VC firms are implementing AI and machine learning to deliver smarter, securer financial transactions.",
+      "position": 2
+    },
+    {
+      "title": "Top 15+ Cloud GPU Providers For AI In 2025 - LinkedIn",
+      "link": "https://www.linkedin.com/pulse/top-15-cloud-gpu-providers-ai-2025-quantumopenai-qmmec",
+      "snippet": "Microsoft Azure offers a mature and continuously evolving cloud GPU ecosystem designed to support advanced AI workloads, machine learning ...",
+      "date": "Jun 1, 2025",
+      "position": 3
+    },
+    {
+      "title": "Top 10 Cloud GPU Providers for AI and Deep Learning - Hyperstack",
+      "link": "https://www.hyperstack.cloud/blog/case-study/top-cloud-gpu-providers",
+      "snippet": "The best cloud GPU provider for AI depends on your specific workload, budget, and location requirements. Providers like Hyperstack, Lambda Labs, ...",
+      "date": "Dec 4, 2024",
+      "position": 4
+    },
+    {
+      "title": "Why GPUs Are Essential for AI Workloads | Rafay",
+      "link": "https://rafay.co/ai-and-cloud-native-blog/why-gpus-are-essential-for-ai-workloads/",
+      "snippet": "Missing: specifically financial",
+      "position": 5
+    },
+    {
+      "title": "Computer Vision Capabilities with Scale Computing Platform",
+      "link": "https://www.scalecomputing.com/resources/computer-vision-capabilities-with-scale-computing-platform",
+      "snippet": "The integration of graphics processing unit (GPU) technology with computer vision significantly enhances the performance and efficiency of data ...",
+      "date": "Oct 14, 2024",
+      "position": 6
+    },
+    {
+      "title": "GPU Cloud for Next-gen Computer Vision Workloads/Solutions",
+      "link": "https://www.cloud4c.com/blogs/innovative-computer-vision-systems-powered-by-gpu-cloud",
+      "snippet": "GPU Cloud in computer vision provides on-demand access to high-performance GPU infrastructure housed on cloud platforms.",
+      "date": "May 30, 2025",
+      "position": 7
+    },
+    {
+      "title": "Top 20 artificial intelligence chips of choice - AI Accelerator Institute",
+      "link": "https://www.aiacceleratorinstitute.com/top-20-chips-choice/",
+      "snippet": "We highlighted the key chip manufacturers in our Chips of Choice 2022 report, providing an overview of these companies' flagship chips.",
+      "position": 8
+    },
+    {
+      "title": "GPU as a Service: Unlocking Faster Machine Learning Model Training",
+      "link": "https://cyfuture.ai/blog/gpu-as-a-service-for-machine-learning-models",
+      "snippet": "The global GPU as a Service market is booming, driven by surging AI, big data analytics, and high-performance computing (HPC) requirements.",
+      "date": "Jul 18, 2025",
+      "position": 9
+    },
+    {
+      "title": "How to Choose a Cloud GPU for Your AI/ML Projects | DigitalOcean",
+      "link": "https://www.digitalocean.com/resources/articles/how-to-choose-a-cloud-gpu",
+      "snippet": "Discover the right factors to consider when choosing a cloud GPU for your AI/ML workload needs, from performance specs to compatibility.",
+      "date": "Sep 26, 2024",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "nvidia financial services"
+    },
+    {
+      "query": "gpu cloud providers"
+    },
+    {
+      "query": "best cloud gpu providers"
+    },
+    {
+      "query": "best cloud gpu for deep learning"
+    },
+    {
+      "query": "nvidia state of ai in financial services"
+    },
+    {
+      "query": "lambda labs"
+    },
+    {
+      "query": "gpu as a service companies"
+    },
+    {
+      "query": "vast ai"
+    }
+  ],
+  "credits": 1
+}

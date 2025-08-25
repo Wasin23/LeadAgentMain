@@ -1,0 +1,80 @@
+{
+  "searchParameters": {
+    "q": "companies in scientific research that would need high-performance GPU computing for AI and machine learning workloads, specifically pharmaceutical companies contact email LinkedIn decision maker",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Top 15+ Cloud GPU Providers For AI In 2025",
+      "link": "https://www.linkedin.com/pulse/top-15-cloud-gpu-providers-ai-2025-quantumopenai-qmmec",
+      "snippet": "Microsoft Azure offers a mature and continuously evolving cloud GPU ecosystem designed to support advanced AI workloads, machine learning ...",
+      "date": "2 months ago",
+      "position": 1
+    },
+    {
+      "title": "100 AI Companies to keep an eye on",
+      "link": "https://www.linkedin.com/pulse/100-ai-companies-keep-eye-yuri-quintana-phd-facmi-czeje",
+      "snippet": "Here is a list of 100 companies with significant growth potential in the AI sector, organized by category.",
+      "date": "8 months ago",
+      "position": 2
+    },
+    {
+      "title": "Top 9 AI Infrastructure Companies & Applications in 2025",
+      "link": "https://research.aimultiple.com/ai-infrastructure-companies/",
+      "snippet": "NVIDIA develops GPUs for matrix and vector computations, which are essential for training deep learning models and accelerating AI workloads.",
+      "date": "Jun 10, 2025",
+      "position": 3
+    },
+    {
+      "title": "The growing demand for AI computing",
+      "link": "https://www.deloitte.com/us/en/insights/topics/emerging-technologies/growing-demand-ai-computing.html",
+      "snippet": "New analysis from Deloitte explores projected growth of AI computing infrastructure demand and strategies for agile solutions in the ...",
+      "date": "4 days ago",
+      "position": 4
+    },
+    {
+      "title": "Top 5 Enterprise Use Cases for NVIDIA Hopper GPUs in AI ...",
+      "link": "https://www.nexgencloud.com/blog/thought-leadership/top-enterprise-use-cases-for-nvidia-hopper-gpus-in-ai-and-hpc",
+      "snippet": "Enterprises are achieving great results by using NVIDIA Hopper GPUs, which are specifically built to handle the most intensive AI and HPC workloads.",
+      "date": "May 21, 2025",
+      "position": 5
+    },
+    {
+      "title": "GPU for AI: Platforms, Top GPUs & Key Features to Consider",
+      "link": "https://www.atlantic.net/gpu-server-hosting/gpu-for-ai-platforms-top-gpus-and-key-features-to-consider/",
+      "snippet": "GPUs have become crucial for machine learning and artificial intelligence (AI). Their design allows them to handle tasks that require massive data throughput ...",
+      "date": "Jan 25, 2025",
+      "position": 6
+    },
+    {
+      "title": "NVentures: NVIDIA Venture Capital",
+      "link": "https://www.nventures.ai/",
+      "snippet": "Add intelligence and efficiency to your business with AI and machine learning ... Bring the power of NVIDIA AI to the edge for real-time decision-making solutions.",
+      "position": 7
+    },
+    {
+      "title": "Best AI Model Optimization Companies: Top Experts in 2025",
+      "link": "https://aisuperior.com/ai-model-optimization-companies/",
+      "snippet": "In this article, we'll highlight some of the top companies offering expert optimization services in 2025, helping you find the perfect partner for your AI ...",
+      "date": "Apr 26, 2025",
+      "position": 8
+    },
+    {
+      "title": "Top Cloud GPU Providers 2025: Best GPUs for AI Workloads",
+      "link": "https://compute.hivenet.com/post/top-cloud-gpu-providers-for-ai-and-machine-learning-in-2025",
+      "snippet": "Discover the best cloud GPU services for AI in 2025. Compare pricing, features, and performance from Hivenet, AWS, GCP, Azure, and more.",
+      "position": 9
+    },
+    {
+      "title": "DDN: Data Intelligence Platform Built for AI",
+      "link": "https://www.ddn.com/",
+      "snippet": "DDN's Data Intelligence Platform is purpose-built for AI practitioners building and scaling real-world AI, delivering the performance, efficiency, and ...",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

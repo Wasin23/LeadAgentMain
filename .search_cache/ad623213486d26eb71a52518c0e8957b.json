@@ -1,0 +1,81 @@
+{
+  "searchParameters": {
+    "q": "companies in natural language processing that would need high-performance GPU computing for AI and machine learning workloads, specifically pharmaceutical companies technology stack engineering team size",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Top 20 AI Chip Makers: NVIDIA & Its Competitors in 2025",
+      "link": "https://research.aimultiple.com/ai-chip-makers/",
+      "snippet": "These are the top AI hardware companies for data center workloads. Follow the links to see our rationale behind each selection.",
+      "date": "Aug 5, 2025",
+      "position": 1
+    },
+    {
+      "title": "Top 15+ Cloud GPU Providers For AI In 2025",
+      "link": "https://www.linkedin.com/pulse/top-15-cloud-gpu-providers-ai-2025-quantumopenai-qmmec",
+      "snippet": "Microsoft Azure offers a mature and continuously evolving cloud GPU ecosystem designed to support advanced AI workloads, machine learning ...",
+      "date": "2 months ago",
+      "position": 2
+    },
+    {
+      "title": "Top 20 artificial intelligence chips of choice in 2022",
+      "link": "https://www.aiacceleratorinstitute.com/top-20-chips-choice/",
+      "snippet": "... machine learning workloads like natural language processing. 8. NVIDIA. NVIDIA is an American multinational technology company that designs GPUs for ...",
+      "position": 3
+    },
+    {
+      "title": "Top GPUs for high-performance computing in business",
+      "link": "https://uvation.com/articles/top-gpus-for-high-performance-computing-in-business",
+      "snippet": "Discover high-performance GPU solutions and business-focused GPU servers tailored for enterprise IT workloads and AI analytics.",
+      "date": "Feb 11, 2025",
+      "position": 4
+    },
+    {
+      "title": "Top Cloud GPU Providers 2025: Best GPUs for AI Workloads",
+      "link": "https://compute.hivenet.com/post/top-cloud-gpu-providers-for-ai-and-machine-learning-in-2025",
+      "snippet": "Discover the best cloud GPU services for AI in 2025. Compare pricing, features, and performance from Hivenet, AWS, GCP, Azure, and more.",
+      "position": 5
+    },
+    {
+      "title": "CoreWeave, Lambda, Cerebras, Etched, Modal, Foundry",
+      "link": "https://www.ankursnewsletter.com/p/comparing-ai-cloud-providers-coreweave",
+      "snippet": "Lambda Labs specializes in training and deploying large language models, offering powerful multi-GPU instances for intensive machine learning ...",
+      "date": "Dec 6, 2024",
+      "position": 6
+    },
+    {
+      "title": "NVIDIA Blackwell Platform Arrives to Power a New Era of ...",
+      "link": "https://nvidianews.nvidia.com/news/nvidia-blackwell-platform-arrives-to-power-a-new-era-of-computing",
+      "snippet": "NVIDIA is now a full-stack computing infrastructure company with data-center-scale offerings that are reshaping industry.",
+      "date": "Mar 18, 2024",
+      "position": 7
+    },
+    {
+      "title": "Top 20 AI Cloud Companies to Know in 2024",
+      "link": "https://cioinfluence.com/it-and-devops/top-20-ai-cloud-companies-to-know-in-2024/",
+      "snippet": "#1 Altair Altair, headquartered in Troy, MI, is a globally known computational intelligence expert. The company was founded and run by the visionary James ...",
+      "date": "May 8, 2024",
+      "position": 8
+    },
+    {
+      "title": "Applications for GPU Based AI and Machine Learning",
+      "link": "https://www.exxactcorp.com/blog/Deep-Learning/gpu-based-ai-and-machine-learning-applications",
+      "snippet": "GPUs are being used in many AI & ML applications including medicine, drug discovery, autonomous driving, transportation, & more.",
+      "date": "May 12, 2021",
+      "position": 9
+    },
+    {
+      "title": "100 Top AI Companies Trendsetting In 2024 - Datamation",
+      "link": "https://www.datamation.com/artificial-intelligence/ai-companies/",
+      "snippet": "Alphasense's technology employs advanced AI, including natural language processing (NLP) and machine learning, to generate and structure ...",
+      "date": "Feb 22, 2024",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

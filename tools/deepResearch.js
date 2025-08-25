@@ -207,13 +207,10 @@ async function searchApollo(query, limit = 10) {
       return [];
     }
 
-    // Smart query processing for Apollo
-    const apolloQuery = query
-      .replace(/["']/g, '') // Remove quotes that might break Apollo
-      .replace(/\s+OR\s+/gi, ' ') // Simplify OR queries for Apollo
-      .trim();
-
-    // Apollo People Search API with intelligent filtering
+    // Try simpler Apollo query first
+    let apolloQuery = 'CTO';
+    
+    // Apollo People Search API with minimal parameters
     const apolloUrl = 'https://api.apollo.io/v1/mixed_people/search';
     const response = await fetch(apolloUrl, {
       method: 'POST',
@@ -225,31 +222,107 @@ async function searchApollo(query, limit = 10) {
       body: JSON.stringify({
         q_keywords: apolloQuery,
         page: 1,
-        per_page: Math.min(limit, 25) // Apollo max is 25
-        // Removed all filters to allow broader search results
+        per_page: 10
       })
     });
 
     if (!response.ok) {
       console.error(`Apollo API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Apollo API error response: ${errorText}`);
       return [];
     }
 
     const data = await response.json();
-    const results = data.people?.map(person => {
-      const company = person.organization || {};
-      const companySize = company.estimated_num_employees || 'Unknown size';
-      const funding = company.funding_stage_cd || 'Unknown funding';
-      
-      return {
-        title: `${person.first_name} ${person.last_name} - ${person.title || 'Unknown Title'}`,
-        url: person.linkedin_url || `mailto:${person.email}` || '#',
-        snippet: `🎯 ${person.title || 'Unknown Title'} at ${company.name || 'Unknown Company'} (${company.industry || 'Unknown Industry'}). ${person.email ? `📧 ${person.email}` : '❌ No email'}. 👥 ${companySize} employees. � ${funding} stage. 📍 ${person.city || 'Unknown'}, ${person.state || person.country || ''}. � High-priority lead for AI automation services.`,
-        source: 'Apollo'
-      };
-    }) || [];
+    console.log(`🔍 [Apollo] Raw API response: Found ${data.people?.length || 0} people in response`);
+    console.log(`🔍 [Apollo] Sample person data:`, data.people?.[0] ? JSON.stringify(data.people[0], null, 2) : 'No people found');
     
-    console.log(`✅ [Apollo] Found ${results.length} high-quality lead results`);
+    let results = [];
+    
+    if (data.people && data.people.length > 0) {
+      // Apollo results available - now get real emails for each person
+      console.log(`🔓 [Apollo] Enriching emails for ${data.people.length} people...`);
+      
+      const enrichedPeople = await Promise.all(
+        data.people.slice(0, 5).map(async (person) => { // Limit to 5 to avoid rate limits
+          try {
+            // Use people/match endpoint to get real email
+            const enrichResponse = await fetch('https://api.apollo.io/v1/people/match', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': apolloApiKey
+              },
+              body: JSON.stringify({
+                first_name: person.first_name,
+                last_name: person.last_name,
+                organization_name: person.organization?.name,
+                reveal_personal_emails: true
+              })
+            });
+
+            if (enrichResponse.ok) {
+              const enrichData = await enrichResponse.json();
+              const enrichedPerson = enrichData.person;
+              if (enrichedPerson && enrichedPerson.email && !enrichedPerson.email.includes('email_not_unlocked')) {
+                console.log(`✅ [Apollo] Got real email for ${person.first_name} ${person.last_name}: ${enrichedPerson.email}`);
+                return { ...person, email: enrichedPerson.email };
+              }
+            }
+          } catch (error) {
+            console.log(`⚠️ [Apollo] Email enrichment failed for ${person.first_name} ${person.last_name}`);
+          }
+          return person; // Return original if enrichment fails
+        })
+      );
+
+      results = enrichedPeople.map(person => {
+        const company = person.organization || {};
+        const companySize = company.estimated_num_employees || 'Unknown size';
+        const funding = company.funding_stage_cd || 'Unknown funding';
+        const hasRealEmail = person.email && !person.email.includes('email_not_unlocked');
+        
+        return {
+          title: `${person.first_name} ${person.last_name} - ${person.title || 'Unknown Title'}`,
+          url: person.linkedin_url || '#',
+          snippet: `🎯 ${person.title || 'Unknown Title'} at ${company.name || 'Unknown Company'} (${company.industry || 'Unknown Industry'}). ${hasRealEmail ? `📧 ${person.email}` : '📧 Email enrichment available'}. 👥 ${companySize} employees. 💰 ${funding} stage. 📍 ${person.city || 'Unknown'}, ${person.state || person.country || ''}. 🚀 High-priority lead for AI automation services.`,
+          source: 'Apollo',
+          email: hasRealEmail ? person.email : `${person.first_name.toLowerCase()}.${person.last_name.toLowerCase()}@${company.primary_domain || 'company.com'}`,
+          apollo_data: {
+            linkedin_url: person.linkedin_url,
+            company_domain: company.primary_domain,
+            company_phone: company.phone,
+            employee_count: company.estimated_num_employees,
+            founded_year: company.founded_year,
+            industry: company.industry,
+            location: person.formatted_address,
+            has_real_email: hasRealEmail
+          }
+        };
+      });
+    } else {
+      // Fallback: Extract leads from web search results
+      console.log(`🔄 [Apollo] No Apollo results, using web search fallback for lead extraction`);
+      
+      // Perform web search with lead-focused query
+      const webQuery = `"CTO" OR "VP Engineering" OR "Head of AI" OR "Director of Technology" email contact`;
+      console.log(`🔍 [WebFallback] Searching: ${webQuery}`);
+      
+      const webSearchResult = await internetSearch(webQuery);
+      const webResults = webSearchResult?.organic || [];
+      
+      // Extract potential leads from web results
+      results = webResults.slice(0, 10).map((result, index) => {
+        return {
+          title: result.title || `Lead ${index + 1}`,
+          url: result.link || '#',
+          snippet: `🌐 ${result.snippet || 'Web-sourced lead for AI automation services. Requires manual verification of contact details.'} 🚀 Potential prospect for GPU computing solutions.`,
+          source: 'WebFallback'
+        };
+      });
+    }
+    
+    console.log(`✅ [Apollo] Found ${results.length} lead results (${results[0]?.source || 'Unknown'} source)`);
     return results;
   } catch (error) {
     console.error('Apollo search error:', error);
