@@ -207,6 +207,7 @@ class LeadContactAgent {
     const totalLeads = leadsData.allLeads?.length || 0;
     const emailedLeads = leadsData.emailedCompanies?.length || 0;
     const remainingLeads = totalLeads - emailedLeads;
+    const intervalMinutes = this.cycleInterval / (1000 * 60);
     
     return {
       isRunning: this.isRunning,
@@ -215,7 +216,9 @@ class LeadContactAgent {
       companiesEmailed: emailedLeads,
       remainingLeads: remainingLeads,
       lastCycleTime: state.lastCycleTime,
-      nextCycleTime: state.lastCycleTime ? new Date(state.lastCycleTime + this.cycleInterval).toISOString() : null
+      nextCycleTime: state.lastCycleTime ? new Date(state.lastCycleTime + this.cycleInterval).toISOString() : null,
+      intervalMinutes: intervalMinutes,
+      customInterval: this.customCycleInterval !== null
     };
   }
 
@@ -676,13 +679,20 @@ BODY: [email body]`;
       this.currentCycle = state.currentCycle || 0;
       this.isRunning = state.isRunning || false;
       
+      // Restore custom cycle interval if it was set
+      if (state.customCycleInterval !== undefined) {
+        this.customCycleInterval = state.customCycleInterval;
+        this.cycleInterval = state.customCycleInterval || (TESTING_MODE ? DEFAULT_TESTING_CYCLE_INTERVAL : DEFAULT_PRODUCTION_CYCLE_INTERVAL);
+      }
+      
       return state;
     } catch (error) {
       // File doesn't exist or is invalid, start fresh
       return {
         currentCycle: 0,
         isRunning: false,
-        lastCycleTime: null
+        lastCycleTime: null,
+        customCycleInterval: null
       };
     }
   }
@@ -691,7 +701,8 @@ BODY: [email body]`;
     const state = {
       currentCycle: this.currentCycle,
       isRunning: this.isRunning,
-      lastCycleTime: Date.now()
+      lastCycleTime: Date.now(),
+      customCycleInterval: this.customCycleInterval
     };
     
     try {
@@ -725,28 +736,42 @@ BODY: [email body]`;
   }
 
   async resetAgent() {
-    console.log('[LEAD AGENT] Resetting agent state...');
+    console.log('[LEAD AGENT] Starting agent reset...');
     
     // Stop if running
     if (this.isRunning) {
+      console.log('[LEAD AGENT] Stopping running agent...');
       await this.stop();
     }
     
-    // Reset state
+    // Reset state variables
     this.currentCycle = 0;
+    this.customCycleInterval = null;
+    this.cycleInterval = TESTING_MODE ? DEFAULT_TESTING_CYCLE_INTERVAL : DEFAULT_PRODUCTION_CYCLE_INTERVAL;
     
     // Clear state file
     try {
       await fs.unlink(this.stateFile);
+      console.log('[LEAD AGENT] ✅ Cleared state file');
     } catch (error) {
-      // File doesn't exist, that's fine
+      console.log('[LEAD AGENT] ⚠️ State file not found (already cleared)');
     }
     
     // Clear leads database
     try {
       await fs.unlink(this.leadsFile);
+      console.log('[LEAD AGENT] ✅ Cleared leads database file');
     } catch (error) {
-      // File doesn't exist, that's fine
+      console.log('[LEAD AGENT] ⚠️ Leads database file not found (already cleared)');
+    }
+    
+    // Also write empty objects to ensure clean state
+    try {
+      await fs.writeFile(this.stateFile, '{}');
+      await fs.writeFile(this.leadsFile, '{}');
+      console.log('[LEAD AGENT] ✅ Created clean empty files');
+    } catch (error) {
+      console.error('[LEAD AGENT] ❌ Error creating clean files:', error);
     }
     
     console.log('[LEAD AGENT] Agent reset complete - cleared state and leads database');

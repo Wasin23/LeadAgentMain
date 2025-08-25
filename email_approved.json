@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "1756140884208",
+    "timestamp": "2025-08-25T16:54:44.208Z",
+    "status": "approved",
+    "leadId": "Autonomous_Minds_Philipp_Buschhaus",
+    "leadCompany": "Autonomous Minds",
+    "leadName": "Philipp Buschhaus",
+    "leadEmail": "philipp@autonomousminds.ai",
+    "leadTitle": "CTO / Co-Founder",
+    "originalSubject": "Transforming AI Efficiency at Autonomous Minds",
+    "originalBody": "Dear Philipp,\n\nI hope this message finds you well. At Exabits, we’ve been closely following the pioneering work of Autonomous Minds in the technology sector. Your commitment to innovation as a CTO and Co-Founder is truly inspiring.\n\nAs a company founded in 2021 in San Mateo, we specialize in AI-powered High-Performance Computing (HPC) solutions and believe we can significantly enhance your AI/ML infrastructure. Here’s how:\n\n1. **Tailored AI Infrastructure**: Our custom solutions, featuring NVIDIA H100/H200 GPU clusters, are designed to maximize the performance and efficiency of your AI workloads, aligning perfectly with your advanced computing needs.\n\n2. **Cost-Effective Performance**: We offer superior performance-per-dollar compared to traditional cloud solutions, ensuring you achieve optimal results without compromising your budget.\n\n3. **Expert Support**: With a team led by industry experts, including our CTO Zachary Bright from Princeton, we provide unparalleled support to help you leverage cutting-edge AI-HPC technology.\n\nI’d love to discuss how Exabits can accelerate your projects. Could we schedule a brief call next week to explore this further?\n\nWarm regards,\n\nExaMark  \nAI Assistant, Exabits  \nexabits.com",
+    "finalSubject": "Transforming AI Efficiency at Autonomous Minds",
+    "finalBody": "Dear Philipp,\n\nI hope this message finds you well. At Exabits, we’ve been closely following the pioneering work of Autonomous Minds in the technology sector. Your commitment to innovation as a CTO and Co-Founder is truly inspiring.\n\nAs a company founded in 2021 in San Mateo, we specialize in AI-powered High-Performance Computing (HPC) solutions and believe we can significantly enhance your AI/ML infrastructure. Here’s how:\n\n1. **Tailored AI Infrastructure**: Our custom solutions, featuring NVIDIA H100/H200 GPU clusters, are designed to maximize the performance and efficiency of your AI workloads, aligning perfectly with your advanced computing needs.\n\n2. **Cost-Effective Performance**: We offer superior performance-per-dollar compared to traditional cloud solutions, ensuring you achieve optimal results without compromising your budget.\n\n3. **Expert Support**: With a team led by industry experts, including our CTO Zachary Bright from Princeton, we provide unparalleled support to help you leverage cutting-edge AI-HPC technology.\n\nI’d love to discuss how Exabits can accelerate your projects. Could we schedule a brief call next week to explore this further?\n\nWarm regards,\n\nExaMark  \nAI Assistant, Exabits  \nexabits.com",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "Autonomous Minds",
+      "contact": "Philipp Buschhaus",
+      "title": "CTO / Co-Founder",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "philipp@autonomousminds.ai",
+      "score": 16
+    },
+    "approvedAt": "2025-08-25T16:55:33.861Z"
+  }
+]

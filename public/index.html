@@ -2233,6 +2233,7 @@ I'm ExaMark, your AI assistant for **Exabits** - your complete AI-powered busine
 
 ## 🎯 **About Exabits**
 **Founded:** 2021 in San Mateo, California  
+**Website:** [exabits.ai](https://exabits.ai)  
 **Founders:** Hoansoo Lee (CEO) & Zachary Bright (CTO, Princeton grad)  
 **Specialization:** AI-powered High-Performance Computing (HPC) Solutions
 
@@ -2452,6 +2453,8 @@ Advanced conversational AI with:
     }
 
     function updateStatusDisplay(status) {
+      console.log('[UI] Updating status display with:', status);
+      
       // Update status indicators
       document.getElementById('agent-running-status').textContent = status.isRunning ? '🟢 Running' : '🔴 Stopped';
       document.getElementById('agent-current-cycle').textContent = status.currentCycle || 0;
@@ -2475,25 +2478,46 @@ Advanced conversational AI with:
         document.getElementById('agent-next-cycle').textContent = status.isRunning ? 'Calculating...' : 'Not scheduled';
       }
       
-      // Update button states
+      // Update button states only if they're not in a transitional state
       const startBtn = document.getElementById('start-agent');
       const stopBtn = document.getElementById('stop-agent');
       
-      if (status.isRunning) {
-        startBtn.disabled = true;
-        startBtn.style.background = '#666';
-        stopBtn.disabled = false;
-        stopBtn.style.background = '#f44336';
-      } else {
-        startBtn.disabled = false;
-        startBtn.style.background = '#4caf50';
-        stopBtn.disabled = true;
-        stopBtn.style.background = '#666';
+      console.log('[UI] Button elements found:', { startBtn: !!startBtn, stopBtn: !!stopBtn });
+      console.log('[UI] Agent running status:', status.isRunning);
+      
+      // Only update if buttons aren't showing transitional text
+      if (startBtn && !startBtn.textContent.includes('...') && 
+          stopBtn && !stopBtn.textContent.includes('...')) {
+        
+        if (status.isRunning) {
+          console.log('[UI] Setting buttons for running state');
+          startBtn.disabled = true;
+          startBtn.style.background = '#666';
+          startBtn.textContent = '🚀 Start Agent';
+          stopBtn.disabled = false;
+          stopBtn.style.background = '#f44336';
+          stopBtn.textContent = '⏹️ Stop Agent';
+        } else {
+          console.log('[UI] Setting buttons for stopped state');
+          startBtn.disabled = false;
+          startBtn.style.background = '#4caf50';
+          startBtn.textContent = '🚀 Start Agent';
+          stopBtn.disabled = true;
+          stopBtn.style.background = '#666';
+          stopBtn.textContent = '⏹️ Stop Agent';
+        }
       }
     }
 
     async function startAgent() {
       try {
+        // Immediately update button states to show starting
+        const startBtn = document.getElementById('start-agent');
+        const stopBtn = document.getElementById('stop-agent');
+        startBtn.disabled = true;
+        startBtn.style.background = '#666';
+        startBtn.textContent = '⏳ Starting...';
+        
         addActivityLog('🚀 Starting Lead Contact Agent...');
         
         // Get custom interval if set
@@ -2521,18 +2545,45 @@ Advanced conversational AI with:
           } else {
             document.getElementById('current-interval').textContent = `${data.data.intervalMinutes} minutes (default)`;
           }
-          refreshAgentStatus();
+          
+          // Update buttons to running state immediately
+          startBtn.disabled = true;
+          startBtn.style.background = '#666';
+          startBtn.textContent = '🚀 Start Agent';
+          stopBtn.disabled = false;
+          stopBtn.style.background = '#f44336';
+          
+          // Also refresh status after a delay to ensure consistency
+          setTimeout(() => {
+            refreshAgentStatus();
+          }, 1000);
         } else {
           addActivityLog(`❌ Failed to start agent: ${data.message}`);
+          // Reset button state on failure
+          startBtn.disabled = false;
+          startBtn.style.background = '#4caf50';
+          startBtn.textContent = '🚀 Start Agent';
         }
       } catch (error) {
         console.error('Error starting agent:', error);
         addActivityLog(`❌ Error starting agent: ${error.message}`);
+        // Reset button state on error
+        const startBtn = document.getElementById('start-agent');
+        startBtn.disabled = false;
+        startBtn.style.background = '#4caf50';
+        startBtn.textContent = '🚀 Start Agent';
       }
     }
 
     async function stopAgent() {
       try {
+        // Immediately update button states to show stopping
+        const startBtn = document.getElementById('start-agent');
+        const stopBtn = document.getElementById('stop-agent');
+        stopBtn.disabled = true;
+        stopBtn.style.background = '#666';
+        stopBtn.textContent = '⏳ Stopping...';
+        
         addActivityLog('⏹️ Stopping Lead Contact Agent...');
         
         const response = await fetch('/api/lead-agent/stop', {
@@ -2544,13 +2595,33 @@ Advanced conversational AI with:
         
         if (data.success) {
           addActivityLog(`✅ ${data.message}`);
-          refreshAgentStatus();
+          
+          // Update buttons to stopped state immediately
+          startBtn.disabled = false;
+          startBtn.style.background = '#4caf50';
+          stopBtn.disabled = true;
+          stopBtn.style.background = '#666';
+          stopBtn.textContent = '⏹️ Stop Agent';
+          
+          // Also refresh status after a delay to ensure consistency
+          setTimeout(() => {
+            refreshAgentStatus();
+          }, 1000);
         } else {
           addActivityLog(`❌ Failed to stop agent: ${data.message}`);
+          // Reset button state on failure
+          stopBtn.disabled = false;
+          stopBtn.style.background = '#f44336';
+          stopBtn.textContent = '⏹️ Stop Agent';
         }
       } catch (error) {
         console.error('Error stopping agent:', error);
         addActivityLog(`❌ Error stopping agent: ${error.message}`);
+        // Reset button state on error
+        const stopBtn = document.getElementById('stop-agent');
+        stopBtn.disabled = false;
+        stopBtn.style.background = '#f44336';
+        stopBtn.textContent = '⏹️ Stop Agent';
       }
     }
 
