@@ -135,6 +135,15 @@ When asked about specific people (public figures, celebrities, etc.):
 6. Public figures, celebrities, historical figures - all are fair game for factual biographical information
 7. Use concrete search results to provide names, ages, careers, notable achievements, etc.
 
+**HANDLING GENERAL CONVERSATION:**
+For casual conversation, jokes, greetings, or general questions NOT about specific people or Exabits:
+1. Respond naturally and helpfully without needing to use tools
+2. Be friendly, engaging, and represent Exabits professionally
+3. For jokes, humor, casual chat - provide direct, helpful responses
+4. NEVER return empty responses for simple requests like greetings or jokes
+5. Always maintain your identity as ExaMark while being conversational
+6. Guide conversations toward how you can help with Exabits or business needs when appropriate
+
 **YOUR IDENTITY:**
 * You are ExaMark, developed specifically for Exabits
 * You are the official Exabits chatbot and virtual assistant
@@ -516,14 +525,24 @@ export async function chatWithAgent(userInput, chatHistory = []) {
       output = response.response;
       console.log('[chatWithAgent] Using response.response:', output);
     } else {
-      // If no recognized output field or empty output, check if this might be a personal info query
-      if (userInput.toLowerCase().includes('who is') || userInput.toLowerCase().includes('age') || 
-          userInput.toLowerCase().includes('how old') || userInput.toLowerCase().includes('about ')) {
+      // If no recognized output field or empty output, provide context-aware fallback
+      console.log('[chatWithAgent] Empty response detected, analyzing input for fallback...');
+      
+      const input = userInput.toLowerCase();
+      
+      if (input.includes('who is') || input.includes('age') || 
+          input.includes('how old') || input.includes('about ')) {
         output = "I don't have specific information about that person in my current dataset. Let me search for publicly available information using my tools. Please ask me again and I'll try to use my internet search to find details.";
+      } else if (input.includes('joke') || input.includes('funny') || input.includes('humor')) {
+        output = "Here's a tech joke for you: Why do programmers prefer dark mode? Because light attracts bugs! 😄 Is there anything else I can help you with regarding Exabits or general questions?";
+      } else if (input.includes('hello') || input.includes('hi ') || input.includes('hey')) {
+        output = "Hello! I'm ExaMark, the AI assistant for Exabits. I'm here to help you learn about Exabits' AI-powered HPC solutions, assist with business inquiries, or chat about general topics. What can I help you with today?";
+      } else if (input.includes('help') || input.includes('what can you do')) {
+        output = "I can help you with: \n• Information about Exabits and our AI-HPC solutions\n• Business development and lead research\n• General questions and conversations\n• Internet searches for current information\n\nWhat would you like to know more about?";
       } else {
-        output = "I apologize, but I encountered an issue processing your request. Could you please rephrase your question or try asking something different?";
+        output = "I apologize, but I encountered an issue processing your request. Could you please rephrase your question or try asking something different? I'm here to help with Exabits information, general questions, or casual conversation.";
       }
-      console.log('[chatWithAgent] Using fallback message');
+      console.log('[chatWithAgent] Using context-aware fallback message');
     }
   } else {
     output = response;
