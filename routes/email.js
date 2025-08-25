@@ -45,4 +45,30 @@ router.get('/logs', async (req, res) => {
   }
 });
 
+// New endpoint to clear email logs
+router.post('/clear-logs', async (req, res) => {
+  console.log('[EMAIL LOGS] POST /clear-logs request received');
+  try {
+    const logPath = path.join(process.cwd(), 'email_logs.json');
+    console.log('[EMAIL LOGS] Clearing logs at:', logPath);
+    
+    // Write empty array to the logs file
+    await fs.writeFile(logPath, '[]', 'utf8');
+    console.log('[EMAIL LOGS] ✅ Successfully cleared email logs');
+    
+    res.json({ 
+      success: true, 
+      message: 'Email logs cleared successfully',
+      clearedCount: 0 // Since we just cleared it
+    });
+  } catch (err) {
+    console.error('[EMAIL LOGS] ❌ Failed to clear logs:', err);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to clear email logs',
+      details: err.message
+    });
+  }
+});
+
 export default router;

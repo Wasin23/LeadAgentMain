@@ -627,9 +627,14 @@
           <div id="outreach-content" class="tab-content" style="display:none;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-shrink:0;">
               <h3 style="margin:0;color:#2196f3;">Email Outreach Log</h3>
-              <button onclick="loadEmailLogs()" style="background:#2196f3;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.9rem;">
-                🔄 Refresh
-              </button>
+              <div style="display:flex;gap:0.5rem;">
+                <button onclick="loadEmailLogs()" style="background:#2196f3;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.9rem;">
+                  🔄 Refresh
+                </button>
+                <button onclick="clearEmailLogs()" style="background:#f44336;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.9rem;">
+                  🗑️ Clear Logs
+                </button>
+              </div>
             </div>
             <div id="email-log-list" style="flex:1;">
               <div style="color:#ccc;font-style:italic;">No emails sent yet.</div>
@@ -2213,6 +2218,39 @@
         });
       } catch (error) {
         console.error('[FRONTEND] Failed to load email logs:', error);
+      }
+    }
+
+    // Clear email logs
+    async function clearEmailLogs() {
+      if (!confirm('Are you sure you want to permanently delete all email logs? This action cannot be undone.')) {
+        return;
+      }
+      
+      try {
+        console.log('[FRONTEND] Clearing email logs...');
+        const response = await fetch('/api/clear-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('[FRONTEND] ✅ Email logs cleared successfully');
+          
+          // Show notification
+          showNotification('✅ Email logs cleared successfully', 'success');
+          
+          // Refresh the email log display
+          loadEmailLogs();
+        } else {
+          console.error('[FRONTEND] ❌ Failed to clear email logs:', result.error);
+          showNotification(`❌ Failed to clear logs: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        console.error('[FRONTEND] ❌ Error clearing email logs:', error);
+        showNotification(`❌ Error clearing logs: ${error.message}`, 'error');
       }
     }
 
