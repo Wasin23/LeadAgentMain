@@ -773,9 +773,11 @@
             <div style="background: #23242a; border-radius: 8px; padding: 1rem; margin-bottom: 2rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0; color: #2196f3;">Queue Management</h3>
-                <button id="refresh-queue" style="background: #666; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
-                  🔄 Refresh
-                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button id="refresh-queue" style="background: #666; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                    🔄 Refresh
+                  </button>
+                </div>
               </div>
               
               <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
@@ -789,7 +791,7 @@
             </div>
             
             <!-- Email List -->
-            <div style="background: #23242a; border-radius: 8px; padding: 1rem;">
+            <div id="ui-edit-mode" style="background: #23242a; border-radius: 8px; padding: 1rem;">
               <h3 style="margin: 0 0 1rem 0; color: #2196f3;">Pending Emails</h3>
               <div id="email-queue-list" style="max-height: 600px; overflow-y: auto;">
                 <div style="color: #888; text-align: center; padding: 2rem; font-style: italic;">
@@ -797,6 +799,7 @@
                 </div>
               </div>
             </div>
+            
           </div>
         </div>
       </div>
@@ -1299,20 +1302,33 @@
       textarea.value = originalText;
       textarea.rows = Math.max(2, originalText.split('\n').length);
       
+      // Track editing state to prevent auto-refresh
+      textarea.addEventListener('focus', () => {
+        isEditingEmail = true;
+      });
+      
+      textarea.addEventListener('blur', () => {
+        // Small delay to prevent immediate refresh during save operations
+        setTimeout(() => {
+          isEditingEmail = false;
+        }, 500);
+      });
+
       // Auto-resize textarea
       textarea.addEventListener('input', () => {
         textarea.style.height = 'auto';
         textarea.style.height = textarea.scrollHeight + 'px';
-      });
-      
-      // Create edit action buttons
+      });      // Create edit action buttons
       const editActions = document.createElement('div');
       editActions.className = 'edit-actions';
       
       const saveBtn = document.createElement('button');
       saveBtn.className = 'edit-btn';
       saveBtn.textContent = 'Save';
-      saveBtn.onclick = () => saveEditedMessage(bubble, textarea.value, messageId);
+      saveBtn.onclick = () => {
+        isEditingEmail = false; // Reset editing flag
+        saveEditedMessage(bubble, textarea.value, messageId);
+      };
       
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'edit-btn cancel';
@@ -1343,6 +1359,8 @@
     }
 
     function cancelEditMessage(bubble) {
+      isEditingEmail = false; // Reset editing flag
+      
       // Remove editing elements
       const textarea = bubble.querySelector('.edit-textarea');
       const editActions = bubble.querySelector('.edit-actions');
@@ -2411,7 +2429,7 @@ Advanced conversational AI with:
             </ul>
             
             <hr>
-            <p><strong>Ready to help!</strong> Ask me anything about Exabits services, or try using my research tools in the sidebar! 🚀</p>
+            <p><strong>Ready to help!</strong> Ask me anything about Exabits services (or visit exabits.ai for more information), or try using my research tools in the sidebar! 🚀</p>
           </div>
         </div>
       `;
@@ -2878,16 +2896,19 @@ Advanced conversational AI with:
     });
 
     // Email Queue functionality
+    let isEditingEmail = false; // Track if user is actively editing an email
+    
     document.addEventListener('DOMContentLoaded', function() {
       // Set up Email Queue event listeners
       document.getElementById('refresh-queue').addEventListener('click', refreshEmailQueue);
       document.getElementById('approve-all').addEventListener('click', approveAllEmails);
       document.getElementById('reject-all').addEventListener('click', rejectAllEmails);
       
-      // Auto-refresh queue every 30 seconds when email queue tab is active
+      // Auto-refresh queue every 30 seconds when email queue tab is active (but not while editing)
       setInterval(() => {
         const queueTab = document.getElementById('emailqueue-content');
-        if (queueTab && queueTab.style.display !== 'none') {
+        const uiMode = document.getElementById('ui-edit-mode');
+        if (queueTab && queueTab.style.display !== 'none' && uiMode && uiMode.style.display !== 'none' && !isEditingEmail) {
           refreshEmailQueue();
         }
       }, 30000);
@@ -3036,8 +3057,10 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         });
         const data = await response.json();
         
-        if (!data.success) {
-          showNotification(`❌ Error updating email: ${data.message}`, 'error');
+        if (!response.ok) {
+          showNotification(`❌ Error updating email: ${data.error || 'Unknown error'}`, 'error');
+        } else {
+          showNotification('✅ Email updated successfully', 'success');
         }
       } catch (error) {
         console.error('Error updating email:', error);
