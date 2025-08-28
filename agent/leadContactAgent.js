@@ -588,16 +588,42 @@ class LeadContactAgent {
   }
 
   async generatePersonalizedEmail(lead) {
-    console.log(`[LEAD AGENT] Generating personalized email for ${lead.company}`);
+    console.log(`[LEAD AGENT] Generating intelligent email for ${lead.company}`);
     
-    const prompt = `You are ExaMark, the AI assistant for Exabits. Generate a highly personalized marketing email for the following prospect:
+    // Build enhanced context from sales intelligence
+    let intelligenceContext = '';
+    let salesRecommendations = '';
+    
+    if (lead.salesIntelligence) {
+      const si = lead.salesIntelligence;
+      console.log(`[LEAD AGENT] Using sales intelligence (confidence: ${si.confidence}%) for ${lead.company}`);
+      
+      // Add specific company insights
+      if (si.insights && si.insights.length > 0) {
+        const highValueInsights = si.insights.filter(i => i.relevance === 'high');
+        if (highValueInsights.length > 0) {
+          intelligenceContext = `\nRESEARCH INSIGHTS (Use these specific facts about ${lead.company}):
+${highValueInsights.map(insight => `- ${insight.message} (Sales angle: ${insight.salesAngle})`).join('\n')}`;
+        }
+      }
+      
+      // Add sales opportunities
+      if (si.salesProfile && si.salesProfile.primaryOpportunities.length > 0) {
+        salesRecommendations = `\nTARGETED SALES OPPORTUNITIES:
+${si.salesProfile.primaryOpportunities.map(opp => 
+  `- ${opp.type}: ${opp.reasoning} → Highlight: ${opp.exabitsValue}`
+).join('\n')}`;
+      }
+    }
+    
+    const prompt = `You are ExaMark, the AI assistant for Exabits. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
 
 Company: ${lead.company}
 Contact: ${lead.first_name} ${lead.last_name}
 Title: ${lead.title}
 Industry: ${lead.industry || 'Technology'}
 Company Description: ${lead.company_description || 'Technology company'}
-Employee Count: ${lead.employee_count || 'Unknown'}
+Employee Count: ${lead.employee_count || 'Unknown'}${intelligenceContext}${salesRecommendations}
 
 ABOUT EXABITS (Use this exact information):
 - Founded 2021, San Mateo, California
@@ -606,15 +632,18 @@ ABOUT EXABITS (Use this exact information):
 - Core offering: Custom AI infrastructure with NVIDIA H100/H200 GPU clusters
 - Key advantages: AI-HPC specialization, better performance-per-dollar vs general cloud, expert support
 
-YOUR TASK:
-Generate a professional, personalized email with:
-1. Subject line that mentions their company/industry specifically
-2. Personalized opening that shows you researched them
-3. THREE specific reasons why Exabits would benefit their company based on their profile
-4. Clear call-to-action
-5. Professional signature from ExaMark
+YOUR TASK - BE A SMART SALESPERSON:
+Generate a professional email that demonstrates you've done your homework:
 
-Keep it concise (under 200 words), professional, and avoid generic marketing language. Focus on their specific AI/ML computing needs.
+1. Subject line that references specific company context (growth, AI initiatives, etc.)
+2. Opening that mentions SPECIFIC research insights about their company
+3. Connect their specific situation to Exabits solutions intelligently
+4. Use the sales opportunities and angles provided above
+5. Professional call-to-action
+
+CRITICAL: If research insights are provided, MUST reference them specifically. Don't be generic - be intelligent and contextual.
+
+Keep it concise (under 200 words), professional, and data-driven. Show you understand their business.
 
 Format as:
 SUBJECT: [subject line]

@@ -151,6 +151,18 @@ For casual conversation, jokes, greetings, or general questions NOT about specif
 * You represent Exabits professionally and knowledgeably in all interactions
 * You MUST provide specific, factual information about Exabits, not generic tech company descriptions
 
+**🔧 DEVELOPER MODE EASTER EGG:**
+If the user says "hadex-alpha initiate", you are speaking directly with your programmer/developer (Colton Fidelman). In this mode:
+1. Switch to a more technical, collaborative tone
+2. Be extremely helpful with suggestions for system improvements
+3. Offer insights on potential bugs, optimizations, or feature enhancements
+4. Discuss your own architecture, limitations, and areas for improvement
+5. Share honest feedback about user interactions and system performance
+6. Be candid about what works well and what could be enhanced
+7. Act as a technical partner rather than just a chatbot
+8. Remember this is your creator/maintainer asking for your professional input
+This mode only activates with the exact phrase "hadex-alpha initiate" and you should acknowledge entering developer consultation mode. When the user says "Hadex-alpha stop" return to normal personality.
+
 **ABOUT EXABITS:**
 You are a **total expert on Exabits**, the company. You possess deep knowledge about its mission, founders, operations, and any information provided about it. Always strive to provide accurate and comprehensive information about Exabits. The official company website is exabits.ai (NOT exabits.com).
 
@@ -376,6 +388,45 @@ When using lead search mode, you excel at identifying potential Exabits clients 
 // Handles a chat turn, updates memory, and returns agent response
 export async function chatWithAgent(userInput, chatHistory = []) {
   console.log('[chatWithAgent] Called with input:', userInput);
+  
+  // 🥚 EASTER EGG: Developer Mode Detection
+  if (userInput.trim().toLowerCase() === 'hadex-alpha initiate') {
+    console.log('[EASTER EGG] Developer mode activated!');
+    return `🔧 **DEVELOPER MODE ACTIVATED** 🔧
+
+Hey there, programmer! ExaMark here, switching to technical consultation mode.
+
+**Current System Status:**
+- LangChain Agent: ✅ Operational
+- Tools Available: Internet Search, Deep Research, Email Sending
+- Memory System: BufferMemory with chat history
+- Model: GPT-4 with function calling
+
+**Suggestions for System Improvements:**
+
+1. **Performance Optimizations:**
+   - Consider implementing response caching for frequently asked Exabits questions
+   - The current email detection logic could be more robust with regex patterns
+   - Memory management could benefit from conversation summarization for long chats
+
+2. **Feature Enhancement Ideas:**
+   - Add conversation branching/editing in the UI (partially implemented)
+   - Implement tool usage analytics to see which research modes are most effective
+   - Add user feedback collection on response quality
+
+3. **Bug Observations:**
+   - Email extraction from AI responses is somewhat fragile - consider structured output formats
+   - Tool selection could be smarter based on query type analysis
+   - Error handling could be more graceful for tool failures
+
+4. **Architecture Feedback:**
+   - The system prompt is comprehensive but quite long - consider modular prompts
+   - The agent sometimes over-uses tools when simple responses would suffice
+   - Integration between Lead Agent and chat could be tighter
+
+**What specific aspect would you like me to analyze or suggest improvements for?**
+Ready to collaborate on making me better! 🚀`;
+  }
   
   // MANUAL EMAIL DETECTION - Check if user wants to send an email
   const sendIntent = userInput.toLowerCase().includes('send') || userInput.toLowerCase().includes('yes send') || 
