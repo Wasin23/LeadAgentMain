@@ -2,14 +2,22 @@
   "type": "module",
   "name": "examark",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.cjs",
+  "homepage": "./",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "electron": "electron .",
+    "electron-dev": "ELECTRON_IS_DEV=true electron .",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux",
+    "dist": "npm run build"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["desktop", "ai", "leads", "automation"],
+  "author": "ExaMark Team",
   "license": "ISC",
-  "description": "",
+  "description": "ExaMark - AI-Powered Lead Research & Email Automation Desktop App",
   "dependencies": {
     "@chroma-core/default-embed": "^0.1.8",
     "@langchain/community": "^0.3.49",
@@ -32,5 +40,55 @@
     "openai": "^5.12.0",
     "pg": "^8.16.3",
     "puppeteer": "^24.16.0"
+  },
+  "devDependencies": {
+    "electron": "^37.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.examark.desktop",
+    "productName": "ExaMark",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "app.js",
+      "package.json",
+      "public/**/*",
+      "routes/**/*",
+      "src/**/*",
+      "tools/**/*",
+      "utils/**/*",
+      "lib/**/*",
+      "agent/**/*",
+      "node_modules/**/*",
+      "*.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".env",
+        "to": ".env",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icons/icon-256x256.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icons/icon-512x512.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/icons/icon-512x512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }
