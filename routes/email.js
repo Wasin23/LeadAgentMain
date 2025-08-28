@@ -71,4 +71,47 @@ router.post('/clear-logs', async (req, res) => {
   }
 });
 
+// New endpoint to clear search cache
+router.post('/clear-search-cache', async (req, res) => {
+  console.log('[CACHE] POST /clear-search-cache request received');
+  try {
+    const cacheDir = path.join(process.cwd(), '.search_cache');
+    console.log('[CACHE] Clearing cache directory:', cacheDir);
+    
+    // Check if directory exists
+    if (await fs.access(cacheDir).then(() => true).catch(() => false)) {
+      // Read directory contents
+      const files = await fs.readdir(cacheDir);
+      console.log(`[CACHE] Found ${files.length} cache files to delete`);
+      
+      // Delete all files in the cache directory
+      for (const file of files) {
+        const filePath = path.join(cacheDir, file);
+        await fs.unlink(filePath);
+      }
+      
+      console.log('[CACHE] ✅ Successfully cleared search cache');
+      res.json({ 
+        success: true, 
+        message: 'Search cache cleared successfully',
+        clearedCount: files.length
+      });
+    } else {
+      console.log('[CACHE] Cache directory does not exist, nothing to clear');
+      res.json({ 
+        success: true, 
+        message: 'Cache directory does not exist',
+        clearedCount: 0
+      });
+    }
+  } catch (err) {
+    console.error('[CACHE] ❌ Failed to clear search cache:', err);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to clear search cache',
+      details: err.message
+    });
+  }
+});
+
 export default router;

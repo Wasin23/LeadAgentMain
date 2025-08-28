@@ -717,7 +717,7 @@
     }
 
     .email-log-timestamp {
-      color: #9ca3af;
+      color: #64748b;
       font-size: 0.8rem;
       margin-top: 0.5rem;
       font-style: italic;
@@ -918,7 +918,7 @@
               <div style="background:rgba(255, 255, 255, 0.7);border-radius:8px;height:8px;overflow:hidden;">
                 <div id="research-progress-bar" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);height:100%;width:0%;transition:width 0.3s ease;"></div>
               </div>
-              <div id="research-current-task" style="font-size:0.85em;color:#ccc;margin-top:0.5rem;font-style:italic;"></div>
+              <div id="research-current-task" style="font-size:0.85em;color:#5a67d8;margin-top:0.5rem;font-style:italic;"></div>
               <div id="research-stats" style="font-size:0.8rem;color:#5a67d8;margin-top:0.5rem;display:none;">
                 <span id="results-found">0 companies found</span> • 
                 <span id="tasks-completed">0/0 tasks</span> • 
@@ -927,7 +927,7 @@
             </div>
             
             <div id="research-results" style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;max-height:400px;overflow-y:auto;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
-              <div style="color:#ccc;font-style:italic;">No research results yet. Start a research session to see structured data here.</div>
+              <div style="color:#5a67d8;font-style:italic;">No research results yet. Start a research session to see structured data here.</div>
             </div>
           </div>
           
@@ -946,12 +946,12 @@
             
             <div style="margin-bottom:1rem;">
               <input type="text" id="deep-research-query" placeholder="Enter research topic or lead search (e.g., 'quantum computing startups', 'CTOs at fintech companies in NYC', 'blockchain development tools')" 
-                style="width:95%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);background:rgba(255, 255, 255, 0.9);color:#374151;border-radius:10px;margin-bottom:0.5rem;transition:border-color 0.3s ease;" 
+                style="width:100%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);background:rgba(255, 255, 255, 0.9);color:#374151;border-radius:10px;margin-bottom:0.5rem;transition:border-color 0.3s ease;box-sizing:border-box;" 
                 onfocus="this.style.borderColor='#5a67d8'" onblur="this.style.borderColor='rgba(90, 103, 216, 0.2)'">
               
               <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
                 <select id="research-mode" style="flex:1;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);background:rgba(255, 255, 255, 0.9);color:#374151;border-radius:10px;">
-                  <option value="fresh">🔥 Fresh Mode (Comprehensive research)</option>
+                  <option value="fresh">🔥 Fresh Mode</option>
                   <option value="lead">� Lead Search (Companies & contacts)</option>
                 </select>
                 <select id="research-limit" style="flex:0 0 120px;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);background:rgba(255, 255, 255, 0.9);color:#374151;border-radius:10px;">
@@ -960,6 +960,10 @@
                   <option value="25" selected>25 results</option>
                   <option value="30">30 results</option>
                 </select>
+                <button id="clear-cache-btn" onclick="clearSearchCache()" style="flex:0 0 120px;background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:#fff;border:none;padding:0.8rem;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:500;transition:transform 0.2s ease;" 
+                  onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                  �️ Clear
+                </button>
               </div>
               
               <button id="start-deep-research" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:10px;cursor:pointer;width:100%;font-weight:600;transition:transform 0.2s ease;" 
@@ -979,7 +983,7 @@
               <div style="background:rgba(255, 255, 255, 0.7);border-radius:8px;height:8px;overflow:hidden;">
                 <div id="deep-research-progress-bar" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);height:100%;width:0%;transition:width 0.3s ease;"></div>
               </div>
-              <div id="deep-research-current-task" style="font-size:0.85em;color:#ccc;margin-top:0.5rem;font-style:italic;"></div>
+              <div id="deep-research-current-task" style="font-size:0.85em;color:#5a67d8;margin-top:0.5rem;font-style:italic;"></div>
               <div id="deep-research-stats" style="font-size:0.8rem;color:#5a67d8;margin-top:0.5rem;display:none;">
                 <span id="deep-sources-found">0 sources</span> • 
                 <span id="deep-variants-used">0 variants</span> • 
@@ -988,7 +992,7 @@
             </div>
             
             <div id="deep-research-results" style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;max-height:500px;overflow-y:auto;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
-              <div style="color:#ccc;font-style:italic;">No deep research results yet. Start a research session to see comprehensive analysis with citations.</div>
+              <div style="color:#5a67d8;font-style:italic;">No deep research results yet. Start a research session to see comprehensive analysis with citations.</div>
             </div>
           </div>
           
@@ -1008,7 +1012,7 @@
               </div>
             </div>
             <div id="email-log-list" style="flex:1;">
-              <div style="color:#ccc;font-style:italic;">No emails sent yet.</div>
+              <div style="color:#5a67d8;font-style:italic;">No emails sent yet.</div>
             </div>
           </div>
           
@@ -1959,7 +1963,7 @@
       window.researchStartTime = Date.now();
 
       // Clear previous results
-      document.getElementById('research-results').innerHTML = '<div style="color:#ccc;font-style:italic;">Research starting...</div>';
+      document.getElementById('research-results').innerHTML = '<div style="color:#5a67d8;font-style:italic;">Research starting...</div>';
 
       try {
         // Start research session
@@ -2086,38 +2090,38 @@
       const resultsEl = document.getElementById('research-results');
       
       if (!results || results.length === 0) {
-        resultsEl.innerHTML = '<div style="color:#ccc;">No companies found matching your criteria.</div>';
+        resultsEl.innerHTML = '<div style="color:#5a67d8;">No companies found matching your criteria.</div>';
         return;
       }
 
       let html = `
-        <div style="margin-bottom:1rem;padding:0.8rem;background:#343541;border-radius:6px;">
-          <strong>Research Summary:</strong><br>
-          Found ${results.length} companies • ${summary?.completedTasks || 0}/${summary?.totalTasks || 0} tasks completed
-          ${summary?.duration ? ` • ${Math.round(summary.duration / 1000)}s duration` : ''}
+        <div style="margin-bottom:1rem;padding:0.8rem;background:rgba(90, 103, 216, 0.1);border-radius:6px;border:1px solid rgba(90, 103, 216, 0.3);">
+          <strong style="color:#5a67d8;">Research Summary:</strong><br>
+          <span style="color:#64748b;">Found ${results.length} companies • ${summary?.completedTasks || 0}/${summary?.totalTasks || 0} tasks completed
+          ${summary?.duration ? ` • ${Math.round(summary.duration / 1000)}s duration` : ''}</span>
         </div>
       `;
 
       results.slice(0, 50).forEach((company, index) => {
         html += `
-          <div style="margin-bottom:1rem;padding:1rem;background:#343541;border-radius:6px;border-left:3px solid #2196f3;">
+          <div style="margin-bottom:1rem;padding:1rem;background:rgba(90, 103, 216, 0.1);border-radius:6px;border-left:3px solid #5a67d8;border:1px solid rgba(90, 103, 216, 0.3);">
             <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.5rem;">
-              <strong style="color:#90caf9;">${company.company_name || 'Unknown Company'}</strong>
-              <span style="background:#444;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem;">
+              <strong style="color:#5a67d8;">${company.company_name || 'Unknown Company'}</strong>
+              <span style="background:rgba(90, 103, 216, 0.2);color:#5a67d8;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.8rem;">
                 ${Math.round((company.confidence || 0) * 100)}% confidence
               </span>
             </div>
             
-            ${company.industry ? `<div style="color:#81c784;font-size:0.9rem;margin-bottom:0.3rem;">${company.industry}</div>` : ''}
-            ${company.size ? `<div style="color:#ccc;font-size:0.85rem;margin-bottom:0.3rem;">Size: ${company.size}</div>` : ''}
-            ${company.description ? `<div style="color:#ccc;font-size:0.85rem;margin-bottom:0.5rem;">${company.description}</div>` : ''}
+            ${company.industry ? `<div style="color:#5a67d8;font-size:0.9rem;margin-bottom:0.3rem;">${company.industry}</div>` : ''}
+            ${company.size ? `<div style="color:#64748b;font-size:0.85rem;margin-bottom:0.3rem;">Size: ${company.size}</div>` : ''}
+            ${company.description ? `<div style="color:#64748b;font-size:0.85rem;margin-bottom:0.5rem;">${company.description}</div>` : ''}
             
             ${company.contacts && company.contacts.length > 0 ? `
               <div style="margin-top:0.5rem;">
-                <strong style="color:#90caf9;font-size:0.9rem;">Contacts:</strong>
+                <strong style="color:#5a67d8;font-size:0.9rem;">Contacts:</strong>
                 ${company.contacts.map(contact => `
                   <div style="margin-left:1rem;margin-top:0.3rem;font-size:0.85rem;">
-                    <span style="color:#81c784;">${contact.name}</span> - ${contact.title}
+                    <span style="color:#5a67d8;">${contact.name}</span> <span style="color:#64748b;">- ${contact.title}</span>
                     ${contact.email ? `<br><a href="mailto:${contact.email}" style="color:#64b5f6;">${contact.email}</a>` : ''}
                     ${contact.linkedin ? `<br><a href="${contact.linkedin}" target="_blank" style="color:#64b5f6;">LinkedIn</a>` : ''}
                   </div>
@@ -2180,7 +2184,7 @@
       window.deepResearchStartTime = Date.now();
 
       // Clear previous results
-      document.getElementById('deep-research-results').innerHTML = '<div style="color:#ccc;font-style:italic;">Deep research starting...</div>';
+      document.getElementById('deep-research-results').innerHTML = '<div style="color:#5a67d8;font-style:italic;">Deep research starting...</div>';
 
       try {
         // Start real-time progress monitoring
@@ -2380,18 +2384,18 @@
       
       return markdown
         // Headers
-        .replace(/^### (.*$)/gm, '<h3 style="color:#4caf50;margin:1rem 0 0.5rem 0;font-size:1.1rem;">$1</h3>')
-        .replace(/^## (.*$)/gm, '<h2 style="color:#2196f3;margin:1.2rem 0 0.6rem 0;font-size:1.2rem;">$1</h2>')
-        .replace(/^# (.*$)/gm, '<h1 style="color:#fff;margin:1.4rem 0 0.8rem 0;font-size:1.3rem;">$1</h1>')
+        .replace(/^### (.*$)/gm, '<h3 style="color:#5a67d8;margin:1rem 0 0.5rem 0;font-size:1.1rem;">$1</h3>')
+        .replace(/^## (.*$)/gm, '<h2 style="color:#5a67d8;margin:1.2rem 0 0.6rem 0;font-size:1.2rem;">$1</h2>')
+        .replace(/^# (.*$)/gm, '<h1 style="color:#5a67d8;margin:1.4rem 0 0.8rem 0;font-size:1.3rem;">$1</h1>')
         // Bold text
-        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#fff;">$1</strong>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#374151;">$1</strong>')
         // Italic text
-        .replace(/\*(.*?)\*/g, '<em style="color:#ccc;">$1</em>')
+        .replace(/\*(.*?)\*/g, '<em style="color:#64748b;">$1</em>')
         // Line breaks and paragraphs
-        .replace(/\n\n/g, '</p><p style="margin:0.5rem 0;line-height:1.5;">')
+        .replace(/\n\n/g, '</p><p style="margin:0.5rem 0;line-height:1.5;color:#374151;">')
         .replace(/\n/g, '<br>')
         // Wrap in paragraph tags
-        .replace(/^(?!<[h123]|<p)(.+)/gm, '<p style="margin:0.5rem 0;line-height:1.5;">$1</p>')
+        .replace(/^(?!<[h123]|<p)(.+)/gm, '<p style="margin:0.5rem 0;line-height:1.5;color:#374151;">$1</p>')
         // Clean up any double paragraph tags
         .replace(/<p[^>]*><\/p>/g, '')
         .replace(/^<\/p>/, '')
@@ -2410,9 +2414,9 @@
       
       let html = `
         <!-- Executive Summary -->
-        <div style="background:#1a1a1a;border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #4caf50;">
-          <h4 style="margin:0 0 0.5rem 0;color:#4caf50;font-size:1rem;"><span class="icon icon-chart"></span> Research Summary</h4>
-          <div style="font-size:0.9rem;line-height:1.5;">${parseMarkdownToHTML(summary)}</div>
+        <div style="background:rgba(90, 103, 216, 0.1);border-radius:6px;padding:1rem;margin-bottom:1rem;border-left:4px solid #5a67d8;border:1px solid rgba(90, 103, 216, 0.3);">
+          <h4 style="margin:0 0 0.5rem 0;color:#5a67d8;font-size:1rem;"><span class="icon icon-chart"></span> Research Summary</h4>
+          <div style="font-size:0.9rem;line-height:1.5;color:#374151;">${parseMarkdownToHTML(summary)}</div>
           <div style="margin-top:0.5rem;font-size:0.8rem;color:#64748b;">
             ${metadata.totalResults} total • ${metadata.uniqueResults} unique • ${sources.length} final results
           </div>
@@ -2420,7 +2424,7 @@
 
         <!-- Source Results -->
         <div style="margin-bottom:1rem;">
-          <h4 style="margin:0 0 0.5rem 0;color:#2196f3;font-size:1rem;"><span class="icon icon-research"></span> Sources (${sources.length})</h4>
+          <h4 style="margin:0 0 0.5rem 0;color:#5a67d8;font-size:1rem;"><span class="icon icon-research"></span> Sources (${sources.length})</h4>
       `;
 
       sources.forEach((result, index) => {
@@ -2439,9 +2443,9 @@
         }[result.source] || '#64748b';
 
         html += `
-          <div style="background:#23242a;border-radius:6px;padding:1rem;margin-bottom:0.8rem;border-left:3px solid ${sourceColor};">
+          <div style="background:rgba(255, 255, 255, 0.8);border-radius:6px;padding:1rem;margin-bottom:0.8rem;border-left:3px solid ${sourceColor};border:1px solid rgba(90, 103, 216, 0.2);backdrop-filter:blur(10px);">
             <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.5rem;">
-              <div style="font-weight:bold;color:#fff;flex:1;margin-right:1rem;">
+              <div style="font-weight:bold;color:#374151;flex:1;margin-right:1rem;">
                 ${sourceIcon} ${result.title}
               </div>
               <div style="font-size:0.75rem;color:${sourceColor};text-transform:uppercase;font-weight:bold;white-space:nowrap;">
@@ -2449,12 +2453,12 @@
               </div>
             </div>
             
-            <div style="color:#ccc;font-size:0.9rem;line-height:1.4;margin-bottom:0.5rem;">
+            <div style="color:#64748b;font-size:0.9rem;line-height:1.4;margin-bottom:0.5rem;">
               ${result.snippet}
             </div>
             
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;color:#64748b;">
-              <a href="${result.url}" target="_blank" style="color:#64b5f6;text-decoration:none;">
+              <a href="${result.url}" target="_blank" style="color:#5a67d8;text-decoration:none;">
                 🔗 View Source
               </a>
             </div>
@@ -2468,8 +2472,8 @@
       if (metadata.sourceBreakdown) {
         html += `
           <div style="margin-top:1rem;">
-            <h4 style="margin:0 0 0.5rem 0;color:#ff9800;font-size:1rem;"><span class="icon icon-chart"></span> Source Breakdown</h4>
-            <div style="font-size:0.85rem;color:#ccc;display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;">
+            <h4 style="margin:0 0 0.5rem 0;color:#5a67d8;font-size:1rem;"><span class="icon icon-chart"></span> Source Breakdown</h4>
+            <div style="font-size:0.85rem;color:#64748b;display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;">
               <div>🌐 Web: ${metadata.sourceBreakdown.web}</div>
               <div>📖 Wikipedia: ${metadata.sourceBreakdown.wikipedia}</div>
               <div>📄 arXiv: ${metadata.sourceBreakdown.arxiv}</div>
@@ -2573,6 +2577,62 @@
       } catch (error) {
         console.error('[FRONTEND] ❌ Error clearing email logs:', error);
         showNotification(`❌ Error clearing logs: ${error.message}`, 'error');
+      }
+    }
+
+    // Clear search cache
+    async function clearSearchCache() {
+      if (!confirm('Are you sure you want to clear the search cache? This will remove all cached search results.')) {
+        return;
+      }
+      
+      try {
+        console.log('[FRONTEND] Clearing search cache...');
+        const response = await fetch('/api/clear-search-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('[FRONTEND] ✅ Search cache cleared successfully');
+          showNotification('✅ Search cache cleared successfully', 'success');
+        } else {
+          console.error('[FRONTEND] ❌ Failed to clear search cache:', result.error);
+          showNotification(`❌ Failed to clear cache: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        console.error('[FRONTEND] ❌ Error clearing search cache:', error);
+        showNotification(`❌ Error clearing cache: ${error.message}`, 'error');
+      }
+    }
+
+    // Clear search cache
+    async function clearSearchCache() {
+      if (!confirm('Clear search cache? This will remove all cached research results.')) {
+        return;
+      }
+      
+      try {
+        console.log('[FRONTEND] Clearing search cache...');
+        const response = await fetch('/api/clear-search-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('[FRONTEND] ✅ Search cache cleared successfully');
+          showNotification(`✅ Cache cleared: ${result.clearedCount} files deleted`, 'success');
+        } else {
+          console.error('[FRONTEND] ❌ Failed to clear cache:', result.error);
+          showNotification(`❌ Failed to clear cache: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        console.error('[FRONTEND] ❌ Error clearing cache:', error);
+        showNotification(`❌ Error: ${error.message}`, 'error');
       }
     }
 
@@ -2755,6 +2815,13 @@ Advanced conversational AI with:
     // Load email logs and show welcome message when page loads
     document.addEventListener('DOMContentLoaded', function() {
       console.log('DOM loaded, initializing...');
+      
+      // Fix clear cache button text
+      const clearCacheBtn = document.getElementById('clear-cache-btn');
+      if (clearCacheBtn) {
+        clearCacheBtn.textContent = 'Clear Cache';
+      }
+      
       loadEmailLogs();
       
       // Add a longer delay to ensure all libraries are loaded and page is ready
@@ -3257,10 +3324,10 @@ Advanced conversational AI with:
         const recipient = email.finalRecipient || email.leadEmail || '';
         
         return `
-        <div style="background: #2d2d30; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #ff9800;" data-email-id="${email.id}">
+        <div style="background: rgba(90, 103, 216, 0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #5a67d8; border: 1px solid rgba(90, 103, 216, 0.3); backdrop-filter: blur(10px);" data-email-id="${email.id}">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
             <div>
-              <h4 style="margin: 0 0 0.5rem 0; color: #2196f3;">To: ${email.leadEmail}</h4>
+              <h4 style="margin: 0 0 0.5rem 0; color: #5a67d8;">To: ${email.leadEmail}</h4>
               <div style="color: #64748b; font-size: 0.9rem;">
                 ${email.leadCompany} • Added ${new Date(email.timestamp).toLocaleString()}
               </div>
@@ -3276,33 +3343,33 @@ Advanced conversational AI with:
           </div>
           
           <div style="margin-bottom: 1rem;">
-            <strong style="color: #2196f3;">Send To:</strong>
-            <div style="background: #40414f; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
+            <strong style="color: #5a67d8;">Send To:</strong>
+            <div style="background: rgba(255, 255, 255, 0.8); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; border: 1px solid rgba(90, 103, 216, 0.2);">
               <input type="email" value="${recipient}" onchange="updateEmailField('${email.id}', 'finalRecipient', this.value)" 
                 placeholder="Enter email address"
-                style="background: transparent; border: none; color: #fff; width: 100%; font-size: 0.9rem;">
+                style="background: transparent; border: none; color: #374151; width: 100%; font-size: 0.9rem;">
             </div>
           </div>
           
           <div style="margin-bottom: 1rem;">
-            <strong style="color: #2196f3;">Subject:</strong>
-            <div style="background: #40414f; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
+            <strong style="color: #5a67d8;">Subject:</strong>
+            <div style="background: rgba(255, 255, 255, 0.8); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; border: 1px solid rgba(90, 103, 216, 0.2);">
               <input type="text" value="${escapedSubject}" onchange="updateEmailField('${email.id}', 'finalSubject', this.value)" 
-                style="background: transparent; border: none; color: #fff; width: 100%; font-size: 0.9rem;">
+                style="background: transparent; border: none; color: #374151; width: 100%; font-size: 0.9rem;">
             </div>
           </div>
           
           <div style="margin-bottom: 1rem;">
-            <strong style="color: #2196f3;">Message:</strong>
-            <div style="background: #40414f; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
+            <strong style="color: #5a67d8;">Message:</strong>
+            <div style="background: rgba(255, 255, 255, 0.8); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; border: 1px solid rgba(90, 103, 216, 0.2);">
               <textarea onchange="updateEmailField('${email.id}', 'finalBody', this.value)" 
-                style="background: transparent; border: none; color: #fff; width: 100%; min-height: 120px; resize: vertical; font-family: inherit; font-size: 0.9rem;">${escapedBody}</textarea>
+                style="background: transparent; border: none; color: #374151; width: 100%; min-height: 120px; resize: vertical; font-family: inherit; font-size: 0.9rem;">${escapedBody}</textarea>
             </div>
           </div>
           
-          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #565869; font-size: 0.8rem; color: #64748b;">
+          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(90, 103, 216, 0.3); font-size: 0.8rem; color: #64748b;">
             <strong>Lead Research:</strong><br>
-            <div style="background: #1a1a1a; padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow-y: auto;">
+            <div style="background: rgba(255, 255, 255, 0.6); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow-y: auto; color: #374151; border: 1px solid rgba(90, 103, 216, 0.2);">
 ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research data'}
             </div>
           </div>
