@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExaMark - Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: white;
+      padding: 20px 40px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      color: #1e293b;
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .user-info {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+      background: #5a67d8;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #4c51bf;
+    }
+    
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #374151;
+    }
+    
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+    
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 40px;
+    }
+    
+    .settings-nav {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      height: fit-content;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-item {
+      display: block;
+      padding: 12px 16px;
+      margin-bottom: 5px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #64748b;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .nav-item:hover,
+    .nav-item.active {
+      background: #f1f5f9;
+      color: #5a67d8;
+    }
+    
+    .settings-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section {
+      display: none;
+    }
+    
+    .section.active {
+      display: block;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 25px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #374151;
+      font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #5a67d8;
+    }
+    
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    .form-description {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-top: 5px;
+    }
+    
+    .api-key-group {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    
+    .api-status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .status-set {
+      background: #d1fae5;
+      color: #059669;
+    }
+    
+    .status-missing {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .master-password-section {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+    
+    .master-password-section h3 {
+      color: #92400e;
+      margin-bottom: 10px;
+    }
+    
+    .master-password-section p {
+      color: #78350f;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+    
+    .master-password-input {
+      display: none;
+    }
+    
+    .master-password-input.show {
+      display: block;
+    }
+    
+    .success-message,
+    .error-message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    
+    .success-message {
+      background: #d1fae5;
+      color: #059669;
+      border-left: 4px solid #059669;
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      color: #dc2626;
+      border-left: 4px solid #dc2626;
+    }
+    
+    .save-btn {
+      background: #10b981;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .save-btn:hover {
+      background: #059669;
+    }
+    
+    .save-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Settings</h1>
+    <div class="header-actions">
+      <span class="user-info" id="user-info">Loading...</span>
+      <button class="btn btn-secondary" onclick="goBack()">← Back to App</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="settings-grid">
+      <div class="settings-nav">
+        <div class="nav-item active" onclick="showSection('api-keys')">API Keys</div>
+        <div class="nav-item" onclick="showSection('ai-personality')">AI Personality</div>
+        <div class="nav-item" onclick="showSection('preferences')">Preferences</div>
+      </div>
+      
+      <div class="settings-content">
+        <!-- API Keys Section -->
+        <div id="api-keys-section" class="section active">
+          <h2 class="section-title">API Configuration</h2>
+          <p style="color: #6b7280; margin-bottom: 30px;">
+            Configure your own API keys to use ExaMark. Your keys are stored locally and never shared.
+          </p>
+          
+          <div id="api-message"></div>
+          
+          <form onsubmit="saveApiKeys(event)">
+            <div class="form-group">
+              <label for="openai-key">OpenAI API Key</label>
+              <div class="api-key-group">
+                <input type="password" id="openai-key" placeholder="sk-...">
+                <span class="api-status status-missing" id="openai-status">Not Set</span>
+              </div>
+              <div class="form-description">
+                Required for AI chat and lead research. Get your key at <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="serper-key">Serper.dev API Key</label>
+              <div class="api-key-group">
+                <input type="password" id="serper-key" placeholder="Your Serper API key">
+                <span class="api-status status-missing" id="serper-status">Not Set</span>
+              </div>
+              <div class="form-description">
+                Required for internet search and company research. Get your key at <a href="https://serper.dev" target="_blank">Serper.dev</a>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="apollo-key">Apollo API Key</label>
+              <div class="api-key-group">
+                <input type="password" id="apollo-key" placeholder="Your Apollo API key">
+                <span class="api-status status-missing" id="apollo-status">Not Set</span>
+              </div>
+              <div class="form-description">
+                Required for lead discovery. Get your key at <a href="https://www.apollo.io" target="_blank">Apollo.io</a>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="mailgun-key">Mailgun API Key (Optional)</label>
+              <div class="api-key-group">
+                <input type="password" id="mailgun-key" placeholder="Your Mailgun API key">
+                <span class="api-status status-missing" id="mailgun-status">Not Set</span>
+              </div>
+              <div class="form-description">
+                For email sending via Mailgun. Get your key at <a href="https://app.mailgun.com" target="_blank">Mailgun</a>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="sendgrid-key">SendGrid API Key (Optional)</label>
+              <div class="api-key-group">
+                <input type="password" id="sendgrid-key" placeholder="Your SendGrid API key">
+                <span class="api-status status-missing" id="sendgrid-status">Not Set</span>
+              </div>
+              <div class="form-description">
+                Alternative email service. Get your key at <a href="https://sendgrid.com" target="_blank">SendGrid</a>
+              </div>
+            </div>
+            
+            <button type="submit" class="save-btn" id="api-save-btn">
+              Save API Keys
+            </button>
+          </form>
+        </div>
+        
+        <!-- AI Personality Section -->
+        <div id="ai-personality-section" class="section">
+          <h2 class="section-title">AI Personality</h2>
+          
+          <div class="master-password-section">
+            <h3>🔒 Master Password Required</h3>
+            <p>This section requires a master password to prevent unauthorized changes to the AI behavior.</p>
+            <button class="btn btn-primary" onclick="requestMasterPassword()">
+              Unlock AI Settings
+            </button>
+            <div class="master-password-input" id="master-password-input">
+              <div class="form-group">
+                <input type="password" id="master-password" placeholder="Enter master password">
+                <button type="button" class="btn btn-primary" onclick="verifyMasterPassword()">
+                  Verify
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div id="ai-settings" style="display: none;">
+            <div id="ai-message"></div>
+            
+            <form onsubmit="saveAiPersonality(event)">
+              <div class="form-group">
+                <label for="system-prompt">System Prompt</label>
+                <textarea id="system-prompt" placeholder="Define the AI's personality, behavior, and instructions..."></textarea>
+                <div class="form-description">
+                  This controls how the AI behaves and responds. Be specific about the role, tone, and capabilities.
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="temperature">Temperature (Creativity)</label>
+                <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
+                <div class="form-description">
+                  0 = More focused and deterministic, 1 = More creative and varied
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="max-tokens">Max Tokens</label>
+                <input type="number" id="max-tokens" min="100" max="4000" value="2000">
+                <div class="form-description">
+                  Maximum length of AI responses (higher = longer responses, more expensive)
+                </div>
+              </div>
+              
+              <button type="submit" class="save-btn" id="ai-save-btn">
+                Save AI Personality
+              </button>
+            </form>
+          </div>
+        </div>
+        
+        <!-- Preferences Section -->
+        <div id="preferences-section" class="section">
+          <h2 class="section-title">Preferences</h2>
+          
+          <div id="pref-message"></div>
+          
+          <form onsubmit="savePreferences(event)">
+            <div class="form-group">
+              <label for="theme">Theme</label>
+              <select id="theme">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="email-signature">Email Signature</label>
+              <textarea id="email-signature" placeholder="Your email signature..."></textarea>
+              <div class="form-description">
+                This will be added to outbound emails automatically
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="lead-limit">Default Lead Search Limit</label>
+              <input type="number" id="lead-limit" min="5" max="50" value="10">
+              <div class="form-description">
+                Number of leads to fetch in search results
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="auto-save">Auto-save Interval (minutes)</label>
+              <input type="number" id="auto-save" min="1" max="60" value="5">
+              <div class="form-description">
+                How often to automatically save your work
+              </div>
+            </div>
+            
+            <button type="submit" class="save-btn" id="pref-save-btn">
+              Save Preferences
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    
+    // Initialize page
+    window.addEventListener('load', async () => {
+      // Check authentication
+      const userStr = localStorage.getItem('currentUser');
+      if (!userStr) {
+        window.location.href = '/auth.html';
+        return;
+      }
+      
+      currentUser = JSON.parse(userStr);
+      document.getElementById('user-info').textContent = currentUser.username;
+      
+      if (!currentUser.isGuest) {
+        await loadUserSettings();
+      } else {
+        // For guest users, show message that settings won't be saved
+        document.querySelectorAll('.section').forEach(section => {
+          const message = document.createElement('div');
+          message.className = 'error-message';
+          message.textContent = 'Guest mode: Settings will not be saved. Create an account to save your configuration.';
+          section.insertBefore(message, section.querySelector('form') || section.firstChild);
+        });
+      }
+    });
+    
+    async function loadUserSettings() {
+      try {
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const settings = data.settings;
+          
+          // Load API key statuses
+          Object.keys(settings.apiKeys).forEach(key => {
+            const status = document.getElementById(key.replace('_', '-') + '-status');
+            if (status) {
+              if (settings.apiKeys[key] === '***set***') {
+                status.textContent = 'Set';
+                status.className = 'api-status status-set';
+              } else {
+                status.textContent = 'Not Set';
+                status.className = 'api-status status-missing';
+              }
+            }
+          });
+          
+          // Load AI personality settings
+          document.getElementById('system-prompt').value = settings.aiPersonality.systemPrompt || '';
+          document.getElementById('temperature').value = settings.aiPersonality.temperature || 0.7;
+          document.getElementById('max-tokens').value = settings.aiPersonality.maxTokens || 2000;
+          
+          // Load preferences
+          document.getElementById('theme').value = settings.preferences.theme || 'dark';
+          document.getElementById('email-signature').value = settings.preferences.emailSignature || '';
+          document.getElementById('lead-limit').value = settings.preferences.defaultLeadLimit || 10;
+          document.getElementById('auto-save').value = (settings.preferences.autoSaveInterval || 300000) / 60000;
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    }
+    
+    function showSection(sectionName) {
+      // Update nav
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      // Update sections
+      document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+      document.getElementById(sectionName + '-section').classList.add('active');
+    }
+    
+    function goBack() {
+      window.location.href = '/';
+    }
+    
+    function showMessage(elementId, message, isError = false) {
+      const messageDiv = document.getElementById(elementId);
+      messageDiv.className = isError ? 'error-message' : 'success-message';
+      messageDiv.textContent = message;
+      messageDiv.style.display = 'block';
+      
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+    
+    async function saveApiKeys(event) {
+      event.preventDefault();
+      
+      if (currentUser.isGuest) {
+        showMessage('api-message', 'Create an account to save API keys', true);
+        return;
+      }
+      
+      const apiKeys = {
+        openai: document.getElementById('openai-key').value,
+        serper: document.getElementById('serper-key').value,
+        apollo: document.getElementById('apollo-key').value,
+        mailgun: document.getElementById('mailgun-key').value,
+        sendgrid: document.getElementById('sendgrid-key').value
+      };
+      
+      const btn = document.getElementById('api-save-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span>Saving...';
+      
+      try {
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}/api-keys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKeys })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showMessage('api-message', 'API keys saved successfully!');
+          await loadUserSettings(); // Refresh status indicators
+        } else {
+          showMessage('api-message', data.error || 'Failed to save API keys', true);
+        }
+      } catch (error) {
+        showMessage('api-message', 'Network error. Please try again.', true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Save API Keys';
+      }
+    }
+    
+    function requestMasterPassword() {
+      document.getElementById('master-password-input').classList.add('show');
+    }
+    
+    async function verifyMasterPassword() {
+      const password = document.getElementById('master-password').value;
+      
+      try {
+        const response = await fetch('/api/auth/verify-master-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.valid) {
+          document.querySelector('.master-password-section').style.display = 'none';
+          document.getElementById('ai-settings').style.display = 'block';
+        } else {
+          showMessage('ai-message', 'Invalid master password', true);
+        }
+      } catch (error) {
+        showMessage('ai-message', 'Network error. Please try again.', true);
+      }
+    }
+    
+    async function saveAiPersonality(event) {
+      event.preventDefault();
+      
+      if (currentUser.isGuest) {
+        showMessage('ai-message', 'Create an account to save AI personality', true);
+        return;
+      }
+      
+      const masterPassword = document.getElementById('master-password').value;
+      const aiPersonality = {
+        systemPrompt: document.getElementById('system-prompt').value,
+        temperature: parseFloat(document.getElementById('temperature').value),
+        maxTokens: parseInt(document.getElementById('max-tokens').value)
+      };
+      
+      const btn = document.getElementById('ai-save-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span>Saving...';
+      
+      try {
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}/ai-personality`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ masterPassword, aiPersonality })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showMessage('ai-message', 'AI personality saved successfully!');
+        } else {
+          showMessage('ai-message', data.error || 'Failed to save AI personality', true);
+        }
+      } catch (error) {
+        showMessage('ai-message', 'Network error. Please try again.', true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Save AI Personality';
+      }
+    }
+    
+    async function savePreferences(event) {
+      event.preventDefault();
+      
+      if (currentUser.isGuest) {
+        showMessage('pref-message', 'Create an account to save preferences', true);
+        return;
+      }
+      
+      const preferences = {
+        theme: document.getElementById('theme').value,
+        emailSignature: document.getElementById('email-signature').value,
+        defaultLeadLimit: parseInt(document.getElementById('lead-limit').value),
+        autoSaveInterval: parseInt(document.getElementById('auto-save').value) * 60000
+      };
+      
+      const btn = document.getElementById('pref-save-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span>Saving...';
+      
+      try {
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}/preferences`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferences })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showMessage('pref-message', 'Preferences saved successfully!');
+        } else {
+          showMessage('pref-message', data.error || 'Failed to save preferences', true);
+        }
+      } catch (error) {
+        showMessage('pref-message', 'Network error. Please try again.', true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Save Preferences';
+      }
+    }
+  </script>
+</body>
+</html>

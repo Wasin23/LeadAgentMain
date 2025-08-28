@@ -71,8 +71,8 @@ router.post('/chat', async (req, res) => {
     if (!userHistories[userId]) userHistories[userId] = [];
     const chatHistory = userHistories[userId];
 
-    // Normal chat with AI agent - NOW WITH WORKING EMAIL FUNCTIONALITY
-    const response = await chatWithAgent(userInput, chatHistory);
+    // Normal chat with AI agent - NOW WITH WORKING EMAIL FUNCTIONALITY AND USER-SPECIFIC SETTINGS
+    const response = await chatWithAgent(userInput, chatHistory, userId);
     chatHistory.push({ input: userInput, output: response });
     userHistories[userId] = chatHistory;
 

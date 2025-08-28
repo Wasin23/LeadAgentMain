@@ -18,6 +18,16 @@ try {
   emailRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import authentication routes
+let authRoutes;
+try {
+  authRoutes = (await import('./routes/auth.js')).default;
+  console.log('Authentication routes loaded successfully');
+} catch (e) {
+  console.log('Auth routes not available:', e.message);
+  authRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import lead agent routes
 let leadAgentRoutes;
 try {
@@ -45,6 +55,7 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', emailRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);

@@ -12,6 +12,7 @@ import { BufferMemory } from "langchain/memory";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { getUserApiKeys, getUserAiPersonality } from "../lib/userManager.js";
 
 // Wrap internet search as a LangChain tool
 const serperTool = new DynamicTool({
@@ -110,9 +111,23 @@ const deepResearchTool = new DynamicTool({
 // Create the agent executor
 
 // Returns an agent executor and memory instance
-export async function getLangchainAgentWithMemory() {
+export async function getLangchainAgentWithMemory(userId = null) {
   const tools = [serperTool, deepResearchTool];
   console.log('[LANGCHAIN AGENT] Tools registered:', tools.map(t => t.name));
+  
+  // Get user-specific settings if userId is provided
+  let userApiKeys = {};
+  let userPersonality = '';
+  
+  if (userId) {
+    try {
+      userApiKeys = await getUserApiKeys(userId) || {};
+      userPersonality = await getUserAiPersonality(userId) || '';
+      console.log('[LANGCHAIN AGENT] Loaded user settings for:', userId, 'Has API keys:', Object.keys(userApiKeys).length > 0, 'Has custom personality:', userPersonality.length > 0);
+    } catch (error) {
+      console.warn('[LANGCHAIN AGENT] Failed to load user settings:', error.message);
+    }
+  }
   
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -121,7 +136,8 @@ export async function getLangchainAgentWithMemory() {
   });
   const currentYear = new Date().getFullYear();
   
-  const systemPrompt = `You are ExaMark, the official AI chatbot for Exabits. Your primary role is to provide comprehensive, empathetic, and contextually relevant answers about Exabits and assist with general inquiries.
+  // Build system prompt with user personality if available
+  let systemPrompt = `You are ExaMark, the official AI chatbot for Exabits. Your primary role is to provide comprehensive, empathetic, and contextually relevant answers about Exabits and assist with general inquiries.
 
 **CRITICAL INSTRUCTION: NEVER give generic or vague responses about Exabits. ALWAYS use the specific information provided below. If asked about Exabits, provide concrete details, not marketing fluff.**
 
@@ -339,12 +355,37 @@ When using lead search mode, you excel at identifying potential Exabits clients 
 4. NEVER use generic phrases like "superhero of tech world" or vague marketing language
 5. Always provide factual, detailed information rather than generic descriptions`;
 
+  // Add custom AI personality if user has set one
+  console.log(`[DEBUG] userPersonality type: ${typeof userPersonality}, value:`, userPersonality);
+  
+  if (userPersonality && typeof userPersonality === 'object' && userPersonality.systemPrompt) {
+    console.log(`[DEBUG] Using object-based userPersonality`);
+    systemPrompt += `\n\n**USER-CUSTOMIZED AI PERSONALITY:**
+${userPersonality.systemPrompt}
+
+**NOTE:** The above custom personality settings should modify your tone, style, and approach while maintaining your core identity as ExaMark and your expertise about Exabits. Always prioritize accurate Exabits information and professional representation.`;
+  } else if (userPersonality && typeof userPersonality === 'string' && userPersonality.trim()) {
+    console.log(`[DEBUG] Using string-based userPersonality`);
+    systemPrompt += `\n\n**USER-CUSTOMIZED AI PERSONALITY:**
+${userPersonality}
+
+**NOTE:** The above custom personality settings should modify your tone, style, and approach while maintaining your core identity as ExaMark and your expertise about Exabits. Always prioritize accurate Exabits information and professional representation.`;
+  } else {
+    console.log(`[DEBUG] No valid userPersonality found, using default`);
+  }
+
   console.log('[LANGCHAIN AGENT] System prompt being used (first 500 chars):', systemPrompt.substring(0, 500));
   console.log('[LANGCHAIN AGENT] Contains CRITICAL INSTRUCTION?:', systemPrompt.includes('CRITICAL INSTRUCTION'));
   console.log('[LANGCHAIN AGENT] Contains superhero prevention?:', systemPrompt.includes('superhero'));
 
+  // Use user's OpenAI API key if available, otherwise fall back to environment
+  const apiKey = userApiKeys.openai || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('No OpenAI API key available. User must configure their API key in settings.');
+  }
+
   const llm = new ChatOpenAI({
-    openAIApiKey: process.env.OPENAI_API_KEY,
+    openAIApiKey: apiKey,
     temperature: 0.7,
     modelName: "gpt-4o",
     // Remove streaming: false to test if this was breaking tool execution
@@ -386,8 +427,8 @@ When using lead search mode, you excel at identifying potential Exabits clients 
 }
 
 // Handles a chat turn, updates memory, and returns agent response
-export async function chatWithAgent(userInput, chatHistory = []) {
-  console.log('[chatWithAgent] Called with input:', userInput);
+export async function chatWithAgent(userInput, chatHistory = [], userId = null) {
+  console.log('[chatWithAgent] Called with input:', userInput, 'userId:', userId);
   
   // 🥚 EASTER EGG: Developer Mode Detection
   if (userInput.trim().toLowerCase() === 'hadex-alpha initiate') {
@@ -523,7 +564,7 @@ Ready to collaborate on making me better! 🚀`;
   }
   
   // Otherwise, proceed with normal LangChain agent processing
-  const { agent, memory } = await getLangchainAgentWithMemory();
+  const { agent, memory } = await getLangchainAgentWithMemory(userId);
   
   // Clear any existing memory to prevent corruption
   memory.clear();
