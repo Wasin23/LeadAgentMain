@@ -48,6 +48,138 @@
     .icon-user { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-trending { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-mail { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M20 4L8.12 15.88M14.47 14.48L20 20M8.12 15.88L3 21'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
+
+    /* Loading Spinner CSS */
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(90, 103, 216, 0.2);
+      border-radius: 50%;
+      border-top-color: #5a67d8;
+      animation: spin 1s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .loading-spinner.large {
+      width: 24px;
+      height: 24px;
+      border-width: 3px;
+    }
+
+    .loading-spinner.auth {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #ffffff;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Hide loading spinner when not needed */
+    .loading-spinner.hidden {
+      display: none;
+    }
+
+    /* Thinking logs dropdown */
+    .thinking-logs-container {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 10;
+    }
+
+    .thinking-logs-toggle {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #5f6368;
+      transition: all 0.2s ease;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .thinking-logs-toggle:hover {
+      background: rgba(248, 249, 250, 1);
+      border-color: rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .thinking-arrow {
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid #5f6368;
+      transition: transform 0.2s ease;
+    }
+
+    .thinking-logs-toggle.open .thinking-arrow {
+      transform: rotate(180deg);
+    }
+
+    .thinking-logs-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: white;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      min-width: 350px;
+      max-width: 500px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      margin-top: 0;
+    }
+
+    .thinking-logs-dropdown.show {
+      display: block;
+    }
+
+    .thinking-logs-header {
+      font-weight: 500;
+      color: #202124;
+      padding: 12px 16px 8px 16px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+      background: #f8f9fa;
+    }
+
+    .thinking-logs-content {
+      font-size: 13px;
+      line-height: 1.4;
+      color: #3c4043;
+      white-space: pre-wrap;
+      font-family: 'Roboto Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      padding: 12px 16px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    /* Position thinking logs in AI bubbles - make bubble relative */
+    .bubble.ai {
+      position: relative;
+    }
+
+    /* Hide thinking logs on mobile */
+    @media (max-width: 768px) {
+      .thinking-logs-container {
+        display: none;
+      }
+    }
     .icon-tool { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
 
     * {
@@ -324,50 +456,91 @@
       color: white;
       align-self: flex-end;
       box-shadow: 0 4px 15px rgba(90, 103, 216, 0.3);
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      max-width: 70%;
     }
 
     .bubble.ai {
-      background: rgba(255, 255, 255, 0.95);
+      background: transparent;
       color: #1f2937;
       align-self: flex-start;
       border: none;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
+      max-width: 65%;
+    }
+
+    .bubble.ai.thinking {
+      background: rgba(248, 250, 252, 0.8);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      max-width: 60%;
     }
 
     .message-content {
       word-spacing: normal;
-      line-height: 1.6;
+      line-height: 1.5;
     }
 
     .message-content h1 {
       font-size: 1.5em;
       font-weight: bold;
-      margin: 0.8em 0 0.4em 0;
+      margin: 0.6em 0 0.3em 0;
     }
 
     .message-content h2 {
       font-size: 1.3em;
       font-weight: bold;
-      margin: 0.7em 0 0.3em 0;
+      margin: 0.5em 0 0.25em 0;
     }
 
     .message-content h3 {
       font-size: 1.1em;
       font-weight: bold;
-      margin: 0.6em 0 0.3em 0;
+      margin: 0.4em 0 0.2em 0;
     }
 
     .message-content p {
-      margin: 0.5em 0;
+      margin: 0.4em 0;
     }
 
     .message-content ul {
-      margin: 0.5em 0;
+      margin: 0.3em 0;
       padding-left: 1.5em;
     }
 
     .message-content li {
-      margin: 0.2em 0;
+      margin: 0.15em 0;
+    }
+
+    /* Ensure headers are always left-aligned, even after lists */
+    .message-content h1, 
+    .message-content h2, 
+    .message-content h3 {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      text-indent: 0 !important;
+      clear: both;
+      display: block;
+    }
+
+    .message-content table {
+      margin: 0.3em 0;
+      border-collapse: collapse;
+    }
+
+    .message-content td, .message-content th {
+      padding: 0.3em 0.5em;
+      border: 1px solid #e2e8f0;
+    }
+
+    .message-content th {
+      background-color: #f8fafc;
+      font-weight: 600;
     }
 
     .message-content pre {
@@ -1233,6 +1406,84 @@
     const historyList = document.getElementById('history-list');
     let chatHistory = [];
 
+    // Chat history persistence functions
+    function saveChatHistory() {
+      try {
+        localStorage.setItem('examark_chat_history', JSON.stringify(chatHistory));
+      } catch (error) {
+        console.error('Failed to save chat history:', error);
+      }
+    }
+
+    function loadChatHistory() {
+      try {
+        // First check if server session has changed
+        fetch('/api/session')
+          .then(response => response.json())
+          .then(data => {
+            const currentSessionId = data.sessionId;
+            const savedSessionId = localStorage.getItem('examark_server_session');
+            
+            if (savedSessionId !== currentSessionId) {
+              // Server restarted - clear chat history
+              console.log('Server session changed, clearing chat history');
+              localStorage.removeItem('examark_chat_history');
+              localStorage.setItem('examark_server_session', currentSessionId);
+              chatHistory = [];
+              chat.innerHTML = '';
+              updateHistoryTab();
+              return;
+            }
+            
+            // Session is same, load saved chat history
+            const saved = localStorage.getItem('examark_chat_history');
+            if (saved) {
+              chatHistory = JSON.parse(saved);
+              restoreChatMessages();
+            }
+          })
+          .catch(error => {
+            console.error('Failed to check server session:', error);
+            // Fallback to normal loading if session check fails
+            const saved = localStorage.getItem('examark_chat_history');
+            if (saved) {
+              chatHistory = JSON.parse(saved);
+              restoreChatMessages();
+            }
+          });
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        chatHistory = [];
+      }
+    }
+
+    function restoreChatMessages() {
+      // Clear existing chat
+      chat.innerHTML = '';
+      
+      // Restore messages from history
+      chatHistory.forEach(msg => {
+        if (msg.userMessageId && msg.input) {
+          appendMessage(msg.input, 'user', msg.userMessageId);
+        }
+        if (msg.aiMessageId && msg.output) {
+          appendMessage(msg.output, 'ai', msg.aiMessageId);
+        }
+      });
+      
+      // Update the history tab
+      updateHistoryTab();
+    }
+
+    function clearChatHistory() {
+      if (confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
+        chatHistory = [];
+        chat.innerHTML = '';
+        localStorage.removeItem('examark_chat_history');
+        updateHistoryTab();
+      }
+    }
+
     // Auto-resize textarea functionality
     function autoResize() {
       input.style.height = 'auto';
@@ -1263,7 +1514,100 @@
       // Show thinking indicator
       const thinkingBubble = document.createElement('div');
       thinkingBubble.className = 'bubble ai thinking';
-      thinkingBubble.innerHTML = '<div class="message-content">⏳ Thinking...</div>';
+      
+      const thinkingContent = document.createElement('div');
+      thinkingContent.className = 'message-content';
+      thinkingContent.style.display = 'flex';
+      thinkingContent.style.alignItems = 'center';
+      thinkingContent.style.gap = '8px';
+      
+      const spinnerAndText = document.createElement('div');
+      spinnerAndText.style.display = 'flex';
+      spinnerAndText.style.alignItems = 'center';
+      spinnerAndText.style.gap = '8px';
+      spinnerAndText.innerHTML = '<div class="loading-spinner"></div>Thinking...';
+      
+      const thinkingDropdownArrow = document.createElement('div');
+      thinkingDropdownArrow.style.cssText = `
+        width: 0; height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4px solid #666;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        margin-left: auto;
+      `;
+      thinkingDropdownArrow.title = 'View thinking process';
+      
+      const thinkingLogs = document.createElement('div');
+      thinkingLogs.style.cssText = `
+        display: none;
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: monospace;
+        color: #666;
+        white-space: pre-wrap;
+        max-height: 200px;
+        overflow-y: auto;
+      `;
+      thinkingLogs.textContent = 'Initiating AI processing...\nAnalyzing your request...';
+      
+      // Store reference to logs for real-time updates
+      thinkingBubble._thinkingLogs = thinkingLogs;
+      
+      let isExpanded = false;
+      thinkingDropdownArrow.onclick = (e) => {
+        e.stopPropagation();
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+          thinkingLogs.style.display = 'block';
+          thinkingDropdownArrow.style.transform = 'rotate(180deg)';
+        } else {
+          thinkingLogs.style.display = 'none';
+          thinkingDropdownArrow.style.transform = 'rotate(0deg)';
+        }
+      };
+      
+      // Simulate progressive thinking updates
+      let thinkingSteps = [
+        'Initiating AI processing...',
+        'Analyzing your request...',
+        'Determining appropriate tools and approach...',
+        'Processing with language model...'
+      ];
+      
+      let stepIndex = 0;
+      const updateThinking = () => {
+        if (stepIndex < thinkingSteps.length && thinkingBubble.parentNode) {
+          thinkingLogs.textContent = thinkingSteps.slice(0, stepIndex + 1).join('\n');
+          stepIndex++;
+          setTimeout(updateThinking, 800);
+        }
+      };
+      setTimeout(updateThinking, 500);
+      thinkingDropdownArrow.onclick = (e) => {
+        e.stopPropagation();
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+          thinkingLogs.style.display = 'block';
+          thinkingDropdownArrow.style.transform = 'rotate(180deg)';
+        } else {
+          thinkingLogs.style.display = 'none';
+          thinkingDropdownArrow.style.transform = 'rotate(0deg)';
+        }
+      };
+      
+      thinkingContent.appendChild(spinnerAndText);
+      thinkingContent.appendChild(thinkingDropdownArrow);
+      
+      const thinkingWrapper = document.createElement('div');
+      thinkingWrapper.appendChild(thinkingContent);
+      thinkingWrapper.appendChild(thinkingLogs);
+      
+      thinkingBubble.appendChild(thinkingWrapper);
       chat.appendChild(thinkingBubble);
       chat.scrollTop = chat.scrollHeight;
 
@@ -1272,7 +1616,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: 'cole',
+            userId: '76e84c79-9b13-4c55-be86-d0bd9baa9411',
             userInput: text,
             chatHistory: chatHistory
           })
@@ -1280,19 +1624,33 @@
 
         const data = await res.json();
         
+        // Update thinking logs with real AI thinking before removing bubble
+        if (thinkingBubble._thinkingLogs && data.thinking) {
+          thinkingBubble._thinkingLogs.textContent = data.thinking;
+          // Brief delay to show the real thinking logs
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+        
         // Remove thinking indicator
         thinkingBubble.remove();
         
         // Add AI response with streaming effect
-        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai', null, true);
+        const aiMessageId = appendMessage(
+          data.response || '⚠️ No response', 
+          'ai', 
+          null, 
+          true
+        );
         
         // Update chat history with message IDs
         chatHistory.push({ 
           input: text, 
           output: data.response,
+          thinking: data.thinking, // Store thinking logs
           userMessageId: userMessageId,
           aiMessageId: aiMessageId
         });
+        saveChatHistory();
         updateHistoryTab();
         
         // Check if the response indicates an email was sent
@@ -1348,7 +1706,10 @@
 
           // Process regular content
           if (line.trim() === '') {
-            processedLines.push('<br>');
+            // Only add break if the previous line wasn't empty too
+            if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '<br>') {
+              processedLines.push('<br>');
+            }
           } else {
             // Headers (apply formatting to header content)
             if (line.match(/^### /)) {
@@ -1380,21 +1741,51 @@
         processedLines.push(tableHtml);
       }
 
-      // Wrap consecutive list items
-      html = processedLines.join('<br>');
-      html = html.replace(/(<li>.*<\/li>)/gs, (match) => {
-        return '<ul>' + match + '</ul>';
-      });
+      // Join lines - handle paragraph breaks properly
+      html = '';
+      for (let i = 0; i < processedLines.length; i++) {
+        if (i > 0) {
+          const current = processedLines[i];
+          const previous = processedLines[i - 1];
+          
+          // If current or previous is a break tag, don't add space
+          if (current === '<br>' || previous === '<br>') {
+            // Don't add anything between breaks and content
+          } else if (current.startsWith('<h') || previous.startsWith('<h') || 
+                     current.startsWith('<li>') || previous.startsWith('<li>')) {
+            // Add space for headers and list items
+            html += ' ';
+          } else {
+            // Add space for regular content
+            html += ' ';
+          }
+        }
+        html += processedLines[i];
+      }
+      
+      // Wrap consecutive list items properly
+      html = html.replace(/(<li>.*?<\/li>)(\s*<li>.*?<\/li>)*/gs, '<ul>$&</ul>');
+
+      // Clean up any double-wrapped lists
+      html = html.replace(/<ul><ul>(.*?)<\/ul><\/ul>/gs, '<ul>$1</ul>');
+
+      // Clean up excessive spacing and ensure breaks work
+      html = html.replace(/ <br> /g, '<br>');
+      html = html.replace(/<br> /g, '<br>');
+      html = html.replace(/ <br>/g, '<br>');
+      html = html.replace(/<br><br>/g, '<br>');
 
       return html;
     }
 
-    // Helper function for inline formatting (bold, italic, code)
+    // Helper function for inline formatting (bold, italic, code, links)
     function applyInlineFormatting(text) {
       return text
         // Code first (to avoid processing ** inside code)
         .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
         .replace(/`(.*?)`/g, '<code>$1</code>')
+        // Links (before bold/italic to avoid conflicts)
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#5a67d8;text-decoration:underline;">$1</a>')
         // Bold and italic
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>');
@@ -1454,6 +1845,67 @@
       bubble.appendChild(actions);
       
       return msgId;
+    }
+
+    // Helper function to add thinking logs to a message bubble
+    function addThinkingLogsToMessage(bubble, thinkingLogs) {
+      const thinkingContainer = document.createElement('div');
+      thinkingContainer.className = 'thinking-logs-container';
+      
+      const thinkingToggle = document.createElement('div');
+      thinkingToggle.className = 'thinking-logs-toggle';
+      thinkingToggle.title = 'View thinking process';
+      
+      const thinkingText = document.createElement('span');
+      thinkingText.textContent = 'Thinking';
+      
+      const thinkingArrow = document.createElement('div');
+      thinkingArrow.className = 'thinking-arrow';
+      
+      thinkingToggle.appendChild(thinkingText);
+      thinkingToggle.appendChild(thinkingArrow);
+      
+      const thinkingDropdown = document.createElement('div');
+      thinkingDropdown.className = 'thinking-logs-dropdown';
+      
+      const thinkingHeader = document.createElement('div');
+      thinkingHeader.className = 'thinking-logs-header';
+      thinkingHeader.textContent = 'Thinking process';
+      
+      const thinkingContent = document.createElement('div');
+      thinkingContent.className = 'thinking-logs-content';
+      thinkingContent.textContent = thinkingLogs || 'No thinking logs available';
+      
+      thinkingDropdown.appendChild(thinkingHeader);
+      thinkingDropdown.appendChild(thinkingContent);
+      
+      thinkingToggle.onclick = (e) => {
+        e.stopPropagation();
+        
+        // Close any other open thinking dropdowns
+        document.querySelectorAll('.thinking-logs-dropdown.show').forEach(dropdown => {
+          if (dropdown !== thinkingDropdown) {
+            dropdown.classList.remove('show');
+            dropdown.parentElement.querySelector('.thinking-logs-toggle').classList.remove('open');
+          }
+        });
+        
+        // Toggle this dropdown
+        const isOpen = thinkingDropdown.classList.contains('show');
+        if (isOpen) {
+          thinkingDropdown.classList.remove('show');
+          thinkingToggle.classList.remove('open');
+        } else {
+          thinkingDropdown.classList.add('show');
+          thinkingToggle.classList.add('open');
+        }
+      };
+      
+      thinkingContainer.appendChild(thinkingToggle);
+      thinkingContainer.appendChild(thinkingDropdown);
+      
+      // Add the thinking logs container directly to the bubble (not to message-content)
+      bubble.appendChild(thinkingContainer);
     }
 
     // Function to stream text character by character
@@ -1737,6 +2189,7 @@
         // Remove all history entries after this message
         chatHistory.splice(messageIndex + 1);
         
+        saveChatHistory();
         updateHistoryTab();
       }
     }
@@ -1746,7 +2199,87 @@
         // Show thinking indicator
         const thinkingBubble = document.createElement('div');
         thinkingBubble.className = 'bubble ai thinking';
-        thinkingBubble.innerHTML = '<div class="message-content">🤔 Thinking...</div>';
+        
+        const thinkingContent = document.createElement('div');
+        thinkingContent.className = 'message-content';
+        thinkingContent.style.display = 'flex';
+        thinkingContent.style.alignItems = 'center';
+        thinkingContent.style.gap = '8px';
+        
+        const spinnerAndText = document.createElement('div');
+        spinnerAndText.style.display = 'flex';
+        spinnerAndText.style.alignItems = 'center';
+        spinnerAndText.style.gap = '8px';
+        spinnerAndText.innerHTML = '<div class="loading-spinner"></div>Thinking...';
+        
+        const thinkingDropdownArrow = document.createElement('div');
+        thinkingDropdownArrow.style.cssText = `
+          width: 0; height: 0;
+          border-left: 4px solid transparent;
+          border-right: 4px solid transparent;
+          border-top: 4px solid #666;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+          margin-left: auto;
+        `;
+        thinkingDropdownArrow.title = 'View thinking process';
+        
+      const thinkingLogs = document.createElement('div');
+      thinkingLogs.style.cssText = `
+        display: none;
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: monospace;
+        color: #666;
+        white-space: pre-wrap;
+        max-height: 200px;
+        overflow-y: auto;
+      `;
+      thinkingLogs.textContent = 'Re-analyzing your edited message...\nDetermining new approach...';
+      
+      // Store reference to logs for real-time updates
+      thinkingBubble._thinkingLogs = thinkingLogs;
+      
+      let isExpanded = false;
+      thinkingDropdownArrow.onclick = (e) => {
+        e.stopPropagation();
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+          thinkingLogs.style.display = 'block';
+          thinkingDropdownArrow.style.transform = 'rotate(180deg)';
+        } else {
+          thinkingLogs.style.display = 'none';
+          thinkingDropdownArrow.style.transform = 'rotate(0deg)';
+        }
+      };
+      
+      // Simulate progressive thinking updates for regeneration
+      let thinkingSteps = [
+        'Re-analyzing your edited message...',
+        'Determining new approach...',
+        'Processing with updated context...',
+        'Generating improved response...'
+      ];
+      
+      let stepIndex = 0;
+      const updateThinking = () => {
+        if (stepIndex < thinkingSteps.length && thinkingBubble.parentNode) {
+          thinkingLogs.textContent = thinkingSteps.slice(0, stepIndex + 1).join('\n');
+          stepIndex++;
+          setTimeout(updateThinking, 800);
+        }
+      };
+      setTimeout(updateThinking, 500);        thinkingContent.appendChild(spinnerAndText);
+        thinkingContent.appendChild(thinkingDropdownArrow);
+        
+        const thinkingWrapper = document.createElement('div');
+        thinkingWrapper.appendChild(thinkingContent);
+        thinkingWrapper.appendChild(thinkingLogs);
+        
+        thinkingBubble.appendChild(thinkingWrapper);
         chat.appendChild(thinkingBubble);
         chat.scrollTop = chat.scrollHeight;
         
@@ -1755,7 +2288,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: 'cole',
+            userId: '76e84c79-9b13-4c55-be86-d0bd9baa9411',
             userInput: userMessage,
             chatHistory: chatHistory
           })
@@ -1765,19 +2298,33 @@
         
         const data = await response.json();
         
+        // Update thinking logs with real AI thinking before removing bubble
+        if (thinkingBubble._thinkingLogs && data.thinking) {
+          thinkingBubble._thinkingLogs.textContent = data.thinking;
+          // Brief delay to show the real thinking logs
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+        
         // Remove thinking indicator
         thinkingBubble.remove();
         
         // Add AI response with streaming effect
-        const aiMessageId = appendMessage(data.response || '⚠️ No response', 'ai', null, true);
+        const aiMessageId = appendMessage(
+          data.response || '⚠️ No response', 
+          'ai', 
+          null, 
+          true
+        );
         
         // Update chat history
         chatHistory.push({ 
           input: userMessage, 
           output: data.response,
+          thinking: data.thinking, // Store thinking logs
           userMessageId: null, // This was an edit, not a new user message
           aiMessageId: aiMessageId
         });
+        saveChatHistory();
         updateHistoryTab();
         
         // Auto-refresh email logs if email was mentioned
@@ -1890,7 +2437,7 @@
     // Auto-greeting initialization
     async function initializeChat() {
       try {
-        const userId = 'cole'; // You can make this dynamic if needed
+        const userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411'; // UUID from user registration
         const response = await fetch('/chat/init', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3007,7 +3554,7 @@ Advanced conversational AI with:
         const stopBtn = document.getElementById('stop-agent');
         startBtn.disabled = true;
         startBtn.style.background = '#64748b';
-        startBtn.textContent = '⏳ Starting...';
+        startBtn.innerHTML = '<div class="loading-spinner auth" style="margin-right: 5px;"></div>Starting...';
         
         addActivityLog('🚀 Starting Lead Contact Agent...');
         
@@ -3076,7 +3623,7 @@ Advanced conversational AI with:
         const stopBtn = document.getElementById('stop-agent');
         stopBtn.disabled = true;
         stopBtn.style.background = '#64748b';
-        stopBtn.textContent = '⏳ Stopping...';
+        stopBtn.innerHTML = '<div class="loading-spinner auth" style="margin-right: 5px;"></div>Stopping...';
         
         addActivityLog('⏹️ Stopping Lead Contact Agent...');
         
@@ -3577,6 +4124,16 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       checkAuthentication();
     });
 
+    // Close thinking logs dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.thinking-logs-container')) {
+        document.querySelectorAll('.thinking-logs-dropdown.show').forEach(dropdown => {
+          dropdown.classList.remove('show');
+          dropdown.parentElement.querySelector('.thinking-logs-toggle').classList.remove('open');
+        });
+      }
+    });
+
     function checkAuthentication() {
       const userStr = localStorage.getItem('currentUser');
       if (!userStr) {
@@ -3587,6 +4144,9 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
       currentUser = JSON.parse(userStr);
       updateUserDisplay();
+      
+      // Load chat history after authentication
+      loadChatHistory();
     }
 
     function updateUserDisplay() {
@@ -3618,16 +4178,33 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         userInitialBtn.textContent = userInitial;
         
         // Load API keys (masked)
-        fetch(`/api/settings/${currentUser.userId}/api-keys`)
+        fetch(`/api/auth/settings/${currentUser.userId}/api-keys`)
           .then(response => response.json())
           .then(data => {
-            if (data.success && data.apiKeys) {
-              const keys = data.apiKeys;
+            if (data.success && data.settings && data.settings.apiKeys) {
+              const keys = data.settings.apiKeys;
+              
+              // Update placeholders
               document.getElementById('modal-openai-key').placeholder = keys.openai ? '••••••••••••' + keys.openai.slice(-4) : 'sk-...';
               document.getElementById('modal-serper-key').placeholder = keys.serper ? '••••••••••••' + keys.serper.slice(-4) : 'Your Serper API key';
               document.getElementById('modal-apollo-key').placeholder = keys.apollo ? '••••••••••••' + keys.apollo.slice(-4) : 'Your Apollo API key';
-              document.getElementById('modal-mailgun-key').placeholder = keys.mailgunKey ? '••••••••••••' + keys.mailgunKey.slice(-4) : 'Your Mailgun API key';
-              document.getElementById('modal-mailgun-domain').value = keys.mailgunDomain || '';
+              document.getElementById('modal-mailgun-key').placeholder = keys.mailgun ? '••••••••••••' + keys.mailgun.slice(-4) : 'Your Mailgun API key';
+              
+              // Update preview elements
+              document.getElementById('modal-openai-preview').textContent = keys.openai ? `Current: ${keys.openai}` : 'Current: None';
+              document.getElementById('modal-serper-preview').textContent = keys.serper ? `Current: ${keys.serper}` : 'Current: None';
+              document.getElementById('modal-apollo-preview').textContent = keys.apollo ? `Current: ${keys.apollo}` : 'Current: None';
+              document.getElementById('modal-mailgun-preview').textContent = keys.mailgun ? `Current: ${keys.mailgun}` : 'Current: None';
+              document.getElementById('modal-mailgun-domain-preview').textContent = keys.mailgunDomain ? `Current: ${keys.mailgunDomain}` : 'Current: None';
+              
+              console.log('🔑 Updated API key previews:', keys);
+            } else {
+              // Set defaults if no data
+              document.getElementById('modal-openai-preview').textContent = 'Current: None';
+              document.getElementById('modal-serper-preview').textContent = 'Current: None';
+              document.getElementById('modal-apollo-preview').textContent = 'Current: None';
+              document.getElementById('modal-mailgun-preview').textContent = 'Current: None';
+              document.getElementById('modal-mailgun-domain-preview').textContent = 'Current: None';
             }
           })
           .catch(console.error);
@@ -3655,7 +4232,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         if (!apiKeys[key]) delete apiKeys[key];
       });
 
-      fetch(`/api/settings/${currentUser.userId}/api-keys`, {
+      fetch(`/api/auth/settings/${currentUser.userId}/api-keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKeys })
@@ -3670,7 +4247,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           document.getElementById('modal-serper-key').value = '';
           document.getElementById('modal-apollo-key').value = '';
           document.getElementById('modal-mailgun-key').value = '';
-          loadSettingsData(); // Reload to show masked keys
+          loadSettingsData(); // Reload to show updated previews
         } else {
           statusDiv.innerHTML = `<div class="status-message error">❌ ${data.message}</div>`;
         }
@@ -3691,7 +4268,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         return;
       }
 
-      fetch(`/api/settings/${currentUser.userId}/verify-master-password`, {
+      fetch(`/api/auth/settings/${currentUser.userId}/verify-master-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ masterPassword })
@@ -3719,7 +4296,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const systemPrompt = document.getElementById('modal-ai-personality').value;
 
-      fetch(`/api/settings/${currentUser.userId}/ai-personality`, {
+      fetch(`/api/auth/settings/${currentUser.userId}/ai-personality`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ systemPrompt })
@@ -3747,7 +4324,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         email: document.getElementById('modal-email').value
       };
 
-      fetch(`/api/settings/${currentUser.userId}/preferences`, {
+      fetch(`/api/auth/settings/${currentUser.userId}/preferences`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preferences)
@@ -3785,8 +4362,17 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     function signOut() {
       if (confirm('Are you sure you want to sign out?')) {
+        // Clear all user data
         localStorage.removeItem('currentUser');
-        window.location.href = '/auth.html';
+        localStorage.clear(); // Clear all localStorage just to be safe
+        
+        // Reset current user variable
+        currentUser = null;
+        
+        // Small delay to ensure cleanup completes
+        setTimeout(() => {
+          window.location.href = '/auth.html';
+        }, 100);
       }
     }
 
@@ -3882,22 +4468,27 @@ Provide specific, contextual recommendations for sales outreach based on your re
         <div class="modal-form-group">
           <label for="modal-openai-key">OpenAI API Key</label>
           <input type="password" id="modal-openai-key" placeholder="sk-..." />
+          <div class="api-key-preview" id="modal-openai-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
         </div>
         <div class="modal-form-group">
           <label for="modal-serper-key">Serper API Key (for web search)</label>
           <input type="password" id="modal-serper-key" placeholder="Your Serper API key" />
+          <div class="api-key-preview" id="modal-serper-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
         </div>
         <div class="modal-form-group">
           <label for="modal-apollo-key">Apollo API Key (for lead research)</label>
           <input type="password" id="modal-apollo-key" placeholder="Your Apollo API key" />
+          <div class="api-key-preview" id="modal-apollo-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
         </div>
         <div class="modal-form-group">
           <label for="modal-mailgun-key">Mailgun API Key</label>
           <input type="password" id="modal-mailgun-key" placeholder="Your Mailgun API key" />
+          <div class="api-key-preview" id="modal-mailgun-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
         </div>
         <div class="modal-form-group">
           <label for="modal-mailgun-domain">Mailgun Domain</label>
           <input type="text" id="modal-mailgun-domain" placeholder="mg.yourdomain.com" />
+          <div class="api-key-preview" id="modal-mailgun-domain-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
         </div>
         <button class="save-btn" onclick="saveApiKeys()">💾 Save API Keys</button>
         <div id="api-keys-status"></div>
@@ -3937,12 +4528,15 @@ Provide specific, contextual recommendations for sales outreach based on your re
       <!-- Account Actions Section -->
       <div class="settings-section">
         <h3>🚪 Account Actions</h3>
-        <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <button class="save-btn" onclick="clearChatHistory()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+            🗑️ Clear Chat History
+          </button>
           <button class="save-btn" onclick="signOut()" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
             🚪 Sign Out
           </button>
           <div style="color: #64748b; font-size: 0.9rem; flex: 1;">
-            Sign out of your account and return to the login page
+            Clear chat history or sign out of your account
           </div>
         </div>
       </div>

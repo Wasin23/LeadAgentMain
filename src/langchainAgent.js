@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import { ChatOpenAI } from "@langchain/openai";
-import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
+import { AgentExecutor, createOpenAIToolsAgent } from "langchain/agents";
 import { DynamicTool } from "langchain/tools";
-import { internetSearch } from "../tools/internetSearch.js";
+import { internetSearch, internetSearchWithKey } from "../tools/internetSearch.js";
 import { deepResearch } from "../tools/deepResearch.js";
 import { sendEmailTool } from "../lib/myEmailTool.js";
 import { Pinecone } from "@pinecone-database/pinecone";
@@ -47,77 +47,143 @@ const serperTool = new DynamicTool({
   },
 });
 
-// Wrap deep research as a LangChain tool
-const deepResearchTool = new DynamicTool({
-  name: "deep_research",
-  description: "Perform comprehensive research with query expansion, multi-source fetching, deduplication, and intelligent ranking. Use this for thorough research tasks, investor information, market analysis, or when user asks for 'deep research'.",
-  schema: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "Research topic or query"
-      },
-      mode: {
-        type: "string",
-        enum: ["fresh", "academic", "product"],
-        description: "Research mode: 'fresh' for recent developments, 'academic' for research papers, 'product' for tools & implementations"
-      },
-      limit: {
-        type: "number",
-        description: "Number of results to return (default: 15)"
-      }
-    },
-    required: ["query"]
-  },
-  func: async (input) => {
-    try {
-      let params;
-      
-      if (typeof input === 'string') {
-        try {
-          params = JSON.parse(input);
-        } catch (e) {
-          params = { query: input };
-        }
-      } else if (input && typeof input === 'object') {
-        if (input.input) {
-          params = typeof input.input === 'string' ? JSON.parse(input.input) : input.input;
-        } else {
-          params = input;
-        }
-      }
-      
-      const query = params.query || params;
-      const mode = params.mode || 'fresh';
-      const limit = params.limit || 15;
-      
-      if (!query) {
-        return "Error: deep_research requires a 'query' parameter";
-      }
-      
-      const options = { mode, limit };
-      const result = await deepResearch(query, options);
-      return JSON.stringify(result);
-    } catch (error) {
-      return `Error: ${error.message}`;
-    }
-  },
-});
-
-// Wrap email sending as a LangChain tool
-// REMOVED - LangChain tool execution is broken, using manual detection instead
-
 // Create the agent executor
 
 // Returns an agent executor and memory instance
 export async function getLangchainAgentWithMemory(userId = null) {
-  const tools = [serperTool, deepResearchTool];
-  console.log('[LANGCHAIN AGENT] Tools registered:', tools.map(t => t.name));
-  
   // Get user-specific settings if userId is provided
   let userApiKeys = {};
   let userPersonality = '';
+  
+  if (userId) {
+    try {
+      userApiKeys = await getUserApiKeys(userId) || {};
+      userPersonality = await getUserAiPersonality(userId) || '';
+      console.log('[LANGCHAIN AGENT] Loaded user settings for:', userId, 'Has API keys:', Object.keys(userApiKeys).length > 0, 'Has custom personality:', userPersonality.length > 0);
+      console.log('[LANGCHAIN AGENT] DEBUG - userApiKeys object:', userApiKeys);
+      console.log('[LANGCHAIN AGENT] DEBUG - userApiKeys.serper:', userApiKeys.serper);
+    } catch (error) {
+      console.warn('[LANGCHAIN AGENT] Failed to load user settings:', error.message);
+    }
+  }
+
+  // Create tools with user API keys
+  const serperTool = new DynamicTool({
+    name: "internet_search",
+    description: "Search the internet using Serper.dev API. Use this for simple, quick searches.",
+    schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query string"
+        }
+      },
+      required: ["query"]
+    },
+    func: async (input) => {
+      let query;
+      if (typeof input === 'string') {
+        query = input;
+      } else if (input && typeof input === 'object') {
+        query = input.query || input.input || input;
+      }
+      console.log('[SERPER TOOL] Executing search for query:', query);
+      console.log('[SERPER TOOL] userApiKeys object:', userApiKeys);
+      console.log('[SERPER TOOL] userApiKeys.serper:', userApiKeys.serper);
+      try {
+        // Prioritize user's API key first, then fallback to env variable
+        const userKey = userApiKeys.serper;
+        const envKey = process.env.SERPER_API_KEY;
+        
+        console.log('[SERPER TOOL] userKey:', userKey);
+        console.log('[SERPER TOOL] envKey:', envKey);
+        
+        let apiKey, keySource;
+        if (userKey && userKey.trim() !== '') {
+          apiKey = userKey;
+          keySource = 'user settings';
+          console.log(`[SERPER TOOL] Using API key from user settings (${userKey.substring(0, 10)}...)`);
+        } else if (envKey) {
+          apiKey = envKey;
+          keySource = 'environment variable';
+          console.log(`[SERPER TOOL] Using API key from environment variable (${envKey.substring(0, 10)}...)`);
+        } else {
+          console.error('[SERPER TOOL] No API key available from any source');
+          throw new Error('No Serper API key available. Please set SERPER_API_KEY environment variable or add your API key in settings.');
+        }
+        
+        console.log(`[SERPER TOOL] API Key source: ${keySource}`);
+        const result = await internetSearchWithKey(query, apiKey);
+        console.log('[SERPER TOOL] Search completed, result length:', JSON.stringify(result).length);
+        return JSON.stringify(result);
+      } catch (error) {
+        console.error('[SERPER TOOL] Search failed:', error);
+        return JSON.stringify({ error: 'Search failed', message: error.message });
+      }
+    },
+  });
+
+  // Create deepResearch tool with user API keys
+  const deepResearchTool = new DynamicTool({
+    name: "deep_research",
+    description: "Perform comprehensive research with query expansion, multi-source fetching, deduplication, and intelligent ranking. Use this for thorough research tasks, investor information, market analysis, or when user asks for 'deep research'.",
+    schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Research topic or query"
+        },
+        mode: {
+          type: "string",
+          enum: ["fresh", "academic", "product"],
+          description: "Research mode: 'fresh' for recent developments, 'academic' for research papers, 'product' for tools & implementations"
+        },
+        limit: {
+          type: "number",
+          description: "Number of results to return (default: 15)"
+        }
+      },
+      required: ["query"]
+    },
+    func: async (input) => {
+      try {
+        let params;
+        
+        if (typeof input === 'string') {
+          try {
+            params = JSON.parse(input);
+          } catch (e) {
+            params = { query: input };
+          }
+        } else if (input && typeof input === 'object') {
+          if (input.input) {
+            params = typeof input.input === 'string' ? JSON.parse(input.input) : input.input;
+          } else {
+            params = input;
+          }
+        }
+        
+        const query = params.query || params;
+        const mode = params.mode || 'fresh';
+        const limit = params.limit || 15;
+        
+        if (!query) {
+          return "Error: deep_research requires a 'query' parameter";
+        }
+        
+        const options = { mode, limit, apiKeys: userApiKeys };
+        const result = await deepResearch(query, options);
+        return JSON.stringify(result);
+      } catch (error) {
+        return `Error: ${error.message}`;
+      }
+    },
+  });
+
+  const tools = [serperTool, deepResearchTool];
+  console.log('[LANGCHAIN AGENT] Tools registered:', tools.map(t => t.name));
   
   if (userId) {
     try {
@@ -151,8 +217,16 @@ When asked about specific people (public figures, celebrities, etc.):
 6. Public figures, celebrities, historical figures - all are fair game for factual biographical information
 7. Use concrete search results to provide names, ages, careers, notable achievements, etc.
 
+**HANDLING SEARCH AND NEWS REQUESTS:**
+When asked about current events, news, latest information, or anything requiring up-to-date data:
+1. MANDATORY: Use your internet_search tool first - DO NOT respond without searching
+2. For queries like "latest news about X", "current events", "what's happening with Y", always search first
+3. Use the search results to provide accurate, current information
+4. If search fails, explain what you searched for and suggest alternative queries
+5. NEVER give outdated information when current data is requested
+
 **HANDLING GENERAL CONVERSATION:**
-For casual conversation, jokes, greetings, or general questions NOT about specific people or Exabits:
+For casual conversation, jokes, greetings, or general questions NOT requiring current information:
 1. Respond naturally and helpfully without needing to use tools
 2. Be friendly, engaging, and represent Exabits professionally
 3. For jokes, humor, casual chat - provide direct, helpful responses
@@ -379,16 +453,30 @@ ${userPersonality}
   console.log('[LANGCHAIN AGENT] Contains superhero prevention?:', systemPrompt.includes('superhero'));
 
   // Use user's OpenAI API key if available, otherwise fall back to environment
-  const apiKey = userApiKeys.openai || process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  const envOpenAIKey = process.env.OPENAI_API_KEY;
+  const userOpenAIKey = userApiKeys.openai;
+  
+  let apiKey, keySource;
+  if (envOpenAIKey) {
+    apiKey = envOpenAIKey;
+    keySource = 'environment variable';
+    console.log(`[LANGCHAIN AGENT] Using OpenAI API key from environment variable (${envOpenAIKey.substring(0, 10)}...)`);
+  } else if (userOpenAIKey) {
+    apiKey = userOpenAIKey;
+    keySource = 'user settings';
+    console.log(`[LANGCHAIN AGENT] Using OpenAI API key from user settings (${userOpenAIKey.substring(0, 10)}...)`);
+  } else {
+    console.error('[LANGCHAIN AGENT] No OpenAI API key available from any source');
     throw new Error('No OpenAI API key available. User must configure their API key in settings.');
   }
+  
+  console.log(`[LANGCHAIN AGENT] OpenAI API Key source: ${keySource}`);
 
   const llm = new ChatOpenAI({
     openAIApiKey: apiKey,
     temperature: 0.7,
     modelName: "gpt-4o",
-    // Remove streaming: false to test if this was breaking tool execution
+    streaming: false, // Disable streaming to ensure tools work properly
   });
 
   // Use BufferMemory for reliable chat history
@@ -409,7 +497,7 @@ ${userPersonality}
   // Create the agent manually for full control
   console.log('[LANGCHAIN AGENT] Creating agent with tools:', tools.map(t => ({name: t.name, description: t.description})));
   
-  const agent = await createOpenAIFunctionsAgent({
+  const agent = await createOpenAIToolsAgent({
     llm,
     tools,
     prompt,
@@ -583,15 +671,38 @@ Ready to collaborate on making me better! 🚀`;
   console.log('[chatWithAgent] About to invoke agent...');
   // Get agent response
   let response;
+  let thinkingLogs = [];
   try {
     response = await agent.invoke({ input: userInput });
     console.log('[chatWithAgent] Raw agent response:', JSON.stringify(response, null, 2));
     console.log('[chatWithAgent] Response type:', typeof response);
     console.log('[chatWithAgent] Response.output:', response?.output);
     console.log('[chatWithAgent] Response keys:', response ? Object.keys(response) : 'no response');
+    
+    // For now, create simple thinking logs since intermediate steps aren't easily accessible
+    thinkingLogs = [
+      `Analyzing user input: "${userInput}"`,
+      'Processing request with AI reasoning...',
+      'Determining appropriate response approach...',
+      'Generating contextual response...'
+    ];
+    
+    // If the response contains tool usage patterns, enhance thinking logs
+    if (response && typeof response === 'object' && response.output) {
+      const output = response.output;
+      if (output.includes('search') || output.includes('research')) {
+        thinkingLogs.push('Used search/research tools to gather information');
+      }
+      if (output.includes('email') || output.includes('send')) {
+        thinkingLogs.push('Detected email-related request');
+      }
+    }
   } catch (error) {
     console.error('[chatWithAgent] Agent invoke error:', error);
-    return "Sorry, I encountered an error processing your request.";
+    return { 
+      response: "Sorry, I encountered an error processing your request.",
+      thinking: "Error occurred during processing: " + error.message
+    };
   }
   
   // Post-process output to get the correct response
@@ -651,5 +762,13 @@ Ready to collaborate on making me better! 🚀`;
   }
   
   console.log('[chatWithAgent] Agent response:', output);
-  return output;
+  
+  // Format thinking logs
+  const formattedThinking = thinkingLogs.join('\n\n');
+  
+  // Return both response and thinking logs
+  return {
+    response: output,
+    thinking: formattedThinking
+  };
 }

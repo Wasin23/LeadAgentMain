@@ -70,15 +70,29 @@ async function cacheResult(query, result) {
  * @returns {Promise<object>} - The search results from Serper.dev
  */
 export async function internetSearch(query) {
-  if (!SERPER_API_KEY) {
-    console.error('[SERPER] SERPER_API_KEY missing!');
-    throw new Error('SERPER_API_KEY is not set in environment variables');
+  console.log(`[SERPER] Using environment variable API key (${SERPER_API_KEY ? SERPER_API_KEY.substring(0, 10) + '...' : 'NOT SET'}) for query: ${query}`);
+  return internetSearchWithKey(query, SERPER_API_KEY);
+}
+
+/**
+ * Search the internet using Serper.dev with custom API key
+ * @param {string} query - The search query
+ * @param {string} apiKey - The Serper API key to use
+ * @returns {Promise<object>} - The search results from Serper.dev
+ */
+export async function internetSearchWithKey(query, apiKey) {
+  if (!apiKey) {
+    console.error('[SERPER] API KEY missing!');
+    throw new Error('SERPER_API_KEY is not provided');
   }
   if (!query) throw new Error('Query is required');
+
+  console.log(`[SERPER] Using provided API key (${apiKey.substring(0, 10)}...) for query: ${query}`);
 
   // Check cache first
   const cached = await getCachedResult(query);
   if (cached) {
+    console.log(`[SERPER] Using cached result for query: ${query}`);
     return cached;
   }
 
@@ -94,7 +108,7 @@ export async function internetSearch(query) {
       },
       {
         headers: {
-          'X-API-KEY': SERPER_API_KEY,
+          'X-API-KEY': apiKey,
           'Content-Type': 'application/json',
         },
         timeout: 25000 // 25 second timeout

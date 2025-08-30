@@ -1,16 +1,13 @@
 import 'dotenv/config';
 import { ChatOpenAI } from "@langchain/openai";
-import { internetSearch } from './internetSearch.js';
-
-// Initialize OpenAI for text-only operations (no tools)
-const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
-  temperature: 0.3,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
+import { internetSearch, internetSearchWithKey } from './internetSearch.js';
 
 // Text-only chat function to prevent infinite loops
-async function chatWithTextOnly(prompt) {
+async function chatWithTextOnly(prompt, chatModel) {
+  if (!chatModel) {
+    console.warn('[TEXT CHAT] No OpenAI API key available for text processing');
+    return 'Text processing unavailable - no OpenAI API key configured';
+  }
   try {
     const response = await chatModel.invoke(prompt);
     return response.content;
@@ -194,18 +191,29 @@ async function searchGithub(query, limit = 4) {
 }
 
 // Apollo API search for leads and contacts
-async function searchApollo(query, limit = 10) {
+async function searchApollo(query, limit = 10, apiKeys = {}) {
   try {
     console.log(`🎯 [Apollo] Searching for leads: ${query}`);
     
-    // Apollo API configuration
-    const apolloApiKey = process.env.APOLLO_API_KEY;
-    console.log(`🔑 [Apollo] API Key check: ${apolloApiKey ? `Present (${apolloApiKey.substring(0, 10)}...)` : 'Missing'}`);
+    // Apollo API configuration - prioritize user settings first, then env variable
+    const userApolloKey = apiKeys.apollo;
+    const envApolloKey = process.env.APOLLO_API_KEY;
     
-    if (!apolloApiKey || apolloApiKey === 'your_apollo_api_key_here') {
-      console.log(`⚠️ [Apollo] API key not configured (${apolloApiKey ? 'placeholder detected' : 'missing'}), skipping Apollo search`);
+    let apolloApiKey, apolloKeySource;
+    if (userApolloKey && userApolloKey !== 'your_apollo_api_key_here' && userApolloKey.trim() !== '') {
+      apolloApiKey = userApolloKey;
+      apolloKeySource = 'user settings';
+      console.log(`[APOLLO] Using API key from user settings (${userApolloKey.substring(0, 10)}...)`);
+    } else if (envApolloKey && envApolloKey !== 'your_apollo_api_key_here') {
+      apolloApiKey = envApolloKey;
+      apolloKeySource = 'environment variable';
+      console.log(`[APOLLO] Using API key from environment variable (${envApolloKey.substring(0, 10)}...)`);
+    } else {
+      console.log(`⚠️ [APOLLO] No valid API key available (env: ${envApolloKey ? 'placeholder' : 'missing'}, user: ${userApolloKey ? 'placeholder' : 'missing'}), skipping Apollo search`);
       return [];
     }
+    
+    console.log(`[APOLLO] API Key source: ${apolloKeySource}`);
 
     // Try simpler Apollo query first
     let apolloQuery = 'CTO';
@@ -308,7 +316,7 @@ async function searchApollo(query, limit = 10) {
       const webQuery = `"CTO" OR "VP Engineering" OR "Head of AI" OR "Director of Technology" email contact`;
       console.log(`🔍 [WebFallback] Searching: ${webQuery}`);
       
-      const webSearchResult = await internetSearch(webQuery);
+      const webSearchResult = await performInternetSearch(webQuery);
       const webResults = webSearchResult?.organic || [];
       
       // Extract potential leads from web results
@@ -433,9 +441,54 @@ function scoreAndRankResults(results, query, mode) {
 
 // Main deep research function
 export async function deepResearch(query, options = {}) {
-  const { mode = 'fresh', limit = 25, progressCallback } = options;
+  const { mode = 'fresh', limit = 25, progressCallback, apiKeys = {} } = options;
   
   console.log(`🔬 [DeepResearch] Starting research for: "${query}" (mode: ${mode})`);
+  
+  // Create OpenAI instance with prioritized API key - user settings first
+  const userOpenAIKey = apiKeys.openai;
+  const envOpenAIKey = process.env.OPENAI_API_KEY;
+  
+  let openAIApiKey, openAIKeySource;
+  if (userOpenAIKey && userOpenAIKey.trim() !== '') {
+    openAIApiKey = userOpenAIKey;
+    openAIKeySource = 'user settings';
+    console.log(`[DEEP RESEARCH] Using OpenAI API key from user settings (${userOpenAIKey.substring(0, 10)}...)`);
+  } else if (envOpenAIKey) {
+    openAIApiKey = envOpenAIKey;
+    openAIKeySource = 'environment variable';
+    console.log(`[DEEP RESEARCH] Using OpenAI API key from environment variable (${envOpenAIKey.substring(0, 10)}...)`);
+  } else {
+    console.warn('[DEEP RESEARCH] No OpenAI API key available - text processing will be disabled');
+  }
+  
+  if (openAIApiKey) {
+    console.log(`[DEEP RESEARCH] OpenAI API Key source: ${openAIKeySource}`);
+  }
+  
+  const chatModel = openAIApiKey ? new ChatOpenAI({
+    modelName: "gpt-4o",
+    temperature: 0.3,
+    openAIApiKey: openAIApiKey,
+  }) : null;
+  
+  // Helper function to use correct search method based on available API keys
+  const performInternetSearch = async (searchQuery) => {
+    // Prioritize user settings first, then env variable
+    const userSerperKey = apiKeys.serper;
+    const envSerperKey = process.env.SERPER_API_KEY;
+    
+    if (userSerperKey && userSerperKey.trim() !== '') {
+      console.log(`[DEEP RESEARCH] Using Serper API key from user settings for query: ${searchQuery}`);
+      return await internetSearchWithKey(searchQuery, userSerperKey);
+    } else if (envSerperKey) {
+      console.log(`[DEEP RESEARCH] Using Serper API key from environment variable for query: ${searchQuery}`);
+      return await internetSearchWithKey(searchQuery, envSerperKey);
+    } else {
+      console.log(`[DEEP RESEARCH] No Serper API key available, using fallback method for query: ${searchQuery}`);
+      return await internetSearch(searchQuery);
+    }
+  };
   
   const sendProgress = (stage, progress, message, meta = {}) => {
     if (progressCallback) {
@@ -474,14 +527,14 @@ export async function deepResearch(query, options = {}) {
         console.log(`🎯 [LeadMode] Using ONLY Web + Apollo search (no Wikipedia/GitHub)`);
         // Lead mode: High-quality web results + comprehensive Apollo search
         searchPromises = [
-          internetSearch(variant),
-          searchApollo(variant, 15) // Increased for better lead coverage
+          performInternetSearch(variant),
+          searchApollo(variant, 15, apiKeys) // Increased for better lead coverage
         ];
       } else {
         console.log(`🔍 [FreshMode] Using comprehensive research sources`);
         // Fresh mode: Comprehensive research across all sources
         searchPromises = [
-          internetSearch(variant),
+          performInternetSearch(variant),
           searchWikipedia(variant, 6), // Slightly increased
           searchArxiv(variant, 5),     // Slightly increased  
           searchGithub(variant, 5)     // Slightly increased
@@ -571,7 +624,7 @@ Please provide a thorough summary that:
 Summary:`;
     }
 
-    const summary = await chatWithTextOnly(summaryPrompt);
+    const summary = await chatWithTextOnly(summaryPrompt, chatModel);
     
     sendProgress('completed', 100, 'Research completed successfully!');
     

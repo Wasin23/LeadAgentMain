@@ -63,6 +63,7 @@ router.post('/analyze', async (req, res) => {
 router.post('/chat', async (req, res) => {
   try {
     const { userId, userInput } = req.body;
+    console.log('[CHAT ROUTE] Received request - userId:', userId, 'userInput length:', userInput?.length);
     if (!userId || !userInput) {
       return res.status(400).json({ error: 'Missing userId or userInput' });
     }
@@ -72,11 +73,23 @@ router.post('/chat', async (req, res) => {
     const chatHistory = userHistories[userId];
 
     // Normal chat with AI agent - NOW WITH WORKING EMAIL FUNCTIONALITY AND USER-SPECIFIC SETTINGS
-    const response = await chatWithAgent(userInput, chatHistory, userId);
+    const result = await chatWithAgent(userInput, chatHistory, userId);
+    
+    // Handle both old string format and new object format
+    let response, thinking;
+    if (typeof result === 'object' && result.response) {
+      response = result.response;
+      thinking = result.thinking;
+    } else {
+      // Fallback for old string format
+      response = result;
+      thinking = 'AI processed your request and generated a response.';
+    }
+    
     chatHistory.push({ input: userInput, output: response });
     userHistories[userId] = chatHistory;
 
-    res.json({ response });
+    res.json({ response, thinking });
   } catch (err) {
     console.error('Error in /chat route:', err);
     if (err && err.stack) {

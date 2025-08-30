@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Generate unique server session ID on startup
+const SERVER_SESSION_ID = Date.now().toString(36) + Math.random().toString(36).substr(2);
+console.log('Server session ID:', SERVER_SESSION_ID);
+
 // All other imports must come after dotenv.config()
 import express from 'express';
 import path from 'path';
@@ -53,6 +57,11 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Add server session endpoint
+app.get('/api/session', (req, res) => {
+  res.json({ sessionId: SERVER_SESSION_ID });
+});
 
 app.use('/api', emailRoutes);
 app.use('/api/auth', authRoutes);

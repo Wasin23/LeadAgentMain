@@ -1,1 +1,7 @@
-{}
+{
+  "currentCycle": 1,
+  "isRunning": true,
+  "currentStatus": "waiting_next_cycle",
+  "lastCycleTime": 1756477154509,
+  "customCycleInterval": null
+}

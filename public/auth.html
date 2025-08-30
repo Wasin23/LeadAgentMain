@@ -313,7 +313,7 @@
       const btn = document.getElementById(buttonId);
       if (loading) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="loading"></span>';
+        btn.innerHTML = '<span class="loading"></span> Signing in...';
       } else {
         btn.disabled = false;
         btn.innerHTML = buttonId === 'signin-btn' ? 'Sign In' : 'Create Account';
@@ -422,8 +422,35 @@
     window.addEventListener('load', () => {
       const currentUser = localStorage.getItem('currentUser');
       if (currentUser) {
-        window.location.href = '/';
+        // Double check that it's valid and not empty
+        try {
+          const user = JSON.parse(currentUser);
+          if (user && user.userId && user.userId !== '') {
+            window.location.href = '/';
+            return;
+          }
+        } catch (e) {
+          // Invalid user data, clear it
+          localStorage.removeItem('currentUser');
+        }
       }
+      
+      // Ensure input fields are enabled and focusable
+      setTimeout(() => {
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+          input.disabled = false;
+          input.readOnly = false;
+          input.removeAttribute('disabled');
+          input.removeAttribute('readonly');
+        });
+        
+        // Focus first input field
+        const firstInput = document.getElementById('signin-username');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }, 100);
     });
   </script>
 </body>

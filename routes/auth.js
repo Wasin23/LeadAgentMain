@@ -12,6 +12,18 @@ import {
 
 const router = express.Router();
 
+// Add debugging middleware to log all auth requests
+router.use((req, res, next) => {
+  console.log(`[AUTH] ${req.method} ${req.path} - Request received`);
+  next();
+});
+
+// Test endpoint to verify auth routes are working
+router.get('/test', (req, res) => {
+  console.log('[AUTH] Test endpoint hit');
+  res.json({ message: 'Auth routes are working!', timestamp: new Date().toISOString() });
+});
+
 // User registration
 router.post('/register', async (req, res) => {
   try {
@@ -62,21 +74,64 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Get API keys (for frontend that's calling the wrong endpoint) - MUST BE BEFORE THE GENERAL SETTINGS ROUTE
+router.get('/settings/:userId/api-keys', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log(`[AUTH] GET /settings/${userId}/api-keys - Request received (SPECIFIC ROUTE)`);
+    
+    const settings = await getUserSettings(userId);
+    console.log(`[AUTH] Raw settings for ${userId}:`, settings);
+    
+    // Return API key previews (first 8 characters) for display
+    const apiKeyPreviews = Object.keys(settings.apiKeys).reduce((acc, key) => {
+      if (settings.apiKeys[key]) {
+        // Return first 8 characters for preview
+        const preview = settings.apiKeys[key].substring(0, 8) + '...';
+        acc[key] = preview;
+        console.log(`[AUTH] Key ${key}: ${settings.apiKeys[key]} -> ${preview}`);
+      } else {
+        acc[key] = '';
+        console.log(`[AUTH] Key ${key}: empty`);
+      }
+      return acc;
+    }, {});
+    
+    console.log(`[AUTH] Sending API key previews:`, apiKeyPreviews);
+    res.json({ success: true, settings: { apiKeys: apiKeyPreviews } });
+  } catch (error) {
+    console.error('[AUTH] Get API keys error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get user settings
 router.get('/settings/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const settings = await getUserSettings(userId);
+    console.log(`[AUTH] GET /settings/${userId} - Request received`);
     
-    // Don't send API keys in response for security
+    const settings = await getUserSettings(userId);
+    console.log(`[AUTH] Raw settings for ${userId}:`, settings);
+    
+    // Return API key previews (first 8 characters) for display
     const safeSettings = {
       ...settings,
       apiKeys: Object.keys(settings.apiKeys).reduce((acc, key) => {
-        acc[key] = settings.apiKeys[key] ? '***set***' : '';
+        if (settings.apiKeys[key]) {
+          // Return first 8 characters for preview
+          const preview = settings.apiKeys[key].substring(0, 8) + '...';
+          acc[key] = preview;
+          console.log(`[AUTH] Key ${key}: ${settings.apiKeys[key]} -> ${preview}`);
+        } else {
+          acc[key] = '';
+          console.log(`[AUTH] Key ${key}: empty`);
+        }
         return acc;
       }, {})
     };
     
+    console.log(`[AUTH] Sending safe settings:`, safeSettings);
     res.json({ success: true, settings: safeSettings });
   } catch (error) {
     console.error('[AUTH] Get settings error:', error.message);
@@ -86,26 +141,44 @@ router.get('/settings/:userId', async (req, res) => {
 
 // Update API keys
 router.post('/settings/:userId/api-keys', async (req, res) => {
+  console.log('[AUTH] ====== API Keys update request received ======');
+  console.log('[AUTH] UserId:', req.params.userId);
+  console.log('[AUTH] Request body:', req.body);
+  console.log('[AUTH] Request headers:', req.headers);
+  
   try {
     const { userId } = req.params;
     const { apiKeys } = req.body;
     
-    // Filter out empty values to avoid overwriting existing keys with empty strings
-    const filteredKeys = Object.entries(apiKeys).reduce((acc, [key, value]) => {
-      if (value && value.trim() !== '') {
-        acc[key] = value.trim();
-      }
-      return acc;
-    }, {});
+    if (!apiKeys) {
+      console.log('[AUTH] No apiKeys in request body');
+      return res.status(400).json({ error: 'API keys data is required' });
+    }
     
-    const updatedKeys = await updateApiKeys(userId, filteredKeys);
-    console.log(`[AUTH] API keys updated for user: ${userId}`);
+    console.log('[AUTH] Processing API keys for user:', userId);
+    console.log('[AUTH] API keys received:', apiKeys);
+    
+    // Don't filter out empty values - allow them to clear existing keys
+    // But we need to handle them properly in the tools
+    const keysToUpdate = {};
+    Object.entries(apiKeys).forEach(([key, value]) => {
+      // Always update the key, even if it's empty (allows clearing)
+      keysToUpdate[key] = value ? value.trim() : '';
+    });
+    
+    console.log('[AUTH] Keys to update:', keysToUpdate);
+    
+    const updatedKeys = await updateApiKeys(userId, keysToUpdate);
+    console.log(`[AUTH] API keys updated successfully for user: ${userId}`);
+    console.log('[AUTH] Updated keys result:', updatedKeys);
     
     // Return masked keys for security
     const maskedKeys = Object.keys(updatedKeys).reduce((acc, key) => {
-      acc[key] = updatedKeys[key] ? '***set***' : '';
+      acc[key] = updatedKeys[key] && updatedKeys[key] !== '' ? '***set***' : '';
       return acc;
     }, {});
+    
+    console.log('[AUTH] Sending response with masked keys:', maskedKeys);
     
     res.json({ 
       success: true, 
@@ -113,7 +186,8 @@ router.post('/settings/:userId/api-keys', async (req, res) => {
       apiKeys: maskedKeys
     });
   } catch (error) {
-    console.error('[AUTH] Update API keys error:', error.message);
+    console.error('[AUTH] Update API keys error:', error);
+    console.error('[AUTH] Error stack:', error.stack);
     res.status(500).json({ error: error.message });
   }
 });

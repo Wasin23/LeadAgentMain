@@ -2,7 +2,7 @@
   "76e84c79-9b13-4c55-be86-d0bd9baa9411": {
     "apiKeys": {
       "openai": "",
-      "serper": "",
+      "serper": "2e1c97088736f926ced5d6f325f3095a4d0674dd",
       "apollo": "",
       "mailgun": "",
       "sendgrid": ""
