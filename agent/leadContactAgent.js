@@ -4,6 +4,7 @@ import { leadResearch } from '../tools/leadResearch.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { emailQueue } from '../lib/emailQueue.js';
 import { ChatOpenAI } from "@langchain/openai";
+import { EventEmitter } from 'events';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -17,14 +18,24 @@ const DEVELOPER_EMAIL = 'colton.fidd@gmail.com';
 const DEFAULT_TESTING_CYCLE_INTERVAL = 2 * 60 * 1000; // 2 minutes for testing
 const DEFAULT_PRODUCTION_CYCLE_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours for production
 
-class LeadContactAgent {
+class LeadContactAgent extends EventEmitter {
   constructor() {
+    super(); // Call EventEmitter constructor
     this.isRunning = false;
     this.currentCycle = 0;
     this.currentStatus = 'idle'; // Track detailed status
     this.stateFile = path.join(process.cwd(), 'agent', 'leadAgent_state.json');
     this.leadsFile = path.join(process.cwd(), 'agent', 'leads_database.json');
     this.intervalId = null;
+    this.cycleInProgress = false; // Prevent concurrent cycles
+    
+    // Progress tracking
+    this.cycleProgress = {
+      currentStep: 0,
+      totalSteps: 0,
+      stepDescription: '',
+      percentage: 0
+    };
     
     // Use default cycle interval based on configuration (can be overridden)
     this.cycleInterval = TESTING_MODE ? DEFAULT_TESTING_CYCLE_INTERVAL : DEFAULT_PRODUCTION_CYCLE_INTERVAL;
@@ -87,8 +98,8 @@ class LeadContactAgent {
     
     // If agent is running, restart with new interval
     if (this.isRunning && this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = setInterval(async () => {
+      clearTimeout(this.intervalId);
+      this.intervalId = setTimeout(async () => {
         if (this.isRunning) {
           await this.runCycle();
         }
@@ -118,8 +129,8 @@ class LeadContactAgent {
     
     // If agent is running, restart with default interval
     if (this.isRunning && this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = setInterval(async () => {
+      clearTimeout(this.intervalId);
+      this.intervalId = setTimeout(async () => {
         if (this.isRunning) {
           await this.runCycle();
         }
@@ -174,17 +185,10 @@ class LeadContactAgent {
       // Save state immediately to reflect running status
       await this.saveState();
       
-      // Run first cycle immediately
+      // Run first cycle immediately - subsequent cycles will be scheduled automatically
       await this.runCycle();
       
-      // Set up interval for subsequent cycles
-      this.intervalId = setInterval(async () => {
-        if (this.isRunning) {
-          await this.runCycle();
-        }
-      }, this.cycleInterval);
-      
-      // Update status after setup
+      // Update status after first cycle
       this.currentStatus = 'waiting_next_cycle';
       await this.saveState();
       
@@ -219,9 +223,9 @@ class LeadContactAgent {
     this.currentStatus = 'stopped';
     
     if (this.intervalId) {
-      clearInterval(this.intervalId);
+      clearTimeout(this.intervalId);
       this.intervalId = null;
-      console.log('[LEAD AGENT] ✅ Cleared cycle interval');
+      console.log('[LEAD AGENT] ✅ Cleared cycle timer');
     }
     
     await this.saveState();
@@ -271,19 +275,92 @@ class LeadContactAgent {
       isPausedForLeads: this.currentStatus === 'paused_no_leads',
       statusMessage: this.currentStatus === 'paused_no_leads' ? 
         'Agent paused - no available leads found. Start again to resume research.' : 
-        null
+        null,
+      // Progress tracking
+      progress: {
+        ...this.cycleProgress,
+        isActive: this.isRunning && (this.currentStatus === 'running_cycle' || 
+                                   this.currentStatus === 'researching_leads' || 
+                                   this.currentStatus === 'selecting_leads' || 
+                                   this.currentStatus === 'generating_emails')
+      }
     };
   }
 
+  updateProgress(currentStep, totalSteps, stepDescription) {
+    // Calculate the base step percentage
+    const basePercentage = totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0;
+    
+    // Always update step tracking and description
+    this.cycleProgress.currentStep = currentStep;
+    this.cycleProgress.totalSteps = totalSteps;
+    this.cycleProgress.stepDescription = stepDescription;
+    
+    // Only update percentage if it's higher than current (preserve fluid progress)
+    if (basePercentage >= this.cycleProgress.percentage) {
+      this.cycleProgress.percentage = basePercentage;
+    }
+    
+    console.log(`[LEAD AGENT] 📊 Progress: ${this.cycleProgress.percentage}% - ${stepDescription}`);
+    
+    // Emit progress event for real-time updates
+    this.emit('progress', {
+      ...this.cycleProgress,
+      isActive: this.isRunning && (this.currentStatus === 'running_cycle' || 
+                                 this.currentStatus === 'researching_leads' || 
+                                 this.currentStatus === 'selecting_leads' || 
+                                 this.currentStatus === 'generating_emails')
+    });
+  }
+
+  updateFluidProgress(description, subProgress = 0) {
+    // Update description
+    this.cycleProgress.stepDescription = description;
+    
+    if (subProgress > 0) {
+      // Calculate blended progress more smoothly
+      const baseProgress = this.cycleProgress.totalSteps > 0 ? 
+        (this.cycleProgress.currentStep / this.cycleProgress.totalSteps) : 0;
+      const stepSize = this.cycleProgress.totalSteps > 0 ? (1 / this.cycleProgress.totalSteps) : 1;
+      const fluidProgress = baseProgress + (stepSize * (subProgress / 100));
+      const newPercentage = Math.round(fluidProgress * 100);
+      
+      // Ensure progress only moves forward
+      this.cycleProgress.percentage = Math.max(this.cycleProgress.percentage, newPercentage);
+    }
+    
+    console.log(`[LEAD AGENT] 📊 Progress: ${this.cycleProgress.percentage}% - ${description}`);
+    
+    // Emit progress event for real-time updates
+    this.emit('progress', {
+      ...this.cycleProgress,
+      isActive: this.isRunning && (this.currentStatus === 'running_cycle' || 
+                                 this.currentStatus === 'researching_leads' || 
+                                 this.currentStatus === 'selecting_leads' || 
+                                 this.currentStatus === 'generating_emails')
+    });
+  }
+
   async runCycle() {
+    // Prevent concurrent cycles
+    if (this.cycleInProgress) {
+      console.log(`[LEAD AGENT] ⏸️ Cycle already in progress, skipping...`);
+      return;
+    }
+    
+    this.cycleInProgress = true;
     console.log(`[LEAD AGENT] 🚀 Starting cycle ${this.currentCycle + 1}`);
     
     try {
+      // Initialize progress tracking
+      this.updateProgress(0, 6, 'Initializing cycle...');
+      
       // Update status to running
       this.currentStatus = 'running_cycle';
       await this.saveState();
       
       // Step 1: Load existing leads database
+      this.updateProgress(1, 6, 'Loading leads database...');
       console.log(`[LEAD AGENT] 📊 Loading leads database...`);
       let leadsData = await this.loadLeadsDatabase();
       
@@ -291,6 +368,7 @@ class LeadContactAgent {
       const availableLeads = this.getAvailableLeads(leadsData);
       
       if (availableLeads.length < 5) {
+        this.updateProgress(2, 6, 'Researching new leads...');
         console.log('[LEAD AGENT] 🔍 Need more leads, starting research...');
         this.currentStatus = 'researching_leads';
         await this.saveState();
@@ -302,6 +380,7 @@ class LeadContactAgent {
         // Check if we still have no leads after research
         const updatedAvailableLeads = this.getAvailableLeads(leadsData);
         if (updatedAvailableLeads.length === 0) {
+          this.updateProgress(6, 6, 'No leads found - pausing...');
           console.log('[LEAD AGENT] 🚫 No leads available after research - pausing agent');
           await this.pauseForLeadExhaustion();
           return {
@@ -312,14 +391,19 @@ class LeadContactAgent {
             message: 'Agent paused - no leads available. Start agent again to resume research.'
           };
         }
+      } else {
+        this.updateProgress(2, 6, 'Sufficient leads available, skipping research...');
       }
       
       // Step 3: Select top 5 leads for this cycle
+      this.updateProgress(3, 6, 'Selecting top leads for outreach...');
       console.log(`[LEAD AGENT] 🎯 Selecting top leads for outreach...`);
       this.currentStatus = 'selecting_leads';
       await this.saveState();
       
+      this.updateFluidProgress('Analyzing lead scores and rankings...', 20);
       const selectedLeads = this.selectTopLeads(leadsData, 5);
+      this.updateFluidProgress('Top leads selected for outreach', 100);
       
       console.log(`[LEAD AGENT] Selected ${selectedLeads.length} leads for cycle ${this.currentCycle + 1}:`);
       selectedLeads.forEach((lead, index) => {
@@ -327,6 +411,7 @@ class LeadContactAgent {
       });
       
       // Step 4: Email the selected leads
+      this.updateProgress(4, 6, 'Generating and queueing emails...');
       console.log(`[LEAD AGENT] 📧 Generating and queueing emails...`);
       this.currentStatus = 'generating_emails';
       await this.saveState();
@@ -334,12 +419,20 @@ class LeadContactAgent {
       const emailResults = await this.emailSelectedLeads(selectedLeads);
       
       // Step 5: Update database with emailed companies
+      this.updateProgress(5, 6, 'Updating database...');
+      this.updateFluidProgress('Marking leads as emailed in database...', 50);
       await this.markLeadsAsEmailed(selectedLeads);
+      this.updateFluidProgress('Database updated successfully', 100);
       
       // Step 6: Update cycle counter and state
+      this.updateProgress(6, 6, 'Finalizing cycle...');
+      this.updateFluidProgress('Saving cycle state and preparing for next cycle...', 50);
       this.currentCycle++;
       this.currentStatus = 'waiting_next_cycle';
       await this.saveState();
+      
+      // Reset progress
+      this.updateProgress(0, 0, 'Cycle completed');
       
       console.log(`[LEAD AGENT] 🎯 Cycle ${this.currentCycle} completed successfully!`);
       console.log(`[LEAD AGENT] 📧 Emails queued for approval: ${emailResults.queued}`);
@@ -357,57 +450,107 @@ class LeadContactAgent {
     } catch (error) {
       console.error(`[LEAD AGENT] ❌ Error in cycle ${this.currentCycle + 1}:`, error);
       this.currentStatus = 'error';
+      this.updateProgress(0, 0, 'Error occurred');
       await this.saveState();
       return {
         success: false,
         error: error.message
       };
+    } finally {
+      // Always clear the cycle-in-progress flag and schedule next cycle
+      this.cycleInProgress = false;
+      
+      // Schedule next cycle only if agent is still running
+      if (this.isRunning) {
+        console.log(`[LEAD AGENT] ⏰ Scheduling next cycle in ${this.cycleInterval / (1000 * 60)} minutes...`);
+        this.intervalId = setTimeout(async () => {
+          if (this.isRunning) {
+            await this.runCycle();
+          }
+        }, this.cycleInterval);
+      }
     }
   }
 
   async researchNewLeads() {
     console.log('[LEAD AGENT] Researching new leads...');
     
+    // Work within the existing progress framework - research is step 2 out of 6
+    // We'll use sub-progress within this step rather than overriding the main progress
+    
     const allLeads = [];
+    const totalIndustries = 3;
+    
+    this.updateFluidProgress('🚀 Initializing research pipeline...', 5);
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    this.updateFluidProgress('📋 Loading target industries and company types...', 10);
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Research multiple industries/company types
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < totalIndustries; i++) {
       const industry = this.targetIndustries[Math.floor(Math.random() * this.targetIndustries.length)];
       const companyType = this.companyTypes[Math.floor(Math.random() * this.companyTypes.length)];
+      
+      const baseProgress = 10 + (i * 25); // Distribute 75% across 3 industries (25% each)
+      
+      this.updateFluidProgress(`🎯 Selected research focus: ${industry} - ${companyType}`, baseProgress);
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      this.updateFluidProgress(`🔍 [${i+1}/${totalIndustries}] Connecting to Apollo API...`, baseProgress + 5);
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       console.log(`[LEAD AGENT] Researching: ${industry} - ${companyType}`);
       
       const query = `companies in ${industry} that would need high-performance GPU computing for AI and machine learning workloads, specifically ${companyType}`;
       
+      this.updateFluidProgress(`📡 Executing search query for ${industry}...`, baseProgress + 10);
+      
       try {
         const researchResult = await leadResearch(query, { 
           limit: 20 
-        });
+        }, null); // userId = null, will fall back to environment variables
+        
+        this.updateFluidProgress(`📊 Processing Apollo API response...`, baseProgress + 15);
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         console.log(`[LEAD AGENT] Raw research result:`, researchResult?.length || 0, 'items');
         
         if (researchResult && researchResult.length > 0) {
+          this.updateFluidProgress(`✅ Found ${researchResult.length} potential leads in ${industry}`, baseProgress + 20);
           console.log(`[LEAD AGENT] Found ${researchResult.length} leads for ${industry}`);
           allLeads.push(...researchResult);
+          
+          this.updateFluidProgress(`💾 Adding ${researchResult.length} leads to research pool...`, baseProgress + 22);
+          await new Promise(resolve => setTimeout(resolve, 100));
         } else {
+          this.updateFluidProgress(`⚠️ No leads found in ${industry} market`, baseProgress + 20);
           console.log(`[LEAD AGENT] No leads found for ${industry} --> ${query}`);
         }
         
+        this.updateFluidProgress(`⏱️ Cooling down API calls (rate limiting)...`, baseProgress + 25);
         // Add delay between searches to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
         
       } catch (error) {
+        this.updateFluidProgress(`❌ Error searching ${industry}: ${error.message}`, baseProgress + 25);
         console.error(`[LEAD AGENT] Error researching ${industry}:`, error);
       }
     }
     
     // Process and extract lead information from research results
+    this.updateFluidProgress(`🔄 Starting lead processing pipeline...`, 85);
+    this.updateFluidProgress(`🔍 Analyzing ${allLeads.length} research results for duplicates...`, 87);
     console.log(`[LEAD AGENT] Processing ${allLeads.length} research results into leads...`);
     const processedLeads = await this.processLeadsFromResearch(allLeads);
     
     // Rank and score the leads
+    this.updateFluidProgress(`📊 Initializing lead scoring algorithm...`, 90);
+    this.updateFluidProgress(`🎯 Calculating lead quality scores...`, 92);
     const rankedLeads = await this.rankLeads(processedLeads);
     
+    this.updateFluidProgress(`🔍 Finalizing lead verification...`, 95);
+    this.updateFluidProgress(`✅ Research pipeline complete - ${rankedLeads.length} qualified leads ready`, 98);
     console.log(`[LEAD AGENT] Research complete. Found ${rankedLeads.length} total leads`);
     console.log(`[LEAD AGENT] Sample lead data:`, rankedLeads[0] ? JSON.stringify(rankedLeads[0], null, 2) : 'No leads found');
     return rankedLeads;
@@ -415,19 +558,48 @@ class LeadContactAgent {
 
   async processLeadsFromResearch(researchResults) {
     const processedLeads = [];
+    const seenEmails = new Set(); // Track unique emails to avoid duplicates
+    const seenCompanies = new Set(); // Track unique companies to avoid duplicates
     
-    for (const result of researchResults) {
+    console.log(`[LEAD AGENT] Processing ${researchResults.length} research results (removing duplicates)...`);
+    
+    for (let i = 0; i < researchResults.length; i++) {
+      const result = researchResults[i];
+      
+      // No need for granular progress in each iteration - just process
       try {
         // Extract company and contact info from the search result
         const lead = this.extractLeadInfo(result);
-        if (lead && lead.company && lead.name) {
+        if (lead && lead.company && lead.name && lead.email) {
+          
+          // Create unique identifiers for deduplication
+          const emailKey = lead.email.toLowerCase();
+          const companyKey = `${lead.company}-${lead.name}`.toLowerCase();
+          
+          // Skip if we've already seen this email or person-company combination
+          if (seenEmails.has(emailKey)) {
+            console.log(`[LEAD AGENT] 🔄 Skipping duplicate email: ${lead.email} (${lead.name} at ${lead.company})`);
+            continue;
+          }
+          
+          if (seenCompanies.has(companyKey)) {
+            console.log(`[LEAD AGENT] 🔄 Skipping duplicate person-company: ${lead.name} at ${lead.company}`);
+            continue;
+          }
+          
+          // Add to tracking sets
+          seenEmails.add(emailKey);
+          seenCompanies.add(companyKey);
+          
           processedLeads.push(lead);
+          console.log(`[LEAD AGENT] ✅ Added unique lead: ${lead.name} at ${lead.company} (${lead.email})`);
         }
       } catch (error) {
         console.log(`[LEAD AGENT] Failed to process lead: ${error.message}`);
       }
     }
     
+    console.log(`[LEAD AGENT] Deduplication complete: ${researchResults.length} → ${processedLeads.length} unique leads`);
     return processedLeads;
   }
 
@@ -435,6 +607,14 @@ class LeadContactAgent {
     // Check if this is a structured Apollo result (new leadResearch.js format)
     if (result && result.name && result.organization) {
       console.log(`[LEAD AGENT] Processing structured Apollo lead: ${result.name} at ${result.organization.name}`);
+      
+      // Check if this lead has been enhanced with intelligence data
+      const hasIntelligence = result.intelligence && result.intelligence.analysis;
+      const hasPersonalization = result.personalization;
+      
+      if (hasIntelligence && hasPersonalization) {
+        console.log(`[LEAD AGENT] ✨ Found enhanced lead with intelligence data: ${result.organization.name}`);
+      }
       
       return {
         name: result.name || 'Unknown Contact',
@@ -447,7 +627,11 @@ class LeadContactAgent {
         url: result.linkedin_url || '',
         snippet: `${result.title} at ${result.organization.name}`,
         score: 10,
-        industry: result.organization.industry || 'Technology'
+        industry: result.organization.industry || 'Technology',
+        // Preserve enhanced intelligence and personalization data
+        intelligence: result.intelligence || null,
+        personalization: result.personalization || null,
+        verification: result.verification || null
       };
     }
     
@@ -484,7 +668,11 @@ class LeadContactAgent {
           url: url,
           snippet: snippet.substring(0, 200),
           score: 0,
-          industry: industry
+          industry: industry,
+          // Preserve enhanced intelligence and personalization data if available
+          intelligence: result.intelligence || null,
+          personalization: result.personalization || null,
+          verification: result.verification || null
         };
       }
     }
@@ -539,16 +727,40 @@ class LeadContactAgent {
       source: result.source || 'WebSearch',
       url: url,
       snippet: snippet.substring(0, 200), // Truncate for storage
-      score: 0 // Will be calculated later
+      score: 0, // Will be calculated later
+      // Preserve enhanced intelligence and personalization data if available
+      intelligence: result.intelligence || null,
+      personalization: result.personalization || null,
+      verification: result.verification || null
     };
   }
 
   async rankLeads(leads) {
     console.log('[LEAD AGENT] Ranking leads...');
     
+    // No individual progress steps - just process the leads
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Score leads based on multiple factors
-    const scoredLeads = leads.map(lead => {
+    const scoredLeads = leads.map((lead, index) => {
       let score = 0;
+      
+      // Prioritize leads with intelligence data
+      if (lead.intelligence && lead.intelligence.analysis) {
+        console.log(`[LEAD AGENT] 🧠 Found intelligence data for ${lead.company} - boosting score`);
+        score += 50; // Major boost for enhanced leads
+        
+        // Add opportunity score from intelligence
+        if (lead.intelligence.analysis.opportunityScore) {
+          score += Math.round(lead.intelligence.analysis.opportunityScore / 2); // Scale 100 -> 50
+        }
+      }
+      
+      // Verification status boost
+      if (lead.verification && lead.verification.isVerified) {
+        score += 20;
+        console.log(`[LEAD AGENT] ✅ Verified company ${lead.company} - boosting score`);
+      }
       
       // Company size scoring (prefer mid-size to large companies)
       if (lead.employee_count) {
@@ -583,20 +795,165 @@ class LeadContactAgent {
       };
     });
     
+    // Sort by score descending - no progress step needed
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Sort by score descending
-    return scoredLeads.sort((a, b) => b.score - a.score);
+    const sortedLeads = scoredLeads.sort((a, b) => b.score - a.score);
+    
+    return sortedLeads;
   }
 
   async generatePersonalizedEmail(lead) {
-    console.log(`[LEAD AGENT] Generating intelligent email for ${lead.company}`);
+    console.log(`[LEAD AGENT] Generating hyper-personalized email for ${lead.company || lead.organization?.name}`);
     
-    // Build enhanced context from sales intelligence
+    // Check if we have enhanced intelligence data
+    const hasIntelligence = lead.intelligence && lead.intelligence.analysis;
+    const hasPersonalization = lead.personalization;
+    
+    if (hasIntelligence && hasPersonalization) {
+      console.log(`[LEAD AGENT] 🧠 Using AI intelligence & personalization for ${lead.company}`);
+      return this.generateIntelligentEmail(lead);
+    } else {
+      console.log(`[LEAD AGENT] ⚠️ No intelligence data available, using fallback for ${lead.company}`);
+      return this.generateFallbackEmail(lead);
+    }
+  }
+
+  async generateIntelligentEmail(lead) {
+    const company = lead.company || lead.organization?.name;
+    const person = lead.name || `${lead.first_name} ${lead.last_name}`;
+    const intelligence = lead.intelligence?.analysis;
+    const personalization = lead.personalization;
+    
+    console.log(`[LEAD AGENT] 🎯 Generating AI-powered email for ${person} at ${company}`);
+    console.log(`[LEAD AGENT] 📊 Opportunity Score: ${intelligence?.opportunityScore || 'Unknown'}/100`);
+    
+    // Build enhanced intelligence context from the deep research
+    let intelligenceContext = '';
+    let salesRecommendations = '';
+    
+    if (intelligence) {
+      // Add company analysis insights
+      intelligenceContext = `\nDEEP COMPANY INTELLIGENCE:
+- Opportunity Score: ${intelligence.opportunityScore}/100
+- AI Readiness: ${intelligence.aiReadiness || 'Unknown'}
+- Growth Signals: ${intelligence.growthSignals?.length || 0} indicators found`;
+      
+      if (intelligence.growthSignals?.length > 0) {
+        intelligenceContext += `\n- Recent Growth: ${intelligence.growthSignals.slice(0, 2).join(', ')}`;
+      }
+    }
+    
+    if (personalization) {
+      // Add personalization insights
+      salesRecommendations = `\nPERSONALIZATION DATA:
+- Specific Mentions: ${personalization.specificMentions?.recentNews || 'None'}
+- Company Initiatives: ${personalization.specificMentions?.companyInitiatives || 'None'}
+- Suggested Value Props: ${personalization.valuePropositions?.[0] || 'Standard AI-HPC value'}`;
+    }
+    
+    // Use the same AI prompt system as fallback email, but with enhanced intelligence
+    const prompt = `You are ExaMark, the AI assistant for Exabits. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
+
+Company: ${company}
+Contact: ${lead.first_name} ${lead.last_name}
+Title: ${lead.title}
+Industry: ${lead.industry || 'Technology'}
+Company Description: ${lead.company_description || 'Technology company'}
+Employee Count: ${lead.employee_count || 'Unknown'}${intelligenceContext}${salesRecommendations}
+
+ABOUT EXABITS (Focus on business value, not company history):
+- Specializes in AI-powered High-Performance Computing (HPC) Solutions
+- Core offering: Custom AI infrastructure with NVIDIA H100/H200 GPU clusters
+- Key advantages: AI-HPC specialization, better performance-per-dollar vs general cloud, expert support
+- Industry expertise: Deep understanding of AI/ML compute requirements
+
+YOUR TASK - BE A SMART SALESPERSON:
+Generate a professional email that demonstrates you've done your homework:
+
+1. Subject line that references specific company context (growth, AI initiatives, etc.)
+2. Opening with SINGLE greeting only (Hi [Name], or Hello [Name], - NOT BOTH)
+3. Connect their specific situation to Exabits solutions with LOGICAL REASONING
+4. Explain WHY our solution specifically fits their company's needs
+5. Professional call-to-action
+6. Simple signature: "Best regards,\nExaMark\nExabits AI Assistant"
+
+CRITICAL RULES:
+- Use ONLY ONE greeting (not "Hello Name, Hi Name,")
+- NO "P.S." sections about founders
+- DO NOT repeat the subject line in the email body
+- DO NOT use placeholder text like "your full name" or "your position"
+- Sign simply as "ExaMark" - no placeholder names
+- EXPLAIN the logical connection between their business and our GPU clusters
+- Reference specific research insights when available
+- Focus on business value, not just features
+- DO NOT mention Exabits founding date, location, or founders unless directly relevant to the prospect's needs
+- Keep focus on technical solutions and business outcomes
+
+Keep it concise (under 200 words), professional, and data-driven. Show you understand their business.
+
+IMPORTANT FORMATTING:
+- The BODY should NOT contain the subject line
+- Start the BODY directly with the greeting
+- End with the simple signature shown above
+
+Format as:
+SUBJECT: [subject line]
+BODY: [email body starting with greeting, ending with signature]
+
+EXAMPLE:
+SUBJECT: AI Infrastructure for TechCorp's Expansion
+BODY: Hi John,
+
+I noticed TechCorp recently raised Series B funding...
+
+Best regards,
+ExaMark
+Exabits AI Assistant`;
+
+    try {
+      const response = await this.llm.invoke(prompt);
+      const emailContent = response.content;
+      
+      // Parse subject and body
+      const subjectMatch = emailContent.match(/SUBJECT:\s*(.+)/);
+      const bodyMatch = emailContent.match(/BODY:\s*([\s\S]+)/);
+      
+      let cleanSubject = subjectMatch ? subjectMatch[1].trim() : `AI Infrastructure Solutions for ${company}`;
+      let cleanBody = bodyMatch ? bodyMatch[1].trim() : emailContent;
+      
+      // Clean up common AI issues
+      cleanBody = this.cleanEmailContent(cleanBody, cleanSubject);
+      
+      console.log(`[LEAD AGENT] ✅ Generated AI-powered email using enhanced intelligence`);
+      
+      return {
+        subject: cleanSubject,
+        body: cleanBody
+      };
+      
+    } catch (error) {
+      console.error('[LEAD AGENT] Error generating intelligent email:', error);
+      
+      // Fallback to simple template without P.S.
+      return {
+        subject: `AI Infrastructure Solutions for ${company}`,
+        body: `Hello ${lead.first_name},\n\nI'm ExaMark from Exabits, and I noticed ${company} is working in ${lead.industry || 'technology'}.\n\nExabits specializes in AI-powered high-performance computing solutions with NVIDIA H100/H200 GPU clusters. We help companies like yours achieve better performance-per-dollar compared to general cloud providers.\n\nI'd love to discuss how our specialized AI infrastructure could benefit ${company}'s computing needs.\n\nBest regards,\nExaMark\nExabits AI Assistant`
+      };
+    }
+  }
+
+  async generateFallbackEmail(lead) {
+    console.log(`[LEAD AGENT] Generating fallback email for ${lead.company}`);
+    
+    // Build enhanced context from basic sales intelligence (old system)
     let intelligenceContext = '';
     let salesRecommendations = '';
     
     if (lead.salesIntelligence) {
       const si = lead.salesIntelligence;
-      console.log(`[LEAD AGENT] Using sales intelligence (confidence: ${si.confidence}%) for ${lead.company}`);
+      console.log(`[LEAD AGENT] Using basic sales intelligence (confidence: ${si.confidence}%) for ${lead.company}`);
       
       // Add specific company insights
       if (si.insights && si.insights.length > 0) {
@@ -625,23 +982,30 @@ Industry: ${lead.industry || 'Technology'}
 Company Description: ${lead.company_description || 'Technology company'}
 Employee Count: ${lead.employee_count || 'Unknown'}${intelligenceContext}${salesRecommendations}
 
-ABOUT EXABITS (Use this exact information):
-- Founded 2021, San Mateo, California
+ABOUT EXABITS (Focus on business value, not company history):
 - Specializes in AI-powered High-Performance Computing (HPC) Solutions
-- Founders: Hoansoo Lee (CEO) & Zachary Bright (CTO from Princeton)
 - Core offering: Custom AI infrastructure with NVIDIA H100/H200 GPU clusters
 - Key advantages: AI-HPC specialization, better performance-per-dollar vs general cloud, expert support
+- Industry expertise: Deep understanding of AI/ML compute requirements
 
 YOUR TASK - BE A SMART SALESPERSON:
 Generate a professional email that demonstrates you've done your homework:
 
 1. Subject line that references specific company context (growth, AI initiatives, etc.)
-2. Opening that mentions SPECIFIC research insights about their company
-3. Connect their specific situation to Exabits solutions intelligently
-4. Use the sales opportunities and angles provided above
+2. Opening with SINGLE greeting only (Hi [Name], or Hello [Name], - NOT BOTH)
+3. Connect their specific situation to Exabits solutions with LOGICAL REASONING
+4. Explain WHY our solution specifically fits their company's needs
 5. Professional call-to-action
+6. NO P.S. section or founder name-dropping
 
-CRITICAL: If research insights are provided, MUST reference them specifically. Don't be generic - be intelligent and contextual.
+CRITICAL RULES:
+- Use ONLY ONE greeting (not "Hello Name, Hi Name,")
+- NO "P.S." sections about founders
+- EXPLAIN the logical connection between their business and our GPU clusters
+- Reference specific research insights when available
+- Focus on business value, not just features
+- DO NOT mention Exabits founding date, location, or founders unless directly relevant to the prospect's needs
+- Keep focus on technical solutions and business outcomes
 
 Keep it concise (under 200 words), professional, and data-driven. Show you understand their business.
 
@@ -657,9 +1021,15 @@ BODY: [email body]`;
       const subjectMatch = emailContent.match(/SUBJECT:\s*(.+)/);
       const bodyMatch = emailContent.match(/BODY:\s*([\s\S]+)/);
       
+      let cleanSubject = subjectMatch ? subjectMatch[1].trim() : `AI Infrastructure Solutions for ${lead.company}`;
+      let cleanBody = bodyMatch ? bodyMatch[1].trim() : emailContent;
+      
+      // Clean up common AI issues
+      cleanBody = this.cleanEmailContent(cleanBody, cleanSubject);
+      
       return {
-        subject: subjectMatch ? subjectMatch[1].trim() : `AI Infrastructure Solutions for ${lead.company}`,
-        body: bodyMatch ? bodyMatch[1].trim() : emailContent
+        subject: cleanSubject,
+        body: cleanBody
       };
       
     } catch (error) {
@@ -673,21 +1043,78 @@ BODY: [email body]`;
     }
   }
 
+  // Clean up common AI email generation issues
+  cleanEmailContent(body, subject) {
+    let cleanedBody = body;
+    
+    // Remove subject line if it appears at the start of the body
+    const subjectRegex = new RegExp(`^${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i');
+    cleanedBody = cleanedBody.replace(subjectRegex, '');
+    
+    // Remove common placeholder text
+    cleanedBody = cleanedBody.replace(/\[your full name\]/gi, 'ExaMark');
+    cleanedBody = cleanedBody.replace(/\[your position\]/gi, 'Exabits AI Assistant');
+    cleanedBody = cleanedBody.replace(/\[your name\]/gi, 'ExaMark');
+    cleanedBody = cleanedBody.replace(/\[position\]/gi, 'Exabits AI Assistant');
+    cleanedBody = cleanedBody.replace(/\[Your Name\]/gi, 'ExaMark');
+    cleanedBody = cleanedBody.replace(/\[Your Position\]/gi, 'Exabits AI Assistant');
+    
+    // Remove variations of placeholder signatures
+    cleanedBody = cleanedBody.replace(/Best regards,\s*\[your name\]/gi, 'Best regards,\nExaMark');
+    cleanedBody = cleanedBody.replace(/Best regards,\s*\[Your Name\]/gi, 'Best regards,\nExaMark');
+    
+    // Clean up extra whitespace and line breaks
+    cleanedBody = cleanedBody.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive line breaks
+    cleanedBody = cleanedBody.trim();
+    
+    return cleanedBody;
+  }
+
   async emailSelectedLeads(leads) {
     console.log(`[LEAD AGENT] Emailing ${leads.length} selected leads...`);
     
     let successCount = 0;
     let failedCount = 0;
     
-    for (const lead of leads) {
+    // Initialize granular email progress (5-8 steps per email)
+    let emailStep = 0;
+    const totalEmailSteps = leads.length * 6; // 6 micro-steps per email
+    
+    const emailProgressStep = (message, increment = 1) => {
+      emailStep += increment;
+      const progress = Math.min((emailStep / totalEmailSteps) * 100, 100);
+      this.updateFluidProgress(message, progress);
+      this.emit('progress', {
+        step: `Email Step ${emailStep}/${totalEmailSteps}`,
+        message: message,
+        progress: progress
+      });
+    };
+    
+    for (let i = 0; i < leads.length; i++) {
+      const lead = leads[i];
+      
+      emailProgressStep(`📧 [${i + 1}/${leads.length}] Initializing email for ${lead.company}...`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       if (!lead.email) {
         console.log(`[LEAD AGENT] Skipping ${lead.company} - no email address`);
+        emailProgressStep(`⚠️ Skipped ${lead.company} - no email address`);
         failedCount++;
         continue;
       }
       
       try {
+        emailProgressStep(`🔍 Analyzing ${lead.company} intelligence data...`);
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        emailProgressStep(`🤖 AI generating personalized content for ${lead.company}...`);
         const emailContent = await this.generatePersonalizedEmail(lead);
+        
+        emailProgressStep(`✏️ Processing and cleaning email content...`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        emailProgressStep(`📝 Preparing email queue entry for ${lead.company}...`);
         
         // Set default recipient to developer email for safety (can be edited in queue)
         let finalSubject = emailContent.subject;
@@ -695,6 +1122,10 @@ BODY: [email body]`;
         let finalRecipient = DEVELOPER_EMAIL; // Default to safe recipient, can be edited
         
         // Add email to queue for approval instead of sending directly
+        const hasIntelligence = lead.intelligence && lead.intelligence.analysis;
+        const opportunityScore = hasIntelligence ? lead.intelligence.analysis.opportunityScore : 'N/A';
+        const isVerified = lead.verification?.isVerified || false;
+        
         const queueData = {
           leadId: lead.id || `${lead.company}_${lead.name}`.replace(/\s+/g, '_'),
           leadCompany: lead.company,
@@ -707,6 +1138,7 @@ BODY: [email body]`;
           finalBody: finalBody,
           finalRecipient: finalRecipient,
           testingMode: false, // No longer using testing mode
+          // Enhanced lead details with intelligence
           leadDetails: {
             company: lead.company,
             contact: `${lead.first_name} ${lead.last_name}`,
@@ -714,24 +1146,44 @@ BODY: [email body]`;
             industry: lead.industry || 'Unknown',
             employeeCount: lead.employee_count || 'Unknown',
             email: lead.email,
-            score: lead.score || 'N/A'
-          }
+            score: lead.score || 'N/A',
+            // Intelligence data
+            hasIntelligence: hasIntelligence,
+            opportunityScore: opportunityScore,
+            isVerified: isVerified,
+            verificationConfidence: lead.verification?.confidence || 'N/A',
+            aiReadiness: hasIntelligence ? lead.intelligence.analysis.aiReadiness : 'Unknown',
+            growthSignals: hasIntelligence ? lead.intelligence.analysis.growthSignals?.length || 0 : 0,
+            personalizationQuality: lead.personalization ? 'High' : 'Basic'
+          },
+          // Include intelligence summary for review
+          intelligenceSummary: hasIntelligence ? {
+            summary: lead.intelligence.analysis.summary,
+            opportunityScore: opportunityScore,
+            personalizedAngles: lead.intelligence.analysis.personalizedAngles,
+            recentDevelopments: lead.intelligence.analysis.recentDevelopments
+          } : null
         };
         
+        emailProgressStep(`📤 Adding to email approval queue...`);
         await emailQueue.addToQueue(queueData);
         
         console.log(`[LEAD AGENT] 📧 Added to email queue: ${lead.company} (${lead.email})`);
+        emailProgressStep(`✅ Email queued for ${lead.company} - ready for review`);
         successCount++;
         
         // Add delay between processing to avoid overwhelming the system
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
       } catch (error) {
         console.error(`[LEAD AGENT] ❌ Failed to process ${lead.company}:`, error);
+        emailProgressStep(`❌ Failed to generate email for ${lead.company}: ${error.message}`);
         failedCount++;
       }
     }
     
+    emailProgressStep(`🎯 Email generation pipeline complete!`);
+    emailProgressStep(`📊 Final results: ${successCount} queued, ${failedCount} failed`);
     return { queued: successCount, failed: failedCount };
   }
 
@@ -744,7 +1196,39 @@ BODY: [email body]`;
 
   selectTopLeads(leadsData, count) {
     const availableLeads = this.getAvailableLeads(leadsData);
-    return availableLeads.slice(0, count);
+    
+    // Sort leads by intelligence quality and opportunity score
+    const sortedLeads = availableLeads.sort((a, b) => {
+      // Prioritize leads with intelligence data
+      const aHasIntelligence = a.intelligence && a.intelligence.analysis && a.intelligence.analysis.opportunityScore;
+      const bHasIntelligence = b.intelligence && b.intelligence.analysis && b.intelligence.analysis.opportunityScore;
+      
+      if (aHasIntelligence && !bHasIntelligence) return -1;
+      if (!aHasIntelligence && bHasIntelligence) return 1;
+      
+      // If both have intelligence, sort by opportunity score
+      if (aHasIntelligence && bHasIntelligence) {
+        return b.intelligence.analysis.opportunityScore - a.intelligence.analysis.opportunityScore;
+      }
+      
+      // Fallback to basic scoring (salesIntelligence system)
+      const aScore = a.score || (a.salesIntelligence?.confidence || 0);
+      const bScore = b.score || (b.salesIntelligence?.confidence || 0);
+      
+      return bScore - aScore;
+    });
+    
+    console.log(`[LEAD AGENT] 🎯 Lead selection summary:`);
+    sortedLeads.slice(0, count).forEach((lead, index) => {
+      const hasIntelligence = lead.intelligence && lead.intelligence.analysis;
+      const score = hasIntelligence ? 
+        lead.intelligence.analysis.opportunityScore : 
+        (lead.score || lead.salesIntelligence?.confidence || 'N/A');
+      const verified = lead.verification?.isVerified ? '✅' : '❓';
+      console.log(`[LEAD AGENT] ${index + 1}. ${lead.company} ${verified} - Score: ${score} ${hasIntelligence ? '(AI Enhanced)' : '(Basic)'}`);
+    });
+    
+    return sortedLeads.slice(0, count);
   }
 
   async markLeadsAsEmailed(leads) {
@@ -910,11 +1394,11 @@ BODY: [email body]`;
     this.isRunning = false;
     this.currentStatus = 'paused_no_leads';
     
-    // Clear interval if running
+    // Clear timer if running
     if (this.intervalId) {
-      clearInterval(this.intervalId);
+      clearTimeout(this.intervalId);
       this.intervalId = null;
-      console.log('[LEAD AGENT] ✅ Cleared cycle interval');
+      console.log('[LEAD AGENT] ✅ Cleared cycle timer');
     }
     
     // Save paused state

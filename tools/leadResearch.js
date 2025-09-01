@@ -3,28 +3,65 @@
 
 import 'dotenv/config';
 import { internetSearch } from './internetSearch.js';
+import { companyIntelligence } from './companyIntelligence.js';
+import { getUserSettings } from '../lib/userManager.js';
+
+// Helper function to get API key from user settings first, then environment
+async function getApiKey(keyName, userId = null) {
+  try {
+    if (userId) {
+      const userSettings = await getUserSettings(userId);
+      const userApiKey = userSettings?.apiKeys?.[keyName];
+      if (userApiKey && userApiKey.trim() !== '') {
+        console.log(`🔑 [API] Using user-configured ${keyName.toUpperCase()} API key`);
+        return userApiKey;
+      }
+    }
+    
+    // Fall back to environment variable
+    const envKey = process.env[`${keyName.toUpperCase()}_API_KEY`];
+    if (envKey && envKey.trim() !== '') {
+      console.log(`🔑 [API] Using environment ${keyName.toUpperCase()} API key`);
+      return envKey;
+    }
+    
+    throw new Error(`${keyName.toUpperCase()} API key not found in user settings or environment`);
+  } catch (error) {
+    console.error(`[API] Error getting ${keyName} API key:`, error.message);
+    throw error;
+  }
+}
 
 // Enhanced lead research with company intelligence
 export async function leadResearch(query, options = {}) {
-  const limit = options.limit || 10;
-  console.log(`🔍 [LEAD RESEARCH] Starting enhanced research for: ${query}`);
+  // Optimize Apollo usage: Only search for 5 leads since we only use top 5 anyway
+  const limit = Math.min(options.limit || 5, 5); // Cap at 5 to reduce API costs
+  const userId = options.userId || null; // Get userId from options for API key lookup
+  console.log(`🔍 [LEAD RESEARCH] Starting enhanced research for: ${query} (limit: ${limit} to optimize costs)`);
   
   try {
     // Step 1: Get initial leads from Apollo
-    const apolloLeads = await searchApollo(query, limit);
+    const apolloLeads = await searchApollo(query, limit, userId);
     console.log(`📊 [LEAD RESEARCH] Found ${apolloLeads.length} Apollo leads`);
     
-    // Step 2: Enhanced research on top 5 leads
+    // Step 2: Enhanced research with company intelligence on top leads
     const topLeads = apolloLeads.slice(0, 5);
     const enhancedLeads = [];
     
     for (const lead of topLeads) {
-      console.log(`🔬 [LEAD RESEARCH] Deep research on: ${lead.organization?.name || lead.company}`);
-      const enrichedLead = await enrichLeadWithIntelligence(lead);
-      enhancedLeads.push(enrichedLead);
+      console.log(`🔬 [LEAD RESEARCH] Deep intelligence gathering: ${lead.organization?.name || lead.company}`);
+      const enhancedLead = await companyIntelligence.enhanceAndVerifyLead(lead);
+      
+      // Only include verified leads
+      if (enhancedLead.verification && enhancedLead.verification.isVerified) {
+        enhancedLeads.push(enhancedLead);
+        console.log(`✅ [LEAD RESEARCH] Lead verified and enhanced: ${lead.organization?.name || lead.company}`);
+      } else {
+        console.log(`❌ [LEAD RESEARCH] Lead rejected - verification failed: ${enhancedLead.verification?.reason || 'Unknown reason'}`);
+      }
     }
     
-    // Step 3: Return mix of enhanced + remaining basic leads
+    // Step 3: Return enhanced verified leads + remaining basic leads
     const remainingLeads = apolloLeads.slice(5);
     return [...enhancedLeads, ...remainingLeads];
     
@@ -258,10 +295,10 @@ function calculateConfidenceScore(insights) {
 }
 
 // Import Apollo search functionality
-async function searchApollo(query, limit = 10) {
-  const apiKey = process.env.APOLLO_API_KEY;
+async function searchApollo(query, limit = 5, userId = null) { // Reduced default from 10 to 5 for cost optimization
+  const apiKey = await getApiKey('apollo', userId);
   if (!apiKey) {
-    throw new Error('Apollo API key not found');
+    throw new Error('Apollo API key not found in user settings or environment');
   }
 
   console.log(`🔑 [Apollo] API Key check: Present (${apiKey.substring(0, 10)}...)`);
@@ -316,12 +353,19 @@ async function searchApollo(query, limit = 10) {
     }
 
     if (data.people && data.people.length > 0) {
-      // Enrich emails for all people
-      console.log(`🔓 [Apollo] Enriching emails for ${data.people.length} people...`);
+      // Enrich emails for limited subset of people - stop when we have enough
+      const peopleToEnrich = data.people.slice(0, limit); // Use the actual limit requested
+      console.log(`🔓 [Apollo] Enriching emails for ${peopleToEnrich.length} people (out of ${data.people.length} found)...`);
       const enrichedPeople = [];
       
-      for (const person of data.people.slice(0, 5)) { // Limit to 5 to avoid rate limits
+      for (const person of peopleToEnrich) {
         try {
+          // Stop enriching if we already have enough good leads
+          if (enrichedPeople.length >= 5) {
+            console.log(`✋ [Apollo] Already have ${enrichedPeople.length} leads with emails, stopping enrichment to save credits`);
+            break;
+          }
+          
           const enrichedEmail = await enrichPersonEmail(person, apiKey);
           if (enrichedEmail && enrichedEmail !== 'email_not_unlocked@domain.com') {
             console.log(`✅ [Apollo] Got real email for ${person.name}: ${enrichedEmail}`);
@@ -330,6 +374,8 @@ async function searchApollo(query, limit = 10) {
               email: enrichedEmail,
               source: 'Apollo'
             });
+          } else {
+            console.log(`⚠️ [Apollo] No email found for ${person.name}, skipping...`);
           }
         } catch (error) {
           console.error(`❌ [Apollo] Failed to enrich email for ${person.name}:`, error.message);

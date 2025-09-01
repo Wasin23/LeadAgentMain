@@ -1196,7 +1196,7 @@
             <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;margin-bottom:1rem;border-left:4px solid #059669;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
               <div style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem;">
                 <strong>Automated Lead Generation & Email Outreach</strong><br>
-                Finds high-quality prospects for Exabits every 12 hours and sends personalized emails
+                Finds high-quality prospects for Exabits every set cycle and sends personalized emails
               </div>
               <div style="font-size:0.85rem;color:#64748b;">
                 • Researches AI/ML companies needing GPU infrastructure<br>
@@ -1238,6 +1238,25 @@
               <div style="margin-top:1rem;padding:1rem;background:rgba(255, 255, 255, 0.8);backdrop-filter:blur(10px);border-radius:10px;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
                 <div style="color:#64748b;font-weight:bold;margin-bottom:0.5rem;">Next Cycle</div>
                 <div id="agent-next-cycle" style="color:#374151;">-</div>
+              </div>
+            </div>
+            
+            <!-- Cycle Progress -->
+            <div id="agent-progress-card" style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;margin-bottom:1rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h4 style="margin:0;color:#2196f3;">Cycle Progress</h4>
+                <div id="agent-progress-percentage" style="color:#059669;font-weight:bold;font-size:1.1rem;">0%</div>
+              </div>
+              
+              <!-- Progress Bar -->
+              <div style="background:rgba(226, 232, 240, 0.8);border-radius:10px;height:12px;margin-bottom:1rem;overflow:hidden;border:1px solid rgba(255, 255, 255, 0.3);">
+                <div id="agent-progress-bar" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);height:100%;width:0%;transition:width 0.5s ease;"></div>
+              </div>
+              
+              <!-- Current Step -->
+              <div style="background:rgba(255, 255, 255, 0.8);backdrop-filter:blur(10px);padding:1rem;border-radius:10px;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                <div style="color:#64748b;font-weight:bold;margin-bottom:0.5rem;">Current Operation</div>
+                <div id="agent-progress-description" style="color:#374151;">Ready to start cycle...</div>
               </div>
             </div>
             
@@ -3382,28 +3401,65 @@ Advanced conversational AI with:
     let agentStatusInterval = null;
     let activeStatusMonitoringInterval = null;
     let lastSeenCycle = 0; // Track cycle number to detect new cycles
+    let progressEventSource = null; // For real-time progress updates
 
-    // Start frequent status monitoring when agent is running
+    // Start real-time progress monitoring via Server-Sent Events
     function startAgentStatusMonitoring() {
       if (activeStatusMonitoringInterval) {
         clearInterval(activeStatusMonitoringInterval);
       }
       
-      // Check status every 3 seconds when agent is active
-      activeStatusMonitoringInterval = setInterval(() => {
-        refreshAgentStatus();
-      }, 3000);
+      // Start SSE connection for real-time progress
+      if (progressEventSource) {
+        progressEventSource.close();
+      }
       
-      addActivityLog('🔄 Started live status monitoring');
+      console.log('[UI] Starting real-time progress stream...');
+      progressEventSource = new EventSource('/api/lead-agent/progress-stream');
+      
+      progressEventSource.onmessage = function(event) {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'progress') {
+            // Real-time progress update
+            updateProgressDisplay(data.data);
+          } else if (data.type === 'status') {
+            // Status update
+            updateStatusDisplay(data.data);
+          }
+        } catch (error) {
+          console.error('[UI] Error parsing SSE data:', error);
+        }
+      };
+      
+      progressEventSource.onerror = function(error) {
+        console.error('[UI] Progress stream error:', error);
+        // Fall back to polling if SSE fails
+        if (activeStatusMonitoringInterval) {
+          clearInterval(activeStatusMonitoringInterval);
+        }
+        activeStatusMonitoringInterval = setInterval(() => {
+          refreshAgentStatus();
+        }, 3000);
+      };
+      
+      addActivityLog('🔄 Started real-time progress monitoring');
     }
 
-    // Stop frequent status monitoring
+    // Stop real-time progress monitoring
     function stopAgentStatusMonitoring() {
+      if (progressEventSource) {
+        progressEventSource.close();
+        progressEventSource = null;
+      }
+      
       if (activeStatusMonitoringInterval) {
         clearInterval(activeStatusMonitoringInterval);
         activeStatusMonitoringInterval = null;
-        addActivityLog('⏹️ Stopped live status monitoring');
       }
+      
+      addActivityLog('⏹️ Stopped real-time progress monitoring');
     }
 
     // Initialize Lead Agent tab when it's selected
@@ -3499,6 +3555,9 @@ Advanced conversational AI with:
       document.getElementById('agent-emailed-count').textContent = status.emailQueueNote || "No queue info available";
       document.getElementById('agent-remaining-leads').textContent = status.remainingLeads || 0;
       
+      // Update progress display
+      updateProgressDisplay(status.progress);
+      
       // Update next cycle time
       if (status.nextCycleTime) {
         const nextCycle = new Date(status.nextCycleTime);
@@ -3547,6 +3606,45 @@ Advanced conversational AI with:
       }
     }
 
+    function updateProgressDisplay(progress) {
+      const progressCard = document.getElementById('agent-progress-card');
+      const progressBar = document.getElementById('agent-progress-bar');
+      const progressPercentage = document.getElementById('agent-progress-percentage');
+      const progressDescription = document.getElementById('agent-progress-description');
+      
+      if (!progress || !progress.isActive) {
+        // Hide progress card when not active
+        progressCard.style.display = 'none';
+        return;
+      }
+      
+      // Show and update progress card
+      progressCard.style.display = 'block';
+      
+      // Update progress bar and percentage
+      const percentage = progress.percentage || 0;
+      progressBar.style.width = `${percentage}%`;
+      progressPercentage.textContent = `${percentage}%`;
+      
+      // Update step description
+      if (progress.stepDescription) {
+        progressDescription.textContent = progress.stepDescription;
+      } else if (progress.currentStep && progress.totalSteps) {
+        progressDescription.textContent = `Step ${progress.currentStep} of ${progress.totalSteps}`;
+      } else {
+        progressDescription.textContent = 'Processing...';
+      }
+      
+      // Add visual feedback for different progress ranges
+      if (percentage >= 75) {
+        progressBar.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)'; // Green for near completion
+      } else if (percentage >= 50) {
+        progressBar.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'; // Orange for mid-progress
+      } else {
+        progressBar.style.background = 'linear-gradient(135deg, #5a67d8 0%, #667eea 100%)'; // Blue for early progress
+      }
+    }
+
     async function startAgent() {
       try {
         // Immediately update button states to show starting
@@ -3557,6 +3655,13 @@ Advanced conversational AI with:
         startBtn.innerHTML = '<div class="loading-spinner auth" style="margin-right: 5px;"></div>Starting...';
         
         addActivityLog('🚀 Starting Lead Contact Agent...');
+        
+        // Immediately show progress bar to indicate startup
+        updateProgressDisplay({
+          isActive: true,
+          percentage: 5,
+          stepDescription: 'Starting agent...'
+        });
         
         // Get custom interval if set
         const minutesInput = document.getElementById('cycle-minutes');
@@ -3593,6 +3698,13 @@ Advanced conversational AI with:
           
           // Start more frequent status updates when running
           startAgentStatusMonitoring();
+          
+          // Show progress bar for cycle preparation
+          updateProgressDisplay({
+            isActive: true,
+            percentage: 10,
+            stepDescription: 'Agent started - preparing first cycle...'
+          });
           
           // Also refresh status after a delay to ensure consistency
           setTimeout(() => {
@@ -3646,6 +3758,9 @@ Advanced conversational AI with:
           
           // Stop frequent status monitoring
           stopAgentStatusMonitoring();
+          
+          // Hide progress bar since agent is stopped
+          updateProgressDisplay({ isActive: false });
           
           // Also refresh status after a delay to ensure consistency
           setTimeout(() => {

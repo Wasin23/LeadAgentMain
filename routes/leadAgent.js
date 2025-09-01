@@ -173,4 +173,55 @@ router.post('/run-cycle', async (req, res) => {
   }
 });
 
+// Real-time progress streaming via Server-Sent Events
+router.get('/progress-stream', (req, res) => {
+  console.log('[LEAD AGENT API] Starting progress stream...');
+  
+  // Set up SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
+  });
+
+  // Send initial status
+  const sendProgress = (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Send current status immediately
+  leadContactAgent.getStatus().then(status => {
+    sendProgress({
+      type: 'status',
+      data: status
+    });
+  }).catch(err => {
+    console.error('[LEAD AGENT API] Error getting initial status:', err);
+  });
+
+  // Set up progress listener
+  const progressListener = (progressData) => {
+    sendProgress({
+      type: 'progress',
+      data: progressData
+    });
+  };
+
+  // Add event listener to the agent for progress updates
+  leadContactAgent.on('progress', progressListener);
+
+  // Handle client disconnect
+  req.on('close', () => {
+    console.log('[LEAD AGENT API] Progress stream client disconnected');
+    leadContactAgent.removeListener('progress', progressListener);
+  });
+
+  req.on('aborted', () => {
+    console.log('[LEAD AGENT API] Progress stream aborted');
+    leadContactAgent.removeListener('progress', progressListener);
+  });
+});
+
 export default router;
