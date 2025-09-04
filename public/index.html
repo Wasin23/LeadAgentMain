@@ -4247,12 +4247,16 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         `;
       }).join('');
       
-      // Load replies for each email after rendering
-      queueData.pending.forEach(email => {
-        // Use the tracking ID from the email for reply matching, fallback to email.id
-        const trackingId = email.trackingId || email.id;
-        loadRepliesForEmail(email.id, trackingId);
-      });
+      // Load replies for each email after rendering (debounced)
+      setTimeout(() => {
+        queueData.pending.forEach((email, index) => {
+          // Stagger the reply loading to avoid overwhelming the browser
+          setTimeout(() => {
+            const trackingId = email.trackingId || email.id;
+            loadRepliesForEmail(email.id, trackingId);
+          }, index * 100); // 100ms delay between each call
+        });
+      }, 500); // Wait 500ms after initial render
     }
 
     // Function to fetch and display replies for a specific email
