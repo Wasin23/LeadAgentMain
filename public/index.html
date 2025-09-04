@@ -1408,6 +1408,10 @@
               </div>
               
               <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button id="add-custom-email" style="background:linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);color:#fff;border:none;padding:0.7rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:600;transition:transform 0.2s ease;" 
+                  onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                  ✏️ Add Custom Email
+                </button>
                 <button id="approve-all" style="background:linear-gradient(135deg, #059669 0%, #047857 100%);color:#fff;border:none;padding:0.7rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:600;transition:transform 0.2s ease;" 
                   onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                   ✅ Approve All
@@ -4105,6 +4109,7 @@ Advanced conversational AI with:
     document.addEventListener('DOMContentLoaded', function() {
       // Set up Email Queue event listeners
       document.getElementById('refresh-queue').addEventListener('click', refreshEmailQueue);
+      document.getElementById('add-custom-email').addEventListener('click', openCustomEmailModal);
       document.getElementById('approve-all').addEventListener('click', approveAllEmails);
       document.getElementById('reject-all').addEventListener('click', rejectAllEmails);
       
@@ -4164,17 +4169,33 @@ Advanced conversational AI with:
       }
       
       queueList.innerHTML = queueData.pending.map((email, index) => {
-        const escapedSubject = (email.finalSubject || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        const escapedBody = (email.finalBody || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        const recipient = email.finalRecipient || email.leadEmail || '';
+        // Handle both old format (direct fields) and new format (nested in emailData/leadData)
+        const emailData = email.emailData || {};
+        const leadData = email.leadData || {};
+        
+        const finalSubject = emailData.finalSubject || email.finalSubject || emailData.subject || '';
+        const finalBody = emailData.finalBody || email.finalBody || emailData.body || '';
+        const finalRecipient = emailData.finalRecipient || email.finalRecipient || leadData.email || email.leadEmail || '';
+        
+        const leadEmail = leadData.email || email.leadEmail || finalRecipient;
+        const leadCompany = leadData.company || email.leadCompany || 'Unknown Company';
+        const leadContext = leadData.context || email.leadContext || '';
+        
+        const escapedSubject = finalSubject.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const escapedBody = finalBody.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        
+        // Add visual indicator for custom emails
+        const isCustom = email.source === 'custom' || email.metadata?.customEmail;
+        const customBadge = isCustom ? '<span style="background: #7c3aed; color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px; margin-left: 0.5rem;">CUSTOM</span>' : '';
         
         return `
         <div style="background: rgba(90, 103, 216, 0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #5a67d8; border: 1px solid rgba(90, 103, 216, 0.3); backdrop-filter: blur(10px);" data-email-id="${email.id}">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
             <div>
-              <h4 style="margin: 0 0 0.5rem 0; color: #5a67d8;">To: ${email.leadEmail}</h4>
+              <h4 style="margin: 0 0 0.5rem 0; color: #5a67d8;">To: ${leadEmail}${customBadge}</h4>
               <div style="color: #64748b; font-size: 0.9rem;">
-                ${email.leadCompany} • Added ${new Date(email.timestamp).toLocaleString()}
+                ${leadCompany} • Added ${new Date(email.timestamp).toLocaleString()}
+                ${leadContext ? `<br><em>Context: ${leadContext}</em>` : ''}
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem;">
@@ -4190,7 +4211,7 @@ Advanced conversational AI with:
           <div style="margin-bottom: 1rem;">
             <strong style="color: #5a67d8;">Send To:</strong>
             <div style="background: rgba(255, 255, 255, 0.8); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; border: 1px solid rgba(90, 103, 216, 0.2);">
-              <input type="email" value="${recipient}" onchange="updateEmailField('${email.id}', 'finalRecipient', this.value)" 
+              <input type="email" value="${finalRecipient}" onchange="updateEmailField('${email.id}', 'finalRecipient', this.value)" 
                 placeholder="Enter email address"
                 style="background: transparent; border: none; color: #374151; width: 100%; font-size: 0.9rem;">
             </div>
@@ -5261,6 +5282,89 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       modal.classList.remove('show');
     }
 
+    // Custom Email Modal Functions
+    function openCustomEmailModal() {
+      const modal = document.getElementById('custom-email-modal');
+      modal.classList.add('show');
+      // Clear previous values
+      document.getElementById('custom-email-to').value = '';
+      document.getElementById('custom-email-subject').value = '';
+      document.getElementById('custom-email-body').value = '';
+      document.getElementById('custom-email-lead-context').value = '';
+      document.getElementById('custom-email-status').innerHTML = '';
+    }
+
+    function closeCustomEmailModal() {
+      const modal = document.getElementById('custom-email-modal');
+      modal.classList.remove('show');
+    }
+
+    async function addCustomEmailToQueue() {
+      const to = document.getElementById('custom-email-to').value.trim();
+      const subject = document.getElementById('custom-email-subject').value.trim();
+      const body = document.getElementById('custom-email-body').value.trim();
+      const leadContext = document.getElementById('custom-email-lead-context').value.trim();
+      const statusDiv = document.getElementById('custom-email-status');
+
+      // Validation
+      if (!to || !subject || !body) {
+        statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Please fill in all required fields (To, Subject, Body)</div>';
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(to)) {
+        statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Please enter a valid email address</div>';
+        return;
+      }
+
+      try {
+        statusDiv.innerHTML = '<div style="color: #5a67d8; background: rgba(90, 103, 216, 0.1); padding: 0.5rem; border-radius: 6px;">⏳ Adding email to queue...</div>';
+
+        const response = await fetch('/api/email-queue/custom', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            to,
+            subject,
+            body,
+            leadContext: leadContext || 'Custom email created by user',
+            source: 'custom'
+          })
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Response data:', result);
+
+        if (result.success) {
+          statusDiv.innerHTML = '<div style="color: #059669; background: rgba(5, 150, 105, 0.1); padding: 0.5rem; border-radius: 6px;">✅ Email added to queue successfully!</div>';
+          
+          // Refresh the email queue and close modal immediately
+          refreshEmailQueue();
+          
+          // Close modal after a brief success message display
+          setTimeout(() => {
+            closeCustomEmailModal();
+          }, 800);
+        } else {
+          statusDiv.innerHTML = `<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Error: ${result.message || 'Failed to add email to queue'}</div>`;
+        }
+      } catch (error) {
+        console.error('Error adding custom email:', error);
+        statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Network error. Please try again.</div>';
+      }
+    }
+
     function loadSettingsData() {
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       if (currentUser.userId) {
@@ -5535,6 +5639,13 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       }
     });
 
+    // Close custom email modal when clicking outside
+    document.getElementById('custom-email-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeCustomEmailModal();
+      }
+    });
+
     function signOut() {
       if (confirm('Are you sure you want to sign out?')) {
         // Clear all user data
@@ -5768,6 +5879,62 @@ Provide specific, contextual recommendations for sales outreach based on your re
             Clear chat history or sign out of your account
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Email Modal -->
+  <div id="custom-email-modal" class="settings-modal">
+    <div class="settings-content">
+      <div class="settings-header">
+        <h2><span class="icon icon-email"></span> Create Custom Email</h2>
+        <button class="close-settings" onclick="closeCustomEmailModal()">×</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="modal-form-group">
+          <label for="custom-email-to">To (Email Address)</label>
+          <input type="email" id="custom-email-to" placeholder="recipient@example.com" required />
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="custom-email-subject">Subject</label>
+          <input type="text" id="custom-email-subject" placeholder="Enter email subject..." required />
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="custom-email-body">Email Body</label>
+          <textarea id="custom-email-body" rows="15" placeholder="Write your email content here...
+
+You can use variables:
+{company} - Company name
+{name} - Contact name
+{title} - Contact title
+
+Example:
+Hi {name},
+
+I hope this email finds you well. I wanted to reach out regarding {company}'s recent initiatives...
+
+Best regards,
+Your Name" required></textarea>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="custom-email-lead-context">Lead Context (optional)</label>
+          <textarea id="custom-email-lead-context" rows="3" placeholder="Add any context about this lead for better tracking..."></textarea>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+          <button onclick="closeCustomEmailModal()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer;">
+            Cancel
+          </button>
+          <button onclick="addCustomEmailToQueue()" style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            ✏️ Add to Queue
+          </button>
+        </div>
+        
+        <div id="custom-email-status" style="margin-top: 1rem;"></div>
       </div>
     </div>
   </div>

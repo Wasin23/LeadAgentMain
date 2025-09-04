@@ -55,6 +55,74 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// Add custom email to queue
+router.post('/custom', async (req, res) => {
+  try {
+    const { to, subject, body, leadContext, source = 'custom' } = req.body;
+    
+    // Validation
+    if (!to || !subject || !body) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: to, subject, body' 
+      });
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid email address format' 
+      });
+    }
+    
+    // Create custom email object (without id and timestamp, let addToQueue handle those)
+    const customEmail = {
+      status: 'pending',
+      source: source,
+      leadData: {
+        email: to,
+        company: 'Custom Email',
+        name: to.split('@')[0], // Use email prefix as name
+        title: 'Custom Contact',
+        context: leadContext || 'Custom email created by user'
+      },
+      emailData: {
+        subject: subject,
+        body: body,
+        finalRecipient: to,
+        finalSubject: subject,
+        finalBody: body
+      },
+      metadata: {
+        customEmail: true,
+        createdAt: new Date().toISOString(),
+        createdBy: 'user'
+      }
+    };
+    
+    // Add to queue (this will add id and timestamp)
+    const addedEmail = await emailQueue.addToQueue(customEmail);
+    
+    console.log(`[EMAIL QUEUE] ✏️ Added custom email to queue: ${to} - ${subject}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Custom email added to queue successfully',
+      email: addedEmail
+    });
+    
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error adding custom email:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to add custom email to queue',
+      error: error.message 
+    });
+  }
+});
+
 // Update email content
 router.put('/:id', async (req, res) => {
   try {
