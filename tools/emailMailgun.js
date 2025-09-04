@@ -109,7 +109,9 @@ async function updateEmailAnalytics(trackingId, updates) {
 function addTrackingToEmail(body, trackingId) {
   const trackingDomain = process.env.TRACKING_DOMAIN || 'localhost:8080';
   const protocol = trackingDomain.includes('localhost') ? 'http' : 'https';
-  const trackingPixel = `<img src="${protocol}://${trackingDomain}/track/open/${trackingId}" width="1" height="1" style="display:none;" />`;
+  
+  // More email-client friendly tracking pixel
+  const trackingPixel = `<img src="${protocol}://${trackingDomain}/track/open/${trackingId}" width="1" height="1" style="display:block!important;visibility:hidden!important;opacity:0!important;border:none!important;background:transparent!important;" alt="" />`;
   
   // Convert links to tracked links
   const trackedBody = body.replace(
@@ -117,8 +119,8 @@ function addTrackingToEmail(body, trackingId) {
     `${protocol}://${trackingDomain}/track/click/${trackingId}?url=$1`
   );
   
-  // Add tracking pixel (for HTML emails)
-  return trackedBody + '\n\n' + trackingPixel;
+  // Add tracking pixel at the very end
+  return trackedBody + trackingPixel;
 }
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
@@ -126,20 +128,31 @@ export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 export async function sendEmailMailgun(to, subject, body, enableTracking = true) {
   try {
     const trackingId = uuidv4();
-    let finalBody = body;
+    
+    // Convert plain text to HTML format for better display
+    let htmlBody = body.replace(/\n/g, '<br>');
     
     // Add tracking if enabled
     if (enableTracking) {
-      finalBody = addTrackingToEmail(body, trackingId);
+      htmlBody = addTrackingToEmail(htmlBody, trackingId);
     }
     
-    const result = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
+    // Prepare email data
+    const emailData = {
       from: `ExaMark <mailgun@${process.env.MAILGUN_DOMAIN}>`,
       to,
       subject,
-      html: finalBody, // Use HTML to support tracking pixel
-      text: body // Keep original as text version
-    });
+      html: htmlBody, // Always send HTML version (with or without tracking)
+      text: body // Keep clean text version
+    };
+    
+    // Force HTML rendering for tracking by setting proper headers
+    if (enableTracking) {
+      emailData['h:X-Mailgun-Track-Opens'] = 'yes';
+      emailData['h:X-Mailgun-Track-Clicks'] = 'yes';
+    }
+    
+    const result = await mg.messages.create(process.env.MAILGUN_DOMAIN, emailData);
 
     console.log('[MAILGUN] Sent:', result);
     
