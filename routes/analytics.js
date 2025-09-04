@@ -5,17 +5,50 @@ import path from 'path';
 
 const router = express.Router();
 
+// Debug endpoint to test tracking pixel HTML generation
+router.get('/debug/email-html/:trackingId', async (req, res) => {
+  try {
+    const { trackingId } = req.params;
+    const { addTrackingToEmail } = await import('../tools/emailMailgun.js');
+    
+    const testBody = "Hello! This is a test email.\n\nBest regards,\nExaMark Team";
+    const htmlWithTracking = addTrackingToEmail(testBody.replace(/\n/g, '<br>'), trackingId);
+    
+    res.set('Content-Type', 'text/html');
+    res.send(`
+      <h2>Debug: Email HTML with Tracking</h2>
+      <h3>Generated HTML:</h3>
+      <pre>${htmlWithTracking.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+      <h3>Rendered HTML:</h3>
+      <div style="border: 1px solid #ccc; padding: 10px;">
+        ${htmlWithTracking}
+      </div>
+    `);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Track email opens (1x1 tracking pixel)
 router.get('/track/open/:trackingId', async (req, res) => {
   try {
     const { trackingId } = req.params;
     
-    console.log('[EMAIL TRACKING] Email opened:', trackingId);
+    console.log('[EMAIL TRACKING] ===== EMAIL OPENED =====');
+    console.log('[EMAIL TRACKING] Tracking ID:', trackingId);
+    console.log('[EMAIL TRACKING] User Agent:', req.get('User-Agent'));
+    console.log('[EMAIL TRACKING] Referer:', req.get('Referer'));
+    console.log('[EMAIL TRACKING] IP:', req.ip);
+    console.log('[EMAIL TRACKING] Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('[EMAIL TRACKING] ========================');
     
     // Update analytics
     await updateEmailAnalytics(trackingId, {
       opened: true,
-      openCount: 1 // Will be incremented if already opened
+      openCount: 1, // Will be incremented if already opened
+      lastActivity: new Date().toISOString(),
+      userAgent: req.get('User-Agent'),
+      ipAddress: req.ip
     });
     
     // Return 1x1 transparent pixel
