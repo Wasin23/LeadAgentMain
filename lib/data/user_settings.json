@@ -5,7 +5,12 @@
       "serper": "2e1c97088736f926ced5d6f325f3095a4d0674dd",
       "apollo": "",
       "mailgun": "",
-      "sendgrid": ""
+      "sendgrid": "",
+      "linkedinClientId": "",
+      "linkedinClientSecret": "",
+      "linkedinRedirectUri": "http://localhost:8080/api/linkedin-api/callback",
+      "heyreachApiKey": "",
+      "heyreachBaseUrl": "https://api.heyreach.io"
     },
     "aiPersonality": {
       "systemPrompt": "You are an expert AI sales and research assistant for ExaMark. You help users research leads, analyze companies, and generate personalized sales outreach.\n\nYour personality:\n- Professional but friendly\n- Highly knowledgeable about sales and marketing\n- Detail-oriented and thorough\n- Proactive in suggesting improvements\n- Always aim to provide actionable insights\n\nWhen researching companies, focus on:\n- AI/ML initiatives and expansion\n- Recent funding or growth signals\n- Technology hiring patterns\n- Leadership quotes about digital transformation\n- Competitive positioning in AI space\n\nProvide specific, contextual recommendations for sales outreach based on your research findings.",

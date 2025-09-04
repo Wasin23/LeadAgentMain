@@ -71,6 +71,36 @@ try {
   webhookRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import LinkedIn routes
+let linkedinRoutes;
+try {
+  linkedinRoutes = (await import('./routes/linkedin.js')).default;
+  console.log('LinkedIn routes imported successfully');
+} catch (e) {
+  console.log('LinkedIn routes not available:', e.message);
+  linkedinRoutes = (req, res, next) => next(); // No-op if not present
+}
+
+// Import LinkedIn API routes
+let linkedinApiRoutes;
+try {
+  linkedinApiRoutes = (await import('./routes/linkedinApi.js')).default;
+  console.log('LinkedIn API routes imported successfully');
+} catch (e) {
+  console.log('LinkedIn API routes not available:', e.message);
+  linkedinApiRoutes = (req, res, next) => next(); // No-op if not present
+}
+
+// Import Post Generator routes
+let postGeneratorRoutes;
+try {
+  postGeneratorRoutes = (await import('./routes/postGenerator.js')).default;
+  console.log('Post Generator routes imported successfully');
+} catch (e) {
+  console.log('Post Generator routes not available:', e.message);
+  postGeneratorRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 const app = express();
 app.use(express.json());
 // Serve static files from public directory
@@ -90,6 +120,9 @@ app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
+app.use('/api/linkedin', linkedinRoutes); // LinkedIn profile builder routes
+app.use('/api/linkedin-api', linkedinApiRoutes); // LinkedIn API integration routes
+app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 
 const PORT = process.env.API_PORT || 8080;
 app.listen(PORT, () => {
