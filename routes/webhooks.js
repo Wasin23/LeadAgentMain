@@ -122,7 +122,7 @@ router.post('/mailgun/incoming', express.raw({type: 'application/x-www-form-urle
       
       // Update the original email analytics with reply info
       try {
-        const { updateEmailAnalytics } = await import('./analytics.js');
+        const { updateEmailAnalytics } = await import('../tools/emailMailgun.js');
         await updateEmailAnalytics(trackingId, {
           replied: true,
           responseContent: emailData.body?.substring(0, 500) || 'Reply received',
