@@ -118,8 +118,8 @@ function addTrackingToEmail(body, trackingId) {
     trackingUrl = `${protocol}://${trackingDomain}/track/open/${trackingId}`;
   }
   
-  // More email-client friendly tracking pixel - make it VISIBLE for testing
-  const trackingPixel = `<div style="font-size:8px;color:#ccc;margin-top:10px;">🔍 Debug: <img src="${trackingUrl}" width="10" height="10" style="border:1px solid red;" alt="tracking" /> Email tracking active</div>`;
+  // Invisible tracking pixel (1x1 transparent)
+  const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" style="display:block!important;visibility:hidden!important;opacity:0!important;border:none!important;background:transparent!important;" alt="" />`;
   
   // Convert links to tracked links
   const trackedBody = body.replace(
@@ -153,7 +153,8 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true)
     
     // Prepare email data
     const emailData = {
-      from: `ExaMark <mailgun@${process.env.MAILGUN_DOMAIN}>`,
+      from: `ExaMark <noreply@${process.env.MAILGUN_DOMAIN}>`,
+      'h:Reply-To': 'testsend0011@gmail.com', // Set a real reply-to address
       to,
       subject,
       html: htmlBody, // Always send HTML version (with or without tracking)
