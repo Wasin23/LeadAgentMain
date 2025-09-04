@@ -48,6 +48,7 @@
     .icon-user { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-trending { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-mail { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M20 4L8.12 15.88M14.47 14.48L20 20M8.12 15.88L3 21'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
+    .icon-analytics { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
 
     /* Loading Spinner CSS */
     .loading-spinner {
@@ -226,6 +227,31 @@
       background: rgba(255, 255, 255, 0.5);
     }
 
+    /* Message preview scrollbar styling */
+    div[id^="message-content-"]::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    div[id^="message-content-"]::-webkit-scrollbar-track {
+      background: rgba(90, 103, 216, 0.1);
+      border-radius: 4px;
+    }
+
+    div[id^="message-content-"]::-webkit-scrollbar-thumb {
+      background: rgba(90, 103, 216, 0.3);
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+
+    div[id^="message-content-"]::-webkit-scrollbar-thumb:hover {
+      background: rgba(90, 103, 216, 0.5);
+    }
+
+    /* Message preview resize transition */
+    div[id^="message-preview-"] {
+      transition: height 0.3s ease;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -353,6 +379,7 @@
     .horizontal-tab-button.active .icon-email { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .horizontal-tab-button.active .icon-robot { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .horizontal-tab-button.active .icon-queue { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
+    .horizontal-tab-button.active .icon-analytics { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
 
     .tab-content-area {
       flex: 1;
@@ -1098,9 +1125,9 @@
         <div class="horizontal-tabs">
           <button class="horizontal-tab-button active" data-tab="history"><span class="icon icon-history"></span> Chat History</button>
           <button class="horizontal-tab-button" data-tab="deepresearch"><span class="icon icon-magnify"></span> Deep Research</button>
-          <button class="horizontal-tab-button" data-tab="outreach"><span class="icon icon-email"></span> Email Outreach</button>
           <button class="horizontal-tab-button" data-tab="leadagent"><span class="icon icon-robot"></span> Lead Contact Agent</button>
           <button class="horizontal-tab-button" data-tab="emailqueue"><span class="icon icon-queue"></span> Email Queue</button>
+          <button class="horizontal-tab-button" data-tab="analytics"><span class="icon icon-analytics"></span> Outreach Analytics</button>
         </div>
         
         <div class="tab-content-area">
@@ -1210,26 +1237,6 @@
             
             <div id="deep-research-results" style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;max-height:500px;overflow-y:auto;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
               <div style="color:#5a67d8;font-style:italic;">No deep research results yet. Start a research session to see comprehensive analysis with citations.</div>
-            </div>
-          </div>
-          
-          <!-- Email Outreach Tab Content -->
-          <div id="outreach-content" class="tab-content" style="display:none;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-shrink:0;">
-              <h3 style="margin:0;color:#5a67d8;">Email Outreach Log</h3>
-              <div style="display:flex;gap:0.5rem;">
-                <button onclick="loadEmailLogs()" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:500;transition:transform 0.2s ease;" 
-                  onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
-                  🔄 Refresh
-                </button>
-                <button onclick="clearEmailLogs()" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:500;transition:transform 0.2s ease;" 
-                  onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
-                  🗑️ Clear Logs
-                </button>
-              </div>
-            </div>
-            <div id="email-log-list" style="flex:1;">
-              <div style="color:#5a67d8;font-style:italic;">No emails sent yet.</div>
             </div>
           </div>
           
@@ -1418,6 +1425,117 @@
               <div id="email-queue-list" style="max-height: 600px; overflow-y: auto;">
                 <div style="color: #6b7280; text-align: center; padding: 2rem; font-style: italic;">
                   No emails in queue. The Lead Contact Agent will add emails here for your approval.
+                </div>
+              </div>
+            </div>
+            
+          </div>
+          
+          <!-- Outreach Analytics Tab Content -->
+          <div id="analytics-content" class="tab-content" style="display: none;">
+            <h3 style="margin:0 0 1rem 0;color:#5a67d8;"><span class="icon icon-analytics"></span> Outreach Analytics Dashboard</h3>
+            
+            <!-- Analytics Summary Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+              <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                <div style="color: #5a67d8; font-size: 2rem; margin-bottom: 0.5rem;" id="total-emails-sent">0</div>
+                <div style="color: #374151; font-size: 0.9rem;">Total Emails Sent</div>
+              </div>
+              <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                <div style="color: #059669; font-size: 2rem; margin-bottom: 0.5rem;" id="emails-opened">0</div>
+                <div style="color: #374151; font-size: 0.9rem;">Emails Opened</div>
+              </div>
+              <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                <div style="color: #f59e0b; font-size: 2rem; margin-bottom: 0.5rem;" id="links-clicked">0</div>
+                <div style="color: #374151; font-size: 0.9rem;">Links Clicked</div>
+              </div>
+              <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                <div style="color: #dc2626; font-size: 2rem; margin-bottom: 0.5rem;" id="response-count">0</div>
+                <div style="color: #374151; font-size: 0.9rem;">Responses Received</div>
+              </div>
+            </div>
+            
+            <!-- Email Activity Timeline Chart - Full Width -->
+            <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);">
+              <h4 style="margin: 0 0 1rem 0; color: #5a67d8; font-weight: 600;">📈 Email Activity Timeline</h4>
+              <div id="timeline-chart" style="height: 450px; position: relative; display: flex; align-items: center; justify-content: center;">
+                <canvas id="timeline-canvas" width="1200" height="450" style="max-width: 100%; max-height: 100%; object-fit: contain;"></canvas>
+              </div>
+            </div>
+            
+            <!-- Response Time Analysis -->
+            <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);">
+              <h4 style="margin: 0 0 1rem 0; color: #5a67d8; font-weight: 600;">⏱️ Response Time Distribution</h4>
+              <div id="response-time-chart" style="height: 200px; position: relative; display: flex; align-items: center; justify-content: center;">
+                <canvas id="response-time-canvas" width="800" height="200" style="max-width: 100%; max-height: 100%; object-fit: contain;"></canvas>
+              </div>
+            </div>
+            
+            <!-- Analytics Controls -->
+            <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;margin-bottom:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: #5a67d8;">Analytics Controls</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button id="refresh-analytics" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-weight:500;transition:transform 0.2s ease;" 
+                    onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                    🔄 Refresh Data
+                  </button>
+                  <button id="export-analytics" style="background:linear-gradient(135deg, #059669 0%, #047857 100%);color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-weight:500;transition:transform 0.2s ease;" 
+                    onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                    📊 Export CSV
+                  </button>
+                  <select id="chart-timeframe" style="background:#fff;border:1px solid #d1d5db;border-radius:8px;padding:0.5rem;font-size:0.9rem;">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="all">All Time</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email Tracking Details & Management -->
+            <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 1.5rem; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0; color: #5a67d8; font-weight: 600;">📧 Email Tracking & Management</h3>
+                <div style="display: flex; gap: 0.75rem;">
+                  <button onclick="loadEmailAnalyticsList()" style="background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%); color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(90, 103, 216, 0.3);" 
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(90, 103, 216, 0.4)'" 
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(90, 103, 216, 0.3)'">
+                    🔄 Refresh Analytics
+                  </button>
+                  <button onclick="clearEmailLogs()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" 
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(239, 68, 68, 0.4)'" 
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(239, 68, 68, 0.3)'">
+                    🗑️ Clear All Logs
+                  </button>
+                  <button onclick="exportEmailData()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);" 
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(5, 150, 105, 0.4)'" 
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(5, 150, 105, 0.3)'">
+                    📊 Export Data
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Search and Filter Bar -->
+              <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                <input type="text" id="email-search" placeholder="Search emails by recipient, subject, or company..." 
+                  style="flex: 1; padding: 0.6rem 1rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 10px; font-size: 0.9rem; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);"
+                  onkeyup="filterEmailList()">
+                <select id="email-status-filter" onchange="filterEmailList()" 
+                  style="padding: 0.6rem 1rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 10px; font-size: 0.9rem; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);">
+                  <option value="">All Status</option>
+                  <option value="sent">Sent</option>
+                  <option value="opened">Opened</option>
+                  <option value="clicked">Clicked</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+              
+              <div id="analytics-email-list" style="max-height: 700px; overflow-y: auto; border: 1px solid rgba(90, 103, 216, 0.1); border-radius: 12px; background: rgba(255, 255, 255, 0.5);">
+                <div style="color: #6b7280; text-align: center; padding: 3rem; font-style: italic; font-size: 1.1rem;">
+                  📬 No email tracking data available yet.<br>
+                  <span style="font-size: 0.9rem; color: #9ca3af;">Send some emails to see detailed tracking information here.</span>
                 </div>
               </div>
             </div>
@@ -2448,6 +2566,11 @@
         // Load data when email queue tab is shown
         if (tabId === 'emailqueue') {
           refreshEmailQueue();
+        }
+        
+        // Load analytics data when analytics tab is shown
+        if (tabId === 'analytics') {
+          loadAnalyticsData();
         }
       });
     });
@@ -3985,6 +4108,19 @@ Advanced conversational AI with:
       document.getElementById('approve-all').addEventListener('click', approveAllEmails);
       document.getElementById('reject-all').addEventListener('click', rejectAllEmails);
       
+      // Set up Analytics event listeners
+      document.getElementById('refresh-analytics').addEventListener('click', loadAnalyticsData);
+      document.getElementById('export-analytics').addEventListener('click', exportAnalyticsData);
+      document.getElementById('chart-timeframe').addEventListener('change', loadAnalyticsData);
+      
+      // Redraw charts on window resize
+      window.addEventListener('resize', () => {
+        const analyticsTab = document.getElementById('analytics-content');
+        if (analyticsTab && analyticsTab.style.display !== 'none') {
+          setTimeout(loadAnalyticsData, 100); // Small delay to ensure container has resized
+        }
+      });
+      
       // Auto-refresh queue every 30 seconds when email queue tab is active (but not while editing)
       setInterval(() => {
         const queueTab = document.getElementById('emailqueue-content');
@@ -4239,6 +4375,800 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       }, 4000);
     }
 
+    // Analytics Functions
+    async function loadAnalyticsData() {
+      try {
+        const response = await fetch('/api/analytics/summary');
+        const data = await response.json();
+        
+        if (data.success) {
+          updateAnalyticsSummary(data.data);
+          loadEmailAnalyticsList();
+        } else {
+          console.error('Error getting analytics summary:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching analytics summary:', error);
+      }
+    }
+
+    function updateAnalyticsSummary(analyticsData) {
+      document.getElementById('total-emails-sent').textContent = analyticsData.totalEmailsSent || 0;
+      document.getElementById('emails-opened').textContent = analyticsData.emailsOpened || 0;
+      document.getElementById('links-clicked').textContent = analyticsData.linksClicked || 0;
+      document.getElementById('response-count').textContent = analyticsData.responsesReceived || 0;
+      
+      // Draw charts with the analytics data
+      drawTimelineChart(analyticsData.timeline || []);
+      drawResponseTimeChart(analyticsData.responseTimes || []);
+    }
+
+    async function loadEmailAnalyticsList() {
+      try {
+        const response = await fetch('/api/analytics/emails');
+        const data = await response.json();
+        
+        if (data.success) {
+          updateEmailAnalyticsList(data.data);
+        } else {
+          console.error('Error getting email analytics list:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching email analytics list:', error);
+      }
+    }
+
+    function updateEmailAnalyticsList(emailsData) {
+      const analyticsList = document.getElementById('analytics-email-list');
+      
+      if (!emailsData || emailsData.length === 0) {
+        analyticsList.innerHTML = `
+          <div style="color: #6b7280; text-align: center; padding: 3rem; font-style: italic; font-size: 1.1rem;">
+            📬 No email tracking data available yet.<br>
+            <span style="font-size: 0.9rem; color: #9ca3af;">Send some emails to see detailed tracking information here.</span>
+          </div>
+        `;
+        return;
+      }
+      
+      analyticsList.innerHTML = emailsData.map(email => {
+        const sentDate = new Date(email.timestamp).toLocaleDateString();
+        const sentTime = new Date(email.timestamp).toLocaleTimeString();
+        
+        // Use analytics object data
+        const analytics = email.analytics || {};
+        const isOpened = analytics.opened || false;
+        const isClicked = analytics.clicked || false;
+        const isReplied = analytics.replied || false;
+        const openCount = analytics.openCount || 0;
+        const clickCount = analytics.clickCount || 0;
+        const responseContent = analytics.responseContent || '';
+        const responseDate = analytics.responseDate;
+        const lastActivity = analytics.lastActivity;
+        
+        // Status badges with enhanced styling
+        const statusBadge = email.status === 'sent' 
+          ? `<span style="background: linear-gradient(135deg, #059669, #047857); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);">✓ Sent</span>`
+          : `<span style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);">❌ Failed</span>`;
+        
+        const openedBadge = isOpened ? 
+          `<span style="background: linear-gradient(135deg, #059669, #047857); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);">👁️ Opened (${openCount})</span>` :
+          `<span style="background: #94a3b8; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">⏳ Not Opened</span>`;
+        
+        const clickedBadge = isClicked ? 
+          `<span style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">🔗 Clicked (${clickCount})</span>` :
+          `<span style="background: #94a3b8; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">🔗 No Clicks</span>`;
+          
+        const repliedBadge = isReplied ? 
+          `<span style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);">💬 Replied</span>` :
+          `<span style="background: #94a3b8; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">💬 No Reply</span>`;
+        
+        return `
+        <div class="email-analytics-item" data-email="${encodeURIComponent(JSON.stringify(email))}" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7)); backdrop-filter: blur(10px); border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid rgba(90, 103, 216, 0.2); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); transition: all 0.3s ease;"
+          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 35px rgba(0, 0, 0, 0.15)'"
+          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0, 0, 0, 0.1)'">
+          
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <h4 style="margin: 0; color: #1e293b; font-weight: 600;">📧 ${email.to}</h4>
+                ${statusBadge}
+              </div>
+              <div style="color: #64748b; font-size: 0.95rem; margin-bottom: 0.5rem; font-weight: 500;">
+                <strong>Subject:</strong> ${email.subject}
+              </div>
+              <div style="color: #94a3b8; font-size: 0.85rem;">
+                <strong>Sent:</strong> ${sentDate} at ${sentTime}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tracking Status -->
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;">
+            ${openedBadge}
+            ${clickedBadge}
+            ${repliedBadge}
+          </div>
+          
+          <!-- Response Content (if any) -->
+          ${isReplied ? `
+          <div style="background: rgba(139, 92, 246, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #8b5cf6;">
+            <div style="color: #8b5cf6; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              💬 Response Received
+              ${responseDate ? `<span style="color: #94a3b8; font-size: 0.8rem; font-weight: normal;">${new Date(responseDate).toLocaleString()}</span>` : ''}
+            </div>
+            <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; font-style: italic; background: rgba(255, 255, 255, 0.6); padding: 0.75rem; border-radius: 8px;">
+              "${responseContent}"
+            </div>
+            <button onclick="addResponse('${email.id}', '${responseContent}', '${responseDate || ''}')" style="background: none; border: 1px solid #8b5cf6; color: #8b5cf6; cursor: pointer; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 6px; margin-top: 0.5rem; transition: all 0.2s;">
+              ✏️ Edit Response
+            </button>
+          </div>
+          ` : `
+          <div style="background: rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #94a3b8;">
+            <div style="color: #64748b; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              💬 No Response Yet
+            </div>
+            <button onclick="addResponse('${email.id}')" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease;">
+              ➕ Record Response
+            </button>
+          </div>
+          `}
+          
+          <!-- Email Body Preview -->
+          <div id="message-preview-${email.id}" style="background: rgba(255, 255, 255, 0.7); border-radius: 12px; padding: 0; margin-bottom: 1rem; border: 1px solid rgba(90, 103, 216, 0.1); position: relative; min-height: 120px; max-height: 300px; resize: vertical; overflow: hidden;">
+            <!-- Preview Header -->
+            <div style="background: rgba(90, 103, 216, 0.1); padding: 0.75rem 1rem; border-bottom: 1px solid rgba(90, 103, 216, 0.1); display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: #5a67d8;">Message Preview:</strong>
+              <div style="display: flex; gap: 0.5rem;">
+                <button onclick="toggleFullMessage('${email.id}')" style="background: none; border: 1px solid #5a67d8; color: #5a67d8; cursor: pointer; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 6px; transition: all 0.2s;">
+                  📖 Full
+                </button>
+                <button onclick="copyEmailContent('${email.id}')" style="background: none; border: 1px solid #059669; color: #059669; cursor: pointer; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 6px; transition: all 0.2s;">
+                  📋 Copy
+                </button>
+              </div>
+            </div>
+            <!-- Scrollable Content -->
+            <div id="message-content-${email.id}" style="color: #374151; font-size: 0.9rem; line-height: 1.5; padding: 1rem; height: calc(100% - 52px); overflow-y: auto; white-space: pre-wrap; max-height: 200px; transition: max-height 0.3s ease;">
+              ${email.body}
+            </div>
+            <!-- Resize Handle -->
+            <div style="position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; background: linear-gradient(135deg, transparent 40%, #5a67d8 40%, #5a67d8 60%, transparent 60%), linear-gradient(45deg, transparent 40%, #5a67d8 40%, #5a67d8 60%, transparent 60%); cursor: nw-resize; border-bottom-right-radius: 12px;"></div>
+          </div>
+          
+          <!-- Detailed Tracking Info -->
+          ${lastActivity ? `
+          <div style="background: rgba(90, 103, 216, 0.1); border-radius: 10px; padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="color: #5a67d8; font-size: 0.85rem; font-weight: 600;">
+              📊 Last Activity: ${new Date(lastActivity).toLocaleString()}
+            </div>
+          </div>
+          ` : ''}
+          
+          <!-- Footer with Tracking ID and Actions -->
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid rgba(90, 103, 216, 0.2);">
+            <div style="color: #94a3b8; font-size: 0.8rem; font-family: monospace;">
+              <strong>Tracking ID:</strong> ${email.id}
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button onclick="window.open('/track/open/${email.id}', '_blank')" style="background: linear-gradient(135deg, #5a67d8, #4f46e5); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease;"
+                onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                🔗 Test Open
+              </button>
+              <button onclick="navigator.clipboard.writeText('${email.id}'); showNotification('Tracking ID copied!', 'success')" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease;"
+                onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                📋 Copy ID
+              </button>
+            </div>
+          </div>
+        </div>
+        `;
+      }).join('');
+    }
+
+    // Enhanced Email Management Functions
+    async function exportEmailData() {
+      try {
+        const response = await fetch('/api/analytics/emails');
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+          // Convert to CSV format with detailed tracking data
+          const headers = [
+            'Recipient Email', 'Subject', 'Sent Date', 'Status', 'Opened', 'Open Count', 
+            'Last Opened', 'Clicked', 'Click Count', 'Last Clicked', 'Email Body Preview', 'Tracking ID'
+          ];
+          
+          const csvContent = [
+            headers.join(','),
+            ...data.data.map(email => [
+              `"${email.to}"`,
+              `"${email.subject.replace(/"/g, '""')}"`,
+              `"${new Date(email.timestamp).toLocaleString()}"`,
+              `"${email.status}"`,
+              email.analytics.opened ? 'Yes' : 'No',
+              email.analytics.openCount || 0,
+              email.analytics.lastActivity && email.analytics.opened ? `"${new Date(email.analytics.lastActivity).toLocaleString()}"` : '',
+              email.analytics.clicked ? 'Yes' : 'No',
+              email.analytics.clickCount || 0,
+              email.analytics.lastActivity && email.analytics.clicked ? `"${new Date(email.analytics.lastActivity).toLocaleString()}"` : '',
+              `"${email.body.substring(0, 100).replace(/"/g, '""')}..."`,
+              `"${email.id}"`
+            ].join(','))
+          ].join('\n');
+          
+          // Download CSV file
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `email_tracking_data_${new Date().toISOString().split('T')[0]}.csv`;
+          link.click();
+          
+          showNotification('📊 Email data exported successfully!', 'success');
+        } else {
+          showNotification('No email data to export', 'info');
+        }
+      } catch (error) {
+        console.error('Error exporting email data:', error);
+        showNotification('❌ Error exporting email data', 'error');
+      }
+    }
+
+    function filterEmailList() {
+      const searchTerm = document.getElementById('email-search').value.toLowerCase();
+      const statusFilter = document.getElementById('email-status-filter').value;
+      const emailItems = document.querySelectorAll('#analytics-email-list .email-analytics-item');
+      
+      let visibleCount = 0;
+      
+      emailItems.forEach(item => {
+        const emailData = item.getAttribute('data-email') ? JSON.parse(decodeURIComponent(item.getAttribute('data-email'))) : null;
+        let shouldShow = true;
+        
+        if (emailData) {
+          // Search filter
+          if (searchTerm) {
+            const searchableText = `${emailData.to} ${emailData.subject} ${emailData.body}`.toLowerCase();
+            shouldShow = shouldShow && searchableText.includes(searchTerm);
+          }
+          
+          // Status filter
+          if (statusFilter) {
+            switch (statusFilter) {
+              case 'sent':
+                shouldShow = shouldShow && emailData.status === 'sent';
+                break;
+              case 'opened':
+                shouldShow = shouldShow && emailData.analytics.opened;
+                break;
+              case 'clicked':
+                shouldShow = shouldShow && emailData.analytics.clicked;
+                break;
+              case 'failed':
+                shouldShow = shouldShow && emailData.status === 'failed';
+                break;
+            }
+          }
+        }
+        
+        if (shouldShow) {
+          item.style.display = 'block';
+          visibleCount++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+      
+      // Update empty state message
+      const emptyMessage = document.querySelector('#analytics-email-list .empty-state');
+      if (visibleCount === 0 && emailItems.length > 0) {
+        if (!emptyMessage) {
+          document.getElementById('analytics-email-list').innerHTML += `
+            <div class="empty-state" style="color: #6b7280; text-align: center; padding: 2rem; font-style: italic;">
+              🔍 No emails match your current filters.<br>
+              <span style="font-size: 0.9rem; color: #9ca3af;">Try adjusting your search or filter criteria.</span>
+            </div>
+          `;
+        }
+      } else if (emptyMessage) {
+        emptyMessage.remove();
+      }
+    }
+
+    async function clearEmailLogs() {
+      if (confirm('Are you sure you want to clear all email logs? This action cannot be undone.')) {
+        try {
+          const response = await fetch('/api/clear-logs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showNotification('✅ Email logs cleared successfully!', 'success');
+            // Refresh the analytics data
+            loadAnalyticsData();
+            loadEmailAnalyticsList();
+          } else {
+            showNotification('❌ Failed to clear email logs', 'error');
+          }
+        } catch (error) {
+          console.error('Error clearing email logs:', error);
+          showNotification('❌ Error clearing email logs', 'error');
+        }
+      }
+    }
+
+    // Response tracking functions
+    async function addResponse(emailId, existingResponse = '', existingDate = '') {
+      const responseContent = prompt('Enter the response content:', existingResponse);
+      if (responseContent === null) return; // User cancelled
+      
+      const responseDate = prompt('Enter response date (leave empty for now):', existingDate || new Date().toISOString());
+      if (responseDate === null) return; // User cancelled
+      
+      try {
+        const response = await fetch('/api/analytics/track-response', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            trackingId: emailId,
+            responseContent: responseContent,
+            responseDate: responseDate || new Date().toISOString()
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showNotification('💬 Response tracked successfully!', 'success');
+          // Refresh the analytics data
+          loadAnalyticsData();
+          loadEmailAnalyticsList();
+        } else {
+          showNotification('❌ Failed to track response', 'error');
+        }
+      } catch (error) {
+        console.error('Error tracking response:', error);
+        showNotification('❌ Error tracking response', 'error');
+      }
+    }
+
+    // Enhanced Message Preview Functions
+    function toggleFullMessage(emailId) {
+      const contentDiv = document.getElementById(`message-content-${emailId}`);
+      const button = event.target;
+      
+      if (contentDiv.style.maxHeight === 'none') {
+        contentDiv.style.maxHeight = '200px';
+        button.textContent = '📖 Full';
+        button.title = 'Show full message';
+      } else {
+        contentDiv.style.maxHeight = 'none';
+        button.textContent = '📄 Less';
+        button.title = 'Show less';
+      }
+    }
+
+    async function copyEmailContent(emailId) {
+      try {
+        const response = await fetch('/api/analytics/emails');
+        const data = await response.json();
+        
+        if (data.success) {
+          const email = data.data.find(e => e.id === emailId);
+          if (email) {
+            await navigator.clipboard.writeText(email.body);
+            showNotification('📋 Email content copied to clipboard!', 'success');
+          } else {
+            showNotification('❌ Email not found', 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Error copying email content:', error);
+        showNotification('❌ Error copying email content', 'error');
+      }
+    }
+
+    // Chart Drawing Functions
+    function drawTimelineChart(timelineData) {
+      const canvas = document.getElementById('timeline-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas to proper size with responsive scaling
+      const containerWidth = canvas.parentElement.offsetWidth - 48;
+      const containerHeight = 450;
+      
+      canvas.width = Math.max(containerWidth, 600);
+      canvas.height = containerHeight;
+      canvas.style.width = canvas.width + 'px';
+      canvas.style.height = canvas.height + 'px';
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (!timelineData || timelineData.length === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '16px Inter, Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('No timeline data available', canvas.width / 2, canvas.height / 2);
+        return;
+      }
+      
+      const padding = 60;
+      const chartWidth = canvas.width - padding * 2;
+      const chartHeight = canvas.height - padding * 2;
+      
+      // Find max value for scaling
+      const maxValue = Math.max(...timelineData.map(d => Math.max(d.sent, d.opened, d.clicked)), 1);
+      
+      // Create gradient backgrounds
+      const sentGradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+      sentGradient.addColorStop(0, 'rgba(90, 103, 216, 0.8)');
+      sentGradient.addColorStop(1, 'rgba(90, 103, 216, 0.2)');
+      
+      const openedGradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+      openedGradient.addColorStop(0, 'rgba(5, 150, 105, 0.8)');
+      openedGradient.addColorStop(1, 'rgba(5, 150, 105, 0.2)');
+      
+      const clickedGradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+      clickedGradient.addColorStop(0, 'rgba(245, 158, 11, 0.8)');
+      clickedGradient.addColorStop(1, 'rgba(245, 158, 11, 0.2)');
+      
+      const repliedGradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+      repliedGradient.addColorStop(0, 'rgba(139, 92, 246, 0.8)');
+      repliedGradient.addColorStop(1, 'rgba(139, 92, 246, 0.2)');
+      
+      // Draw grid lines
+      ctx.strokeStyle = 'rgba(229, 231, 235, 0.5)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 5; i++) {
+        const y = padding + (chartHeight / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + chartWidth, y);
+        ctx.stroke();
+      }
+      
+      // Draw Y-axis labels
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '12px Inter, Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i <= 5; i++) {
+        const value = Math.round((maxValue / 5) * (5 - i));
+        const y = padding + (chartHeight / 5) * i;
+        ctx.fillText(value.toString(), padding - 10, y);
+      }
+      
+      // Draw axes
+      ctx.strokeStyle = '#374151';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, padding + chartHeight);
+      ctx.lineTo(padding + chartWidth, padding + chartHeight);
+      ctx.stroke();
+      
+      if (timelineData.length > 1) {
+        const stepX = chartWidth / (timelineData.length - 1);
+        
+        // Calculate points for all lines
+        const sentPoints = timelineData.map((point, i) => ({
+          x: padding + i * stepX,
+          y: padding + chartHeight - (point.sent / maxValue) * chartHeight,
+          value: point.sent
+        }));
+        
+        const openedPoints = timelineData.map((point, i) => ({
+          x: padding + i * stepX,
+          y: padding + chartHeight - (point.opened / maxValue) * chartHeight,
+          value: point.opened
+        }));
+        
+        const clickedPoints = timelineData.map((point, i) => ({
+          x: padding + i * stepX,
+          y: padding + chartHeight - (point.clicked / maxValue) * chartHeight,
+          value: point.clicked
+        }));
+        
+        const repliedPoints = timelineData.map((point, i) => ({
+          x: padding + i * stepX,
+          y: padding + chartHeight - ((point.replied || 0) / maxValue) * chartHeight,
+          value: point.replied || 0
+        }));
+        
+        // Draw area fills first (behind lines)
+        ctx.globalAlpha = 0.3;
+        
+        // Sent area
+        ctx.fillStyle = sentGradient;
+        ctx.beginPath();
+        ctx.moveTo(sentPoints[0].x, padding + chartHeight);
+        sentPoints.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.lineTo(sentPoints[sentPoints.length - 1].x, padding + chartHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Opened area
+        ctx.fillStyle = openedGradient;
+        ctx.beginPath();
+        ctx.moveTo(openedPoints[0].x, padding + chartHeight);
+        openedPoints.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.lineTo(openedPoints[openedPoints.length - 1].x, padding + chartHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Clicked area
+        ctx.fillStyle = clickedGradient;
+        ctx.beginPath();
+        ctx.moveTo(clickedPoints[0].x, padding + chartHeight);
+        clickedPoints.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.lineTo(clickedPoints[clickedPoints.length - 1].x, padding + chartHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Replied area
+        ctx.fillStyle = repliedGradient;
+        ctx.beginPath();
+        ctx.moveTo(repliedPoints[0].x, padding + chartHeight);
+        repliedPoints.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.lineTo(repliedPoints[repliedPoints.length - 1].x, padding + chartHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.globalAlpha = 1.0;
+        
+        // Draw hazard stripe pattern where opened and clicked overlap
+        for (let i = 0; i < timelineData.length - 1; i++) {
+          const opened1 = openedPoints[i];
+          const opened2 = openedPoints[i + 1];
+          const clicked1 = clickedPoints[i];
+          const clicked2 = clickedPoints[i + 1];
+          
+          // Check if both opened and clicked have values
+          if (opened1.value > 0 && clicked1.value > 0) {
+            const minY = Math.min(opened1.y, clicked1.y);
+            const maxY = Math.max(opened1.y, clicked1.y);
+            const height = maxY - minY;
+            
+            if (height > 5) { // Only draw pattern if there's enough space
+              // Create hazard stripe pattern
+              const stripeWidth = 8;
+              const x = opened1.x;
+              
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(x - 2, minY, stepX + 4, height);
+              ctx.clip();
+              
+              // Draw diagonal stripes
+              ctx.strokeStyle = '#059669';
+              ctx.lineWidth = 2;
+              for (let stripe = -height; stripe < stepX + height; stripe += stripeWidth) {
+                ctx.beginPath();
+                ctx.moveTo(x + stripe, minY);
+                ctx.lineTo(x + stripe + height, maxY);
+                ctx.stroke();
+              }
+              
+              ctx.strokeStyle = '#f59e0b';
+              ctx.lineWidth = 2;
+              for (let stripe = -height + stripeWidth/2; stripe < stepX + height; stripe += stripeWidth) {
+                ctx.beginPath();
+                ctx.moveTo(x + stripe, minY);
+                ctx.lineTo(x + stripe + height, maxY);
+                ctx.stroke();
+              }
+              
+              ctx.restore();
+            }
+          }
+        }
+        
+        // Draw main lines with enhanced styling
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        
+        // Draw sent emails line
+        ctx.strokeStyle = '#5a67d8';
+        ctx.shadowColor = 'rgba(90, 103, 216, 0.3)';
+        ctx.beginPath();
+        sentPoints.forEach((point, i) => {
+          if (i === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+        
+        // Draw opened emails line
+        ctx.strokeStyle = '#059669';
+        ctx.shadowColor = 'rgba(5, 150, 105, 0.3)';
+        ctx.beginPath();
+        openedPoints.forEach((point, i) => {
+          if (i === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+        
+        // Draw clicked links line
+        ctx.strokeStyle = '#f59e0b';
+        ctx.shadowColor = 'rgba(245, 158, 11, 0.3)';
+        ctx.beginPath();
+        clickedPoints.forEach((point, i) => {
+          if (i === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+        
+        // Draw replied emails line
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.shadowColor = 'rgba(139, 92, 246, 0.3)';
+        ctx.beginPath();
+        repliedPoints.forEach((point, i) => {
+          if (i === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+        
+        // Draw data points
+        [sentPoints, openedPoints, clickedPoints, repliedPoints].forEach((points, lineIndex) => {
+          const colors = ['#5a67d8', '#059669', '#f59e0b', '#8b5cf6'];
+          ctx.fillStyle = colors[lineIndex];
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          
+          points.forEach(point => {
+            if (point.value > 0) {
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+            }
+          });
+        });
+        
+        // Draw X-axis labels
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '11px Inter, Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        timelineData.forEach((point, i) => {
+          const x = padding + i * stepX;
+          const date = new Date(point.date);
+          const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          ctx.fillText(label, x, padding + chartHeight + 10);
+        });
+      }
+      
+      // Enhanced legend with better styling
+      const legendY = 20;
+      const legendItems = [
+        { color: '#5a67d8', label: 'Emails Sent' },
+        { color: '#059669', label: 'Emails Opened' },
+        { color: '#f59e0b', label: 'Links Clicked' },
+        { color: '#8b5cf6', label: 'Responses Received' }
+      ];
+      
+      ctx.font = '13px Inter, Arial';
+      let legendX = padding;
+      
+      legendItems.forEach((item, i) => {
+        // Draw colored circle
+        ctx.fillStyle = item.color;
+        ctx.beginPath();
+        ctx.arc(legendX + 8, legendY + 8, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw white border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw label
+        ctx.fillStyle = '#374151';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.label, legendX + 20, legendY + 8);
+        
+        legendX += ctx.measureText(item.label).width + 50;
+      });
+    }
+
+    function drawResponseTimeChart(responseTimeData) {
+      const canvas = document.getElementById('response-time-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas to proper size with enough width for text
+      const containerWidth = canvas.parentElement.offsetWidth - 48; // More padding
+      const containerHeight = 200;
+      
+      canvas.width = Math.max(containerWidth, 400); // Minimum width of 400px for longer text
+      canvas.height = containerHeight;
+      canvas.style.width = canvas.width + 'px';
+      canvas.style.height = canvas.height + 'px';
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (!responseTimeData || responseTimeData.length === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('No response time data available', canvas.width / 2, canvas.height / 2);
+        return;
+      }
+      
+      const padding = 40;
+      const chartWidth = canvas.width - padding * 2;
+      const chartHeight = canvas.height - padding * 2;
+      
+      // Create histogram bins
+      const bins = [];
+      const binCount = 10;
+      const maxTime = Math.max(...responseTimeData);
+      const binSize = maxTime / binCount;
+      
+      for (let i = 0; i < binCount; i++) {
+        bins.push({
+          start: i * binSize,
+          end: (i + 1) * binSize,
+          count: 0
+        });
+      }
+      
+      // Fill bins
+      responseTimeData.forEach(time => {
+        const binIndex = Math.min(Math.floor(time / binSize), binCount - 1);
+        bins[binIndex].count++;
+      });
+      
+      const maxCount = Math.max(...bins.map(b => b.count));
+      
+      // Draw axes
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, padding + chartHeight);
+      ctx.lineTo(padding + chartWidth, padding + chartHeight);
+      ctx.stroke();
+      
+      // Draw bars
+      const barWidth = chartWidth / binCount;
+      ctx.fillStyle = '#5a67d8';
+      
+      bins.forEach((bin, i) => {
+        if (bin.count > 0) {
+          const barHeight = (bin.count / maxCount) * chartHeight;
+          const x = padding + i * barWidth;
+          const y = padding + chartHeight - barHeight;
+          
+          ctx.fillRect(x + 2, y, barWidth - 4, barHeight);
+        }
+      });
+      
+      // Draw labels
+      ctx.fillStyle = '#374151';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      bins.forEach((bin, i) => {
+        const x = padding + i * barWidth + barWidth / 2;
+        const label = `${Math.round(bin.start)}h`;
+        ctx.fillText(label, x, padding + chartHeight + 15);
+      });
+    }
+
     // Sidebar resizer functionality
     document.addEventListener('DOMContentLoaded', function() {
       const sidebar = document.getElementById('sidebar');
@@ -4367,6 +5297,26 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
               document.getElementById('modal-apollo-preview').textContent = 'Current: None';
               document.getElementById('modal-mailgun-preview').textContent = 'Current: None';
               document.getElementById('modal-mailgun-domain-preview').textContent = 'Current: None';
+            }
+          })
+          .catch(console.error);
+
+        // Load domain settings
+        fetch(`/api/auth/settings/${currentUser.userId}/domain-settings`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success && data.settings && data.settings.domainSettings) {
+              const domain = data.settings.domainSettings;
+              
+              // Update preview elements
+              document.getElementById('modal-tracking-domain-preview').textContent = domain.trackingDomain ? `Current: ${domain.trackingDomain}` : 'Current: localhost:8080';
+              document.getElementById('modal-server-port-preview').textContent = domain.serverPort ? `Current: ${domain.serverPort}` : 'Current: 8080';
+              
+              console.log('🌐 Updated domain settings previews:', domain);
+            } else {
+              // Set defaults if no data
+              document.getElementById('modal-tracking-domain-preview').textContent = 'Current: localhost:8080';
+              document.getElementById('modal-server-port-preview').textContent = 'Current: 8080';
             }
           })
           .catch(console.error);
@@ -4515,6 +5465,69 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       });
     }
 
+    // Domain Setup Functions
+    function setTrackingPreset(preset) {
+      const domainInput = document.getElementById('modal-tracking-domain');
+      const portInput = document.getElementById('modal-server-port');
+      
+      switch(preset) {
+        case 'localhost':
+          domainInput.value = 'localhost:8080';
+          portInput.value = '8080';
+          showNotification('🏠 Localhost preset applied - No external tracking', 'info');
+          break;
+        case 'ngrok':
+          domainInput.value = 'your-ngrok-url.ngrok.io';
+          portInput.value = '8080';
+          showNotification('🔗 ngrok preset applied - Update with your ngrok URL', 'info');
+          break;
+        case 'custom':
+          domainInput.value = 'yourdomain.com';
+          portInput.value = '443';
+          showNotification('🌐 Custom domain preset applied - Configure your domain', 'info');
+          break;
+      }
+    }
+
+    function saveDomainSettings() {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (!currentUser.userId) return;
+
+      const domainSettings = {
+        trackingDomain: document.getElementById('modal-tracking-domain').value,
+        serverPort: parseInt(document.getElementById('modal-server-port').value) || 8080
+      };
+
+      // Remove empty values
+      Object.keys(domainSettings).forEach(key => {
+        if (!domainSettings[key]) delete domainSettings[key];
+      });
+
+      fetch(`/api/auth/settings/${currentUser.userId}/domain-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domainSettings })
+      })
+      .then(response => response.json())
+      .then(data => {
+        const statusDiv = document.getElementById('domain-settings-status');
+        if (data.success) {
+          statusDiv.innerHTML = '<div class="status-message success">✅ Domain settings saved! Restart app to apply changes.</div>';
+          // Clear input fields
+          document.getElementById('modal-tracking-domain').value = '';
+          document.getElementById('modal-server-port').value = '';
+          loadSettingsData(); // Reload to show updated previews
+        } else {
+          statusDiv.innerHTML = `<div class="status-message error">❌ ${data.message}</div>`;
+        }
+        setTimeout(() => statusDiv.innerHTML = '', 3000);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('domain-settings-status').innerHTML = '<div class="status-message error">❌ Network error</div>';
+      });
+    }
+
     // Close modal when clicking outside
     document.getElementById('settings-modal').addEventListener('click', function(e) {
       if (e.target === this) {
@@ -4654,6 +5667,60 @@ Provide specific, contextual recommendations for sales outreach based on your re
         </div>
         <button class="save-btn" onclick="saveApiKeys()">💾 Save API Keys</button>
         <div id="api-keys-status"></div>
+      </div>
+
+      <!-- Domain Setup Section -->
+      <div class="settings-section">
+        <h3>🌐 Domain & Email Tracking Setup</h3>
+        <div class="modal-form-group">
+          <label for="modal-tracking-domain">Tracking Domain</label>
+          <input type="text" id="modal-tracking-domain" placeholder="yourdomain.com or localhost:8080" />
+          <div class="api-key-preview" id="modal-tracking-domain-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            💡 <strong>For localhost:</strong> Use "localhost:8080" (email tracking won't work externally)<br>
+            💡 <strong>For custom domain:</strong> Use "yourdomain.com" (requires domain configuration)
+          </div>
+        </div>
+        <div class="modal-form-group">
+          <label for="modal-server-port">Server Port</label>
+          <input type="number" id="modal-server-port" placeholder="8080" min="1" max="65535" />
+          <div class="api-key-preview" id="modal-server-port-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: 8080</div>
+        </div>
+        
+        <!-- Domain Setup Instructions -->
+        <div style="background: rgba(90, 103, 216, 0.1); border-radius: 8px; padding: 1rem; margin: 1rem 0; border-left: 4px solid #5a67d8;">
+          <h4 style="color: #5a67d8; margin: 0 0 0.5rem 0;">📋 Custom Domain Setup Instructions</h4>
+          <div style="font-size: 0.9rem; color: #374151; line-height: 1.4;">
+            <strong>To enable email tracking with your custom domain:</strong><br>
+            1. Point your domain/subdomain to your server's IP address<br>
+            2. Set up SSL certificate (HTTPS required for email clients)<br>
+            3. Configure reverse proxy (nginx/Apache) to route traffic to this app<br>
+            4. Test tracking URL: <code>https://yourdomain.com/track/open/test</code><br><br>
+            <strong>For easy setup, use services like:</strong><br>
+            • <a href="https://ngrok.com" target="_blank" style="color: #5a67d8;">ngrok</a> (temporary tunneling)<br>
+            • <a href="https://www.cloudflare.com" target="_blank" style="color: #5a67d8;">Cloudflare</a> (DNS + SSL)<br>
+            • <a href="https://vercel.com" target="_blank" style="color: #5a67d8;">Vercel</a> or <a href="https://render.com" target="_blank" style="color: #5a67d8;">Render</a> (hosting)
+          </div>
+        </div>
+
+        <!-- Quick Setup Presets -->
+        <div style="margin: 1rem 0;">
+          <h4 style="color: #374151; margin: 0 0 0.5rem 0;">⚡ Quick Setup Presets</h4>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button onclick="setTrackingPreset('localhost')" style="background: #64748b; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+              🏠 Localhost
+            </button>
+            <button onclick="setTrackingPreset('ngrok')" style="background: #059669; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+              🔗 ngrok Setup
+            </button>
+            <button onclick="setTrackingPreset('custom')" style="background: #5a67d8; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+              🌐 Custom Domain
+            </button>
+          </div>
+        </div>
+
+        <button class="save-btn" onclick="saveDomainSettings()">💾 Save Domain Settings</button>
+        <div id="domain-settings-status"></div>
       </div>
 
       <!-- AI Personality Section -->

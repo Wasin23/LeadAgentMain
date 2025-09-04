@@ -51,6 +51,16 @@ try {
   emailQueueRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import analytics routes
+let analyticsRoutes;
+try {
+  analyticsRoutes = (await import('./routes/analytics.js')).default;
+  console.log('Analytics routes imported successfully');
+} catch (e) {
+  console.log('Analytics routes not available:', e.message);
+  analyticsRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 const app = express();
 app.use(express.json());
 // Serve static files from public directory
@@ -68,6 +78,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
+app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 
 const PORT = process.env.API_PORT || 8080;
 app.listen(PORT, () => {

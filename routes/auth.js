@@ -256,4 +256,43 @@ router.post('/verify-master-password', (req, res) => {
   }
 });
 
+// Domain settings endpoints
+router.get('/settings/:userId/domain-settings', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log(`[AUTH] GET /settings/${userId}/domain-settings - Request received`);
+    
+    const settings = await getUserSettings(userId);
+    console.log(`[AUTH] Domain settings for ${userId}:`, settings.domainSettings);
+    
+    res.json({
+      success: true,
+      settings: {
+        domainSettings: settings.domainSettings || {}
+      }
+    });
+  } catch (error) {
+    console.error('[AUTH] Get domain settings error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings/:userId/domain-settings', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { domainSettings } = req.body;
+    
+    console.log(`[AUTH] POST /settings/${userId}/domain-settings - Request received`);
+    console.log('[AUTH] Domain settings to save:', domainSettings);
+    
+    await updateUserSettings(userId, { domainSettings });
+    console.log('[AUTH] ✅ Domain settings updated successfully');
+    
+    res.json({ success: true, message: 'Domain settings saved successfully' });
+  } catch (error) {
+    console.error('[AUTH] Update domain settings error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

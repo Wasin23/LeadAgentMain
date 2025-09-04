@@ -50,22 +50,25 @@ router.post('/clear-logs', async (req, res) => {
   console.log('[EMAIL LOGS] POST /clear-logs request received');
   try {
     const logPath = path.join(process.cwd(), 'email_logs.json');
+    const approvedPath = path.join(process.cwd(), 'email_approved.json');
     console.log('[EMAIL LOGS] Clearing logs at:', logPath);
+    console.log('[EMAIL LOGS] Clearing approved emails at:', approvedPath);
     
-    // Write empty array to the logs file
+    // Write empty array to both files
     await fs.writeFile(logPath, '[]', 'utf8');
-    console.log('[EMAIL LOGS] ✅ Successfully cleared email logs');
+    await fs.writeFile(approvedPath, '[]', 'utf8');
+    console.log('[EMAIL LOGS] ✅ Successfully cleared email logs and approved emails');
     
     res.json({ 
       success: true, 
-      message: 'Email logs cleared successfully',
+      message: 'Email logs and approved emails cleared successfully',
       clearedCount: 0 // Since we just cleared it
     });
   } catch (err) {
     console.error('[EMAIL LOGS] ❌ Failed to clear logs:', err);
     res.status(500).json({ 
       success: false,
-      error: 'Failed to clear email logs',
+      error: 'Failed to clear email logs and approved emails',
       details: err.message
     });
   }

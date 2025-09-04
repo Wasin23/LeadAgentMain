@@ -566,7 +566,10 @@ class LeadContactAgent extends EventEmitter {
     for (let i = 0; i < researchResults.length; i++) {
       const result = researchResults[i];
       
-      // No need for granular progress in each iteration - just process
+      // Update progress for each research result being processed
+      const progressPercent = Math.round((i / researchResults.length) * 10) + 87; // Between 87-97%
+      this.updateFluidProgress(`🔍 Processing research result ${i + 1}/${researchResults.length}...`, progressPercent);
+      
       try {
         // Extract company and contact info from the search result
         const lead = this.extractLeadInfo(result);
@@ -592,13 +595,20 @@ class LeadContactAgent extends EventEmitter {
           seenCompanies.add(companyKey);
           
           processedLeads.push(lead);
+          
+          // Update progress for each unique lead found
+          this.updateFluidProgress(`✅ Found lead #${processedLeads.length}: ${lead.name} at ${lead.company}`, progressPercent);
           console.log(`[LEAD AGENT] ✅ Added unique lead: ${lead.name} at ${lead.company} (${lead.email})`);
+          
+          // Small delay to show progress update
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
       } catch (error) {
         console.log(`[LEAD AGENT] Failed to process lead: ${error.message}`);
       }
     }
     
+    this.updateFluidProgress(`🎯 Deduplication complete: ${processedLeads.length} unique leads found`, 97);
     console.log(`[LEAD AGENT] Deduplication complete: ${researchResults.length} → ${processedLeads.length} unique leads`);
     return processedLeads;
   }
@@ -738,11 +748,11 @@ class LeadContactAgent extends EventEmitter {
   async rankLeads(leads) {
     console.log('[LEAD AGENT] Ranking leads...');
     
-    // No individual progress steps - just process the leads
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Score leads based on multiple factors with progress tracking
+    const scoredLeads = [];
     
-    // Score leads based on multiple factors
-    const scoredLeads = leads.map((lead, index) => {
+    for (let i = 0; i < leads.length; i++) {
+      const lead = leads[i];
       let score = 0;
       
       // Prioritize leads with intelligence data
@@ -789,17 +799,35 @@ class LeadContactAgent extends EventEmitter {
       // Recent funding or growth indicators
       if (description.includes('funding') || description.includes('series') || description.includes('raised')) score += 5;
       
-      return {
+      const scoredLead = {
         ...lead,
         score: score
       };
-    });
-    
-    // Sort by score descending - no progress step needed
-    await new Promise(resolve => setTimeout(resolve, 100));
+      
+      scoredLeads.push(scoredLead);
+      
+      // Emit progress update for each lead scored
+      const progressPercent = Math.round(((i + 1) / leads.length) * 100);
+      const companyName = lead.company || lead.organization?.name || 'Unknown Company';
+      this.emit('progress', {
+        stage: 'ranking',
+        percent: progressPercent,
+        message: `📊 Scored lead ${i + 1}/${leads.length}: ${companyName} (Score: ${score})`
+      });
+      
+      // Small delay for visual feedback
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
     
     // Sort by score descending
     const sortedLeads = scoredLeads.sort((a, b) => b.score - a.score);
+    
+    // Final progress update
+    this.emit('progress', {
+      stage: 'ranking',
+      percent: 100,
+      message: `✅ Ranked ${leads.length} leads by opportunity score`
+    });
     
     return sortedLeads;
   }
