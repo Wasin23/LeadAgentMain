@@ -61,6 +61,16 @@ try {
   analyticsRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import webhook routes
+let webhookRoutes;
+try {
+  webhookRoutes = (await import('./routes/webhooks.js')).default;
+  console.log('Webhook routes imported successfully');
+} catch (e) {
+  console.log('Webhook routes not available:', e.message);
+  webhookRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 const app = express();
 app.use(express.json());
 // Serve static files from public directory
@@ -79,6 +89,7 @@ app.use('/api', chatRoutes);
 app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
+app.use('/', webhookRoutes); // Webhook routes for email replies
 
 const PORT = process.env.API_PORT || 8080;
 app.listen(PORT, () => {

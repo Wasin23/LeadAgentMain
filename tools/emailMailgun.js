@@ -156,9 +156,11 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true)
       from: `ExaMark <noreply@${process.env.MAILGUN_DOMAIN}>`,
       'h:Reply-To': 'testsend0011@gmail.com', // Set a real reply-to address
       to,
-      subject,
+      subject: `${subject} [#${trackingId}]`, // Add tracking ID to subject for reply linking
       html: htmlBody, // Always send HTML version (with or without tracking)
-      text: body // Keep clean text version
+      text: body, // Keep clean text version
+      'h:Message-ID': `<tracking-${trackingId}@${process.env.MAILGUN_DOMAIN}>`, // Custom Message-ID for reply tracking
+      'h:X-Tracking-ID': trackingId // Custom header for our tracking
     };
     
     // Disable Mailgun's tracking to avoid conflicts with our custom tracking
