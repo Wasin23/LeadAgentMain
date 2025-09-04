@@ -144,11 +144,17 @@ router.get('/api/analytics/summary', async (req, res) => {
     
     // Response times (in hours) for response time chart
     const responseTimes = logs
-      .filter(log => log.analytics?.replied && log.analytics?.replyTime)
+      .filter(log => log.analytics?.replied && (log.analytics?.replyTime || log.analytics?.responseDate))
       .map(log => {
         const sentTime = new Date(log.timestamp);
-        const replyTime = new Date(log.analytics.replyTime);
-        return (replyTime - sentTime) / (1000 * 60 * 60); // Convert to hours
+        const replyTime = new Date(log.analytics.replyTime || log.analytics.responseDate);
+        const hoursDiff = (replyTime - sentTime) / (1000 * 60 * 60); // Convert to hours
+        console.log('[ANALYTICS] Response time calculation:', {
+          sent: log.timestamp,
+          reply: log.analytics.replyTime || log.analytics.responseDate,
+          hours: hoursDiff
+        });
+        return Math.max(0, hoursDiff); // Ensure non-negative
       });
     
     // Engagement funnel data

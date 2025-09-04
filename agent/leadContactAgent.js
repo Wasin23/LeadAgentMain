@@ -1017,14 +1017,14 @@ ABOUT EXABITS (Focus on business value, not company history):
 - Industry expertise: Deep understanding of AI/ML compute requirements
 
 YOUR TASK - BE A SMART SALESPERSON:
-Generate a professional email that demonstrates you've done your homework:
+Generate a concise (≤180 words), professional email that shows deep research and clear reasoning (that you've done your homework):
 
-1. Subject line that references specific company context (growth, AI initiatives, etc.)
-2. Opening with SINGLE greeting only (Hi [Name], or Hello [Name], - NOT BOTH)
-3. Connect their specific situation to Exabits solutions with LOGICAL REASONING
-4. Explain WHY our solution specifically fits their company's needs
-5. Professional call-to-action
-6. NO P.S. section or founder name-dropping
+1. Subject line: Reference specific company context (growth, funding, AI initiatives, etc.)
+2. Greeting: ONE ONLY (Hi [Name], or Hello [Name],)
+3. First line: Reference a company milestone, pain point, or industry trend (NOT generic fluff)
+4. Explain the logical connection between their business and Exabits GPU clusters
+5. Emphasize business outcomes (time-to-market, scalability, efficiency, compliance)
+6. Close with a time-bound, professional CTA (e.g., “Would you be open to a 20-minute call next week?”)
 
 CRITICAL RULES:
 - Use ONLY ONE greeting (not "Hello Name, Hi Name,")
