@@ -57,6 +57,8 @@ router.get('/stats', async (req, res) => {
 
 // Add custom email to queue
 router.post('/custom', async (req, res) => {
+  console.log('[EMAIL QUEUE] Custom email endpoint hit');
+  console.log('[EMAIL QUEUE] Request body:', req.body);
   try {
     const { to, subject, body, leadContext, source = 'custom' } = req.body;
     
