@@ -110,13 +110,27 @@ function addTrackingToEmail(body, trackingId) {
   const trackingDomain = process.env.TRACKING_DOMAIN || 'localhost:8080';
   const protocol = trackingDomain.includes('localhost') ? 'http' : 'https';
   
-  // More email-client friendly tracking pixel
-  const trackingPixel = `<img src="${protocol}://${trackingDomain}/track/open/${trackingId}" width="1" height="1" style="display:block!important;visibility:hidden!important;opacity:0!important;border:none!important;background:transparent!important;" alt="" />`;
+  // Fix: Don't add protocol if domain already includes it
+  let trackingUrl;
+  if (trackingDomain.startsWith('http://') || trackingDomain.startsWith('https://')) {
+    trackingUrl = `${trackingDomain}/track/open/${trackingId}`;
+  } else {
+    trackingUrl = `${protocol}://${trackingDomain}/track/open/${trackingId}`;
+  }
+  
+  // More email-client friendly tracking pixel - make it VISIBLE for testing
+  const trackingPixel = `<div style="font-size:8px;color:#ccc;margin-top:10px;">🔍 Debug: <img src="${trackingUrl}" width="10" height="10" style="border:1px solid red;" alt="tracking" /> Email tracking active</div>`;
   
   // Convert links to tracked links
   const trackedBody = body.replace(
     /(https?:\/\/[^\s<>"]+)/gi,
-    `${protocol}://${trackingDomain}/track/click/${trackingId}?url=$1`
+    (match) => {
+      if (trackingDomain.startsWith('http://') || trackingDomain.startsWith('https://')) {
+        return `${trackingDomain}/track/click/${trackingId}?url=${encodeURIComponent(match)}`;
+      } else {
+        return `${protocol}://${trackingDomain}/track/click/${trackingId}?url=${encodeURIComponent(match)}`;
+      }
+    }
   );
   
   // Add tracking pixel at the very end
@@ -146,10 +160,11 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true)
       text: body // Keep clean text version
     };
     
-    // Force HTML rendering for tracking by setting proper headers
+    // Disable Mailgun's tracking to avoid conflicts with our custom tracking
     if (enableTracking) {
-      emailData['h:X-Mailgun-Track-Opens'] = 'yes';
-      emailData['h:X-Mailgun-Track-Clicks'] = 'yes';
+      emailData['o:tracking'] = 'no';
+      emailData['o:tracking-clicks'] = 'no';
+      emailData['o:tracking-opens'] = 'no';
     }
     
     const result = await mg.messages.create(process.env.MAILGUN_DOMAIN, emailData);
