@@ -4249,21 +4249,24 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       
       // Load replies for each email after rendering
       queueData.pending.forEach(email => {
-        loadRepliesForEmail(email.id);
+        // Use the tracking ID from the email for reply matching, fallback to email.id
+        const trackingId = email.trackingId || email.id;
+        loadRepliesForEmail(email.id, trackingId);
       });
     }
 
     // Function to fetch and display replies for a specific email
-    async function loadRepliesForEmail(emailId) {
+    async function loadRepliesForEmail(emailId, trackingId) {
       try {
         const response = await fetch('/api/replies');
         const replies = await response.json();
         
-        // Filter replies for this email (match by tracking ID or email address)
+        // Filter replies for this email (match by tracking ID)
         const emailReplies = replies.filter(reply => 
-          reply.originalTrackingId === emailId || 
-          reply.inReplyTo?.includes(emailId) ||
-          reply.references?.includes(emailId)
+          reply.originalTrackingId === trackingId || 
+          reply.inReplyTo?.includes(trackingId) ||
+          reply.references?.includes(trackingId) ||
+          (reply.subject && reply.subject.includes(`[#${trackingId}]`))
         );
         
         const repliesContainer = document.getElementById(`replies-${emailId}`);
