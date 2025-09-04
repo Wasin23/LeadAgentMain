@@ -5,6 +5,27 @@ import path from 'path';
 
 const router = express.Router();
 
+// Test endpoint to verify webhook is accessible
+router.get('/mailgun/test', (req, res) => {
+  console.log('[WEBHOOK TEST] Test endpoint hit');
+  res.json({ 
+    success: true, 
+    message: 'Webhook endpoint is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test POST endpoint 
+router.post('/mailgun/test', (req, res) => {
+  console.log('[WEBHOOK TEST] Test POST endpoint hit');
+  console.log('[WEBHOOK TEST] Body:', req.body);
+  res.json({ 
+    success: true, 
+    message: 'Webhook POST endpoint is working',
+    receivedData: req.body
+  });
+});
+
 // Function to verify Mailgun webhook signature
 function verifyWebhookSignature(token, timestamp, signature, signingKey) {
   const value = timestamp + token;
@@ -77,10 +98,19 @@ function extractTrackingId(headers, subject, body) {
 router.post('/mailgun/incoming', express.raw({type: 'application/x-www-form-urlencoded'}), async (req, res) => {
   try {
     console.log('[WEBHOOK] Incoming email webhook received');
+    console.log('[WEBHOOK] Request headers:', req.headers);
+    console.log('[WEBHOOK] Raw body length:', req.body ? req.body.length : 'no body');
     
     // Parse the form data
     const body = new URLSearchParams(req.body.toString());
     const formData = Object.fromEntries(body);
+    
+    console.log('[WEBHOOK] Parsed form data keys:', Object.keys(formData));
+    console.log('[WEBHOOK] Form data preview:', {
+      from: formData.From || formData.from,
+      to: formData.To || formData.to, 
+      subject: formData.Subject || formData.subject
+    });
     
     // Verify webhook signature if signing key is available
     const signingKey = process.env.MAILGUN_WEBHOOK_SIGNING_KEY;
