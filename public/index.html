@@ -4233,6 +4233,10 @@ Advanced conversational AI with:
             </div>
           </div>
           
+          <div id="replies-${email.id}" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(90, 103, 216, 0.3);">
+            <!-- Replies will be loaded here -->
+          </div>
+          
           <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(90, 103, 216, 0.3); font-size: 0.8rem; color: #64748b;">
             <strong>Lead Research:</strong><br>
             <div style="background: rgba(255, 255, 255, 0.6); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem; font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow-y: auto; color: #374151; border: 1px solid rgba(90, 103, 216, 0.2);">
@@ -4242,6 +4246,75 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         </div>
         `;
       }).join('');
+      
+      // Load replies for each email after rendering
+      queueData.pending.forEach(email => {
+        loadRepliesForEmail(email.id);
+      });
+    }
+
+    // Function to fetch and display replies for a specific email
+    async function loadRepliesForEmail(emailId) {
+      try {
+        const response = await fetch('/api/replies');
+        const replies = await response.json();
+        
+        // Filter replies for this email (match by tracking ID or email address)
+        const emailReplies = replies.filter(reply => 
+          reply.originalTrackingId === emailId || 
+          reply.inReplyTo?.includes(emailId) ||
+          reply.references?.includes(emailId)
+        );
+        
+        const repliesContainer = document.getElementById(`replies-${emailId}`);
+        if (!repliesContainer) return;
+        
+        if (emailReplies.length === 0) {
+          repliesContainer.innerHTML = `
+            <div style="font-size: 0.8rem; color: #64748b; font-style: italic;">
+              📭 No replies yet
+            </div>
+          `;
+          return;
+        }
+        
+        repliesContainer.innerHTML = `
+          <div style="font-size: 0.9rem; color: #5a67d8; font-weight: 600; margin-bottom: 0.5rem;">
+            📧 Replies (${emailReplies.length})
+          </div>
+          ${emailReplies.map(reply => `
+            <div style="background: rgba(76, 175, 80, 0.1); border-left: 3px solid #4caf50; padding: 0.8rem; margin-bottom: 0.5rem; border-radius: 4px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; color: #4caf50; font-size: 0.8rem;">
+                  From: ${reply.from}
+                </div>
+                <div style="font-size: 0.7rem; color: #64748b;">
+                  ${new Date(reply.timestamp).toLocaleString()}
+                </div>
+              </div>
+              ${reply.subject ? `
+                <div style="font-size: 0.8rem; color: #374151; margin-bottom: 0.5rem;">
+                  <strong>Subject:</strong> ${reply.subject}
+                </div>
+              ` : ''}
+              <div style="background: rgba(255, 255, 255, 0.8); padding: 0.5rem; border-radius: 4px; font-size: 0.8rem; color: #374151; white-space: pre-wrap; max-height: 150px; overflow-y: auto;">
+                ${reply.body || 'No message content'}
+              </div>
+            </div>
+          `).join('')}
+        `;
+        
+      } catch (error) {
+        console.error('Error loading replies for email:', emailId, error);
+        const repliesContainer = document.getElementById(`replies-${emailId}`);
+        if (repliesContainer) {
+          repliesContainer.innerHTML = `
+            <div style="font-size: 0.8rem; color: #f44336;">
+              ❌ Error loading replies
+            </div>
+          `;
+        }
+      }
     }
 
     async function approveEmail(emailId) {
