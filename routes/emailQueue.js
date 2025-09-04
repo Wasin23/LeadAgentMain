@@ -153,15 +153,30 @@ router.post('/:id/approve', async (req, res) => {
     // Approve the email (moves it from queue to approved)
     const approvedEmail = await emailQueue.approveEmail(id);
     
+    // Handle both old format (direct fields) and new format (nested in emailData)
+    const emailData = approvedEmail.emailData || {};
+    const finalRecipient = emailData.finalRecipient || approvedEmail.finalRecipient;
+    const finalSubject = emailData.finalSubject || approvedEmail.finalSubject;
+    const finalBody = emailData.finalBody || approvedEmail.finalBody;
+    
+    // Validate we have all required fields
+    if (!finalRecipient || !finalSubject || !finalBody) {
+      console.error('[EMAIL QUEUE] Missing email data:', { finalRecipient, finalSubject, finalBody });
+      return res.status(400).json({ 
+        error: 'Email data incomplete', 
+        details: 'Missing recipient, subject, or body'
+      });
+    }
+    
     // Send the actual email
     const sendResult = await leadEmail(
-      approvedEmail.finalRecipient,
-      approvedEmail.finalSubject,
-      approvedEmail.finalBody
+      finalRecipient,
+      finalSubject,
+      finalBody
     );
     
     if (sendResult.success) {
-      console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${approvedEmail.finalRecipient}`);
+      console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);
       res.json({ 
         success: true, 
         email: approvedEmail,
