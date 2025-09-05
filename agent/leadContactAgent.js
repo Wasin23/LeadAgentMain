@@ -3,6 +3,7 @@ import { deepResearch } from '../tools/deepResearch.js';
 import { leadResearch } from '../tools/leadResearch.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { emailQueue } from '../lib/emailQueue.js';
+import { getUserSettings } from '../lib/userManager.js';
 import { ChatOpenAI } from "@langchain/openai";
 import { EventEmitter } from 'events';
 import fs from 'fs/promises';
@@ -47,7 +48,8 @@ class LeadContactAgent extends EventEmitter {
       modelName: "gpt-4o",
     });
     
-    this.targetIndustries = [
+    // BACKUP: Original hardcoded values (kept as fallbacks)
+    this.fallbackTargetIndustries = [
       'artificial intelligence',
       'machine learning',
       'fintech',
@@ -65,7 +67,7 @@ class LeadContactAgent extends EventEmitter {
       'pharmaceutical research'
     ];
     
-    this.companyTypes = [
+    this.fallbackCompanyTypes = [
       'AI startups',
       'tech companies',
       'research institutions',
@@ -78,8 +80,280 @@ class LeadContactAgent extends EventEmitter {
       'machine learning companies'
     ];
     
+    // Dynamic settings (loaded from user preferences)
+    this.leadContactSettings = null;
+    
     console.log(`[LEAD AGENT] Initialized Lead Contact Agent (PRODUCTION MODE)`);
     console.log(`[LEAD AGENT] Cycle interval: ${this.cycleInterval / (1000 * 60)} minutes`);
+  }
+
+  // Load Lead Contact Settings from user preferences
+  async loadLeadContactSettings(userId = 'default') {
+    try {
+      console.log(`[LEAD AGENT] Loading Lead Contact Settings for user: ${userId}`);
+      
+      // Try to get the actual current user ID (this would come from session in a real app)
+      // For now, we'll check if there's a specific user or use default
+      let targetUserId = userId;
+      
+      // If no specific userId provided, try to find the most recent user
+      if (userId === 'default') {
+        try {
+          // Always try to find an actual user ID from the settings file first
+          const fs = await import('fs/promises');
+          const path = await import('path');
+          const settingsPath = path.join(process.cwd(), 'lib', 'data', 'user_settings.json');
+          const settingsData = await fs.readFile(settingsPath, 'utf8');
+          const allSettings = JSON.parse(settingsData);
+          
+          // Use the first user ID we find (should be the actual user)
+          const userIds = Object.keys(allSettings);
+          if (userIds.length > 0) {
+            targetUserId = userIds[0];
+            console.log(`[LEAD AGENT] ✅ Found actual user ID: ${targetUserId}`);
+          } else {
+            console.log(`[LEAD AGENT] ⚠️ No users found in settings file`);
+          }
+        } catch (error) {
+          console.log(`[LEAD AGENT] ❌ Could not read settings file, using default:`, error.message);
+        }
+      }
+      
+      const userSettings = await getUserSettings(targetUserId);
+      this.leadContactSettings = userSettings.leadContactSettings || null;
+      
+      if (this.leadContactSettings) {
+        console.log(`[LEAD AGENT] ✅ Loaded custom Lead Contact Settings:`);
+        console.log(`[LEAD AGENT] - Company size: ${this.leadContactSettings.companySizeMin || 'any'}-${this.leadContactSettings.companySizeMax || 'any'} employees`);
+        console.log(`[LEAD AGENT] - Industries: ${this.leadContactSettings.companyIndustries?.length || 0} configured`);
+        console.log(`[LEAD AGENT] - Target positions: ${this.leadContactSettings.targetPositions?.length || 0} configured`);
+        console.log(`[LEAD AGENT] - Locations: ${this.leadContactSettings.targetLocations?.length || 0} configured`);
+        console.log(`[LEAD AGENT] - Lead limit: ${this.leadContactSettings.leadLimit || 10}`);
+      } else {
+        console.log(`[LEAD AGENT] ⚠️ No custom Lead Contact Settings found, will use fallback values`);
+      }
+      
+      return this.leadContactSettings;
+    } catch (error) {
+      console.error(`[LEAD AGENT] ❌ Error loading Lead Contact Settings:`, error.message);
+      console.log(`[LEAD AGENT] 🔄 Falling back to hardcoded values`);
+      this.leadContactSettings = null;
+      return null;
+    }
+  }
+
+  // Get target industries (from settings or fallback)
+  getTargetIndustries() {
+    if (this.leadContactSettings?.companyIndustries?.length > 0) {
+      // Check if user wants general/broad search
+      const industries = this.leadContactSettings.companyIndustries;
+      const generalTerms = ['all', 'any', 'general', 'everything', 'various', 'mixed', 'diverse', 'broad'];
+      
+      // If user specified general terms, use hardcoded variety
+      const hasGeneralTerm = industries.some(industry => 
+        generalTerms.some(term => 
+          industry.toLowerCase().includes(term.toLowerCase())
+        )
+      );
+      
+      if (hasGeneralTerm) {
+        console.log(`[LEAD AGENT] 🌐 Detected general search intent, using diverse industry mix`);
+        return this.fallbackTargetIndustries; // Use full hardcoded variety
+      }
+      
+      return industries;
+    }
+    console.log(`[LEAD AGENT] Using fallback target industries (${this.fallbackTargetIndustries.length} items)`);
+    return this.fallbackTargetIndustries;
+  }
+
+  // Get target positions (from settings or fallback)
+  getTargetPositions() {
+    if (this.leadContactSettings?.targetPositions?.length > 0) {
+      // Check if user wants general/broad search for positions
+      const positions = this.leadContactSettings.targetPositions;
+      const generalTerms = ['all', 'any', 'general', 'everything', 'various', 'mixed', 'diverse', 'broad', 'all roles', 'any position'];
+      
+      // If user specified general terms, use hardcoded variety
+      const hasGeneralTerm = positions.some(position => 
+        generalTerms.some(term => 
+          position.toLowerCase().includes(term.toLowerCase())
+        )
+      );
+      
+      if (hasGeneralTerm) {
+        console.log(`[LEAD AGENT] 🌐 Detected general position search intent, using diverse role mix`);
+        return this.fallbackCompanyTypes; // Use company types as diverse roles
+      }
+      
+      return positions;
+    }
+    console.log(`[LEAD AGENT] Using fallback company types (${this.fallbackCompanyTypes.length} items)`);
+    return this.fallbackCompanyTypes; // Use company types as fallback for positions
+  }
+
+  // Get target locations (from settings or fallback)
+  getTargetLocations() {
+    if (this.leadContactSettings?.targetLocations?.length > 0) {
+      // Check if user wants general/broad search for locations
+      const locations = this.leadContactSettings.targetLocations;
+      const generalTerms = ['all', 'any', 'global', 'worldwide', 'everywhere', 'various', 'mixed', 'diverse', 'broad'];
+      
+      // If user specified general terms, use hardcoded variety
+      const hasGeneralTerm = locations.some(location => 
+        generalTerms.some(term => 
+          location.toLowerCase().includes(term.toLowerCase())
+        )
+      );
+      
+      if (hasGeneralTerm) {
+        console.log(`[LEAD AGENT] 🌐 Detected global search intent, using diverse location mix`);
+        return this.getHardcodedLocations(); // Use hardcoded global locations
+      }
+      
+      return locations;
+    }
+    return this.getHardcodedLocations();
+  }
+
+  // Hardcoded diverse locations for general searches
+  getHardcodedLocations() {
+    return [
+      'United States',
+      'Canada', 
+      'United Kingdom',
+      'Germany',
+      'Australia',
+      'San Francisco Bay Area',
+      'New York',
+      'London',
+      'Toronto',
+      'Berlin',
+      'Singapore',
+      'Tel Aviv'
+    ];
+  }
+
+  // Determine if we should use random selection (for general/diverse searches)
+  shouldUseRandomSelection() {
+    if (!this.leadContactSettings) return true; // Default to random if no settings
+    
+    const generalTerms = ['all', 'any', 'general', 'various', 'diverse', 'mixed', 'broad', 'everything'];
+    
+    // Check industries
+    const industries = this.leadContactSettings.companyIndustries || [];
+    const hasGeneralIndustries = industries.some(industry => 
+      generalTerms.some(term => industry.toLowerCase().includes(term.toLowerCase()))
+    );
+    
+    // Check positions
+    const positions = this.leadContactSettings.targetPositions || [];
+    const hasGeneralPositions = positions.some(position => 
+      generalTerms.some(term => position.toLowerCase().includes(term.toLowerCase()))
+    );
+    
+    // Check locations
+    const locations = this.leadContactSettings.targetLocations || [];
+    const globalTerms = ['all', 'any', 'global', 'worldwide', 'everywhere', 'various', 'diverse', 'mixed', 'broad'];
+    const hasGeneralLocations = locations.some(location => 
+      globalTerms.some(term => location.toLowerCase().includes(term.toLowerCase()))
+    );
+    
+    // Use random selection if any field indicates general/diverse intent
+    const shouldRandomize = hasGeneralIndustries || hasGeneralPositions || hasGeneralLocations;
+    
+    if (shouldRandomize) {
+      console.log(`[LEAD AGENT] 🌐 Detected general search terms - will use randomization for diversity`);
+    } else {
+      console.log(`[LEAD AGENT] 🎯 Detected specific search terms - will use sequential targeting`);
+    }
+    
+    return shouldRandomize;
+  }
+
+  // Build dynamic search query based on settings
+  buildSearchQuery(industry, targetPosition) {
+    const targetLocations = this.getTargetLocations();
+    
+    let query = `companies in ${industry}`;
+    
+    // Add company size filter
+    if (this.leadContactSettings?.companySizeMin || this.leadContactSettings?.companySizeMax) {
+      const minSize = this.leadContactSettings.companySizeMin || 1;
+      const maxSize = this.leadContactSettings.companySizeMax || 10000;
+      query += ` with ${minSize} to ${maxSize} employees`;
+    }
+    
+    // Add technology keywords (check for general terms)
+    if (this.leadContactSettings?.companyKeywords?.length > 0) {
+      const keywords = this.leadContactSettings.companyKeywords;
+      const generalTerms = ['all', 'any', 'various', 'diverse', 'mixed'];
+      const hasGeneralKeywords = keywords.some(keyword => 
+        generalTerms.some(term => keyword.toLowerCase().includes(term.toLowerCase()))
+      );
+      
+      if (hasGeneralKeywords) {
+        // Use diverse hardcoded tech stack for general searches
+        const diverseTech = ['AI', 'CRM', 'sales automation', 'marketing tools', 'data analytics', 'cloud computing'];
+        const randomTech = diverseTech.slice(0, 3).join(', ');
+        query += ` using technologies like ${randomTech}`;
+        console.log(`[LEAD AGENT] 🌐 Using diverse tech keywords: ${randomTech}`);
+      } else {
+        const specificKeywords = keywords.slice(0, 3).join(', ');
+        query += ` using technologies like ${specificKeywords}`;
+      }
+    }
+    
+    // Add target position context
+    query += ` that would need ExaMark's AI sales automation tools, looking for contacts in ${targetPosition} roles`;
+    
+    // Add location filter (use random location if general terms detected)
+    if (targetLocations.length > 0) {
+      // If we detected general location terms, pick random locations for variety
+      const generalTerms = ['all', 'any', 'global', 'worldwide', 'everywhere'];
+      const userLocations = this.leadContactSettings?.targetLocations || [];
+      const hasGeneralLocation = userLocations.some(location => 
+        generalTerms.some(term => location.toLowerCase().includes(term.toLowerCase()))
+      );
+      
+      if (hasGeneralLocation || targetLocations.length > 8) { // If using hardcoded locations
+        // Pick random location for variety
+        const randomLocation = targetLocations[Math.floor(Math.random() * targetLocations.length)];
+        query += ` located in ${randomLocation}`;
+        console.log(`[LEAD AGENT] 🌐 Using random location for variety: ${randomLocation}`);
+      } else {
+        // Use first specified location
+        query += ` located in ${targetLocations[0]}`;
+      }
+    }
+    
+    // Add intent signals (check for general terms)
+    if (this.leadContactSettings?.contactIntent?.length > 0) {
+      const intents = this.leadContactSettings.contactIntent;
+      const generalTerms = ['all', 'any', 'various', 'diverse', 'mixed'];
+      const hasGeneralIntent = intents.some(intent => 
+        generalTerms.some(term => intent.toLowerCase().includes(term.toLowerCase()))
+      );
+      
+      if (hasGeneralIntent) {
+        // Use diverse intent signals for general searches
+        const diverseIntents = ['hiring', 'expansion', 'digital transformation', 'automation', 'growth', 'funding'];
+        const randomIntents = diverseIntents.slice(0, 2).join(' or ');
+        query += ` showing signs of ${randomIntents}`;
+        console.log(`[LEAD AGENT] 🌐 Using diverse intent signals: ${randomIntents}`);
+      } else {
+        const specificIntents = intents.slice(0, 2).join(' or ');
+        query += ` showing signs of ${specificIntents}`;
+      }
+    }
+    
+    // Fallback to original query if no settings
+    if (!this.leadContactSettings) {
+      query = `companies in ${industry} that would need high-performance GPU computing for AI and machine learning workloads, specifically ${targetPosition}`;
+    }
+    
+    console.log(`[LEAD AGENT] Built search query: ${query}`);
+    return query;
   }
 
   // Set custom cycle interval in minutes
@@ -214,20 +488,43 @@ class LeadContactAgent extends EventEmitter {
   }
 
   async stop() {
-    if (!this.isRunning) {
-      return { success: false, message: 'Agent is not currently running' };
-    }
-
     console.log('[LEAD AGENT] 🛑 Stopping Lead Contact Agent...');
-    this.isRunning = false;
-    this.currentStatus = 'stopped';
     
+    // Set stopping flag first to prevent new cycles from starting
+    this.isRunning = false;
+    this.currentStatus = 'stopping';
+    
+    // Clear any scheduled intervals
     if (this.intervalId) {
       clearTimeout(this.intervalId);
       this.intervalId = null;
       console.log('[LEAD AGENT] ✅ Cleared cycle timer');
     }
     
+    // If a cycle is in progress, wait for it to complete or force stop after timeout
+    if (this.cycleInProgress) {
+      console.log('[LEAD AGENT] ⏳ Cycle in progress, waiting for completion...');
+      
+      // Wait up to 30 seconds for cycle to complete naturally
+      let waitTime = 0;
+      const maxWaitTime = 30000; // 30 seconds
+      const checkInterval = 1000; // 1 second
+      
+      while (this.cycleInProgress && waitTime < maxWaitTime) {
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+        waitTime += checkInterval;
+      }
+      
+      // If cycle is still in progress after timeout, force stop
+      if (this.cycleInProgress) {
+        console.log('[LEAD AGENT] ⚠️ Force stopping cycle after timeout');
+        this.cycleInProgress = false;
+      } else {
+        console.log('[LEAD AGENT] ✅ Cycle completed naturally');
+      }
+    }
+    
+    this.currentStatus = 'stopped';
     await this.saveState();
     
     console.log('[LEAD AGENT] ✅ Lead Contact Agent stopped successfully');
@@ -364,6 +661,12 @@ class LeadContactAgent extends EventEmitter {
       console.log(`[LEAD AGENT] 📊 Loading leads database...`);
       let leadsData = await this.loadLeadsDatabase();
       
+      // Check if stop was requested
+      if (!this.isRunning) {
+        console.log('[LEAD AGENT] 🛑 Stop requested during leads loading');
+        return { success: true, stopped: true };
+      }
+      
       // Step 2: If we need more leads, research new ones
       const availableLeads = this.getAvailableLeads(leadsData);
       
@@ -401,6 +704,12 @@ class LeadContactAgent extends EventEmitter {
       this.currentStatus = 'selecting_leads';
       await this.saveState();
       
+      // Check if stop was requested
+      if (!this.isRunning) {
+        console.log('[LEAD AGENT] 🛑 Stop requested during lead selection');
+        return { success: true, stopped: true };
+      }
+      
       this.updateFluidProgress('Analyzing lead scores and rankings...', 20);
       const selectedLeads = this.selectTopLeads(leadsData, 5);
       this.updateFluidProgress('Top leads selected for outreach', 100);
@@ -416,6 +725,12 @@ class LeadContactAgent extends EventEmitter {
       this.currentStatus = 'generating_emails';
       await this.saveState();
       
+      // Check if stop was requested before emailing
+      if (!this.isRunning) {
+        console.log('[LEAD AGENT] 🛑 Stop requested before email generation');
+        return { success: true, stopped: true };
+      }
+      
       const emailResults = await this.emailSelectedLeads(selectedLeads);
       
       // Step 5: Update database with emailed companies
@@ -423,6 +738,12 @@ class LeadContactAgent extends EventEmitter {
       this.updateFluidProgress('Marking leads as emailed in database...', 50);
       await this.markLeadsAsEmailed(selectedLeads);
       this.updateFluidProgress('Database updated successfully', 100);
+      
+      // Check if stop was requested
+      if (!this.isRunning) {
+        console.log('[LEAD AGENT] 🛑 Stop requested during database update');
+        return { success: true, stopped: true };
+      }
       
       // Step 6: Update cycle counter and state
       this.updateProgress(6, 6, 'Finalizing cycle...');
@@ -475,40 +796,64 @@ class LeadContactAgent extends EventEmitter {
   async researchNewLeads() {
     console.log('[LEAD AGENT] Researching new leads...');
     
+    // Load user settings before starting research
+    this.updateFluidProgress('⚙️ Loading Lead Contact Settings...', 2);
+    await this.loadLeadContactSettings();
+    
     // Work within the existing progress framework - research is step 2 out of 6
     // We'll use sub-progress within this step rather than overriding the main progress
     
     const allLeads = [];
-    const totalIndustries = 3;
+    const targetIndustries = this.getTargetIndustries();
+    const targetPositions = this.getTargetPositions();
+    
+    // Use settings or fallback values
+    const leadLimit = this.leadContactSettings?.leadLimit || 20;
+    const totalSearches = Math.min(3, targetIndustries.length); // Limit to 3 searches max
     
     this.updateFluidProgress('🚀 Initializing research pipeline...', 5);
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    this.updateFluidProgress('📋 Loading target industries and company types...', 10);
+    this.updateFluidProgress(`📋 Loaded ${targetIndustries.length} industries, ${targetPositions.length} positions`, 10);
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Research multiple industries/company types
-    for (let i = 0; i < totalIndustries; i++) {
-      const industry = this.targetIndustries[Math.floor(Math.random() * this.targetIndustries.length)];
-      const companyType = this.companyTypes[Math.floor(Math.random() * this.companyTypes.length)];
+    // Research multiple industries/positions based on settings
+    for (let i = 0; i < totalSearches; i++) {
+      // Check if we should use random selection (for general/diverse searches)
+      const shouldRandomize = this.shouldUseRandomSelection();
       
-      const baseProgress = 10 + (i * 25); // Distribute 75% across 3 industries (25% each)
+      let industry, targetPosition;
       
-      this.updateFluidProgress(`🎯 Selected research focus: ${industry} - ${companyType}`, baseProgress);
+      if (shouldRandomize) {
+        // Use random selection for variety in general searches
+        industry = targetIndustries[Math.floor(Math.random() * targetIndustries.length)];
+        targetPosition = targetPositions[Math.floor(Math.random() * targetPositions.length)];
+        console.log(`[LEAD AGENT] 🎲 Using random selection for diverse search`);
+      } else {
+        // Use sequential selection for specific searches
+        industry = targetIndustries[i % targetIndustries.length];
+        targetPosition = targetPositions[i % targetPositions.length];
+        console.log(`[LEAD AGENT] 🎯 Using sequential selection for targeted search`);
+      }
+      
+      const baseProgress = 10 + (i * 25); // Distribute 75% across searches (25% each)
+      
+      this.updateFluidProgress(`🎯 Research focus: ${industry} - ${targetPosition}`, baseProgress);
       await new Promise(resolve => setTimeout(resolve, 150));
       
-      this.updateFluidProgress(`🔍 [${i+1}/${totalIndustries}] Connecting to Apollo API...`, baseProgress + 5);
+      this.updateFluidProgress(`🔍 [${i+1}/${totalSearches}] Connecting to Apollo API...`, baseProgress + 5);
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      console.log(`[LEAD AGENT] Researching: ${industry} - ${companyType}`);
+      console.log(`[LEAD AGENT] Researching: ${industry} - ${targetPosition}`);
       
-      const query = `companies in ${industry} that would need high-performance GPU computing for AI and machine learning workloads, specifically ${companyType}`;
+      // Use dynamic query builder instead of hardcoded query
+      const query = this.buildSearchQuery(industry, targetPosition);
       
       this.updateFluidProgress(`📡 Executing search query for ${industry}...`, baseProgress + 10);
       
       try {
         const researchResult = await leadResearch(query, { 
-          limit: 20 
+          limit: leadLimit 
         }, null); // userId = null, will fall back to environment variables
         
         this.updateFluidProgress(`📊 Processing Apollo API response...`, baseProgress + 15);
@@ -881,8 +1226,33 @@ class LeadContactAgent extends EventEmitter {
 - Suggested Value Props: ${personalization.valuePropositions?.[0] || 'Standard AI-HPC value'}`;
     }
     
-    // Use the same AI prompt system as fallback email, but with enhanced intelligence
-    const prompt = `You are ExaMark, the AI assistant for Exabits. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
+    // Use the custom email builder prompt if available, otherwise use default
+    let emailPrompt = '';
+    
+    // Try to get custom email builder prompt from user settings
+    try {
+      if (this.leadContactSettings?.emailBuilderPrompt) {
+        // Use custom prompt with context injection
+        emailPrompt = `${this.leadContactSettings.emailBuilderPrompt}
+
+CONTEXT FOR EMAIL GENERATION:
+Company: ${company}
+Contact: ${lead.first_name} ${lead.last_name}
+Title: ${lead.title}
+Industry: ${lead.industry || 'Technology'}
+Company Description: ${lead.company_description || 'Technology company'}
+Employee Count: ${lead.employee_count || 'Unknown'}${intelligenceContext}${salesRecommendations}
+
+Generate a professional sales email using the guidance above. Format as:
+SUBJECT: [subject line]
+BODY: [email body with proper greeting and signature]`;
+      } else {
+        throw new Error('No custom prompt found, using default');
+      }
+    } catch (error) {
+      console.log('[LEAD AGENT] Using default email prompt template');
+      // Fallback to the original ExaMark-specific prompt
+      emailPrompt = `You are ExaMark, the AI assistant for Exabits. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
 
 Company: ${company}
 Contact: ${lead.first_name} ${lead.last_name}
@@ -905,7 +1275,7 @@ Generate a professional email that demonstrates you've done your homework:
 3. Connect their specific situation to Exabits solutions with LOGICAL REASONING
 4. Explain WHY our solution specifically fits their company's needs
 5. Professional call-to-action
-6. Simple signature: "Best regards,\nExaMark\nExabits AI Assistant"
+6. Simple signature: "Best regards,\\nExaMark\\nExabits AI Assistant"
 
 CRITICAL RULES:
 - Use ONLY ONE greeting (not "Hello Name, Hi Name,")
@@ -939,9 +1309,10 @@ I noticed TechCorp recently raised Series B funding...
 Best regards,
 ExaMark
 Exabits AI Assistant`;
+    }
 
     try {
-      const response = await this.llm.invoke(prompt);
+      const response = await this.llm.invoke(emailPrompt);
       const emailContent = response.content;
       
       // Parse subject and body

@@ -295,4 +295,60 @@ router.post('/settings/:userId/domain-settings', async (req, res) => {
   }
 });
 
+// Lead Contact Settings routes
+router.post('/settings/:userId/lead-contact-settings', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log(`[AUTH] POST /settings/${userId}/lead-contact-settings - Request received`);
+    console.log(`[AUTH] Lead contact settings data:`, req.body);
+    
+    const settings = await getUserSettings(userId);
+    settings.leadContactSettings = req.body.leadContactSettings;
+    await updateUserSettings(userId, settings);
+    
+    console.log(`[AUTH] ✅ Lead Contact Settings saved for user: ${userId}`);
+    res.json({ success: true, message: 'Lead Contact settings saved successfully' });
+  } catch (error) {
+    console.error('[AUTH] Update lead contact settings error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// General settings routes (without userId in path)
+router.get('/settings', async (req, res) => {
+  try {
+    console.log('[AUTH] GET /settings - Request received');
+    
+    // Get current user from session or return empty settings
+    // For now, we'll use a default approach
+    const currentUser = { userId: 'default' }; // This should come from session
+    
+    const settings = await getUserSettings(currentUser.userId);
+    console.log('[AUTH] Settings retrieved:', Object.keys(settings));
+    
+    res.json(settings);
+  } catch (error) {
+    console.error('[AUTH] Get settings error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings', async (req, res) => {
+  try {
+    console.log('[AUTH] POST /settings - Request received');
+    console.log('[AUTH] Request body:', req.body);
+    
+    // Get current user from session or use default
+    const currentUser = { userId: 'default' }; // This should come from session
+    
+    const result = await updateUserSettings(currentUser.userId, req.body);
+    console.log('[AUTH] Settings updated successfully');
+    
+    res.json({ success: true, message: 'Settings saved successfully' });
+  } catch (error) {
+    console.error('[AUTH] Update settings error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

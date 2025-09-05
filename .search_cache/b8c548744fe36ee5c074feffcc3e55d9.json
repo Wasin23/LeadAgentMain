@@ -1,0 +1,55 @@
+{
+  "searchParameters": {
+    "q": "\"37signals\" site:http://www.37signals.com",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Rails 2.0 - Signal v. Noise",
+      "link": "https://www.37signals.com/svn/posts/734-rails-20",
+      "snippet": "Creator of Ruby on Rails, partner at 37signals, best-selling author, public speaker, race-car driver, hobbyist photographer, and family man.",
+      "date": "Dec 7, 2007",
+      "position": 1
+    },
+    {
+      "title": "Constraints breed breakthrough creativity - Signal v. Noise",
+      "link": "https://www.37signals.com/svn/archives2/constraints_breed_breakthrough_creativity.php",
+      "snippet": "The time pressure can help suppress the logical/rational/critical parts of your brain. It helps you EQ up subconscious creativity (so-called “ ...",
+      "date": "Dec 7, 2005",
+      "position": 2
+    },
+    {
+      "title": "Building of Basecamp 5 on April 22 in Chicago, IL (Signal vs. Noise)",
+      "link": "http://www.37signals.com/svn/archives/001087.php?31",
+      "snippet": "You'll also wish a job opening would open up at 37signals. ;). Also, don't forget to check out the Apple flagship store on Michigan Ave. 07 Mar ...",
+      "date": "Mar 4, 2005",
+      "position": 3
+    },
+    {
+      "title": "For beta or for worse II (Signal vs. Noise)",
+      "link": "https://www.37signals.com/svn/archives/000972",
+      "snippet": "37signals Mailing List. Subscribe to our free newsletter and receive updates on 37signals' latest projects, research, announcements, and more ...",
+      "date": "Dec 11, 2004",
+      "position": 4
+    },
+    {
+      "title": "It's good that you're upset (Signal vs. Noise) - 37signals",
+      "link": "http://www.37signals.com/svn/archives/000679",
+      "snippet": "Subscribe to our free newsletter and receive updates on 37signals' latest projects, research, announcements, and more (about one email per month). 37signals ...",
+      "position": 5
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "37signals basecamp"
+    },
+    {
+      "query": "37signals cast"
+    }
+  ],
+  "credits": 1
+}

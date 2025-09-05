@@ -1,0 +1,102 @@
+{
+  "searchParameters": {
+    "q": "\"Insuco\" site:http://www.insuco.com",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Insuco: Home",
+      "link": "https://www.insuco.com/en/",
+      "snippet": "Local understanding for sustainable solutions. Insuco is an independent international consulting firm specialising in social sciences and sustainability.",
+      "sitelinks": [
+        {
+          "title": "Careers",
+          "link": "https://www.insuco.com/en/careers/"
+        },
+        {
+          "title": "Insuco in the world",
+          "link": "https://www.insuco.com/en/insuco-in-the-world/"
+        },
+        {
+          "title": "INSUCO Cambodia",
+          "link": "https://www.insuco.com/en/insuco-cambodia-the-latest-addition-to-the-group/"
+        },
+        {
+          "title": "About us",
+          "link": "https://www.insuco.com/en/about-us/"
+        }
+      ],
+      "position": 1
+    },
+    {
+      "title": "Careers - Insuco",
+      "link": "https://www.insuco.com/en/careers/",
+      "snippet": "Insuco is a dynamic company that is evolving in stimulating contexts in which our employees share a common passion for development, strong human values, and ...",
+      "position": 2
+    },
+    {
+      "title": "About us - Insuco",
+      "link": "https://www.insuco.com/en/about-us/",
+      "snippet": "Linking all stakeholders to build the territorial sustainability. Insuco is an independent consulting firm specialising in social sciences and sustainability.",
+      "position": 3
+    },
+    {
+      "title": "Insuco in the world",
+      "link": "https://www.insuco.com/en/insuco-in-the-world/",
+      "snippet": "Insuco employs about 175 permanent staff and have on average 350 contract employees (international and national consultants, surveyors, translators, etc.)",
+      "position": 4
+    },
+    {
+      "title": "Team - Insuco",
+      "link": "https://www.insuco.com/en/our-team/",
+      "snippet": "Insuco comprises more than 175 permanent employees spread across our 16 offices worldwide, supported by a robust network of nearly 350 contractors with ...",
+      "position": 5
+    },
+    {
+      "title": "Contact us - Insuco",
+      "link": "https://www.insuco.com/en/contact/",
+      "snippet": "6 de Diciembre, Edf. Multiapoyo, Oficina 1203. Quito. Ecuador. ☎ +593 23237856. Email : ecuador@insuco.com. Insuco Gabon.",
+      "position": 6
+    },
+    {
+      "title": "INSUCO IS HIRING",
+      "link": "https://www.insuco.com/en/insuco-is-hiring/",
+      "snippet": "Insuco is an independent international consultancy group, specializing in Social Science and Sustainability. We aim to create links between stakeholders in the ...",
+      "position": 7
+    },
+    {
+      "title": "Mining - Insuco",
+      "link": "https://www.insuco.com/en/mining/",
+      "snippet": "You want to discuss your project and its challenges? Learn more about Insuco and our expertise? Meet us ? Contact-us.",
+      "position": 8
+    },
+    {
+      "title": "Services - Insuco",
+      "link": "https://www.insuco.com/en/services/",
+      "snippet": "Insuco is an international consulting firm specialising in social sciences and engineering. Our objective: linking the stakeholders of the same territory to ...",
+      "position": 9
+    },
+    {
+      "title": "Recent and ongoing projects - Insuco",
+      "link": "https://www.insuco.com/en/recent-and-ongoing-projects/",
+      "snippet": "Vous souhaitez échanger sur votre projet et ses enjeux ? En savoir plus sur Insuco et nos expertises ? Nous rencontrer ? Contact us ...",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Insuco salary"
+    },
+    {
+      "query": "Insuco meaning"
+    },
+    {
+      "query": "Insuco careers"
+    }
+  ],
+  "credits": 1
+}

@@ -1,0 +1,84 @@
+{
+  "searchParameters": {
+    "q": "\"Zazmic Inc\" site:linkedin.com/company/zazmic-inc",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Zazmic Inc - LinkedIn",
+      "link": "https://www.linkedin.com/company/zazmic-inc",
+      "snippet": "Website: http://www.zazmic.com. External link for Zazmic Inc ; Industry: IT Services and IT Consulting ; Company size: 201-500 employees ; Headquarters: San ...",
+      "position": 1
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://in.linkedin.com/company/zazmic-inc",
+      "snippet": "Zazmic Inc. IT Services and IT Consulting. San Francisco, CA 14,712 followers. Expert IT Services, AI, GenAI, CyberSecurity & ...",
+      "position": 2
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://ge.linkedin.com/company/zazmic-inc?trk=ppro_cprof",
+      "snippet": "Zazmic Inc | 14365 followers on LinkedIn. Expert IT Services, AI, GenAI, CyberSecurity & Cloud Solutions | We are Zazmic, a multi-platform hub for on-demand ...",
+      "position": 3
+    },
+    {
+      "title": "Zazmic Inc - LinkedIn",
+      "link": "https://fr.linkedin.com/company/zazmic-inc",
+      "snippet": "Zazmic Inc. Services et conseil en informatique. San Francisco, CA 14 775 abonnés. Expert IT Services, AI, GenAI, CyberSecurity ...",
+      "position": 4
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://at.linkedin.com/company/zazmic-inc",
+      "snippet": "Zazmic Inc · IT-Dienstleistungen und IT-Beratung · Info · Orte · Beschäftigte von Zazmic Inc · Updates · SalesForce Engineer · Sales Engineer · Einfach anmelden, damit ...",
+      "position": 5
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://uy.linkedin.com/company/zazmic-inc",
+      "snippet": "Zazmic Inc · Servicios y consultoría de TI · Sobre nosotros · Ubicaciones · Empleados en Zazmic Inc · Actualizaciones · LMS Course Content Scraper Engineer (Python).",
+      "position": 6
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://pt.linkedin.com/company/zazmic-inc?trk=public_profile_experience-item_profile-section-card_image-click",
+      "snippet": "Zazmic Inc · Atividades dos serviços de tecnologia da informação · Sobre nós · Localidades · Funcionários da Zazmic Inc · Atualizações · Sales Engineer · Cadastre-se ...",
+      "position": 7
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://ve.linkedin.com/company/zazmic-inc",
+      "snippet": "Sitio web: http://www.zazmic.com. Enlace externo para Zazmic Inc ; Sector: Servicios y consultoría de TI ; Tamaño de la empresa: De 201 a 500 empleados ; Sede: San ...",
+      "position": 8
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://bo.linkedin.com/company/zazmic-inc",
+      "snippet": "Zazmic Inc · Servicios y consultoría de TI · Sobre nosotros · Ubicaciones · Empleados en Zazmic Inc · Actualizaciones · Zazmic News Digest #12 · SalesForce Engineer.",
+      "position": 9
+    },
+    {
+      "title": "Zazmic Inc | LinkedIn",
+      "link": "https://es.linkedin.com/company/zazmic-inc?trk=public_profile_topcard_past_company",
+      "snippet": "Zazmic Inc · Servicios y consultoría de TI · Sobre nosotros · Ubicaciones · Empleados en Zazmic Inc · Actualizaciones · Zazmic News Digest #11 · LMS Course Content ...",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Zazmic inc careers"
+    },
+    {
+      "query": "Zazmic inc san francisco"
+    },
+    {
+      "query": "Zazmic inc locations"
+    }
+  ],
+  "credits": 1
+}

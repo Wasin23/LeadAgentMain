@@ -312,17 +312,104 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
   }
 
   try {
-    // Use simpler Apollo query - extract key terms from complex query
-    let apolloQuery = 'CTO';
-    if (query.includes('computer vision')) apolloQuery = 'CTO computer vision';
-    else if (query.includes('autonomous')) apolloQuery = 'CTO autonomous';
-    else if (query.includes('cryptocurrency')) apolloQuery = 'CTO fintech';
-    else if (query.includes('pharmaceutical')) apolloQuery = 'CTO pharma';
-    else if (query.includes('financial')) apolloQuery = 'CTO fintech';
+    // Extract industry and position from the query to build proper Apollo search
+    let apolloQuery = 'CTO'; // default fallback
+    let industry = '';
+    let position = '';
+    
+    // Extract industry from query
+    if (query.includes('fast food')) {
+      industry = 'fast food';
+    } else if (query.includes('luxury clothing')) {
+      industry = 'luxury clothing';
+    } else if (query.includes('grocery')) {
+      industry = 'grocery';
+    } else if (query.includes('catering')) {
+      industry = 'catering';
+    } else if (query.includes('food')) {
+      industry = 'food';
+    } else if (query.includes('computer vision')) {
+      industry = 'computer vision';
+    } else if (query.includes('autonomous')) {
+      industry = 'autonomous';
+    } else if (query.includes('cryptocurrency')) {
+      industry = 'fintech';
+    } else if (query.includes('pharmaceutical')) {
+      industry = 'pharma';
+    } else if (query.includes('financial')) {
+      industry = 'fintech';
+    }
+    
+    // Extract position from query
+    if (query.includes('HR Manager')) {
+      position = 'HR Manager';
+    } else if (query.includes('HR Representative')) {
+      position = 'HR Representative';
+    } else if (query.includes('HR Department')) {
+      position = 'HR';
+    } else {
+      position = 'CTO'; // fallback
+    }
+    
+    // Build targeted search query
+    if (industry && position) {
+      apolloQuery = `${position} ${industry}`;
+    } else if (position) {
+      apolloQuery = position;
+    }
 
     console.log(`🎯 [Apollo] Searching for leads: ${apolloQuery}`);
     
-    // Apollo People Search API with minimal parameters (same as deepResearch.js)
+    // Extract location from query
+    let location = [];
+    if (query.includes('United States')) {
+      location = ['United States'];
+    }
+    
+    // Extract company size from query
+    let companySizeMin = null;
+    let companySizeMax = null;
+    const sizeMatch = query.match(/(\d+)\s+to\s+(\d+)\s+employees/);
+    if (sizeMatch) {
+      companySizeMin = parseInt(sizeMatch[1]);
+      companySizeMax = parseInt(sizeMatch[2]);
+    }
+    
+    // Build Apollo search payload with proper filters
+    const searchPayload = {
+      q_keywords: apolloQuery,
+      page: 1,
+      per_page: limit
+    };
+    
+    // Add location filter if specified
+    if (location.length > 0) {
+      searchPayload.person_locations = location;
+    }
+    
+    // Add company size filter if specified
+    if (companySizeMin && companySizeMax) {
+      searchPayload.organization_num_employees_ranges = [`${companySizeMin},${companySizeMax}`];
+    }
+    
+    // Add industry filter based on the industry we detected
+    if (industry) {
+      if (industry === 'fast food') {
+        searchPayload.q_organization_keyword_tags = ['restaurants', 'fast food', 'quick service restaurant'];
+      } else if (industry === 'luxury clothing') {
+        searchPayload.q_organization_keyword_tags = ['luxury', 'fashion', 'apparel', 'clothing'];
+      } else if (industry === 'grocery') {
+        searchPayload.q_organization_keyword_tags = ['grocery', 'supermarket', 'retail food'];
+      } else if (industry === 'catering') {
+        searchPayload.q_organization_keyword_tags = ['catering', 'food service', 'event catering'];
+      } else if (industry === 'food') {
+        searchPayload.q_organization_keyword_tags = ['food', 'food service', 'restaurants'];
+      }
+    }
+    
+    console.log(`🔍 [Apollo] Search payload:`, JSON.stringify(searchPayload, null, 2));
+    
+    // Apollo People Search API with enhanced filters
     const apolloUrl = 'https://api.apollo.io/v1/mixed_people/search';
     const response = await fetch(apolloUrl, {
       method: 'POST',
@@ -331,11 +418,7 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
         'Cache-Control': 'no-cache',
         'X-Api-Key': apiKey
       },
-      body: JSON.stringify({
-        q_keywords: apolloQuery,
-        page: 1,
-        per_page: limit
-      })
+      body: JSON.stringify(searchPayload)
     });
 
     if (!response.ok) {

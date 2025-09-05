@@ -1026,19 +1026,76 @@
       font-weight: 700;
     }
 
-    .close-settings {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
+    /* Fixed close button outside scroll area */
+    .modal-close-fixed {
+      position: fixed;
+      top: 2%;
+      right: calc(50% - 425px);
+      background: rgba(255, 255, 255, 0.95);
       color: #64748b;
-      padding: 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.1);
       border-radius: 50%;
-      transition: background 0.2s ease;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      font-weight: normal;
+      cursor: pointer;
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
-    .close-settings:hover {
-      background: rgba(90, 103, 216, 0.1);
+    .modal-close-fixed:hover {
+      background: rgba(248, 250, 252, 1);
+      color: #374151;
+      border-color: rgba(0, 0, 0, 0.2);
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-close-fixed:active {
+      transform: scale(0.98);
+    }
+
+    /* Settings and Custom Email modal close buttons - positioned lower and more right */
+    .modal-close-settings,
+    .modal-close-email {
+      position: fixed;
+      top: 8%;
+      right: calc(50% - 330px);
+      background: rgba(255, 255, 255, 0.95);
+      color: #64748b;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      font-weight: normal;
+      cursor: pointer;
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-close-settings:hover,
+    .modal-close-email:hover {
+      background: rgba(255, 255, 255, 1);
+      border-color: rgba(0, 0, 0, 0.2);
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-close-settings:active,
+    .modal-close-email:active {
+      transform: scale(0.98);
     }
 
     .settings-section {
@@ -1119,6 +1176,88 @@
       background: #fee2e2;
       color: #dc2626;
       border: 1px solid #dc2626;
+    }
+
+    /* Keyword Bubble Styles */
+    .keyword-bubble {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+      color: white;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      gap: 0.5rem;
+      margin: 0.2rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(90, 103, 216, 0.3);
+    }
+
+    .keyword-bubble.removable:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+    }
+
+    .keyword-bubble .remove-btn {
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      transition: background 0.2s ease;
+    }
+
+    .keyword-bubble .remove-btn:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .recommended-keyword {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.9);
+      color: #374151;
+      padding: 0.3rem 0.6rem;
+      border-radius: 15px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      margin: 0.1rem;
+    }
+
+    .recommended-keyword:hover {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: #7c3aed;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+    }
+
+    .recommended-keyword.position {
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .recommended-keyword.position:hover {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: #2563eb;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    }
+
+    .empty-bubble-hint {
+      color: #9ca3af;
+      font-style: italic;
+      font-size: 0.8rem;
+      padding: 0.5rem;
+      text-align: center;
     }
   </style>
 </head>
@@ -1379,6 +1518,28 @@
               </div>
             </div>
             
+            <!-- Lead Contact Settings -->
+            <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;margin-bottom:1rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h4 style="margin:0;color:#5a67d8;">🎯 Agent Configuration</h4>
+                <button onclick="openLeadContactSettings()" style="background:linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);color:#fff;border:none;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;transition:transform 0.2s ease;" 
+                  onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                  ⚙️ Configure Agent
+                </button>
+              </div>
+              
+              <!-- Current Settings Preview -->
+              <div id="search-settings-preview" style="background:rgba(139, 92, 246, 0.1);border-radius:8px;padding:0.8rem;font-size:0.85rem;">
+                <div style="color:#7c3aed;font-weight:600;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+                  <span>AI-Generated Search Settings Summary:</span>
+                  <button onclick="updateSearchSummary()" style="background:rgba(139, 92, 246, 0.2);border:none;border-radius:4px;padding:0.3rem 0.6rem;color:#7c3aed;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 Refresh</button>
+                </div>
+                <div style="color:#374151;line-height:1.4;font-style:italic;">
+                  Loading search criteria summary...
+                </div>
+              </div>
+            </div>
+            
             <!-- Recent Activity -->
             <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;max-height:300px;overflow-y:auto;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
               <h4 style="margin:0 0 1rem 0;color:#5a67d8;">Recent Activity</h4>
@@ -1562,37 +1723,58 @@
             <!-- LinkedIn Agent Dashboard -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem;">
               
-              <!-- Profile Builder Section -->
+              <!-- Profile Builder Chatbot Section -->
               <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
-                <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;text-align:center;">👤 Profile Optimizer</h4>
+                <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;text-align:center;">🤖 LinkedIn Profile Builder Assistant</h4>
                 
-                <div style="margin-bottom:1rem;">
-                  <label style="display:block;margin-bottom:0.5rem;color:#374151;font-weight:500;">Professional Title</label>
-                  <input type="text" id="linkedin-title" placeholder="e.g., Senior Software Engineer" style="width:100%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);border-radius:10px;font-size:0.9rem;">
+                <!-- Chatbot Interface -->
+                <div id="profile-chatbot-container" style="border:2px solid rgba(90, 103, 216, 0.2);border-radius:12px;background:#f8fafc;min-height:400px;display:flex;flex-direction:column;">
+                  <!-- Chat Messages Area -->
+                  <div id="profile-chat-messages" style="flex:1;padding:1rem;overflow-y:auto;max-height:300px;min-height:250px;">
+                    <div class="chat-message assistant" style="margin-bottom:1rem;">
+                      <div style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;padding:0.8rem 1rem;border-radius:15px 15px 15px 5px;max-width:80%;box-shadow:0 2px 8px rgba(90, 103, 216, 0.3);">
+                        <div style="font-size:0.9rem;line-height:1.4;">
+                          👋 Hi! I'm your ExaMark LinkedIn Profile Builder Assistant. I'll help you create an optimized LinkedIn profile that showcases your role with ExaMark and attracts the right prospects and connections.
+                          <br><br>
+                          🎯 <strong>Goal:</strong> Build a profile that positions you as an ExaMark expert and drives business growth.
+                          <br><br>
+                          Let's start - what's your role at ExaMark or in sales/marketing?
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Chat Input Area -->
+                  <div style="border-top:1px solid rgba(90, 103, 216, 0.2);padding:1rem;background:rgba(255, 255, 255, 0.8);">
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                      <input type="text" id="profile-chat-input" placeholder="Type your answer here..." style="flex:1;padding:0.8rem 1rem;border:2px solid rgba(90, 103, 216, 0.2);border-radius:20px;font-size:0.9rem;outline:none;" onkeypress="if(event.key==='Enter') sendProfileChatMessage()">
+                      <button onclick="sendProfileChatMessage()" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;border:none;padding:0.8rem 1.2rem;border-radius:20px;cursor:pointer;font-weight:600;transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        Send 📤
+                      </button>
+                    </div>
+                    
+                    <!-- Quick Action Buttons -->
+                    <div id="profile-quick-actions" style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                      <button onclick="useQuickAnswer('ExaMark Sales Representative')" style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;border:1px solid rgba(90, 103, 216, 0.3);padding:0.4rem 0.8rem;border-radius:15px;cursor:pointer;font-size:0.8rem;transition:all 0.2s ease;" onmouseover="this.style.background='rgba(90, 103, 216, 0.2)'" onmouseout="this.style.background='rgba(90, 103, 216, 0.1)'">
+                        ExaMark Sales Rep
+                      </button>
+                      <button onclick="useQuickAnswer('ExaMark Marketing Specialist')" style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;border:1px solid rgba(90, 103, 216, 0.3);padding:0.4rem 0.8rem;border-radius:15px;cursor:pointer;font-size:0.8rem;transition:all 0.2s ease;" onmouseover="this.style.background='rgba(90, 103, 216, 0.2)'" onmouseout="this.style.background='rgba(90, 103, 216, 0.1)'">
+                        ExaMark Marketing Specialist
+                      </button>
+                      <button onclick="useQuickAnswer('ExaMark Business Development')" style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;border:1px solid rgba(90, 103, 216, 0.3);padding:0.4rem 0.8rem;border-radius:15px;cursor:pointer;font-size:0.8rem;transition:all 0.2s ease;" onmouseover="this.style.background='rgba(90, 103, 216, 0.2)'" onmouseout="this.style.background='rgba(90, 103, 216, 0.1)'">
+                        ExaMark Business Development
+                      </button>
+                      <button onclick="useQuickAnswer('AI Solutions Consultant')" style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;border:1px solid rgba(90, 103, 216, 0.3);padding:0.4rem 0.8rem;border-radius:15px;cursor:pointer;font-size:0.8rem;transition:all 0.2s ease;" onmouseover="this.style.background='rgba(90, 103, 216, 0.2)'" onmouseout="this.style.background='rgba(90, 103, 216, 0.1)'">
+                        AI Solutions Consultant
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 
-                <div style="margin-bottom:1rem;">
-                  <label style="display:block;margin-bottom:0.5rem;color:#374151;font-weight:500;">Industry</label>
-                  <select id="linkedin-industry" style="width:100%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);border-radius:10px;font-size:0.9rem;">
-                    <option value="">Select Industry</option>
-                    <option value="technology">Technology</option>
-                    <option value="finance">Finance</option>
-                    <option value="healthcare">Healthcare</option>
-                    <option value="marketing">Marketing</option>
-                    <option value="consulting">Consulting</option>
-                    <option value="other">Other</option>
-                  </select>
+                <!-- Profile Preview Area -->
+                <div id="profile-optimization-results" style="margin-top:1.5rem;">
+                  <!-- Generated profile content will appear here -->
                 </div>
-                
-                <div style="margin-bottom:1rem;">
-                  <label style="display:block;margin-bottom:0.5rem;color:#374151;font-weight:500;">Company</label>
-                  <input type="text" id="linkedin-company" placeholder="Current company" style="width:100%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);border-radius:10px;font-size:0.9rem;">
-                </div>
-                
-                <button onclick="optimizeProfile()" style="width:100%;background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:#fff;border:none;padding:1rem;border-radius:10px;cursor:pointer;font-weight:600;transition:transform 0.2s ease;" 
-                  onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                  🚀 Optimize Profile Content
-                </button>
               </div>
               
               <!-- Post Generator Section -->
@@ -3801,6 +3983,14 @@ Advanced conversational AI with:
       // Initial status load
       refreshAgentStatus();
       
+      // Load and display Lead Contact Settings preview
+      loadAndDisplayLeadSettings();
+      
+      // Also update the search summary
+      setTimeout(() => {
+        updateSearchSummary();
+      }, 1000);
+      
       // Set up event listeners
       document.getElementById('refresh-status').addEventListener('click', refreshAgentStatus);
       document.getElementById('start-agent').addEventListener('click', startAgent);
@@ -5605,6 +5795,889 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       }
     }
 
+    // Lead Contact Settings Functions
+    function openLeadContactSettings() {
+      const modal = document.getElementById('lead-contact-settings-modal');
+      modal.style.display = 'flex';
+      modal.classList.add('show');
+      loadLeadContactSettings();
+    }
+
+    function closeLeadContactSettings() {
+      const modal = document.getElementById('lead-contact-settings-modal');
+      modal.style.display = 'none';
+      modal.classList.remove('show');
+    }
+
+    // Recommended Keywords Data
+    const recommendedKeywords = {
+      food: [
+        "restaurants", "fast food", "quick service restaurant", "QSR", 
+        "grocery", "supermarket", "food retail", "convenience store",
+        "catering", "food service", "hospitality", "dining",
+        "food and beverage", "restaurant chain", "franchise restaurant"
+      ],
+      tech: [
+        "software", "SaaS", "technology", "AI", "machine learning",
+        "cloud computing", "cybersecurity", "fintech", "edtech",
+        "martech", "B2B software", "enterprise software", "startup"
+      ],
+      retail: [
+        "retail", "e-commerce", "fashion", "apparel", "luxury goods",
+        "consumer goods", "brand", "merchandise", "wholesale",
+        "department store", "specialty retail", "online retail"
+      ],
+      healthcare: [
+        "healthcare", "medical", "pharmaceutical", "biotech", "healthtech",
+        "hospital", "clinic", "medical device", "life sciences",
+        "telemedicine", "digital health", "wellness"
+      ],
+      finance: [
+        "financial services", "banking", "insurance", "investment",
+        "wealth management", "fintech", "credit", "lending",
+        "payments", "cryptocurrency", "blockchain"
+      ],
+      manufacturing: [
+        "manufacturing", "industrial", "automotive", "aerospace",
+        "chemicals", "energy", "oil and gas", "utilities",
+        "construction", "engineering", "logistics"
+      ],
+      consulting: [
+        "consulting", "professional services", "advisory",
+        "management consulting", "strategy", "legal services",
+        "accounting", "marketing agency", "advertising"
+      ]
+    };
+
+    const recommendedPositions = {
+      hr: [
+        "HR Manager", "Human Resources Manager", "People Operations Manager",
+        "HR Director", "Chief People Officer", "HR Business Partner",
+        "Talent Acquisition Manager", "Recruiting Manager", "HR Generalist",
+        "People & Culture Manager", "Employee Relations Manager"
+      ],
+      executive: [
+        "CEO", "Chief Executive Officer", "President", "Founder",
+        "Co-Founder", "Managing Director", "General Manager",
+        "Chief Operating Officer", "COO", "Executive Director"
+      ],
+      sales: [
+        "Sales Director", "VP of Sales", "Chief Revenue Officer",
+        "Sales Manager", "Business Development Manager", "Account Manager",
+        "Revenue Operations Manager", "Sales Operations Manager"
+      ],
+      marketing: [
+        "Marketing Director", "VP of Marketing", "Chief Marketing Officer",
+        "Marketing Manager", "Digital Marketing Manager", "Growth Manager",
+        "Brand Manager", "Product Marketing Manager"
+      ],
+      operations: [
+        "Operations Manager", "Operations Director", "VP of Operations",
+        "Chief Operating Officer", "Program Manager", "Project Manager",
+        "Supply Chain Manager", "Logistics Manager"
+      ],
+      tech: [
+        "CTO", "Chief Technology Officer", "VP of Engineering",
+        "Engineering Manager", "Software Engineer", "DevOps Manager",
+        "IT Director", "Technical Director"
+      ],
+      finance: [
+        "CFO", "Chief Financial Officer", "Finance Director",
+        "Controller", "Finance Manager", "Accounting Manager",
+        "Budget Manager", "Financial Analyst"
+      ]
+    };
+
+    // Selected keywords arrays
+    let selectedIndustries = [];
+    let selectedPositions = [];
+
+    function updateRecommendedIndustries() {
+      const category = document.getElementById('industry-category').value;
+      const container = document.getElementById('recommended-industries');
+      const keywords = recommendedKeywords[category] || [];
+      
+      container.innerHTML = keywords.map(keyword => 
+        `<span class="recommended-keyword" onclick="addIndustry('${keyword}')">${keyword}</span>`
+      ).join('');
+    }
+
+    function updateRecommendedPositions() {
+      const category = document.getElementById('position-category').value;
+      const container = document.getElementById('recommended-positions');
+      const positions = recommendedPositions[category] || [];
+      
+      container.innerHTML = positions.map(position => 
+        `<span class="recommended-keyword position" onclick="addPosition('${position}')">${position}</span>`
+      ).join('');
+    }
+
+    function addIndustry(keyword) {
+      if (!selectedIndustries.includes(keyword)) {
+        selectedIndustries.push(keyword);
+        updateIndustryBubbles();
+        updateIndustryTextarea();
+      }
+    }
+
+    function addPosition(position) {
+      if (!selectedPositions.includes(position)) {
+        selectedPositions.push(position);
+        updatePositionBubbles();
+        updatePositionTextarea();
+      }
+    }
+
+    function removeIndustry(keyword) {
+      selectedIndustries = selectedIndustries.filter(item => item !== keyword);
+      updateIndustryBubbles();
+      updateIndustryTextarea();
+    }
+
+    function removePosition(position) {
+      selectedPositions = selectedPositions.filter(item => item !== position);
+      updatePositionBubbles();
+      updatePositionTextarea();
+    }
+
+    function updateIndustryBubbles() {
+      const container = document.getElementById('selected-industries');
+      if (selectedIndustries.length === 0) {
+        container.innerHTML = '<div class="empty-bubble-hint">No industries selected yet. Click recommended keywords above to add them.</div>';
+      } else {
+        container.innerHTML = selectedIndustries.map(industry => 
+          `<span class="keyword-bubble removable">
+            ${industry}
+            <button class="remove-btn" onclick="removeIndustry('${industry}')">×</button>
+          </span>`
+        ).join('');
+      }
+    }
+
+    function updatePositionBubbles() {
+      const container = document.getElementById('selected-positions');
+      if (selectedPositions.length === 0) {
+        container.innerHTML = '<div class="empty-bubble-hint">No positions selected yet. Click recommended keywords above to add them.</div>';
+      } else {
+        container.innerHTML = selectedPositions.map(position => 
+          `<span class="keyword-bubble removable">
+            ${position}
+            <button class="remove-btn" onclick="removePosition('${position}')">×</button>
+          </span>`
+        ).join('');
+      }
+    }
+
+    function updateIndustryTextarea() {
+      const textarea = document.getElementById('company-industries');
+      textarea.value = selectedIndustries.join('\n');
+    }
+
+    function updatePositionTextarea() {
+      const textarea = document.getElementById('target-positions');
+      textarea.value = selectedPositions.join('\n');
+    }
+
+    // Initialize recommended keywords on page load
+    function initializeKeywordSelectors() {
+      updateRecommendedIndustries();
+      updateRecommendedPositions();
+      updateIndustryBubbles();
+      updatePositionBubbles();
+      
+      // Add event listeners for manual entry synchronization
+      const industriesTextarea = document.getElementById('company-industries');
+      const positionsTextarea = document.getElementById('target-positions');
+      
+      industriesTextarea.addEventListener('input', function() {
+        const manualEntries = this.value
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+        
+        // Update selectedIndustries if different
+        if (JSON.stringify(manualEntries) !== JSON.stringify(selectedIndustries)) {
+          selectedIndustries = manualEntries;
+          updateIndustryBubbles();
+        }
+      });
+      
+      positionsTextarea.addEventListener('input', function() {
+        const manualEntries = this.value
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+        
+        // Update selectedPositions if different
+        if (JSON.stringify(manualEntries) !== JSON.stringify(selectedPositions)) {
+          selectedPositions = manualEntries;
+          updatePositionBubbles();
+        }
+      });
+    }
+
+    async function loadLeadContactSettings() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          console.log('[LEAD SETTINGS] No user logged in, using defaults');
+          return;
+        }
+
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        if (response.ok) {
+          const settings = await response.json();
+          const leadSettings = settings.leadContactSettings || {};
+          
+          // Populate form fields with saved settings or set as placeholder
+          document.getElementById('company-size-min').value = leadSettings.companySizeMin || '';
+          document.getElementById('company-size-max').value = leadSettings.companySizeMax || '';
+          
+          // Set up dynamic placeholders for text areas that show current saved values
+          // Initialize keyword selectors first
+          initializeKeywordSelectors();
+          
+          // Load saved industries into bubble system
+          selectedIndustries = leadSettings.companyIndustries || [];
+          updateIndustryBubbles();
+          updateIndustryTextarea();
+          
+          const industriesField = document.getElementById('company-industries');
+          const savedIndustries = (leadSettings.companyIndustries || []).join('\n');
+          if (savedIndustries) {
+            industriesField.placeholder = `Or add more industries manually...`;
+          }
+          
+          const keywordsField = document.getElementById('company-keywords');
+          const savedKeywords = (leadSettings.companyKeywords || []).join(', ');
+          if (savedKeywords) {
+            keywordsField.placeholder = `Current: ${savedKeywords.length > 50 ? savedKeywords.substring(0, 50) + '...' : savedKeywords}`;
+          }
+          keywordsField.value = savedKeywords;
+          
+          // Load saved positions into bubble system
+          selectedPositions = leadSettings.targetPositions || [];
+          updatePositionBubbles();
+          updatePositionTextarea();
+          
+          const positionsField = document.getElementById('target-positions');
+          const savedPositions = (leadSettings.targetPositions || []).join('\n');
+          if (savedPositions) {
+            positionsField.placeholder = `Or add more positions manually...`;
+          }
+          
+          document.getElementById('seniority-level').value = leadSettings.seniorityLevel || 'any';
+          
+          const departmentsField = document.getElementById('departments');
+          const savedDepartments = (leadSettings.departments || []).join(', ');
+          if (savedDepartments) {
+            departmentsField.placeholder = `Current: ${savedDepartments}`;
+          }
+          departmentsField.value = savedDepartments;
+          
+          const locationsField = document.getElementById('target-locations');
+          const savedLocations = (leadSettings.targetLocations || []).join('\n');
+          if (savedLocations) {
+            locationsField.placeholder = `Current: ${savedLocations.split('\n').join(', ')}`;
+          }
+          locationsField.value = savedLocations;
+          
+          document.getElementById('lead-limit').value = leadSettings.leadLimit || 10;
+          
+          const excludeField = document.getElementById('exclude-keywords');
+          const savedExclude = (leadSettings.excludeKeywords || []).join(', ');
+          if (savedExclude) {
+            excludeField.placeholder = `Current: ${savedExclude}`;
+          }
+          excludeField.value = savedExclude;
+          
+          document.getElementById('funding-stage').value = leadSettings.fundingStage || 'any';
+          
+          const techField = document.getElementById('technology-stack');
+          const savedTech = (leadSettings.technologyStack || []).join(', ');
+          if (savedTech) {
+            techField.placeholder = `Current: ${savedTech}`;
+          }
+          techField.value = savedTech;
+          
+          const intentField = document.getElementById('contact-intent');
+          const savedIntent = (leadSettings.contactIntent || []).join(', ');
+          if (savedIntent) {
+            intentField.placeholder = `Current: ${savedIntent}`;
+          }
+          intentField.value = savedIntent;
+          
+          // Load email builder prompt with default if not set
+          const defaultEmailPrompt = `You are a sales AI assistant helping to craft personalized outreach emails. Based on the provided research data about companies and contacts, generate professional sales emails that:
+
+1. Are personalized and relevant to the contact's role and company
+2. Reference specific company information, recent news, or industry insights
+3. Clearly articulate value propositions relevant to their business needs
+4. Include a clear call-to-action for next steps
+5. Maintain a professional yet conversational tone
+6. Keep emails concise (150-250 words)
+
+Structure your emails as follows:
+- Subject Line: Compelling and personalized
+- Opening: Personal connection or relevant company insight
+- Value Proposition: How our solution addresses their specific challenges
+- Social Proof: Brief mention of similar company successes
+- Call to Action: Clear next step proposal
+- Professional Closing: Your name and company
+
+Always ensure emails feel genuine and avoid overly salesy language. Focus on starting conversations rather than pushing for immediate sales.`;
+          
+          document.getElementById('email-builder-prompt').value = leadSettings.emailBuilderPrompt || defaultEmailPrompt;
+          
+          console.log('[LEAD SETTINGS] ✅ Loaded settings for user:', currentUser.userId);
+          
+          // Update search summary after loading settings
+          updateSearchSummary();
+        }
+      } catch (error) {
+        console.error('Error loading lead contact settings:', error);
+      }
+    }
+
+    // Individual save functions for each section
+    async function saveCompanyCriteria() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        // Combine bubble selections with manual textarea entries
+        const manualIndustries = document.getElementById('company-industries').value
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+        
+        const combinedIndustries = [...new Set([...selectedIndustries, ...manualIndustries])];
+
+        const companyData = {
+          companySizeMin: parseInt(document.getElementById('company-size-min').value) || null,
+          companySizeMax: parseInt(document.getElementById('company-size-max').value) || null,
+          companyIndustries: combinedIndustries,
+          companyKeywords: document.getElementById('company-keywords').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+        };
+
+        await savePartialSettings(currentUser.userId, companyData);
+        showSuccessMessage('🏢 Company criteria saved!');
+        updateSearchSummary();
+      } catch (error) {
+        console.error('Error saving company criteria:', error);
+        alert('Error saving company criteria');
+      }
+    }
+
+    async function saveContactCriteria() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        // Combine bubble selections with manual textarea entries
+        const manualPositions = document.getElementById('target-positions').value
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+        
+        const combinedPositions = [...new Set([...selectedPositions, ...manualPositions])];
+
+        const contactData = {
+          targetPositions: combinedPositions,
+          seniorityLevel: document.getElementById('seniority-level').value,
+          departments: document.getElementById('departments').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          targetLocations: document.getElementById('target-locations').value
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          leadLimit: parseInt(document.getElementById('lead-limit').value) || 10,
+          excludeKeywords: document.getElementById('exclude-keywords').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          fundingStage: document.getElementById('funding-stage').value,
+          technologyStack: document.getElementById('technology-stack').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          contactIntent: document.getElementById('contact-intent').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+        };
+
+        await savePartialSettings(currentUser.userId, contactData);
+        showSuccessMessage('👤 Contact criteria saved!');
+        updateSearchSummary();
+      } catch (error) {
+        console.error('Error saving contact criteria:', error);
+        alert('Error saving contact criteria');
+      }
+    }
+
+    async function saveEmailBuilderPrompt() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        const emailData = {
+          emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null
+        };
+
+        await savePartialSettings(currentUser.userId, emailData);
+        showSuccessMessage('📧 Email prompt saved!');
+      } catch (error) {
+        console.error('Error saving email prompt:', error);
+        alert('Error saving email prompt');
+      }
+    }
+
+    async function saveGeographicSettings() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        const geographicData = {
+          targetLocations: document.getElementById('target-locations').value
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          leadLimit: parseInt(document.getElementById('lead-limit').value) || 10,
+          excludeKeywords: document.getElementById('exclude-keywords').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+        };
+
+        await savePartialSettings(currentUser.userId, geographicData);
+        showSuccessMessage('🌍 Geographic settings saved!');
+        updateSearchSummary();
+      } catch (error) {
+        console.error('Error saving geographic settings:', error);
+        alert('Error saving geographic settings');
+      }
+    }
+
+    async function savePartialSettings(userId, partialData) {
+      // First get current settings
+      const response = await fetch(`/api/auth/settings/${userId}`);
+      const currentData = await response.json();
+      
+      // Handle wrapped response structure
+      const currentSettings = currentData.settings || currentData;
+      const currentLeadSettings = currentSettings.leadContactSettings || {};
+      
+      // Merge with new data
+      const updatedSettings = { ...currentLeadSettings, ...partialData };
+      
+      // Save merged settings
+      const saveResponse = await fetch(`/api/auth/settings/${userId}/lead-contact-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadContactSettings: updatedSettings })
+      });
+      
+      if (!saveResponse.ok) {
+        throw new Error('Failed to save settings');
+      }
+    }
+
+    function showSuccessMessage(message) {
+      const statusDiv = document.getElementById('lead-settings-status');
+      statusDiv.innerHTML = `<div style="color: #059669; background: rgba(5, 150, 105, 0.1); padding: 0.5rem; border-radius: 6px;">✅ ${message}</div>`;
+      setTimeout(() => {
+        statusDiv.innerHTML = '';
+      }, 3000);
+    }
+
+    async function updateSearchSummary() {
+      console.log('[SEARCH SUMMARY] 🔄 Starting updateSearchSummary...');
+      
+      const previewDiv = document.getElementById('search-settings-preview');
+      if (!previewDiv) {
+        console.log('[SEARCH SUMMARY] ❌ Preview div not found');
+        return;
+      }
+
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          previewDiv.innerHTML = `
+            <div style="color:#7c3aed;font-weight:600;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+              <span>Search Summary:</span>
+              <button onclick="updateSearchSummary()" style="background:rgba(139, 92, 246, 0.2);border:none;border-radius:4px;padding:0.3rem 0.6rem;color:#7c3aed;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 Refresh</button>
+            </div>
+            <div style="color:#374151;line-height:1.4;">
+              Please log in to see personalized search criteria.
+            </div>
+          `;
+          return;
+        }
+
+        // Get current settings
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        const data = await response.json();
+        
+        // Handle wrapped response structure
+        const settings = data.settings || data;
+        const leadSettings = settings.leadContactSettings || {};
+        
+        console.log('[SEARCH SUMMARY] Full response:', data);
+        console.log('[SEARCH SUMMARY] Settings object:', settings);
+        console.log('[SEARCH SUMMARY] Settings keys:', Object.keys(settings));
+        console.log('[SEARCH SUMMARY] Settings.leadContactSettings:', settings.leadContactSettings);
+        console.log('[SEARCH SUMMARY] Lead settings object:', leadSettings);
+        console.log('[SEARCH SUMMARY] Lead settings keys:', Object.keys(leadSettings));
+        console.log('[SEARCH SUMMARY] Company size min:', leadSettings.companySizeMin);
+        console.log('[SEARCH SUMMARY] Company size max:', leadSettings.companySizeMax);
+        console.log('[SEARCH SUMMARY] Company industries array:', leadSettings.companyIndustries);
+        console.log('[SEARCH SUMMARY] Company keywords array:', leadSettings.companyKeywords);
+
+        // Build summary based on actual data
+        let summary = 'Targeting ';
+        let parts = [];
+        
+        // Company size
+        if (leadSettings.companySizeMin || leadSettings.companySizeMax) {
+          const min = leadSettings.companySizeMin || 1;
+          const max = leadSettings.companySizeMax || '10,000+';
+          parts.push(`companies with ${min}-${max} employees`);
+          console.log('[SEARCH SUMMARY] Added company size part');
+        }
+        
+        // Industries
+        if (leadSettings.companyIndustries && leadSettings.companyIndustries.length > 0) {
+          const industries = leadSettings.companyIndustries.slice(0, 2).join(' and ');
+          const extra = leadSettings.companyIndustries.length > 2 ? ` (+${leadSettings.companyIndustries.length - 2} more)` : '';
+          parts.push(`in ${industries}${extra}`);
+        }
+        
+        // Target positions
+        if (leadSettings.targetPositions && leadSettings.targetPositions.length > 0) {
+          const positions = leadSettings.targetPositions.slice(0, 2).join(' and ');
+          const extra = leadSettings.targetPositions.length > 2 ? ` (+${leadSettings.targetPositions.length - 2} more)` : '';
+          parts.push(`${positions} roles${extra}`);
+        }
+        
+        // Locations
+        if (leadSettings.targetLocations && leadSettings.targetLocations.length > 0) {
+          const locations = leadSettings.targetLocations.slice(0, 2).join(' and ');
+          parts.push(`in ${locations}`);
+        }
+        
+        // Company keywords
+        if (leadSettings.companyKeywords && leadSettings.companyKeywords.length > 0) {
+          const keywords = leadSettings.companyKeywords.slice(0, 3).join(', ');
+          const extra = leadSettings.companyKeywords.length > 3 ? '...' : '';
+          parts.push(`with keywords: ${keywords}${extra}`);
+        }
+        
+        if (parts.length === 0) {
+          summary = 'Configure search criteria to see personalized targeting summary.';
+          console.log('[SEARCH SUMMARY] No parts found, showing default message');
+        } else {
+          summary += parts.join(', ') + '.';
+          console.log('[SEARCH SUMMARY] Built summary from parts:', parts);
+        }
+        
+        console.log('[SEARCH SUMMARY] Parts array:', parts);
+        console.log('[SEARCH SUMMARY] Parts length:', parts.length);
+        
+        // Add lead limit if set
+        if (leadSettings.leadLimit && leadSettings.leadLimit !== 10) {
+          summary += ` Finding up to ${leadSettings.leadLimit} leads per search.`;
+        }
+
+        console.log('[SEARCH SUMMARY] Generated summary:', summary);
+
+        previewDiv.innerHTML = `
+          <div style="color:#7c3aed;font-weight:600;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+            <span>Search Summary:</span>
+            <button onclick="updateSearchSummary()" style="background:rgba(139, 92, 246, 0.2);border:none;border-radius:4px;padding:0.3rem 0.6rem;color:#7c3aed;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 Refresh</button>
+          </div>
+          <div style="color:#374151;line-height:1.4;">
+            ${summary}
+          </div>
+        `;
+        
+        console.log('[SEARCH SUMMARY] ✅ Updated with generated summary');
+        
+      } catch (error) {
+        console.error('[SEARCH SUMMARY] ❌ Error:', error);
+        previewDiv.innerHTML = `
+          <div style="color:#7c3aed;font-weight:600;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+            <span>Search Summary:</span>
+            <button onclick="updateSearchSummary()" style="background:rgba(139, 92, 246, 0.2);border:none;border-radius:4px;padding:0.3rem 0.6rem;color:#7c3aed;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 Refresh</button>
+          </div>
+          <div style="color:#374151;line-height:1.4;">
+            Error loading search criteria. Please try again.
+          </div>
+        `;
+      }
+    }
+
+    async function saveLeadContactSettings() {
+      const statusDiv = document.getElementById('lead-settings-status');
+      statusDiv.innerHTML = '<div style="color: #f59e0b;">🔄 Saving settings...</div>';
+
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Please log in to save settings</div>';
+          return;
+        }
+
+        // Collect all form data
+        const leadContactSettings = {
+          companySizeMin: parseInt(document.getElementById('company-size-min').value) || null,
+          companySizeMax: parseInt(document.getElementById('company-size-max').value) || null,
+          companyIndustries: document.getElementById('company-industries').value
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          companyKeywords: document.getElementById('company-keywords').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          targetPositions: document.getElementById('target-positions').value
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          seniorityLevel: document.getElementById('seniority-level').value,
+          departments: document.getElementById('departments').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          targetLocations: document.getElementById('target-locations').value
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          leadLimit: parseInt(document.getElementById('lead-limit').value) || 10,
+          excludeKeywords: document.getElementById('exclude-keywords').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          fundingStage: document.getElementById('funding-stage').value,
+          technologyStack: document.getElementById('technology-stack').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          contactIntent: document.getElementById('contact-intent').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null
+        };
+
+        console.log('[LEAD SETTINGS] Saving for user:', currentUser.userId);
+        console.log('[LEAD SETTINGS] Settings data:', leadContactSettings);
+
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}/lead-contact-settings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ leadContactSettings })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          statusDiv.innerHTML = '<div style="color: #059669; background: rgba(5, 150, 105, 0.1); padding: 0.5rem; border-radius: 6px;">✅ Lead Contact settings saved successfully!</div>';
+          
+          // Update the AI-generated summary immediately
+          updateSearchSummary();
+          
+          // Also reload from server to ensure consistency
+          setTimeout(() => {
+            loadAndDisplayLeadSettings();
+          }, 500);
+          
+          // Auto-close modal after 1.5 seconds
+          setTimeout(() => {
+            closeLeadContactSettings();
+          }, 1500);
+          
+          setTimeout(() => {
+            statusDiv.innerHTML = '';
+          }, 3000);
+        } else {
+          throw new Error(data.message || 'Failed to save settings');
+        }
+      } catch (error) {
+        console.error('[LEAD SETTINGS] Error saving settings:', error);
+        statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Failed to save settings. Please try again.</div>';
+      }
+    }
+
+    function updateLeadSettingsPreview(settings) {
+      console.log('[LEAD SETTINGS] 🔄 Updating preview with settings:', settings);
+      
+      // Update the Current Search Criteria preview in Agent Controls
+      
+      // Company Size
+      const companySizeElement = document.getElementById('preview-company-size');
+      console.log('[LEAD SETTINGS] Company size element found:', !!companySizeElement);
+      if (companySizeElement) {
+        if (settings.companySizeMin || settings.companySizeMax) {
+          const min = settings.companySizeMin || '1';
+          const max = settings.companySizeMax || '∞';
+          const newText = `${min}-${max} employees`;
+          companySizeElement.textContent = newText;
+          console.log('[LEAD SETTINGS] Updated company size to:', newText);
+        } else {
+          companySizeElement.textContent = 'Any size';
+          console.log('[LEAD SETTINGS] Set company size to: Any size');
+        }
+      }
+      
+      // Target Roles
+      const targetRolesElement = document.getElementById('preview-target-roles');
+      console.log('[LEAD SETTINGS] Target roles element found:', !!targetRolesElement);
+      if (targetRolesElement) {
+        if (settings.targetPositions && settings.targetPositions.length > 0) {
+          const roles = settings.targetPositions.slice(0, 3).join(', ');
+          const moreCount = settings.targetPositions.length > 3 ? ` +${settings.targetPositions.length - 3} more` : '';
+          const newText = roles + moreCount;
+          targetRolesElement.textContent = newText;
+          console.log('[LEAD SETTINGS] Updated target roles to:', newText);
+        } else {
+          targetRolesElement.textContent = 'All roles';
+          console.log('[LEAD SETTINGS] Set target roles to: All roles');
+        }
+      }
+      
+      // Keywords
+      const keywordsElement = document.getElementById('preview-keywords');
+      console.log('[LEAD SETTINGS] Keywords element found:', !!keywordsElement);
+      if (keywordsElement) {
+        if (settings.companyKeywords && settings.companyKeywords.length > 0) {
+          const keywords = settings.companyKeywords.slice(0, 3).join(', ');
+          const moreCount = settings.companyKeywords.length > 3 ? ` +${settings.companyKeywords.length - 3} more` : '';
+          const newText = keywords + moreCount;
+          keywordsElement.textContent = newText;
+          console.log('[LEAD SETTINGS] Updated keywords to:', newText);
+        } else {
+          keywordsElement.textContent = 'General search';
+          console.log('[LEAD SETTINGS] Set keywords to: General search');
+        }
+      }
+      
+      // Location
+      const locationElement = document.getElementById('preview-location');
+      console.log('[LEAD SETTINGS] Location element found:', !!locationElement);
+      if (locationElement) {
+        if (settings.targetLocations && settings.targetLocations.length > 0) {
+          const location = settings.targetLocations[0];
+          const moreCount = settings.targetLocations.length > 1 ? ` +${settings.targetLocations.length - 1} more` : '';
+          const newText = location + moreCount;
+          locationElement.textContent = newText;
+          console.log('[LEAD SETTINGS] Updated location to:', newText);
+        } else {
+          locationElement.textContent = 'Global';
+          console.log('[LEAD SETTINGS] Set location to: Global');
+        }
+      }
+      
+      console.log('[LEAD SETTINGS] ✅ Updated search criteria preview');
+    }
+
+    async function testSearchCriteria() {
+      const statusDiv = document.getElementById('lead-settings-status');
+      statusDiv.innerHTML = '<div style="color: #f59e0b;">🧪 Testing search criteria...</div>';
+
+      try {
+        // Simulate a test search with current criteria
+        const settings = {
+          companySizeMin: parseInt(document.getElementById('company-size-min').value) || null,
+          companySizeMax: parseInt(document.getElementById('company-size-max').value) || null,
+          companyIndustries: document.getElementById('company-industries').value.split('\n').filter(s => s.trim()),
+          targetPositions: document.getElementById('target-positions').value.split('\n').filter(s => s.trim()),
+          targetLocations: document.getElementById('target-locations').value.split('\n').filter(s => s.trim())
+        };
+
+        // Simulate validation
+        let validationResults = [];
+        
+        if (!settings.targetPositions.length) {
+          validationResults.push('⚠️ Consider adding target positions for better results');
+        }
+        
+        if (!settings.companyIndustries.length) {
+          validationResults.push('⚠️ Adding target industries will improve search quality');
+        }
+        
+        if (!settings.companySizeMin && !settings.companySizeMax) {
+          validationResults.push('💡 Company size filters help focus on your ideal prospects');
+        }
+
+        if (validationResults.length === 0) {
+          statusDiv.innerHTML = '<div style="color: #059669; background: rgba(5, 150, 105, 0.1); padding: 0.5rem; border-radius: 6px;">✅ Search criteria look good! Ready for lead generation.</div>';
+        } else {
+          statusDiv.innerHTML = `<div style="color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 0.5rem; border-radius: 6px;">${validationResults.join('<br>')}</div>`;
+        }
+
+        setTimeout(() => {
+          statusDiv.innerHTML = '';
+        }, 5000);
+
+      } catch (error) {
+        console.error('Error testing search criteria:', error);
+        statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Error testing criteria. Please try again.</div>';
+      }
+    }
+
+    // Load and display current Lead Contact Settings on page load
+    async function loadAndDisplayLeadSettings() {
+      console.log('[LEAD SETTINGS] 🔄 Loading and displaying current settings...');
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          console.log('[LEAD SETTINGS] No user logged in, using defaults');
+          // Show default preview
+          updateSearchSummary();
+          return;
+        }
+
+        console.log('[LEAD SETTINGS] Loading settings for user:', currentUser.userId);
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        if (response.ok) {
+          const settings = await response.json();
+          const leadSettings = settings.leadContactSettings || {};
+          
+          console.log('[LEAD SETTINGS] Loaded settings:', leadSettings);
+          
+          // Update the preview with AI-generated summary
+          updateSearchSummary();
+          console.log('[LEAD SETTINGS] ✅ Loaded and displayed current settings');
+        } else {
+          console.error('[LEAD SETTINGS] Failed to load settings, status:', response.status);
+        }
+      } catch (error) {
+        console.error('[LEAD SETTINGS] Error loading current settings:', error);
+        // Show default preview on error
+        updateSearchSummary();
+      }
+    }
+
     function loadSettingsData() {
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       if (currentUser.userId) {
@@ -6556,14 +7629,304 @@ ${post.content}
       if (linkedinContent) {
         observer.observe(linkedinContent, { attributes: true });
       }
+      
+      // Load and display current Lead Contact Settings
+      console.log('[LEAD SETTINGS] 🚀 DOM loaded, calling loadAndDisplayLeadSettings...');
+      loadAndDisplayLeadSettings();
     });
+
+    // Profile Builder Chatbot Functions
+    let profileChatData = {
+      step: 0,
+      title: '',
+      experience: '',
+      target_audience: '',
+      specialization: '',
+      value_proposition: '',
+      goals: '',
+      currentQuestion: 'title'
+    };
+
+    const profileQuestions = [
+      {
+        id: 'title',
+        question: '🎯 What\'s your role at ExaMark or in the sales/marketing field?',
+        quickActions: ['ExaMark Sales Representative', 'ExaMark Marketing Specialist', 'ExaMark Business Development', 'AI Solutions Consultant', 'Sales Manager', 'Lead Generation Specialist']
+      },
+      {
+        id: 'experience',
+        question: '📈 How many years of experience do you have in sales, marketing, or AI solutions?',
+        quickActions: ['0-2 years', '3-5 years', '6-10 years', '10+ years', 'New to ExaMark', 'Experienced with AI tools']
+      },
+      {
+        id: 'target_audience',
+        question: '� Who are your ideal prospects? What types of businesses do you want to connect with through ExaMark?',
+        quickActions: ['Tech Startups', 'Enterprise Companies', 'Marketing Agencies', 'Sales Teams', 'Small-Medium Businesses', 'SaaS Companies']
+      },
+      {
+        id: 'specialization',
+        question: '🛠️ What ExaMark features or AI solutions do you specialize in? (e.g., lead research, email automation, LinkedIn outreach)',
+        quickActions: ['Lead Research & Intelligence', 'Email Automation & Campaigns', 'LinkedIn Outreach', 'AI-Powered Sales Analytics', 'Content Generation', 'All ExaMark Features']
+      },
+      {
+        id: 'value_proposition',
+        question: '� What specific results do you help businesses achieve with ExaMark? (e.g., increase conversion rates, save time, generate more leads)',
+        quickActions: ['Increase lead conversion by 40%', 'Save 10+ hours per week', 'Generate 3x more qualified leads', 'Improve email open rates', 'Automate sales processes', 'Scale outreach effectively']
+      },
+      {
+        id: 'goals',
+        question: '🚀 What do you want to achieve with your ExaMark-focused LinkedIn profile?',
+        quickActions: ['Attract potential ExaMark clients', 'Build authority in AI sales tools', 'Connect with sales professionals', 'Generate inbound leads', 'Establish thought leadership', 'Grow ExaMark user community']
+      }
+    ];
+
+    function sendProfileChatMessage() {
+      try {
+        console.log('sendProfileChatMessage called');
+        const input = document.getElementById('profile-chat-input');
+        const message = input.value.trim();
+        
+        console.log('Input message:', message);
+        console.log('Current profileChatData:', profileChatData);
+        
+        if (!message) {
+          console.log('No message, returning');
+          return;
+        }
+        
+        // Add user message to chat
+        addChatMessage(message, 'user');
+        
+        // Store the answer
+        profileChatData[profileChatData.currentQuestion] = message;
+        console.log('Stored answer for:', profileChatData.currentQuestion, '=', message);
+        
+        // Clear input
+        input.value = '';
+        
+        // Process the response
+        processProfileChatResponse(message);
+      } catch (error) {
+        console.error('Error in sendProfileChatMessage:', error);
+        showNotification('Error processing message: ' + error.message, 'error');
+      }
+    }
+
+    function useQuickAnswer(answer) {
+      document.getElementById('profile-chat-input').value = answer;
+      sendProfileChatMessage();
+    }
+
+    function addChatMessage(message, sender) {
+      const messagesContainer = document.getElementById('profile-chat-messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `chat-message ${sender}`;
+      messageDiv.style.marginBottom = '1rem';
+      
+      if (sender === 'user') {
+        messageDiv.innerHTML = `
+          <div style="display:flex;justify-content:flex-end;">
+            <div style="background:#5a67d8;color:white;padding:0.8rem 1rem;border-radius:15px 15px 5px 15px;max-width:80%;box-shadow:0 2px 8px rgba(90, 103, 216, 0.3);">
+              <div style="font-size:0.9rem;line-height:1.4;">${message}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        messageDiv.innerHTML = `
+          <div style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;padding:0.8rem 1rem;border-radius:15px 15px 15px 5px;max-width:80%;box-shadow:0 2px 8px rgba(90, 103, 216, 0.3);">
+            <div style="font-size:0.9rem;line-height:1.4;">${message}</div>
+          </div>
+        `;
+      }
+      
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function processProfileChatResponse(userMessage) {
+      try {
+        console.log('processProfileChatResponse called with:', userMessage);
+        console.log('Current step:', profileChatData.step);
+        console.log('Total questions:', profileQuestions.length);
+        
+        profileChatData.step++;
+        console.log('New step:', profileChatData.step);
+        
+        // Show typing indicator
+        setTimeout(() => {
+          if (profileChatData.step < profileQuestions.length) {
+            // Ask next question
+            const nextQuestion = profileQuestions[profileChatData.step];
+            console.log('Next question:', nextQuestion);
+            profileChatData.currentQuestion = nextQuestion.id;
+            
+            addChatMessage(nextQuestion.question, 'assistant');
+            updateQuickActions(nextQuestion.quickActions);
+          } else {
+            // All questions answered, generate profile
+            addChatMessage('🎉 Perfect! I have all the information I need. Let me generate your optimized LinkedIn profile content...', 'assistant');
+            
+            setTimeout(() => {
+              generateProfileFromChat();
+            }, 1500);
+          }
+        }, 800);
+      } catch (error) {
+        console.error('Error in processProfileChatResponse:', error);
+        showNotification('Error processing response: ' + error.message, 'error');
+      }
+    }
+
+    function updateQuickActions(actions) {
+      const quickActionsContainer = document.getElementById('profile-quick-actions');
+      quickActionsContainer.innerHTML = '';
+      
+      actions.forEach(action => {
+        const button = document.createElement('button');
+        button.textContent = action;
+        button.onclick = () => useQuickAnswer(action);
+        button.style.cssText = `
+          background: rgba(90, 103, 216, 0.1);
+          color: #5a67d8;
+          border: 1px solid rgba(90, 103, 216, 0.3);
+          padding: 0.4rem 0.8rem;
+          border-radius: 15px;
+          cursor: pointer;
+          font-size: 0.8rem;
+          transition: all 0.2s ease;
+          margin-right: 0.5rem;
+          margin-bottom: 0.5rem;
+        `;
+        button.onmouseover = () => button.style.background = 'rgba(90, 103, 216, 0.2)';
+        button.onmouseout = () => button.style.background = 'rgba(90, 103, 216, 0.1)';
+        
+        quickActionsContainer.appendChild(button);
+      });
+    }
+
+    async function generateProfileFromChat() {
+      try {
+        showLinkedInAgentStatus(true, 'Generating your optimized LinkedIn profile...');
+        
+        const profilePrompt = `
+Create a comprehensive LinkedIn profile optimization guide for an ExaMark sales/marketing professional with these details:
+- Role: ${profileChatData.title}
+- Experience: ${profileChatData.experience}
+- Target Audience: ${profileChatData.target_audience}
+- ExaMark Specialization: ${profileChatData.specialization}
+- Value Proposition: ${profileChatData.value_proposition}
+- LinkedIn Goals: ${profileChatData.goals}
+
+Focus on positioning them as an ExaMark expert who helps businesses leverage AI for sales and marketing success.
+
+Please provide:
+1. **LinkedIn Headline** - Compelling headline that includes ExaMark and their value prop
+2. **Professional Summary** - 2-3 paragraph summary highlighting ExaMark expertise and results
+3. **Key Skills** - Skills that combine their expertise with ExaMark capabilities
+4. **Experience Section Tips** - How to describe their role with ExaMark impact
+5. **Content Strategy** - What type of posts to share to attract prospects
+6. **Call-to-Action** - How to encourage prospects to reach out about ExaMark
+
+Make it specific to ExaMark, results-focused, and designed to attract their target audience.
+        `;
+        
+        const response = await fetch('/api/post-generator/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            topic: profilePrompt,
+            tone: 'professional'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showLinkedInAgentStatus(false);
+          displayProfileOptimization(result.post);
+          
+          addChatMessage('✅ Your LinkedIn profile optimization guide is ready! Check the results below. You can copy any section and paste it directly into your LinkedIn profile.', 'assistant');
+          
+          // Reset for next use
+          setTimeout(() => {
+            resetProfileChat();
+          }, 3000);
+        } else {
+          throw new Error(result.error || 'Failed to generate profile');
+        }
+      } catch (error) {
+        console.error('Error generating profile:', error);
+        showLinkedInAgentStatus(false);
+        addChatMessage('❌ Sorry, there was an error generating your profile. Please try again.', 'assistant');
+      }
+    }
+
+    function resetProfileChat() {
+      profileChatData = {
+        step: 0,
+        title: '',
+        experience: '',
+        target_audience: '',
+        specialization: '',
+        value_proposition: '',
+        goals: '',
+        currentQuestion: 'title'
+      };
+      
+      // Add reset button
+      const quickActionsContainer = document.getElementById('profile-quick-actions');
+      quickActionsContainer.innerHTML = `
+        <button onclick="startNewProfileChat()" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;border:none;padding:0.6rem 1.2rem;border-radius:15px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          🚀 Build Another Profile
+        </button>
+      `;
+    }
+
+    function startNewProfileChat() {
+      // Clear chat messages except the initial one
+      const messagesContainer = document.getElementById('profile-chat-messages');
+      messagesContainer.innerHTML = `
+        <div class="chat-message assistant" style="margin-bottom:1rem;">
+          <div style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;padding:0.8rem 1rem;border-radius:15px 15px 15px 5px;max-width:80%;box-shadow:0 2px 8px rgba(90, 103, 216, 0.3);">
+            <div style="font-size:0.9rem;line-height:1.4;">
+              👋 Hi! I'm your ExaMark LinkedIn Profile Builder Assistant. I'll help you create an optimized LinkedIn profile that showcases your role with ExaMark and attracts the right prospects and connections.
+              <br><br>
+              🎯 <strong>Goal:</strong> Build a profile that positions you as an ExaMark expert and drives business growth.
+              <br><br>
+              Let's start - what's your role at ExaMark or in sales/marketing?
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Reset data
+      profileChatData = {
+        step: 0,
+        title: '',
+        experience: '',
+        target_audience: '',
+        specialization: '',
+        value_proposition: '',
+        goals: '',
+        currentQuestion: 'title'
+      };
+      
+      // Reset quick actions
+      updateQuickActions(profileQuestions[0].quickActions);
+      
+      // Clear profile results
+      document.getElementById('profile-optimization-results').innerHTML = '';
+    }
   </script>
   <!-- Settings Modal -->
   <div id="settings-modal" class="settings-modal">
-    <div class="settings-content">
+    <!-- Fixed close button outside scroll area -->
+    <button class="modal-close-settings" onclick="closeSettings()" title="Close Settings">×</button>
+    <div class="settings-content" style="position: relative;">
       <div class="settings-header">
         <h2><span class="icon icon-cog"></span> Settings</h2>
-        <button class="close-settings" onclick="closeSettings()">×</button>
       </div>
 
       <!-- API Keys Section -->
@@ -6739,10 +8102,11 @@ ${post.content}
 
   <!-- Custom Email Modal -->
   <div id="custom-email-modal" class="settings-modal">
-    <div class="settings-content">
+    <!-- Fixed close button outside scroll area -->
+    <button class="modal-close-email" onclick="closeCustomEmailModal()" title="Close Email Composer">×</button>
+    <div class="settings-content" style="position: relative;">
       <div class="settings-header">
         <h2><span class="icon icon-email"></span> Create Custom Email</h2>
-        <button class="close-settings" onclick="closeCustomEmailModal()">×</button>
       </div>
 
       <div class="settings-section">
@@ -6790,6 +8154,270 @@ Your Name" required></textarea>
         
         <div id="custom-email-status" style="margin-top: 1rem;"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Lead Contact Settings Modal -->
+  <div id="lead-contact-settings-modal" class="settings-modal">
+    <!-- Fixed close button outside scroll area -->
+    <button class="modal-close-fixed" onclick="closeLeadContactSettings()" title="Close Agent Configuration">×</button>
+    <div class="settings-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative;">
+      <div class="settings-header">
+        <h2><span class="icon icon-cog"></span> 🎯 Lead Contact Search Settings</h2>
+      </div>
+
+      <!-- Company Criteria Section -->
+      <div class="settings-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">🏢 Company Criteria</h3>
+          <button onclick="saveCompanyCriteria()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            💾 Save
+          </button>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="company-size-min">Company Size Range</label>
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <div style="flex: 1;">
+              <label style="font-size: 0.8rem; color: #64748b;">Minimum Employees</label>
+              <input type="number" id="company-size-min" placeholder="1" min="1" style="width: 100%; padding: 0.5rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+            </div>
+            <span style="color: #64748b;">to</span>
+            <div style="flex: 1;">
+              <label style="font-size: 0.8rem; color: #64748b;">Maximum Employees</label>
+              <input type="number" id="company-size-max" placeholder="10000" min="1" style="width: 100%; padding: 0.5rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+            </div>
+          </div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            💡 Examples: 1-50 (Small), 51-200 (Medium), 201-1000 (Large), 1000+ (Enterprise)
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="company-industries">Target Industries</label>
+          
+          <!-- Recommended Keywords Section -->
+          <div style="background: rgba(139, 92, 246, 0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid rgba(139, 92, 246, 0.2);">
+            <div style="color: #7c3aed; font-weight: 600; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>💡 Recommended Apollo Keywords (click to add):</span>
+              <select id="industry-category" onchange="updateRecommendedIndustries()" style="background: white; border: 1px solid #7c3aed; border-radius: 4px; padding: 0.3rem; font-size: 0.8rem;">
+                <option value="food">🍕 Food & Hospitality</option>
+                <option value="tech">💻 Technology</option>
+                <option value="retail">🛍️ Retail & Ecommerce</option>
+                <option value="healthcare">🏥 Healthcare</option>
+                <option value="finance">💰 Finance & Insurance</option>
+                <option value="manufacturing">🏭 Manufacturing</option>
+                <option value="consulting">📊 Professional Services</option>
+              </select>
+            </div>
+            <div id="recommended-industries" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem;">
+              <!-- Recommended keywords will be populated here -->
+            </div>
+          </div>
+
+          <!-- Selected Industries (Bubbles) -->
+          <div style="margin-bottom: 0.8rem;">
+            <div style="color: #374151; font-weight: 500; margin-bottom: 0.5rem;">Selected Industries:</div>
+            <div id="selected-industries" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 40px; background: rgba(255, 255, 255, 0.8); border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; padding: 0.5rem;">
+              <!-- Selected industry bubbles will appear here -->
+            </div>
+          </div>
+
+          <!-- Manual Entry Textarea -->
+          <textarea id="company-industries" rows="3" placeholder="Manually add industries (one per line)..." style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            💡 Apollo works better with specific terms like "restaurants", "supermarket", "quick service restaurant"
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="company-keywords">Company Keywords/Technologies (comma separated)</label>
+          <textarea id="company-keywords" rows="3" placeholder="AI, automation, sales tools, CRM, lead generation, marketing automation, B2B, SaaS" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            🔍 Keywords that should appear in company descriptions or websites
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Person Criteria Section -->
+      <div class="settings-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">👤 Contact Person Criteria</h3>
+          <button onclick="saveContactCriteria()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            💾 Save
+          </button>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="target-positions">Target Positions/Titles</label>
+          
+          <!-- Recommended Positions Section -->
+          <div style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid rgba(59, 130, 246, 0.2);">
+            <div style="color: #2563eb; font-weight: 600; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>💼 Recommended Position Keywords (click to add):</span>
+              <select id="position-category" onchange="updateRecommendedPositions()" style="background: white; border: 1px solid #2563eb; border-radius: 4px; padding: 0.3rem; font-size: 0.8rem;">
+                <option value="hr">👥 Human Resources</option>
+                <option value="executive">🎯 Executive/C-Suite</option>
+                <option value="sales">📈 Sales & Business Dev</option>
+                <option value="marketing">📢 Marketing</option>
+                <option value="operations">⚙️ Operations</option>
+                <option value="tech">💻 Technology</option>
+                <option value="finance">💰 Finance</option>
+              </select>
+            </div>
+            <div id="recommended-positions" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem;">
+              <!-- Recommended positions will be populated here -->
+            </div>
+          </div>
+
+          <!-- Selected Positions (Bubbles) -->
+          <div style="margin-bottom: 0.8rem;">
+            <div style="color: #374151; font-weight: 500; margin-bottom: 0.5rem;">Selected Positions:</div>
+            <div id="selected-positions" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 40px; background: rgba(255, 255, 255, 0.8); border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; padding: 0.5rem;">
+              <!-- Selected position bubbles will appear here -->
+            </div>
+          </div>
+
+          <!-- Manual Entry Textarea -->
+          <textarea id="target-positions" rows="3" placeholder="Manually add positions (one per line)..." style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            🎯 Apollo matches exact titles - use variations like "HR Manager", "Human Resources Manager", "People Operations Manager"
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="seniority-level">Seniority Level</label>
+          <select id="seniority-level" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
+            <option value="any">Any Level</option>
+            <option value="senior">Senior Level (Director+)</option>
+            <option value="executive">Executive Level (VP, C-Suite)</option>
+            <option value="manager">Manager Level</option>
+            <option value="individual">Individual Contributors</option>
+          </select>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="departments">Target Departments (comma separated)</label>
+          <input type="text" id="departments" placeholder="Sales, Marketing, Business Development, Growth, Revenue Operations" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+        </div>
+      </div>
+
+      <!-- Geographic & Search Criteria -->
+      <div class="settings-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">🌍 Geographic & Search Settings</h3>
+          <button onclick="saveGeographicSettings()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            💾 Save
+          </button>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="target-locations">Target Locations (one per line)</label>
+          <textarea id="target-locations" rows="4" placeholder="United States
+Canada
+United Kingdom
+Australia
+Germany
+San Francisco Bay Area
+New York
+London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            🌎 Can include countries, states, cities, or regions
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="lead-limit">Maximum Leads Per Search</label>
+          <input type="number" id="lead-limit" min="1" max="100" value="10" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            📊 Recommended: 5-15 leads per cycle for quality over quantity
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="exclude-keywords">Exclude Keywords (comma separated)</label>
+          <input type="text" id="exclude-keywords" placeholder="competitor names, non-profit, government, student" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            ❌ Companies with these keywords will be excluded from search
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Criteria -->
+      <div class="settings-section">
+        <h3>⚡ Advanced Criteria</h3>
+        
+        <div class="modal-form-group">
+          <label for="funding-stage">Company Funding Stage</label>
+          <select id="funding-stage" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
+            <option value="any">Any Stage</option>
+            <option value="startup">Early Stage/Startup</option>
+            <option value="growth">Growth Stage</option>
+            <option value="established">Established/Mature</option>
+            <option value="funded">Recently Funded</option>
+          </select>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="technology-stack">Technology Stack Keywords</label>
+          <input type="text" id="technology-stack" placeholder="Salesforce, HubSpot, Pipedrive, Outreach, Apollo, LinkedIn Sales Navigator" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            🛠️ Companies using these tools are more likely to adopt ExaMark
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="contact-intent">Contact Intent Signals</label>
+          <textarea id="contact-intent" rows="3" placeholder="hiring sales team, expanding internationally, raised funding, new leadership, digital transformation, AI adoption" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            📈 Look for companies showing these growth/change signals
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Builder AI Prompt Section -->
+      <div class="settings-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">📧 Email Builder AI Prompt</h3>
+          <button onclick="saveEmailBuilderPrompt()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            💾 Save
+          </button>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="email-builder-prompt">Custom AI Prompt for Email Generation</label>
+          <textarea id="email-builder-prompt" rows="15" placeholder="You are a sales AI assistant helping to craft personalized outreach emails. Based on the provided research data about companies and contacts, generate professional sales emails that:
+
+1. Are personalized and relevant to the contact's role and company
+2. Reference specific company information, recent news, or industry insights
+3. Clearly articulate value propositions relevant to their business needs
+4. Include a clear call-to-action for next steps
+5. Maintain a professional yet conversational tone
+6. Keep emails concise (150-250 words)
+
+Structure your emails as follows:
+- Subject Line: Compelling and personalized
+- Opening: Personal connection or relevant company insight
+- Value Proposition: How our solution addresses their specific challenges
+- Social Proof: Brief mention of similar company successes
+- Call to Action: Clear next step proposal
+- Professional Closing: Your name and company
+
+Always ensure emails feel genuine and avoid overly salesy language. Focus on starting conversations rather than pushing for immediate sales." style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: Monaco, 'Lucida Console', monospace; font-size: 0.9rem; line-height: 1.4;"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            🤖 This prompt guides the AI when generating personalized sales emails. Customize it to match your brand voice and sales approach.
+          </div>
+        </div>
+      </div>
+
+      <!-- Test Button -->
+      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(90, 103, 216, 0.2);">
+        <button onclick="testSearchCriteria()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+          🧪 Test Search Criteria
+        </button>
+      </div>
+      
+      <div id="lead-settings-status" style="margin-top: 1rem;"></div>
     </div>
   </div>
 

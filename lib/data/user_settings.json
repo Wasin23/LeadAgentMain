@@ -22,6 +22,37 @@
       "emailSignature": "",
       "defaultLeadLimit": 10,
       "autoSaveInterval": 300000
+    },
+    "leadContactSettings": {
+      "companySizeMin": 200,
+      "companySizeMax": 1999,
+      "companyIndustries": [
+        "restaurants",
+        "fast food",
+        "quick service restaurant",
+        "QSR",
+        "grocery",
+        "supermarket"
+      ],
+      "companyKeywords": [],
+      "targetPositions": [
+        "HR Manager",
+        "Human Resources Manager",
+        "HR Director"
+      ],
+      "seniorityLevel": "senior",
+      "departments": [
+        "Human resources",
+        "HR",
+        "Sales"
+      ],
+      "targetLocations": [],
+      "leadLimit": 10,
+      "excludeKeywords": [],
+      "fundingStage": "any",
+      "technologyStack": [],
+      "contactIntent": [],
+      "emailBuilderPrompt": "You are a sales AI assistant helping to craft personalized outreach emails for a company called actiontrac. It is selling employee contact (texting) solutions that allow hr departments to contact their employees with ease. Based on the provided research data about companies and contacts, generate professional sales emails that:\n\n1. Are personalized and relevant to the contact's role and company\n2. Reference specific company information, recent news, or industry insights\n3. Clearly articulate value propositions relevant to their business needs\n4. Include a clear call-to-action for next steps\n5. Maintain a professional yet conversational tone\n6. Keep emails concise (150-250 words)\n\nStructure your emails as follows:\n- Subject Line: Compelling and personalized\n- Opening: Personal connection or relevant company insight\n- Value Proposition: How our solution addresses their specific challenges\n- Social Proof: Brief mention of similar company successes\n- Call to Action: Clear next step proposal\n- Professional Closing: Your name and company\n\nAlways ensure emails feel genuine and avoid overly salesy language. Focus on starting conversations rather than pushing for immediate sales."
     }
   }
 }

@@ -1,0 +1,79 @@
+{
+  "searchParameters": {
+    "q": "37signals CEO CTO founder leadership team vision strategy",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "David Heinemeier Hansson — REWORK",
+      "link": "https://37signals.com/podcast/guest/david-heinemeier-hansson/",
+      "snippet": "Co-founders of 37signals, Jason Fried and David Heinemeier Hansson discuss decision making within an organization. Small businesses have the advantage of being ...",
+      "position": 1
+    },
+    {
+      "title": "Jason Fried // CEO + Co-Founder @ 37signals",
+      "link": "https://alphalist.com/podcast/100-jason-fried-co-founder-ceo-37signals?utm_source=podigee&utm_medium=referral",
+      "snippet": "Trust your intuition, you will gain a lot from this CTO podcast featuring Jason Fried, co-founder and CEO of 37signals, a company known for ...",
+      "date": "May 2, 2024",
+      "position": 2
+    },
+    {
+      "title": "The REWORK Podcast",
+      "link": "https://37signals.com/podcast/",
+      "snippet": "In this bonus episode of REWORK, 37signals' co-founder and CTO David Heinemeier Hansson shares his exploration into Linux, development of Omarchy, and the ...",
+      "position": 3
+    },
+    {
+      "title": "100 - Jason Fried // co-founder + CEO @ 37signals",
+      "link": "https://m.youtube.com/watch?v=cgSnKAaPiGk&t=343s",
+      "snippet": "Trust your intuition, you will gain a lot from this CTO podcast featuring Jason Fried, co-founder and CEO of 37signals, a company known for ...",
+      "date": "1 year ago",
+      "position": 4
+    },
+    {
+      "title": "Jason Fried - Chart the course, set the pace, hold the line",
+      "link": "https://www.linkedin.com/posts/jason-fried_chart-the-course-set-the-pace-hold-the-activity-7174463295486144513-u2Ni",
+      "snippet": "I break the essential responsibilities of the company executive into three distinct buckets: 1. Chart the course Where are we going?",
+      "date": "1 year ago",
+      "position": 5
+    },
+    {
+      "title": "My Interview with Jason Fried, CEO of 37Signals and ...",
+      "link": "https://practicalfounders.com/articles/interview-jason-fried-ceo-of-37signals-and-author-of-rework/",
+      "snippet": "Jason Fried is the co-founder and CEO of 37signals, makers of the popular Basecamp project management software, which is still growing and very profitable ...",
+      "date": "Jan 10, 2025",
+      "position": 6
+    },
+    {
+      "title": "Jason Fried's Post",
+      "link": "https://www.linkedin.com/posts/jason-fried_a-business-doesnt-need-a-mission-a-vision-activity-7173428855670595584-ngF-",
+      "snippet": "Integrator to Visionary Leaders | COO / GM / Chief of Staff | Systems, Strategy, Execution & Embedded Leadership | Husband & Dog Dad. 1y.",
+      "date": "1 year ago",
+      "position": 7
+    },
+    {
+      "title": "How David Heinemeier Hansson Built Basecamp",
+      "link": "https://robertglazer.com/elevate-podcast/david-heinemeier-hansson-basecamp-entrepreneur-leadership/",
+      "snippet": "This episode's guest is David Heinemeier Hansson, the co-founder of 37 Signals and of Basecamp. In this episode, we delve into the intriguing story behind 37 ...",
+      "position": 8
+    },
+    {
+      "title": "David Heinemeier Hansson (Co-Founder & CTO, 37 Signals)",
+      "link": "https://www.youtube.com/watch?v=b4LwS4K6dEs",
+      "snippet": "00:00 Introduction ; 01:58 Foundation of Building A Business ; 06:16 Don't Defer Your Living ; 08:00 Excessive Work Isn't Necessary ; 13:28 Adding ...",
+      "date": "1 year ago",
+      "position": 9
+    },
+    {
+      "title": "DHH on The Heartbeat Podcast — REWORK",
+      "link": "https://37signals.com/podcast/dhh-on-the-heartbeat-podcast/",
+      "snippet": "We talked to Claire Lew, the CEO of Know Your Team. She has her own show called The Heartbeat Podcast, where she talks to founders and leaders about management.",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

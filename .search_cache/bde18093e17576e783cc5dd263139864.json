@@ -1,0 +1,171 @@
+{
+  "searchParameters": {
+    "q": "37signals official website",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "37signals",
+      "link": "https://37signals.com/",
+      "snippet": "A catalog of ideas — signals — that drive us.",
+      "sitelinks": [
+        {
+          "title": "00. Start here",
+          "link": "https://37signals.com/00"
+        },
+        {
+          "title": "Manifesto",
+          "link": "https://1999.37signals.com/"
+        },
+        {
+          "title": "Books",
+          "link": "https://37signals.com/books/"
+        },
+        {
+          "title": "Thoughts",
+          "link": "https://37signals.com/thoughts/"
+        }
+      ],
+      "position": 1
+    },
+    {
+      "title": "Start here - 37signals",
+      "link": "https://37signals.com/00",
+      "snippet": "Welcome. This site is a catalog of ideas — signals — that drive us. We're best known for making Basecamp, HEY, and ONCE, writing business and software books ...",
+      "position": 2
+    },
+    {
+      "title": "Books by 37signals",
+      "link": "https://37signals.com/books",
+      "snippet": "We write books about what we've learned running our own business. They're filled with practical advice you won't find elsewhere.",
+      "position": 3
+    },
+    {
+      "title": "The REWORK Podcast - 37signals",
+      "link": "https://37signals.com/podcast/",
+      "snippet": "REWORK is a podcast by 37signals about a better way to work and run your business. While the prevailing narrative around successful entrepreneurship tells ...",
+      "sitelinks": [
+        {
+          "title": "Small Business",
+          "link": "https://37signals.com/podcast/tag/small-business/"
+        },
+        {
+          "title": "Tagged “Remote Work”",
+          "link": "https://37signals.com/podcast/tag/remote-work/"
+        },
+        {
+          "title": "Tagged “Customer Support”",
+          "link": "https://37signals.com/podcast/tag/customer-support/"
+        },
+        {
+          "title": "Big Tech",
+          "link": "https://37signals.com/podcast/tag/big-tech/"
+        }
+      ],
+      "position": 4
+    },
+    {
+      "title": "Working at 37signals",
+      "link": "https://37signals.com/jobs",
+      "snippet": "Working at 37signals. Take a look at our current job openings, sign up to be notified about future openings, and learn about what it's like to work here.",
+      "position": 5
+    },
+    {
+      "title": "Spark Joy with DHH — REWORK - 37signals",
+      "link": "https://37signals.com/podcast/spark-joy-with-dhh/",
+      "snippet": "In this bonus episode, DHH talks about how he's applied the KonMari framework to code, business decisions at Basecamp, and his own belongings.",
+      "position": 6
+    },
+    {
+      "title": "Basecamp: Project management software, online collaboration",
+      "link": "https://basecamp.com/",
+      "snippet": "The company that designed, owns, and operates Basecamp is called 37signals, and we've been around as a company since 1999. We launched Basecamp, the product, in ...",
+      "sitelinks": [
+        {
+          "title": "Pricing",
+          "link": "https://basecamp.com/pricing"
+        },
+        {
+          "title": "New in Basecamp",
+          "link": "https://basecamp.com/new"
+        },
+        {
+          "title": "Where we came from",
+          "link": "https://basecamp.com/about"
+        },
+        {
+          "title": "Integrations",
+          "link": "https://basecamp.com/integrations"
+        }
+      ],
+      "position": 7
+    },
+    {
+      "title": "The Email That Changed My Life — REWORK - 37signals",
+      "link": "https://37signals.com/podcast/email-changed-my-life/",
+      "snippet": "This episode is our love letter to email. Hear from David and Jason, as well as other artists, writers, and founders about the emails that changed their lives.",
+      "position": 8
+    },
+    {
+      "title": "37signals - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/37signals",
+      "snippet": "37signals (formerly Basecamp before reverting to its original name) is an American web software company based in Chicago, Illinois.",
+      "position": 9
+    },
+    {
+      "title": "HEY — A delightfully fresh take on email + calendar, from 37signals",
+      "link": "https://www.hey.com/",
+      "snippet": "HEY is our love letter to email and calendars, and we're sending it to you on the Web, Mac, Windows, Linux, iOS, and Android. Jason Fried: Co-founder & CEO.",
+      "sitelinks": [
+        {
+          "title": "Two flavors, two prices",
+          "link": "https://www.hey.com/pricing/"
+        },
+        {
+          "title": "Features",
+          "link": "https://www.hey.com/features/"
+        },
+        {
+          "title": "Calendar",
+          "link": "https://www.hey.com/calendar/"
+        },
+        {
+          "title": "For domains",
+          "link": "https://www.hey.com/domains/"
+        }
+      ],
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "37signals revenue"
+    },
+    {
+      "query": "37 signals book"
+    },
+    {
+      "query": "37signals basecamp"
+    },
+    {
+      "query": "37signals valuation"
+    },
+    {
+      "query": "37signals blog"
+    },
+    {
+      "query": "37signals glassdoor"
+    },
+    {
+      "query": "37signals books"
+    },
+    {
+      "query": "37signals jobs"
+    }
+  ],
+  "credits": 1
+}
