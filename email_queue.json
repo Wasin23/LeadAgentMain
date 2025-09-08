@@ -1,1 +1,357 @@
-[]
+[
+  {
+    "id": "1757367294954",
+    "timestamp": "2025-09-08T21:34:54.954Z",
+    "status": "pending",
+    "leadId": "Advanced_MP_Technology_Nader_Dibai",
+    "leadCompany": "Advanced MP Technology",
+    "leadName": "Nader Dibai",
+    "leadEmail": "ndibai@a2globalelectronics.com",
+    "leadTitle": "IT Director",
+    "originalSubject": "Enabling Advanced MP Technology's Strategic Shift with AI-Powered Solutions",
+    "originalBody": "Hi Nader,\n\nCongratulations on Advanced MP Technology's impressive 84% revenue growth and strategic shift towards vertical integration. As you transition into a more tech-driven model, optimizing your infrastructure is key.\n\nExabits offers AI-powered High-Performance Computing Solutions designed to meet the demands of companies like yours. Our custom AI infrastructure featuring NVIDIA H100/H200 GPU clusters can enhance your operational efficiency, aligning with your goals of integrating AI/ML to streamline supply chain operations.\n\nOur solutions deliver superior performance-per-dollar and include expert support, ensuring you achieve your objectives effectively. By harnessing our AI-HPC specialization, you can reduce lead times and improve production efficiency, vital for sustaining your current growth trajectory.\n\nWould you be available for a brief call next week to explore how we can support Advanced MP Technology's strategic initiatives?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Enabling Advanced MP Technology's Strategic Shift with AI-Powered Solutions",
+    "finalBody": "Hi Nader,\n\nCongratulations on Advanced MP Technology's impressive 84% revenue growth and strategic shift towards vertical integration. As you transition into a more tech-driven model, optimizing your infrastructure is key.\n\nExabits offers AI-powered High-Performance Computing Solutions designed to meet the demands of companies like yours. Our custom AI infrastructure featuring NVIDIA H100/H200 GPU clusters can enhance your operational efficiency, aligning with your goals of integrating AI/ML to streamline supply chain operations.\n\nOur solutions deliver superior performance-per-dollar and include expert support, ensuring you achieve your objectives effectively. By harnessing our AI-HPC specialization, you can reduce lead times and improve production efficiency, vital for sustaining your current growth trajectory.\n\nWould you be available for a brief call next week to explore how we can support Advanced MP Technology's strategic initiatives?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "Advanced MP Technology",
+      "contact": "Nader Dibai",
+      "title": "IT Director",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "ndibai@a2globalelectronics.com",
+      "score": 124,
+      "hasIntelligence": {
+        "summary": "Advanced MP Technology is a global distributor of electronic components and provider of supply chain solutions, specializing in hard-to-find and obsolete parts. They offer full-scale supply chain solutions and are known for their expertise in sourcing allocated and long lead-time parts.",
+        "aiReadiness": "The company appears to have limited direct involvement in AI/ML adoption based on the available data. While there is mention of high-performance computing and AI in related articles, there is no specific indication of Advanced MP Technology's adoption of these technologies.",
+        "growthSignals": [
+          "Revenue increased 84% year over year to $57.4 million.",
+          "Record NdPr production of 597 metric tons, a 119% increase year over year.",
+          "283% NdPr revenue surge in Q2 2025."
+        ],
+        "painPoints": [
+          "Potential challenges in scaling AI/ML infrastructure due to limited current adoption.",
+          "Need for advanced computing capabilities to support future growth in AI/ML."
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight the benefits of adopting AI/ML solutions to enhance supply chain efficiency.",
+          "Propose partnerships for developing high-performance computing capabilities.",
+          "Offer solutions for managing and optimizing NdPr production and distribution."
+        ],
+        "keyPersonalities": [
+          "Terry Afshar (Managing Director)",
+          "Matthew Pelletier (Business Development)"
+        ],
+        "recentDevelopments": [
+          "MP Materials reported significant revenue and production growth in Q2 2025.",
+          "Strategic shift towards becoming a vertically integrated industrial tech firm."
+        ],
+        "competitivePosition": "Advanced MP Technology competes by offering specialized sourcing solutions for hard-to-find and obsolete parts. They face competition from companies like 4 Star Electronics, Farnell, Powell Electronics, Fusion Worldwide, and Mouser Electronics. Their emphasis on global sourcing solutions positions them well in the market."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 90,
+      "aiReadiness": "The company appears to have limited direct involvement in AI/ML adoption based on the available data. While there is mention of high-performance computing and AI in related articles, there is no specific indication of Advanced MP Technology's adoption of these technologies.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Advanced MP Technology is a global distributor of electronic components and provider of supply chain solutions, specializing in hard-to-find and obsolete parts. They offer full-scale supply chain solutions and are known for their expertise in sourcing allocated and long lead-time parts.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight the benefits of adopting AI/ML solutions to enhance supply chain efficiency.",
+        "Propose partnerships for developing high-performance computing capabilities.",
+        "Offer solutions for managing and optimizing NdPr production and distribution."
+      ],
+      "recentDevelopments": [
+        "MP Materials reported significant revenue and production growth in Q2 2025.",
+        "Strategic shift towards becoming a vertically integrated industrial tech firm."
+      ]
+    }
+  },
+  {
+    "id": "1757367300937",
+    "timestamp": "2025-09-08T21:35:00.937Z",
+    "status": "pending",
+    "leadId": "TEZ_Technology_Joshua_Henderson",
+    "leadCompany": "TEZ Technology",
+    "leadName": "Joshua Henderson",
+    "leadEmail": "joshua@teztechnology.com",
+    "leadTitle": "CTO",
+    "originalSubject": "Elevate TEZ Technology's AI Capabilities with Tailored HPC Solutions",
+    "originalBody": "Hi Joshua,\n\nCongratulations on your recent appointment as CTO at TEZ Technology! Your strategic focus on leveraging GPUs for deep learning aligns perfectly with our expertise at Exabits.\n\nAs TEZ Technology expands its AI/ML initiatives, optimizing your computing infrastructure will be crucial. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions deliver superior performance-per-dollar compared to general cloud services, ensuring you maximize ROI and maintain a competitive edge over companies like Parker Technology and Valeti.\n\nOur deep understanding of AI/ML compute requirements means we can seamlessly support your development of new features to meet market demand. Would you be available for a brief conversation next week to explore how our solutions can accelerate TEZ Technology's innovation journey?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Elevate TEZ Technology's AI Capabilities with Tailored HPC Solutions",
+    "finalBody": "Hi Joshua,\n\nCongratulations on your recent appointment as CTO at TEZ Technology! Your strategic focus on leveraging GPUs for deep learning aligns perfectly with our expertise at Exabits.\n\nAs TEZ Technology expands its AI/ML initiatives, optimizing your computing infrastructure will be crucial. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions deliver superior performance-per-dollar compared to general cloud services, ensuring you maximize ROI and maintain a competitive edge over companies like Parker Technology and Valeti.\n\nOur deep understanding of AI/ML compute requirements means we can seamlessly support your development of new features to meet market demand. Would you be available for a brief conversation next week to explore how our solutions can accelerate TEZ Technology's innovation journey?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "TEZ Technology",
+      "contact": "Joshua Henderson",
+      "title": "CTO",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "joshua@teztechnology.com",
+      "score": 121,
+      "hasIntelligence": {
+        "summary": "TEZ Technology is a company focused on leveraging advanced computing technologies, including machine learning and high-performance computing, to drive innovation and growth. They are actively involved in enhancing their technological capabilities and expanding their market presence.",
+        "aiReadiness": "TEZ Technology appears to be highly engaged in AI/ML adoption, as evidenced by their focus on machine learning, high-performance computing, and the role of GPUs in deep learning. Their recent executive appointments also suggest a strategic emphasis on technology-driven growth.",
+        "growthSignals": [
+          "Appointment of Joshua Henderson as CTO to lead innovation and technology direction.",
+          "Continued development of new features to meet market demand.",
+          "Institutional investment from Tritium Partners."
+        ],
+        "painPoints": [
+          "Potential challenges in scaling infrastructure to support high-performance computing and AI initiatives.",
+          "Need for continuous innovation to stay ahead of competitors like Parker Technology and Valeti."
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight solutions that enhance high-performance computing capabilities.",
+          "Offer services that support AI/ML infrastructure scaling.",
+          "Propose partnerships or collaborations to drive innovation and market expansion."
+        ],
+        "keyPersonalities": [
+          "Joshua Henderson, CTO, who is focused on steering the company towards operational excellence and innovation."
+        ],
+        "recentDevelopments": [
+          "Executive appointments to fuel growth and innovation.",
+          "Ongoing updates and enhancements to meet evolving market demands."
+        ],
+        "competitivePosition": "TEZ Technology is positioned in a competitive market with notable competitors such as Parker Technology and Valeti. Their focus on innovation and technology leadership suggests a proactive approach to maintaining and enhancing their market position."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "TEZ Technology appears to be highly engaged in AI/ML adoption, as evidenced by their focus on machine learning, high-performance computing, and the role of GPUs in deep learning. Their recent executive appointments also suggest a strategic emphasis on technology-driven growth.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "TEZ Technology is a company focused on leveraging advanced computing technologies, including machine learning and high-performance computing, to drive innovation and growth. They are actively involved in enhancing their technological capabilities and expanding their market presence.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight solutions that enhance high-performance computing capabilities.",
+        "Offer services that support AI/ML infrastructure scaling.",
+        "Propose partnerships or collaborations to drive innovation and market expansion."
+      ],
+      "recentDevelopments": [
+        "Executive appointments to fuel growth and innovation.",
+        "Ongoing updates and enhancements to meet evolving market demands."
+      ]
+    }
+  },
+  {
+    "id": "1757367305346",
+    "timestamp": "2025-09-08T21:35:05.346Z",
+    "status": "pending",
+    "leadId": "10ZiG_Technology_Kevin_Greenway",
+    "leadCompany": "10ZiG Technology",
+    "leadName": "Kevin Greenway",
+    "leadEmail": "keving@10zig.com",
+    "leadTitle": "CTO",
+    "originalSubject": "Enhance 10ZiG's AI Initiatives with High-Performance Computing",
+    "originalBody": "Hi Kevin,\n\nI understand 10ZiG Technology is exploring the convergence of AI and HPC, which aligns perfectly with our expertise at Exabits. Your recent certification of Thin and Zero Clients for Omnissa Horizon 2503 demonstrates a commitment to innovation that we can support.\n\nOur AI-powered High-Performance Computing Solutions, featuring custom AI infrastructure with NVIDIA H100/H200 GPU clusters, are designed to enhance performance and cost-efficiency. Given your projected $2.6M IT investment, our solutions can offer significant value by integrating AI into your VDI offerings, thereby boosting security and performance.\n\nLet's discuss how Exabits can support 10ZiG in leading the market with cutting-edge AI-enhanced solutions. Would you be available for a quick call next week?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Enhance 10ZiG's AI Initiatives with High-Performance Computing",
+    "finalBody": "Hi Kevin,\n\nI understand 10ZiG Technology is exploring the convergence of AI and HPC, which aligns perfectly with our expertise at Exabits. Your recent certification of Thin and Zero Clients for Omnissa Horizon 2503 demonstrates a commitment to innovation that we can support.\n\nOur AI-powered High-Performance Computing Solutions, featuring custom AI infrastructure with NVIDIA H100/H200 GPU clusters, are designed to enhance performance and cost-efficiency. Given your projected $2.6M IT investment, our solutions can offer significant value by integrating AI into your VDI offerings, thereby boosting security and performance.\n\nLet's discuss how Exabits can support 10ZiG in leading the market with cutting-edge AI-enhanced solutions. Would you be available for a quick call next week?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "10ZiG Technology",
+      "contact": "Kevin Greenway",
+      "title": "CTO",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "keving@10zig.com",
+      "score": 121,
+      "hasIntelligence": {
+        "summary": "10ZiG Technology is a company specializing in Virtual Desktop Infrastructure (VDI) solutions, offering modernized, managed, secure, and flexible computing solutions. They are involved in the development and certification of Thin and Zero Clients, which are essential for secure remote desktop access.",
+        "aiReadiness": "10ZiG Technology appears to be exploring AI and high-performance computing (HPC) convergence, indicating a readiness to adopt AI/ML technologies, especially in the context of software-defined infrastructure.",
+        "growthSignals": [
+          "Projected to spend $2.6M on IT this year, indicating investment in technology.",
+          "VDI market projected to witness substantial growth from 2025 to 2032."
+        ],
+        "painPoints": [
+          "Potential gaps in leadership, as indicated by missing Chief Officer roles.",
+          "Challenges in maintaining a competitive edge in the rapidly evolving VDI market."
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight the benefits of AI integration in VDI solutions to enhance security and performance.",
+          "Offer solutions to address leadership gaps, such as executive search services or leadership development programs.",
+          "Propose partnerships or collaborations to strengthen their market position in the VDI sector."
+        ],
+        "keyPersonalities": [
+          "The leadership team is missing key roles such as a Chief Officer and CTO, which could impact strategic direction."
+        ],
+        "recentDevelopments": [
+          "Certification of Thin and Zero Clients for Omnissa Horizon 2503.",
+          "Participation in the NLIT Summit 2025, focusing on AI and HPC convergence."
+        ],
+        "competitivePosition": "10ZiG Technology is positioned in the VDI market with a focus on secure and flexible solutions. However, they face competition from larger players in the cloud and VDI space, and their market position could be strengthened by addressing leadership gaps and enhancing AI capabilities."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "10ZiG Technology appears to be exploring AI and high-performance computing (HPC) convergence, indicating a readiness to adopt AI/ML technologies, especially in the context of software-defined infrastructure.",
+      "growthSignals": 2,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "10ZiG Technology is a company specializing in Virtual Desktop Infrastructure (VDI) solutions, offering modernized, managed, secure, and flexible computing solutions. They are involved in the development and certification of Thin and Zero Clients, which are essential for secure remote desktop access.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight the benefits of AI integration in VDI solutions to enhance security and performance.",
+        "Offer solutions to address leadership gaps, such as executive search services or leadership development programs.",
+        "Propose partnerships or collaborations to strengthen their market position in the VDI sector."
+      ],
+      "recentDevelopments": [
+        "Certification of Thin and Zero Clients for Omnissa Horizon 2503.",
+        "Participation in the NLIT Summit 2025, focusing on AI and HPC convergence."
+      ]
+    }
+  },
+  {
+    "id": "1757367309917",
+    "timestamp": "2025-09-08T21:35:09.917Z",
+    "status": "pending",
+    "leadId": "ABP_Technology_Henry_Castillo",
+    "leadCompany": "ABP Technology",
+    "leadName": "Henry Castillo",
+    "leadEmail": "henry@abptech.com",
+    "leadTitle": "CTO",
+    "originalSubject": "Optimizing GPU Usage for ABP Technology's AI Initiatives",
+    "originalBody": "Hi Henry,\n\nI noticed ABP Technology is increasingly focusing on leveraging GPUs for advanced computing tasks, alongside a significant increase in operating expenses in Q3 2024.\n\nAs you deepen your engagement with AI and high-performance computing, optimizing your GPU usage is crucial. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters that deliver superior performance-per-dollar compared to general cloud solutions.\n\nOur industry expertise ensures a deep understanding of AI/ML compute requirements, enabling us to help companies like ABP Technology not only enhance computational efficiency but also reduce operating costs. This alignment with your current initiatives could significantly impact your bottom line.\n\nWould you be available for a brief call next week to explore how we can support your AI roadmap with optimized GPU solutions?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Optimizing GPU Usage for ABP Technology's AI Initiatives",
+    "finalBody": "Hi Henry,\n\nI noticed ABP Technology is increasingly focusing on leveraging GPUs for advanced computing tasks, alongside a significant increase in operating expenses in Q3 2024.\n\nAs you deepen your engagement with AI and high-performance computing, optimizing your GPU usage is crucial. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters that deliver superior performance-per-dollar compared to general cloud solutions.\n\nOur industry expertise ensures a deep understanding of AI/ML compute requirements, enabling us to help companies like ABP Technology not only enhance computational efficiency but also reduce operating costs. This alignment with your current initiatives could significantly impact your bottom line.\n\nWould you be available for a brief call next week to explore how we can support your AI roadmap with optimized GPU solutions?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "ABP Technology",
+      "contact": "Henry Castillo",
+      "title": "CTO",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "henry@abptech.com",
+      "score": 121,
+      "hasIntelligence": {
+        "summary": "ABP Technology is a company involved in high-performance computing and AI, with a focus on leveraging GPUs for advanced computing tasks. They are also engaged in sustainable investment practices and have recently divested from major tech stocks like Alphabet and Meta.",
+        "aiReadiness": "ABP Technology appears to be actively engaged in AI and high-performance computing, as evidenced by their focus on GPU computing and AI model training. This suggests a high level of AI/ML adoption.",
+        "growthSignals": [
+          "Increased focus on high-performance computing and AI capabilities.",
+          "Rising interest in sustainable investments among stakeholders."
+        ],
+        "painPoints": [
+          "Surge in operating expenses, which may indicate financial strain or inefficiencies.",
+          "Potential challenges in maintaining competitive edge in rapidly evolving tech landscape."
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight solutions that can optimize operating expenses and improve efficiency.",
+          "Emphasize sustainable technology solutions to align with their investment interests."
+        ],
+        "keyPersonalities": [
+          "Subhamoy C., Chief Technology Officer, with a background in enterprise IT and digital transformation."
+        ],
+        "recentDevelopments": [
+          "Significant increase in operating expenses in Q3 2024.",
+          "Divestment from major tech stocks like Alphabet and Meta."
+        ],
+        "competitivePosition": "ABP Technology is positioned as a leader in high-performance computing and AI, with a strong emphasis on sustainability. However, they face challenges in managing operating costs and maintaining their competitive edge."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "ABP Technology appears to be actively engaged in AI and high-performance computing, as evidenced by their focus on GPU computing and AI model training. This suggests a high level of AI/ML adoption.",
+      "growthSignals": 2,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "ABP Technology is a company involved in high-performance computing and AI, with a focus on leveraging GPUs for advanced computing tasks. They are also engaged in sustainable investment practices and have recently divested from major tech stocks like Alphabet and Meta.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight solutions that can optimize operating expenses and improve efficiency.",
+        "Emphasize sustainable technology solutions to align with their investment interests."
+      ],
+      "recentDevelopments": [
+        "Significant increase in operating expenses in Q3 2024.",
+        "Divestment from major tech stocks like Alphabet and Meta."
+      ]
+    }
+  },
+  {
+    "id": "1757367314443",
+    "timestamp": "2025-09-08T21:35:14.443Z",
+    "status": "pending",
+    "leadId": "Passport_Technology_Chad_Boynak",
+    "leadCompany": "Passport Technology",
+    "leadName": "Chad Boynak",
+    "leadEmail": "cboynak@passporttechnology.com",
+    "leadTitle": "Chief Operating Officer & Chief Financial Officer",
+    "originalSubject": "Accelerate AI Adoption for Passport Technology's Growth",
+    "originalBody": "Hi Chad,\n\nI noticed Passport Technology's impressive growth in 2024, particularly in parking compliance and curbside payments. Congratulations on the achievements!\n\nAs you explore AI/ML adoption to enhance your payment and compliance technologies, having the right computing infrastructure is crucial. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide improved performance-per-dollar compared to general cloud services, which can significantly optimize your operations.\n\nGiven your focus on high-performance computing capabilities and early AI/ML adoption, our expertise in AI-HPC can help position Passport Technology as a market leader. Companies like yours typically experience faster innovation cycles and reduced costs, enhancing your competitive edge in the market.\n\nWould you be open to a brief call next week to discuss how our solutions can support your growth initiatives?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Accelerate AI Adoption for Passport Technology's Growth",
+    "finalBody": "Hi Chad,\n\nI noticed Passport Technology's impressive growth in 2024, particularly in parking compliance and curbside payments. Congratulations on the achievements!\n\nAs you explore AI/ML adoption to enhance your payment and compliance technologies, having the right computing infrastructure is crucial. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide improved performance-per-dollar compared to general cloud services, which can significantly optimize your operations.\n\nGiven your focus on high-performance computing capabilities and early AI/ML adoption, our expertise in AI-HPC can help position Passport Technology as a market leader. Companies like yours typically experience faster innovation cycles and reduced costs, enhancing your competitive edge in the market.\n\nWould you be open to a brief call next week to discuss how our solutions can support your growth initiatives?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "Passport Technology",
+      "contact": "Chad Boynak",
+      "title": "Chief Operating Officer & Chief Financial Officer",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "cboynak@passporttechnology.com",
+      "score": 121,
+      "hasIntelligence": {
+        "summary": "Passport Technology is a leader in parking compliance and curbside payment solutions, demonstrating impressive growth in 2024. The company is actively involved in showcasing cutting-edge payment, automation, and loyalty solutions.",
+        "aiReadiness": "Passport Technology appears to be in the early stages of AI/ML adoption, with a focus on high-performance computing capabilities that could support AI applications. However, there is no direct evidence of current AI/ML implementations.",
+        "growthSignals": [
+          "Impressive growth in 2024, particularly in parking compliance and curbside payment solutions.",
+          "Showcasing new solutions at industry events like G2E 2024.",
+          "Recent leadership changes aimed at driving growth."
+        ],
+        "painPoints": [
+          "Potential challenges in scaling AI/ML infrastructure due to the need for advanced compute capabilities.",
+          "Navigating competitive and regulatory challenges in the US Passport Service Market."
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight the benefits of integrating AI/ML solutions to enhance their existing payment and compliance technologies.",
+          "Offer solutions to streamline their high-performance computing infrastructure to better support AI initiatives.",
+          "Discuss strategies to overcome market competition and regulatory hurdles."
+        ],
+        "keyPersonalities": [
+          "Jason, with diverse sales leadership experience, is focused on growth.",
+          "Diallo Gordon, with over 25 years of leadership and technology experience, is a key figure in driving innovation."
+        ],
+        "recentDevelopments": [
+          "Accelerated growth in 2024 with a focus on parking compliance and curbside payments.",
+          "Leadership changes to support growth initiatives.",
+          "Participation in G2E 2024 to showcase new solutions."
+        ],
+        "competitivePosition": "Passport Technology is positioned as a leader in parking compliance and curbside payment solutions, with a strong growth trajectory. However, they face competition and regulatory challenges in the broader passport service market."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 90,
+      "aiReadiness": "Passport Technology appears to be in the early stages of AI/ML adoption, with a focus on high-performance computing capabilities that could support AI applications. However, there is no direct evidence of current AI/ML implementations.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Passport Technology is a leader in parking compliance and curbside payment solutions, demonstrating impressive growth in 2024. The company is actively involved in showcasing cutting-edge payment, automation, and loyalty solutions.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight the benefits of integrating AI/ML solutions to enhance their existing payment and compliance technologies.",
+        "Offer solutions to streamline their high-performance computing infrastructure to better support AI initiatives.",
+        "Discuss strategies to overcome market competition and regulatory hurdles."
+      ],
+      "recentDevelopments": [
+        "Accelerated growth in 2024 with a focus on parking compliance and curbside payments.",
+        "Leadership changes to support growth initiatives.",
+        "Participation in G2E 2024 to showcase new solutions."
+      ]
+    }
+  }
+]

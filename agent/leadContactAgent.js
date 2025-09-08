@@ -505,10 +505,10 @@ class LeadContactAgent extends EventEmitter {
     if (this.cycleInProgress) {
       console.log('[LEAD AGENT] ⏳ Cycle in progress, waiting for completion...');
       
-      // Wait up to 30 seconds for cycle to complete naturally
+      // Wait up to 15 seconds for cycle to complete naturally (reduced from 30)
       let waitTime = 0;
-      const maxWaitTime = 30000; // 30 seconds
-      const checkInterval = 1000; // 1 second
+      const maxWaitTime = 15000; // 15 seconds
+      const checkInterval = 500; // 0.5 second (more responsive)
       
       while (this.cycleInProgress && waitTime < maxWaitTime) {
         await new Promise(resolve => setTimeout(resolve, checkInterval));
@@ -524,7 +524,12 @@ class LeadContactAgent extends EventEmitter {
       }
     }
     
+    // Ensure clean state
     this.currentStatus = 'stopped';
+    this.isRunning = false;
+    this.cycleInProgress = false;
+    
+    // Save the stopped state
     await this.saveState();
     
     console.log('[LEAD AGENT] ✅ Lead Contact Agent stopped successfully');

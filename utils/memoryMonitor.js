@@ -7,11 +7,11 @@ class MemoryMonitor extends EventEmitter {
     
     this.config = {
       checkInterval: options.checkInterval || 30000, // 30 seconds
-      memoryThreshold: options.memoryThreshold || 1024 * 1024 * 1024, // 1GB (increased from 512MB)
-      heapThreshold: options.heapThreshold || 512 * 1024 * 1024, // 512MB (increased from 256MB)
-      gcThreshold: options.gcThreshold || 0.85, // 85% of heap (increased from 80%)
+      memoryThreshold: options.memoryThreshold || 2048 * 1024 * 1024, // 2GB (increased from 1GB)
+      heapThreshold: options.heapThreshold || 1536 * 1024 * 1024, // 1.5GB (increased from 512MB)
+      gcThreshold: options.gcThreshold || 0.90, // 90% of heap (increased from 85%)
       historyLength: options.historyLength || 100, // Keep last 100 readings
-      alertThreshold: options.alertThreshold || 0.9 // Alert at 90% of threshold
+      alertThreshold: options.alertThreshold || 0.95 // Alert at 95% of threshold (increased from 90%)
     };
 
     this.isMonitoring = false;

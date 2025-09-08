@@ -4469,27 +4469,30 @@ Intensive multi-modal research with advanced analysis:
       console.log('[UI] Button elements found:', { startBtn: !!startBtn, stopBtn: !!stopBtn });
       console.log('[UI] Agent running status:', status.isRunning);
       
-      // Only update if buttons aren't showing transitional text
-      if (startBtn && !startBtn.textContent.includes('...') && 
-          stopBtn && !stopBtn.textContent.includes('...')) {
-        
+      // Only update if buttons aren't showing transitional text (loading states)
+      const startBtnTransitional = startBtn && (startBtn.textContent.includes('...') || startBtn.innerHTML.includes('loading-spinner'));
+      const stopBtnTransitional = stopBtn && (stopBtn.textContent.includes('...') || stopBtn.innerHTML.includes('loading-spinner'));
+      
+      if (startBtn && stopBtn && !startBtnTransitional && !stopBtnTransitional) {
         if (status.isRunning) {
           console.log('[UI] Setting buttons for running state');
           startBtn.disabled = true;
           startBtn.style.background = '#64748b';
-          startBtn.textContent = '🚀 Start Agent';
+          startBtn.innerHTML = '<span class="icon icon-play"></span> Start Agent';
           stopBtn.disabled = false;
-          stopBtn.style.background = '#f44336';
-          stopBtn.textContent = '⏹️ Stop Agent';
+          stopBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+          stopBtn.innerHTML = '<span class="icon icon-stop"></span> Stop Agent';
         } else {
           console.log('[UI] Setting buttons for stopped state');
           startBtn.disabled = false;
-          startBtn.style.background = '#4caf50';
-          startBtn.textContent = '🚀 Start Agent';
+          startBtn.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+          startBtn.innerHTML = '<span class="icon icon-play"></span> Start Agent';
           stopBtn.disabled = true;
           stopBtn.style.background = '#64748b';
-          stopBtn.textContent = '⏹️ Stop Agent';
+          stopBtn.innerHTML = '<span class="icon icon-stop"></span> Stop Agent';
         }
+      } else if (startBtnTransitional || stopBtnTransitional) {
+        console.log('[UI] Skipping button update - transitional state detected');
       }
     }
 
@@ -4639,6 +4642,7 @@ Intensive multi-modal research with advanced analysis:
           // Update buttons to stopped state immediately
           startBtn.disabled = false;
           startBtn.style.background = '#4caf50';
+          startBtn.textContent = '🚀 Start Agent';
           stopBtn.disabled = true;
           stopBtn.style.background = '#64748b';
           stopBtn.textContent = '⏹️ Stop Agent';
@@ -4649,16 +4653,25 @@ Intensive multi-modal research with advanced analysis:
           // Hide progress bar since agent is stopped
           updateProgressDisplay({ isActive: false });
           
-          // Also refresh status after a delay to ensure consistency
+          // Update status display immediately
+          updateStatusDisplay({
+            isRunning: false,
+            currentStatus: 'stopped',
+            currentCycle: data.data?.cyclesCompleted || 0,
+            remainingLeads: 0,
+            nextCycleTime: null
+          });
+          
+          // Also refresh status after a short delay to ensure consistency
           setTimeout(() => {
             refreshAgentStatus();
-          }, 1000);
+          }, 500);
         } else {
           addActivityLog(`❌ Failed to stop agent: ${data.message}`);
           // Reset button state on failure
           stopBtn.disabled = false;
           stopBtn.style.background = '#f44336';
-          stopBtn.textContent = '⏹️ Stop Agent';
+          stopBtn.innerHTML = '<span class="icon icon-stop"></span> Stop Agent';
         }
       } catch (error) {
         console.error('Error stopping agent:', error);
@@ -4667,7 +4680,7 @@ Intensive multi-modal research with advanced analysis:
         const stopBtn = document.getElementById('stop-agent');
         stopBtn.disabled = false;
         stopBtn.style.background = '#f44336';
-        stopBtn.textContent = '⏹️ Stop Agent';
+        stopBtn.innerHTML = '<span class="icon icon-stop"></span> Stop Agent';
       }
     }
 
