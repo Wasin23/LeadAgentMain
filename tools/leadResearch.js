@@ -1,10 +1,272 @@
 // Lead-specific research tool for the Lead Contact Agent
-// Enhanced with deep company research for intelligent sales targeting
+// Enhanced with advanced multi-source lead verification and scoring
 
 import 'dotenv/config';
 import { internetSearch } from './internetSearch.js';
 import { companyIntelligence } from './companyIntelligence.js';
 import { getUserSettings } from '../lib/userManager.js';
+
+// Enhanced lead scoring weights - optimized for 2 paid APIs + free alternatives
+const SCORING_WEIGHTS = {
+  EMAIL_VERIFIED: 35,        // Email deliverability verified (increased weight)
+  TECH_STACK_MATCH: 25,      // Uses relevant technology (free detection)
+  COMPANY_GROWTH: 20,        // Funding, hiring, or growth indicators (free enrichment)
+  ROLE_AUTHORITY: 15,        // Decision-making position (free analysis)
+  TIMING_SIGNALS: 5          // Recent activity or trigger events (free search)
+};
+
+// Technology keywords for scoring
+const AI_ML_TECHNOLOGIES = [
+  'tensorflow', 'pytorch', 'cuda', 'docker', 'kubernetes', 'aws', 'gcp', 'azure',
+  'python', 'jupyter', 'nvidia', 'gpu', 'machine learning', 'artificial intelligence',
+  'deep learning', 'neural networks', 'computer vision', 'nlp', 'data science'
+];
+
+// Growth indicators
+const GROWTH_INDICATORS = [
+  'series a', 'series b', 'funding', 'investment', 'hiring', 'expansion',
+  'scale', 'growth', 'ipo', 'acquisition', 'partnership', 'revenue'
+];
+
+// Decision-maker titles
+const DECISION_MAKER_TITLES = [
+  'cto', 'ceo', 'vp', 'director', 'head of', 'chief', 'founder', 'president',
+  'lead', 'principal', 'senior', 'manager', 'architect'
+];
+
+// Advanced email verification using ZeroBounce
+async function verifyEmailDeliverability(email, userId = null) {
+  try {
+    const apiKey = await getApiKey('zerobounce', userId);
+    if (!apiKey) {
+      console.log('⚠️ ZeroBounce API key not configured, skipping email verification');
+      return { valid: null, score: 0 };
+    }
+
+    const response = await fetch(`https://api.zerobounce.net/v2/validate?api_key=${apiKey}&email=${encodeURIComponent(email)}`);
+    const data = await response.json();
+    
+    if (data.status === 'valid') {
+      console.log(`✅ Email verified: ${email} - ${data.status}`);
+      return { valid: true, score: SCORING_WEIGHTS.EMAIL_VERIFIED, deliverabilityScore: data.sub_result };
+    } else {
+      console.log(`❌ Email invalid: ${email} - ${data.status}`);
+      return { valid: false, score: 0, reason: data.status };
+    }
+  } catch (error) {
+    console.error('ZeroBounce verification error:', error.message);
+    return { valid: null, score: 0 };
+  }
+}
+
+// Enhanced email discovery using Hunter.io
+async function findEmailWithHunter(firstName, lastName, domain, userId = null) {
+  try {
+    const apiKey = await getApiKey('hunter', userId);
+    if (!apiKey) {
+      console.log('⚠️ Hunter.io API key not configured, skipping email discovery');
+      return null;
+    }
+
+    const response = await fetch(
+      `https://api.hunter.io/v2/email-finder?domain=${domain}&first_name=${firstName}&last_name=${lastName}&api_key=${apiKey}`
+    );
+    const data = await response.json();
+    
+    if (data.data && data.data.email && data.data.confidence > 70) {
+      console.log(`🎯 Hunter.io found email: ${data.data.email} (confidence: ${data.data.confidence}%)`);
+      return { 
+        email: data.data.email, 
+        confidence: data.data.confidence,
+        source: 'hunter'
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Hunter.io email finder error:', error.message);
+    return null;
+  }
+}
+
+// Technology stack detection using BuiltWith
+// Free technology stack detection using web scraping
+async function detectTechnologyStack(domain, userId = null) {
+  try {
+    console.log(`🔍 Detecting technology stack for ${domain} using free methods...`);
+    
+    const techStack = [];
+    let techScore = 0;
+    
+    // Method 1: Check common technology patterns in HTTP headers and HTML
+    try {
+      const response = await fetch(`https://${domain}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        timeout: 10000
+      });
+      
+      const html = await response.text();
+      const headers = response.headers;
+      
+      // Check for common frameworks in HTML
+      const techPatterns = {
+        'React': [/react/i, /_react/i, /data-reactroot/i],
+        'Vue.js': [/vue\.js/i, /vue@/i, /__vue__/i],
+        'Angular': [/ng-/i, /angular/i, /_angular/i],
+        'Next.js': [/next\.js/i, /__next/i, /_next/i],
+        'Nuxt.js': [/nuxt/i, /__nuxt/i],
+        'Django': [/django/i, /csrftoken/i],
+        'Rails': [/rails/i, /ruby/i],
+        'WordPress': [/wp-content/i, /wp-includes/i, /wordpress/i],
+        'Shopify': [/shopify/i, /cdn\.shopify/i],
+        'Node.js': [/express/i, /koa/i],
+        'Docker': [/docker/i],
+        'Kubernetes': [/k8s/i, /kubernetes/i],
+        'AWS': [/amazonaws/i, /aws/i],
+        'Python': [/python/i, /django/i, /flask/i],
+        'TensorFlow': [/tensorflow/i, /tf\./i],
+        'PyTorch': [/pytorch/i, /torch/i]
+      };
+      
+      // Check HTTP headers for server info
+      const serverHeader = headers.get('server') || '';
+      const poweredBy = headers.get('x-powered-by') || '';
+      const generator = headers.get('generator') || '';
+      
+      // Analyze HTML content and headers
+      for (const [tech, patterns] of Object.entries(techPatterns)) {
+        const found = patterns.some(pattern => 
+          pattern.test(html) || 
+          pattern.test(serverHeader) || 
+          pattern.test(poweredBy) || 
+          pattern.test(generator)
+        );
+        
+        if (found) {
+          techStack.push(tech.toLowerCase());
+          
+          // More generous scoring: Any relevant technology gets points
+          if (AI_ML_TECHNOLOGIES.some(aiTech => tech.toLowerCase().includes(aiTech))) {
+            techScore = SCORING_WEIGHTS.TECH_STACK_MATCH; // Full points for AI/ML tech
+          } else if (['docker', 'kubernetes', 'aws', 'node.js', 'react', 'angular', 'vue.js'].some(modernTech => tech.toLowerCase().includes(modernTech))) {
+            techScore = Math.max(techScore, Math.floor(SCORING_WEIGHTS.TECH_STACK_MATCH * 0.6)); // 60% for modern tech
+          } else {
+            techScore = Math.max(techScore, Math.floor(SCORING_WEIGHTS.TECH_STACK_MATCH * 0.3)); // 30% for any tech
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.log(`⚠️ Could not fetch website directly: ${error.message}`);
+    }
+    
+    console.log(`� Technology stack detected: ${techStack.join(', ')} (Score: ${techScore})`);
+    
+    return {
+      technologies: techStack,
+      score: techScore,
+      allTech: techStack
+    };
+    
+  } catch (error) {
+    console.error('Technology detection error:', error);
+    return {
+      technologies: [],
+      score: 0,
+      allTech: []
+    };
+  }
+}
+
+// Free company enrichment using web scraping and search
+async function enrichCompanyData(domain, userId = null) {
+  try {
+    console.log(`💼 Enriching company data for ${domain} using free methods...`);
+    
+    let growthScore = 0;
+    const companyData = { enriched: false };
+    
+    // Method 1: Scrape company website for basic info
+    try {
+      const response = await fetch(`https://${domain}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        timeout: 10000
+      });
+      
+      const html = await response.text();
+      
+      // Extract company info from meta tags and content
+      const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+      const descriptionMatch = html.match(/<meta name="description" content="(.*?)"/i);
+      
+      if (titleMatch) companyData.name = titleMatch[1];
+      if (descriptionMatch) companyData.description = descriptionMatch[1];
+      
+      // Look for growth indicators in the content
+      const content = html.toLowerCase();
+      GROWTH_INDICATORS.forEach(indicator => {
+        if (content.includes(indicator)) {
+          growthScore += 2;
+        }
+      });
+      
+    } catch (error) {
+      console.log(`⚠️ Could not scrape company website: ${error.message}`);
+    }
+    
+    // Method 2: Use web search for company funding/growth information
+    try {
+      const searchQuery = `"${domain}" funding OR investment OR "series a" OR "series b" OR hiring OR growth`;
+      const searchResults = await internetSearch(searchQuery, { maxResults: 3 });
+      
+      if (searchResults?.results) {
+        for (const result of searchResults.results) {
+          const content = (result.content || '').toLowerCase();
+          
+          // Look for funding/growth signals
+          GROWTH_INDICATORS.forEach(indicator => {
+            if (content.includes(indicator)) {
+              growthScore += 3;
+            }
+          });
+          
+          // Check for specific signals
+          if (content.includes('million') && (content.includes('funding') || content.includes('raised'))) {
+            growthScore += 8;
+          }
+          if (content.includes('hiring') || content.includes('jobs')) {
+            growthScore += 4;
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ Company growth search failed: ${error.message}`);
+    }
+    
+    // Cap the score
+    growthScore = Math.min(growthScore, SCORING_WEIGHTS.COMPANY_GROWTH);
+    
+    console.log(`💼 Company enrichment complete for ${domain} (Score: ${growthScore})`);
+    
+    return {
+      enriched: true,
+      score: growthScore,
+      data: companyData
+    };
+    
+  } catch (error) {
+    console.error('Company enrichment error:', error);
+    return {
+      enriched: false,
+      score: 0,
+      data: {}
+    };
+  }
+}
 
 // Helper function to get API key from user settings first, then environment
 async function getApiKey(keyName, userId = null) {
@@ -32,44 +294,188 @@ async function getApiKey(keyName, userId = null) {
   }
 }
 
-// Enhanced lead research with company intelligence
+// Enhanced lead research with multi-source verification and scoring
 export async function leadResearch(query, options = {}) {
   // Optimize Apollo usage: Only search for 5 leads since we only use top 5 anyway
   const limit = Math.min(options.limit || 5, 5); // Cap at 5 to reduce API costs
   const userId = options.userId || null; // Get userId from options for API key lookup
   const researchFocus = options.researchFocus || null; // Get custom research focus
   const leadContactSettings = options.leadContactSettings || null; // Get lead contact settings
-  console.log(`🔍 [LEAD RESEARCH] Starting enhanced research for: ${query} (limit: ${limit} to optimize costs)`);
+  console.log(`🔍 [LEAD RESEARCH] Starting enhanced multi-source research for: ${query} (limit: ${limit})`);
   
   try {
     // Step 1: Get initial leads from Apollo
     const apolloLeads = await searchApollo(query, limit, userId);
     console.log(`📊 [LEAD RESEARCH] Found ${apolloLeads.length} Apollo leads`);
     
-    // Step 2: Enhanced research with company intelligence on top leads
+    // Step 2: Enhanced verification and scoring on top leads
     const topLeads = apolloLeads.slice(0, 5);
     const enhancedLeads = [];
     
     for (const lead of topLeads) {
-      console.log(`🔬 [LEAD RESEARCH] Deep intelligence gathering: ${lead.organization?.name || lead.company}`);
+      const companyName = lead.organization?.name || lead.company;
+      const domain = lead.organization?.primary_domain || extractDomain(lead.email);
+      
+      console.log(`🔬 [ENHANCED RESEARCH] Processing: ${companyName} - ${lead.name}`);
+      
+      let totalScore = 0;
+      const scoringBreakdown = {};
+      const enrichmentData = {};
+      
+      // Enhanced Email Verification
+      let verifiedEmail = lead.email;
+      if (lead.email) {
+        const emailVerification = await verifyEmailDeliverability(lead.email, userId);
+        totalScore += emailVerification.score;
+        scoringBreakdown.emailVerification = emailVerification;
+        enrichmentData.emailVerification = emailVerification;
+      } else if (domain && lead.first_name && lead.last_name) {
+        // Try to find email with Hunter.io
+        const hunterResult = await findEmailWithHunter(lead.first_name, lead.last_name, domain, userId);
+        if (hunterResult) {
+          verifiedEmail = hunterResult.email;
+          enrichmentData.emailSource = 'hunter';
+          enrichmentData.emailConfidence = hunterResult.confidence;
+          // Verify the found email
+          const emailVerification = await verifyEmailDeliverability(verifiedEmail, userId);
+          totalScore += emailVerification.score;
+          scoringBreakdown.emailVerification = emailVerification;
+        }
+      }
+      
+      // Technology Stack Analysis
+      if (domain) {
+        const techAnalysis = await detectTechnologyStack(domain, userId);
+        totalScore += techAnalysis.score;
+        scoringBreakdown.technologyStack = techAnalysis;
+        enrichmentData.technologies = techAnalysis;
+      }
+      
+      // Company Data Enrichment
+      if (domain) {
+        const companyEnrichment = await enrichCompanyData(domain, userId);
+        totalScore += companyEnrichment.score;
+        scoringBreakdown.companyGrowth = companyEnrichment;
+        enrichmentData.companyData = companyEnrichment.data;
+      }
+      
+      // Authority/Role Scoring
+      const authorityScore = calculateAuthorityScore(lead.title);
+      totalScore += authorityScore;
+      scoringBreakdown.roleAuthority = { score: authorityScore, title: lead.title };
+      
+      // Timing Signals Detection
+      const timingSignals = await detectTimingSignals(companyName, userId);
+      totalScore += timingSignals.score;
+      scoringBreakdown.timingSignals = timingSignals;
+      enrichmentData.timingSignals = timingSignals.signals;
+      
+      // Company Intelligence (existing function)
       const enhancedLead = await companyIntelligence.enhanceAndVerifyLead(lead, researchFocus, leadContactSettings);
       
-      // Only include verified leads
-      if (enhancedLead.verification && enhancedLead.verification.isVerified) {
-        enhancedLeads.push(enhancedLead);
-        console.log(`✅ [LEAD RESEARCH] Lead verified and enhanced: ${lead.organization?.name || lead.company}`);
+      // Create comprehensive enhanced lead object
+      const finalEnhancedLead = {
+        ...enhancedLead,
+        email: verifiedEmail,
+        totalScore: totalScore,
+        scoringBreakdown: scoringBreakdown,
+        enrichmentData: enrichmentData,
+        leadQuality: totalScore >= 70 ? 'high' : totalScore >= 40 ? 'medium' : 'low',
+        verificationStatus: 'enhanced_verified'
+      };
+      
+      // Only include leads with minimum score or verified emails
+      if (totalScore >= 25 || (verifiedEmail && scoringBreakdown.emailVerification?.valid)) {
+        enhancedLeads.push(finalEnhancedLead);
+        console.log(`✅ [ENHANCED RESEARCH] Lead qualified: ${companyName} - Score: ${totalScore} (${finalEnhancedLead.leadQuality})`);
       } else {
-        console.log(`❌ [LEAD RESEARCH] Lead rejected - verification failed: ${enhancedLead.verification?.reason || 'Unknown reason'}`);
+        console.log(`❌ [ENHANCED RESEARCH] Lead filtered out: ${companyName} - Score: ${totalScore} (below threshold of 25)`);
       }
     }
     
-    // Step 3: Return enhanced verified leads + remaining basic leads
+    // Sort by total score (highest first)
+    enhancedLeads.sort((a, b) => b.totalScore - a.totalScore);
+    
+    console.log(`🎯 [ENHANCED RESEARCH] Qualified ${enhancedLeads.length}/${topLeads.length} leads with enhanced scoring`);
+    
+    // Return enhanced leads + remaining basic leads if needed
     const remainingLeads = apolloLeads.slice(5);
     return [...enhancedLeads, ...remainingLeads];
     
   } catch (error) {
-    console.error('[LEAD RESEARCH] Error:', error);
+    console.error('[ENHANCED RESEARCH] Error:', error);
     throw error;
+  }
+}
+
+// Helper function to extract domain from email
+function extractDomain(email) {
+  if (!email || !email.includes('@')) return null;
+  return email.split('@')[1];
+}
+
+// Calculate lead authority score based on title
+function calculateAuthorityScore(title) {
+  const titleLower = (title || '').toLowerCase();
+  const matchingTitles = DECISION_MAKER_TITLES.filter(dmTitle => 
+    titleLower.includes(dmTitle)
+  );
+  
+  if (matchingTitles.some(title => ['ceo', 'cto', 'founder', 'president'].includes(title))) {
+    return SCORING_WEIGHTS.ROLE_AUTHORITY;
+  } else if (matchingTitles.some(title => ['vp', 'director', 'head of'].includes(title))) {
+    return Math.floor(SCORING_WEIGHTS.ROLE_AUTHORITY * 0.8);
+  } else if (matchingTitles.length > 0) {
+    return Math.floor(SCORING_WEIGHTS.ROLE_AUTHORITY * 0.5);
+  }
+  
+  return 0;
+}
+
+// Detect timing signals for outreach
+async function detectTimingSignals(companyName, userId = null) {
+  try {
+    // Search for recent company news, funding, hiring, etc.
+    const searchQuery = `${companyName} (funding OR hiring OR expansion OR partnership OR announcement) 2024 2025`;
+    const results = await internetSearch(searchQuery);
+    
+    let timingScore = 0;
+    const signals = [];
+    
+    if (results && results.organic && results.organic.length > 0) {
+      const recentNews = results.organic.slice(0, 5);
+      
+      for (const article of recentNews) {
+        const text = (article.title + ' ' + (article.snippet || '')).toLowerCase();
+        
+        if (GROWTH_INDICATORS.some(indicator => text.includes(indicator))) {
+          timingScore += 2;
+          signals.push({
+            type: 'growth_signal',
+            description: article.title,
+            url: article.link
+          });
+        }
+        
+        // Look for technology mentions
+        if (AI_ML_TECHNOLOGIES.some(tech => text.includes(tech))) {
+          timingScore += 3;
+          signals.push({
+            type: 'tech_signal', 
+            description: article.title,
+            url: article.link
+          });
+        }
+      }
+    }
+    
+    const finalScore = Math.min(timingScore, SCORING_WEIGHTS.TIMING_SIGNALS);
+    console.log(`⏰ Timing signals for ${companyName}: ${signals.length} signals, score: ${finalScore}`);
+    
+    return { score: finalScore, signals };
+  } catch (error) {
+    console.error('Timing signals detection error:', error.message);
+    return { score: 0, signals: [] };
   }
 }
 

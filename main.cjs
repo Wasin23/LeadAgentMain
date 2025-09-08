@@ -12,7 +12,8 @@ function startServer() {
   
   serverProcess = spawn('node', ['app.js'], {
     cwd: __dirname,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'development' }
   });
 
   serverProcess.on('error', (err) => {
@@ -21,6 +22,10 @@ function startServer() {
   
   serverProcess.on('close', (code) => {
     console.log(`Server process exited with code ${code}`);
+    if (code !== 0 && !app.isQuitting) {
+      console.log('Server crashed, attempting restart...');
+      setTimeout(startServer, 2000); // Restart after 2 seconds
+    }
   });
 }
 
@@ -139,7 +144,19 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // Kill server process when app closes
   if (serverProcess) {
-    serverProcess.kill();
+    console.log('Gracefully shutting down server...');
+    app.isQuitting = true;
+    
+    // Send SIGTERM for graceful shutdown
+    serverProcess.kill('SIGTERM');
+    
+    // Force kill after 5 seconds if still running
+    setTimeout(() => {
+      if (serverProcess && !serverProcess.killed) {
+        console.log('Force killing server process...');
+        serverProcess.kill('SIGKILL');
+      }
+    }, 5000);
   }
   
   // On macOS, apps typically stay active until explicitly quit
@@ -150,8 +167,10 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   // Clean up server process
+  app.isQuitting = true;
   if (serverProcess) {
-    serverProcess.kill();
+    console.log('App quitting - shutting down server...');
+    serverProcess.kill('SIGTERM');
   }
 });
 

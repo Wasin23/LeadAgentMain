@@ -24,7 +24,7 @@ router.post('/start', async (req, res) => {
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error starting agent:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error starting Lead Contact Agent',
       error: error.message
@@ -58,7 +58,7 @@ router.post('/set-interval', async (req, res) => {
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error setting interval:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error setting cycle interval',
       error: error.message
@@ -82,7 +82,7 @@ router.post('/reset-interval', async (req, res) => {
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error resetting interval:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error resetting cycle interval',
       error: error.message
@@ -105,7 +105,7 @@ router.post('/stop', async (req, res) => {
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error stopping agent:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error stopping Lead Contact Agent',
       error: error.message
@@ -124,7 +124,7 @@ router.get('/status', async (req, res) => {
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error getting status:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error getting agent status',
       error: error.message
@@ -144,7 +144,7 @@ router.post('/reset', async (req, res) => {
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error resetting agent:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error resetting Lead Contact Agent',
       error: error.message
@@ -165,7 +165,7 @@ router.post('/run-cycle', async (req, res) => {
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error running cycle:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error running cycle',
       error: error.message

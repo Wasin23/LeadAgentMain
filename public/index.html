@@ -35,6 +35,7 @@
     .icon-code { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232196f3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-robot { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-history { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
+    .icon-chat { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-target { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-building { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .icon-user-group { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
@@ -279,9 +280,9 @@
     }
 
     #sidebar {
-      width: 700px;
-      min-width: 400px;
-      max-width: 80vw;
+      width: 100vw;
+      min-width: 100vw;
+      max-width: 100vw;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
       padding: 1rem;
@@ -332,6 +333,56 @@
       flex: 1;
       gap: 1rem;
       min-height: 0;
+    }
+
+    .main-content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      margin: 0 0.5rem 1rem 0;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    #main-header .title-text {
+      background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    #main-header .title-settings button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid rgba(90, 103, 216, 0.3);
+      background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #main-header .title-settings button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(90, 103, 216, 0.4);
     }
 
     .horizontal-tabs {
@@ -1266,13 +1317,12 @@
 <body>
   <div id="container">
     <div id="sidebar">
-      <div class="sidebar-resizer"></div>
-      
-      <div class="tools-header">TOOLS</div>
       
       <div class="tabs-container">
+        <!-- Tab Buttons Column -->
         <div class="horizontal-tabs">
-          <button class="horizontal-tab-button active" data-tab="history"><span class="icon icon-history"></span> Chat History</button>
+          <button class="horizontal-tab-button active" data-tab="chat"><span class="icon icon-chat"></span> ExaMark Chat</button>
+          <button class="horizontal-tab-button" data-tab="history"><span class="icon icon-history"></span> Chat History</button>
           <button class="horizontal-tab-button" data-tab="deepresearch"><span class="icon icon-magnify"></span> Deep Research</button>
           <button class="horizontal-tab-button" data-tab="leadagent"><span class="icon icon-robot"></span> Lead Contact Agent</button>
           <button class="horizontal-tab-button" data-tab="emailqueue"><span class="icon icon-queue"></span> Email Queue</button>
@@ -1281,9 +1331,45 @@
           <button class="horizontal-tab-button" data-tab="training"><span class="icon icon-brain"></span> AI Training Lab</button>
         </div>
         
-        <div class="tab-content-area">
+        <!-- Right Side: Header + Content -->
+        <div class="main-content-area">
+          <!-- Header Section -->
+          <div id="main-header">
+            <div class="title-text">ExaMark</div>
+            <div class="title-settings">
+              <button id="user-initial-btn" onclick="openSettings()">A</button>
+            </div>
+          </div>
+          
+          <!-- Tab Content Area -->
+          <div class="tab-content-area">
+            <!-- ExaMark Chat Tab Content -->
+            <div id="chat-content" class="tab-content active">
+              <div id="chat-area">
+                <div id="chat"></div>
+              </div>            <div id="input-area">
+              <div id="input-container">
+                <textarea id="message" placeholder="Type your message..." rows="1"></textarea>
+                <div id="streaming-controls" style="display: none; position: absolute; left: 16px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 4px 8px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15);">
+                  <button id="pause-btn" style="width: 28px; height: 28px; padding: 0; margin-right: 4px; background: rgba(59, 130, 246, 0.9); border: none; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" title="Pause">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <rect x="6" y="4" width="4" height="16" fill="#1e293b" rx="1"/>
+                      <rect x="14" y="4" width="4" height="16" fill="#1e293b" rx="1"/>
+                    </svg>
+                  </button>
+                  <button id="stop-btn" style="width: 28px; height: 28px; padding: 0; background: rgba(239, 68, 68, 0.9); border: none; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" title="Stop">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" fill="#1e293b" rx="2"/>
+                    </svg>
+                  </button>
+                </div>
+                <button id="send">Send</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Chat History Tab Content -->
-          <div id="history-content" class="tab-content active">
+          <div id="history-content" class="tab-content" style="display:none;">
             <h3 style="margin:0 0 1rem 0;color:#5a67d8;">Chat History</h3>
             <div id="history-list"></div>
           </div>
@@ -1397,14 +1483,36 @@
             
             <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;margin-bottom:1rem;border-left:4px solid #059669;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
               <div style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem;">
-                <strong>Automated Lead Generation & Email Outreach</strong><br>
-                Finds high-quality prospects for Exabits every set cycle and sends personalized emails
+                <strong>🚀 Enhanced Automated Lead Generation & Email Outreach</strong><br>
+                Multi-source lead verification with advanced scoring and real-time company intelligence
               </div>
               <div style="font-size:0.85rem;color:#64748b;">
-                • Researches AI/ML companies needing GPU infrastructure<br>
-                • Sends 5 personalized emails per cycle<br>
-                • Tracks and avoids duplicate outreach<br>
-                • Runs continuously in background
+                • Multi-source lead research (Apollo + Hunter.io + BuiltWith + Clearbit)<br>
+                • Email deliverability verification with ZeroBounce<br>
+                • Technology stack detection and company growth analysis<br>
+                • Advanced lead scoring with timing signals<br>
+                • Sends 5 highest-quality verified leads per cycle
+              </div>
+            </div>
+            
+            <!-- Enhanced APIs Status -->
+            <div id="enhanced-apis-status" style="background:rgba(139, 92, 246, 0.1);backdrop-filter:blur(10px);border-radius:12px;padding:1rem;margin-bottom:1rem;border-left:4px solid #8b5cf6;border:1px solid rgba(139, 92, 246, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                <h4 style="margin:0;color:#7c3aed;">🔥 Enhanced Lead Quality APIs</h4>
+                <button onclick="checkApiStatus()" style="background:rgba(139, 92, 246, 0.2);border:none;border-radius:4px;padding:0.3rem 0.6rem;color:#7c3aed;font-size:0.75rem;cursor:pointer;font-weight:600;">Check Status</button>
+              </div>
+              <div id="api-status-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.5rem;font-size:0.8rem;">
+                <div id="zerobounce-status" style="text-align:center;padding:0.4rem;background:rgba(255,255,255,0.7);border-radius:6px;">
+                  <div style="font-weight:600;color:#7c3aed;">ZeroBounce</div>
+                  <div style="color:#64748b;">⚠️ Not configured</div>
+                </div>
+                <div id="hunter-status" style="text-align:center;padding:0.4rem;background:rgba(255,255,255,0.7);border-radius:6px;">
+                  <div style="font-weight:600;color:#7c3aed;">Hunter.io</div>
+                  <div style="color:#64748b;">⚠️ Not configured</div>
+                </div>
+              </div>
+              <div style="font-size:0.75rem;color:#64748b;margin-top:0.5rem;text-align:center;">
+                Enhanced with free technology detection and company enrichment built-in
               </div>
             </div>
             
@@ -2122,39 +2230,6 @@
         </div>
       </div>
       
-    </div>
-
-    <div id="main">
-      <div id="title">
-        <div class="title-text">ExaMark</div>
-        <div class="title-settings">
-          <button id="user-initial-btn" onclick="openSettings()">A</button>
-        </div>
-      </div>
-      
-      <div id="chat-area">
-        <div id="chat"></div>
-      </div>
-      
-      <div id="input-area">
-        <div id="input-container">
-          <textarea id="message" placeholder="Type your message..." rows="1"></textarea>
-          <div id="streaming-controls" style="display: none; position: absolute; left: 16px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 4px 8px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15);">
-            <button id="pause-btn" style="width: 28px; height: 28px; padding: 0; margin-right: 4px; background: rgba(59, 130, 246, 0.9); border: none; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" title="Pause">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <rect x="6" y="4" width="4" height="16" fill="#1e293b" rx="1"/>
-                <rect x="14" y="4" width="4" height="16" fill="#1e293b" rx="1"/>
-              </svg>
-            </button>
-            <button id="stop-btn" style="width: 28px; height: 28px; padding: 0; background: rgba(239, 68, 68, 0.9); border: none; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" title="Stop">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="4" width="16" height="16" fill="#1e293b" rx="2"/>
-              </svg>
-            </button>
-          </div>
-          <button id="send">Send</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -3149,6 +3224,11 @@
         // Load analytics data when analytics tab is shown
         if (tabId === 'analytics') {
           loadAnalyticsData();
+        }
+        
+        // Check API status when lead agent tab is shown
+        if (tabId === 'leadagent') {
+          checkApiStatus();
         }
         
         // Initialize LinkedIn profile builder when LinkedIn tab is shown
@@ -7190,6 +7270,17 @@ Example usage in prompt:
               // HeyReach API placeholders
               document.getElementById('modal-heyreach-api-key').placeholder = keys.heyreachApiKey ? '••••••••••••' + keys.heyreachApiKey.slice(-4) : 'Your HeyReach API key';
               
+              // Lead Contact Enhancement API placeholders
+              document.getElementById('modal-zerobounce-key').placeholder = keys.zerobounce ? '••••••••••••' + keys.zerobounce.slice(-4) : 'Your ZeroBounce API key';
+              document.getElementById('modal-hunter-key').placeholder = keys.hunter ? '••••••••••••' + keys.hunter.slice(-4) : 'Your Hunter.io API key';
+              
+              // Load Zilliz settings if available
+              if (data.settings.vectorStore?.zilliz) {
+                const zilliz = data.settings.vectorStore.zilliz;
+                document.getElementById('modal-zilliz-endpoint').placeholder = zilliz.endpoint ? zilliz.endpoint.substring(0, 20) + '...' : 'Zilliz endpoint URL';
+                document.getElementById('modal-zilliz-token').placeholder = zilliz.token ? '••••••••••••' + zilliz.token.slice(-4) : 'Your Zilliz API token';
+              }
+              
               // Update preview elements
               document.getElementById('modal-openai-preview').textContent = keys.openai ? `Current: ${keys.openai}` : 'Current: None';
               document.getElementById('modal-serper-preview').textContent = keys.serper ? `Current: ${keys.serper}` : 'Current: None';
@@ -7205,6 +7296,12 @@ Example usage in prompt:
               // HeyReach API previews
               document.getElementById('modal-heyreach-api-key-preview').textContent = keys.heyreachApiKey ? `Current: ••••••••••••${keys.heyreachApiKey.slice(-4)}` : 'Current: None';
               document.getElementById('modal-heyreach-base-url-preview').textContent = keys.heyreachBaseUrl ? `Current: ${keys.heyreachBaseUrl}` : 'Current: https://api.heyreach.io';
+              
+              // Lead Contact Enhancement API previews
+              document.getElementById('modal-zerobounce-preview').textContent = keys.zerobounce ? `Current: ••••••••••••${keys.zerobounce.slice(-4)}` : 'Current: None';
+              document.getElementById('modal-hunter-preview').textContent = keys.hunter ? `Current: ••••••••••••${keys.hunter.slice(-4)}` : 'Current: None';
+              document.getElementById('modal-builtwith-preview').textContent = keys.builtwith ? `Current: ••••••••••••${keys.builtwith.slice(-4)}` : 'Current: None';
+              document.getElementById('modal-clearbit-preview').textContent = keys.clearbit ? `Current: ••••••••••••${keys.clearbit.slice(-4)}` : 'Current: None';
               
               console.log('🔑 Updated API key previews:', keys);
             } else {
@@ -7223,6 +7320,12 @@ Example usage in prompt:
               // HeyReach defaults
               document.getElementById('modal-heyreach-api-key-preview').textContent = 'Current: None';
               document.getElementById('modal-heyreach-base-url-preview').textContent = 'Current: https://api.heyreach.io';
+              
+              // Lead Contact Enhancement defaults
+              document.getElementById('modal-zerobounce-preview').textContent = 'Current: None';
+              document.getElementById('modal-hunter-preview').textContent = 'Current: None';
+              document.getElementById('modal-builtwith-preview').textContent = 'Current: None';
+              document.getElementById('modal-clearbit-preview').textContent = 'Current: None';
             }
           })
           .catch(console.error);
@@ -7271,7 +7374,19 @@ Example usage in prompt:
         
         // HeyReach API keys
         heyreachApiKey: document.getElementById('modal-heyreach-api-key').value,
-        heyreachBaseUrl: document.getElementById('modal-heyreach-base-url').value
+        heyreachBaseUrl: document.getElementById('modal-heyreach-base-url').value,
+        
+        // Lead Contact Enhancement APIs
+        zerobounce: document.getElementById('modal-zerobounce-key').value,
+        hunter: document.getElementById('modal-hunter-key').value
+      };
+      
+      // Vector Database Configuration (separate from API keys)
+      const vectorStore = {
+        zilliz: {
+          endpoint: document.getElementById('modal-zilliz-endpoint').value,
+          token: document.getElementById('modal-zilliz-token').value
+        }
       };
 
       // Remove empty keys
@@ -7282,7 +7397,7 @@ Example usage in prompt:
       fetch(`/api/auth/settings/${currentUser.userId}/api-keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKeys })
+        body: JSON.stringify({ apiKeys, vectorStore })
       })
       .then(response => response.json())
       .then(data => {
@@ -7304,6 +7419,14 @@ Example usage in prompt:
           // Clear HeyReach fields
           document.getElementById('modal-heyreach-api-key').value = '';
           document.getElementById('modal-heyreach-base-url').value = '';
+          
+          // Clear Lead Contact Enhancement fields
+          document.getElementById('modal-zerobounce-key').value = '';
+          document.getElementById('modal-hunter-key').value = '';
+          
+          // Clear Zilliz fields
+          document.getElementById('modal-zilliz-endpoint').value = '';
+          document.getElementById('modal-zilliz-token').value = '';
           
           loadSettingsData(); // Reload to show updated previews
         } else {
@@ -8574,14 +8697,27 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
         return;
       }
       
-      // Store rating in training data (would go to Milvus)
+      // Store rating in training data (now goes to Zilliz)
       window.trainingData.interactions.push({
         response: latestResponse,
         rating: rating,
         timestamp: new Date()
       });
       
+      // Store in Zilliz vector database for AI training
+      storeTrainingData(
+        latestResponse, 
+        'response_rating', 
+        rating, 
+        { 
+          context: 'manual_rating',
+          timestamp: Date.now(),
+          user_feedback: true
+        }
+      );
+      
       logToConsole(`⭐ Response rated: ${rating}/5`, 'success');
+      logToConsole(`📚 Training data stored in Zilliz`, 'info');
       
       // Update success rate
       const totalRatings = window.trainingData.interactions.length;
@@ -8714,8 +8850,8 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
           logToConsole('  status - Show training status', 'info');
           logToConsole('  train - Start training session', 'info');
           logToConsole('  analyze - Analyze performance', 'info');
-          logToConsole('  milvus connect - Connect to Milvus database', 'info');
-          logToConsole('  milvus status - Check Milvus connection', 'info');
+          logToConsole('  zilliz connect - Connect to Zilliz vector database', 'info');
+          logToConsole('  zilliz status - Check Zilliz connection & analytics', 'info');
           break;
         case 'status':
           logToConsole('📊 Training System Status:', 'info');
@@ -8730,16 +8866,12 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
           refreshTrainingAnalytics();
           break;
         case 'milvus connect':
-          logToConsole('🔌 Connecting to Milvus database...', 'info');
-          setTimeout(() => {
-            logToConsole('✅ Milvus connection established', 'success');
-            logToConsole('📊 Vector database ready for training data', 'success');
-          }, 1500);
+        case 'zilliz connect':
+          connectToZilliz();
           break;
         case 'milvus status':
-          logToConsole('📡 Milvus Status: Connected', 'success');
-          logToConsole('📊 Collections: training_conversations, knowledge_base, prompt_experiments', 'info');
-          logToConsole('🔢 Total vectors stored: 0', 'info');
+        case 'zilliz status':
+          checkZillizStatus();
           break;
         default:
           logToConsole(`❌ Unknown command: ${command}`, 'error');
@@ -8797,6 +8929,160 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
       refreshTrainingAnalytics();
       logToConsole('🚀 AI Training Lab initialized', 'success');
       logToConsole('💡 Ready to enhance AI critical thinking capabilities', 'info');
+    }
+
+    // Check Enhanced APIs status
+    async function checkApiStatus() {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (!currentUser.userId) {
+        console.log('No user logged in for API status check');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/auth/settings/${currentUser.userId}/api-keys`);
+        const data = await response.json();
+        
+        if (data.success && data.settings && data.settings.apiKeys) {
+          const keys = data.settings.apiKeys;
+          
+          // Update ZeroBounce status
+          const zeroBounceEl = document.getElementById('zerobounce-status');
+          if (zeroBounceEl) {
+            if (keys.zerobounce) {
+              zeroBounceEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">ZeroBounce</div><div style="color:#059669;">✅ Configured</div>';
+            } else {
+              zeroBounceEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">ZeroBounce</div><div style="color:#dc2626;">❌ Missing</div>';
+            }
+          }
+          
+          // Update Hunter.io status
+          const hunterEl = document.getElementById('hunter-status');
+          if (hunterEl) {
+            if (keys.hunter) {
+              hunterEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">Hunter.io</div><div style="color:#059669;">✅ Configured</div>';
+            } else {
+              hunterEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">Hunter.io</div><div style="color:#dc2626;">❌ Missing</div>';
+            }
+          }
+          
+          // Count configured APIs
+          const configuredCount = [keys.zerobounce, keys.hunter].filter(Boolean).length;
+          
+          // Update overall status
+          let overallMessage = '';
+          if (configuredCount === 2) {
+            overallMessage = '🚀 All enhanced APIs configured - Maximum lead quality enabled!';
+          } else if (configuredCount === 1) {
+            overallMessage = `⚡ ${configuredCount}/2 enhanced APIs configured - Good lead quality`;
+          } else {
+            overallMessage = '❌ No enhanced APIs configured - Using basic lead research + free alternatives';
+          }
+          
+          // Update the footer message
+          const statusContainer = document.getElementById('enhanced-apis-status');
+          if (statusContainer) {
+            const footerEl = statusContainer.querySelector('div[style*="font-size:0.75rem"]');
+            if (footerEl) {
+              footerEl.textContent = overallMessage;
+              footerEl.style.color = configuredCount >= 1 ? '#059669' : '#dc2626';
+              footerEl.style.fontWeight = '600';
+            }
+          }
+          
+        } else {
+          console.error('Failed to get API keys for status check');
+        }
+      } catch (error) {
+        console.error('Error checking API status:', error);
+      }
+    }
+
+    // Connect to Zilliz for AI Training
+    async function connectToZilliz() {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (!currentUser.userId) {
+        logToConsole('❌ No user logged in', 'error');
+        return;
+      }
+
+      logToConsole('🔌 Connecting to Zilliz vector database...', 'info');
+      
+      try {
+        const response = await fetch('/api/training/zilliz/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.userId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          logToConsole('✅ Zilliz connection established', 'success');
+          logToConsole('📊 AI Training vector database ready', 'success');
+          logToConsole('🧠 Training embeddings will be stored for analysis', 'info');
+        } else {
+          logToConsole(`❌ Connection failed: ${data.error}`, 'error');
+          logToConsole('💡 Check your Zilliz settings in Settings → API Keys', 'info');
+        }
+      } catch (error) {
+        logToConsole('❌ Connection error: ' + error.message, 'error');
+        logToConsole('💡 Ensure Zilliz endpoint and token are configured', 'info');
+      }
+    }
+
+    // Check Zilliz status
+    async function checkZillizStatus() {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (!currentUser.userId) {
+        logToConsole('❌ No user logged in', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/training/zilliz/status?userId=${currentUser.userId}`);
+        const data = await response.json();
+        
+        if (data.success && data.status.connected) {
+          logToConsole('📡 Zilliz Status: Connected ✅', 'success');
+          logToConsole(`📊 Collection: ${data.status.collectionName}`, 'info');
+          logToConsole(`🔢 Training vectors stored: ${data.analytics?.totalTrainingRecords || 0}`, 'info');
+          logToConsole(`⭐ Average performance score: ${(data.analytics?.averagePerformance || 0).toFixed(2)}`, 'info');
+        } else {
+          logToConsole('📡 Zilliz Status: Disconnected ❌', 'error');
+          logToConsole('💡 Run "zilliz connect" to establish connection', 'info');
+        }
+      } catch (error) {
+        logToConsole('❌ Status check failed: ' + error.message, 'error');
+      }
+    }
+
+    // Store training data with embeddings
+    async function storeTrainingData(text, trainingType, performanceScore, metadata = {}) {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (!currentUser.userId) return;
+
+      try {
+        const response = await fetch('/api/training/zilliz/store', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: currentUser.userId,
+            text,
+            trainingType,
+            performanceScore,
+            metadata
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          logToConsole(`📚 Training data stored: ${trainingType} (score: ${performanceScore})`, 'success');
+        }
+      } catch (error) {
+        console.error('Error storing training data:', error);
+      }
     }
   </script>
   <!-- Settings Modal -->
@@ -8870,6 +9156,45 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
           <label for="modal-heyreach-base-url">HeyReach Base URL</label>
           <input type="text" id="modal-heyreach-base-url" placeholder="https://api.heyreach.io" />
           <div class="api-key-preview" id="modal-heyreach-base-url-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: https://api.heyreach.io</div>
+        </div>
+        
+        <!-- Lead Contact Enhancement APIs -->
+        <h4 style="color: #7c3aed; margin: 2rem 0 1rem 0; padding-top: 1rem; border-top: 2px solid rgba(124, 58, 237, 0.2);">🎯 Lead Contact Enhancement APIs</h4>
+        
+        <div class="modal-form-group">
+          <label for="modal-zerobounce-key">ZeroBounce API Key (Email Verification)</label>
+          <input type="password" id="modal-zerobounce-key" placeholder="Your ZeroBounce API key" />
+          <div class="api-key-preview" id="modal-zerobounce-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            💡 Get this from <a href="https://www.zerobounce.net/" target="_blank" style="color: #5a67d8;">ZeroBounce Dashboard</a> → API Keys
+          </div>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="modal-hunter-key">Hunter.io API Key (Email Finder)</label>
+          <input type="password" id="modal-hunter-key" placeholder="Your Hunter.io API key" />
+          <div class="api-key-preview" id="modal-hunter-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            💡 Get this from <a href="https://hunter.io/" target="_blank" style="color: #5a67d8;">Hunter.io Dashboard</a> → API
+          </div>
+        </div>
+        
+        <!-- Zilliz Vector Database for AI Training -->
+        <div class="modal-form-group" style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem;">
+          <h4 style="color: #374151; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">🧠 Zilliz Vector Database (AI Training Lab)</h4>
+          <label for="modal-zilliz-endpoint">Zilliz Endpoint URL</label>
+          <input type="text" id="modal-zilliz-endpoint" placeholder="https://your-cluster.api.gcp-us-west1.zillizcloud.com" />
+          <div class="api-key-preview" id="modal-zilliz-endpoint-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="modal-zilliz-token">Zilliz API Token</label>
+          <input type="password" id="modal-zilliz-token" placeholder="Your Zilliz API token" />
+          <div class="api-key-preview" id="modal-zilliz-token-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            💡 Get this from <a href="https://cloud.zilliz.com/" target="_blank" style="color: #5a67d8;">Zilliz Cloud Console</a> → API Keys<br>
+            🎯 Used exclusively for AI Training Lab performance analytics and embeddings
+          </div>
         </div>
         
         <button class="save-btn" onclick="saveApiKeys()">💾 Save API Keys</button>
@@ -9365,6 +9690,8 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
       </div>
       
       <div id="lead-settings-status" style="margin-top: 1rem;"></div>
+        </div>
+      </div>
     </div>
   </div>
 

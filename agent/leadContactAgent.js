@@ -857,9 +857,10 @@ class LeadContactAgent extends EventEmitter {
       try {
         const researchResult = await leadResearch(query, { 
           limit: leadLimit,
+          userId: this.userId, // Pass actual userId to access API keys from settings
           researchFocus: this.leadContactSettings?.researchFocus?.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(line => line.length > 0),
           leadContactSettings: this.leadContactSettings
-        }, null); // userId = null, will fall back to environment variables
+        });
         
         this.updateFluidProgress(`📊 Processing Apollo API response...`, baseProgress + 15);
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -1726,9 +1727,24 @@ BODY: [email body]`;
   selectTopLeads(leadsData, count) {
     const availableLeads = this.getAvailableLeads(leadsData);
     
-    // Sort leads by intelligence quality and opportunity score
+    // Enhanced lead scoring with multi-factor analysis
     const sortedLeads = availableLeads.sort((a, b) => {
-      // Prioritize leads with intelligence data
+      // NEW: Prioritize leads with totalScore from enhanced research
+      const aEnhancedScore = a.totalScore;
+      const bEnhancedScore = b.totalScore;
+      
+      if (aEnhancedScore && bEnhancedScore) {
+        // Both have enhanced scoring - use that
+        if (aEnhancedScore !== bEnhancedScore) {
+          return bEnhancedScore - aEnhancedScore;
+        }
+      } else if (aEnhancedScore && !bEnhancedScore) {
+        return -1; // Enhanced lead wins
+      } else if (!aEnhancedScore && bEnhancedScore) {
+        return 1; // Enhanced lead wins
+      }
+      
+      // Prioritize leads with intelligence data (existing system)
       const aHasIntelligence = a.intelligence && a.intelligence.analysis && a.intelligence.analysis.opportunityScore;
       const bHasIntelligence = b.intelligence && b.intelligence.analysis && b.intelligence.analysis.opportunityScore;
       
@@ -1747,14 +1763,29 @@ BODY: [email body]`;
       return bScore - aScore;
     });
     
-    console.log(`[LEAD AGENT] 🎯 Lead selection summary:`);
+    console.log(`[LEAD AGENT] 🎯 Enhanced lead selection summary:`);
     sortedLeads.slice(0, count).forEach((lead, index) => {
+      const enhancedScore = lead.totalScore;
       const hasIntelligence = lead.intelligence && lead.intelligence.analysis;
-      const score = hasIntelligence ? 
+      const legacyScore = hasIntelligence ? 
         lead.intelligence.analysis.opportunityScore : 
         (lead.score || lead.salesIntelligence?.confidence || 'N/A');
+      
       const verified = lead.verification?.isVerified ? '✅' : '❓';
-      console.log(`[LEAD AGENT] ${index + 1}. ${lead.company} ${verified} - Score: ${score} ${hasIntelligence ? '(AI Enhanced)' : '(Basic)'}`);
+      const emailVerified = lead.enrichmentData?.emailVerification?.valid ? '📧✅' : '📧❓';
+      const leadQuality = lead.leadQuality ? `(${lead.leadQuality.toUpperCase()})` : '';
+      
+      if (enhancedScore) {
+        console.log(`[LEAD AGENT] ${index + 1}. ${lead.company} ${verified}${emailVerified} - Enhanced Score: ${enhancedScore} ${leadQuality}`);
+        
+        // Show scoring breakdown for top leads
+        if (index < 3 && lead.scoringBreakdown) {
+          const breakdown = lead.scoringBreakdown;
+          console.log(`[LEAD AGENT]    📊 Breakdown: Email(${breakdown.emailVerification?.score || 0}) + Tech(${breakdown.technologyStack?.score || 0}) + Growth(${breakdown.companyGrowth?.score || 0}) + Authority(${breakdown.roleAuthority?.score || 0}) + Timing(${breakdown.timingSignals?.score || 0})`);
+        }
+      } else {
+        console.log(`[LEAD AGENT] ${index + 1}. ${lead.company} ${verified} - Legacy Score: ${legacyScore} ${hasIntelligence ? '(AI Enhanced)' : '(Basic)'}`);
+      }
     });
     
     return sortedLeads.slice(0, count);

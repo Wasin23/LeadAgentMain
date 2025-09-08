@@ -148,7 +148,7 @@ router.post('/settings/:userId/api-keys', async (req, res) => {
   
   try {
     const { userId } = req.params;
-    const { apiKeys } = req.body;
+    const { apiKeys, vectorStore } = req.body;
     
     if (!apiKeys) {
       console.log('[AUTH] No apiKeys in request body');
@@ -157,6 +157,7 @@ router.post('/settings/:userId/api-keys', async (req, res) => {
     
     console.log('[AUTH] Processing API keys for user:', userId);
     console.log('[AUTH] API keys received:', apiKeys);
+    console.log('[AUTH] Vector store config received:', vectorStore);
     
     // Don't filter out empty values - allow them to clear existing keys
     // But we need to handle them properly in the tools
@@ -169,6 +170,13 @@ router.post('/settings/:userId/api-keys', async (req, res) => {
     console.log('[AUTH] Keys to update:', keysToUpdate);
     
     const updatedKeys = await updateApiKeys(userId, keysToUpdate);
+    
+    // Update vector store settings if provided
+    if (vectorStore) {
+      console.log('[AUTH] Updating vector store settings:', vectorStore);
+      await updateUserSettings(userId, { vectorStore });
+    }
+    
     console.log(`[AUTH] API keys updated successfully for user: ${userId}`);
     console.log('[AUTH] Updated keys result:', updatedKeys);
     
