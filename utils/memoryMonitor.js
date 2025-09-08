@@ -7,9 +7,9 @@ class MemoryMonitor extends EventEmitter {
     
     this.config = {
       checkInterval: options.checkInterval || 30000, // 30 seconds
-      memoryThreshold: options.memoryThreshold || 512 * 1024 * 1024, // 512MB
-      heapThreshold: options.heapThreshold || 256 * 1024 * 1024, // 256MB
-      gcThreshold: options.gcThreshold || 0.8, // 80% of heap
+      memoryThreshold: options.memoryThreshold || 1024 * 1024 * 1024, // 1GB (increased from 512MB)
+      heapThreshold: options.heapThreshold || 512 * 1024 * 1024, // 512MB (increased from 256MB)
+      gcThreshold: options.gcThreshold || 0.85, // 85% of heap (increased from 80%)
       historyLength: options.historyLength || 100, // Keep last 100 readings
       alertThreshold: options.alertThreshold || 0.9 // Alert at 90% of threshold
     };
@@ -148,6 +148,27 @@ class MemoryMonitor extends EventEmitter {
     if (alerts.some(a => a.level === 'critical') && global.gc) {
       console.log('[MEMORY] Running garbage collection...');
       global.gc();
+      // Run cleanup after GC
+      this.cleanupMemory();
+    }
+  }
+
+  // Memory cleanup utility
+  cleanupMemory() {
+    try {
+      // Trim memory history more aggressively
+      if (this.memoryHistory.length > 50) {
+        this.memoryHistory = this.memoryHistory.slice(-50);
+      }
+      
+      // Clear old performance metrics
+      if (this.performanceMetrics.responseTimeHistory.length > 100) {
+        this.performanceMetrics.responseTimeHistory = this.performanceMetrics.responseTimeHistory.slice(-100);
+      }
+      
+      console.log('[MEMORY] Memory cleanup completed');
+    } catch (error) {
+      console.error('[MEMORY] Cleanup error:', error);
     }
   }
 
