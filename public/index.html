@@ -1335,7 +1335,7 @@
         <div class="main-content-area">
           <!-- Header Section -->
           <div id="main-header">
-            <div class="title-text">ExaMark</div>
+            <div class="title-text" onclick="goToChat()" style="cursor: pointer; user-select: none;">ExaMark</div>
             <div class="title-settings">
               <button id="user-initial-btn" onclick="openSettings()">A</button>
             </div>
@@ -6073,6 +6073,14 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
     function closeSettings() {
       const modal = document.getElementById('settings-modal');
       modal.classList.remove('show');
+    }
+
+    function goToChat() {
+      // Find the chat tab button and trigger click
+      const chatTabButton = document.querySelector('.horizontal-tab-button[data-tab="chat"]');
+      if (chatTabButton) {
+        chatTabButton.click();
+      }
     }
 
     // Custom Email Modal Functions
