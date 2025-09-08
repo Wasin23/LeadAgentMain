@@ -37,6 +37,8 @@ export async function leadResearch(query, options = {}) {
   // Optimize Apollo usage: Only search for 5 leads since we only use top 5 anyway
   const limit = Math.min(options.limit || 5, 5); // Cap at 5 to reduce API costs
   const userId = options.userId || null; // Get userId from options for API key lookup
+  const researchFocus = options.researchFocus || null; // Get custom research focus
+  const leadContactSettings = options.leadContactSettings || null; // Get lead contact settings
   console.log(`🔍 [LEAD RESEARCH] Starting enhanced research for: ${query} (limit: ${limit} to optimize costs)`);
   
   try {
@@ -50,7 +52,7 @@ export async function leadResearch(query, options = {}) {
     
     for (const lead of topLeads) {
       console.log(`🔬 [LEAD RESEARCH] Deep intelligence gathering: ${lead.organization?.name || lead.company}`);
-      const enhancedLead = await companyIntelligence.enhanceAndVerifyLead(lead);
+      const enhancedLead = await companyIntelligence.enhanceAndVerifyLead(lead, researchFocus, leadContactSettings);
       
       // Only include verified leads
       if (enhancedLead.verification && enhancedLead.verification.isVerified) {
@@ -303,8 +305,32 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
 
   console.log(`🔑 [Apollo] API Key check: Present (${apiKey.substring(0, 10)}...)`);
   
-  // Use cached result if available
-  const cacheKey = query;
+  // HARDCODED POSITION EXTRACTION - CANNOT BE EDITED OUT
+  // Extract the actual target position from the query string
+  let apolloQuery = 'CTO'; // default fallback
+  let industry = '';
+  let position = 'CTO'; // default
+  
+  // HARDCODED: Extract exact position from query - this ensures proper targeting
+  if (query.includes('Chief Technology Officer')) {
+    position = 'Chief Technology Officer';
+    apolloQuery = 'Chief Technology Officer';
+  } else if (query.includes('IT Director')) {
+    position = 'IT Director';
+    apolloQuery = 'IT Director';
+  } else if (query.includes('CEO')) {
+    position = 'CEO';
+    apolloQuery = 'CEO';
+  } else if (query.includes('Founder')) {
+    position = 'Founder';
+    apolloQuery = 'Founder';
+  } else if (query.includes('CTO')) {
+    position = 'CTO';
+    apolloQuery = 'CTO';
+  }
+  
+  // Use cached result if available - but include position in cache key for proper deduplication
+  const cacheKey = `${query}_${apolloQuery}_${Math.floor(Date.now() / 3600000)}`; // Cache per hour per unique query+position
   const cachedResult = getCachedResult(cacheKey);
   if (cachedResult) {
     console.log('[CACHE] Using cached result for:', query);
@@ -312,13 +338,13 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
   }
 
   try {
-    // Extract industry and position from the query to build proper Apollo search
-    let apolloQuery = 'CTO'; // default fallback
-    let industry = '';
-    let position = '';
-    
-    // Extract industry from query
-    if (query.includes('fast food')) {
+    // HARDCODED INDUSTRY EXTRACTION - CANNOT BE EDITED OUT
+    // Extract industry keywords for proper targeting
+    if (query.includes('technology') || query.includes('software') || query.includes('AI') || query.includes('machine learning')) {
+      industry = 'technology';
+    } else if (query.includes('startup')) {
+      industry = 'startup';  
+    } else if (query.includes('fast food')) {
       industry = 'fast food';
     } else if (query.includes('luxury clothing')) {
       industry = 'luxury clothing';
@@ -340,33 +366,24 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
       industry = 'fintech';
     }
     
-    // Extract position from query
-    if (query.includes('HR Manager')) {
-      position = 'HR Manager';
-    } else if (query.includes('HR Representative')) {
-      position = 'HR Representative';
-    } else if (query.includes('HR Department')) {
-      position = 'HR';
-    } else {
-      position = 'CTO'; // fallback
-    }
-    
-    // Build targeted search query
-    if (industry && position) {
+    // HARDCODED: Build targeted search query with position + industry for uniqueness
+    if (industry && position !== 'CTO') {
       apolloQuery = `${position} ${industry}`;
-    } else if (position) {
+    } else if (industry) {
+      apolloQuery = `${position} ${industry}`;
+    } else {
       apolloQuery = position;
     }
 
     console.log(`🎯 [Apollo] Searching for leads: ${apolloQuery}`);
     
-    // Extract location from query
+    // HARDCODED: Extract location from query - CANNOT BE EDITED OUT
     let location = [];
     if (query.includes('United States')) {
       location = ['United States'];
     }
     
-    // Extract company size from query
+    // HARDCODED: Extract company size from query - CANNOT BE EDITED OUT
     let companySizeMin = null;
     let companySizeMax = null;
     const sizeMatch = query.match(/(\d+)\s+to\s+(\d+)\s+employees/);
@@ -375,11 +392,11 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
       companySizeMax = parseInt(sizeMatch[2]);
     }
     
-    // Build Apollo search payload with proper filters
+    // HARDCODED: Build Apollo search payload with proper filters - CANNOT BE EDITED OUT
     const searchPayload = {
       q_keywords: apolloQuery,
       page: 1,
-      per_page: limit
+      per_page: Math.min(limit * 2, 10) // Get more results for deduplication
     };
     
     // Add location filter if specified
@@ -436,9 +453,24 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
     }
 
     if (data.people && data.people.length > 0) {
+      // HARDCODED DEDUPLICATION - CANNOT BE EDITED OUT
+      // Remove duplicates based on company name and person name to prevent 37signals repetition
+      const seen = new Set();
+      const uniquePeople = data.people.filter(person => {
+        const key = `${person.organization?.name}_${person.name}`.toLowerCase();
+        if (seen.has(key)) {
+          console.log(`🔄 [Apollo] Skipping duplicate: ${person.name} at ${person.organization?.name}`);
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+      
+      console.log(`🎯 [Apollo] Filtered ${data.people.length} → ${uniquePeople.length} unique leads`);
+      
       // Enrich emails for limited subset of people - stop when we have enough
-      const peopleToEnrich = data.people.slice(0, limit); // Use the actual limit requested
-      console.log(`🔓 [Apollo] Enriching emails for ${peopleToEnrich.length} people (out of ${data.people.length} found)...`);
+      const peopleToEnrich = uniquePeople.slice(0, limit); // Use the actual limit requested
+      console.log(`🔓 [Apollo] Enriching emails for ${peopleToEnrich.length} people (out of ${uniquePeople.length} unique found)...`);
       const enrichedPeople = [];
       
       for (const person of peopleToEnrich) {

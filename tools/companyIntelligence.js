@@ -17,9 +17,11 @@ class CompanyIntelligence {
   /**
    * Deep company verification and intelligence gathering
    * @param {Object} apolloLead - Lead data from Apollo
+   * @param {Array} researchFocus - Optional custom research focus keywords
+   * @param {Object} leadContactSettings - Optional lead contact settings for target positions
    * @returns {Object} Enhanced lead with intelligence and verification
    */
-  async enhanceAndVerifyLead(apolloLead) {
+  async enhanceAndVerifyLead(apolloLead, researchFocus = null, leadContactSettings = null) {
     console.log(`🔍 [COMPANY INTEL] Starting deep analysis for: ${apolloLead.company || apolloLead.organization?.name}`);
     
     try {
@@ -37,7 +39,7 @@ class CompanyIntelligence {
       }
 
       // Step 2: Deep intelligence gathering
-      const intelligence = await this.gatherCompanyIntelligence(apolloLead);
+      const intelligence = await this.gatherCompanyIntelligence(apolloLead, researchFocus, leadContactSettings);
       
       // Step 3: Generate personalization data
       const personalization = await this.generatePersonalizationData(apolloLead, intelligence);
@@ -203,21 +205,34 @@ Analyze and respond with JSON:
   /**
    * Gather comprehensive company intelligence
    */
-  async gatherCompanyIntelligence(apolloLead) {
+  async gatherCompanyIntelligence(apolloLead, researchFocus = null, leadContactSettings = null) {
     const company = apolloLead.company || apolloLead.organization?.name;
     
     console.log(`🧠 [INTELLIGENCE] Gathering deep intelligence for: ${company}`);
     
+    // Use custom research focus if provided, otherwise default to AI/ML terms
+    const techTerms = researchFocus && researchFocus.length > 0 
+      ? researchFocus.slice(0, 3).join(' ') // Use first 3 custom terms
+      : 'artificial intelligence AI machine learning technology infrastructure';
+    
+    // Use target positions from settings for leadership search, otherwise default
+    const leadershipTerms = leadContactSettings?.targetPositions?.length > 0
+      ? leadContactSettings.targetPositions.slice(0, 3).join(' ') + ' leadership management team vision strategy'
+      : 'HR leadership management team employee experience workplace culture';
+    
+    console.log(`🎯 [INTELLIGENCE] Using research focus: ${techTerms}`);
+    console.log(`🎯 [INTELLIGENCE] Using leadership focus: ${leadershipTerms}`);
+    
     // Define highly targeted research queries (4 total searches)
     const researchCategories = {
       techCapabilities: [
-        `${company} artificial intelligence AI machine learning technology infrastructure`
+        `${company} ${techTerms}`
       ],
       businessIntel: [
         `${company} funding investment revenue growth news 2024 2025`
       ],
       leadership: [
-        `${company} CEO CTO founder leadership team vision strategy`
+        `${company} ${leadershipTerms}`
       ],
       market: [
         `${company} competitors challenges market position recent developments`
@@ -238,7 +253,7 @@ Analyze and respond with JSON:
         try {
           const results = await internetSearch(query);
           if (results.organic && results.organic.length > 0) {
-            const insights = this.extractKeyInsights(results.organic, company, category);
+            const insights = this.extractKeyInsights(results.organic, company, category, researchFocus);
             intelligence.categories[category].push(...insights);
           }
           
@@ -299,13 +314,13 @@ Provide a JSON response with:
   /**
    * Extract key insights from search results
    */
-  extractKeyInsights(searchResults, company, category) {
+  extractKeyInsights(searchResults, company, category, researchFocus = null) {
     return searchResults.slice(0, 3).map(result => ({
       title: result.title,
       url: result.link,
       snippet: result.snippet,
       category: category,
-      relevance: this.calculateRelevance(result, company),
+      relevance: this.calculateRelevance(result, company, researchFocus),
       extractedAt: new Date().toISOString()
     }));
   }
@@ -313,7 +328,7 @@ Provide a JSON response with:
   /**
    * Calculate relevance score for search result
    */
-  calculateRelevance(result, company) {
+  calculateRelevance(result, company, researchFocus = null) {
     const text = `${result.title} ${result.snippet}`.toLowerCase();
     const companyName = company.toLowerCase();
     
@@ -322,8 +337,11 @@ Provide a JSON response with:
     // Company name mentions
     if (text.includes(companyName)) score += 30;
     
-    // Technology keywords
-    const techKeywords = ['ai', 'artificial intelligence', 'machine learning', 'gpu', 'infrastructure', 'cloud', 'data'];
+    // Technology keywords - use custom research focus if available
+    const techKeywords = researchFocus && researchFocus.length > 0 
+      ? researchFocus.map(term => term.toLowerCase())
+      : ['ai', 'artificial intelligence', 'machine learning', 'gpu', 'infrastructure', 'cloud', 'data'];
+    
     score += techKeywords.filter(keyword => text.includes(keyword)).length * 5;
     
     // Business keywords

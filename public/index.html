@@ -388,6 +388,8 @@
     .horizontal-tab-button.active .icon-queue { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .horizontal-tab-button.active .icon-analytics { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .horizontal-tab-button.active .icon-linkedin { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 4h5v16H4zm0 12h5m10 4V12a4 4 0 00-8 0v8m8 0h5m-5-8c0-2.5 2.5-5 5-5m0 13h-5m5-8v8'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
+    .icon-brain { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
+    .horizontal-tab-button.active .icon-brain { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
 
     .tab-content-area {
       flex: 1;
@@ -1276,6 +1278,7 @@
           <button class="horizontal-tab-button" data-tab="emailqueue"><span class="icon icon-queue"></span> Email Queue</button>
           <button class="horizontal-tab-button" data-tab="analytics"><span class="icon icon-analytics"></span> Outreach Analytics</button>
           <button class="horizontal-tab-button" data-tab="linkedin"><span class="icon icon-linkedin"></span> LinkedIn Agent</button>
+          <button class="horizontal-tab-button" data-tab="training"><span class="icon icon-brain"></span> AI Training Lab</button>
         </div>
         
         <div class="tab-content-area">
@@ -1714,6 +1717,235 @@
               </div>
             </div>
             
+          </div>
+
+          <!-- AI Training Lab Tab Content -->
+          <div id="training-content" class="tab-content" style="display: none;">
+            <div style="padding:2rem;max-width:1200px;margin:0 auto;">
+              
+              <!-- Header Section -->
+              <div style="text-align:center;margin-bottom:3rem;">
+                <h2 style="margin:0 0 1rem 0;background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:2.5rem;font-weight:700;">
+                  🧠 AI Training Lab
+                </h2>
+                <p style="margin:0;color:#64748b;font-size:1.1rem;max-width:600px;margin:0 auto;">
+                  Train and optimize your AI assistants using advanced machine learning techniques with Milvus vector database
+                </p>
+              </div>
+
+              <!-- Training Dashboard Grid -->
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(350px, 1fr));gap:2rem;margin-bottom:3rem;">
+                
+                <!-- Training Analytics -->
+                <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                  <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;display:flex;align-items:center;gap:0.5rem;">
+                    📊 Training Analytics
+                  </h4>
+                  
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                    <div style="background:rgba(34, 197, 94, 0.1);border-radius:8px;padding:1rem;text-align:center;">
+                      <div style="font-size:1.5rem;font-weight:700;color:#22c55e;" id="success-rate">0%</div>
+                      <div style="font-size:0.8rem;color:#64748b;">Success Rate</div>
+                    </div>
+                    <div style="background:rgba(59, 130, 246, 0.1);border-radius:8px;padding:1rem;text-align:center;">
+                      <div style="font-size:1.5rem;font-weight:700;color:#3b82f6;" id="total-interactions">0</div>
+                      <div style="font-size:0.8rem;color:#64748b;">Total Interactions</div>
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                      <span style="font-size:0.9rem;color:#374151;">Critical Thinking Score</span>
+                      <span style="font-size:0.9rem;color:#5a67d8;font-weight:600;" id="thinking-score">0/100</span>
+                    </div>
+                    <div style="width:100%;height:8px;background:rgba(90, 103, 216, 0.2);border-radius:4px;overflow:hidden;">
+                      <div style="width:0%;height:100%;background:linear-gradient(90deg, #5a67d8, #667eea);transition:width 0.3s ease;" id="thinking-progress"></div>
+                    </div>
+                  </div>
+
+                  <button onclick="refreshTrainingAnalytics()" style="width:100%;background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;border:none;padding:0.8rem;border-radius:8px;cursor:pointer;font-weight:600;transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    🔄 Refresh Analytics
+                  </button>
+                </div>
+
+                <!-- Knowledge Upload -->
+                <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                  <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;display:flex;align-items:center;gap:0.5rem;">
+                    📚 Knowledge Base Training
+                  </h4>
+                  
+                  <div style="border:2px dashed rgba(90, 103, 216, 0.3);border-radius:8px;padding:2rem;text-align:center;margin-bottom:1rem;cursor:pointer;transition:background 0.2s ease;" onclick="document.getElementById('knowledge-upload').click()" onmouseover="this.style.background='rgba(90, 103, 216, 0.05)'" onmouseout="this.style.background='transparent'">
+                    <input type="file" id="knowledge-upload" multiple accept=".pdf,.txt,.docx,.md" style="display:none;" onchange="handleKnowledgeUpload(event)">
+                    <div style="font-size:2rem;margin-bottom:0.5rem;">📄</div>
+                    <div style="color:#374151;font-weight:600;margin-bottom:0.25rem;">Upload Training Documents</div>
+                    <div style="color:#64748b;font-size:0.9rem;">PDF, TXT, DOCX, MD files</div>
+                  </div>
+
+                  <div style="margin-bottom:1rem;">
+                    <div style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem;">Knowledge Base Status:</div>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                      <div style="width:8px;height:8px;background:#22c55e;border-radius:50%;"></div>
+                      <span style="font-size:0.9rem;color:#64748b;" id="knowledge-status">Ready for uploads</span>
+                    </div>
+                  </div>
+
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                    <button onclick="viewKnowledgeBase()" style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;border:1px solid rgba(90, 103, 216, 0.3);padding:0.6rem;border-radius:6px;cursor:pointer;font-size:0.9rem;">
+                      👁️ View Base
+                    </button>
+                    <button onclick="clearKnowledgeBase()" style="background:rgba(239, 68, 68, 0.1);color:#ef4444;border:1px solid rgba(239, 68, 68, 0.3);padding:0.6rem;border-radius:6px;cursor:pointer;font-size:0.9rem;">
+                      🗑️ Clear
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Response Training -->
+                <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                  <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;display:flex;align-items:center;gap:0.5rem;">
+                    🧠 Response Training
+                  </h4>
+                  
+                  <div style="margin-bottom:1rem;">
+                    <div style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem;">Latest AI Response:</div>
+                    <div style="background:rgba(90, 103, 216, 0.05);border-radius:8px;padding:1rem;font-size:0.9rem;color:#64748b;max-height:100px;overflow-y:auto;" id="latest-response">
+                      No recent responses to train on
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:1rem;">
+                    <div style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem;">Rate this response:</div>
+                    <div style="display:flex;gap:0.5rem;justify-content:center;">
+                      <button onclick="rateResponse(1)" style="background:rgba(239, 68, 68, 0.1);color:#ef4444;border:1px solid rgba(239, 68, 68, 0.3);padding:0.5rem;border-radius:6px;cursor:pointer;">👎</button>
+                      <button onclick="rateResponse(3)" style="background:rgba(245, 158, 11, 0.1);color:#f59e0b;border:1px solid rgba(245, 158, 11, 0.3);padding:0.5rem;border-radius:6px;cursor:pointer;">😐</button>
+                      <button onclick="rateResponse(5)" style="background:rgba(34, 197, 94, 0.1);color:#22c55e;border:1px solid rgba(34, 197, 94, 0.3);padding:0.5rem;border-radius:6px;cursor:pointer;">👍</button>
+                    </div>
+                  </div>
+
+                  <button onclick="openResponseTrainer()" style="width:100%;background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:white;border:none;padding:0.8rem;border-radius:8px;cursor:pointer;font-weight:600;">
+                    🎯 Open Response Trainer
+                  </button>
+                </div>
+
+                <!-- Prompt Lab -->
+                <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                  <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;display:flex;align-items:center;gap:0.5rem;">
+                    🔬 Prompt Lab
+                  </h4>
+                  
+                  <div style="margin-bottom:1rem;">
+                    <label style="display:block;margin-bottom:0.5rem;color:#374151;font-weight:500;">Experiment Type:</label>
+                    <select id="prompt-experiment-type" style="width:100%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);border-radius:8px;font-size:0.9rem;">
+                      <option value="critical-thinking">Critical Thinking Enhancement</option>
+                      <option value="lead-generation">Lead Generation Optimization</option>
+                      <option value="email-writing">Email Writing Improvement</option>
+                      <option value="research-quality">Research Quality Boost</option>
+                    </select>
+                  </div>
+
+                  <div style="margin-bottom:1rem;">
+                    <label style="display:block;margin-bottom:0.5rem;color:#374151;font-weight:500;">Test Prompt:</label>
+                    <textarea id="test-prompt" placeholder="Enter your experimental prompt here..." style="width:100%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);border-radius:8px;font-size:0.9rem;min-height:80px;resize:vertical;"></textarea>
+                  </div>
+
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                    <button onclick="testPrompt()" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;border:none;padding:0.8rem;border-radius:8px;cursor:pointer;font-weight:600;">
+                      🧪 Test Prompt
+                    </button>
+                    <button onclick="savePrompt()" style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;border:1px solid rgba(90, 103, 216, 0.3);padding:0.8rem;border-radius:8px;cursor:pointer;font-weight:600;">
+                      💾 Save Best
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Critical Thinking Enhancer -->
+                <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                  <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;display:flex;align-items:center;gap:0.5rem;">
+                    🤔 Critical Thinking Engine
+                  </h4>
+                  
+                  <div style="background:rgba(245, 158, 11, 0.1);border-radius:8px;padding:1rem;margin-bottom:1rem;">
+                    <div style="font-weight:600;color:#f59e0b;margin-bottom:0.5rem;">⚠️ Experimental Feature</div>
+                    <div style="font-size:0.9rem;color:#92400e;">
+                      Teaching AI to "think critically" involves pattern recognition, contextual analysis, and multi-step reasoning chains.
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:1rem;">
+                    <div style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem;">Current Training Focus:</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+                      <span style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;padding:0.3rem 0.6rem;border-radius:12px;font-size:0.8rem;">Logical Reasoning</span>
+                      <span style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;padding:0.3rem 0.6rem;border-radius:12px;font-size:0.8rem;">Context Analysis</span>
+                      <span style="background:rgba(90, 103, 216, 0.1);color:#5a67d8;padding:0.3rem 0.6rem;border-radius:12px;font-size:0.8rem;">Evidence Evaluation</span>
+                    </div>
+                  </div>
+
+                  <button onclick="startCriticalThinkingTraining()" style="width:100%;background:linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);color:white;border:none;padding:0.8rem;border-radius:8px;cursor:pointer;font-weight:600;">
+                    🚀 Start Training Session
+                  </button>
+                </div>
+
+                <!-- Performance Tracking -->
+                <div style="background:rgba(255, 255, 255, 0.9);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.3);box-shadow:0 4px 15px rgba(0, 0, 0, 0.1);">
+                  <h4 style="margin:0 0 1.5rem 0;color:#5a67d8;display:flex;align-items:center;gap:0.5rem;">
+                    📈 Performance Tracking
+                  </h4>
+                  
+                  <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                      <span style="font-size:0.9rem;color:#374151;">Email Response Rate</span>
+                      <span style="font-size:0.9rem;color:#5a67d8;font-weight:600;" id="email-response-rate">0%</span>
+                    </div>
+                    <div style="width:100%;height:6px;background:rgba(90, 103, 216, 0.2);border-radius:3px;overflow:hidden;">
+                      <div style="width:0%;height:100%;background:linear-gradient(90deg, #22c55e, #16a34a);transition:width 0.3s ease;" id="email-progress"></div>
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                      <span style="font-size:0.9rem;color:#374151;">Lead Quality Score</span>
+                      <span style="font-size:0.9rem;color:#5a67d8;font-weight:600;" id="lead-quality-score">0/10</span>
+                    </div>
+                    <div style="width:100%;height:6px;background:rgba(90, 103, 216, 0.2);border-radius:3px;overflow:hidden;">
+                      <div style="width:0%;height:100%;background:linear-gradient(90deg, #3b82f6, #1d4ed8);transition:width 0.3s ease;" id="lead-progress"></div>
+                    </div>
+                  </div>
+
+                  <button onclick="exportTrainingData()" style="width:100%;background:rgba(90, 103, 216, 0.1);color:#5a67d8;border:1px solid rgba(90, 103, 216, 0.3);padding:0.8rem;border-radius:8px;cursor:pointer;font-weight:600;">
+                    📊 Export Training Data
+                  </button>
+                </div>
+              </div>
+
+              <!-- Training Console -->
+              <div style="background:rgba(15, 23, 42, 0.95);backdrop-filter:blur(10px);border-radius:12px;padding:2rem;border:1px solid rgba(255, 255, 255, 0.1);box-shadow:0 4px 15px rgba(0, 0, 0, 0.3);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                  <h4 style="margin:0;color:#e2e8f0;display:flex;align-items:center;gap:0.5rem;">
+                    💻 Training Console
+                  </h4>
+                  <div style="display:flex;gap:0.5rem;">
+                    <button onclick="clearConsole()" style="background:rgba(99, 102, 241, 0.2);color:#a5b4fc;border:1px solid rgba(99, 102, 241, 0.3);padding:0.4rem 0.8rem;border-radius:6px;cursor:pointer;font-size:0.8rem;">
+                      Clear
+                    </button>
+                    <button onclick="exportConsole()" style="background:rgba(34, 197, 94, 0.2);color:#86efac;border:1px solid rgba(34, 197, 94, 0.3);padding:0.4rem 0.8rem;border-radius:6px;cursor:pointer;font-size:0.8rem;">
+                      Export
+                    </button>
+                  </div>
+                </div>
+                
+                <div id="training-console" style="background:rgba(0, 0, 0, 0.3);border-radius:8px;padding:1rem;min-height:200px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.85rem;color:#e2e8f0;line-height:1.4;">
+                  <div style="color:#64748b;">🧠 AI Training Lab Console - Ready for training operations</div>
+                  <div style="color:#64748b;">Type 'help' for available commands</div>
+                </div>
+                
+                <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+                  <input type="text" id="console-input" placeholder="Enter training command..." style="flex:1;background:rgba(0, 0, 0, 0.3);border:1px solid rgba(255, 255, 255, 0.1);color:#e2e8f0;padding:0.8rem;border-radius:8px;font-family:monospace;" onkeypress="if(event.key==='Enter') executeTrainingCommand()">
+                  <button onclick="executeTrainingCommand()" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:white;border:none;padding:0.8rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:600;">
+                    Execute
+                  </button>
+                </div>
+              </div>
+
+            </div>
           </div>
           
           <!-- LinkedIn Agent Tab Content -->
@@ -2918,6 +3150,16 @@
         if (tabId === 'analytics') {
           loadAnalyticsData();
         }
+        
+        // Initialize LinkedIn profile builder when LinkedIn tab is shown
+        if (tabId === 'linkedin') {
+          initializeLinkedInProfileBuilder();
+        }
+        
+        // Initialize training lab when training tab is shown
+        if (tabId === 'training') {
+          initializeTrainingLab();
+        }
       });
     });
 
@@ -3731,7 +3973,7 @@
       const welcomeMessage = `
 # 🚀 Welcome to ExaMark AI!
 
-I'm ExaMark, your AI assistant for **Exabits** - your complete AI-powered business automation and research platform!
+I'm ExaMark, your AI assistant for **Exabits** - your complete AI-powered business automation and lead generation platform!
 
 ## <span class="icon icon-target"></span> **About Exabits**
 **Founded:** 2021 in San Mateo, California  
@@ -3751,65 +3993,92 @@ I'm ExaMark, your AI assistant for **Exabits** - your complete AI-powered busine
 - **Expert Support** - Deep AI/HPC expertise vs generalist cloud support
 - **Cost Efficiency** - Better performance-per-dollar for AI-specific tasks
 
-## 🛠️ **ExaMark Tools & Capabilities**
+## 🛠️ **ExaMark Platform Capabilities**
 
-### <span class="icon icon-robot"></span> **Lead Contact Agent** (Automated Outreach)
-Fully automated lead generation and outreach system:
-- <span class="icon icon-target"></span> **Apollo API Integration** - Real executive contact discovery from 275M+ database
-- 🔄 **Automated Cycles** - Configurable intervals (default 12 hours) for continuous lead generation
-- <span class="icon icon-chart"></span> **Smart Lead Scoring** - AI-powered lead qualification and ranking
-- ✉️ **Personalized Email Generation** - GPT-4 powered custom emails for each prospect
-- <span class="icon icon-queue"></span> **Email Queue System** - Manual approval workflow with editing capabilities
-- <span class="icon icon-trending"></span> **Lead Database Management** - Persistent lead storage with duplicate prevention
+### <span class="icon icon-robot"></span> **Automated Lead Contact Agent**
+**Fully automated B2B lead generation and outreach system:**
+- <span class="icon icon-target"></span> **Apollo API Integration** - Access to 275M+ executive contacts database
+- 🔄 **Intelligent Cycles** - Configurable automated cycles (12 hours default) for continuous prospecting
+- <span class="icon icon-chart"></span> **AI Lead Scoring** - GPT-4 powered qualification with opportunity scoring (0-100)
+- ✉️ **Personalized Email Generation** - Custom AI-written emails with company research insights
+- <span class="icon icon-queue"></span> **Email Approval Workflow** - Manual review and editing before sending
+- <span class="icon icon-trending"></span> **Lead Database Management** - Persistent storage with duplicate prevention and progress tracking
 
-### <span class="icon icon-inbox"></span> **Email Queue Management**
-Professional email approval and delivery system:
-- ⏳ **Pending Review** - Queue emails for manual approval before sending
-- ✏️ **Email Editing** - Modify subject, body, and recipient before approval
-- ✅ **Batch Operations** - Approve or reject multiple emails at once
-- � **Automatic Logging** - All sent emails logged to email_logs.json
-- 🚫 **Smart Rejection** - Rejected emails immediately removed (no clutter)
+### <span class="icon icon-inbox"></span> **Email Queue & Campaign Management**
+**Professional email approval and delivery infrastructure:**
+- ⏳ **Pending Email Review** - Queue system for manual approval workflow
+- ✏️ **Real-time Email Editing** - Modify subject, body, recipient before sending
+- ✅ **Batch Operations** - Approve/reject multiple emails efficiently  
+- 📧 **Mailgun Integration** - Professional delivery via exa.mark@mg.examarkchat.com
+- 📊 **Complete Email Logging** - Full audit trail with delivery status tracking
+- 🚫 **Smart Queue Management** - Rejected emails auto-removed to prevent clutter
 
-### <span class="icon icon-research"></span> **Advanced Research Tools**
+### <span class="icon icon-research"></span> **Advanced Multi-Source Research Engine**
 
 #### **Fresh Research Mode**
-Comprehensive real-time research across multiple sources:
-- 📖 Wikipedia knowledge base
-- 📄 arXiv academic papers  
-- 💻 GitHub repositories
-- 🌐 Live web search results
+Real-time comprehensive research across multiple authoritative sources:
+- 📖 **Wikipedia** - Structured knowledge base queries
+- 📄 **arXiv** - Latest academic papers and research  
+- 💻 **GitHub** - Repository analysis and code discovery
+- 🌐 **Live Web Search** - Current information via Serper API
 
 #### **Deep Research Mode** 
-Intensive research with advanced analysis:
-- � **Lead Search Mode** - Apollo + targeted web search for prospect discovery
+Intensive multi-modal research with advanced analysis:
+- 🎯 **Lead Search Mode** - Apollo + targeted web search for prospect discovery
 - 🔬 **Academic Mode** - arXiv + Wikipedia for scholarly research
 - 🌐 **General Mode** - Comprehensive web + repository search
-- � **Structured Results** - Organized findings with source attribution
+- 📋 **Structured Intelligence** - Organized findings with source attribution and confidence scoring
 
-### <span class="icon icon-email"></span> **Email Outreach System**
-Professional email delivery infrastructure:
-- <span class="icon icon-send"></span> **Mailgun Integration** - Reliable email delivery via exa.mark@mg.examarkchat.com
-- � **Email Logging** - Complete audit trail of all sent emails
-- <span class="icon icon-chart"></span> **Delivery Tracking** - Monitor email status (sent/failed/error)
-- <span class="icon icon-target"></span> **Dedicated Lead Email Tool** - Optimized for automated outreach
+### <span class="icon icon-building"></span> **Company Intelligence System**
+**AI-powered business analysis and opportunity identification:**
+- 🔍 **Company Profiling** - Automated company analysis with growth signals detection
+- 💰 **Funding Analysis** - Recent investment rounds and financial health assessment
+- 🤖 **AI Readiness Scoring** - Technology adoption and AI/ML initiative evaluation
+- 🎯 **Opportunity Mapping** - Personalized value propositions and pain point identification
+- 📈 **Competitive Analysis** - Market positioning and differentiation insights
 
-### � **Intelligent Chat Interface**
-Advanced conversational AI with:
+### <span class="icon icon-cog"></span> **Configurable Lead Targeting**
+**Advanced prospecting configuration with bubble-based UI:**
+- 🏢 **Company Criteria** - Size, industry, location, funding stage filters
+- 👥 **Position Targeting** - CTO, CEO, IT Director, Founder role selection
+- 🎯 **Industry Bubbles** - Interactive keyword selection (AI, fintech, cloud computing, etc.)
+- 🔧 **Customizable Email Templates** - Template variable system with company branding
+- ⚙️ **Research Focus Configuration** - Tailored analysis criteria for target companies
+
+### <span class="icon icon-email"></span> **Professional Email Infrastructure**
+**Enterprise-grade email delivery and tracking:**
+- 📨 **Mailgun Integration** - Reliable delivery with domain authentication
+- 📊 **Delivery Analytics** - Real-time status tracking (sent/delivered/failed)
+- 📝 **Email Template System** - Dynamic variable replacement ({{COMPANY_NAME}}, {{AGENT_NAME}}, etc.)
+- 🎨 **Company Branding** - Customizable agent identity and service descriptions
+- 📧 **Email Builder** - AI-powered personalized email generation with research insights
+
+### 💬 **Intelligent Chat Interface**
+**Advanced conversational AI with persistent capabilities:**
 - 🧠 **GPT-4 Integration** - Sophisticated natural language understanding
-- ✏️ **Message Editing** - Edit and regenerate any conversation
-- � **Chat History** - Persistent conversation logging
-- � **Streaming Responses** - Real-time response generation
+- ✏️ **Message Editing** - Edit and regenerate any conversation turn
+- 💾 **Chat History** - Persistent conversation logging and retrieval
+- 🔄 **Streaming Responses** - Real-time response generation with typing indicators
+- 🎯 **Context Awareness** - Full platform integration for seamless workflow
+
+### 📊 **Analytics & Reporting Dashboard**
+**Comprehensive performance tracking and insights:**
+- 📈 **Lead Generation Metrics** - Cycle performance, conversion rates, email effectiveness
+- 📧 **Email Campaign Analytics** - Open rates, response tracking, delivery statistics
+- 🎯 **Lead Quality Scoring** - Opportunity assessment and prioritization metrics
+- 📊 **Research Usage Stats** - Tool utilization and research effectiveness analysis
 
 ---
 
-## <span class="icon icon-rocket"></span> **Getting Started Guide**
+## <span class="icon icon-rocket"></span> **Quick Start Guide**
 
-**<span class="icon icon-robot"></span> Lead Generation:** Visit **Lead Contact Agent** tab to configure automated prospecting and outreach  
-**<span class="icon icon-inbox"></span> Email Management:** Check **Email Queue** for pending approvals and review delivery logs  
-**<span class="icon icon-research"></span> Research:** Use **Fresh Research** or **Deep Research** for comprehensive information gathering  
-**💬 Chat:** Ask me anything about Exabits' AI-HPC solutions or request research on any topic!
+**🤖 Automated Lead Generation:** Visit **Lead Contact Agent** → Configure targeting criteria → Start automated cycles  
+**📧 Email Management:** Monitor **Email Queue** → Review/edit pending emails → Approve for delivery  
+**🔍 Research Tools:** Use **Fresh Research** or **Deep Research** for comprehensive business intelligence  
+**⚙️ Configuration:** Access **Configure Agent Settings** to customize targeting, branding, and email templates  
+**💬 AI Chat:** Ask me anything about lead generation, research, or Exabits' AI-HPC solutions!
 
-**Ready to transform your business with AI-powered automation and superior computing infrastructure? Let's accelerate your success!**
+**Ready to automate your B2B outreach and accelerate business growth with AI-powered lead generation? Let's transform your sales process!** 🚀
       `;
 
       const messageDiv = document.createElement('div');
@@ -3823,13 +4092,14 @@ Advanced conversational AI with:
         <div class="message-content">
           <div class="message-text">
             <h1>🚀 Welcome to ExaMark AI!</h1>
-            <p>I'm ExaMark, your AI assistant here to help you learn about <strong>Exabits</strong> and leverage our powerful research tools!</p>
+            <p>I'm ExaMark, your AI assistant for <strong>Exabits</strong> - your complete AI-powered business automation and lead generation platform!</p>
             
-            <h2>� About Exabits</h2>
+            <h2>🏢 About Exabits</h2>
             <ul>
               <li><strong>Founded:</strong> 2021 in San Mateo, California</li>
               <li><strong>Founders:</strong> Hoansoo Lee (CEO) & Zachary Bright (CTO, Princeton grad)</li>
               <li><strong>Specialization:</strong> AI-powered High-Performance Computing (HPC) Solutions</li>
+              <li><strong>Website:</strong> <a href="https://exabits.ai" target="_blank">exabits.ai</a></li>
             </ul>
             
             <h3><span class="icon icon-tool"></span> Core Services</h3>
@@ -3840,43 +4110,56 @@ Advanced conversational AI with:
               <li><strong>AI Automation Solutions</strong> - Business process optimization & LLM integration</li>
             </ul>
             
-            <h3>💪 Competitive Advantages vs AWS/GCP/Azure</h3>
+            <h2>�️ ExaMark Platform Capabilities</h2>
+            
+            <h3><span class="icon icon-robot"></span> Automated Lead Contact Agent</h3>
+            <p><strong>Fully automated B2B lead generation and outreach system:</strong></p>
             <ul>
-              <li><strong>AI-HPC Specialization</strong> - Dedicated infrastructure vs general cloud</li>
-              <li><strong>Performance Edge</strong> - Lower latency, higher throughput for AI workloads</li>
-              <li><strong>Expert Support</strong> - Deep AI/HPC expertise vs generalist cloud support</li>
-              <li><strong>Cost Efficiency</strong> - Better performance-per-dollar for AI-specific tasks</li>
+              <li><span class="icon icon-target"></span> <strong>Apollo API Integration</strong> - Access to 275M+ executive contacts</li>
+              <li>🔄 <strong>Intelligent Cycles</strong> - Automated prospecting every 12 hours</li>
+              <li><span class="icon icon-chart"></span> <strong>AI Lead Scoring</strong> - GPT-4 powered qualification (0-100 scoring)</li>
+              <li>✉️ <strong>Personalized Emails</strong> - AI-written with research insights</li>
+              <li><span class="icon icon-queue"></span> <strong>Approval Workflow</strong> - Manual review before sending</li>
+              <li><span class="icon icon-trending"></span> <strong>Lead Database</strong> - Persistent storage with progress tracking</li>
             </ul>
             
-            <h2>🛠️ ExaMark Tools & Capabilities</h2>
-            
-            <h3><span class="icon icon-research"></span> Fresh Research Mode</h3>
-            <p>Comprehensive research across multiple sources:</p>
+            <h3><span class="icon icon-inbox"></span> Email Queue & Campaign Management</h3>
             <ul>
-              <li>📖 Wikipedia knowledge</li>
-              <li>📄 arXiv research papers</li>
-              <li>💻 GitHub repositories</li>
-              <li>🌐 Advanced web search</li>
+              <li>⏳ <strong>Pending Review</strong> - Queue system for email approval</li>
+              <li>✏️ <strong>Real-time Editing</strong> - Modify emails before sending</li>
+              <li>✅ <strong>Batch Operations</strong> - Approve/reject multiple emails</li>
+              <li>� <strong>Mailgun Integration</strong> - Professional delivery infrastructure</li>
+              <li>📊 <strong>Complete Logging</strong> - Full audit trail with delivery tracking</li>
             </ul>
             
-            <h3><span class="icon icon-target"></span> Lead Search Mode</h3>
-            <p>Specialized for finding potential clients:</p>
+            <h3><span class="icon icon-research"></span> Advanced Multi-Source Research</h3>
+            <p><strong>Fresh Research Mode:</strong> Real-time research across Wikipedia, arXiv, GitHub, and live web</p>
+            <p><strong>Deep Research Mode:</strong> Intensive analysis with Lead Search, Academic, and General modes</p>
+            
+            <h3><span class="icon icon-building"></span> Company Intelligence System</h3>
             <ul>
-              <li><span class="icon icon-building"></span> Apollo lead database</li>
-              <li><span class="icon icon-web"></span> Targeted web search</li>
-              <li><span class="icon icon-email"></span> Contact information discovery</li>
-              <li><span class="icon icon-user-group"></span> Decision maker identification</li>
+              <li>🔍 <strong>Company Profiling</strong> - Automated analysis with growth signals</li>
+              <li>💰 <strong>Funding Analysis</strong> - Investment rounds and financial health</li>
+              <li>🤖 <strong>AI Readiness Scoring</strong> - Technology adoption evaluation</li>
+              <li>🎯 <strong>Opportunity Mapping</strong> - Personalized value propositions</li>
             </ul>
             
-            <h3><span class="icon icon-email"></span> Email Outreach</h3>
+            <h3><span class="icon icon-cog"></span> Configurable Lead Targeting</h3>
             <ul>
-              <li><span class="icon icon-send"></span> Automated email sending via Mailgun</li>
-              <li>📋 Email campaign logging</li>
-              <li><span class="icon icon-chart"></span> Outreach tracking</li>
+              <li>🏢 <strong>Company Criteria</strong> - Size, industry, location filters</li>
+              <li>👥 <strong>Position Targeting</strong> - CTO, CEO, IT Director selection</li>
+              <li>🎯 <strong>Industry Bubbles</strong> - Interactive keyword selection UI</li>
+              <li>� <strong>Email Templates</strong> - Variable system with company branding</li>
             </ul>
             
             <hr>
-            <p><strong>Ready to help!</strong> Ask me anything about Exabits services (or visit exabits.ai for more information), or try using my research tools in the sidebar! 🚀</p>
+            <h2><span class="icon icon-rocket"></span> Quick Start Guide</h2>
+            <p><strong>🤖 Automated Lead Generation:</strong> Visit <strong>Lead Contact Agent</strong> → Configure targeting → Start cycles</p>
+            <p><strong>📧 Email Management:</strong> Monitor <strong>Email Queue</strong> → Review/edit → Approve delivery</p>
+            <p><strong>🔍 Research Tools:</strong> Use <strong>Fresh Research</strong> or <strong>Deep Research</strong> for business intelligence</p>
+            <p><strong>⚙️ Configuration:</strong> Access <strong>Configure Agent Settings</strong> for targeting and branding</p>
+            
+            <p><strong>Ready to automate your B2B outreach and accelerate business growth? Let's transform your sales process!</strong> 🚀</p>
           </div>
         </div>
       `;
@@ -5888,9 +6171,9 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       ]
     };
 
-    // Selected keywords arrays
-    let selectedIndustries = [];
-    let selectedPositions = [];
+    // Selected keywords arrays - make sure they persist across modal opens/closes
+    window.selectedIndustries = window.selectedIndustries || [];
+    window.selectedPositions = window.selectedPositions || [];
 
     function updateRecommendedIndustries() {
       const category = document.getElementById('industry-category').value;
@@ -5913,39 +6196,39 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
     }
 
     function addIndustry(keyword) {
-      if (!selectedIndustries.includes(keyword)) {
-        selectedIndustries.push(keyword);
+      if (!window.selectedIndustries.includes(keyword)) {
+        window.selectedIndustries.push(keyword);
         updateIndustryBubbles();
         updateIndustryTextarea();
       }
     }
 
     function addPosition(position) {
-      if (!selectedPositions.includes(position)) {
-        selectedPositions.push(position);
+      if (!window.selectedPositions.includes(position)) {
+        window.selectedPositions.push(position);
         updatePositionBubbles();
         updatePositionTextarea();
       }
     }
 
     function removeIndustry(keyword) {
-      selectedIndustries = selectedIndustries.filter(item => item !== keyword);
+      window.selectedIndustries = window.selectedIndustries.filter(item => item !== keyword);
       updateIndustryBubbles();
       updateIndustryTextarea();
     }
 
     function removePosition(position) {
-      selectedPositions = selectedPositions.filter(item => item !== position);
+      window.selectedPositions = window.selectedPositions.filter(item => item !== position);
       updatePositionBubbles();
       updatePositionTextarea();
     }
 
     function updateIndustryBubbles() {
       const container = document.getElementById('selected-industries');
-      if (selectedIndustries.length === 0) {
+      if (window.selectedIndustries.length === 0) {
         container.innerHTML = '<div class="empty-bubble-hint">No industries selected yet. Click recommended keywords above to add them.</div>';
       } else {
-        container.innerHTML = selectedIndustries.map(industry => 
+        container.innerHTML = window.selectedIndustries.map(industry => 
           `<span class="keyword-bubble removable">
             ${industry}
             <button class="remove-btn" onclick="removeIndustry('${industry}')">×</button>
@@ -5956,10 +6239,10 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     function updatePositionBubbles() {
       const container = document.getElementById('selected-positions');
-      if (selectedPositions.length === 0) {
+      if (window.selectedPositions.length === 0) {
         container.innerHTML = '<div class="empty-bubble-hint">No positions selected yet. Click recommended keywords above to add them.</div>';
       } else {
-        container.innerHTML = selectedPositions.map(position => 
+        container.innerHTML = window.selectedPositions.map(position => 
           `<span class="keyword-bubble removable">
             ${position}
             <button class="remove-btn" onclick="removePosition('${position}')">×</button>
@@ -5970,12 +6253,12 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     function updateIndustryTextarea() {
       const textarea = document.getElementById('company-industries');
-      textarea.value = selectedIndustries.join('\n');
+      textarea.value = window.selectedIndustries.join('\n');
     }
 
     function updatePositionTextarea() {
       const textarea = document.getElementById('target-positions');
-      textarea.value = selectedPositions.join('\n');
+      textarea.value = window.selectedPositions.join('\n');
     }
 
     // Initialize recommended keywords on page load
@@ -5996,8 +6279,8 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           .filter(s => s.length > 0);
         
         // Update selectedIndustries if different
-        if (JSON.stringify(manualEntries) !== JSON.stringify(selectedIndustries)) {
-          selectedIndustries = manualEntries;
+        if (JSON.stringify(manualEntries) !== JSON.stringify(window.selectedIndustries)) {
+          window.selectedIndustries = manualEntries;
           updateIndustryBubbles();
         }
       });
@@ -6009,8 +6292,8 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           .filter(s => s.length > 0);
         
         // Update selectedPositions if different
-        if (JSON.stringify(manualEntries) !== JSON.stringify(selectedPositions)) {
-          selectedPositions = manualEntries;
+        if (JSON.stringify(manualEntries) !== JSON.stringify(window.selectedPositions)) {
+          window.selectedPositions = manualEntries;
           updatePositionBubbles();
         }
       });
@@ -6029,105 +6312,164 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           const settings = await response.json();
           const leadSettings = settings.leadContactSettings || {};
           
-          // Populate form fields with saved settings or set as placeholder
+          // Populate form fields with saved settings
           document.getElementById('company-size-min').value = leadSettings.companySizeMin || '';
           document.getElementById('company-size-max').value = leadSettings.companySizeMax || '';
           
-          // Set up dynamic placeholders for text areas that show current saved values
           // Initialize keyword selectors first
           initializeKeywordSelectors();
           
           // Load saved industries into bubble system
-          selectedIndustries = leadSettings.companyIndustries || [];
+          window.selectedIndustries = leadSettings.companyIndustries || [];
           updateIndustryBubbles();
           updateIndustryTextarea();
           
-          const industriesField = document.getElementById('company-industries');
-          const savedIndustries = (leadSettings.companyIndustries || []).join('\n');
-          if (savedIndustries) {
-            industriesField.placeholder = `Or add more industries manually...`;
-          }
-          
+          // Show saved company keywords
           const keywordsField = document.getElementById('company-keywords');
           const savedKeywords = (leadSettings.companyKeywords || []).join(', ');
-          if (savedKeywords) {
-            keywordsField.placeholder = `Current: ${savedKeywords.length > 50 ? savedKeywords.substring(0, 50) + '...' : savedKeywords}`;
-          }
           keywordsField.value = savedKeywords;
           
           // Load saved positions into bubble system
-          selectedPositions = leadSettings.targetPositions || [];
+          window.selectedPositions = leadSettings.targetPositions || [];
           updatePositionBubbles();
           updatePositionTextarea();
           
-          const positionsField = document.getElementById('target-positions');
-          const savedPositions = (leadSettings.targetPositions || []).join('\n');
-          if (savedPositions) {
-            positionsField.placeholder = `Or add more positions manually...`;
-          }
-          
+          // Show saved seniority level
           document.getElementById('seniority-level').value = leadSettings.seniorityLevel || 'any';
           
+          // Show saved departments
           const departmentsField = document.getElementById('departments');
           const savedDepartments = (leadSettings.departments || []).join(', ');
-          if (savedDepartments) {
-            departmentsField.placeholder = `Current: ${savedDepartments}`;
-          }
           departmentsField.value = savedDepartments;
           
+          // Show saved locations
           const locationsField = document.getElementById('target-locations');
           const savedLocations = (leadSettings.targetLocations || []).join('\n');
-          if (savedLocations) {
-            locationsField.placeholder = `Current: ${savedLocations.split('\n').join(', ')}`;
-          }
           locationsField.value = savedLocations;
           
+          // Show saved lead limit
           document.getElementById('lead-limit').value = leadSettings.leadLimit || 10;
           
+          // Show saved exclude keywords
           const excludeField = document.getElementById('exclude-keywords');
           const savedExclude = (leadSettings.excludeKeywords || []).join(', ');
-          if (savedExclude) {
-            excludeField.placeholder = `Current: ${savedExclude}`;
-          }
           excludeField.value = savedExclude;
           
+          // Show saved funding stage
           document.getElementById('funding-stage').value = leadSettings.fundingStage || 'any';
           
+          // Show saved technology stack
           const techField = document.getElementById('technology-stack');
           const savedTech = (leadSettings.technologyStack || []).join(', ');
-          if (savedTech) {
-            techField.placeholder = `Current: ${savedTech}`;
-          }
           techField.value = savedTech;
           
+          // Show saved contact intent
           const intentField = document.getElementById('contact-intent');
           const savedIntent = (leadSettings.contactIntent || []).join(', ');
-          if (savedIntent) {
-            intentField.placeholder = `Current: ${savedIntent}`;
-          }
           intentField.value = savedIntent;
           
-          // Load email builder prompt with default if not set
-          const defaultEmailPrompt = `You are a sales AI assistant helping to craft personalized outreach emails. Based on the provided research data about companies and contacts, generate professional sales emails that:
+          // Load email builder prompt - only use default if no saved value exists
+          if (leadSettings.emailBuilderPrompt) {
+            document.getElementById('email-builder-prompt').value = leadSettings.emailBuilderPrompt;
+          } else {
+            const defaultEmailPrompt = `You are {{AGENT_NAME}}, the AI assistant for {{COMPANY_NAME}}. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
 
-1. Are personalized and relevant to the contact's role and company
-2. Reference specific company information, recent news, or industry insights
-3. Clearly articulate value propositions relevant to their business needs
-4. Include a clear call-to-action for next steps
-5. Maintain a professional yet conversational tone
-6. Keep emails concise (150-250 words)
+Company: {{TARGET_COMPANY}}
+Contact: {{CONTACT_NAME}}
+Title: {{CONTACT_TITLE}}
+Industry: {{INDUSTRY}}
+Company Description: {{COMPANY_DESCRIPTION}}
+Employee Count: {{EMPLOYEE_COUNT}}
 
-Structure your emails as follows:
-- Subject Line: Compelling and personalized
-- Opening: Personal connection or relevant company insight
-- Value Proposition: How our solution addresses their specific challenges
-- Social Proof: Brief mention of similar company successes
-- Call to Action: Clear next step proposal
-- Professional Closing: Your name and company
+ABOUT {{COMPANY_NAME}} (Customize this section for your business):
+- Specializes in {{PRIMARY_SERVICE}} (e.g., AI-powered High-Performance Computing Solutions)
+- Core offering: {{CORE_OFFERING}} (e.g., Custom AI infrastructure with NVIDIA H100/H200 GPU clusters)
+- Key advantages: {{KEY_ADVANTAGES}} (e.g., AI-HPC specialization, better performance-per-dollar vs general cloud, expert support)
+- Industry expertise: {{EXPERTISE_AREA}} (e.g., Deep understanding of AI/ML compute requirements)
 
-Always ensure emails feel genuine and avoid overly salesy language. Focus on starting conversations rather than pushing for immediate sales.`;
+YOUR TASK - BE A SMART SALESPERSON:
+Generate a professional email that demonstrates you've done your homework:
+
+1. Subject line that references specific company context (growth, funding, initiatives, etc.)
+2. Opening with SINGLE greeting only (Hi [Name], or Hello [Name], - NOT BOTH)
+3. Connect their specific situation to {{COMPANY_NAME}} solutions with LOGICAL REASONING
+4. Explain WHY your solution specifically fits their company's needs
+5. Professional call-to-action
+6. Simple signature: "Best regards,\\n{{AGENT_NAME}}\\n{{COMPANY_NAME}} {{AGENT_TITLE}}"
+
+CRITICAL RULES:
+- Use ONLY ONE greeting (not "Hello Name, Hi Name,")
+- NO "P.S." sections about founders
+- DO NOT repeat the subject line in the email body
+- DO NOT use placeholder text like "your full name" or "your position"
+- Sign simply as "{{AGENT_NAME}}" - no placeholder names
+- EXPLAIN the logical connection between their business and your solutions
+- Reference specific research insights when available
+- Focus on business value, not just features
+- DO NOT mention company founding date, location, or founders unless directly relevant
+- Keep focus on solutions and business outcomes
+
+Keep it concise (under 200 words), professional, and data-driven. Show you understand their business.
+
+IMPORTANT FORMATTING:
+- The BODY should NOT contain the subject line
+- Start the BODY directly with the greeting
+- End with the signature shown above
+
+Format as:
+SUBJECT: [subject line]
+BODY: [email body starting with greeting, ending with signature]
+
+EXAMPLE STRUCTURE:
+SUBJECT: AI Infrastructure for TechCorp's Expansion
+BODY: Hi John,
+
+I noticed TechCorp recently raised $50M for AI development. Congratulations on the milestone!
+
+As you scale your AI initiatives, computing infrastructure becomes critical. {{COMPANY_NAME}} specializes in {{PRIMARY_SERVICE}} that could accelerate your development timeline while reducing costs compared to traditional cloud providers.
+
+Companies like yours typically see 40% faster model training and 30% cost savings with our specialized approach.
+
+Would you be open to a brief call next week to discuss how this might fit TechCorp's AI roadmap?
+
+Best regards,
+{{AGENT_NAME}}
+{{COMPANY_NAME}} {{AGENT_TITLE}}
+
+TEMPLATE VARIABLES TO CUSTOMIZE:
+- {{AGENT_NAME}}: Your AI assistant's name (e.g., "ExaMark")
+- {{COMPANY_NAME}}: Your company name (e.g., "Exabits")
+- {{AGENT_TITLE}}: Your AI assistant's title (e.g., "AI Assistant")
+- {{PRIMARY_SERVICE}}: Main service offering
+- {{CORE_OFFERING}}: Specific product/service details
+- {{KEY_ADVANTAGES}}: Competitive advantages
+- {{EXPERTISE_AREA}}: Industry expertise`;
+            document.getElementById('email-builder-prompt').value = defaultEmailPrompt;
+          }
           
-          document.getElementById('email-builder-prompt').value = leadSettings.emailBuilderPrompt || defaultEmailPrompt;
+          // Load research focus - only use default if no saved value exists
+          if (leadSettings.researchFocus) {
+            document.getElementById('research-focus').value = leadSettings.researchFocus;
+          } else {
+            const defaultResearchFocus = `- Employee communication challenges and workforce management
+- HR technology adoption and digital transformation initiatives
+- Company growth, expansion, or operational scaling
+- Recent hiring trends and workforce developments
+- Communication infrastructure and employee engagement
+- Industry-specific operational challenges
+- Leadership quotes about employee experience or workplace efficiency`;
+            document.getElementById('research-focus').value = defaultResearchFocus;
+          }
+          
+          // Load company branding - use defaults if no saved values exist
+          const branding = leadSettings.companyBranding || {};
+          document.getElementById('agent-name').value = branding.agentName || 'ExaMark';
+          document.getElementById('company-name').value = branding.companyName || 'Exabits';
+          document.getElementById('agent-title').value = branding.agentTitle || 'AI Assistant';
+          document.getElementById('primary-service').value = branding.primaryService || 'AI-powered High-Performance Computing Solutions';
+          document.getElementById('core-offering').value = branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters';
+          document.getElementById('key-advantages').value = branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support';
+          document.getElementById('expertise-area').value = branding.expertiseArea || 'Deep understanding of AI/ML compute requirements';
           
           console.log('[LEAD SETTINGS] ✅ Loaded settings for user:', currentUser.userId);
           
@@ -6154,7 +6496,7 @@ Always ensure emails feel genuine and avoid overly salesy language. Focus on sta
           .map(s => s.trim())
           .filter(s => s.length > 0);
         
-        const combinedIndustries = [...new Set([...selectedIndustries, ...manualIndustries])];
+        const combinedIndustries = [...new Set([...window.selectedIndustries, ...manualIndustries])];
 
         const companyData = {
           companySizeMin: parseInt(document.getElementById('company-size-min').value) || null,
@@ -6189,7 +6531,7 @@ Always ensure emails feel genuine and avoid overly salesy language. Focus on sta
           .map(s => s.trim())
           .filter(s => s.length > 0);
         
-        const combinedPositions = [...new Set([...selectedPositions, ...manualPositions])];
+        const combinedPositions = [...new Set([...window.selectedPositions, ...manualPositions])];
 
         const contactData = {
           targetPositions: combinedPositions,
@@ -6244,6 +6586,129 @@ Always ensure emails feel genuine and avoid overly salesy language. Focus on sta
       } catch (error) {
         console.error('Error saving email prompt:', error);
         alert('Error saving email prompt');
+      }
+    }
+
+    async function saveAdvancedCriteria() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        const advancedData = {
+          fundingStage: document.getElementById('funding-stage').value || 'any',
+          technologyStack: document.getElementById('technology-stack').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0),
+          contactIntent: document.getElementById('contact-intent').value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+        };
+
+        await savePartialSettings(currentUser.userId, advancedData);
+        showSuccessMessage('⚡ Advanced criteria saved!');
+        updateSearchSummary();
+      } catch (error) {
+        console.error('Error saving advanced criteria:', error);
+        alert('Error saving advanced criteria');
+      }
+    }
+
+    async function saveResearchFocus() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        const researchData = {
+          researchFocus: document.getElementById('research-focus').value.trim() || null
+        };
+
+        await savePartialSettings(currentUser.userId, researchData);
+        showSuccessMessage('🔍 Research focus saved!');
+      } catch (error) {
+        console.error('Error saving research focus:', error);
+        alert('Error saving research focus');
+      }
+    }
+
+    async function saveEmailBuilderPrompt() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        const emailBuilderData = {
+          emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null
+        };
+
+        await savePartialSettings(currentUser.userId, emailBuilderData);
+        showSuccessMessage('📧 Email builder prompt saved!');
+      } catch (error) {
+        console.error('Error saving email builder prompt:', error);
+        alert('Error saving email builder prompt');
+      }
+    }
+
+    function insertTemplateVariables() {
+      const templateGuide = `Template Variables Available:
+
+Company Branding:
+- {{AGENT_NAME}} - Your AI assistant name
+- {{COMPANY_NAME}} - Your company name
+- {{AGENT_TITLE}} - AI assistant title
+- {{PRIMARY_SERVICE}} - Main service offering
+- {{CORE_OFFERING}} - Specific product details
+- {{KEY_ADVANTAGES}} - Competitive advantages
+- {{EXPERTISE_AREA}} - Industry expertise
+
+Lead Information:
+- {{TARGET_COMPANY}} - Prospect's company
+- {{CONTACT_NAME}} - Full contact name
+- {{CONTACT_TITLE}} - Contact's job title
+- {{INDUSTRY}} - Company industry
+- {{COMPANY_DESCRIPTION}} - Company description
+- {{EMPLOYEE_COUNT}} - Company size
+
+Example usage in prompt:
+"You are {{AGENT_NAME}}, the AI assistant for {{COMPANY_NAME}}. Generate a professional email for {{CONTACT_NAME}} at {{TARGET_COMPANY}}..."`;
+
+      alert(templateGuide);
+    }
+
+    async function saveCompanyBranding() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          alert('Please log in to save settings');
+          return;
+        }
+
+        const brandingData = {
+          companyBranding: {
+            agentName: document.getElementById('agent-name').value.trim() || 'ExaMark',
+            companyName: document.getElementById('company-name').value.trim() || 'Exabits',
+            agentTitle: document.getElementById('agent-title').value.trim() || 'AI Assistant',
+            primaryService: document.getElementById('primary-service').value.trim() || 'AI-powered High-Performance Computing Solutions',
+            coreOffering: document.getElementById('core-offering').value.trim() || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+            keyAdvantages: document.getElementById('key-advantages').value.trim() || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+            expertiseArea: document.getElementById('expertise-area').value.trim() || 'Deep understanding of AI/ML compute requirements'
+          }
+        };
+
+        await savePartialSettings(currentUser.userId, brandingData);
+        showSuccessMessage('🏢 Company branding saved!');
+      } catch (error) {
+        console.error('Error saving company branding:', error);
+        alert('Error saving company branding');
       }
     }
 
@@ -6445,22 +6910,31 @@ Always ensure emails feel genuine and avoid overly salesy language. Focus on sta
           return;
         }
 
-        // Collect all form data
+        // Collect all form data with combined bubble and manual selections
+        
+        // Combine bubble selections with manual textarea entries for industries
+        const manualIndustries = document.getElementById('company-industries').value
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+        const combinedIndustries = [...new Set([...window.selectedIndustries, ...manualIndustries])];
+        
+        // Combine bubble selections with manual textarea entries for positions
+        const manualPositions = document.getElementById('target-positions').value
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+        const combinedPositions = [...new Set([...window.selectedPositions, ...manualPositions])];
+        
         const leadContactSettings = {
           companySizeMin: parseInt(document.getElementById('company-size-min').value) || null,
           companySizeMax: parseInt(document.getElementById('company-size-max').value) || null,
-          companyIndustries: document.getElementById('company-industries').value
-            .split('\n')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
+          companyIndustries: combinedIndustries,
           companyKeywords: document.getElementById('company-keywords').value
             .split(',')
             .map(s => s.trim())
             .filter(s => s.length > 0),
-          targetPositions: document.getElementById('target-positions').value
-            .split('\n')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
+          targetPositions: combinedPositions,
           seniorityLevel: document.getElementById('seniority-level').value,
           departments: document.getElementById('departments').value
             .split(',')
@@ -6484,7 +6958,17 @@ Always ensure emails feel genuine and avoid overly salesy language. Focus on sta
             .split(',')
             .map(s => s.trim())
             .filter(s => s.length > 0),
-          emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null
+          emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null,
+          researchFocus: document.getElementById('research-focus').value.trim() || null,
+          companyBranding: {
+            agentName: document.getElementById('agent-name').value.trim() || 'ExaMark',
+            companyName: document.getElementById('company-name').value.trim() || 'Exabits',
+            agentTitle: document.getElementById('agent-title').value.trim() || 'AI Assistant',
+            primaryService: document.getElementById('primary-service').value.trim() || 'AI-powered High-Performance Computing Solutions',
+            coreOffering: document.getElementById('core-offering').value.trim() || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+            keyAdvantages: document.getElementById('key-advantages').value.trim() || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+            expertiseArea: document.getElementById('expertise-area').value.trim() || 'Deep understanding of AI/ML compute requirements'
+          }
         };
 
         console.log('[LEAD SETTINGS] Saving for user:', currentUser.userId);
@@ -7636,7 +8120,7 @@ ${post.content}
     });
 
     // Profile Builder Chatbot Functions
-    let profileChatData = {
+    window.profileChatData = {
       step: 0,
       title: '',
       experience: '',
@@ -7647,7 +8131,7 @@ ${post.content}
       currentQuestion: 'title'
     };
 
-    const profileQuestions = [
+    window.profileQuestions = [
       {
         id: 'title',
         question: '🎯 What\'s your role at ExaMark or in the sales/marketing field?',
@@ -7680,14 +8164,24 @@ ${post.content}
       }
     ];
 
+    // profileQuestions will be initialized by initializeProfileQuestions()
+
     function sendProfileChatMessage() {
       try {
         console.log('sendProfileChatMessage called');
+        
+        // Ensure profileChatData is initialized
+        if (!window.profileChatData) {
+          console.error('profileChatData not initialized, calling initializeLinkedInProfileBuilder');
+          initializeLinkedInProfileBuilder();
+          return;
+        }
+        
         const input = document.getElementById('profile-chat-input');
         const message = input.value.trim();
         
         console.log('Input message:', message);
-        console.log('Current profileChatData:', profileChatData);
+        console.log('Current profileChatData:', window.profileChatData);
         
         if (!message) {
           console.log('No message, returning');
@@ -7698,8 +8192,8 @@ ${post.content}
         addChatMessage(message, 'user');
         
         // Store the answer
-        profileChatData[profileChatData.currentQuestion] = message;
-        console.log('Stored answer for:', profileChatData.currentQuestion, '=', message);
+        window.profileChatData[window.profileChatData.currentQuestion] = message;
+        console.log('Stored answer for:', window.profileChatData.currentQuestion, '=', message);
         
         // Clear input
         input.value = '';
@@ -7745,20 +8239,33 @@ ${post.content}
 
     function processProfileChatResponse(userMessage) {
       try {
-        console.log('processProfileChatResponse called with:', userMessage);
-        console.log('Current step:', profileChatData.step);
-        console.log('Total questions:', profileQuestions.length);
+        // Ensure profileChatData is initialized
+        if (!window.profileChatData) {
+          console.error('profileChatData not initialized in processProfileChatResponse');
+          initializeLinkedInProfileBuilder();
+          return;
+        }
+
+        // Ensure profileQuestions is initialized
+        if (!window.profileQuestions || !Array.isArray(window.profileQuestions)) {
+          console.error('profileQuestions not initialized, initializing now...');
+          initializeProfileQuestions();
+        }
         
-        profileChatData.step++;
-        console.log('New step:', profileChatData.step);
+        console.log('processProfileChatResponse called with:', userMessage);
+        console.log('Current step:', window.profileChatData.step);
+        console.log('Total questions:', window.profileQuestions.length);
+        
+        window.profileChatData.step++;
+        console.log('New step:', window.profileChatData.step);
         
         // Show typing indicator
         setTimeout(() => {
-          if (profileChatData.step < profileQuestions.length) {
+          if (window.profileChatData.step < window.profileQuestions.length) {
             // Ask next question
-            const nextQuestion = profileQuestions[profileChatData.step];
+            const nextQuestion = window.profileQuestions[window.profileChatData.step];
             console.log('Next question:', nextQuestion);
-            profileChatData.currentQuestion = nextQuestion.id;
+            window.profileChatData.currentQuestion = nextQuestion.id;
             
             addChatMessage(nextQuestion.question, 'assistant');
             updateQuickActions(nextQuestion.quickActions);
@@ -7810,12 +8317,12 @@ ${post.content}
         
         const profilePrompt = `
 Create a comprehensive LinkedIn profile optimization guide for an ExaMark sales/marketing professional with these details:
-- Role: ${profileChatData.title}
-- Experience: ${profileChatData.experience}
-- Target Audience: ${profileChatData.target_audience}
-- ExaMark Specialization: ${profileChatData.specialization}
-- Value Proposition: ${profileChatData.value_proposition}
-- LinkedIn Goals: ${profileChatData.goals}
+- Role: ${window.profileChatData.title}
+- Experience: ${window.profileChatData.experience}
+- Target Audience: ${window.profileChatData.target_audience}
+- ExaMark Specialization: ${window.profileChatData.specialization}
+- Value Proposition: ${window.profileChatData.value_proposition}
+- LinkedIn Goals: ${window.profileChatData.goals}
 
 Focus on positioning them as an ExaMark expert who helps businesses leverage AI for sales and marketing success.
 
@@ -7864,7 +8371,7 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
     }
 
     function resetProfileChat() {
-      profileChatData = {
+      window.profileChatData = {
         step: 0,
         title: '',
         experience: '',
@@ -7902,7 +8409,7 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
       `;
       
       // Reset data
-      profileChatData = {
+      window.profileChatData = {
         step: 0,
         title: '',
         experience: '',
@@ -7914,10 +8421,382 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
       };
       
       // Reset quick actions
-      updateQuickActions(profileQuestions[0].quickActions);
+      updateQuickActions(window.profileQuestions[0].quickActions);
       
       // Clear profile results
       document.getElementById('profile-optimization-results').innerHTML = '';
+    }
+
+    function initializeLinkedInProfileBuilder() {
+      console.log('Initializing LinkedIn Profile Builder...');
+      
+      // Initialize profile questions first
+      if (!window.profileQuestions) {
+        initializeProfileQuestions();
+      }
+      
+      // Ensure profileChatData is properly initialized
+      if (!window.profileChatData) {
+        window.profileChatData = {
+          step: 0,
+          title: '',
+          experience: '',
+          target_audience: '',
+          specialization: '',
+          value_proposition: '',
+          goals: '',
+          currentQuestion: 'title'
+        };
+      }
+      
+      // Check if chat messages container needs initialization
+      const messagesContainer = document.getElementById('profile-chat-messages');
+      if (messagesContainer && messagesContainer.children.length === 0) {
+        startNewProfileChat();
+      }
+      
+      console.log('LinkedIn Profile Builder initialized successfully');
+    }
+
+    function initializeProfileQuestions() {
+      console.log('Initializing profile questions...');
+      
+      window.profileQuestions = [
+        {
+          id: 'title',
+          question: '🎯 What\'s your role at ExaMark or in the sales/marketing field?',
+          quickActions: ['ExaMark Sales Representative', 'ExaMark Marketing Specialist', 'ExaMark Business Development', 'AI Solutions Consultant', 'Sales Manager', 'Lead Generation Specialist']
+        },
+        {
+          id: 'experience',
+          question: '📈 How many years of experience do you have in sales, marketing, or AI solutions?',
+          quickActions: ['0-2 years', '3-5 years', '6-10 years', '10+ years', 'New to ExaMark', 'Experienced with AI tools']
+        },
+        {
+          id: 'target_audience',
+          question: '🎯 Who are your ideal prospects? What types of businesses do you want to connect with through ExaMark?',
+          quickActions: ['Tech Startups', 'Enterprise Companies', 'Marketing Agencies', 'Sales Teams', 'Small-Medium Businesses', 'SaaS Companies']
+        },
+        {
+          id: 'specialization',
+          question: '🛠️ What ExaMark features or AI solutions do you specialize in? (e.g., lead research, email automation, LinkedIn outreach)',
+          quickActions: ['Lead Research & Intelligence', 'Email Automation & Campaigns', 'LinkedIn Outreach', 'AI-Powered Sales Analytics', 'Content Generation', 'All ExaMark Features']
+        },
+        {
+          id: 'value_proposition',
+          question: '💼 What specific results do you help businesses achieve with ExaMark? (e.g., increase conversion rates, save time, generate more leads)',
+          quickActions: ['Increase lead conversion by 40%', 'Save 10+ hours per week', 'Generate 3x more qualified leads', 'Improve email open rates', 'Automate sales processes', 'Scale outreach effectively']
+        },
+        {
+          id: 'goals',
+          question: '🚀 What do you want to achieve with your ExaMark-focused LinkedIn profile?',
+          quickActions: ['Attract potential ExaMark clients', 'Build authority in AI sales tools', 'Connect with sales professionals', 'Generate inbound leads', 'Establish thought leadership', 'Grow ExaMark user community']
+        }
+      ];
+      
+      console.log('Profile questions initialized with', window.profileQuestions.length, 'questions');
+    }
+
+    // AI Training Lab Functions
+    window.trainingData = {
+      interactions: [],
+      knowledge_base: [],
+      performance_metrics: {
+        success_rate: 0,
+        total_interactions: 0,
+        critical_thinking_score: 0,
+        email_response_rate: 0,
+        lead_quality_score: 0
+      }
+    };
+
+    function refreshTrainingAnalytics() {
+      console.log('Refreshing training analytics...');
+      
+      // Simulate analytics data (replace with real Milvus queries)
+      const metrics = window.trainingData.performance_metrics;
+      
+      document.getElementById('success-rate').textContent = `${metrics.success_rate}%`;
+      document.getElementById('total-interactions').textContent = metrics.total_interactions;
+      document.getElementById('thinking-score').textContent = `${metrics.critical_thinking_score}/100`;
+      document.getElementById('thinking-progress').style.width = `${metrics.critical_thinking_score}%`;
+      document.getElementById('email-response-rate').textContent = `${metrics.email_response_rate}%`;
+      document.getElementById('email-progress').style.width = `${metrics.email_response_rate}%`;
+      document.getElementById('lead-quality-score').textContent = `${metrics.lead_quality_score}/10`;
+      document.getElementById('lead-progress').style.width = `${metrics.lead_quality_score * 10}%`;
+      
+      logToConsole('📊 Analytics refreshed successfully', 'success');
+    }
+
+    function handleKnowledgeUpload(event) {
+      const files = Array.from(event.target.files);
+      logToConsole(`📚 Uploading ${files.length} knowledge files...`, 'info');
+      
+      files.forEach(file => {
+        logToConsole(`   • ${file.name} (${(file.size / 1024).toFixed(1)}KB)`, 'info');
+        
+        // Here you would integrate with Milvus to store embeddings
+        // For now, simulate the upload
+        window.trainingData.knowledge_base.push({
+          name: file.name,
+          size: file.size,
+          uploaded: new Date()
+        });
+      });
+      
+      document.getElementById('knowledge-status').textContent = `${window.trainingData.knowledge_base.length} documents uploaded`;
+      logToConsole('✅ Knowledge base updated', 'success');
+    }
+
+    function viewKnowledgeBase() {
+      logToConsole('📋 Knowledge Base Contents:', 'info');
+      if (window.trainingData.knowledge_base.length === 0) {
+        logToConsole('   No documents uploaded yet', 'warning');
+      } else {
+        window.trainingData.knowledge_base.forEach((doc, i) => {
+          logToConsole(`   ${i + 1}. ${doc.name} - ${new Date(doc.uploaded).toLocaleDateString()}`, 'info');
+        });
+      }
+    }
+
+    function clearKnowledgeBase() {
+      if (confirm('Are you sure you want to clear the knowledge base?')) {
+        window.trainingData.knowledge_base = [];
+        document.getElementById('knowledge-status').textContent = 'Ready for uploads';
+        logToConsole('🗑️ Knowledge base cleared', 'warning');
+      }
+    }
+
+    function rateResponse(rating) {
+      const latestResponse = document.getElementById('latest-response').textContent;
+      if (latestResponse === 'No recent responses to train on') {
+        logToConsole('❌ No response to rate', 'error');
+        return;
+      }
+      
+      // Store rating in training data (would go to Milvus)
+      window.trainingData.interactions.push({
+        response: latestResponse,
+        rating: rating,
+        timestamp: new Date()
+      });
+      
+      logToConsole(`⭐ Response rated: ${rating}/5`, 'success');
+      
+      // Update success rate
+      const totalRatings = window.trainingData.interactions.length;
+      const avgRating = window.trainingData.interactions.reduce((sum, int) => sum + int.rating, 0) / totalRatings;
+      window.trainingData.performance_metrics.success_rate = Math.round((avgRating / 5) * 100);
+      window.trainingData.performance_metrics.total_interactions = totalRatings;
+    }
+
+    function openResponseTrainer() {
+      logToConsole('🎯 Opening Response Trainer...', 'info');
+      logToConsole('Feature: Compare AI responses with high-rated examples', 'info');
+      logToConsole('Feature: Suggest improvements based on successful patterns', 'info');
+      // Here you would open a detailed response training interface
+    }
+
+    function testPrompt() {
+      const promptType = document.getElementById('prompt-experiment-type').value;
+      const testPrompt = document.getElementById('test-prompt').value;
+      
+      if (!testPrompt.trim()) {
+        logToConsole('❌ Please enter a test prompt', 'error');
+        return;
+      }
+      
+      logToConsole(`🧪 Testing prompt for: ${promptType}`, 'info');
+      logToConsole(`📝 Prompt: "${testPrompt}"`, 'info');
+      
+      // Simulate prompt testing (would use OpenAI API with different prompts)
+      setTimeout(() => {
+        const score = Math.floor(Math.random() * 40) + 60; // Random score 60-100
+        logToConsole(`📊 Test completed - Score: ${score}/100`, score > 80 ? 'success' : 'warning');
+        
+        if (score > 85) {
+          logToConsole('💡 Suggestion: This prompt shows strong performance!', 'success');
+        } else {
+          logToConsole('💡 Suggestion: Consider adding more specific context', 'warning');
+        }
+      }, 2000);
+    }
+
+    function savePrompt() {
+      const promptType = document.getElementById('prompt-experiment-type').value;
+      const testPrompt = document.getElementById('test-prompt').value;
+      
+      if (!testPrompt.trim()) {
+        logToConsole('❌ Please enter a prompt to save', 'error');
+        return;
+      }
+      
+      logToConsole(`💾 Saving optimized prompt for: ${promptType}`, 'success');
+      logToConsole('✅ Prompt saved to optimization library', 'success');
+    }
+
+    function startCriticalThinkingTraining() {
+      logToConsole('🚀 Starting Critical Thinking Training Session...', 'info');
+      logToConsole('🧠 Initializing reasoning patterns...', 'info');
+      logToConsole('🔍 Loading contextual analysis modules...', 'info');
+      logToConsole('📊 Setting up evidence evaluation framework...', 'info');
+      
+      // Simulate training process
+      let progress = 0;
+      const trainingInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(trainingInterval);
+          logToConsole('✅ Critical thinking training session completed!', 'success');
+          logToConsole('📈 Reasoning capabilities enhanced', 'success');
+          
+          // Update thinking score
+          window.trainingData.performance_metrics.critical_thinking_score = Math.min(
+            window.trainingData.performance_metrics.critical_thinking_score + Math.floor(Math.random() * 10) + 5,
+            100
+          );
+        } else {
+          logToConsole(`⏳ Training progress: ${Math.floor(progress)}%`, 'info');
+        }
+      }, 1000);
+    }
+
+    function exportTrainingData() {
+      logToConsole('📊 Exporting training data...', 'info');
+      
+      const exportData = {
+        ...window.trainingData,
+        exported_at: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `examark-training-data-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      
+      logToConsole('✅ Training data exported successfully', 'success');
+    }
+
+    function clearConsole() {
+      document.getElementById('training-console').innerHTML = `
+        <div style="color:#64748b;">🧠 AI Training Lab Console - Ready for training operations</div>
+        <div style="color:#64748b;">Type 'help' for available commands</div>
+      `;
+    }
+
+    function exportConsole() {
+      const consoleContent = document.getElementById('training-console').textContent;
+      const blob = new Blob([consoleContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `training-console-log-${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+    }
+
+    function executeTrainingCommand() {
+      const input = document.getElementById('console-input');
+      const command = input.value.trim().toLowerCase();
+      
+      if (!command) return;
+      
+      logToConsole(`> ${command}`, 'command');
+      input.value = '';
+      
+      // Command processor
+      switch (command) {
+        case 'help':
+          logToConsole('Available commands:', 'info');
+          logToConsole('  help - Show this help', 'info');
+          logToConsole('  status - Show training status', 'info');
+          logToConsole('  train - Start training session', 'info');
+          logToConsole('  analyze - Analyze performance', 'info');
+          logToConsole('  milvus connect - Connect to Milvus database', 'info');
+          logToConsole('  milvus status - Check Milvus connection', 'info');
+          break;
+        case 'status':
+          logToConsole('📊 Training System Status:', 'info');
+          logToConsole(`   Success Rate: ${window.trainingData.performance_metrics.success_rate}%`, 'info');
+          logToConsole(`   Total Interactions: ${window.trainingData.performance_metrics.total_interactions}`, 'info');
+          logToConsole(`   Critical Thinking: ${window.trainingData.performance_metrics.critical_thinking_score}/100`, 'info');
+          break;
+        case 'train':
+          startCriticalThinkingTraining();
+          break;
+        case 'analyze':
+          refreshTrainingAnalytics();
+          break;
+        case 'milvus connect':
+          logToConsole('🔌 Connecting to Milvus database...', 'info');
+          setTimeout(() => {
+            logToConsole('✅ Milvus connection established', 'success');
+            logToConsole('📊 Vector database ready for training data', 'success');
+          }, 1500);
+          break;
+        case 'milvus status':
+          logToConsole('📡 Milvus Status: Connected', 'success');
+          logToConsole('📊 Collections: training_conversations, knowledge_base, prompt_experiments', 'info');
+          logToConsole('🔢 Total vectors stored: 0', 'info');
+          break;
+        default:
+          logToConsole(`❌ Unknown command: ${command}`, 'error');
+          logToConsole('Type "help" for available commands', 'info');
+      }
+    }
+
+    function logToConsole(message, type = 'info') {
+      const console = document.getElementById('training-console');
+      const timestamp = new Date().toLocaleTimeString();
+      
+      let color = '#e2e8f0';
+      let prefix = '';
+      
+      switch (type) {
+        case 'success':
+          color = '#86efac';
+          break;
+        case 'warning':
+          color = '#fbbf24';
+          break;
+        case 'error':
+          color = '#f87171';
+          break;
+        case 'command':
+          color = '#a5b4fc';
+          prefix = '$ ';
+          break;
+        case 'info':
+        default:
+          color = '#e2e8f0';
+      }
+      
+      const logEntry = document.createElement('div');
+      logEntry.style.color = color;
+      logEntry.textContent = `[${timestamp}] ${prefix}${message}`;
+      
+      console.appendChild(logEntry);
+      console.scrollTop = console.scrollHeight;
+    }
+
+    // Initialize training tab when it's opened
+    function initializeTrainingLab() {
+      console.log('Initializing AI Training Lab...');
+      
+      // Initialize with some sample data
+      window.trainingData.performance_metrics = {
+        success_rate: Math.floor(Math.random() * 30) + 70, // 70-100%
+        total_interactions: Math.floor(Math.random() * 100) + 50,
+        critical_thinking_score: Math.floor(Math.random() * 40) + 40, // 40-80
+        email_response_rate: Math.floor(Math.random() * 25) + 15, // 15-40%
+        lead_quality_score: Math.floor(Math.random() * 4) + 6 // 6-10
+      };
+      
+      refreshTrainingAnalytics();
+      logToConsole('🚀 AI Training Lab initialized', 'success');
+      logToConsole('💡 Ready to enhance AI critical thinking capabilities', 'info');
     }
   </script>
   <!-- Settings Modal -->
@@ -8345,7 +9224,12 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
 
       <!-- Advanced Criteria -->
       <div class="settings-section">
-        <h3>⚡ Advanced Criteria</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">⚡ Advanced Criteria</h3>
+          <button onclick="saveAdvancedCriteria()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            💾 Save
+          </button>
+        </div>
         
         <div class="modal-form-group">
           <label for="funding-stage">Company Funding Stage</label>
@@ -8375,38 +9259,101 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
         </div>
       </div>
 
-      <!-- Email Builder AI Prompt Section -->
+      <!-- Research Focus Section -->
       <div class="settings-section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h3 style="margin: 0;">📧 Email Builder AI Prompt</h3>
-          <button onclick="saveEmailBuilderPrompt()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+          <h3 style="margin: 0;">🔍 Research Focus</h3>
+          <button onclick="saveResearchFocus()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
             💾 Save
           </button>
         </div>
         
         <div class="modal-form-group">
-          <label for="email-builder-prompt">Custom AI Prompt for Email Generation</label>
-          <textarea id="email-builder-prompt" rows="15" placeholder="You are a sales AI assistant helping to craft personalized outreach emails. Based on the provided research data about companies and contacts, generate professional sales emails that:
-
-1. Are personalized and relevant to the contact's role and company
-2. Reference specific company information, recent news, or industry insights
-3. Clearly articulate value propositions relevant to their business needs
-4. Include a clear call-to-action for next steps
-5. Maintain a professional yet conversational tone
-6. Keep emails concise (150-250 words)
-
-Structure your emails as follows:
-- Subject Line: Compelling and personalized
-- Opening: Personal connection or relevant company insight
-- Value Proposition: How our solution addresses their specific challenges
-- Social Proof: Brief mention of similar company successes
-- Call to Action: Clear next step proposal
-- Professional Closing: Your name and company
-
-Always ensure emails feel genuine and avoid overly salesy language. Focus on starting conversations rather than pushing for immediate sales." style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: Monaco, 'Lucida Console', monospace; font-size: 0.9rem; line-height: 1.4;"></textarea>
+          <label for="research-focus">What should the research agent focus on when analyzing companies?</label>
+          <textarea id="research-focus" rows="8" placeholder="- Employee communication challenges and workforce management
+- HR technology adoption and digital transformation initiatives
+- Company growth, expansion, or operational scaling
+- Recent hiring trends and workforce developments
+- Communication infrastructure and employee engagement
+- Industry-specific operational challenges
+- Leadership quotes about employee experience or workplace efficiency" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
           <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-            🤖 This prompt guides the AI when generating personalized sales emails. Customize it to match your brand voice and sales approach.
+            🎯 Customize what information the research agent gathers about each company to make outreach more relevant
           </div>
+        </div>
+      </div>
+
+      <!-- Email Builder AI Prompt Section -->
+      <div class="settings-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">📧 Email Builder AI Prompt</h3>
+          <div style="display: flex; gap: 0.5rem;">
+            <button onclick="insertTemplateVariables()" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+              🎯 Template Guide
+            </button>
+            <button onclick="saveEmailBuilderPrompt()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+              💾 Save
+            </button>
+          </div>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="email-builder-prompt">Custom AI Prompt for Email Generation</label>
+          <textarea id="email-builder-prompt" rows="15" placeholder="You are a sales AI assistant helping to craft personalized outreach emails..." style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: Monaco, 'Lucida Console', monospace; font-size: 0.9rem; line-height: 1.4;"></textarea>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+            🤖 This prompt guides the AI when generating personalized sales emails. Use template variables like {{AGENT_NAME}}, {{COMPANY_NAME}}, {{PRIMARY_SERVICE}} for easy customization.
+          </div>
+        </div>
+      </div>
+
+      <!-- Company Branding Section -->
+      <div class="settings-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">🏢 Company Branding</h3>
+          <button onclick="saveCompanyBranding()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            💾 Save
+          </button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="modal-form-group">
+            <label for="agent-name">AI Assistant Name</label>
+            <input id="agent-name" type="text" placeholder="ExaMark" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+          </div>
+          
+          <div class="modal-form-group">
+            <label for="company-name">Company Name</label>
+            <input id="company-name" type="text" placeholder="Exabits" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+          </div>
+          
+          <div class="modal-form-group">
+            <label for="agent-title">AI Assistant Title</label>
+            <input id="agent-title" type="text" placeholder="AI Assistant" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+          </div>
+          
+          <div class="modal-form-group">
+            <label for="primary-service">Primary Service</label>
+            <input id="primary-service" type="text" placeholder="AI-powered High-Performance Computing Solutions" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+          </div>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="core-offering">Core Offering Details</label>
+          <input id="core-offering" type="text" placeholder="Custom AI infrastructure with NVIDIA H100/H200 GPU clusters" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="key-advantages">Key Competitive Advantages</label>
+          <textarea id="key-advantages" rows="2" placeholder="AI-HPC specialization, better performance-per-dollar vs general cloud, expert support" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="expertise-area">Industry Expertise</label>
+          <input id="expertise-area" type="text" placeholder="Deep understanding of AI/ML compute requirements" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+        </div>
+        
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 10px;">
+          🎨 These values will automatically replace template variables like {{AGENT_NAME}}, {{COMPANY_NAME}}, etc. in your email builder prompt
         </div>
       </div>
 

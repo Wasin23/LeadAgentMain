@@ -622,8 +622,8 @@ class LeadContactAgent extends EventEmitter {
       const fluidProgress = baseProgress + (stepSize * (subProgress / 100));
       const newPercentage = Math.round(fluidProgress * 100);
       
-      // Ensure progress only moves forward
-      this.cycleProgress.percentage = Math.max(this.cycleProgress.percentage, newPercentage);
+      // Ensure progress only moves forward and caps at 100%
+      this.cycleProgress.percentage = Math.min(Math.max(this.cycleProgress.percentage, newPercentage), 100);
     }
     
     console.log(`[LEAD AGENT] 📊 Progress: ${this.cycleProgress.percentage}% - ${description}`);
@@ -710,9 +710,9 @@ class LeadContactAgent extends EventEmitter {
         return { success: true, stopped: true };
       }
       
-      this.updateFluidProgress('Analyzing lead scores and rankings...', 20);
+      this.updateFluidProgress('Analyzing lead scores and rankings...', 92);
       const selectedLeads = this.selectTopLeads(leadsData, 5);
-      this.updateFluidProgress('Top leads selected for outreach', 100);
+      this.updateFluidProgress('Top leads selected for outreach', 95);
       
       console.log(`[LEAD AGENT] Selected ${selectedLeads.length} leads for cycle ${this.currentCycle + 1}:`);
       selectedLeads.forEach((lead, index) => {
@@ -735,9 +735,9 @@ class LeadContactAgent extends EventEmitter {
       
       // Step 5: Update database with emailed companies
       this.updateProgress(5, 6, 'Updating database...');
-      this.updateFluidProgress('Marking leads as emailed in database...', 50);
+      this.updateFluidProgress('Marking leads as emailed in database...', 97);
       await this.markLeadsAsEmailed(selectedLeads);
-      this.updateFluidProgress('Database updated successfully', 100);
+      this.updateFluidProgress('Database updated successfully', 99);
       
       // Check if stop was requested
       if (!this.isRunning) {
@@ -747,10 +747,13 @@ class LeadContactAgent extends EventEmitter {
       
       // Step 6: Update cycle counter and state
       this.updateProgress(6, 6, 'Finalizing cycle...');
-      this.updateFluidProgress('Saving cycle state and preparing for next cycle...', 50);
+      this.updateFluidProgress('Saving cycle state and preparing for next cycle...', 100);
       this.currentCycle++;
       this.currentStatus = 'waiting_next_cycle';
       await this.saveState();
+      
+      // Brief pause to show 100% completion before reset
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Reset progress
       this.updateProgress(0, 0, 'Cycle completed');
@@ -853,7 +856,9 @@ class LeadContactAgent extends EventEmitter {
       
       try {
         const researchResult = await leadResearch(query, { 
-          limit: leadLimit 
+          limit: leadLimit,
+          researchFocus: this.leadContactSettings?.researchFocus?.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(line => line.length > 0),
+          leadContactSettings: this.leadContactSettings
         }, null); // userId = null, will fall back to environment variables
         
         this.updateFluidProgress(`📊 Processing Apollo API response...`, baseProgress + 15);
@@ -1124,8 +1129,21 @@ class LeadContactAgent extends EventEmitter {
         else if (lead.employee_count >= 20) score += 10;
       }
       
-      // Industry relevance scoring
-      const industryKeywords = ['ai', 'artificial intelligence', 'machine learning', 'ml', 'deep learning', 'gpu', 'computing', 'data science', 'research', 'tech'];
+      // Industry relevance scoring - use custom research focus if available
+      let industryKeywords = ['ai', 'artificial intelligence', 'machine learning', 'ml', 'deep learning', 'gpu', 'computing', 'data science', 'research', 'tech'];
+      
+      // Override with user's custom research focus if available
+      if (this.leadContactSettings?.researchFocus?.length > 0) {
+        // Convert research focus string to array (split by newlines and clean up)
+        const researchFocusArray = this.leadContactSettings.researchFocus
+          .split('\n')
+          .map(line => line.replace(/^-\s*/, '').trim())
+          .filter(line => line.length > 0);
+        
+        industryKeywords = researchFocusArray.map(topic => topic.toLowerCase());
+        console.log(`[LEAD AGENT] 🎯 Using custom research focus: ${researchFocusArray.join(', ')}`);
+      }
+      
       const description = (lead.company_description || '').toLowerCase();
       industryKeywords.forEach(keyword => {
         if (description.includes(keyword)) score += 5;
@@ -1232,16 +1250,34 @@ class LeadContactAgent extends EventEmitter {
     // Try to get custom email builder prompt from user settings
     try {
       if (this.leadContactSettings?.emailBuilderPrompt) {
-        // Use custom prompt with context injection
-        emailPrompt = `${this.leadContactSettings.emailBuilderPrompt}
-
-CONTEXT FOR EMAIL GENERATION:
-Company: ${company}
-Contact: ${lead.first_name} ${lead.last_name}
-Title: ${lead.title}
-Industry: ${lead.industry || 'Technology'}
-Company Description: ${lead.company_description || 'Technology company'}
-Employee Count: ${lead.employee_count || 'Unknown'}${intelligenceContext}${salesRecommendations}
+        // Use custom prompt with template variable replacement and context injection
+        let customPrompt = this.leadContactSettings.emailBuilderPrompt;
+        
+        // Replace template variables with user-configured branding or ExaMark defaults
+        const branding = this.leadContactSettings?.companyBranding || {};
+        const templateVariables = {
+          'AGENT_NAME': branding.agentName || 'ExaMark',
+          'COMPANY_NAME': branding.companyName || 'Exabits',
+          'AGENT_TITLE': branding.agentTitle || 'AI Assistant',
+          'PRIMARY_SERVICE': branding.primaryService || 'AI-powered High-Performance Computing (HPC) Solutions',
+          'CORE_OFFERING': branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+          'KEY_ADVANTAGES': branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+          'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of AI/ML compute requirements',
+          'TARGET_COMPANY': company,
+          'CONTACT_NAME': `${lead.first_name} ${lead.last_name}`,
+          'CONTACT_TITLE': lead.title || 'Professional',
+          'INDUSTRY': lead.industry || 'Technology',
+          'COMPANY_DESCRIPTION': lead.company_description || 'Technology company',
+          'EMPLOYEE_COUNT': lead.employee_count || 'Unknown'
+        };
+        
+        // Replace all template variables
+        for (const [key, value] of Object.entries(templateVariables)) {
+          const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+          customPrompt = customPrompt.replace(regex, value);
+        }
+        
+        emailPrompt = `${customPrompt}${intelligenceContext}${salesRecommendations}
 
 Generate a professional sales email using the guidance above. Format as:
 SUBJECT: [subject line]
@@ -1322,8 +1358,39 @@ Exabits AI Assistant`;
       let cleanSubject = subjectMatch ? subjectMatch[1].trim() : `AI Infrastructure Solutions for ${company}`;
       let cleanBody = bodyMatch ? bodyMatch[1].trim() : emailContent;
       
-      // Clean up common AI issues
+      // Clean subject line of markdown formatting
+      cleanSubject = cleanSubject.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove bold asterisks
+      cleanSubject = cleanSubject.replace(/\*([^*]+)\*/g, '$1'); // Remove italic asterisks
+      cleanSubject = cleanSubject.replace(/^\*\*?\s*|\s*\*\*?$/g, ''); // Remove leading/trailing asterisks
+      cleanSubject = cleanSubject.trim();
+      
+      // Clean up common AI issues in body
       cleanBody = this.cleanEmailContent(cleanBody, cleanSubject);
+      
+      // Replace any remaining template variables in the final email content
+      const branding = this.leadContactSettings?.companyBranding || {};
+      const templateVariables = {
+        'AGENT_NAME': branding.agentName || 'ExaMark',
+        'COMPANY_NAME': branding.companyName || 'Exabits',
+        'AGENT_TITLE': branding.agentTitle || 'AI Assistant',
+        'PRIMARY_SERVICE': branding.primaryService || 'AI-powered High-Performance Computing (HPC) Solutions',
+        'CORE_OFFERING': branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+        'KEY_ADVANTAGES': branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+        'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of AI/ML compute requirements',
+        'TARGET_COMPANY': company,
+        'CONTACT_NAME': `${lead.first_name} ${lead.last_name}`,
+        'CONTACT_TITLE': lead.title || 'Professional',
+        'INDUSTRY': lead.industry || 'Technology',
+        'COMPANY_DESCRIPTION': lead.company_description || 'Technology company',
+        'EMPLOYEE_COUNT': lead.employee_count || 'Unknown'
+      };
+      
+      // Replace template variables in both subject and body
+      for (const [key, value] of Object.entries(templateVariables)) {
+        const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        cleanSubject = cleanSubject.replace(regex, value);
+        cleanBody = cleanBody.replace(regex, value);
+      }
       
       console.log(`[LEAD AGENT] ✅ Generated AI-powered email using enhanced intelligence`);
       
@@ -1335,10 +1402,17 @@ Exabits AI Assistant`;
     } catch (error) {
       console.error('[LEAD AGENT] Error generating intelligent email:', error);
       
-      // Fallback to simple template without P.S.
+      // Get branding for fallback template
+      const branding = this.leadContactSettings?.companyBranding || {};
+      const agentName = branding.agentName || 'ExaMark';
+      const companyName = branding.companyName || 'Exabits';
+      const agentTitle = branding.agentTitle || 'AI Assistant';
+      const primaryService = branding.primaryService || 'AI-powered high-performance computing solutions';
+      
+      // Fallback to simple template with template variables replaced
       return {
         subject: `AI Infrastructure Solutions for ${company}`,
-        body: `Hello ${lead.first_name},\n\nI'm ExaMark from Exabits, and I noticed ${company} is working in ${lead.industry || 'technology'}.\n\nExabits specializes in AI-powered high-performance computing solutions with NVIDIA H100/H200 GPU clusters. We help companies like yours achieve better performance-per-dollar compared to general cloud providers.\n\nI'd love to discuss how our specialized AI infrastructure could benefit ${company}'s computing needs.\n\nBest regards,\nExaMark\nExabits AI Assistant`
+        body: `Hello ${lead.first_name},\n\nI'm ${agentName} from ${companyName}, and I noticed ${company} is working in ${lead.industry || 'technology'}.\n\n${companyName} specializes in ${primaryService} with NVIDIA H100/H200 GPU clusters. We help companies like yours achieve better performance-per-dollar compared to general cloud providers.\n\nI'd love to discuss how our specialized AI infrastructure could benefit ${company}'s computing needs.\n\nBest regards,\n${agentName}\n${companyName} ${agentTitle}`
       };
     }
   }
@@ -1426,6 +1500,31 @@ BODY: [email body]`;
       // Clean up common AI issues
       cleanBody = this.cleanEmailContent(cleanBody, cleanSubject);
       
+      // Replace any remaining template variables in the fallback email content
+      const branding = this.leadContactSettings?.companyBranding || {};
+      const templateVariables = {
+        'AGENT_NAME': branding.agentName || 'ExaMark',
+        'COMPANY_NAME': branding.companyName || 'Exabits',
+        'AGENT_TITLE': branding.agentTitle || 'AI Assistant',
+        'PRIMARY_SERVICE': branding.primaryService || 'AI-powered High-Performance Computing (HPC) Solutions',
+        'CORE_OFFERING': branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+        'KEY_ADVANTAGES': branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+        'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of AI/ML compute requirements',
+        'TARGET_COMPANY': lead.company,
+        'CONTACT_NAME': `${lead.first_name} ${lead.last_name}`,
+        'CONTACT_TITLE': lead.title || 'Professional',
+        'INDUSTRY': lead.industry || 'Technology',
+        'COMPANY_DESCRIPTION': lead.company_description || 'Technology company',
+        'EMPLOYEE_COUNT': lead.employee_count || 'Unknown'
+      };
+      
+      // Replace template variables in both subject and body
+      for (const [key, value] of Object.entries(templateVariables)) {
+        const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        cleanSubject = cleanSubject.replace(regex, value);
+        cleanBody = cleanBody.replace(regex, value);
+      }
+      
       return {
         subject: cleanSubject,
         body: cleanBody
@@ -1434,21 +1533,49 @@ BODY: [email body]`;
     } catch (error) {
       console.error('[LEAD AGENT] Error generating email:', error);
       
-      // Fallback email template
+      // Get branding for fallback template
+      const branding = this.leadContactSettings?.companyBranding || {};
+      const agentName = branding.agentName || 'ExaMark';
+      const companyName = branding.companyName || 'Exabits';
+      const agentTitle = branding.agentTitle || 'AI Assistant';
+      const primaryService = branding.primaryService || 'AI-powered high-performance computing solutions';
+      
+      // Fallback email template with template variables replaced
       return {
         subject: `AI Infrastructure Solutions for ${lead.company}`,
-        body: `Hello ${lead.first_name},\n\nI hope this message finds you well. I'm ExaMark from Exabits, and I noticed ${lead.company} is working in ${lead.industry || 'technology'}.\n\nExabits specializes in AI-powered high-performance computing solutions with NVIDIA H100/H200 GPU clusters. We help companies like yours achieve better performance-per-dollar compared to general cloud providers.\n\nI'd love to discuss how our specialized AI infrastructure could benefit ${lead.company}'s computing needs.\n\nBest regards,\nExaMark\nExabits AI Assistant`
+        body: `Hello ${lead.first_name},\n\nI hope this message finds you well. I'm ${agentName} from ${companyName}, and I noticed ${lead.company} is working in ${lead.industry || 'technology'}.\n\n${companyName} specializes in ${primaryService} with NVIDIA H100/H200 GPU clusters. We help companies like yours achieve better performance-per-dollar compared to general cloud providers.\n\nI'd love to discuss how our specialized AI infrastructure could benefit ${lead.company}'s computing needs.\n\nBest regards,\n${agentName}\n${companyName} ${agentTitle}`
       };
     }
   }
 
   // Clean up common AI email generation issues
   cleanEmailContent(body, subject) {
+    if (!body || typeof body !== 'string') return body;
+    
     let cleanedBody = body;
     
-    // Remove subject line if it appears at the start of the body
-    const subjectRegex = new RegExp(`^${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i');
-    cleanedBody = cleanedBody.replace(subjectRegex, '');
+    // Remove subject line if it appears at the start of the body (with or without asterisks)
+    const subjectPattern = new RegExp(`^\\*\\*?\\s*${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*?\\s*`, 'i');
+    cleanedBody = cleanedBody.replace(subjectPattern, '').trim();
+    
+    // Remove plain subject repetition
+    const plainSubjectPattern = new RegExp(`^${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i');
+    cleanedBody = cleanedBody.replace(plainSubjectPattern, '').trim();
+    
+    // Remove SUBJECT: lines that sometimes appear (with or without asterisks)
+    cleanedBody = cleanedBody.replace(/^\*\*?SUBJECT:\s*.+\*\*?$/gm, '').trim();
+    cleanedBody = cleanedBody.replace(/^SUBJECT:\s*.+$/gm, '').trim();
+    
+    // Remove markdown formatting (bold asterisks)
+    cleanedBody = cleanedBody.replace(/\*\*([^*]+)\*\*/g, '$1');
+    cleanedBody = cleanedBody.replace(/\*([^*]+)\*/g, '$1');
+    
+    // Remove standalone asterisks or markdown artifacts at line beginnings
+    cleanedBody = cleanedBody.replace(/^\*\*?\s*/gm, '');
+    cleanedBody = cleanedBody.replace(/\s*\*\*?$/gm, '');
+    
+    // Remove asterisk prefixes from subject lines that leaked through
+    cleanedBody = cleanedBody.replace(/^\*\*\s*([A-Z][^*\n]+)$/gm, '$1');
     
     // Remove common placeholder text
     cleanedBody = cleanedBody.replace(/\[your full name\]/gi, 'ExaMark');
@@ -1461,6 +1588,9 @@ BODY: [email body]`;
     // Remove variations of placeholder signatures
     cleanedBody = cleanedBody.replace(/Best regards,\s*\[your name\]/gi, 'Best regards,\nExaMark');
     cleanedBody = cleanedBody.replace(/Best regards,\s*\[Your Name\]/gi, 'Best regards,\nExaMark');
+    
+    // Remove any leading/trailing quotes or formatting artifacts
+    cleanedBody = cleanedBody.replace(/^['"`\s]+|['"`\s]+$/g, '');
     
     // Clean up extra whitespace and line breaks
     cleanedBody = cleanedBody.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive line breaks
