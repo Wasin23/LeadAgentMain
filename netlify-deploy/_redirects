@@ -1,7 +1,8 @@
 # Simple static page redirects for email tracking
 
-# Pixel tracking goes to static HTML page
+# Pixel tracking goes to static HTML page (multiple URL patterns for less suspicious tracking)
 /track/pixel/:id.png /track/pixel/ 200
+/images/spacer-:id.png /track/pixel/ 200
 
 # Click tracking goes to static HTML page  
 /track/click/:id /track/click/ 200

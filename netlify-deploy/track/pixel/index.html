@@ -1,29 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Email Pixel</title>
+    <title>Email Image</title>
+    <style>body{margin:0;padding:0;}</style>
 </head>
 <body>
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAGklEQVR42mP8//8/AzYwOjKC4X/G/4zYwGAAAE+AAUG4HQbBAAAAAElFTkSuQmCC" width="3" height="3" style="opacity:0.1;">
+    
     <script>
-        // Get tracking ID from URL
-        const pathParts = window.location.pathname.split('/');
-        const trackingId = pathParts[pathParts.length - 1].replace('.png', '');
+        // Try to extract tracking ID from URL - handle both old and new formats
+        let trackingId = '';
+        const pathname = window.location.pathname;
         
-        // Try to send tracking data to desktop app
-        if (trackingId && trackingId !== 'pixel') {
-            fetch('http://localhost:8080/webhooks/track-open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    trackingId: trackingId,
-                    userAgent: navigator.userAgent,
-                    timestamp: new Date().toISOString()
-                })
-            }).catch(() => console.log('Desktop app not running'));
+        if (pathname.includes('/track/pixel/')) {
+            // Old format: /track/pixel/abc123.png
+            const pathParts = pathname.split('/');
+            trackingId = pathParts[pathParts.length - 1].replace('.png', '');
+        } else if (pathname.includes('/images/spacer-')) {
+            // New format: /images/spacer-abc12345.png  
+            const match = pathname.match(/spacer-([a-f0-9]+)\.png/);
+            if (match) {
+                // Reconstruct full tracking ID from shortened version
+                const shortId = match[1];
+                // For now, just use the short ID and let the server figure it out
+                trackingId = shortId;
+            }
         }
         
-        // Show 1x1 transparent pixel
-        document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" width="1" height="1">';
+        // Store tracking data in console for now
+        if (trackingId && trackingId !== 'pixel') {
+            console.log('📧 Email opened:', trackingId);
+            console.log('User agent:', navigator.userAgent);
+            console.log('Timestamp:', new Date().toISOString());
+            
+            // Try to send to desktop app, but don't block on it
+            try {
+                fetch('http://localhost:8080/webhooks/track-open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        trackingId: trackingId,
+                        userAgent: navigator.userAgent,
+                        timestamp: new Date().toISOString()
+                    }),
+                    mode: 'no-cors'
+                }).catch(() => {});
+            } catch(e) {}
+        }
     </script>
 </body>
 </html>
