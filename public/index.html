@@ -118,6 +118,32 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
+    /* Fix input focus issues in Electron */
+    input, textarea, [contenteditable="true"] {
+      -webkit-user-select: text !important;
+      user-select: text !important;
+      pointer-events: auto !important;
+      cursor: text !important;
+    }
+    
+    input:focus, textarea:focus, [contenteditable="true"]:focus {
+      outline: 2px solid #4285f4 !important;
+      outline-offset: 1px !important;
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1) !important;
+    }
+    
+    /* Prevent focus loss on buttons */
+    button {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    /* Ensure modals don't block input focus */
+    .modal input, .modal textarea {
+      pointer-events: auto !important;
+      z-index: 1050 !important;
+    }
+
     .thinking-logs-toggle:hover {
       background: rgba(248, 249, 250, 1);
       border-color: rgba(0, 0, 0, 0.2);
@@ -9715,6 +9741,85 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
       </div>
     </div>
   </div>
+
+<script>
+// Fix for Electron input focus issues
+if (window.require) {
+  console.log('[ELECTRON] Running in Electron - applying focus fixes');
+  
+  // Enhanced focus management for Electron
+  document.addEventListener('DOMContentLoaded', function() {
+    // Force focus on click for input elements
+    document.addEventListener('click', function(e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true')) {
+        setTimeout(() => {
+          e.target.focus();
+          if (e.target.select && e.target.type !== 'checkbox' && e.target.type !== 'radio') {
+            // Select text for text inputs when clicked
+            e.target.select();
+          }
+        }, 10);
+      }
+    });
+    
+    // Prevent focus loss on window blur/focus events
+    let lastFocusedElement = null;
+    
+    document.addEventListener('focusin', function(e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        lastFocusedElement = e.target;
+      }
+    });
+    
+    window.addEventListener('focus', function() {
+      // Restore focus to last focused input when window regains focus
+      if (lastFocusedElement && document.contains(lastFocusedElement)) {
+        setTimeout(() => {
+          lastFocusedElement.focus();
+        }, 100);
+      }
+    });
+    
+    // Fix for modals losing focus
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1 && node.classList && node.classList.contains('modal')) {
+              // When a modal is added, ensure its inputs can receive focus
+              setTimeout(() => {
+                const firstInput = node.querySelector('input, textarea');
+                if (firstInput) {
+                  firstInput.focus();
+                }
+              }, 100);
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Global keyboard shortcut handler
+    document.addEventListener('keydown', function(e) {
+      // Ctrl+L to focus current page (same as browser)
+      if (e.ctrlKey && e.key === 'l') {
+        e.preventDefault();
+        const firstInput = document.querySelector('input:not([type="hidden"]), textarea');
+        if (firstInput) {
+          firstInput.focus();
+          if (firstInput.select) firstInput.select();
+        }
+      }
+    });
+    
+    console.log('[ELECTRON] Focus management initialized');
+  });
+} else {
+  console.log('[BROWSER] Running in browser - standard focus behavior');
+}
+</script>
 
 </body>
 </html>

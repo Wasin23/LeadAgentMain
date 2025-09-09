@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Click Tracking</title>
+</head>
+<body>
+    <script>
+        // Get tracking ID and URL from current page
+        const pathParts = window.location.pathname.split('/');
+        const trackingId = pathParts[pathParts.length - 1];
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectUrl = urlParams.get('url') || 'https://examarkchat.com';
+        
+        // Try to send tracking data to desktop app
+        if (trackingId && trackingId !== 'click') {
+            fetch('http://localhost:8080/webhooks/track-click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    trackingId: trackingId,
+                    url: redirectUrl,
+                    userAgent: navigator.userAgent,
+                    timestamp: new Date().toISOString()
+                })
+            }).catch(() => console.log('Desktop app not running'));
+        }
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 100);
+    </script>
+    <p>Redirecting...</p>
+</body>
+</html>

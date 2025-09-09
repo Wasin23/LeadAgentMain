@@ -1,0 +1,7 @@
+# Simple static page redirects for email tracking
+
+# Pixel tracking goes to static HTML page
+/track/pixel/:id.png /track/pixel/ 200
+
+# Click tracking goes to static HTML page  
+/track/click/:id /track/click/ 200

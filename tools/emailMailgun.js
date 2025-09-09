@@ -4,6 +4,7 @@ import Mailgun from 'mailgun.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { desktopEmailTracker } from '../utils/desktopEmailTracker.js';
 
 console.log('MAILGUN_API_KEY:', process.env.MAILGUN_API_KEY);
 const mailgun = new Mailgun(FormData);
@@ -141,29 +142,31 @@ export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
 export async function sendEmailMailgun(to, subject, body, enableTracking = true) {
   try {
-    const trackingId = uuidv4();
-    
-    // Convert plain text to HTML format for better display
     let htmlBody = body.replace(/\n/g, '<br>');
+    let trackingId = null;
     
-    // Add tracking if enabled
+    // Use desktop email tracker for safe, self-contained tracking
     if (enableTracking) {
-      htmlBody = addTrackingToEmail(htmlBody, trackingId);
+      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject);
+      htmlBody = trackingResult.html;
+      trackingId = trackingResult.trackingId;
+      
+      console.log(`[DESKTOP TRACKER] Email tracking injected for ${to} with ID: ${trackingId}`);
     }
     
     // Prepare email data
     const emailData = {
       from: `ExaMark <noreply@${process.env.MAILGUN_DOMAIN}>`,
-      'h:Reply-To': 'replies@mg.examarkchat.com', // Fixed reply address for tracking
+      'h:Reply-To': 'replies@mg.examarkchat.com',
       to,
-      subject: subject, // Clean subject without tracking ID
-      html: htmlBody, // Always send HTML version (with or without tracking)
-      text: body, // Keep clean text version
-      'h:Message-ID': `<tracking-${trackingId}@${process.env.MAILGUN_DOMAIN}>`, // Custom Message-ID for reply tracking
-      'h:X-Tracking-ID': trackingId // Custom header for our tracking
+      subject: subject,
+      html: htmlBody,
+      text: body,
+      'h:Message-ID': `<tracking-${trackingId || uuidv4()}@${process.env.MAILGUN_DOMAIN}>`,
+      'h:X-Tracking-ID': trackingId || 'no-tracking'
     };
     
-    // Disable Mailgun's tracking to avoid conflicts with our custom tracking
+    // Disable Mailgun's tracking to avoid conflicts
     if (enableTracking) {
       emailData['o:tracking'] = 'no';
       emailData['o:tracking-clicks'] = 'no';
@@ -177,7 +180,8 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true)
     // Log successful email with tracking ID
     const loggedId = await logEmailToFile(to, subject, body, 'sent', trackingId, {
       mailgunId: result.id,
-      trackingEnabled: enableTracking
+      trackingEnabled: enableTracking,
+      desktopTracking: true // Flag to indicate this uses desktop tracking
     });
     
     return {

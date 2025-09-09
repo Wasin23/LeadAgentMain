@@ -112,6 +112,16 @@ try {
   webhookRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import desktop webhook routes for domain tracking
+let webhooksDesktopRoutes;
+try {
+  webhooksDesktopRoutes = (await import('./routes/webhooks-desktop.js')).default;
+  console.log('Desktop webhook routes imported successfully');
+} catch (e) {
+  console.log('Desktop webhook routes not available:', e.message);
+  webhooksDesktopRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import LinkedIn routes
 let linkedinRoutes;
 try {
@@ -150,6 +160,16 @@ try {
 } catch (e) {
   console.log('AI Training routes not available:', e.message);
   trainingRoutes = (req, res, next) => next(); // No-op if not present
+}
+
+// Import Desktop Email Tracking routes
+let trackingRoutes;
+try {
+  trackingRoutes = (await import('./routes/tracking.js')).default;
+  console.log('Desktop email tracking routes imported successfully');
+} catch (e) {
+  console.log('Desktop email tracking routes not available:', e.message);
+  trackingRoutes = (req, res, next) => next(); // No-op if not present
 }
 
 // Import System Management routes
@@ -286,6 +306,8 @@ app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
+app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking
+app.use('/track', trackingRoutes); // Desktop email tracking (safe, no external deps)
 app.use('/api/linkedin', linkedinRoutes); // LinkedIn profile builder routes
 app.use('/api/linkedin-api', linkedinApiRoutes); // LinkedIn API integration routes
 app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Pixel</title>
+</head>
+<body>
+    <script>
+        // Get tracking ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const trackingId = pathParts[pathParts.length - 1].replace('.png', '');
+        
+        // Try to send tracking data to desktop app
+        if (trackingId && trackingId !== 'pixel') {
+            fetch('http://localhost:8080/webhooks/track-open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    trackingId: trackingId,
+                    userAgent: navigator.userAgent,
+                    timestamp: new Date().toISOString()
+                })
+            }).catch(() => console.log('Desktop app not running'));
+        }
+        
+        // Show 1x1 transparent pixel
+        document.body.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" width="1" height="1">';
+    </script>
+</body>
+</html>

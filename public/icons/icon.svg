@@ -1,0 +1,19 @@
+<!-- Simple SVG icon for ExaMark -->
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="120" fill="#2563eb" stroke="#1d4ed8" stroke-width="4"/>
+  
+  <!-- Letter "E" -->
+  <rect x="70" y="70" width="8" height="116" fill="white"/>
+  <rect x="70" y="70" width="50" height="8" fill="white"/>
+  <rect x="70" y="124" width="40" height="8" fill="white"/>
+  <rect x="70" y="178" width="50" height="8" fill="white"/>
+  
+  <!-- Letter "M" -->
+  <rect x="140" y="70" width="8" height="116" fill="white"/>
+  <rect x="188" y="70" width="8" height="116" fill="white"/>
+  <polygon points="148,70 164,95 180,70 188,70 188,86 172,111 172,70 164,70 164,111 148,86 148,70" fill="white"/>
+  
+  <!-- Small dot accent -->
+  <circle cx="210" cy="90" r="6" fill="#fbbf24"/>
+</svg>
