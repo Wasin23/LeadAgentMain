@@ -9,9 +9,17 @@ const router = express.Router();
 // Webhook endpoint for email opens (from examarkchat.com/track/pixel)
 router.post('/track-open', async (req, res) => {
   try {
-    const { trackingId, userAgent, ip, timestamp } = req.body;
+    let { trackingId, userAgent, ip, timestamp } = req.body;
     
     if (trackingId) {
+      // If we got a shortened tracking ID, try to find the full one
+      if (trackingId.length === 8) {
+        const fullTrackingId = desktopEmailTracker.findTrackingIdByPrefix(trackingId);
+        if (fullTrackingId) {
+          trackingId = fullTrackingId;
+        }
+      }
+      
       await desktopEmailTracker.recordOpen(trackingId, userAgent, ip);
       console.log(`📧 [WEBHOOK] Email opened: ${trackingId}`);
     }

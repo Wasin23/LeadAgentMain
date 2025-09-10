@@ -142,7 +142,17 @@ export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
 export async function sendEmailMailgun(to, subject, body, enableTracking = true) {
   try {
-    let htmlBody = body.replace(/\n/g, '<br>');
+    // Ensure we always have HTML content for tracking
+    let htmlBody = body;
+    
+    // If it's plain text, wrap it in basic HTML
+    if (!body.includes('<html>') && !body.includes('<body>') && !body.includes('<p>')) {
+      htmlBody = `<html><body><p>${body.replace(/\n/g, '<br>')}</p></body></html>`;
+    } else {
+      // Already HTML, just convert line breaks
+      htmlBody = body.replace(/\n/g, '<br>');
+    }
+    
     let trackingId = null;
     
     // Use desktop email tracker for safe, self-contained tracking

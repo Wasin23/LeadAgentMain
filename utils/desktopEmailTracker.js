@@ -40,12 +40,12 @@ class DesktopEmailTracker {
     return crypto.createHash('md5').update(unique).digest('hex');
   }
 
-  // Create tracking pixel URL (embedded in email)
+  // Create tracking pixel URL (embedded in email) - Make it look like a legitimate image
   createTrackingPixel(trackingId) {
-    return `${this.baseUrl}/track/pixel/${trackingId}.png`;
+    return `${this.baseUrl}/images/spacer-${trackingId.substring(0,8)}.png`;
   }
 
-  // Create trackable link
+  // Create trackable link - ALWAYS use domain for external recipients  
   createTrackableLink(originalUrl, trackingId, linkType = 'general') {
     const encodedUrl = encodeURIComponent(originalUrl);
     return `${this.baseUrl}/track/click/${trackingId}?url=${encodedUrl}&type=${linkType}`;
@@ -67,8 +67,8 @@ class DesktopEmailTracker {
     
     this.saveTrackingData();
 
-    // Add tracking pixel at end of email
-    const trackingPixel = `<img src="${this.createTrackingPixel(trackingId)}" width="1" height="1" style="display:none;" />`;
+    // Add tracking pixel as a legitimate-looking image element (not hidden)
+    const trackingPixel = `<img src="${this.createTrackingPixel(trackingId)}" width="3" height="3" style="opacity:0.1; margin:2px;" alt="." title="spacer" />`;
     
     // Replace links with trackable versions
     let trackedHtml = emailHtml.replace(
@@ -88,6 +88,16 @@ class DesktopEmailTracker {
     trackedHtml = trackedHtml.replace('</body>', `${trackingPixel}</body>`);
     
     return { html: trackedHtml, trackingId };
+  }
+
+  // Find full tracking ID by prefix (for shortened URLs)
+  findTrackingIdByPrefix(prefix) {
+    for (const [fullId] of this.trackingData) {
+      if (fullId.startsWith(prefix)) {
+        return fullId;
+      }
+    }
+    return null;
   }
 
   // Record email open
