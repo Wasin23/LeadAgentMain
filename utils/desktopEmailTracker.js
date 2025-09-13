@@ -8,6 +8,7 @@ class DesktopEmailTracker {
     this.trackingDataFile = path.join(process.cwd(), 'lib', 'data', 'email_tracking.json');
     this.baseUrl = 'https://examarkchat.com'; // Your domain for tracking
     this.localPort = process.env.PORT || 8080; // Desktop app port
+    this.renderWebhookUrl = process.env.TRACKING_DOMAIN || 'https://examark-ga2o.onrender.com'; // Your Render app URL
     this.trackingData = new Map();
     this.loadTrackingData();
   }

@@ -314,7 +314,7 @@ app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/system', systemRoutes); // System management and monitoring
 
-const PORT = process.env.API_PORT || 8080;
+const PORT = process.env.PORT || process.env.API_PORT || 8080;
 const server = app.listen(PORT, () => {
   console.log(`Server is live on port ${PORT}`);
   logger.info(`ExaMark server started on port ${PORT}`, {

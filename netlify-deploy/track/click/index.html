@@ -11,9 +11,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const redirectUrl = urlParams.get('url') || 'https://examarkchat.com';
         
-        // Try to send tracking data to desktop app
+        // Send tracking data to Render app
         if (trackingId && trackingId !== 'click') {
-            fetch('http://localhost:8080/webhooks/track-click', {
+            fetch('https://examark-ga2o.onrender.com/webhooks/track-click', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -22,7 +22,7 @@
                     userAgent: navigator.userAgent,
                     timestamp: new Date().toISOString()
                 })
-            }).catch(() => console.log('Desktop app not running'));
+            }).catch(() => console.log('Tracking failed'));
         }
         
         // Redirect after a short delay

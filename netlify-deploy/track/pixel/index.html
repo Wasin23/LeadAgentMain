@@ -33,17 +33,16 @@
             console.log('User agent:', navigator.userAgent);
             console.log('Timestamp:', new Date().toISOString());
             
-            // Try to send to desktop app, but don't block on it
+            // Send to Render app for tracking
             try {
-                fetch('http://localhost:8080/webhooks/track-open', {
+                fetch('https://examark-ga2o.onrender.com/webhooks/track-open', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         trackingId: trackingId,
                         userAgent: navigator.userAgent,
                         timestamp: new Date().toISOString()
-                    }),
-                    mode: 'no-cors'
+                    })
                 }).catch(() => {});
             } catch(e) {}
         }
