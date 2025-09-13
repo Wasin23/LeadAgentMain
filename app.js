@@ -187,11 +187,12 @@ const app = express();
 // Security Configuration
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Start memory monitoring in production
-if (isProduction || process.env.ENABLE_MONITORING === 'true') {
-  memoryMonitor.start();
-  console.log('[SYSTEM] Memory monitoring started');
-}
+// Start memory monitoring in production - DISABLED FOR RENDER
+// if (isProduction || process.env.ENABLE_MONITORING === 'true') {
+//   memoryMonitor.start();
+//   console.log('[SYSTEM] Memory monitoring started');
+// }
+console.log('[SYSTEM] Memory monitoring disabled for Render compatibility');
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -231,8 +232,8 @@ app.use(session({
 app.use(express.json({ limit: config.performance.requestSizeLimit }));
 app.use(express.urlencoded({ extended: true, limit: config.performance.requestSizeLimit }));
 
-// Performance monitoring middleware
-app.use(performanceMiddleware());
+// Performance monitoring middleware - DISABLED FOR RENDER
+// app.use(performanceMiddleware());
 
 // Request timeout middleware
 app.use((req, res, next) => {

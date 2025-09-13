@@ -130,3 +130,7 @@
 {"level":"info","message":"Received SIGINT. Starting graceful shutdown...","service":"examark-api","timestamp":"2025-09-13T00:11:30.088Z"}
 {"environment":"development","level":"info","message":"ExaMark server started on port 8080","service":"examark-api","sessionId":"mfhihdfr4prqv5f7ot","timestamp":"2025-09-13T00:11:54.054Z"}
 {"ip":"::1","level":"info","message":"POST /api/clear-search-cache","service":"examark-api","timestamp":"2025-09-13T00:13:00.574Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"POST /api/research/deep-stream","service":"examark-api","timestamp":"2025-09-13T00:13:24.309Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"POST /api/clear-search-cache","service":"examark-api","timestamp":"2025-09-13T00:14:56.556Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"level":"info","message":"Received SIGINT. Starting graceful shutdown...","service":"examark-api","timestamp":"2025-09-13T17:49:57.281Z"}
+{"environment":"development","level":"info","message":"ExaMark server started on port 8080","service":"examark-api","sessionId":"mfikbcsvtc8jdi904s","timestamp":"2025-09-13T17:51:10.720Z"}

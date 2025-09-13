@@ -17,7 +17,7 @@ const config = {
     sessionSecret: process.env.SESSION_SECRET,
     corsOrigin: process.env.CORS_ORIGIN || '*',
     rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-    rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100')
+    rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '10000') // 10000 instead of 100
   },
 
   // Logging configuration
@@ -54,8 +54,8 @@ const config = {
 
   // Performance configuration
   performance: {
-    requestTimeout: parseInt(process.env.REQUEST_TIMEOUT || '30000'),
-    requestSizeLimit: process.env.REQUEST_SIZE_LIMIT || '10mb',
+    requestTimeout: parseInt(process.env.REQUEST_TIMEOUT || '300000'), // 5 minutes instead of 30 seconds
+    requestSizeLimit: process.env.REQUEST_SIZE_LIMIT || '500mb', // 500MB instead of 10mb
     compressionLevel: parseInt(process.env.COMPRESSION_LEVEL || '6')
   }
 };

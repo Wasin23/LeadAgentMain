@@ -7,11 +7,11 @@ class MemoryMonitor extends EventEmitter {
     
     this.config = {
       checkInterval: options.checkInterval || 30000, // 30 seconds
-      memoryThreshold: options.memoryThreshold || 2048 * 1024 * 1024, // 2GB (increased from 1GB)
-      heapThreshold: options.heapThreshold || 1536 * 1024 * 1024, // 1.5GB (increased from 512MB)
-      gcThreshold: options.gcThreshold || 0.90, // 90% of heap (increased from 85%)
+      memoryThreshold: options.memoryThreshold || 8192 * 1024 * 1024, // 8GB (massively increased for Render)
+      heapThreshold: options.heapThreshold || 6144 * 1024 * 1024, // 6GB (massively increased for Render)
+      gcThreshold: options.gcThreshold || 0.95, // 95% of heap 
       historyLength: options.historyLength || 100, // Keep last 100 readings
-      alertThreshold: options.alertThreshold || 0.95 // Alert at 95% of threshold (increased from 90%)
+      alertThreshold: options.alertThreshold || 0.98 // Alert at 98% of threshold
     };
 
     this.isMonitoring = false;
@@ -144,29 +144,20 @@ class MemoryMonitor extends EventEmitter {
       this.emit('alert', alert);
     });
 
-    // Force garbage collection if available and thresholds exceeded
-    if (alerts.some(a => a.level === 'critical') && global.gc) {
-      console.log('[MEMORY] Running garbage collection...');
-      global.gc();
-      // Run cleanup after GC
-      this.cleanupMemory();
-    }
+    // Force garbage collection if available and thresholds exceeded - DISABLED FOR RENDER
+    // if (alerts.some(a => a.level === 'critical') && global.gc) {
+    //   console.log('[MEMORY] Running garbage collection...');
+    //   global.gc();
+    //   // Run cleanup after GC
+    //   this.cleanupMemory();
+    // }
   }
 
-  // Memory cleanup utility
+  // Memory cleanup utility - DISABLED FOR RENDER
   cleanupMemory() {
     try {
-      // Trim memory history more aggressively
-      if (this.memoryHistory.length > 50) {
-        this.memoryHistory = this.memoryHistory.slice(-50);
-      }
-      
-      // Clear old performance metrics
-      if (this.performanceMetrics.responseTimeHistory.length > 100) {
-        this.performanceMetrics.responseTimeHistory = this.performanceMetrics.responseTimeHistory.slice(-100);
-      }
-      
-      console.log('[MEMORY] Memory cleanup completed');
+      // Disabled aggressive cleanup for Render - just log
+      console.log('[MEMORY] Memory cleanup skipped for Render compatibility');
     } catch (error) {
       console.error('[MEMORY] Cleanup error:', error);
     }
