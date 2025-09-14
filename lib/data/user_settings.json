@@ -26,32 +26,33 @@
       "autoSaveInterval": 300000
     },
     "leadContactSettings": {
-      "companySizeMin": 50,
-      "companySizeMax": 200,
+      "companySizeMin": 4000,
+      "companySizeMax": 5000,
       "companyIndustries": [
-        "software",
-        "AI",
-        "machine learning",
-        "cloud computing",
-        "fintech",
-        "startup"
+        "quick service restaurant",
+        "grocery",
+        "hospitality",
+        "food service"
       ],
       "companyKeywords": [],
       "targetPositions": [
-        "CTO",
-        "Chief Technology Officer",
-        "IT Director",
-        "CEO",
-        "Founder"
+        "HR Manager",
+        "HR Business Partner",
+        "Talent Acquisition Manager",
+        "HR Director"
       ],
-      "seniorityLevel": "executive",
-      "departments": [],
+      "seniorityLevel": "senior",
+      "departments": [
+        "Human resources",
+        "HR",
+        "Sales"
+      ],
       "targetLocations": [
         "United States"
       ],
-      "leadLimit": 5,
+      "leadLimit": 10,
       "excludeKeywords": [],
-      "fundingStage": "startup",
+      "fundingStage": "any",
       "technologyStack": [],
       "contactIntent": [],
       "emailBuilderPrompt": "You are {{AGENT_NAME}}, the AI assistant for {{COMPANY_NAME}}. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:\n\nCompany: {{TARGET_COMPANY}}\nContact: {{CONTACT_NAME}}\nTitle: {{CONTACT_TITLE}}\nIndustry: {{INDUSTRY}}\nCompany Description: {{COMPANY_DESCRIPTION}}\nEmployee Count: {{EMPLOYEE_COUNT}}\n\nABOUT {{COMPANY_NAME}} (Customize this section for your business):\n- Specializes in {{PRIMARY_SERVICE}} (e.g., AI-powered High-Performance Computing Solutions)\n- Core offering: {{CORE_OFFERING}} (e.g., Custom AI infrastructure with NVIDIA H100/H200 GPU clusters)\n- Key advantages: {{KEY_ADVANTAGES}} (e.g., AI-HPC specialization, better performance-per-dollar vs general cloud, expert support)\n- Industry expertise: {{EXPERTISE_AREA}} (e.g., Deep understanding of AI/ML compute requirements)\n\nYOUR TASK - BE A SMART SALESPERSON:\nGenerate a professional email that demonstrates you've done your homework:\n\n1. Subject line that references specific company context (growth, funding, initiatives, etc.)\n2. Opening with SINGLE greeting only (Hi [Name], or Hello [Name], - NOT BOTH)\n3. Connect their specific situation to {{COMPANY_NAME}} solutions with LOGICAL REASONING\n4. Explain WHY your solution specifically fits their company's needs\n5. Professional call-to-action\n6. Simple signature: \"Best regards,\\n{{AGENT_NAME}}\\n{{COMPANY_NAME}} {{AGENT_TITLE}}\"\n\nCRITICAL RULES:\n- Use ONLY ONE greeting (not \"Hello Name, Hi Name,\")\n- NO \"P.S.\" sections about founders\n- DO NOT repeat the subject line in the email body\n- DO NOT use placeholder text like \"your full name\" or \"your position\"\n- Sign simply as \"{{AGENT_NAME}}\" - no placeholder names\n- EXPLAIN the logical connection between their business and your solutions\n- Reference specific research insights when available\n- Focus on business value, not just features\n- DO NOT mention company founding date, location, or founders unless directly relevant\n- Keep focus on solutions and business outcomes\n\nKeep it concise (under 200 words), professional, and data-driven. Show you understand their business.\n\nIMPORTANT FORMATTING:\n- The BODY should NOT contain the subject line\n- Start the BODY directly with the greeting\n- End with the signature shown above\n\nFormat as:\nSUBJECT: [subject line]\nBODY: [email body starting with greeting, ending with signature]\n\nEXAMPLE STRUCTURE:\nSUBJECT: AI Infrastructure for TechCorp's Expansion\nBODY: Hi John,\n\nI noticed TechCorp recently raised $50M for AI development. Congratulations on the milestone!\n\nAs you scale your AI initiatives, computing infrastructure becomes critical. {{COMPANY_NAME}} specializes in {{PRIMARY_SERVICE}} that could accelerate your development timeline while reducing costs compared to traditional cloud providers.\n\nCompanies like yours typically see 40% faster model training and 30% cost savings with our specialized approach.\n\nWould you be open to a brief call next week to discuss how this might fit TechCorp's AI roadmap?\n\nBest regards,\n{{AGENT_NAME}}\n{{COMPANY_NAME}} {{AGENT_TITLE}}\n\nTEMPLATE VARIABLES TO CUSTOMIZE:\n- {{AGENT_NAME}}: Your AI assistant's name (e.g., \"ExaMark\")\n- {{COMPANY_NAME}}: Your company name (e.g., \"Exabits\")\n- {{AGENT_TITLE}}: Your AI assistant's title (e.g., \"AI Assistant\")\n- {{PRIMARY_SERVICE}}: Main service offering\n- {{CORE_OFFERING}}: Specific product/service details\n- {{KEY_ADVANTAGES}}: Competitive advantages\n- {{EXPERTISE_AREA}}: Industry expertise",
