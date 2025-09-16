@@ -33,10 +33,13 @@ router.post('/track-open', async (req, res) => {
     
     if (trackingId) {
       // If we got a shortened tracking ID, try to find the full one
-      if (trackingId.length === 8) {
+      if (trackingId.length <= 8) {
         const fullTrackingId = desktopEmailTracker.findTrackingIdByPrefix(trackingId);
         if (fullTrackingId) {
+          console.log(`📧 [WEBHOOK] Found full tracking ID: ${trackingId} -> ${fullTrackingId}`);
           trackingId = fullTrackingId;
+        } else {
+          console.log(`📧 [WEBHOOK] No full tracking ID found for prefix: ${trackingId}`);
         }
       }
       
@@ -59,9 +62,20 @@ router.post('/track-click', async (req, res) => {
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     
-    const { trackingId, url, userAgent, ip, timestamp } = req.body;
+    let { trackingId, url, userAgent, ip, timestamp } = req.body;
     
     if (trackingId && url) {
+      // If we got a shortened tracking ID, try to find the full one
+      if (trackingId.length <= 8) {
+        const fullTrackingId = desktopEmailTracker.findTrackingIdByPrefix(trackingId);
+        if (fullTrackingId) {
+          console.log(`🔗 [WEBHOOK] Found full tracking ID: ${trackingId} -> ${fullTrackingId}`);
+          trackingId = fullTrackingId;
+        } else {
+          console.log(`🔗 [WEBHOOK] No full tracking ID found for prefix: ${trackingId}`);
+        }
+      }
+      
       await desktopEmailTracker.recordClick(trackingId, url, 'general', userAgent, ip);
       console.log(`🔗 [WEBHOOK] Link clicked: ${trackingId} -> ${url}`);
     }
