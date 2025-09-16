@@ -20,34 +20,38 @@
                 timestamp: new Date().toISOString()
             };
             
-            // Option 1: Try Render (production)
-            fetch('https://examark-ga2o.onrender.com/webhooks/track-click', {
+            // Option 1: Try Netlify Function (HTTPS) - BEST for Gmail
+            fetch('/.netlify/functions/track-click', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(trackingData)
             }).then(response => {
                 if (response.ok) {
-                    console.log('✅ Click tracking sent to Render');
+                    console.log('✅ Click tracking sent via Netlify Function');
+                    return response.json();
                 } else {
-                    console.log('⚠️ Render click tracking failed, status:', response.status);
+                    console.log('⚠️ Netlify Function failed, status:', response.status);
+                    throw new Error('Netlify Function failed');
                 }
+            }).then(data => {
+                console.log('🔗 Click tracking response:', data);
             }).catch(error => {
-                console.log('❌ Render click tracking failed:', error.message);
-            });
-            
-            // Option 2: Try localhost (development/testing)
-            fetch('http://localhost:8080/webhooks/track-click', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(trackingData)
-            }).then(response => {
-                if (response.ok) {
-                    console.log('✅ Click tracking sent to localhost');
-                } else {
-                    console.log('⚠️ Localhost click tracking failed, status:', response.status);
-                }
-            }).catch(error => {
-                console.log('❌ Localhost click tracking failed (expected from HTTPS):', error.message);
+                console.log('❌ Netlify Function failed:', error.message);
+                
+                // Fallback: Try direct localhost
+                fetch('http://localhost:8080/webhooks/track-click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trackingData)
+                }).then(response => {
+                    if (response.ok) {
+                        console.log('✅ Click tracking sent to localhost (fallback)');
+                    } else {
+                        console.log('⚠️ Localhost click tracking failed, status:', response.status);
+                    }
+                }).catch(error => {
+                    console.log('❌ Localhost click tracking failed (expected from HTTPS):', error.message);
+                });
             });
         }
         

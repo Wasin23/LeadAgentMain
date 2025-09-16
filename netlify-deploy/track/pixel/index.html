@@ -33,42 +33,45 @@
             console.log('User agent:', navigator.userAgent);
             console.log('Timestamp:', new Date().toISOString());
             
-            // Dual tracking system - try both Render and localhost
+            // Enhanced tracking system - try Netlify Function first, then fallback
             const trackingData = {
                 trackingId: trackingId,
                 userAgent: navigator.userAgent,
                 timestamp: new Date().toISOString()
             };
             
-            // Option 1: Try Render (production)
-            fetch('https://examark-ga2o.onrender.com/webhooks/track-open', {
+            // Option 1: Try Netlify Function (HTTPS) - BEST for Gmail
+            fetch('/.netlify/functions/track-open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(trackingData)
             }).then(response => {
                 if (response.ok) {
-                    console.log('✅ Tracking sent to Render');
+                    console.log('✅ Tracking sent via Netlify Function');
+                    return response.json();
                 } else {
-                    console.log('⚠️ Render tracking failed, status:', response.status);
+                    console.log('⚠️ Netlify Function failed, status:', response.status);
+                    throw new Error('Netlify Function failed');
                 }
+            }).then(data => {
+                console.log('📧 Tracking response:', data);
             }).catch(error => {
-                console.log('❌ Render tracking failed:', error.message);
-            });
-            
-            // Option 2: Try localhost (development/testing)
-            // Note: This will fail from HTTPS but works for testing direct access
-            fetch('http://localhost:8080/webhooks/track-open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(trackingData)
-            }).then(response => {
-                if (response.ok) {
-                    console.log('✅ Tracking sent to localhost');
-                } else {
-                    console.log('⚠️ Localhost tracking failed, status:', response.status);
-                }
-            }).catch(error => {
-                console.log('❌ Localhost tracking failed (expected from HTTPS):', error.message);
+                console.log('❌ Netlify Function failed:', error.message);
+                
+                // Fallback: Try direct localhost (will fail from HTTPS but useful for testing)
+                fetch('http://localhost:8080/webhooks/track-open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trackingData)
+                }).then(response => {
+                    if (response.ok) {
+                        console.log('✅ Tracking sent to localhost (fallback)');
+                    } else {
+                        console.log('⚠️ Localhost tracking failed, status:', response.status);
+                    }
+                }).catch(error => {
+                    console.log('❌ Localhost tracking failed (expected from HTTPS):', error.message);
+                });
             });
         }
     </script>
