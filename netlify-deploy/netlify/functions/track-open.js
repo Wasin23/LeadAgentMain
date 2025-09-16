@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
 
     // Try to forward to desktop app (localhost)
     try {
-      const response = await fetch('http://localhost:8080/webhooks/track-open', {
+      const response = await fetch('http://localhost:8080/api/webhooks/email-open', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
