@@ -33,18 +33,43 @@
             console.log('User agent:', navigator.userAgent);
             console.log('Timestamp:', new Date().toISOString());
             
-            // Send to Render app for tracking
-            try {
-                fetch('https://examark-ga2o.onrender.com/webhooks/track-open', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        trackingId: trackingId,
-                        userAgent: navigator.userAgent,
-                        timestamp: new Date().toISOString()
-                    })
-                }).catch(() => {});
-            } catch(e) {}
+            // Dual tracking system - try both Render and localhost
+            const trackingData = {
+                trackingId: trackingId,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Option 1: Try Render (production)
+            fetch('https://examark-ga2o.onrender.com/webhooks/track-open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trackingData)
+            }).then(response => {
+                if (response.ok) {
+                    console.log('✅ Tracking sent to Render');
+                } else {
+                    console.log('⚠️ Render tracking failed, status:', response.status);
+                }
+            }).catch(error => {
+                console.log('❌ Render tracking failed:', error.message);
+            });
+            
+            // Option 2: Try localhost (development/testing)
+            // Note: This will fail from HTTPS but works for testing direct access
+            fetch('http://localhost:8080/webhooks/track-open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trackingData)
+            }).then(response => {
+                if (response.ok) {
+                    console.log('✅ Tracking sent to localhost');
+                } else {
+                    console.log('⚠️ Localhost tracking failed, status:', response.status);
+                }
+            }).catch(error => {
+                console.log('❌ Localhost tracking failed (expected from HTTPS):', error.message);
+            });
         }
     </script>
 </body>

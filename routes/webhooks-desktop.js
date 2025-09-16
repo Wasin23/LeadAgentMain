@@ -6,9 +6,29 @@ const router = express.Router();
 
 // Simple webhook endpoints for examarkchat.com tracking scripts
 
+// CORS preflight handlers
+router.options('/track-open', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.sendStatus(200);
+});
+
+router.options('/track-click', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.sendStatus(200);
+});
+
 // Webhook endpoint for email opens (from examarkchat.com/track/pixel)
 router.post('/track-open', async (req, res) => {
   try {
+    // Add CORS headers for cross-origin requests
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
     let { trackingId, userAgent, ip, timestamp } = req.body;
     
     if (trackingId) {
@@ -34,6 +54,11 @@ router.post('/track-open', async (req, res) => {
 // Webhook endpoint for link clicks (from examarkchat.com/track/click)
 router.post('/track-click', async (req, res) => {
   try {
+    // Add CORS headers for cross-origin requests
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
     const { trackingId, url, userAgent, ip, timestamp } = req.body;
     
     if (trackingId && url) {

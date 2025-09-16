@@ -373,6 +373,9 @@ export async function leadResearch(query, options = {}) {
       // Company Intelligence (existing function)
       const enhancedLead = await companyIntelligence.enhanceAndVerifyLead(lead, researchFocus, leadContactSettings);
       
+      // Enhanced Person Research
+      const personInfo = await gatherPersonInfo(lead, userId);
+      
       // Create comprehensive enhanced lead object
       const finalEnhancedLead = {
         ...enhancedLead,
@@ -380,6 +383,7 @@ export async function leadResearch(query, options = {}) {
         totalScore: totalScore,
         scoringBreakdown: scoringBreakdown,
         enrichmentData: enrichmentData,
+        personInfo: personInfo, // Add the detailed person information
         leadQuality: totalScore >= 70 ? 'high' : totalScore >= 40 ? 'medium' : 'low',
         verificationStatus: 'enhanced_verified'
       };
@@ -968,6 +972,142 @@ function cacheResult(key, data) {
     data: data,
     timestamp: Date.now()
   });
+}
+
+// Enhanced person research for detailed profile information
+async function gatherPersonInfo(lead, userId = null) {
+  const fullName = `${lead.first_name} ${lead.last_name}`.trim();
+  const company = lead.organization?.name || lead.company;
+  const title = lead.title;
+  
+  console.log(`👤 [PERSON RESEARCH] Gathering detailed info for: ${fullName} at ${company}`);
+  
+  try {
+    // Search for person's professional information
+    const searchQueries = [
+      `"${fullName}" "${company}" position tenure experience`,
+      `"${fullName}" linkedin "${company}" "${title}"`,
+      `"${fullName}" "${company}" years experience started`,
+      `"${fullName}" professional background "${company}" career`
+    ];
+    
+    const personInfo = {
+      fullName: fullName,
+      currentPosition: title,
+      company: company,
+      tenure: null,
+      startDate: null,
+      experience: null,
+      bio: null,
+      education: null,
+      previousRoles: []
+    };
+    
+    for (const query of searchQueries) {
+      try {
+        const searchResults = await internetSearch(query, { maxResults: 3 });
+        
+        if (searchResults && searchResults.length > 0) {
+          // Use AI to extract person information from search results
+          const extractionPrompt = `
+            Extract specific professional information about ${fullName} at ${company} from these search results:
+            
+            ${searchResults.map(r => `Title: ${r.title}\nContent: ${r.content}`).join('\n\n')}
+            
+            Focus on extracting:
+            1. How long they've been at ${company} (tenure in months/years)
+            2. When they started at ${company} (specific date if available)
+            3. Their exact current position/title
+            4. Years of total professional experience
+            5. Brief professional background/bio
+            6. Education background
+            7. Previous roles/companies
+            
+            Return a JSON object with these fields:
+            {
+              "tenure": "X years Y months" or "X months" or null,
+              "startDate": "YYYY-MM" or "YYYY" or null,
+              "experience": "X years total experience" or null,
+              "bio": "Brief professional summary" or null,
+              "education": "Education details" or null,
+              "previousRoles": ["Previous Company - Role", ...] or []
+            }
+            
+            Only include information that is explicitly stated. Use null for missing data.
+          `;
+          
+          const llm = new (await import("@langchain/openai")).ChatOpenAI({
+            openAIApiKey: process.env.OPENAI_API_KEY,
+            temperature: 0.1,
+            modelName: "gpt-4o"
+          });
+          
+          const response = await llm.invoke(extractionPrompt);
+          const extractedInfo = JSON.parse(response.content);
+          
+          // Merge extracted information
+          if (extractedInfo.tenure) personInfo.tenure = extractedInfo.tenure;
+          if (extractedInfo.startDate) personInfo.startDate = extractedInfo.startDate;
+          if (extractedInfo.experience) personInfo.experience = extractedInfo.experience;
+          if (extractedInfo.bio) personInfo.bio = extractedInfo.bio;
+          if (extractedInfo.education) personInfo.education = extractedInfo.education;
+          if (extractedInfo.previousRoles && extractedInfo.previousRoles.length > 0) {
+            personInfo.previousRoles = [...personInfo.previousRoles, ...extractedInfo.previousRoles];
+          }
+        }
+      } catch (error) {
+        console.log(`⚠️ [PERSON RESEARCH] Search failed for query: ${query.substring(0, 50)}...`);
+      }
+    }
+    
+    // If we couldn't find tenure info, try to estimate based on LinkedIn or other signals
+    if (!personInfo.tenure && lead.linkedin_url) {
+      try {
+        const linkedinQuery = `"${fullName}" linkedin "${company}" "joined" OR "started" years`;
+        const linkedinResults = await internetSearch(linkedinQuery, { maxResults: 2 });
+        
+        if (linkedinResults && linkedinResults.length > 0) {
+          const estimationPrompt = `
+            Based on these search results about ${fullName} at ${company}, estimate their tenure:
+            
+            ${linkedinResults.map(r => r.content).join('\n')}
+            
+            Provide just the estimated tenure like "2 years" or "6 months" or "unknown" if no clues available.
+          `;
+          
+          const llm = new (await import("@langchain/openai")).ChatOpenAI({
+            openAIApiKey: process.env.OPENAI_API_KEY,
+            temperature: 0.1,
+            modelName: "gpt-4o"
+          });
+          
+          const tenureResponse = await llm.invoke(estimationPrompt);
+          if (tenureResponse.content && !tenureResponse.content.includes('unknown')) {
+            personInfo.tenure = tenureResponse.content.trim();
+          }
+        }
+      } catch (error) {
+        console.log(`⚠️ [PERSON RESEARCH] LinkedIn tenure estimation failed`);
+      }
+    }
+    
+    console.log(`✅ [PERSON RESEARCH] Gathered info for ${fullName}: ${personInfo.tenure || 'tenure unknown'} at ${company}`);
+    return personInfo;
+    
+  } catch (error) {
+    console.error(`❌ [PERSON RESEARCH] Error gathering person info:`, error);
+    return {
+      fullName: fullName,
+      currentPosition: title,
+      company: company,
+      tenure: null,
+      startDate: null,
+      experience: null,
+      bio: null,
+      education: null,
+      previousRoles: []
+    };
+  }
 }
 
 // Export functions for use by other modules

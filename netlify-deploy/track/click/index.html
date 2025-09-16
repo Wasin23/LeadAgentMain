@@ -11,18 +11,44 @@
         const urlParams = new URLSearchParams(window.location.search);
         const redirectUrl = urlParams.get('url') || 'https://examarkchat.com';
         
-        // Send tracking data to Render app
+        // Send tracking data with dual system
         if (trackingId && trackingId !== 'click') {
+            const trackingData = {
+                trackingId: trackingId,
+                url: redirectUrl,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Option 1: Try Render (production)
             fetch('https://examark-ga2o.onrender.com/webhooks/track-click', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    trackingId: trackingId,
-                    url: redirectUrl,
-                    userAgent: navigator.userAgent,
-                    timestamp: new Date().toISOString()
-                })
-            }).catch(() => console.log('Tracking failed'));
+                body: JSON.stringify(trackingData)
+            }).then(response => {
+                if (response.ok) {
+                    console.log('✅ Click tracking sent to Render');
+                } else {
+                    console.log('⚠️ Render click tracking failed, status:', response.status);
+                }
+            }).catch(error => {
+                console.log('❌ Render click tracking failed:', error.message);
+            });
+            
+            // Option 2: Try localhost (development/testing)
+            fetch('http://localhost:8080/webhooks/track-click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trackingData)
+            }).then(response => {
+                if (response.ok) {
+                    console.log('✅ Click tracking sent to localhost');
+                } else {
+                    console.log('⚠️ Localhost click tracking failed, status:', response.status);
+                }
+            }).catch(error => {
+                console.log('❌ Localhost click tracking failed (expected from HTTPS):', error.message);
+            });
         }
         
         // Redirect after a short delay

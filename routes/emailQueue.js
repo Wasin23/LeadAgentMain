@@ -170,11 +170,13 @@ router.post('/:id/approve', async (req, res) => {
       });
     }
     
-    // Send the actual email
+    // Send the actual email with person information
+    const personInfo = approvedEmail.leadDetails?.personInfo || null;
     const sendResult = await leadEmail(
       finalRecipient,
       finalSubject,
-      finalBody
+      finalBody,
+      personInfo
     );
     
     if (sendResult.success) {

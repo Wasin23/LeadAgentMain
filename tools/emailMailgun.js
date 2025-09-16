@@ -25,6 +25,7 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
       body,
       status,
       timestamp: new Date().toISOString(),
+      personInfo: metadata.personInfo || null, // Store person information
       analytics: {
         opened: false,
         clicked: false,
@@ -140,7 +141,7 @@ function addTrackingToEmail(body, trackingId) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true) {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null) {
   try {
     // Ensure we always have HTML content for tracking
     let htmlBody = body;
@@ -191,7 +192,8 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true)
     const loggedId = await logEmailToFile(to, subject, body, 'sent', trackingId, {
       mailgunId: result.id,
       trackingEnabled: enableTracking,
-      desktopTracking: true // Flag to indicate this uses desktop tracking
+      desktopTracking: true, // Flag to indicate this uses desktop tracking
+      personInfo: personInfo // Include person information in the log
     });
     
     return {

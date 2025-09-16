@@ -3952,6 +3952,35 @@
           toDiv.className = 'email-log-to';
           toDiv.textContent = `To: ${log.to}`;
           
+          // Add person information if available
+          if (log.personInfo || log.leadDetails?.personInfo) {
+            const personInfo = log.personInfo || log.leadDetails?.personInfo;
+            const personDiv = document.createElement('div');
+            personDiv.className = 'email-log-person';
+            personDiv.style.cssText = 'margin: 0.5rem 0; padding: 0.5rem; background: rgba(90, 103, 216, 0.1); border-radius: 6px; border: 1px solid rgba(90, 103, 216, 0.2); font-size: 0.85rem;';
+            
+            const personGrid = document.createElement('div');
+            personGrid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;';
+            
+            personGrid.innerHTML = `
+              <div><strong style="color: #5a67d8;">Name:</strong> <span style="color: #374151;">${personInfo.fullName || 'Not available'}</span></div>
+              <div><strong style="color: #5a67d8;">Position:</strong> <span style="color: #374151;">${personInfo.currentPosition || 'Not available'}</span></div>
+              <div><strong style="color: #5a67d8;">Tenure:</strong> <span style="color: #374151;">${personInfo.tenure || 'Unknown'}</span></div>
+              <div><strong style="color: #5a67d8;">Experience:</strong> <span style="color: #374151;">${personInfo.experience || 'Unknown'}</span></div>
+            `;
+            
+            personDiv.appendChild(personGrid);
+            
+            if (personInfo.bio) {
+              const bioDiv = document.createElement('div');
+              bioDiv.style.cssText = 'margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(90, 103, 216, 0.2); color: #374151; font-size: 0.8rem; line-height: 1.3;';
+              bioDiv.innerHTML = `<strong style="color: #5a67d8;">Background:</strong> ${personInfo.bio}`;
+              personDiv.appendChild(bioDiv);
+            }
+            
+            emailItem.appendChild(personDiv);
+          }
+          
           const subjectDiv = document.createElement('div');
           subjectDiv.className = 'email-log-subject';
           subjectDiv.textContent = `Subject: ${log.subject}`;
@@ -4943,14 +4972,42 @@ Intensive multi-modal research with advanced analysis:
         return `
         <div style="background: rgba(90, 103, 216, 0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #5a67d8; border: 1px solid rgba(90, 103, 216, 0.3); backdrop-filter: blur(10px);" data-email-id="${email.id}">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-            <div>
+            <div style="flex: 1;">
               <h4 style="margin: 0 0 0.5rem 0; color: #5a67d8;">To: ${leadEmail}${customBadge}</h4>
               <div style="color: #64748b; font-size: 0.9rem;">
                 ${leadCompany} • Added ${new Date(email.timestamp).toLocaleString()}
                 ${leadContext ? `<br><em>Context: ${leadContext}</em>` : ''}
               </div>
+              
+              <!-- Person Information Display -->
+              <div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.7); border-radius: 6px; border: 1px solid rgba(90, 103, 216, 0.2);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;">
+                  <div>
+                    <strong style="color: #5a67d8;">Name:</strong> 
+                    <span style="color: #374151;">${(email.leadDetails?.personInfo?.fullName || leadData.name || email.leadName || 'Name not available')}</span>
+                  </div>
+                  <div>
+                    <strong style="color: #5a67d8;">Position:</strong> 
+                    <span style="color: #374151;">${(email.leadDetails?.personInfo?.currentPosition || leadData.title || email.leadTitle || 'Position not available')}</span>
+                  </div>
+                  <div>
+                    <strong style="color: #5a67d8;">Tenure:</strong> 
+                    <span style="color: #374151;">${(email.leadDetails?.personInfo?.tenure || 'Tenure unknown')}</span>
+                  </div>
+                  <div>
+                    <strong style="color: #5a67d8;">Experience:</strong> 
+                    <span style="color: #374151;">${(email.leadDetails?.personInfo?.experience || 'Experience unknown')}</span>
+                  </div>
+                </div>
+                ${email.leadDetails?.personInfo?.bio ? `
+                  <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(90, 103, 216, 0.2);">
+                    <strong style="color: #5a67d8;">Background:</strong>
+                    <div style="color: #374151; font-size: 0.8rem; margin-top: 0.25rem; line-height: 1.3;">${email.leadDetails.personInfo.bio}</div>
+                  </div>
+                ` : ''}
+              </div>
             </div>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
               <button onclick="approveEmail('${email.id}')" style="background: #4caf50; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
                 ✅ Approve
               </button>
