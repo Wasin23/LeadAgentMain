@@ -2,12 +2,12 @@
 
 # Pixel tracking goes to static HTML page (multiple URL patterns for less suspicious tracking)
 /track/pixel/:id.png /track/pixel/ 200
-/images/spacer-:id.png /track/pixel/ 200
-/images/logo-footer-:id.png /track/pixel/ 200
-/images/company-signature-:id.png /track/pixel/ 200
-/images/email-header-:id.png /track/pixel/ 200
-/images/brand-mark-:id.png /track/pixel/ 200
-/images/footer-logo-:id.png /track/pixel/ 200
+/images/spacer-* /track/pixel/ 200
+/images/logo-footer-* /track/pixel/ 200
+/images/company-signature-* /track/pixel/ 200
+/images/email-header-* /track/pixel/ 200
+/images/brand-mark-* /track/pixel/ 200
+/images/footer-logo-* /track/pixel/ 200
 
 # Click tracking goes to static HTML page  
 /track/click/:id /track/click/ 200
