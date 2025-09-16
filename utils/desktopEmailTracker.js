@@ -41,9 +41,19 @@ class DesktopEmailTracker {
     return crypto.createHash('md5').update(unique).digest('hex');
   }
 
-  // Create tracking pixel URL (embedded in email) - Make it look like a legitimate image
+  // Create tracking pixel URL (embedded in email) - Make it look like a legitimate company logo
   createTrackingPixel(trackingId) {
-    return `${this.baseUrl}/images/spacer-${trackingId.substring(0,8)}.png`;
+    // Use ultra-legitimate looking image names that Gmail won't suspect
+    const imageNames = [
+      'logo-footer',
+      'company-signature', 
+      'email-header',
+      'brand-mark',
+      'footer-logo'
+    ];
+    const randomName = imageNames[Math.floor(Math.random() * imageNames.length)];
+    const shortId = trackingId.substring(0,6); // Shorter ID looks more natural
+    return `${this.baseUrl}/images/${randomName}-${shortId}.png`;
   }
 
   // Create trackable link - ALWAYS use domain for external recipients  
@@ -68,8 +78,8 @@ class DesktopEmailTracker {
     
     this.saveTrackingData();
 
-    // Add tracking pixel as a legitimate-looking image element (not hidden)
-    const trackingPixel = `<img src="${this.createTrackingPixel(trackingId)}" width="3" height="3" style="opacity:0.1; margin:2px;" alt="." title="spacer" />`;
+    // Add tracking pixel as a legitimate company logo/signature image
+    const trackingPixel = `<img src="${this.createTrackingPixel(trackingId)}" width="120" height="30" style="opacity:0.8; margin:5px 0; display:block;" alt="ExaMark" title="Powered by ExaMark AI" />`;
     
     // Replace links with trackable versions
     let trackedHtml = emailHtml.replace(

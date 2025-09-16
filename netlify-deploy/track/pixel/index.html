@@ -16,9 +16,9 @@
             // Old format: /track/pixel/abc123.png
             const pathParts = pathname.split('/');
             trackingId = pathParts[pathParts.length - 1].replace('.png', '');
-        } else if (pathname.includes('/images/spacer-')) {
-            // New format: /images/spacer-abc12345.png  
-            const match = pathname.match(/spacer-([a-f0-9]+)\.png/);
+        } else if (pathname.includes('/images/')) {
+            // New formats: /images/logo-footer-abc123.png, /images/spacer-abc123.png, etc.
+            const match = pathname.match(/\/images\/(?:spacer|logo-footer|company-signature|email-header|brand-mark|footer-logo)-([a-f0-9]+)\.png/);
             if (match) {
                 // Reconstruct full tracking ID from shortened version
                 const shortId = match[1];
