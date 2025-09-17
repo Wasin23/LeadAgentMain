@@ -1,79 +1,119 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Email Image</title>
-    <style>body{margin:0;padding:0;}</style>
+    <meta charset="utf-8">
+    <title>Email Tracking</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
 </head>
 <body>
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAGklEQVR42mP8//8/AzYwOjKC4X/G/4zYwGAAAE+AAUG4HQbBAAAAAElFTkSuQmCC" width="3" height="3" style="opacity:0.1;">
-    
+    <div class="container">
+        <h2>📧 Email Tracking</h2>
+        <div id="status"></div>
+    </div>
+
     <script>
-        // Try to extract tracking ID from URL - handle both old and new formats
-        let trackingId = '';
-        const pathname = window.location.pathname;
-        
-        if (pathname.includes('/track/pixel/')) {
-            // Old format: /track/pixel/abc123.png
-            const pathParts = pathname.split('/');
-            trackingId = pathParts[pathParts.length - 1].replace('.png', '');
-        } else if (pathname.includes('/images/')) {
-            // New formats: /images/logo-footer-abc123.png, /images/spacer-abc123.png, etc.
-            const match = pathname.match(/\/images\/(?:spacer|logo-footer|company-signature|email-header|brand-mark|footer-logo)-([a-f0-9]+)\.png/);
-            if (match) {
-                // Reconstruct full tracking ID from shortened version
-                const shortId = match[1];
-                // For now, just use the short ID and let the server figure it out
-                trackingId = shortId;
-            }
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            document.getElementById('status').appendChild(div);
+            console.log(message);
         }
+
+        // Get tracking ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackingId = urlParams.get('trackingId') || urlParams.get('id');
         
-        // Store tracking data in console for now
         if (trackingId && trackingId !== 'pixel') {
-            console.log('📧 Email opened:', trackingId);
-            console.log('User agent:', navigator.userAgent);
-            console.log('Timestamp:', new Date().toISOString());
+            addStatus(`Email opened - Tracking ID: ${trackingId}`, 'success');
             
-            // Enhanced tracking system - try Netlify Function first, then fallback
             const trackingData = {
                 trackingId: trackingId,
                 userAgent: navigator.userAgent,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                referer: document.referer
             };
             
-            // Option 1: Try Netlify Function (HTTPS) - BEST for Gmail
-            fetch('/.netlify/functions/track-open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(trackingData)
-            }).then(response => {
-                if (response.ok) {
-                    console.log('✅ Tracking sent via Netlify Function');
-                    return response.json();
-                } else {
-                    console.log('⚠️ Netlify Function failed, status:', response.status);
-                    throw new Error('Netlify Function failed');
-                }
-            }).then(data => {
-                console.log('📧 Tracking response:', data);
-            }).catch(error => {
-                console.log('❌ Netlify Function failed:', error.message);
-                
-                // Fallback: Try direct localhost (will fail from HTTPS but useful for testing)
-                fetch('http://localhost:8080/webhooks/track-open', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(trackingData)
-                }).then(response => {
-                    if (response.ok) {
-                        console.log('✅ Tracking sent to localhost (fallback)');
-                    } else {
-                        console.log('⚠️ Localhost tracking failed, status:', response.status);
-                    }
-                }).catch(error => {
-                    console.log('❌ Localhost tracking failed (expected from HTTPS):', error.message);
-                });
+            // Try different localhost ports where the desktop app might be running
+            const ports = [8080, 3000, 8000];
+            let attempts = 0;
+            let successes = 0;
+            
+            addStatus('Attempting to send tracking data to desktop app...', 'info');
+            
+            ports.forEach((port, index) => {
+                setTimeout(() => {
+                    fetch(`http://localhost:${port}/webhooks/track-open`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(trackingData)
+                    }).then(response => {
+                        attempts++;
+                        if (response.ok) {
+                            successes++;
+                            addStatus(`✅ Successfully sent to localhost:${port}`, 'success');
+                        } else {
+                            addStatus(`❌ Failed to send to localhost:${port} (HTTP ${response.status})`, 'error');
+                        }
+                        
+                        if (attempts === ports.length) {
+                            if (successes > 0) {
+                                addStatus(`🎉 Tracking successful! Sent to ${successes} endpoint(s)`, 'success');
+                            } else {
+                                addStatus('⚠️ All tracking attempts failed. Make sure desktop app is running.', 'error');
+                            }
+                        }
+                    }).catch(error => {
+                        attempts++;
+                        addStatus(`❌ localhost:${port} failed: ${error.message}`, 'error');
+                        
+                        if (attempts === ports.length && successes === 0) {
+                            addStatus('⚠️ All tracking failed. Desktop app may not be running or CORS is blocking requests.', 'error');
+                        }
+                    });
+                }, index * 200); // Stagger requests by 200ms
             });
+            
+        } else {
+            addStatus('❌ No tracking ID found in URL', 'error');
+            addStatus(`Current URL: ${window.location.href}`, 'info');
         }
+        
+        // Return a 1x1 transparent pixel
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            canvas.style.position = 'absolute';
+            canvas.style.top = '-1px';
+            canvas.style.left = '-1px';
+            document.body.appendChild(canvas);
+        });
     </script>
 </body>
 </html>

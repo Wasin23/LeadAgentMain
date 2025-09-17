@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "id": "9d870e1db0e0a3a5296ae1bdbacb00e0",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "Email tracking test hello hello",
+    "body": "this is the tracking for opening emails please test yes",
+    "status": "sent",
+    "timestamp": "2025-09-17T15:16:05.626Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-9d870e1db0e0a3a5296ae1bdbacb00e0@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null
+    }
+  }
+]
