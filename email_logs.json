@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "id": "b31161c1654e27b37bea61643fd82853",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "another test (please work)",
+    "body": "testing testing dert dert hella i need this",
+    "status": "sent",
+    "timestamp": "2025-09-17T16:23:07.889Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-b31161c1654e27b37bea61643fd82853@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null
+    }
+  }
+]

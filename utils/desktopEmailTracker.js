@@ -121,6 +121,9 @@ class DesktopEmailTracker {
         ip
       });
       
+      // Update the email_logs.json record with tracking info
+      await this.updateEmailLogTracking(trackingId, 'open');
+      
       // Log to email_logs.json for compatibility
       await this.logEvent('open', {
         trackingId,
@@ -145,6 +148,9 @@ class DesktopEmailTracker {
         userAgent,
         ip
       });
+      
+      // Update the email_logs.json record with tracking info
+      await this.updateEmailLogTracking(trackingId, 'click');
       
       // Log to email_logs.json for compatibility
       await this.logEvent('click', {
@@ -182,6 +188,48 @@ class DesktopEmailTracker {
       await fs.writeFile(logsFile, JSON.stringify(logs, null, 2));
     } catch (error) {
       console.error('Error logging event:', error);
+    }
+  }
+
+  // Update the main email log record with tracking events
+  async updateEmailLogTracking(trackingId, eventType) {
+    try {
+      const logsFile = path.join(process.cwd(), 'email_logs.json');
+      let logs = [];
+      
+      try {
+        const existing = await fs.readFile(logsFile, 'utf8');
+        logs = JSON.parse(existing);
+      } catch (error) {
+        console.log('📧 [TRACKER] No email logs file found');
+        return;
+      }
+      
+      // Find the email record with this tracking ID
+      const emailRecord = logs.find(log => log.id === trackingId);
+      if (emailRecord && emailRecord.analytics) {
+        const now = new Date().toISOString();
+        
+        if (eventType === 'open') {
+          emailRecord.analytics.opened = true;
+          emailRecord.analytics.openCount += 1;
+          emailRecord.analytics.lastActivity = now;
+          console.log(`📧 [TRACKER] Updated email record - Opens: ${emailRecord.analytics.openCount}`);
+        } else if (eventType === 'click') {
+          emailRecord.analytics.clicked = true;
+          emailRecord.analytics.clickCount += 1;
+          emailRecord.analytics.lastActivity = now;
+          console.log(`📧 [TRACKER] Updated email record - Clicks: ${emailRecord.analytics.clickCount}`);
+        }
+        
+        // Save the updated logs
+        await fs.writeFile(logsFile, JSON.stringify(logs, null, 2));
+        console.log(`📧 [TRACKER] Email analytics updated for ${trackingId}`);
+      } else {
+        console.log(`📧 [TRACKER] Email record not found for tracking ID: ${trackingId}`);
+      }
+    } catch (error) {
+      console.error('Error updating email log tracking:', error);
     }
   }
 
