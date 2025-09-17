@@ -43,12 +43,7 @@ router.post('/email-opened', async (req, res) => {
 // API endpoint for polling tracking events
 router.get('/events', async (req, res) => {
     try {
-        const { since } = req.query;
-        const sinceTimestamp = since ? parseInt(since) : null;
-        
-        console.log(`📊 [ZILLIZ API] Polling for events since: ${sinceTimestamp || 'beginning'}`);
-        
-        const events = await tracker.getTrackingEvents(sinceTimestamp);
+        const events = await tracker.getTrackingEvents();
         
         res.status(200).json({
             success: true,

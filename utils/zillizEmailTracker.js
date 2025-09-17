@@ -107,34 +107,26 @@ export class ZillizEmailTracker {
         }
     }
 
-    async getTrackingEvents(since = null) {
+    async getTrackingEvents() {
         try {
             if (!this.initialized) {
                 await this.initialize();
             }
 
-            let expr = '';
-            if (since) {
-                expr = `timestamp > ${since}`;
-                console.log(`📊 [ZILLIZ DEBUG] Searching for events with timestamp > ${since}`);
-            } else {
-                console.log(`📊 [ZILLIZ DEBUG] Searching for all events (no timestamp filter)`);
-            }
+            // Load collection into memory for querying
+            await this.client.loadCollection({
+                collection_name: this.collectionName
+            });
 
+            // Query all events without field filtering (more reliable)
             const results = await this.client.query({
                 collection_name: this.collectionName,
-                expr: expr || undefined,
-                output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address'],
                 limit: 1000
             });
 
-            console.log(`📊 [ZILLIZ DEBUG] Query returned ${results.data?.length || 0} results`);
-            if (results.data && results.data.length > 0) {
-                console.log(`📊 [ZILLIZ DEBUG] First event timestamp: ${results.data[0].timestamp}`);
-                console.log(`📊 [ZILLIZ DEBUG] Since parameter: ${since}`);
-            }
-
+            console.log(`📊 [ZILLIZ] Retrieved ${results.data?.length || 0} tracking events`);
             return results.data || [];
+
         } catch (error) {
             console.error('❌ [ZILLIZ] Failed to get tracking events:', error);
             return [];

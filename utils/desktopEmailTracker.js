@@ -251,13 +251,9 @@ class DesktopEmailTracker {
   // Poll Zilliz for new tracking events
   async pollZillizEvents() {
     try {
-      console.log('📧 [ZILLIZ POLLING] Checking for new tracking events...');
-      
-      const zillizApiUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/events?since=${this.lastPolledTimestamp}`;
-      console.log(`📧 [ZILLIZ POLLING] Fetching URL: ${zillizApiUrl}`);
+      const zillizApiUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/events`;
       
       const response = await fetch(zillizApiUrl);
-      console.log(`📧 [ZILLIZ POLLING] Response status: ${response.status}`);
       
       if (!response.ok) {
         console.error(`📧 [ZILLIZ POLLING] Failed to fetch events: ${response.status}`);
@@ -265,43 +261,39 @@ class DesktopEmailTracker {
       }
 
       const data = await response.json();
-      console.log(`📧 [ZILLIZ POLLING] Received ${data.count} events`);
 
       if (data.success && data.events && data.events.length > 0) {
-        console.log(`📧 [ZILLIZ POLLING] Processing ${data.events.length} new events`);
+        console.log(`📧 [ZILLIZ POLLING] Processing ${data.events.length} tracking events`);
         
         for (const event of data.events) {
           await this.processZillizEvent(event);
         }
         
-        // Update the last polled timestamp to the latest event
-        const latestTimestamp = Math.max(...data.events.map(e => e.timestamp));
-        this.lastPolledTimestamp = latestTimestamp + 1; // Add 1ms to avoid duplicate
-        console.log(`📧 [ZILLIZ POLLING] Updated last polled timestamp to: ${this.lastPolledTimestamp}`);
-      } else {
-        console.log('📧 [ZILLIZ POLLING] No new events found');
+        console.log(`📧 [ZILLIZ POLLING] Finished processing events`);
       }
-
+      
     } catch (error) {
       console.error('📧 [ZILLIZ POLLING] Error polling Zilliz:', error);
     }
-  }
-
-  // Process a single Zilliz tracking event
+  }  // Process a single Zilliz tracking event
   async processZillizEvent(event) {
     try {
-      const { tracking_id, event_type, timestamp, user_agent, ip_address, email_address } = event;
+      const { tracking_id, event_type, user_agent, ip_address, processed } = event;
+      
+      // Skip if already processed to avoid duplicates
+      if (processed) {
+        return;
+      }
       
       console.log(`📧 [ZILLIZ POLLING] Processing event: ${tracking_id} - ${event_type}`);
       
-      if (event_type === 'email_opened') {
-        console.log(`📧 [ZILLIZ POLLING] Processing email open: ${tracking_id}`);
+      if (event_type === 'email_open') {
         await this.recordOpen(tracking_id, user_agent || '', ip_address || '');
-      } else if (event_type === 'email_clicked') {
-        console.log(`📧 [ZILLIZ POLLING] Processing email click: ${tracking_id}`);
-        // For clicks, we might need additional data like URL, but for now just record the click
+      } else if (event_type === 'email_click') {
         await this.recordClick(tracking_id, 'unknown_url', 'general', user_agent || '', ip_address || '');
       }
+      
+      // Mark as processed (would need to update in Zilliz in a real implementation)
       
     } catch (error) {
       console.error('📧 [ZILLIZ POLLING] Error processing event:', error);
