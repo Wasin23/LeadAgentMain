@@ -44,9 +44,37 @@
             console.log(message);
         }
 
-        // Get tracking ID from URL
+        // Get tracking ID from URL parameters or referrer
         const urlParams = new URLSearchParams(window.location.search);
-        const trackingId = urlParams.get('trackingId') || urlParams.get('id');
+        let trackingId = urlParams.get('trackingId') || urlParams.get('id');
+        
+        // If no URL parameter, try to extract from referrer (the original tracking URL)
+        if (!trackingId && document.referrer) {
+            const referrerUrl = new URL(document.referrer);
+            const path = referrerUrl.pathname;
+            
+            // Extract tracking ID from various patterns:
+            // /images/email-header-2a4a52.png -> 2a4a52
+            // /images/logo-footer-abc123.png -> abc123
+            const matches = path.match(/\/images\/[^-]+-(.+?)\.png$/) || 
+                           path.match(/\/track\/pixel\/(.+?)\.png$/) ||
+                           path.match(/\/images\/(.+?)\.png$/);
+            
+            if (matches && matches[1]) {
+                trackingId = matches[1];
+                console.log(`Extracted tracking ID from referrer: ${trackingId}`);
+            }
+        }
+        
+        // Also try extracting from current URL path as fallback
+        if (!trackingId) {
+            const currentPath = window.location.pathname;
+            const pathMatches = currentPath.match(/\/track\/pixel\/(.+?)(?:\.png)?$/);
+            if (pathMatches && pathMatches[1]) {
+                trackingId = pathMatches[1];
+                console.log(`Extracted tracking ID from current path: ${trackingId}`);
+            }
+        }
         
         if (trackingId && trackingId !== 'pixel') {
             addStatus(`Email opened - Tracking ID: ${trackingId}`, 'success');

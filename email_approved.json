@@ -1,7 +1,7 @@
 [
   {
-    "id": "1758122163093",
-    "timestamp": "2025-09-17T15:16:03.093Z",
+    "id": "1758122481245",
+    "timestamp": "2025-09-17T15:21:21.245Z",
     "status": "approved",
     "source": "custom",
     "leadData": {
@@ -12,17 +12,17 @@
       "context": "Custom email created by user"
     },
     "emailData": {
-      "subject": "Email tracking test hello hello",
-      "body": "this is the tracking for opening emails please test yes",
+      "subject": "another tracking email hehe",
+      "body": "hello hello tracking testing again thanks",
       "finalRecipient": "COLTON.FIDD@GMAIL.COM",
-      "finalSubject": "Email tracking test hello hello",
-      "finalBody": "this is the tracking for opening emails please test yes"
+      "finalSubject": "another tracking email hehe",
+      "finalBody": "hello hello tracking testing again thanks"
     },
     "metadata": {
       "customEmail": true,
-      "createdAt": "2025-09-17T15:16:03.089Z",
+      "createdAt": "2025-09-17T15:21:21.243Z",
       "createdBy": "user"
     },
-    "approvedAt": "2025-09-17T15:16:05.230Z"
+    "approvedAt": "2025-09-17T15:21:24.737Z"
   }
 ]
