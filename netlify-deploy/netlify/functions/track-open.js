@@ -1,4 +1,7 @@
 // Netlify Function to forward tracking data to desktop app
+const https = require('https');
+const http = require('http');
+
 exports.handler = async (event, context) => {
   // Only handle POST requests
   if (event.httpMethod !== 'POST') {
@@ -34,15 +37,32 @@ exports.handler = async (event, context) => {
 
     // Try to forward to desktop app (localhost)
     try {
-      const response = await fetch('http://localhost:8080/webhooks/track-open', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(trackingData)
+      const postData = JSON.stringify(trackingData);
+      
+      const response = await new Promise((resolve, reject) => {
+        const options = {
+          hostname: 'localhost',
+          port: 8080,
+          path: '/webhooks/track-open',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const req = http.request(options, (res) => {
+          let data = '';
+          res.on('data', (chunk) => data += chunk);
+          res.on('end', () => resolve({ status: res.statusCode, data }));
+        });
+
+        req.on('error', reject);
+        req.write(postData);
+        req.end();
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         console.log('✅ Successfully forwarded to desktop app');
         return {
           statusCode: 200,
