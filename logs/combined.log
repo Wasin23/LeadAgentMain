@@ -424,3 +424,5 @@
 {"ip":"::1","level":"info","message":"GET /api/auth/settings/76e84c79-9b13-4c55-be86-d0bd9baa9411","service":"examark-api","timestamp":"2025-09-17T01:17:05.167Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
 {"ip":"::1","level":"info","message":"GET /api/session","service":"examark-api","timestamp":"2025-09-17T01:17:05.168Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
 {"ip":"::1","level":"info","message":"GET /api/auth/settings/76e84c79-9b13-4c55-be86-d0bd9baa9411","service":"examark-api","timestamp":"2025-09-17T01:17:05.941Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/system/status","service":"examark-api","timestamp":"2025-09-17T01:24:57.910Z","userAgent":"curl/8.14.1"}
+{"ip":"::1","level":"info","message":"POST /webhooks/track-open","service":"examark-api","timestamp":"2025-09-17T15:10:18.785Z","userAgent":"curl/8.14.1"}
