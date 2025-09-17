@@ -152,6 +152,30 @@ export class ZillizEmailTracker {
             return [];
         }
     }
+
+    // Clear all tracking events from Zilliz
+    async clearAllTrackingEvents() {
+        try {
+            if (!this.initialized) {
+                await this.initialize();
+            }
+
+            console.log('🗑️ [ZILLIZ] Clearing all tracking events...');
+
+            // Delete all data from collection
+            await this.client.deleteEntities({
+                collection_name: this.collectionName,
+                expr: 'id != ""' // This matches all records since all records have an id
+            });
+
+            console.log('✅ [ZILLIZ] All tracking events cleared successfully');
+            return true;
+
+        } catch (error) {
+            console.error('❌ [ZILLIZ] Failed to clear tracking events:', error);
+            return false;
+        }
+    }
 }
 
 // Export is already handled at the class declaration

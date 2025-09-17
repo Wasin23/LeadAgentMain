@@ -79,4 +79,32 @@ router.get('/events/:trackingId', async (req, res) => {
     }
 });
 
+// Clear all tracking events (for analytics reset)
+router.delete('/clear', async (req, res) => {
+    try {
+        console.log('🗑️ [ZILLIZ API] Request to clear all tracking events');
+        
+        const success = await tracker.clearAllTrackingEvents();
+        
+        if (success) {
+            res.status(200).json({
+                success: true,
+                message: 'All tracking events cleared successfully'
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to clear tracking events'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [ZILLIZ API] Error clearing events:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+
 export default router;

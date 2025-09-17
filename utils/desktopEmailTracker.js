@@ -354,6 +354,13 @@ class DesktopEmailTracker {
 
     return stats;
   }
+
+  // Clear all tracking data
+  clearAllTrackingData() {
+    console.log('🗑️ [DESKTOP TRACKER] Clearing all local tracking data...');
+    this.trackingData.clear();
+    console.log('✅ [DESKTOP TRACKER] Local tracking data cleared');
+  }
 }
 
 // Create singleton instance

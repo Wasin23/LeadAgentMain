@@ -57,11 +57,38 @@ router.post('/clear-logs', async (req, res) => {
     // Write empty array to both files
     await fs.writeFile(logPath, '[]', 'utf8');
     await fs.writeFile(approvedPath, '[]', 'utf8');
+    
+    // Also clear Zilliz tracking data
+    try {
+      console.log('[EMAIL LOGS] Clearing Zilliz tracking data...');
+      const response = await fetch('http://localhost:8080/api/zilliz-tracking/clear', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        console.log('[EMAIL LOGS] ✅ Zilliz tracking data cleared successfully');
+      } else {
+        console.log('[EMAIL LOGS] ⚠️ Failed to clear Zilliz tracking data:', response.status);
+      }
+    } catch (zillizError) {
+      console.log('[EMAIL LOGS] ⚠️ Error clearing Zilliz tracking data:', zillizError.message);
+    }
+
+    // Clear local desktop tracking data
+    try {
+      const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
+      desktopEmailTracker.clearAllTrackingData();
+      console.log('[EMAIL LOGS] ✅ Desktop tracking data cleared successfully');
+    } catch (desktopError) {
+      console.log('[EMAIL LOGS] ⚠️ Error clearing desktop tracking data:', desktopError.message);
+    }
+    
     console.log('[EMAIL LOGS] ✅ Successfully cleared email logs and approved emails');
     
     res.json({ 
       success: true, 
-      message: 'Email logs and approved emails cleared successfully',
+      message: 'Email logs, approved emails, and tracking data cleared successfully',
       clearedCount: 0 // Since we just cleared it
     });
   } catch (err) {
