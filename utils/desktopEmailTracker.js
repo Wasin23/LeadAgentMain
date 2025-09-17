@@ -263,40 +263,76 @@ class DesktopEmailTracker {
       const data = await response.json();
 
       if (data.success && data.events && data.events.length > 0) {
-        console.log(`📧 [ZILLIZ POLLING] Processing ${data.events.length} tracking events`);
+        console.log(`📧 [ZILLIZ POLLING] Syncing with ${data.events.length} Zilliz events`);
         
-        for (const event of data.events) {
-          await this.processZillizEvent(event);
-        }
+        // Sync email logs with Zilliz data instead of incrementing
+        await this.syncWithZillizData(data.events);
         
-        console.log(`📧 [ZILLIZ POLLING] Finished processing events`);
+        console.log(`📧 [ZILLIZ POLLING] Sync completed`);
       }
       
     } catch (error) {
       console.error('📧 [ZILLIZ POLLING] Error polling Zilliz:', error);
     }
-  }  // Process a single Zilliz tracking event
-  async processZillizEvent(event) {
+  }
+
+  // Sync email logs with actual Zilliz data (don't increment, just set correct counts)
+  async syncWithZillizData(zillizEvents) {
     try {
-      const { tracking_id, event_type, user_agent, ip_address, processed } = event;
-      
-      // Skip if already processed to avoid duplicates
-      if (processed) {
-        return;
+      // Load current email logs
+      const emailLogs = await this.loadEmailLogs();
+      let logsChanged = false;
+
+      // Group Zilliz events by tracking ID
+      const eventsByTrackingId = {};
+      for (const event of zillizEvents) {
+        const trackingId = event.tracking_id;
+        if (!eventsByTrackingId[trackingId]) {
+          eventsByTrackingId[trackingId] = { opens: 0, clicks: 0 };
+        }
+        
+        if (event.event_type === 'email_open') {
+          eventsByTrackingId[trackingId].opens++;
+        } else if (event.event_type === 'email_click') {
+          eventsByTrackingId[trackingId].clicks++;
+        }
       }
-      
-      console.log(`📧 [ZILLIZ POLLING] Processing event: ${tracking_id} - ${event_type}`);
-      
-      if (event_type === 'email_open') {
-        await this.recordOpen(tracking_id, user_agent || '', ip_address || '');
-      } else if (event_type === 'email_click') {
-        await this.recordClick(tracking_id, 'unknown_url', 'general', user_agent || '', ip_address || '');
+
+      // Update email logs to match Zilliz data exactly
+      for (let i = 0; i < emailLogs.length; i++) {
+        const log = emailLogs[i];
+        const trackingId = log.trackingId;
+        
+        if (eventsByTrackingId[trackingId]) {
+          const zillizData = eventsByTrackingId[trackingId];
+          
+          // Set opened status and counts to match Zilliz exactly
+          const shouldBeOpened = zillizData.opens > 0;
+          const correctOpenCount = zillizData.opens;
+          const correctClickCount = zillizData.clicks;
+          
+          if (log.opened !== shouldBeOpened || log.openCount !== correctOpenCount || log.clickCount !== correctClickCount) {
+            emailLogs[i] = {
+              ...log,
+              opened: shouldBeOpened,
+              openCount: correctOpenCount,
+              clickCount: correctClickCount,
+              lastActivity: shouldBeOpened ? new Date().toISOString() : log.lastActivity
+            };
+            logsChanged = true;
+            console.log(`📧 [SYNC] Updated ${trackingId}: opens=${correctOpenCount}, clicks=${correctClickCount}`);
+          }
+        }
       }
-      
-      // Mark as processed (would need to update in Zilliz in a real implementation)
-      
+
+      // Save if changes were made
+      if (logsChanged) {
+        await this.saveEmailLogs(emailLogs);
+        console.log(`📧 [SYNC] Email logs synchronized with Zilliz data`);
+      }
+
     } catch (error) {
-      console.error('📧 [ZILLIZ POLLING] Error processing event:', error);
+      console.error('📧 [SYNC] Error syncing with Zilliz data:', error);
     }
   }
 
@@ -360,6 +396,32 @@ class DesktopEmailTracker {
     console.log('🗑️ [DESKTOP TRACKER] Clearing all local tracking data...');
     this.trackingData.clear();
     console.log('✅ [DESKTOP TRACKER] Local tracking data cleared');
+  }
+
+  // Load email logs from file
+  async loadEmailLogs() {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const logPath = path.join(process.cwd(), 'email_logs.json');
+      const data = await fs.readFile(logPath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('📧 [SYNC] Error loading email logs:', error);
+      return [];
+    }
+  }
+
+  // Save email logs to file
+  async saveEmailLogs(emailLogs) {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const logPath = path.join(process.cwd(), 'email_logs.json');
+      await fs.writeFile(logPath, JSON.stringify(emailLogs, null, 2), 'utf8');
+    } catch (error) {
+      console.error('📧 [SYNC] Error saving email logs:', error);
+    }
   }
 }
 

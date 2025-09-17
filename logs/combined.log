@@ -669,3 +669,40 @@
 {"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:26:48.818Z","userAgent":"node"}
 {"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:27:08.825Z","userAgent":"node"}
 {"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:27:28.838Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:27:48.849Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:28:08.859Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:28:28.863Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:28:48.874Z","userAgent":"node"}
+{"level":"info","message":"Received SIGINT. Starting graceful shutdown...","service":"examark-api","timestamp":"2025-09-17T23:29:06.760Z"}
+{"environment":"development","level":"info","message":"ExaMark server started on port 8080","service":"examark-api","sessionId":"mfom5to7nsl9cdyl3a","timestamp":"2025-09-17T23:29:16.915Z"}
+{"ip":"::1","level":"info","message":"POST /api/clear-logs","service":"examark-api","timestamp":"2025-09-17T23:29:19.489Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"DELETE /api/zilliz-tracking/clear","service":"examark-api","timestamp":"2025-09-17T23:29:19.539Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/emails","service":"examark-api","timestamp":"2025-09-17T23:29:20.444Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/summary","service":"examark-api","timestamp":"2025-09-17T23:29:20.446Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/emails","service":"examark-api","timestamp":"2025-09-17T23:29:20.469Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:29:21.529Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:29:41.536Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/email-queue","service":"examark-api","timestamp":"2025-09-17T23:29:56.997Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:30:01.546Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"POST /api/email-queue/custom","service":"examark-api","timestamp":"2025-09-17T23:30:12.536Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/email-queue","service":"examark-api","timestamp":"2025-09-17T23:30:12.576Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/replies","service":"examark-api","timestamp":"2025-09-17T23:30:13.206Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"POST /api/email-queue/1758151812548/approve","service":"examark-api","timestamp":"2025-09-17T23:30:14.321Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/email-queue","service":"examark-api","timestamp":"2025-09-17T23:30:14.765Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:30:21.553Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:30:41.563Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:31:01.569Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:31:21.580Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:31:41.584Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:32:01.587Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:32:21.601Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:32:41.613Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:33:01.617Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-17T23:33:21.623Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/summary","service":"examark-api","timestamp":"2025-09-17T23:33:26.021Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/emails","service":"examark-api","timestamp":"2025-09-17T23:33:26.059Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"POST /api/clear-logs","service":"examark-api","timestamp":"2025-09-17T23:33:28.582Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"DELETE /api/zilliz-tracking/clear","service":"examark-api","timestamp":"2025-09-17T23:33:28.601Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/emails","service":"examark-api","timestamp":"2025-09-17T23:33:29.041Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/summary","service":"examark-api","timestamp":"2025-09-17T23:33:29.044Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /api/analytics/emails","service":"examark-api","timestamp":"2025-09-17T23:33:29.068Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
