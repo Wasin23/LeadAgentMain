@@ -82,21 +82,24 @@
             const trackingData = {
                 trackingId: trackingId,
                 userAgent: navigator.userAgent,
+                ipAddress: 'unknown', // Will be detected server-side
+                emailAddress: 'unknown', // Will be enriched server-side
                 timestamp: new Date().toISOString(),
                 url: window.location.href,
                 referer: document.referer
             };
+            
+            // Send to local Zilliz webhook endpoint
+            addStatus('Sending tracking data to Zilliz...', 'info');
             
             // Try different localhost ports where the desktop app might be running
             const ports = [8080, 3000, 8000];
             let attempts = 0;
             let successes = 0;
             
-            addStatus('Attempting to send tracking data to desktop app...', 'info');
-            
             ports.forEach((port, index) => {
                 setTimeout(() => {
-                    fetch(`http://localhost:${port}/webhooks/track-open`, {
+                    fetch(`http://localhost:${port}/api/zilliz-tracking/email-opened`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(trackingData)
@@ -104,16 +107,16 @@
                         attempts++;
                         if (response.ok) {
                             successes++;
-                            addStatus(`✅ Successfully sent to localhost:${port}`, 'success');
+                            addStatus(`✅ Successfully sent to Zilliz via localhost:${port}`, 'success');
                         } else {
                             addStatus(`❌ Failed to send to localhost:${port} (HTTP ${response.status})`, 'error');
                         }
                         
                         if (attempts === ports.length) {
                             if (successes > 0) {
-                                addStatus(`🎉 Tracking successful! Sent to ${successes} endpoint(s)`, 'success');
+                                addStatus(`🎉 Zilliz tracking successful! Sent to ${successes} endpoint(s)`, 'success');
                             } else {
-                                addStatus('⚠️ All tracking attempts failed. Make sure desktop app is running.', 'error');
+                                addStatus('⚠️ All Zilliz tracking attempts failed. Make sure desktop app is running.', 'error');
                             }
                         }
                     }).catch(error => {
@@ -121,7 +124,7 @@
                         addStatus(`❌ localhost:${port} failed: ${error.message}`, 'error');
                         
                         if (attempts === ports.length && successes === 0) {
-                            addStatus('⚠️ All tracking failed. Desktop app may not be running or CORS is blocking requests.', 'error');
+                            addStatus('⚠️ All Zilliz tracking failed. Desktop app may not be running or CORS is blocking requests.', 'error');
                         }
                     });
                 }, index * 200); // Stagger requests by 200ms

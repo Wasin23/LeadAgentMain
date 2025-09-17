@@ -10,7 +10,12 @@ class DesktopEmailTracker {
     this.localPort = process.env.PORT || 8080; // Desktop app port
     this.renderWebhookUrl = process.env.TRACKING_DOMAIN || 'https://examark-ga2o.onrender.com'; // Your Render app URL
     this.trackingData = new Map();
+    this.lastPolledTimestamp = Date.now(); // Track last poll time for Zilliz
+    this.pollingInterval = null; // Store polling interval reference
     this.loadTrackingData();
+    
+    // Start Zilliz polling when tracker is created
+    this.startZillizPolling();
   }
 
   // Load existing tracking data
@@ -63,8 +68,8 @@ class DesktopEmailTracker {
     
     this.saveTrackingData();
 
-    // Add tracking pixel as a direct URL with query parameter (no redirects needed)
-    const trackingPixel = `<img src="${this.baseUrl}/pixel.html?id=${trackingId}" width="1" height="1" style="opacity:0; margin:0; display:block;" alt="" />`;
+    // Add tracking pixel that will call Zilliz webhook
+    const trackingPixel = `<img src="${this.baseUrl}/track/pixel/${trackingId}" width="1" height="1" style="opacity:0; margin:0; display:block;" alt="" />`;
     
     // Replace links with trackable versions
     let trackedHtml = emailHtml.replace(
@@ -215,6 +220,91 @@ class DesktopEmailTracker {
       }
     } catch (error) {
       console.error('Error updating email log tracking:', error);
+    }
+  }
+
+  // Start polling Zilliz for new tracking events
+  startZillizPolling() {
+    console.log('📧 [ZILLIZ POLLING] Starting Zilliz polling every 20 seconds...');
+    
+    // Wait 5 seconds for server to be ready before starting polling
+    setTimeout(() => {
+      // Poll immediately on start
+      this.pollZillizEvents();
+      
+      // Set up interval polling
+      this.pollingInterval = setInterval(() => {
+        this.pollZillizEvents();
+      }, 20000); // Poll every 20 seconds
+    }, 5000);
+  }
+
+  // Stop polling Zilliz
+  stopZillizPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+      console.log('📧 [ZILLIZ POLLING] Stopped Zilliz polling');
+    }
+  }
+
+  // Poll Zilliz for new tracking events
+  async pollZillizEvents() {
+    try {
+      console.log('📧 [ZILLIZ POLLING] Checking for new tracking events...');
+      
+      const zillizApiUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/events?since=${this.lastPolledTimestamp}`;
+      console.log(`📧 [ZILLIZ POLLING] Fetching URL: ${zillizApiUrl}`);
+      
+      const response = await fetch(zillizApiUrl);
+      console.log(`📧 [ZILLIZ POLLING] Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`📧 [ZILLIZ POLLING] Failed to fetch events: ${response.status}`);
+        return;
+      }
+
+      const data = await response.json();
+      console.log(`📧 [ZILLIZ POLLING] Received ${data.count} events`);
+
+      if (data.success && data.events && data.events.length > 0) {
+        console.log(`📧 [ZILLIZ POLLING] Processing ${data.events.length} new events`);
+        
+        for (const event of data.events) {
+          await this.processZillizEvent(event);
+        }
+        
+        // Update the last polled timestamp to the latest event
+        const latestTimestamp = Math.max(...data.events.map(e => e.timestamp));
+        this.lastPolledTimestamp = latestTimestamp + 1; // Add 1ms to avoid duplicate
+        console.log(`📧 [ZILLIZ POLLING] Updated last polled timestamp to: ${this.lastPolledTimestamp}`);
+      } else {
+        console.log('📧 [ZILLIZ POLLING] No new events found');
+      }
+
+    } catch (error) {
+      console.error('📧 [ZILLIZ POLLING] Error polling Zilliz:', error);
+    }
+  }
+
+  // Process a single Zilliz tracking event
+  async processZillizEvent(event) {
+    try {
+      const { tracking_id, event_type, timestamp, user_agent, ip_address, email_address } = event;
+      
+      console.log(`📧 [ZILLIZ POLLING] Processing event: ${tracking_id} - ${event_type}`);
+      
+      if (event_type === 'email_opened') {
+        console.log(`📧 [ZILLIZ POLLING] Processing email open: ${tracking_id}`);
+        await this.recordOpen(tracking_id, user_agent || '', ip_address || '');
+      } else if (event_type === 'email_clicked') {
+        console.log(`📧 [ZILLIZ POLLING] Processing email click: ${tracking_id}`);
+        // For clicks, we might need additional data like URL, but for now just record the click
+        await this.recordClick(tracking_id, 'unknown_url', 'general', user_agent || '', ip_address || '');
+      }
+      
+    } catch (error) {
+      console.error('📧 [ZILLIZ POLLING] Error processing event:', error);
     }
   }
 

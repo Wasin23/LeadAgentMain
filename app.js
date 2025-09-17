@@ -162,6 +162,16 @@ try {
   trainingRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Zilliz Email Tracking routes
+let zillizTrackingRoutes;
+try {
+  zillizTrackingRoutes = (await import('./routes/zillizTracking.js')).default;
+  console.log('Zilliz email tracking routes imported successfully');
+} catch (e) {
+  console.log('Zilliz email tracking routes not available:', e.message);
+  zillizTrackingRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import Desktop Email Tracking routes
 let trackingRoutes;
 try {
@@ -313,6 +323,7 @@ app.use('/api/linkedin', linkedinRoutes); // LinkedIn profile builder routes
 app.use('/api/linkedin-api', linkedinApiRoutes); // LinkedIn API integration routes
 app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
+app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking for polling
 app.use('/api/system', systemRoutes); // System management and monitoring
 
 const PORT = process.env.PORT || process.env.API_PORT || 8080;
