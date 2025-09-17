@@ -1,37 +1,11 @@
-# Simple static page redirects for email tracking
+# Simple static redirects for email tracking
+# Note: Redirects are broken in this Netlify deployment, so using direct URLs instead
 
-# Test redirects to see if they work at all
-# Simple static page redirects for email tracking
-
-# Test redirects to see if they work at all
+# Test redirect (for debugging)
 /test-redirect /pixel.html 200
 
-# Pixel tracking goes to simple pixel page (multiple URL patterns for less suspicious tracking)
-/track/pixel/:id.png /pixel.html 200
-/images/spacer-* /pixel.html 200
-/images/logo-footer-* /pixel.html 200
-/images/company-signature-* /pixel.html 200
-/images/email-header-* /pixel.html 200
-/images/brand-mark-* /pixel.html 200
-/images/footer-logo-* /pixel.html 200
+# Direct pixel tracking (no redirects needed - using query parameters)
+# All tracking now goes directly to /pixel.html?id=TRACKING_ID
 
-# Test specific pattern for our current tracking ID
-/images/logo-footer-13ca00.png /pixel.html 200
-
-# Click tracking goes to static HTML page  
-/track/click/:id /track/click/ 200
-
-# Pixel tracking goes to static HTML page (multiple URL patterns for less suspicious tracking)
-/track/pixel/:id.png /track/pixel/?trackingId=:id 200
-/images/spacer-:id.png /track/pixel/?trackingId=spacer-:id 200
-/images/logo-footer-:id.png /track/pixel/?trackingId=logo-footer-:id 200
-/images/company-signature-:id.png /track/pixel/?trackingId=company-signature-:id 200
-/images/email-header-:id.png /track/pixel/?trackingId=email-header-:id 200
-/images/brand-mark-:id.png /track/pixel/?trackingId=brand-mark-:id 200
-/images/footer-logo-:id.png /track/pixel/?trackingId=footer-logo-:id 200
-
-# Test specific pattern for our current tracking ID
-/images/logo-footer-13ca00.png /track/pixel/?trackingId=13ca00 200
-
-# Click tracking goes to static HTML page  
+# Click tracking (still needs redirects)
 /track/click/:id /track/click/?trackingId=:id 200

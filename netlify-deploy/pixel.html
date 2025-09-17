@@ -17,11 +17,17 @@
                 console.log('[PIXEL] URL:', window.location.href);
                 console.log('[PIXEL] Referrer:', document.referrer);
                 
-                // Extract tracking ID from referrer or current URL
+                // Extract tracking ID from referrer or current URL  
                 const referrer = document.referrer || window.location.href;
-                const matches = referrer.match(/\/images\/[^-]+-(.+?)\.png$/) ||
-                               window.location.search.match(/[?&]id=([^&]+)/) ||
-                               window.location.pathname.match(/\/([^\/]+)\.png$/);
+                
+                // Try URL parameter first (new method)
+                let matches = window.location.search.match(/[?&]id=([^&]+)/);
+                
+                // Fallback to path-based tracking (old method)
+                if (!matches) {
+                    matches = referrer.match(/\/images\/[^-]+-(.+?)\.png$/) ||
+                             window.location.pathname.match(/\/([^\/]+)\.png$/);
+                }
                 
                 console.log('[PIXEL] Matches:', matches);
                 
@@ -66,6 +72,11 @@
                 console.log('[EMAIL TRACKING] Error:', e);
             }
         })();
+        
+        // Gmail fix: Replace page content with actual image after tracking
+        setTimeout(() => {
+            document.body.innerHTML = '<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="1" height="1">';
+        }, 100);
     </script>
 </body>
 </html>
