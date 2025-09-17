@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Pixel</title>
+    <style>body{margin:0;padding:0;background:transparent;}</style>
+</head>
+<body>
+    <!-- Return actual 1x1 pixel immediately -->
+    <img id="pixel" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="1" height="1" style="opacity:0;">
+    
+    <script>
+        // Immediate tracking - this should work even in email clients
+        (function() {
+            try {
+                // Extract tracking ID from referrer or current URL
+                const referrer = document.referrer || window.location.href;
+                const matches = referrer.match(/\/images\/[^-]+-(.+?)\.png$/) ||
+                               window.location.search.match(/[?&]id=([^&]+)/) ||
+                               window.location.pathname.match(/\/([^\/]+)\.png$/);
+                
+                if (matches && matches[1]) {
+                    const trackingId = matches[1];
+                    
+                    // Send tracking data with minimal delay
+                    const data = {
+                        trackingId: trackingId,
+                        userAgent: navigator.userAgent,
+                        timestamp: new Date().toISOString(),
+                        referrer: document.referrer,
+                        url: window.location.href
+                    };
+                    
+                    // Try localhost:8080 first (your desktop app)
+                    fetch('http://localhost:8080/webhooks/track-open', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                        mode: 'no-cors'
+                    }).catch(() => {
+                        // Fallback: try other ports
+                        [3000, 8000].forEach(port => {
+                            fetch(`http://localhost:${port}/webhooks/track-open`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data),
+                                mode: 'no-cors'
+                            }).catch(() => {});
+                        });
+                    });
+                    
+                    console.log(`[EMAIL TRACKING] Sent: ${trackingId}`);
+                }
+            } catch(e) {
+                console.log('[EMAIL TRACKING] Error:', e);
+            }
+        })();
+    </script>
+</body>
+</html>
