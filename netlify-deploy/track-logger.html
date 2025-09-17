@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Tracking Logger</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f0f0f0; }
+        .log { background: white; padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .success { border-left: 4px solid green; }
+        .error { border-left: 4px solid red; }
+    </style>
+</head>
+<body>
+    <h2>📧 Email Tracking Debug Logger</h2>
+    <div id="output"></div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `${new Date().toISOString()}: ${message}`;
+            output.appendChild(div);
+            console.log(message);
+        }
+        
+        // Get tracking parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackingId = urlParams.get('trackingId') || urlParams.get('id');
+        
+        if (trackingId && trackingId !== 'pixel') {
+            log(`📧 Email opened with tracking ID: ${trackingId}`, 'success');
+            log(`User Agent: ${navigator.userAgent}`);
+            log(`Timestamp: ${new Date().toISOString()}`);
+            
+            // Try multiple tracking approaches
+            const trackingData = {
+                trackingId: trackingId,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString(),
+                referer: document.referrer,
+                url: window.location.href
+            };
+            
+            log('Attempting to send tracking data...');
+            
+            // Method 1: Try Netlify Function
+            fetch('/.netlify/functions/track-open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trackingData)
+            }).then(response => {
+                if (response.ok) {
+                    log('✅ Tracking sent via Netlify Function', 'success');
+                } else {
+                    throw new Error(`Function failed: ${response.status}`);
+                }
+            }).catch(error => {
+                log(`❌ Netlify Function failed: ${error.message}`, 'error');
+                
+                // Method 2: Try direct localhost (will likely fail on HTTPS)
+                fetch('http://localhost:8080/webhooks/track-open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trackingData)
+                }).then(response => {
+                    if (response.ok) {
+                        log('✅ Tracking sent to localhost', 'success');
+                    } else {
+                        throw new Error(`Localhost failed: ${response.status}`);
+                    }
+                }).catch(error => {
+                    log(`❌ Localhost tracking failed: ${error.message}`, 'error');
+                    
+                    // Method 3: Use image beacon as fallback
+                    const img = new Image();
+                    img.onload = () => log('✅ Image beacon sent', 'success');
+                    img.onerror = () => log('❌ Image beacon failed', 'error');
+                    img.src = `/track-beacon.png?id=${encodeURIComponent(trackingId)}&t=${Date.now()}`;
+                });
+            });
+            
+            // Also try different localhost ports in case
+            [3000, 8080, 8000].forEach(port => {
+                setTimeout(() => {
+                    fetch(`http://localhost:${port}/webhooks/track-open`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(trackingData)
+                    }).then(response => {
+                        if (response.ok) {
+                            log(`✅ Tracking sent to localhost:${port}`, 'success');
+                        }
+                    }).catch(error => {
+                        log(`❌ localhost:${port} failed: ${error.message}`, 'error');
+                    });
+                }, 1000);
+            });
+            
+        } else {
+            log('❌ No tracking ID found in URL', 'error');
+            log(`Full URL: ${window.location.href}`);
+        }
+    </script>
+</body>
+</html>
