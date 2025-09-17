@@ -21,6 +21,13 @@ router.options('/track-click', (req, res) => {
   res.sendStatus(200);
 });
 
+router.options('/track-open', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.sendStatus(200);
+});
+
 // Webhook endpoint for email opens (from examarkchat.com/track/pixel)
 router.post('/track-open', async (req, res) => {
   try {
@@ -29,7 +36,19 @@ router.post('/track-open', async (req, res) => {
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     
-    let { trackingId, userAgent, ip, timestamp } = req.body;
+    // Comprehensive debugging
+    console.log('📧 [WEBHOOK] Method:', req.method);
+    console.log('📧 [WEBHOOK] URL:', req.url);
+    console.log('📧 [WEBHOOK] Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('📧 [WEBHOOK] Raw body:', req.body);
+    console.log('📧 [WEBHOOK] Body type:', typeof req.body);
+    console.log('📧 [WEBHOOK] Query params:', req.query);
+    
+    // Handle cases where body might not be parsed
+    const body = req.body || {};
+    console.log('📧 [WEBHOOK] Processed body:', JSON.stringify(body));
+    
+    let { trackingId, userAgent, ip, timestamp } = body;
     
     if (trackingId) {
       // If we got a shortened tracking ID, try to find the full one

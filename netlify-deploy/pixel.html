@@ -35,7 +35,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data),
-                        mode: 'no-cors'
+                        mode: 'cors'
                     }).catch(() => {
                         // Fallback: try other ports
                         [3000, 8000].forEach(port => {
@@ -43,7 +43,7 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(data),
-                                mode: 'no-cors'
+                                mode: 'cors'
                             }).catch(() => {});
                         });
                     });
