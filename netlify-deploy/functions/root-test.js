@@ -3,7 +3,8 @@ exports.handler = async (event, context) => {
     statusCode: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ message: 'Test function works!' })
+    body: JSON.stringify({ message: 'Root function test!' })
   };
 };
