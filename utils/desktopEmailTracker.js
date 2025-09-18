@@ -283,18 +283,27 @@ class DesktopEmailTracker {
       const emailLogs = await this.loadEmailLogs();
       let logsChanged = false;
 
-      // Group Zilliz events by tracking ID
+      // Group Zilliz events by tracking ID (deduplicated)
       const eventsByTrackingId = {};
       for (const event of zillizEvents) {
         const trackingId = event.tracking_id;
         if (!eventsByTrackingId[trackingId]) {
-          eventsByTrackingId[trackingId] = { opens: 0, clicks: 0 };
+          eventsByTrackingId[trackingId] = { opens: 0, clicks: 0, uniqueOpens: new Set(), uniqueClicks: new Set() };
         }
         
         if (event.event_type === 'email_open') {
-          eventsByTrackingId[trackingId].opens++;
+          // Use IP + timestamp for deduplication (same email opened from same IP within timeframe)
+          const uniqueKey = `${event.ip_address}_${Math.floor(new Date(event.timestamp).getTime() / (5 * 60 * 1000))}`; // 5-minute windows
+          if (!eventsByTrackingId[trackingId].uniqueOpens.has(uniqueKey)) {
+            eventsByTrackingId[trackingId].uniqueOpens.add(uniqueKey);
+            eventsByTrackingId[trackingId].opens++;
+          }
         } else if (event.event_type === 'email_click' || event.event_type === 'link_click') {
-          eventsByTrackingId[trackingId].clicks++;
+          const uniqueKey = `${event.ip_address}_${event.clicked_url}_${Math.floor(new Date(event.timestamp).getTime() / (5 * 60 * 1000))}`;
+          if (!eventsByTrackingId[trackingId].uniqueClicks.has(uniqueKey)) {
+            eventsByTrackingId[trackingId].uniqueClicks.add(uniqueKey);
+            eventsByTrackingId[trackingId].clicks++;
+          }
         }
       }
 
