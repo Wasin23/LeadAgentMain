@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExaMark Reply Tracking Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .positive { border-color: #4CAF50; background-color: #f8fff8; }
+        .negative { border-color: #f44336; background-color: #fff8f8; }
+        .neutral { border-color: #2196F3; background-color: #f8f8ff; }
+        
+        .test-button {
+            background-color: #2196F3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+        }
+        .test-button:hover {
+            background-color: #1976D2;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .reply-input {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💬 ExaMark Reply Tracking & Analytics System</h1>
+        
+        <div class="test-section">
+            <h2>🧪 Test Reply Analysis</h2>
+            <p>Test the AI-powered reply analysis system:</p>
+            
+            <textarea class="reply-input" id="replyContent" placeholder="Enter a test reply message here...
+Examples:
+- 'Yes, I'm very interested! When can we schedule a call?'
+- 'Not interested, please remove me from your list'
+- 'Thanks for reaching out, but this isn't a good fit right now'
+- 'Stop sending me emails!'
+- 'This looks great! Tell me more about your services'"></textarea>
+            
+            <button class="test-button" onclick="analyzeReply()">🔍 Analyze Reply</button>
+            <button class="test-button" onclick="loadExampleReplies()">📝 Load Examples</button>
+            
+            <div id="analysisResults" class="results" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Live Reply Analytics</h2>
+            <button class="test-button" onclick="loadReplyStats()">📈 Load Current Stats</button>
+            <button class="test-button" onclick="loadAllReplies()">💬 View All Replies</button>
+            
+            <div id="statsContainer"></div>
+            <div id="repliesContainer"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 System Features</h2>
+            <h3>AI-Powered Analysis:</h3>
+            <ul>
+                <li><strong>Sentiment Detection:</strong> Positive, Negative, Neutral</li>
+                <li><strong>Intent Classification:</strong> Interested, Not Interested, Unsubscribe, Meeting Request, Question</li>
+                <li><strong>Auto-categorization:</strong> Smart routing based on reply content</li>
+                <li><strong>Zilliz Storage:</strong> Scalable cloud database for all reply data</li>
+            </ul>
+            
+            <h3>Tracking Capabilities:</h3>
+            <ul>
+                <li>✅ <strong>Reply Detection:</strong> Automatic linking via email headers</li>
+                <li>✅ <strong>Sentiment Analysis:</strong> Real-time emotional tone detection</li>
+                <li>✅ <strong>Lead Scoring:</strong> Automatic interest level assessment</li>
+                <li>✅ <strong>Response Time:</strong> Time-to-reply analytics</li>
+                <li>✅ <strong>Unsubscribe Detection:</strong> Automatic opt-out handling</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeReply() {
+            const content = document.getElementById('replyContent').value;
+            const resultsDiv = document.getElementById('analysisResults');
+            
+            if (!content.trim()) {
+                alert('Please enter some reply content to analyze');
+                return;
+            }
+            
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = 'Analyzing reply...';
+            
+            try {
+                const response = await fetch('/api/analyze-reply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        content: content,
+                        trackingId: 'test-' + Date.now()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const analysis = data.data.analysis;
+                    resultsDiv.className = `results ${analysis.sentiment}`;
+                    resultsDiv.innerHTML = `✅ Reply Analysis Complete:
+
+📊 Sentiment: ${analysis.sentiment.toUpperCase()}
+🎯 Type: ${analysis.type.replace('_', ' ').toUpperCase()}
+
+💡 This reply would be automatically:
+- Categorized as "${analysis.sentiment}" sentiment
+- Tagged as "${analysis.type}" intent
+- Stored in Zilliz cloud database
+- Linked to original email tracking ID
+- Available in analytics dashboard`;
+                } else {
+                    resultsDiv.innerHTML = `❌ Error: ${data.error}`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `❌ Error analyzing reply: ${error.message}`;
+            }
+        }
+
+        async function loadReplyStats() {
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = 'Loading reply statistics...';
+            
+            try {
+                const response = await fetch('/api/analytics/replies');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.data;
+                    statsContainer.innerHTML = `
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="stat-number">${stats.totalReplies}</div>
+                                <div class="stat-label">Total Replies</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-number">${stats.replyRate}%</div>
+                                <div class="stat-label">Reply Rate</div>
+                            </div>
+                            <div class="stat-box positive">
+                                <div class="stat-number">${stats.sentimentBreakdown.positive}</div>
+                                <div class="stat-label">Positive</div>
+                            </div>
+                            <div class="stat-box negative">
+                                <div class="stat-number">${stats.sentimentBreakdown.negative}</div>
+                                <div class="stat-label">Negative</div>
+                            </div>
+                            <div class="stat-box neutral">
+                                <div class="stat-number">${stats.sentimentBreakdown.neutral}</div>
+                                <div class="stat-label">Neutral</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-number">${stats.typeBreakdown.interested || 0}</div>
+                                <div class="stat-label">Interested</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statsContainer.innerHTML = `❌ Error loading stats: ${data.error}`;
+                }
+            } catch (error) {
+                statsContainer.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function loadAllReplies() {
+            const repliesContainer = document.getElementById('repliesContainer');
+            repliesContainer.innerHTML = 'Loading all replies...';
+            
+            try {
+                const response = await fetch('/api/replies');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const replies = data.data.replies;
+                    if (replies.length === 0) {
+                        repliesContainer.innerHTML = '<p>📭 No replies logged yet. Send some emails and get replies to see them here!</p>';
+                    } else {
+                        let repliesHtml = '<h3>💬 Recent Replies:</h3>';
+                        replies.slice(-5).reverse().forEach(reply => {
+                            const sentiment = reply.analysis?.sentiment || 'unknown';
+                            const type = reply.analysis?.type || 'unknown';
+                            repliesHtml += `
+                                <div class="test-section ${sentiment}" style="margin: 10px 0;">
+                                    <strong>From:</strong> ${reply.from}<br>
+                                    <strong>Subject:</strong> ${reply.subject || 'No Subject'}<br>
+                                    <strong>Sentiment:</strong> ${sentiment} | <strong>Type:</strong> ${type}<br>
+                                    <strong>Content:</strong> ${reply.content.substring(0, 200)}${reply.content.length > 200 ? '...' : ''}
+                                </div>
+                            `;
+                        });
+                        repliesContainer.innerHTML = repliesHtml;
+                    }
+                } else {
+                    repliesContainer.innerHTML = `❌ Error loading replies: ${data.error}`;
+                }
+            } catch (error) {
+                repliesContainer.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        function loadExampleReplies() {
+            const examples = [
+                "Yes, I'm very interested! When can we schedule a call to discuss this further?",
+                "Not interested, please remove me from your mailing list.",
+                "Thanks for reaching out, but this isn't a good fit for us right now.",
+                "Stop sending me emails! This is spam!",
+                "This looks great! Tell me more about your pricing and services.",
+                "I have a few questions about your proposal. Can we set up a meeting?",
+                "Unsubscribe me immediately.",
+                "Love this idea! Let's chat soon."
+            ];
+            
+            const randomExample = examples[Math.floor(Math.random() * examples.length)];
+            document.getElementById('replyContent').value = randomExample;
+        }
+
+        // Load initial stats on page load
+        window.addEventListener('load', function() {
+            loadReplyStats();
+        });
+    </script>
+</body>
+</html>

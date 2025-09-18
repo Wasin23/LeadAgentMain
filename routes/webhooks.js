@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import { replyTracker } from '../utils/zillizReplyTracker.js';
 
 const router = express.Router();
 
@@ -149,6 +150,26 @@ router.post('/mailgun/incoming', express.raw({type: 'application/x-www-form-urle
     if (trackingId) {
       console.log('[WEBHOOK] Found tracking ID:', trackingId);
       emailData.originalTrackingId = trackingId;
+      
+      // Log reply to Zilliz with AI analysis
+      try {
+        const replyData = {
+          id: emailData.id,
+          trackingId: trackingId,
+          from: emailData.from,
+          subject: emailData.subject,
+          content: emailData.body || emailData.bodyHtml || 'No content',
+          timestamp: emailData.timestamp,
+          messageId: emailData.messageId
+        };
+        
+        const replyResult = await replyTracker.logReply(replyData);
+        if (replyResult.success) {
+          console.log(`💬 [WEBHOOK] Reply tracked in Zilliz: ${replyResult.analysis.sentiment} (${replyResult.analysis.type})`);
+        }
+      } catch (error) {
+        console.error('❌ [WEBHOOK] Failed to log reply to Zilliz:', error);
+      }
       
       // Update the original email analytics with reply info
       try {

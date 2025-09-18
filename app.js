@@ -334,6 +334,15 @@ try {
   console.warn('[WARNING] Manual sync routes not available:', error.message);
 }
 
+// Import reply tracking routes
+let repliesRoutes;
+try {
+  repliesRoutes = (await import('./routes/replies.js')).default;
+  app.use('/api', repliesRoutes); // Reply tracking and analytics routes
+} catch (error) {
+  console.warn('[WARNING] Reply routes not available:', error.message);
+}
+
 app.use('/api/system', systemRoutes); // System management and monitoring
 
 const PORT = process.env.PORT || process.env.API_PORT || 8080;
