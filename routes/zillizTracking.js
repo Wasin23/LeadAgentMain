@@ -135,4 +135,32 @@ router.post('/recreate-collection', async (req, res) => {
     }
 });
 
+// API endpoint for getting reply data by tracking ID
+router.get('/replies/:trackingId', async (req, res) => {
+    try {
+        const { trackingId } = req.params;
+        
+        console.log(`📧 [ZILLIZ API] Getting replies for tracking ID: ${trackingId}`);
+        
+        // Call the Netlify function to get replies
+        const netlifyUrl = `https://examarkchat.netlify.app/.netlify/functions/mailgun-webhook?tracking_id=${trackingId}`;
+        const response = await fetch(netlifyUrl);
+        
+        if (response.ok) {
+            const data = await response.json();
+            res.status(200).json(data);
+        } else {
+            console.error(`❌ Failed to fetch replies: ${response.status}`);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch replies from Netlify'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [ZILLIZ API] Error getting replies:', error);
+        res.status(500).json({ error: 'Failed to retrieve replies' });
+    }
+});
+
 export default router;

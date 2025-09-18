@@ -360,8 +360,61 @@ class DesktopEmailTracker {
         console.log(`📧 [SYNC] Email logs synchronized with Zilliz data`);
       }
 
+      // Also fetch and sync reply data for emails that have tracking IDs
+      await this.syncReplyData(emailLogs);
+
     } catch (error) {
       console.error('📧 [SYNC] Error syncing with Zilliz data:', error);
+    }
+  }
+
+  // Fetch and sync reply data for emails
+  async syncReplyData(emailLogs) {
+    try {
+      console.log(`📧 [REPLY SYNC] Syncing reply data for ${emailLogs.length} emails`);
+      let repliesUpdated = false;
+
+      for (let i = 0; i < emailLogs.length; i++) {
+        const log = emailLogs[i];
+        const trackingId = log.trackingId || log.id;
+        
+        if (trackingId) {
+          try {
+            const replyUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/replies/${trackingId}`;
+            const response = await fetch(replyUrl);
+            
+            if (response.ok) {
+              const replyData = await response.json();
+              
+              if (replyData.success && replyData.replies && replyData.replies.length > 0) {
+                // Store reply data in the email log
+                emailLogs[i].replies = replyData.replies;
+                repliesUpdated = true;
+                
+                console.log(`📧 [REPLY SYNC] Found ${replyData.replies.length} replies for ${trackingId}`);
+                
+                // Log AI response summary for debugging
+                replyData.replies.forEach((reply, idx) => {
+                  if (reply.ai_response) {
+                    console.log(`📧 [AI REPLY ${idx + 1}] Sentiment: ${reply.sentiment}, AI sent: ${reply.ai_response_sent}`);
+                  }
+                });
+              }
+            }
+          } catch (replyError) {
+            console.error(`📧 [REPLY SYNC] Error fetching replies for ${trackingId}:`, replyError.message);
+          }
+        }
+      }
+
+      // Save if replies were updated
+      if (repliesUpdated) {
+        await this.saveEmailLogs(emailLogs);
+        console.log(`📧 [REPLY SYNC] Reply data synchronized`);
+      }
+
+    } catch (error) {
+      console.error('📧 [REPLY SYNC] Error syncing reply data:', error);
     }
   }
 

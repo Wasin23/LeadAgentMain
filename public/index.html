@@ -3994,10 +3994,86 @@
           const date = new Date(log.timestamp);
           timestampDiv.textContent = `Sent: ${date.toLocaleString()} (${log.status})`;
           
+          // Add tracking status display
+          const trackingDiv = document.createElement('div');
+          trackingDiv.style.cssText = 'margin-top: 0.5rem; padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.85rem;';
+          
+          const openStatus = log.analytics?.opened || log.opened ? '✅ Opened' : '📧 Sent';
+          const openCount = log.analytics?.openCount || log.openCount || 0;
+          const clickCount = log.analytics?.clickCount || log.clickCount || 0;
+          
+          trackingDiv.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <div><strong style="color: #10b981;">Status:</strong> <span style="color: #374151;">${openStatus}</span></div>
+              <div><strong style="color: #10b981;">Opens:</strong> <span style="color: #374151;">${openCount > 0 ? openCount : 'None'}</span></div>
+              <div><strong style="color: #10b981;">Clicks:</strong> <span style="color: #374151;">${clickCount > 0 ? clickCount : 'None'}</span></div>
+            </div>
+          `;
+          
+          // Add reply section if replies exist
+          if (log.replies && log.replies.length > 0) {
+            const repliesSection = document.createElement('div');
+            repliesSection.style.cssText = 'margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(16, 185, 129, 0.2);';
+            
+            const repliesHeader = document.createElement('div');
+            repliesHeader.style.cssText = 'font-weight: bold; color: #10b981; margin-bottom: 0.5rem;';
+            repliesHeader.textContent = `💬 ${log.replies.length} Reply${log.replies.length > 1 ? 'ies' : ''}:`;
+            repliesSection.appendChild(repliesHeader);
+            
+            log.replies.forEach((reply, index) => {
+              const replyDiv = document.createElement('div');
+              replyDiv.style.cssText = 'margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.7); border-radius: 4px; border-left: 3px solid #10b981;';
+              
+              const replyDate = new Date(reply.timestamp);
+              const sentiment = reply.sentiment || 'neutral';
+              const sentimentColor = sentiment === 'positive' ? '#10b981' : sentiment === 'negative' ? '#ef4444' : '#6b7280';
+              const sentimentIcon = sentiment === 'positive' ? '😊' : sentiment === 'negative' ? '😞' : '😐';
+              
+              replyDiv.innerHTML = `
+                <div style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.25rem;">
+                  <strong>From:</strong> ${reply.from_email} | 
+                  <strong>Time:</strong> ${replyDate.toLocaleString()} | 
+                  <span style="color: ${sentimentColor};">${sentimentIcon} ${sentiment}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: #374151; margin-bottom: 0.25rem;">
+                  <strong>Subject:</strong> ${reply.subject}
+                </div>
+                <div style="font-size: 0.85rem; color: #374151; line-height: 1.4; margin-bottom: 0.5rem;">
+                  ${reply.content.length > 200 ? reply.content.substring(0, 200) + '...' : reply.content}
+                </div>
+              `;
+              
+              // Add AI response if available
+              if (reply.ai_response) {
+                const aiResponseDiv = document.createElement('div');
+                aiResponseDiv.style.cssText = 'margin-top: 0.5rem; padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 4px; border-left: 3px solid #3b82f6;';
+                
+                const aiDate = reply.ai_response_timestamp ? new Date(reply.ai_response_timestamp) : null;
+                const aiStatus = reply.ai_response_sent ? '✅ Sent' : '⏳ Generated';
+                
+                aiResponseDiv.innerHTML = `
+                  <div style="font-size: 0.8rem; color: #3b82f6; font-weight: bold; margin-bottom: 0.25rem;">
+                    🤖 AI Auto-Response ${aiStatus}${aiDate ? ' at ' + aiDate.toLocaleString() : ''}
+                  </div>
+                  <div style="font-size: 0.85rem; color: #374151; line-height: 1.4;">
+                    ${reply.ai_response.length > 300 ? reply.ai_response.substring(0, 300) + '...' : reply.ai_response}
+                  </div>
+                `;
+                
+                replyDiv.appendChild(aiResponseDiv);
+              }
+              
+              repliesSection.appendChild(replyDiv);
+            });
+            
+            trackingDiv.appendChild(repliesSection);
+          }
+          
           emailItem.appendChild(toDiv);
           emailItem.appendChild(subjectDiv);
           emailItem.appendChild(contentDiv);
           emailItem.appendChild(timestampDiv);
+          emailItem.appendChild(trackingDiv);
           
           emailLogList.appendChild(emailItem);
         });

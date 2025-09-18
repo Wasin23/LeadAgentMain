@@ -1,7 +1,7 @@
 [
   {
-    "id": "1758205753028",
-    "timestamp": "2025-09-18T14:29:13.028Z",
+    "id": "1758207036681",
+    "timestamp": "2025-09-18T14:50:36.681Z",
     "status": "approved",
     "source": "custom",
     "leadData": {
@@ -12,17 +12,17 @@
       "context": "Custom email created by user"
     },
     "emailData": {
-      "subject": "testing response data",
-      "body": "hello, I provide Service X. Service X is house cleaning. Would you like to schedule a call for service X?",
+      "subject": "hello, i am wishing to show product X",
+      "body": "Hello, I am selling product X. Product X is house cleaning. WOuld you like to get on a call to talk about purchasing my product?",
       "finalRecipient": "COLTON.FIDD@GMAIL.COM",
-      "finalSubject": "testing response data",
-      "finalBody": "hello, I provide Service X. Service X is house cleaning. Would you like to schedule a call for service X?"
+      "finalSubject": "hello, i am wishing to show product X",
+      "finalBody": "Hello, I am selling product X. Product X is house cleaning. WOuld you like to get on a call to talk about purchasing my product?"
     },
     "metadata": {
       "customEmail": true,
-      "createdAt": "2025-09-18T14:29:13.026Z",
+      "createdAt": "2025-09-18T14:50:36.676Z",
       "createdBy": "user"
     },
-    "approvedAt": "2025-09-18T14:29:14.431Z"
+    "approvedAt": "2025-09-18T14:50:38.327Z"
   }
 ]
