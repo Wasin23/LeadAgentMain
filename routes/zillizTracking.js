@@ -1,4 +1,5 @@
 import express from 'express';
+import fetch from 'node-fetch';
 import { ZillizEmailTracker } from '../utils/zillizEmailTracker.js';
 
 const router = express.Router();
@@ -143,7 +144,7 @@ router.get('/replies/:trackingId', async (req, res) => {
         console.log(`📧 [ZILLIZ API] Getting replies for tracking ID: ${trackingId}`);
         
         // Call the Netlify function to get replies
-        const netlifyUrl = `https://examarkchat.netlify.app/.netlify/functions/mailgun-webhook?tracking_id=${trackingId}`;
+        const netlifyUrl = `https://examarkchat.com/.netlify/functions/mailgun-webhook?tracking_id=${trackingId}`;
         const response = await fetch(netlifyUrl);
         
         if (response.ok) {
@@ -151,9 +152,13 @@ router.get('/replies/:trackingId', async (req, res) => {
             res.status(200).json(data);
         } else {
             console.error(`❌ Failed to fetch replies: ${response.status}`);
-            res.status(500).json({
-                success: false,
-                error: 'Failed to fetch replies from Netlify'
+            // Return empty result instead of error to prevent 404 spam
+            res.status(200).json({
+                success: true,
+                trackingId: trackingId,
+                replies: [],
+                count: 0,
+                note: 'Netlify function temporarily unavailable'
             });
         }
 
