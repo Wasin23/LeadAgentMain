@@ -51,7 +51,8 @@ export class ZillizEmailTracker {
             },
             {
                 name: 'timestamp',
-                data_type: DataType.Int64
+                data_type: DataType.VarChar,
+                max_length: 50
             },
             {
                 name: 'user_agent',
@@ -67,6 +68,20 @@ export class ZillizEmailTracker {
                 name: 'email_address',
                 data_type: DataType.VarChar,
                 max_length: 200
+            },
+            {
+                name: 'recipient',
+                data_type: DataType.VarChar,
+                max_length: 200
+            },
+            {
+                name: 'processed',
+                data_type: DataType.Bool
+            },
+            {
+                name: 'dummy_vector',
+                data_type: DataType.FloatVector,
+                dim: 2
             }
         ];
 
@@ -77,6 +92,22 @@ export class ZillizEmailTracker {
         });
 
         console.log('📊 [ZILLIZ] Email tracking collection created');
+
+        // Wait a moment for collection to be ready
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Create index on vector field for searching
+        try {
+            await this.client.createIndex({
+                collection_name: this.collectionName,
+                field_name: 'dummy_vector',
+                index_type: 'FLAT',
+                metric_type: 'L2'
+            });
+            console.log('📊 [ZILLIZ] Index created successfully');
+        } catch (indexError) {
+            console.log('⚠️ [ZILLIZ] Index creation failed (may already exist):', indexError.message);
+        }
     }
 
     async storeTrackingEvent(trackingId, eventType, userAgent, ipAddress, emailAddress) {
@@ -85,14 +116,29 @@ export class ZillizEmailTracker {
                 await this.initialize();
             }
 
+            // Debug: Check collection schema first
+            try {
+                const collectionInfo = await this.client.describeCollection({
+                    collection_name: this.collectionName
+                });
+                console.log(`🔍 [ZILLIZ DEBUG] Collection schema:`, JSON.stringify(collectionInfo.data, null, 2));
+            } catch (e) {
+                console.log(`🔍 [ZILLIZ DEBUG] Could not get schema:`, e.message);
+            }
+
             const data = [{
                 tracking_id: trackingId,
                 event_type: eventType,
-                timestamp: Date.now(),
+                timestamp: new Date().toISOString(),
                 user_agent: userAgent || 'Unknown',
                 ip_address: ipAddress || 'Unknown',
-                email_address: emailAddress || 'Unknown'
+                email_address: emailAddress || 'Unknown',
+                recipient: emailAddress || 'unknown@recipient.com',
+                processed: false,
+                dummy_vector: [0.0, 0.0]
             }];
+
+            console.log(`🔍 [ZILLIZ DEBUG] Attempting to insert:`, JSON.stringify(data[0], null, 2));
 
             await this.client.insert({
                 collection_name: this.collectionName,
@@ -162,17 +208,38 @@ export class ZillizEmailTracker {
 
             console.log('🗑️ [ZILLIZ] Clearing all tracking events...');
 
-            // Delete all data from collection
-            await this.client.deleteEntities({
-                collection_name: this.collectionName,
-                expr: 'id != ""' // This matches all records since all records have an id
-            });
+            // The most reliable way to clear all data is to recreate the collection
+            await this.recreateCollection();
 
             console.log('✅ [ZILLIZ] All tracking events cleared successfully');
             return true;
 
         } catch (error) {
             console.error('❌ [ZILLIZ] Failed to clear tracking events:', error);
+            return false;
+        }
+    }
+
+    // Recreate collection with updated schema
+    async recreateCollection() {
+        try {
+            console.log('🔄 [ZILLIZ] Recreating collection with updated schema...');
+            
+            // Drop the existing collection
+            await this.client.dropCollection({
+                collection_name: this.collectionName
+            });
+            
+            console.log('🗑️ [ZILLIZ] Dropped existing collection');
+            
+            // Create new collection with updated schema
+            await this.createCollection();
+            
+            console.log('✅ [ZILLIZ] Collection recreated successfully');
+            return true;
+
+        } catch (error) {
+            console.error('❌ [ZILLIZ] Failed to recreate collection:', error);
             return false;
         }
     }

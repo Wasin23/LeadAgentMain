@@ -18,7 +18,7 @@ router.post('/email-opened', async (req, res) => {
         
         const success = await tracker.storeTrackingEvent(
             trackingId,
-            'email_opened',
+            'email_open',
             userAgent || req.get('User-Agent'),
             ipAddress || req.ip,
             emailAddress
@@ -100,6 +100,34 @@ router.delete('/clear', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error clearing events:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+
+// Recreate collection with updated schema
+router.post('/recreate-collection', async (req, res) => {
+    try {
+        console.log('🔄 [ZILLIZ API] Request to recreate collection');
+        
+        const success = await tracker.recreateCollection();
+        
+        if (success) {
+            res.status(200).json({
+                success: true,
+                message: 'Collection recreated successfully with updated schema'
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to recreate collection'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [ZILLIZ API] Error recreating collection:', error);
         res.status(500).json({
             success: false,
             error: 'Internal server error'

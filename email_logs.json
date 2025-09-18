@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "id": "c29f402176270d87ed9c5453538111e1",
+    "to": "colton.fidd@gmail.com",
+    "subject": "test email please send",
+    "body": "testing testing send",
+    "status": "sent",
+    "timestamp": "2025-09-17T23:55:12.638Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-c29f402176270d87ed9c5453538111e1@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null
+    }
+  }
+]

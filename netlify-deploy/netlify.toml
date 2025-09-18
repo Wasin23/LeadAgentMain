@@ -2,6 +2,10 @@
   command = "echo 'Static site deployment'"
   publish = "."
 
+[[edge_functions]]
+  function = "track-pixel"
+  path = "/track/pixel/*"
+
 [[headers]]
   for = "/track/*"
   [headers.values]
