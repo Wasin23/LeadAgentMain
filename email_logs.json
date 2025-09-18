@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "ab89e25025df6704d632994595005c5f",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "testing response data",
+    "body": "hello, I provide Service X. Service X is house cleaning. Would you like to schedule a call for service X?",
+    "status": "sent",
+    "timestamp": "2025-09-18T14:29:14.849Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": true,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 3,
+      "lastActivity": "2025-09-18T14:30:21.652Z",
+      "mailgunId": "<tracking-ab89e25025df6704d632994595005c5f@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null
+    },
+    "opened": true,
+    "openCount": 3,
+    "clickCount": 0
+  }
+]

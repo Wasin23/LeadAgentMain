@@ -31,13 +31,12 @@ exports.handler = async (event, context) => {
           const ipAddress = event.headers['x-forwarded-for'] || 'Unknown';
           
           // Filter out known bots/proxies that cause duplicates
-          const isBot = userAgent.includes('GoogleImageProxy') || 
-                        userAgent.includes('bot') || 
-                        userAgent.includes('crawler') ||
-                        userAgent.includes('scanner') ||
-                        userAgent.includes('proxy');
+          const isBot = userAgent.includes('bot') || 
+                       userAgent.includes('crawler') || 
+                       userAgent.includes('spider') ||
+                       userAgent.includes('facebookexternalhit');
           
-          // Check for recent duplicate events (same tracking ID within last 5 minutes)
+          // Check for recent duplicate events (same tracking ID + user agent within last 30 seconds)
           let isDuplicate = false;
           try {
             const recentEvents = await client.search({
@@ -45,18 +44,18 @@ exports.handler = async (event, context) => {
               vectors: [[0.0, 0.0]], // Dummy vector for search
               search_params: { nprobe: 1 },
               output_fields: ['tracking_id', 'timestamp', 'user_agent'],
-              limit: 100
+              limit: 50
             });
             
             const now = new Date();
-            const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+            const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000); // Reduced from 5 minutes to 30 seconds
             
             for (const result of recentEvents.results) {
               if (result.tracking_id === trackingId) {
                 const eventTime = new Date(result.timestamp);
-                if (eventTime > fiveMinutesAgo) {
+                if (eventTime > thirtySecondsAgo && result.user_agent === userAgent) {
                   isDuplicate = true;
-                  console.log(`Duplicate event filtered for ${trackingId}`);
+                  console.log(`Duplicate event filtered for ${trackingId} within 30 seconds`);
                   break;
                 }
               }

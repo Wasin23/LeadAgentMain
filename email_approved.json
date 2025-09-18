@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "1758205753028",
+    "timestamp": "2025-09-18T14:29:13.028Z",
+    "status": "approved",
+    "source": "custom",
+    "leadData": {
+      "email": "COLTON.FIDD@GMAIL.COM",
+      "company": "Custom Email",
+      "name": "COLTON.FIDD",
+      "title": "Custom Contact",
+      "context": "Custom email created by user"
+    },
+    "emailData": {
+      "subject": "testing response data",
+      "body": "hello, I provide Service X. Service X is house cleaning. Would you like to schedule a call for service X?",
+      "finalRecipient": "COLTON.FIDD@GMAIL.COM",
+      "finalSubject": "testing response data",
+      "finalBody": "hello, I provide Service X. Service X is house cleaning. Would you like to schedule a call for service X?"
+    },
+    "metadata": {
+      "customEmail": true,
+      "createdAt": "2025-09-18T14:29:13.026Z",
+      "createdBy": "user"
+    },
+    "approvedAt": "2025-09-18T14:29:14.431Z"
+  }
+]

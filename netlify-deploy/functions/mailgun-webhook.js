@@ -76,8 +76,10 @@ export async function handler(event, context) {
     const body = new URLSearchParams(event.body);
     const formData = Object.fromEntries(body);
     
-    console.log('[NETLIFY WEBHOOK] Parsed form data keys:', Object.keys(formData));
-    console.log('[NETLIFY WEBHOOK] From:', formData.From || formData.from);
+    console.log('[NETLIFY WEBHOOK] Raw event body:', event.body);
+    console.log('[NETLIFY WEBHOOK] Parsed form data:', formData);
+    console.log('[NETLIFY WEBHOOK] Form data keys:', Object.keys(formData));
+    console.log('[NETLIFY WEBHOOK] From:', formData.From || formData.from || formData.sender);
     console.log('[NETLIFY WEBHOOK] Subject:', formData.Subject || formData.subject);
     
     // Extract email data
@@ -327,76 +329,67 @@ async function sendAutoResponse(originalEmailData, aiResponseText, trackingId) {
       };
     }
 
-    const fromEmail = process.env.REPLY_FROM_EMAIL || 'noreply@' + process.env.MAILGUN_DOMAIN;
+    const fromEmail = `ExaMark Support <noreply@${process.env.MAILGUN_DOMAIN}>`;
     const toEmail = originalEmailData.from;
     const subject = generateReplySubject(originalEmailData.subject, trackingId);
     
-    // Prepare the email content with professional formatting
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { border-bottom: 2px solid #667eea; padding-bottom: 20px; margin-bottom: 20px; }
-        .response { background: #f8fafc; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 0.9em; color: #64748b; }
-        .tracking { font-family: monospace; background: #f1f5f9; padding: 5px 10px; border-radius: 4px; font-size: 0.8em; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2 style="color: #667eea; margin: 0;">Thank you for your message!</h2>
-        </div>
-        
-        <div class="response">
-            ${aiResponseText.split('\n').map(paragraph => paragraph.trim() ? `<p>${paragraph.trim()}</p>` : '').join('')}
-        </div>
-        
-        <div class="footer">
-            <p><strong>This is an automated response powered by AI.</strong> If you need immediate assistance or have specific questions, please don't hesitate to reach out directly.</p>
-            <p>Best regards,<br>The ExaMark Team</p>
-            <p class="tracking">Message ID: ${trackingId} | Powered by ExaMark AI</p>
-        </div>
-    </div>
-</body>
-</html>`;
-
-    const textContent = `Thank you for your message!
-
-${aiResponseText}
+    console.log('[AUTO RESPONSE] Email details:', { 
+      fromEmail, 
+      toEmail, 
+      subject,
+      hasAiResponse: !!aiResponseText,
+      responseLength: aiResponseText?.length 
+    });
+    
+    // Simple text content - no HTML for now to avoid encoding issues
+    const textContent = `${aiResponseText}
 
 ---
-This is an automated response powered by AI. If you need immediate assistance or have specific questions, please don't hesitate to reach out directly.
+This is an automated response powered by AI. If you need immediate assistance, please don't hesitate to reach out directly.
 
 Best regards,
 The ExaMark Team
 
 Message ID: ${trackingId} | Powered by ExaMark AI`;
 
-    // Send email via Mailgun API
-    const formData = new FormData();
-    formData.append('from', fromEmail);
-    formData.append('to', toEmail);
-    formData.append('subject', subject);
-    formData.append('text', textContent);
-    formData.append('html', emailHtml);
-    formData.append('o:tag', 'auto-response');
-    formData.append('o:tag', `tracking-${trackingId}`);
+    // Send email via Mailgun API - simplified version
+    const params = new URLSearchParams();
+    params.append('from', fromEmail);
+    params.append('to', toEmail);
+    params.append('subject', subject);
+    params.append('text', textContent);
     
-    console.log('[AUTO RESPONSE] Sending email...', { from: fromEmail, to: toEmail, subject });
+    console.log('[AUTO RESPONSE] Sending email...', { 
+      from: fromEmail, 
+      to: toEmail, 
+      subject,
+      textLength: textContent.length 
+    });
 
     const response = await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${btoa(`api:${process.env.MAILGUN_API_KEY}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: formData
+      body: params.toString()
     });
 
-    const result = await response.json();
+    let result;
+    try {
+      const responseText = await response.text();
+      console.log('[AUTO RESPONSE] Raw response:', responseText);
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[AUTO RESPONSE] Failed to parse response as JSON:', parseError);
+      const responseText = await response.text();
+      return {
+        success: false,
+        sent: false,
+        error: `Invalid response format: ${responseText.substring(0, 100)}`,
+        statusCode: response.status
+      };
+    }
     
     if (response.ok) {
       console.log('✅ [AUTO RESPONSE] Email sent successfully:', result.id);
