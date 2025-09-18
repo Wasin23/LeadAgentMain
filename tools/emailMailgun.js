@@ -120,8 +120,8 @@ function addTrackingToEmail(body, trackingId) {
     trackingUrl = `${protocol}://${trackingDomain}/track/open/${trackingId}`;
   }
   
-  // Invisible tracking pixel (1x1 transparent)
-  const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" style="display:block!important;visibility:hidden!important;opacity:0!important;border:none!important;background:transparent!important;" alt="" />`;
+  // Invisible tracking pixel (1x1 transparent PNG - Gmail friendly)
+  const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" border="0" alt="">`;
   
   // Convert links to tracked links
   const trackedBody = body.replace(
