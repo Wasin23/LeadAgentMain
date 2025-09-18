@@ -324,6 +324,16 @@ app.use('/api/linkedin-api', linkedinApiRoutes); // LinkedIn API integration rou
 app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking for polling
+
+// Import manual sync routes
+let manualSyncRoutes;
+try {
+  manualSyncRoutes = (await import('./routes/manualSync.js')).default;
+  app.use('/api/sync', manualSyncRoutes); // Manual sync routes for analytics
+} catch (error) {
+  console.warn('[WARNING] Manual sync routes not available:', error.message);
+}
+
 app.use('/api/system', systemRoutes); // System management and monitoring
 
 const PORT = process.env.PORT || process.env.API_PORT || 8080;

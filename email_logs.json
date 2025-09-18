@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "17d4d5503b6a44baa582ec5108ef0667",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "testuing for emails please work",
+    "body": "pleeeeeeease im begging its been so long",
+    "status": "sent",
+    "timestamp": "2025-09-18T02:17:12.783Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": true,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 1,
+      "lastActivity": "2025-09-18T02:22:13.814Z",
+      "mailgunId": "<tracking-17d4d5503b6a44baa582ec5108ef0667@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null
+    },
+    "opened": true,
+    "openCount": 1,
+    "clickCount": 0
+  }
+]

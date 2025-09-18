@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Tracking Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .success {
+            border-color: #4CAF50;
+            background-color: #f8fff8;
+        }
+        .test-button {
+            background-color: #2196F3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .test-button:hover {
+            background-color: #1976D2;
+        }
+        .tracking-pixel {
+            width: 1px;
+            height: 1px;
+            border: none;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .url-display {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 ExaMark Email Tracking System Test</h1>
+        
+        <div class="test-section">
+            <h2>📧 Email Open Tracking (Pixel)</h2>
+            <p>This pixel is automatically loaded when someone opens an email:</p>
+            <div class="url-display">
+                https://examarkchat.com/.netlify/functions/track-pixel?email_id=test123
+            </div>
+            <img src="https://examarkchat.com/.netlify/functions/track-pixel?email_id=test123" 
+                 class="tracking-pixel" 
+                 alt="Tracking Pixel" />
+            <p>✅ Pixel loaded! Check Zilliz database for tracking event.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🔗 Link Click Tracking</h2>
+            <p>Test click tracking with redirect:</p>
+            <div class="url-display">
+                https://examarkchat.com/.netlify/functions/track-click?email_id=test123&url=https://google.com
+            </div>
+            <a href="https://examarkchat.com/.netlify/functions/track-click?email_id=test123&url=https://google.com" 
+               class="test-button" 
+               target="_blank">
+               Test Click Tracking → Google
+            </a>
+            <p>Click the button above to test link tracking and redirection.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Tracking Verification</h2>
+            <button class="test-button" onclick="checkTracking()">Check Tracking Status</button>
+            <div id="trackingResults" class="results" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🏗️ System Architecture Overview</h2>
+            <h3>Dual Tracking System:</h3>
+            <ul>
+                <li><strong>Desktop Mode:</strong> Local JSON storage in ExaMark app</li>
+                <li><strong>Domain Mode:</strong> Netlify Functions + Zilliz Cloud Database</li>
+                <li><strong>Backup:</strong> PHP scripts on domain for fallback</li>
+            </ul>
+            
+            <h3>Active Endpoints:</h3>
+            <ul>
+                <li>✅ Pixel Tracking: <code>/.netlify/functions/track-pixel</code></li>
+                <li>✅ Click Tracking: <code>/.netlify/functions/track-click</code></li>
+                <li>✅ Test Function: <code>/.netlify/functions/test</code></li>
+            </ul>
+
+            <h3>Data Storage:</h3>
+            <ul>
+                <li>📱 <strong>Local:</strong> lib/data/email_tracking.json</li>
+                <li>☁️ <strong>Cloud:</strong> Zilliz Vector Database</li>
+                <li>📧 <strong>Queue:</strong> email_queue.json</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function checkTracking() {
+            const resultsDiv = document.getElementById('trackingResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = 'Checking tracking status...';
+            
+            try {
+                // Test the test function
+                const testResponse = await fetch('https://examarkchat.com/.netlify/functions/test');
+                const testResult = await testResponse.text();
+                
+                resultsDiv.innerHTML = `
+                    <h4>Function Status:</h4>
+                    <p>✅ Test Function: ${testResult}</p>
+                    <p>✅ Pixel Tracking: Loaded on page (check network tab)</p>
+                    <p>✅ Click Tracking: Ready for testing</p>
+                    <p>💡 Check your Zilliz dashboard and local JSON files for tracking data</p>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h4>Error:</h4>
+                    <p>❌ ${error.message}</p>
+                `;
+            }
+        }
+
+        // Load tracking pixel on page load
+        window.addEventListener('load', function() {
+            console.log('🎯 Tracking pixel loaded - check network tab for request');
+        });
+    </script>
+</body>
+</html>

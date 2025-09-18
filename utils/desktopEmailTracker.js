@@ -293,7 +293,7 @@ class DesktopEmailTracker {
         
         if (event.event_type === 'email_open') {
           eventsByTrackingId[trackingId].opens++;
-        } else if (event.event_type === 'email_click') {
+        } else if (event.event_type === 'email_click' || event.event_type === 'link_click') {
           eventsByTrackingId[trackingId].clicks++;
         }
       }
@@ -301,24 +301,44 @@ class DesktopEmailTracker {
       // Update email logs to match Zilliz data exactly
       for (let i = 0; i < emailLogs.length; i++) {
         const log = emailLogs[i];
-        const trackingId = log.trackingId;
+        const trackingId = log.trackingId || log.id; // Use trackingId or id
         
         if (eventsByTrackingId[trackingId]) {
           const zillizData = eventsByTrackingId[trackingId];
           
           // Set opened status and counts to match Zilliz exactly
           const shouldBeOpened = zillizData.opens > 0;
+          const shouldBeClicked = zillizData.clicks > 0;
           const correctOpenCount = zillizData.opens;
           const correctClickCount = zillizData.clicks;
           
-          if (log.opened !== shouldBeOpened || log.openCount !== correctOpenCount || log.clickCount !== correctClickCount) {
-            emailLogs[i] = {
-              ...log,
+          // Update the analytics object within the log
+          if (!log.analytics) {
+            log.analytics = {};
+          }
+          
+          const currentOpened = log.analytics.opened || false;
+          const currentOpenCount = log.analytics.openCount || 0;
+          const currentClickCount = log.analytics.clickCount || 0;
+          const currentClicked = log.analytics.clicked || false;
+          
+          if (currentOpened !== shouldBeOpened || currentOpenCount !== correctOpenCount || 
+              currentClickCount !== correctClickCount || currentClicked !== shouldBeClicked) {
+            
+            emailLogs[i].analytics = {
+              ...log.analytics,
               opened: shouldBeOpened,
+              clicked: shouldBeClicked,
               openCount: correctOpenCount,
               clickCount: correctClickCount,
-              lastActivity: shouldBeOpened ? new Date().toISOString() : log.lastActivity
+              lastActivity: shouldBeOpened || shouldBeClicked ? new Date().toISOString() : log.analytics.lastActivity
             };
+            
+            // Also update the legacy fields for backward compatibility
+            emailLogs[i].opened = shouldBeOpened;
+            emailLogs[i].openCount = correctOpenCount;
+            emailLogs[i].clickCount = correctClickCount;
+            
             logsChanged = true;
             console.log(`📧 [SYNC] Updated ${trackingId}: opens=${correctOpenCount}, clicks=${correctClickCount}`);
           }
