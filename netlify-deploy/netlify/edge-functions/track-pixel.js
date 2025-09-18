@@ -1,0 +1,90 @@
+import { MilvusClient, DataType } from 'https://esm.sh/@zilliz/milvus2-sdk-node@2.4.9';
+
+export default async (request, context) => {
+  try {
+    // Extract tracking ID from URL path
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const trackingId = pathParts[pathParts.length - 1];
+
+    if (!trackingId) {
+      return new Response('Invalid tracking ID', { status: 400 });
+    }
+
+    // Store tracking event in Zilliz
+    const client = new MilvusClient({
+      address: Deno.env.get('ZILLIZ_ENDPOINT'),
+      token: Deno.env.get('ZILLIZ_TOKEN')
+    });
+
+    const collectionName = 'email_tracking_events';
+
+    // Store the tracking event
+    const data = [{
+      tracking_id: trackingId,
+      event_type: 'email_open',
+      timestamp: new Date().toISOString(),
+      user_agent: request.headers.get('user-agent') || 'Unknown',
+      ip_address: context.ip || 'Unknown',
+      email_address: 'Unknown',
+      recipient: 'Unknown',
+      processed: false,
+      dummy_vector: [0.0, 0.0]
+    }];
+
+    await client.insert({
+      collection_name: collectionName,
+      data: data
+    });
+
+    console.log(`✅ Stored tracking event: ${trackingId}`);
+
+    // Return a 16x16 green pixel image
+    const imageBuffer = new Uint8Array([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+      0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x91, 0x68,
+      0x36, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
+      0x54, 0x28, 0x15, 0x63, 0x60, 0x18, 0x05, 0x83,
+      0x13, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x7A,
+      0x7C, 0xC8, 0x65, 0x00, 0x00, 0x00, 0x00, 0x49,
+      0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+    ]);
+
+    return new Response(imageBuffer, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-cache',
+        'Content-Length': imageBuffer.length.toString()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Edge function error:', error);
+    
+    // Still return an image even if tracking fails
+    const imageBuffer = new Uint8Array([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+      0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x91, 0x68,
+      0x36, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
+      0x54, 0x28, 0x15, 0x63, 0x60, 0x18, 0x05, 0x83,
+      0x13, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x7A,
+      0x7C, 0xC8, 0x65, 0x00, 0x00, 0x00, 0x00, 0x49,
+      0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+    ]);
+
+    return new Response(imageBuffer, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-cache'
+      }
+    });
+  }
+};
+
+export const config = {
+  path: "/track/pixel/*"
+};
