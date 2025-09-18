@@ -168,4 +168,29 @@ router.get('/replies/:trackingId', async (req, res) => {
     }
 });
 
+// Test route to create Zilliz replies collection manually
+router.post('/create-replies-collection', async (req, res) => {
+    try {
+        console.log('🔧 [ZILLIZ API] Creating replies collection manually...');
+        
+        const success = await tracker.createRepliesCollection();
+        
+        if (success) {
+            res.status(200).json({
+                success: true,
+                message: 'Replies collection created successfully'
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to create replies collection'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [ZILLIZ API] Error creating replies collection:', error);
+        res.status(500).json({ error: 'Failed to create replies collection' });
+    }
+});
+
 export default router;

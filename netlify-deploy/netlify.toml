@@ -4,7 +4,7 @@
   functions = "functions"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.18.2"
 
 [[redirects]]
   from = "/track/pixel/:id"
@@ -19,6 +19,11 @@
 [[redirects]]
   from = "/track/click/:id"
   to = "/.netlify/functions/track-click/:id"
+  status = 200
+
+[[redirects]]
+  from = "/webhook/mailgun"
+  to = "/.netlify/functions/mailgun-webhook"
   status = 200
 
 [[headers]]

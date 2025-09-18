@@ -1,7 +1,8 @@
-import crypto from 'crypto';
+const crypto = require('crypto');
+// Use global fetch instead of node-fetch for Netlify compatibility
 
 // Enhanced Netlify serverless function for Mailgun webhooks with AI response generation
-export async function handler(event, context) {
+exports.handler = async function(event, context) {
   console.log('[NETLIFY WEBHOOK] Received webhook:', {
     method: event.httpMethod,
     headers: event.headers,
@@ -206,19 +207,28 @@ function verifyWebhookSignature(token, timestamp, signature, signingKey) {
 
 // Function to extract tracking ID from various sources
 function extractTrackingId(formData, subject, body) {
-  // Method 1: Look for tracking ID in subject line
+  // Method 1: Look for tracking ID in recipient email address (most reliable)
+  const recipient = formData.recipient || formData.To || formData.to;
+  if (recipient) {
+    const emailMatch = recipient.match(/tracking-(\w+)@/);
+    if (emailMatch) {
+      return emailMatch[1];
+    }
+  }
+  
+  // Method 2: Look for tracking ID in subject line
   const subjectMatch = subject?.match(/\[(\w+)\]/);
   if (subjectMatch) {
     return subjectMatch[1];
   }
   
-  // Method 2: Look for tracking ID in body text
+  // Method 3: Look for tracking ID in body text
   const bodyMatch = body?.match(/tracking[_\s]*id[:\s]*(\w+)/i);
   if (bodyMatch) {
     return bodyMatch[1];
   }
   
-  // Method 3: Look in In-Reply-To header for message ID patterns
+  // Method 4: Look in In-Reply-To header for message ID patterns
   const inReplyTo = formData['In-Reply-To'] || formData['in-reply-to'];
   if (inReplyTo) {
     const headerMatch = inReplyTo.match(/(\w{8,})/);
@@ -227,7 +237,7 @@ function extractTrackingId(formData, subject, body) {
     }
   }
   
-  // Method 4: Look in References header
+  // Method 5: Look in References header
   const references = formData.References || formData.references;
   if (references) {
     const refMatch = references.match(/(\w{8,})/);
@@ -249,79 +259,53 @@ async function storeReplyInZilliz(emailData, trackingId, aiResponse = null) {
       return { success: false, error: 'Missing Zilliz credentials', stored: false };
     }
 
-    // Import Zilliz client
-    const { MilvusClient } = await import('@zilliz/milvus2-sdk-node');
+    // Copy EXACT working code from track-pixel function
+    const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
     
     const client = new MilvusClient({
       address: process.env.ZILLIZ_ENDPOINT,
-      token: process.env.ZILLIZ_TOKEN,
+      token: process.env.ZILLIZ_TOKEN
     });
 
-    console.log('[ZILLIZ] Client created successfully');
-
-    // AI analysis
-    const sentiment = analyzeSentiment(emailData.body);
-    const intent = classifyIntent(emailData.body);
+    // Use the SAME collection as tracking events
+    const collectionName = 'email_tracking_events';
     
-    // Prepare reply data for storage with AI response chain
+    // Store reply in the same collection with different event type
     const replyData = {
-      id: emailData.id,
-      tracking_id: trackingId,
-      from_email: emailData.from,
-      subject: emailData.subject,
-      content: emailData.body || 'No content',
-      timestamp: emailData.timestamp,
-      sentiment: sentiment,
-      intent: intent,
-      message_id: emailData.messageId || '',
-      // Store AI response chain
-      ai_response: aiResponse?.response || null,
-      ai_response_sent: aiResponse?.emailSent?.success || false,
-      ai_response_timestamp: aiResponse?.emailSent?.timestamp || null,
-      ai_response_message_id: aiResponse?.emailSent?.messageId || null,
-      // Vector embedding (simplified - in production you'd use actual embeddings)
-      vector: generateSimpleVector(emailData.body || '')
+      email_id: trackingId,
+      event_type: 'ai_reply', 
+      timestamp: new Date().toISOString(),
+      user_agent: 'AI_Response',
+      ip_address: '127.0.0.1',
+      metadata: JSON.stringify({
+        original_message: emailData.body || '',
+        ai_response: aiResponse?.response || '',
+        sender: emailData.from || '',
+        subject: emailData.subject || '',
+        sentiment: aiResponse?.sentiment || 'neutral'
+      }),
+      vector: [Math.random(), Math.random()] // Simple vector
     };
 
-    console.log('[ZILLIZ] Prepared reply data with AI response:', { 
-      id: replyData.id, 
-      sentiment, 
-      intent,
-      hasAiResponse: !!aiResponse?.response,
-      aiResponseSent: replyData.ai_response_sent
-    });
-
-    // Check if replies collection exists, create if not
-    try {
-      await client.describeCollection({ collection_name: 'email_replies' });
-      console.log('[ZILLIZ] Collection exists');
-    } catch (error) {
-      console.log('[ZILLIZ] Creating new collection...');
-      await createRepliesCollection(client);
-    }
-
-    // Insert reply data
-    const insertResult = await client.insert({
-      collection_name: 'email_replies',
+    await client.insert({
+      collection_name: collectionName,
       data: [replyData]
     });
 
-    console.log(`💬 [ZILLIZ] Reply stored successfully: ${sentiment} sentiment, ${intent} intent`);
-    
-    return {
-      success: true,
+    console.log('[ZILLIZ] Reply stored successfully in same collection');
+    return { 
+      success: true, 
       stored: true,
-      sentiment: sentiment,
-      intent: intent,
-      insertResult: insertResult
+      collection: collectionName,
+      data: replyData
     };
-    
+
   } catch (error) {
-    console.error('❌ [ZILLIZ] Failed to store reply:', error);
-    return {
-      success: false,
-      error: error.message,
-      stored: false
+    console.error('[ZILLIZ] Storage error:', error);
+    return { 
+      success: false, 
+      error: error.message, 
+      stored: false 
     };
   }
 }
@@ -538,14 +522,14 @@ async function getRepliesForTrackingId(trackingId) {
       return [];
     }
 
-    const { MilvusClient } = await import('@zilliz/milvus2-sdk-node');
+    const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
     const client = new MilvusClient({
       address: process.env.ZILLIZ_ENDPOINT,
       token: process.env.ZILLIZ_TOKEN,
     });
 
     const searchResult = await client.search({
-      collection_name: 'email_replies',
+      collection_name: 'email_replies_v2',
       vector: [],
       filter: `tracking_id == "${trackingId}"`,
       limit: 100,
@@ -566,14 +550,14 @@ async function getRecentReplies(limit = 10) {
       return [];
     }
 
-    const { MilvusClient } = await import('@zilliz/milvus2-sdk-node');
+    const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
     const client = new MilvusClient({
       address: process.env.ZILLIZ_ENDPOINT,
       token: process.env.ZILLIZ_TOKEN,
     });
 
     const searchResult = await client.search({
-      collection_name: 'email_replies',
+      collection_name: 'email_replies_v2',
       vector: [],
       limit: limit,
       output_fields: ['id', 'tracking_id', 'from_email', 'subject', 'content', 'timestamp', 'sentiment', 'intent', 'ai_response', 'ai_response_sent', 'ai_response_timestamp', 'ai_response_message_id']
@@ -648,74 +632,87 @@ function generateSimpleVector(text) {
 
 // Create replies collection in Zilliz
 async function createRepliesCollection(client) {
-  const schema = {
-    collection_name: 'email_replies',
-    description: 'Email reply tracking with AI analysis',
-    fields: [
-      {
-        name: 'id',
-        data_type: 'VarChar',
-        max_length: 100,
-        is_primary_key: true,
-      },
-      {
-        name: 'tracking_id',
-        data_type: 'VarChar',
-        max_length: 100,
-      },
-      {
-        name: 'from_email',
-        data_type: 'VarChar',
-        max_length: 255,
-      },
-      {
-        name: 'subject',
-        data_type: 'VarChar',
-        max_length: 500,
-      },
-      {
-        name: 'content',
-        data_type: 'VarChar',
-        max_length: 5000,
-      },
-      {
-        name: 'timestamp',
-        data_type: 'VarChar',
-        max_length: 50,
-      },
-      {
-        name: 'sentiment',
-        data_type: 'VarChar',
-        max_length: 20,
-      },
-      {
-        name: 'intent',
-        data_type: 'VarChar',
-        max_length: 50,
-      },
-      {
-        name: 'message_id',
-        data_type: 'VarChar',
-        max_length: 255,
-      },
-      {
-        name: 'vector',
-        data_type: 'FloatVector',
-        dim: 128,
-      },
-    ],
-  };
+  // Use raw data type numbers to avoid ES module import issues
+  const schema = [
+    {
+      name: 'id',
+      data_type: 5, // Int64
+      is_primary_key: true,
+      autoID: true
+    },
+    {
+      name: 'tracking_id',
+      data_type: 21, // VarChar
+      max_length: 100
+    },
+    {
+      name: 'from_email',
+      data_type: 21, // VarChar
+      max_length: 200
+    },
+    {
+      name: 'subject',
+      data_type: 21, // VarChar
+      max_length: 500
+    },
+    {
+      name: 'content',
+      data_type: 21, // VarChar
+      max_length: 5000
+    },
+    {
+      name: 'timestamp',
+      data_type: 21, // VarChar
+      max_length: 50
+    },
+    {
+      name: 'sentiment',
+      data_type: 21, // VarChar
+      max_length: 50
+    },
+    {
+      name: 'intent',
+      data_type: 21, // VarChar
+      max_length: 100
+    },
+    {
+      name: 'ai_response',
+      data_type: 21, // VarChar
+      max_length: 5000
+    },
+    {
+      name: 'ai_response_sent',
+      data_type: 1, // Bool
+    },
+    {
+      name: 'ai_response_timestamp',
+      data_type: 21, // VarChar
+      max_length: 50
+    },
+    {
+      name: 'ai_response_message_id',
+      data_type: 21, // VarChar
+      max_length: 200
+    },
+    {
+      name: 'dummy_vector',
+      data_type: 101, // FloatVector
+      dim: 2
+    }
+  ];
 
-  await client.createCollection(schema);
-  
-  // Create index for vector search
-  await client.createIndex({
-    collection_name: 'email_replies',
-    field_name: 'vector',
-    index_type: 'IVF_FLAT',
-    metric_type: 'L2',
-    params: { nlist: 1024 }
+  await client.createCollection({
+    collection_name: 'email_replies_v2',
+    fields: schema,
+    description: 'Email replies with AI responses'
   });
 
-  console.log('📦 [ZILLIZ] Email replies collection created');
+  console.log('[ZILLIZ] Created email_replies_v2 collection with proper schema');
+}
+
+// Generate simple vector for storage (placeholder)
+function generateSimpleVector(text) {
+  // Simple hash-based vector generation for demo
+  const hash = text.split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) & 0xffffffff, 0);
+  return [hash % 100 / 100, (hash * 2) % 100 / 100];
 }

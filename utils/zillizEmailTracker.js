@@ -243,6 +243,106 @@ export class ZillizEmailTracker {
             return false;
         }
     }
+
+    async createRepliesCollection() {
+        try {
+            if (!this.initialized) {
+                await this.initialize();
+            }
+
+            const repliesCollectionName = 'email_replies_v2';
+            
+            // Check if collection exists first
+            try {
+                await this.client.describeCollection({ collection_name: repliesCollectionName });
+                console.log('📊 [ZILLIZ] Replies collection already exists');
+                return true;
+            } catch (e) {
+                console.log('📊 [ZILLIZ] Creating new replies collection...');
+            }
+
+            const schema = [
+                {
+                    name: 'id',
+                    data_type: DataType.Int64,
+                    is_primary_key: true,
+                    autoID: true
+                },
+                {
+                    name: 'tracking_id',
+                    data_type: DataType.VarChar,
+                    max_length: 100
+                },
+                {
+                    name: 'from_email',
+                    data_type: DataType.VarChar,
+                    max_length: 200
+                },
+                {
+                    name: 'subject',
+                    data_type: DataType.VarChar,
+                    max_length: 500
+                },
+                {
+                    name: 'content',
+                    data_type: DataType.VarChar,
+                    max_length: 5000
+                },
+                {
+                    name: 'timestamp',
+                    data_type: DataType.VarChar,
+                    max_length: 50
+                },
+                {
+                    name: 'sentiment',
+                    data_type: DataType.VarChar,
+                    max_length: 50
+                },
+                {
+                    name: 'intent',
+                    data_type: DataType.VarChar,
+                    max_length: 100
+                },
+                {
+                    name: 'ai_response',
+                    data_type: DataType.VarChar,
+                    max_length: 5000
+                },
+                {
+                    name: 'ai_response_sent',
+                    data_type: DataType.Bool
+                },
+                {
+                    name: 'ai_response_timestamp',
+                    data_type: DataType.VarChar,
+                    max_length: 50
+                },
+                {
+                    name: 'ai_response_message_id',
+                    data_type: DataType.VarChar,
+                    max_length: 200
+                },
+                {
+                    name: 'dummy_vector',
+                    data_type: DataType.FloatVector,
+                    dim: 2
+                }
+            ];
+
+            await this.client.createCollection({
+                collection_name: repliesCollectionName,
+                fields: schema,
+                description: 'Email replies with AI responses'
+            });
+
+            console.log('📊 [ZILLIZ] Replies collection created successfully');
+            return true;
+
+        } catch (error) {
+            console.error('❌ [ZILLIZ] Failed to create replies collection:', error);
+            return false;
+        }
+    }
 }
 
 // Export is already handled at the class declaration

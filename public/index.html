@@ -4001,11 +4001,12 @@
           const openStatus = log.analytics?.opened || log.opened ? '✅ Opened' : '📧 Sent';
           const openCount = log.analytics?.openCount || log.openCount || 0;
           const clickCount = log.analytics?.clickCount || log.clickCount || 0;
+          const openedStatus = openCount > 0 ? 'Opened' : 'Not Opened';
           
           trackingDiv.innerHTML = `
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
               <div><strong style="color: #10b981;">Status:</strong> <span style="color: #374151;">${openStatus}</span></div>
-              <div><strong style="color: #10b981;">Opens:</strong> <span style="color: #374151;">${openCount > 0 ? openCount : 'None'}</span></div>
+              <div><strong style="color: #10b981;">Opens:</strong> <span style="color: #374151;">${openedStatus}</span></div>
               <div><strong style="color: #10b981;">Clicks:</strong> <span style="color: #374151;">${clickCount > 0 ? clickCount : 'None'}</span></div>
             </div>
           `;
