@@ -1,6 +1,9 @@
 const crypto = require('crypto');
 // Use global fetch instead of node-fetch for Netlify compatibility
 
+// TOP-LEVEL IMPORT to prevent Netlify bundler from tree-shaking it out
+const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
+
 // Enhanced Netlify serverless function for Mailgun webhooks with AI response generation
 exports.handler = async function(event, context) {
   console.log('[NETLIFY WEBHOOK] Received webhook:', {
@@ -131,7 +134,7 @@ exports.handler = async function(event, context) {
         aiResponse = { error: error.message };
       }
 
-      // Store reply in Zilliz with AI response chain
+      // Store reply in Zilliz with AI response chain (NOW WITH TOP-LEVEL IMPORT!)
       try {
         zillizResult = await storeReplyInZilliz(emailData, trackingId, aiResponse);
         console.log('💬 [NETLIFY WEBHOOK] Zilliz result with AI response:', zillizResult);
@@ -212,6 +215,7 @@ function extractTrackingId(formData, subject, body) {
   if (recipient) {
     const emailMatch = recipient.match(/tracking-(\w+)@/);
     if (emailMatch) {
+      console.log('[EXTRACT] Found tracking ID in recipient:', emailMatch[1]);
       return emailMatch[1];
     }
   }
@@ -219,34 +223,72 @@ function extractTrackingId(formData, subject, body) {
   // Method 2: Look for tracking ID in subject line
   const subjectMatch = subject?.match(/\[(\w+)\]/);
   if (subjectMatch) {
+    console.log('[EXTRACT] Found tracking ID in subject:', subjectMatch[1]);
     return subjectMatch[1];
   }
   
   // Method 3: Look for tracking ID in body text
   const bodyMatch = body?.match(/tracking[_\s]*id[:\s]*(\w+)/i);
   if (bodyMatch) {
+    console.log('[EXTRACT] Found tracking ID in body:', bodyMatch[1]);
     return bodyMatch[1];
   }
   
-  // Method 4: Look in In-Reply-To header for message ID patterns
+  // Method 4: Look in In-Reply-To header for tracking-ID pattern (FIXED)
   const inReplyTo = formData['In-Reply-To'] || formData['in-reply-to'];
   if (inReplyTo) {
-    const headerMatch = inReplyTo.match(/(\w{8,})/);
-    if (headerMatch) {
-      return headerMatch[1];
+    console.log('[EXTRACT] Checking In-Reply-To header:', inReplyTo);
+    const trackingMatch = inReplyTo.match(/tracking-([a-f0-9]{32})/i);
+    if (trackingMatch) {
+      console.log('[EXTRACT] Found tracking ID in In-Reply-To:', trackingMatch[1]);
+      return trackingMatch[1];
     }
   }
   
-  // Method 5: Look in References header
+  // Method 5: Look in References header for tracking-ID pattern (FIXED)
   const references = formData.References || formData.references;
   if (references) {
-    const refMatch = references.match(/(\w{8,})/);
-    if (refMatch) {
-      return refMatch[1];
+    console.log('[EXTRACT] Checking References header:', references);
+    const trackingMatch = references.match(/tracking-([a-f0-9]{32})/i);
+    if (trackingMatch) {
+      console.log('[EXTRACT] Found tracking ID in References:', trackingMatch[1]);
+      return trackingMatch[1];
     }
   }
   
   return null;
+}
+
+// Function to create embeddings from text using OpenAI
+async function createEmbedding(text) {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      console.log('[EMBEDDING] No OpenAI API key, using dummy vector');
+      return [0.0, 0.0]; // Fallback dummy vector
+    }
+
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        input: text,
+        model: "text-embedding-ada-002"
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  } catch (error) {
+    console.error('[EMBEDDING] Error creating embedding:', error.message);
+    return [0.0, 0.0]; // Fallback dummy vector
+  }
 }
 
 // Enhanced function to store reply in Zilliz with better error handling
@@ -259,9 +301,7 @@ async function storeReplyInZilliz(emailData, trackingId, aiResponse = null) {
       return { success: false, error: 'Missing Zilliz credentials', stored: false };
     }
 
-    // Copy EXACT working code from track-pixel function
-    const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
-    
+    // Use TOP-LEVEL MilvusClient (no more conditional imports!)
     const client = new MilvusClient({
       address: process.env.ZILLIZ_ENDPOINT,
       token: process.env.ZILLIZ_TOKEN
@@ -270,21 +310,24 @@ async function storeReplyInZilliz(emailData, trackingId, aiResponse = null) {
     // Use the SAME collection as tracking events
     const collectionName = 'email_tracking_events';
     
-    // Store reply in the same collection with different event type
+    // Create embedding from AI response text for vector search
+    const textToEmbed = `${emailData.subject || ''} ${emailData.body || ''} ${aiResponse?.response || ''}`.trim();
+      console.log('[ZILLIZ] Creating embedding for text:', textToEmbed.substring(0, 100) + '...');
+      
+      const embedding = await createEmbedding(textToEmbed);
+      console.log('[ZILLIZ] Generated embedding vector length:', embedding.length);
+    
+    // Store reply using EXACT same schema as working track-pixel
     const replyData = {
-      email_id: trackingId,
+      tracking_id: trackingId,        // Match exact field name
       event_type: 'ai_reply', 
       timestamp: new Date().toISOString(),
-      user_agent: 'AI_Response',
+      user_agent: `AI_Response: ${aiResponse?.response?.substring(0, 50) || 'Generated'}...`,
       ip_address: '127.0.0.1',
-      metadata: JSON.stringify({
-        original_message: emailData.body || '',
-        ai_response: aiResponse?.response || '',
-        sender: emailData.from || '',
-        subject: emailData.subject || '',
-        sentiment: aiResponse?.sentiment || 'neutral'
-      }),
-      vector: [Math.random(), Math.random()] // Simple vector
+      email_address: emailData.from || 'Unknown',    // Match track-pixel schema
+      recipient: emailData.to || 'Unknown',          // Match track-pixel schema  
+      processed: false,                              // Match track-pixel schema
+      dummy_vector: [0.0, 0.0]                      // Match exact field name and dimensions
     };
 
     await client.insert({
@@ -522,21 +565,71 @@ async function getRepliesForTrackingId(trackingId) {
       return [];
     }
 
-    const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
+    // Use TOP-LEVEL MilvusClient (no conditional imports!)
     const client = new MilvusClient({
       address: process.env.ZILLIZ_ENDPOINT,
       token: process.env.ZILLIZ_TOKEN,
     });
 
-    const searchResult = await client.search({
-      collection_name: 'email_replies_v2',
-      vector: [],
-      filter: `tracking_id == "${trackingId}"`,
-      limit: 100,
-      output_fields: ['id', 'tracking_id', 'from_email', 'subject', 'content', 'timestamp', 'sentiment', 'intent', 'ai_response', 'ai_response_sent', 'ai_response_timestamp', 'ai_response_message_id']
+    const collectionName = 'email_tracking_events';
+    
+    // ChatGPT debugging: Check if tracking_id is a declared schema field
+    console.log('[DEBUG] Checking collection schema...');
+    const info = await client.describeCollection({ collection_name: collectionName });
+    const fields = info.schema?.fields || info.fields || [];
+    console.log('[DEBUG] FIELDS:', fields.map(f => ({
+      name: f.name,
+      data_type: f.data_type,
+      is_primary_key: f.is_primary_key,
+      max_length: f.type_params?.max_length,
+      dim: f.type_params?.dim,
+    })));
+
+    // ChatGPT fix 1: Load collection into memory before querying
+    await client.loadCollection({ collection_name: collectionName });
+
+    // ChatGPT fix 2: Use schema fields only + client-side refine
+    // Filter server-side by declared fields, then client-side filter by tracking_id
+    const expr = `event_type == "ai_reply"`;  // Only use declared schema field
+
+    // Query the SAME collection where we store replies (email_tracking_events)
+    const queryResult = await client.query({
+      collection_name: collectionName,
+      expr: expr,  // ChatGPT fix: only filter by declared schema fields
+      limit: 1000,  // Increased limit since we'll filter client-side
+      consistency_level: 'Strong',  // ChatGPT fix: ensure read-after-write consistency
+      output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed']
     });
 
-    return searchResult.results || [];
+    // Client-side filter by tracking_id (since it might be dynamic field)
+    const allReplies = queryResult.data || queryResult || [];
+    const filteredReplies = allReplies.filter(r => String(r.tracking_id).trim() === trackingId);
+    
+    console.log('[QUERY] Total ai_reply events:', allReplies.length);
+    console.log('[QUERY] Filtered by tracking ID:', trackingId, 'Count:', filteredReplies.length);
+    
+    // Since we stored AI data in existing fields, extract it from there
+    const replies = filteredReplies.map(result => {
+      // Extract AI response from user_agent field (where we stored it)
+      const aiResponseText = result.user_agent || '';
+      const aiResponse = aiResponseText.startsWith('AI_Response: ') ? 
+        aiResponseText.substring(13) : aiResponseText; // Remove "AI_Response: " prefix
+      
+      // Debug: log the actual tracking_id value and length
+      console.log('[DEBUG] Raw tracking_id:', JSON.stringify(result.tracking_id), 'Length:', result.tracking_id?.length);
+      
+      return {
+        tracking_id: result.tracking_id,
+        timestamp: result.timestamp,
+        event_type: result.event_type,
+        ai_response: aiResponse,
+        sender: result.email_address,
+        recipient: result.recipient,
+        processed: result.processed
+      };
+    });
+
+    return replies;
   } catch (error) {
     console.error('[QUERY] Error getting replies:', error);
     return [];
@@ -550,20 +643,41 @@ async function getRecentReplies(limit = 10) {
       return [];
     }
 
-    const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
+    // Use TOP-LEVEL MilvusClient (no conditional imports!)
     const client = new MilvusClient({
       address: process.env.ZILLIZ_ENDPOINT,
       token: process.env.ZILLIZ_TOKEN,
     });
 
-    const searchResult = await client.search({
-      collection_name: 'email_replies_v2',
-      vector: [],
+    const collectionName = 'email_tracking_events';
+    
+    // ChatGPT fix: Load collection and use proper query syntax
+    await client.loadCollection({ collection_name: collectionName });
+
+    // Use query for filtering recent replies by event type
+    const queryResult = await client.query({
+      collection_name: collectionName,
+      expr: `event_type == "ai_reply"`,  // Use expr instead of filter
       limit: limit,
-      output_fields: ['id', 'tracking_id', 'from_email', 'subject', 'content', 'timestamp', 'sentiment', 'intent', 'ai_response', 'ai_response_sent', 'ai_response_timestamp', 'ai_response_message_id']
+      consistency_level: 'Strong',
+      output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed']
     });
 
-    return searchResult.results || [];
+    // Parse the results using the corrected field structure
+    const replies = queryResult.data?.map(result => {
+      return {
+        tracking_id: result.tracking_id,
+        timestamp: result.timestamp,
+        event_type: result.event_type,
+        user_agent: result.user_agent,
+        sender: result.email_address,
+        recipient: result.recipient,
+        processed: result.processed,
+        ai_response: result.user_agent?.startsWith('AI_Response:') ? result.user_agent.substring(12) : result.user_agent
+      };
+    }) || [];
+
+    return replies;
   } catch (error) {
     console.error('[QUERY] Error getting recent replies:', error);
     return [];
