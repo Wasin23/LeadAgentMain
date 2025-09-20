@@ -1,1 +1,7 @@
-{}
+{
+  "currentCycle": 1,
+  "isRunning": false,
+  "currentStatus": "stopped",
+  "lastCycleTime": 1758386930049,
+  "customCycleInterval": 900000
+}

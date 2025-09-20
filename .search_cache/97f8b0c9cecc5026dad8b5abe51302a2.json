@@ -1,0 +1,73 @@
+{
+  "searchParameters": {
+    "q": "\"Aeries Technology\" site:http://www.aeriestechnology.com",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Digital River - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies//Digital%20River%20-%20Case%20Study.pdf",
+      "snippet": "The company is one of the leading provider of global e-commerce and marketing services to tens of thousands of companies, both large and small, ...",
+      "position": 1
+    },
+    {
+      "title": "Pulse Secure - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies/Pulse%20Secure%20-%20Case%20Study.pdf",
+      "snippet": "The client is a global leader in network access control and mobile security solutions carved out of a network engineering company in 2014.",
+      "position": 2
+    },
+    {
+      "title": "Partnering ERP Implementation - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies/Partnering%20ERP%20Implementation%20-%20Case%20Study.pdf",
+      "snippet": "Currently, given competitive dynamics and a near-saturated market for its products, there is limited expected headroom for further expansion both in terms ...",
+      "position": 3
+    },
+    {
+      "title": "Epiq Systems - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies//Epiq%20Systems%20-%20Case%20Study.pdf",
+      "snippet": "While it partnered with ATG to provide offshore services in IT, eDiscovery Operations, Finance,. Software Development and Document Review Services, ...",
+      "position": 4
+    },
+    {
+      "title": "Financial Planning & Analysis - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies/Financial%20Planning%20&%20Analysis%20-%20Case%20Study.pdf",
+      "snippet": "Within 12 months of formation, FP&A team has become a SME in understanding the business as well as suggesting solutions that impact the business positively.",
+      "position": 5
+    },
+    {
+      "title": "ALM Implementation for Automation Leader - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies//ALM%20Implementation%20for%20Automation%20Leader%20-%20Case%20Study.pdf",
+      "snippet": "Our client had SAP Solution Manager installed and utilized to a very minimum extent. Their SAP documentation was all over the place.",
+      "position": 6
+    },
+    {
+      "title": "SAP Solution Manager Implementation for large scale ...",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies/SAP%20Solution%20Manager%20Implementation%20for%20large%20scale%20Manufacturing%20Client%20-%20Case%20Study.pdf",
+      "snippet": "PROCESSES IMPLEMENTED: Utilized Solution Manager implementation functions including project administration, blue printing, configuration, ...",
+      "position": 7
+    },
+    {
+      "title": "Setting Up Shared Services - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies/Shared%20Services%20-%20Case%20Study.pdf",
+      "snippet": "The client is a mid-sized technology company providing open, integrated security solutions to enterprise customers worldwide. It offers a suite of Mobile ...",
+      "position": 8
+    },
+    {
+      "title": "F&A Transition - Case Study",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies//F-and-A%20Transition%20-%20Case%20Study.pdf",
+      "snippet": "Client wanted to reduce operational cost by identifying cost reduction opportunities, consolidation and winding down operations, centralising finance and ...",
+      "position": 9
+    },
+    {
+      "title": "SAP Solution Manager Implementation for Medical Devices ...",
+      "link": "https://www.aeriestechnology.com/pdf/case-studies/SAP%20Solution%20Manager%20Implementation%20for%20Medical%20Devices%20Manufacturing%20Client%20-%20Case%20Study.pdf",
+      "snippet": "Implementated Business Process Management Service Desk & Change Management. Implemented Solution Manager to manage SAP implementation based on ASAP ...",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

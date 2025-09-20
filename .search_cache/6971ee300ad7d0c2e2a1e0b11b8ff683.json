@@ -1,0 +1,93 @@
+{
+  "searchParameters": {
+    "q": "Voi Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "High Performance Computing | VITO",
+      "link": "https://vito.be/en/research/data-science/high-performance-computing",
+      "snippet": "The focus of the new HPC cluster lies on GPU accelerated computing, which is very efficient for machine learning and AI. GPU Computing & Parallel Processing.",
+      "position": 1
+    },
+    {
+      "title": "Overview of emerging electronics technologies for artificial intelligence",
+      "link": "https://www.sciencedirect.com/science/article/pii/S2772949425000026",
+      "snippet": "This paper shows the short- and long-term electronics technologies emerging as the enablers of next-generation AI systems.",
+      "attributes": {
+        "Missing": "Voi | Show results with:Voi"
+      },
+      "position": 2
+    },
+    {
+      "title": "High-Performance Computing and AI: Powering GPU ... - HPCwire",
+      "link": "https://www.hpcwire.com/2024/08/12/high-performance-computing-and-ai-powering-gpu-computing-with-hyperscale-nas/",
+      "snippet": "Building, training, and iterating with effective AI models require access to large amounts of data and extreme performance to feed massive GPU ...",
+      "date": "Aug 12, 2024",
+      "position": 3
+    },
+    {
+      "title": "Why Machine Learning HPC Requirements Are Crucial for AI",
+      "link": "https://www.rebootmonkey.com/blog/machine-learning-hpc-requirements/",
+      "snippet": "GPUs excel in parallel processing, making them ideal for fulfilling Machine Learning HPC requirements in tasks like deep learning model training ...",
+      "date": "Feb 18, 2025",
+      "position": 4
+    },
+    {
+      "title": "AI/HPC: The Future of AI/ML Innovation is Row-Scale Disaggregation",
+      "link": "https://www.youtube.com/watch?v=OC63qJJEZoE",
+      "snippet": "... tasks that are now demanded of them. Composable Disaggregated Infrastructure (CDI) intro- duces a new distributed system architecture for ...",
+      "date": "Nov 6, 2023",
+      "position": 5
+    },
+    {
+      "title": "High-Performance Computing: Paradigm and Infrastructure",
+      "link": "https://www.researchgate.net/publication/291140079_High-Performance_Computing_Paradigm_and_Infrastructure",
+      "snippet": "High-Performance Computing (HPC) [1] and parallel computing are promising tools for improving the performance of machine-learning algorithms in terms of time, ...",
+      "position": 6
+    },
+    {
+      "title": "CPUs, GPUs, and AI - Exploring High-Performance Computing ...",
+      "link": "https://www.idtechex.com/en/research-article/cpus-gpus-and-ai-exploring-high-performance-computing-hardware/32456",
+      "snippet": "The use of graphics processing units (GPUs) within high performance computing (HPC) has been increasingly adopted since the introduction of generative AI and ...",
+      "date": "Jan 22, 2025",
+      "attributes": {
+        "Missing": "Voi initiatives"
+      },
+      "position": 7
+    },
+    {
+      "title": "[PDF] Machine Learning and Understanding for Intelligent Extreme Scale ...",
+      "link": "https://www.osti.gov/servlets/purl/1471083",
+      "snippet": "We envision that ML techniques, which have been highly successful in pattern detection of for computer vision problems, can be adopted to find and localize.",
+      "position": 8
+    },
+    {
+      "title": "The Utilization of High-Performance Computing and AI | Intel Business",
+      "link": "https://www.youtube.com/watch?v=53JC41f2WJY",
+      "snippet": "Darren Pulsipher speaks to Matthew Shaxted about High-Performance Computing (HPC), its monumental role in machine learning and AI, ...",
+      "date": "Jun 21, 2024",
+      "position": 9
+    },
+    {
+      "title": "Azure subscription and service limits, quotas, and constraints",
+      "link": "https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits",
+      "snippet": "This document lists some of the most common Microsoft Azure limits, which are also sometimes called quotas.",
+      "date": "Aug 7, 2025",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "Does machine learning require high performance computing?",
+      "snippet": "HPC is particularly beneficial for workloads that involve: Artificial Intelligence and Machine Learning: Training complex models requires substantial computational resources, which HPC can provide efficiently.",
+      "title": "What Is High-Performance Computing (HPC)?",
+      "link": "https://www.scalecomputing.com/resources/what-is-high-performance-computing-hpc"
+    }
+  ],
+  "credits": 1
+}

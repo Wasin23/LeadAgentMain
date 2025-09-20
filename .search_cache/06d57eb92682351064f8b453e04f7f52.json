@@ -1,0 +1,87 @@
+{
+  "searchParameters": {
+    "q": "\"First Technology\" site:http://www.firsttech.co.za",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "First Technology | We've got IT Covered",
+      "link": "https://www.firsttech.co.za/",
+      "snippet": "Whether it's AI and modern workplaces, or hybrid data centre and cloud, we have the right resource for you. First Technology business man. Partner with the ...",
+      "position": 1
+    },
+    {
+      "title": "First Technology | About Us",
+      "link": "https://www.firsttech.co.za/about",
+      "snippet": "First Technology. Managed technology solutions & systems integration · Hybrid data centre & cloud · Cyber security ; First Technology First Digital. Digital ...",
+      "position": 2
+    },
+    {
+      "title": "Contact Us",
+      "link": "https://www.firsttech.co.za/contact",
+      "snippet": "We'll help you find the right solution. We love talking, so come say hello. Book a meeting · Request a quote · Ask a question. contact-first-technology.",
+      "position": 3
+    },
+    {
+      "title": "First Technology | Locations",
+      "link": "https://www.firsttech.co.za/locations",
+      "snippet": "First Technology Johannesburg 26 Augrabies Road Waterfall Office Park Midrand, 1686. South Africa +27 (011) 790 4400 info@firsttech.co.za.",
+      "position": 4
+    },
+    {
+      "title": "First Technology Group | Ascent Technology",
+      "link": "https://www.firsttech.co.za/ft-group/ascent",
+      "snippet": "Let us help you implement the world's leading technology solutions. First Technology Hybrid data centre and hybrid cloud. Hybrid Data Centre & Cloud. Built for ...",
+      "position": 5
+    },
+    {
+      "title": "First Technology | Our Partners",
+      "link": "https://www.firsttech.co.za/first-technology-partners",
+      "snippet": "First Technology Holdings Ltd may use the contact information you provide to contact you about products and services that are of legitimate interest to you.",
+      "position": 6
+    },
+    {
+      "title": "Modernise Your Workplace",
+      "link": "https://www.firsttech.co.za/modernise-your-workplace",
+      "snippet": "At First Technology, we help businesses stay ahead - attracting top talent, fostering true collaboration, and securely connecting people, data, and applications ...",
+      "position": 7
+    },
+    {
+      "title": "First Technology Group | First Digital",
+      "link": "https://www.firsttech.co.za/ft-group/first-digital",
+      "snippet": "Let us help you implement the world's leading technology solutions. First Technology Hybrid data centre and hybrid cloud. Hybrid Data Centre & Cloud. Built for ...",
+      "position": 8
+    },
+    {
+      "title": "BEE",
+      "link": "https://www.firsttech.co.za/bee",
+      "snippet": "Unleash your organisation's potential - we help you navigate technology challenges, accelerate transformation, and optimise resources. First Technology ...",
+      "position": 9
+    },
+    {
+      "title": "data governance",
+      "link": "https://www.firsttech.co.za/legal-notices",
+      "snippet": "First Technology Holdings Ltd may use the contact information you provide to contact you about products and services that are of legitimate interest to you.",
+      "position": 10
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "First technology south africa"
+    },
+    {
+      "query": "First technology careers"
+    },
+    {
+      "query": "First technology contact details"
+    },
+    {
+      "query": "First technology ceo"
+    }
+  ],
+  "credits": 1
+}

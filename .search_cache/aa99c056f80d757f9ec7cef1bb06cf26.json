@@ -1,0 +1,111 @@
+{
+  "searchParameters": {
+    "q": "OCTO Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "[PDF] The Role of GPUs in Deep Learning and Computational Advancemen",
+      "link": "https://eastpublication.com/index.php/eje/article/download/34/13",
+      "snippet": "This paper explores the architectural evolution of GPUs, their applications in AI, and their impact on deep learning, natural language.",
+      "date": "Feb 16, 2025",
+      "position": 1
+    },
+    {
+      "title": "HPC-Enhanced Training of Large AI Models in the Cloud",
+      "link": "https://www.researchgate.net/publication/383229361_HPC-Enhanced_Training_of_Large_AI_Models_in_the_Cloud",
+      "snippet": "This paper explores the integration of HPC with cloud computing to optimize the training processes of large AI models.",
+      "date": "Aug 19, 2024",
+      "position": 2
+    },
+    {
+      "title": "The Impact of AI Adoption on IT Infrastructure",
+      "link": "https://clearbridgetech.com/the-impact-of-ai-adoption-on-it-infrastructure-transforming-innovation/",
+      "snippet": "This blog explores how AI-ready infrastructure unlocks faster innovation, better decision-making, and sustained competitive advantage.",
+      "position": 3
+    },
+    {
+      "title": "Cultivating Multidisciplinary Research and Education on GPU ... - arXiv",
+      "link": "https://arxiv.org/html/2504.14786v1",
+      "snippet": "These resources are categorized into three types: basic usage, model training, and parallel computing. The first category focuses on fundamental ...",
+      "date": "Apr 21, 2025",
+      "attributes": {
+        "Missing": "scalability | Show results with:scalability"
+      },
+      "position": 4
+    },
+    {
+      "title": "Computing Commons | Ada Lovelace Institute",
+      "link": "https://www.adalovelaceinstitute.org/report/computing-commons/",
+      "snippet": "While effective for general computing tasks, CPUs are less efficient than GPUs for the parallel processing needed in AI applications.",
+      "date": "Feb 7, 2025",
+      "attributes": {
+        "Missing": "scalability | Show results with:scalability"
+      },
+      "position": 5
+    },
+    {
+      "title": "Computational Power and AI - AI Now Institute",
+      "link": "https://ainowinstitute.org/publications/compute-and-ai",
+      "snippet": "Researchers in AI have largely concluded that increasing scale is key to accuracy and performance in training deep learning models. This has ...",
+      "date": "Sep 27, 2023",
+      "position": 6
+    },
+    {
+      "title": "Convergence of artificial intelligence and high performance ...",
+      "link": "https://journalofbigdata.springeropen.com/articles/10.1186/s40537-020-00361-2",
+      "snippet": "In this article we present a summary of recent developments in this field, and describe specific advances that authors in this article are ...",
+      "date": "Oct 16, 2020",
+      "position": 7
+    },
+    {
+      "title": "[PDF] Polymorphic Architecture for Future AI Applications",
+      "link": "https://www.opencompute.org/documents/ocp-document-submission-ai-co-design-docx-pdf",
+      "snippet": "This whitepaper proposes a polymorphic architecture to address these challenges based on hardware software co-design. With large-scope scalability, polymorphic ...",
+      "position": 8
+    },
+    {
+      "title": "Artificial Intelligence (AI) and Machine Learning for Multimedia and ...",
+      "link": "https://www.mdpi.com/2079-9292/11/14/2239",
+      "snippet": "The review covers a wide spectrum of enabling technologies for AI and machine learning for multimedia and edge information processing.",
+      "position": 9
+    },
+    {
+      "title": "Italy Data Center Processor Market Size, Share and Forecast 2032",
+      "link": "https://www.credenceresearch.com/report/italy-data-center-processor-market",
+      "snippet": "The Italy data center processor market is driven by the growing adoption of cloud computing, artificial intelligence (AI), and big data analytics, which demand ...",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "What are the infrastructure requirements for artificial intelligence?",
+      "snippet": "AI INFRASTRUCTURE KEY COMPONENTS\nHardware. GPU/TPU: Essential for intensive training tasks. ...\nSoftware. Machine learning frameworks: TensorFlow, PyTorch, or scikit-learn. ...\nOrchestration & Management. Kubernetes: Automatic scaling, container lifecycle management. ...\nSecurity & Governance. ...\nInfrastructure-as-Code (IaC)",
+      "title": "Build AI Infrastructure: A Practical Guide - Mirantis",
+      "link": "https://www.mirantis.com/blog/build-ai-infrastructure-your-definitive-guide-to-getting-ai-right/"
+    },
+    {
+      "question": "What are five factors driving the advancement of AI technology?",
+      "snippet": "According to recent studies, five factors are contributing to the rapid development of the \"AI movement\". The main drivers are Moore's Law, the digitalisation and dematerialisation of products, services and processes, their interconnection in a global network, big data and new emerging technologies.",
+      "title": "AI revolution: Five interconnected factors that are boosting ...",
+      "link": "https://www.adesso.co.uk/en/news/blog/ai-revolution-five-interconnected-factors-that-are-boosting-technological-progress.jsp"
+    },
+    {
+      "question": "What are the three main domains of AI technology?",
+      "snippet": "The major domains of AI, including machine learning, natural language processing, robotics, and deep learning, and their impact on industries and daily life.",
+      "title": "Major Domains of Artificial Intelligence (AI) - SKILLFLOOR",
+      "link": "https://skillfloor.com/blog/domains-of-irtificial-Intelligence"
+    },
+    {
+      "question": "What kind of computing power is required to train an AI model?",
+      "snippet": "GPUs. GPUs are ideal for AI training because they can handle massive parallel processing and they're designed to execute thousands of operations simultaneously. The recommended GPUs have high memory capacity and deep learning optimizations.",
+      "title": "What Hardware Is Needed for AI? - Multimodal",
+      "link": "https://www.multimodal.dev/post/what-hardware-is-needed-for-ai"
+    }
+  ],
+  "credits": 1
+}

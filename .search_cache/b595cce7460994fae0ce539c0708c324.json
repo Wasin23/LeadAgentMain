@@ -1,0 +1,152 @@
+{
+  "searchParameters": {
+    "q": "First Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "How Cloud GPUs Power High-Performance AI And ML - AceCloud",
+      "link": "https://acecloud.ai/blog/high-performance-computing-with-cloud-gpus/",
+      "snippet": "Cloud GPUs make high-performance computing for AI and ML faster, more scalable, and easier to manage compared to traditional infrastructure.",
+      "date": "5 days ago",
+      "position": 1
+    },
+    {
+      "title": "AI infrastructure 101: Building the foundation for ML - RudderStack",
+      "link": "https://www.rudderstack.com/blog/ai-infrastructure/",
+      "snippet": "AI infrastructure is specifically designed for the high computational demands of machine learning workloads, featuring specialized processors ...",
+      "date": "Aug 12, 2025",
+      "position": 2
+    },
+    {
+      "title": "[PDF] High-Performance Computing for the Age of AI and Cloud Computing",
+      "link": "https://gpltech.com/wp-content/uploads/2025/04/HPC-For-The-Age-of-AI-eBook.pdf",
+      "snippet": "Multi-GPU implementations have demonstrated almost linear scaling of performance to address this challenge. And a key architectural enabler to scale performance ...",
+      "position": 3
+    },
+    {
+      "title": "AI Factories: What Are They and Who Needs Them? - Mirantis",
+      "link": "https://www.mirantis.com/blog/ai-factories-what-are-they-and-who-needs-them-/",
+      "snippet": "Rapid adoption of AI is changing how infrastructure gets built. Organizations are building specialized environments with dense GPU clusters, ...",
+      "date": "Aug 29, 2025",
+      "position": 4
+    },
+    {
+      "title": "The Essential Guide to AI Infrastructure - The AI Track",
+      "link": "https://theaitrack.com/ai-infrastructure-guide/",
+      "snippet": "The use of specialized hardware like GPUs and TPUs allows AI algorithms to process massive datasets quickly and efficiently. Scalability and ...",
+      "date": "Nov 14, 2024",
+      "position": 5
+    },
+    {
+      "title": "Computational Power and AI - AI Now Institute",
+      "link": "https://ainowinstitute.org/publications/compute-and-ai",
+      "snippet": "Researchers in AI have largely concluded that increasing scale is key to accuracy and performance in training deep learning models. This has ...",
+      "date": "Sep 27, 2023",
+      "position": 6
+    },
+    {
+      "title": "The Future of AI Infrastructure is Becoming Modular",
+      "link": "https://sapphireventures.com/blog/the-future-of-ai-infrastructure-is-becoming-modular/",
+      "snippet": "We're seeing a rise in the demand for modular, best-in-class tooling that equips today's more robust ML teams with the ability to flexibly run highly-custom ...",
+      "date": "Mar 10, 2022",
+      "position": 7
+    },
+    {
+      "title": "Simplifying AI Workload Delivery for Platform Teams in 2025 - Rafay",
+      "link": "https://rafay.co/ai-and-cloud-native-blog/simplifying-ai-workload-delivery/",
+      "snippet": "The challenge isn't just about accessing GPU compute—it's about simplifying the delivery, orchestration, and governance of AI/ML pipelines.",
+      "date": "Jun 11, 2025",
+      "sitelinks": [
+        {
+          "title": "Trends Reshaping Ai...",
+          "link": "https://rafay.co/ai-and-cloud-native-blog/simplifying-ai-workload-delivery/#:~:text=Trends%20Reshaping%20AI%20Infrastructure%20and%20Large%20Language%20Models%20in%202025"
+        },
+        {
+          "title": "Data Preprocessing...",
+          "link": "https://rafay.co/ai-and-cloud-native-blog/simplifying-ai-workload-delivery/#:~:text=Data%20Preprocessing%3A%20Preparing%20Data%20for%20AI%20Success"
+        },
+        {
+          "title": "How Rafay Simplifies Ai...",
+          "link": "https://rafay.co/ai-and-cloud-native-blog/simplifying-ai-workload-delivery/#:~:text=How%20Rafay%20Simplifies%20AI%20Workload%20Delivery%20for%20Platform%20Teams"
+        }
+      ],
+      "position": 8
+    },
+    {
+      "title": "High-Performance Computing and Parallel Algorithms for Urban ...",
+      "link": "https://www.mdpi.com/1999-4893/18/4/182",
+      "snippet": "This paper explores the application of parallel algorithms and high-performance computing (HPC) in the processing and forecasting of large-scale water demand ...",
+      "sitelinks": [
+        {
+          "title": "2. Materials And Methods",
+          "link": "https://www.mdpi.com/1999-4893/18/4/182#:~:text=2.%20Materials%20and%20Methods"
+        },
+        {
+          "title": "2.2. Hpc Infrastructure And...",
+          "link": "https://www.mdpi.com/1999-4893/18/4/182#:~:text=2.2.%20HPC%20Infrastructure%20and%20Environment"
+        },
+        {
+          "title": "3. Results And Discussion",
+          "link": "https://www.mdpi.com/1999-4893/18/4/182#:~:text=3.%20Results%20and%20Discussion"
+        }
+      ],
+      "position": 9
+    },
+    {
+      "title": "Building an AI-First IT Infrastructure: Best Practices and Challenges",
+      "link": "https://www.arionresearch.com/blog/y7fdzre841nwwrpxx66topg8rymgcn",
+      "snippet": "Supporting AI workloads and applications requires a robust, scalable, and flexible technical infrastructure that can handle high computational demands.",
+      "date": "Sep 25, 2024",
+      "attributes": {
+        "Missing": "initiatives | Show results with:initiatives"
+      },
+      "sitelinks": [
+        {
+          "title": "Computing Power (processing...",
+          "link": "https://www.arionresearch.com/blog/y7fdzre841nwwrpxx66topg8rymgcn#:~:text=Computing%20Power%20%28Processing%20Units%29"
+        },
+        {
+          "title": "Ai Model Training And...",
+          "link": "https://www.arionresearch.com/blog/y7fdzre841nwwrpxx66topg8rymgcn#:~:text=AI%20Model%20Training%20and%20Serving%20Infrastructure"
+        },
+        {
+          "title": "Ai Model Deployment And...",
+          "link": "https://www.arionresearch.com/blog/y7fdzre841nwwrpxx66topg8rymgcn#:~:text=AI%20Model%20Deployment%20and%20Maintenance%20%28MLOps%29"
+        }
+      ],
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "What is considered to be the first AI program ever developed?",
+      "snippet": "The first demonstration of the Logic Theorist (LT) written by Allen Newell, Cliff Shaw and Herbert A. Simon (Carnegie Institute of Technology, now Carnegie Mellon University or CMU). This is often called the first AI program, though Samuel's checkers program also has a strong claim.",
+      "title": "Timeline of artificial intelligence - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/Timeline_of_artificial_intelligence"
+    },
+    {
+      "question": "Which technology introduced in the 2000s significantly advanced data storage and management by enabling scalable on demand access to vast amounts of data?",
+      "snippet": "In the 2000s, the application of cloud computing began to take shape with the establishment of Amazon Web Services (AWS) in 2002, which allowed developers to build applications independently. In 2006 Amazon Simple Storage Service, known as Amazon S3, and the Amazon Elastic Compute Cloud (EC2) were released.",
+      "title": "Cloud computing - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/Cloud_computing"
+    },
+    {
+      "question": "What is the first step in the process of development of an AI model?",
+      "snippet": "STEP-BY-STEP PROCESS TO BUILD AN AI MODEL FOR ENTERPRISE SUCCESS\nDefine the Problem Clearly. ...\nGather and Prepare High-Quality Data. ...\nSelect the Right Algorithm. ...\nTrain and Fine-Tune Your Model. ...\nDeploy and Monitor Your Model. ...\nConsider Outsourcing AI Development.",
+      "title": "How to Build an AI Model: Step-by-Step Guide | VLink",
+      "link": "https://vlinkinfo.com/blog/how-to-build-ai-model"
+    },
+    {
+      "question": "What was the first AI program developed in 1956?",
+      "snippet": "The Dartmouth workshop of 1956 was a pivotal event that marked the formal inception of AI as an academic discipline. It was organized by Marvin Minsky and John McCarthy, with the support of two senior scientists Claude Shannon and Nathan Rochester of IBM.",
+      "title": "History of artificial intelligence - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/History_of_artificial_intelligence"
+    }
+  ],
+  "credits": 1
+}

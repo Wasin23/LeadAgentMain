@@ -1,0 +1,70 @@
+{
+  "searchParameters": {
+    "q": "\"David Wu\" linkedin \"Riverbed Technology\" \"joined\" OR \"started\" years",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Nubeva Leadership Investor",
+      "link": "https://investors.nubeva.com/nubeva-leadership",
+      "snippet": "Rempel started her career with public companies in 2001 and currently ... David Wu. Eric Wolford. Board Advisor. David Faugno. Say Lim. Manjit Singh. Michael ...",
+      "position": 1
+    },
+    {
+      "title": "David Wu investor portfolio, rounds & team",
+      "link": "https://kenya.dealroom.co/companies/david_wu",
+      "snippet": "David Wu - Member of the Board of Directors ... Joined dealroom before 2014. HQ location. Argentina ... Riverbed Technology.",
+      "position": 2
+    },
+    {
+      "title": "Innovation: Expand Horizons, Shrink the World",
+      "link": "https://www.staging1.duncanworldwide.com/innovation-expanding-horizons-shrinking-world/",
+      "snippet": "David Wu: At Riverbed, innovation is part of our DNA. We're just over 10 years old, and one of our key innovation principles is that we think about how things ...",
+      "position": 3
+    },
+    {
+      "title": "Riverbed Technology Culture",
+      "link": "https://www.comparably.com/companies/riverbed-technology",
+      "snippet": "Since its inception 23 years ago, Riverbed Technology has grown to 2569 employees. ... PJ started at Riverbed Technology in Jun of 2014. PJ ...",
+      "date": "Jun 13, 2024",
+      "rating": 3.8,
+      "ratingCount": 751,
+      "position": 4
+    },
+    {
+      "title": "Riverbed - Overview, News & Similar companies",
+      "link": "https://www.zoominfo.com/c/riverbed-technology/76268245",
+      "snippet": "Popular SearchesRiverbed TechnologyRiverbed Technology IncRiverbedRiverbed LLCRiverbed Technology LLC ... Get started for free! No credit card needed ...",
+      "position": 5
+    },
+    {
+      "title": "Nubeva | Investors Relations",
+      "link": "https://investors.nubeva.com/",
+      "snippet": "Rempel started her career with public companies in 2001 and currently provides ... David Wu. Eric Wolford. David Faugno. Say Lim. Manjit Singh. Michael Perone ...",
+      "position": 6
+    },
+    {
+      "title": "Team",
+      "link": "https://www.cohesity.com/wp-content/new_media/2020/11/michael-porat-leadership-headshot.htm",
+      "snippet": "Bill joined Sequoia Capital in late 2011 where he works as a partner ... David Wu. bv-jagadeesh. BV Jagadeesh. Cohesity Advisor - Alan Cohen. Alan Cohen.",
+      "position": 7
+    },
+    {
+      "title": "20th Reunion Book",
+      "link": "https://1990.alumclass.mit.edu/s/1314/images/gid78/editor_documents/mit_class_of_1990_20th_reunion_book.pdf",
+      "snippet": "After 6 years at Motorola I joined. Rambus, a technology and patent ... In the last couple years I've started a home baking business, making custom cakes.",
+      "position": 8
+    },
+    {
+      "title": "Winners | GBA Archive - Page 14 of 14",
+      "link": "https://globeeawards.com/innovation/winners-archive/14/",
+      "snippet": "... (joined through the acquisition of Entrisphere), Alcatel, And Bell Labs. ... David Wu, Chief Technology Officer – Riverbed Technology (San Francisco ...",
+      "position": 9
+    }
+  ],
+  "credits": 1
+}

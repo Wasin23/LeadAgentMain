@@ -1,0 +1,147 @@
+{
+  "searchParameters": {
+    "q": "Aera Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "searchInformation": {
+    "showingResultsFor": "Aerial Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives"
+  },
+  "organic": [
+    {
+      "title": "What is AI Infrastructure? Core Components and Building strategy",
+      "link": "https://aisera.com/blog/ai-infrastructure/",
+      "snippet": "AI infrastructure is the complete set of hardware and software components required to build, train, deploy, and manage artificial intelligence (AI) and ...",
+      "rating": 8.8,
+      "ratingMax": 10,
+      "ratingCount": 144,
+      "position": 1
+    },
+    {
+      "title": "Aera Technology Recognized in the 2025 Gartner® Market Guide ...",
+      "link": "https://www.aeratechnology.com/blogs/aera-technology-recognized-in-the-2025-gartner-market-guide-for-adm-platforms-for-supply-chain",
+      "snippet": "The report mentions the growing importance of ADM platforms in enabling real-time, AI-driven decisions that improve agility, resilience, and ...",
+      "date": "Jan 22, 2025",
+      "position": 2
+    },
+    {
+      "title": "Resources - Aera Technology",
+      "link": "https://www.aeratechnology.com/resources",
+      "snippet": "Aera Technology Boosts Customer Inventory Performance by 20% with Decision Intelligence. Measurable AI ROI Delivered for Inventory Management Through Optimized ...",
+      "attributes": {
+        "Missing": "infrastructure GPU parallel"
+      },
+      "position": 3
+    },
+    {
+      "title": "New infrastructure for the era of AI: Emerging technology and trends ...",
+      "link": "https://azure.microsoft.com/en-us/blog/new-infrastructure-for-the-era-of-ai-emerging-technology-and-trends-in-2024/",
+      "snippet": "The State of AI Infrastructure discusses the opportunities and challenges associated with leveraging AI infrastructure. Learn more.",
+      "date": "Apr 1, 2024",
+      "position": 4
+    },
+    {
+      "title": "The growing demand for AI computing | Deloitte Insights",
+      "link": "https://www.deloitte.com/us/en/insights/topics/emerging-technologies/growing-demand-ai-computing.html",
+      "snippet": "New analysis from Deloitte explores projected growth of AI computing infrastructure demand and strategies for agile solutions in the ...",
+      "date": "Aug 21, 2025",
+      "position": 5
+    },
+    {
+      "title": "Rethinking the Cloud for AI - Six Five Media",
+      "link": "https://www.sixfivemedia.com/content/rethinking-the-cloud-for-ai",
+      "snippet": "As AI demand explodes, enterprises require purpose-built cloud infrastructure to stay ahead. See how Nebius, NVIDIA GPUs, and decades of deep-tech ...",
+      "position": 6
+    },
+    {
+      "title": "Key Components and Optimization Strategies of GPU Infrastructure",
+      "link": "https://rafay.co/ai-and-cloud-native-blog/key-components-and-optimization-strategies-of-gpu-infrastructure/",
+      "snippet": "Explore Rafay's key components and optimization strategies for GPU infrastructure to boost scalability, efficiency, and workload management.",
+      "date": "Nov 1, 2024",
+      "attributes": {
+        "Missing": "Aera initiatives"
+      },
+      "position": 7
+    },
+    {
+      "title": "[PDF] The Importance of Memory in High-Performance Computing and AI",
+      "link": "https://assets.micron.com/adobe/assets/urn:aaid:aem:8a68fc66-7658-4d0a-98ef-3d70f93181a2/renditions/original/as/import_of_mem_in_hi_perf_compute_and_ai_white_paper.pdf",
+      "snippet": "As AI models grow more complex, the demand for real-time data processing is increasing, driving the need for advanced memory and storage ...",
+      "date": "Aug 25, 2025",
+      "position": 8
+    },
+    {
+      "title": "Evaluating Computing Paradigms, Scalability, and Real-World ...",
+      "link": "https://www.preprints.org/manuscript/202504.0723/v1",
+      "snippet": "This paper addresses the leading computing paradigms, including client-server computing, distributed computing, cloud computing, and edge computing.",
+      "date": "Apr 8, 2025",
+      "attributes": {
+        "Missing": "Aera | Show results with:Aera"
+      },
+      "position": 9
+    },
+    {
+      "title": "Convergence of artificial intelligence and high performance ...",
+      "link": "https://journalofbigdata.springeropen.com/articles/10.1186/s40537-020-00361-2",
+      "snippet": "In this article we present a summary of recent developments in this field, and describe specific advances that authors in this article are ...",
+      "date": "Oct 16, 2020",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "What are the infrastructure requirements for artificial intelligence?",
+      "snippet": "AI INFRASTRUCTURE KEY COMPONENTS\nHardware. GPU/TPU: Essential for intensive training tasks. ...\nSoftware. Machine learning frameworks: TensorFlow, PyTorch, or scikit-learn. ...\nOrchestration & Management. Kubernetes: Automatic scaling, container lifecycle management. ...\nSecurity & Governance. ...\nInfrastructure-as-Code (IaC)",
+      "title": "Build AI Infrastructure: A Practical Guide - Mirantis",
+      "link": "https://www.mirantis.com/blog/build-ai-infrastructure-your-definitive-guide-to-getting-ai-right/"
+    },
+    {
+      "question": "What is the significance of scalability in AI infrastructure?",
+      "snippet": "Scalability and Flexibility As companies collect more data, a scalable network accommodates increased data flow, enabling continuous learning and improvement of AI models. A scalable network infrastructure also supports the integration of new technologies and tools, keeping businesses at the forefront of AI innovation.",
+      "title": "Secure And Scalable Networks: Your Key To AI Success",
+      "link": "https://blog.lumen.com/secure-and-scalable-networks-your-key-to-ai-success/"
+    },
+    {
+      "question": "What are five factors driving the advancement of AI technology?",
+      "snippet": "According to recent studies, five factors are contributing to the rapid development of the \"AI movement\". The main drivers are Moore's Law, the digitalisation and dematerialisation of products, services and processes, their interconnection in a global network, big data and new emerging technologies.",
+      "title": "AI revolution: Five interconnected factors that are boosting ...",
+      "link": "https://www.adesso.co.uk/en/news/blog/ai-revolution-five-interconnected-factors-that-are-boosting-technological-progress.jsp"
+    },
+    {
+      "question": "How is AI used in industry innovation and infrastructure?",
+      "snippet": "AI is driving innovation in selecting and optimizing materials for infrastructure projects. By analyzing vast datasets on material properties, environmental conditions, and structural requirements, AI algorithms can identify the most suitable materials for specific applications, enhancing durability and sustainability.",
+      "title": "10 Ways AI is being used in Infrastructure Development [2025]",
+      "link": "https://digitaldefynd.com/IQ/ai-use-in-infrastructure-development/"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "AI infrastructure examples"
+    },
+    {
+      "query": "in the context of traditional ai infrastructure, what is the primary role of gpus?"
+    },
+    {
+      "query": "which two characteristics are essential for traditional ai infrastructure to be successful?"
+    },
+    {
+      "query": "which data center environment is best suited to prevent ai vendor lock-in?"
+    },
+    {
+      "query": "Which three tools are used for data synchronization in a multicloud AI environment"
+    },
+    {
+      "query": "What is AI infrastructure"
+    },
+    {
+      "query": "which storage media is preferred for ai applications requiring rapid access to large datasets?"
+    },
+    {
+      "query": "which four orchestration technologies are used for automating ai workload mobility?"
+    }
+  ],
+  "credits": 1
+}

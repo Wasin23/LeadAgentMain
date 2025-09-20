@@ -497,6 +497,14 @@
       
       // Clear messages
       hideMessages();
+      
+      // Focus first input after tab switch
+      setTimeout(() => {
+        const firstInput = document.querySelector(`#${tab}-form input`);
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }, 100);
     }
     
     function showError(message) {
@@ -643,11 +651,10 @@
       window.location.href = '/';
     }
     
-    // Check if user is already logged in
+    // Check if user is already logged in and ensure inputs work
     window.addEventListener('load', () => {
       const currentUser = localStorage.getItem('currentUser');
       if (currentUser) {
-        // Double check that it's valid and not empty
         try {
           const user = JSON.parse(currentUser);
           if (user && user.userId && user.userId !== '') {
@@ -655,12 +662,11 @@
             return;
           }
         } catch (e) {
-          // Invalid user data, clear it
           localStorage.removeItem('currentUser');
         }
       }
       
-      // Ensure input fields are enabled and focusable
+      // Simple input enablement - no cloning or complex operations
       setTimeout(() => {
         const inputs = document.querySelectorAll('input');
         inputs.forEach(input => {
@@ -668,15 +674,9 @@
           input.readOnly = false;
           input.removeAttribute('disabled');
           input.removeAttribute('readonly');
-          input.style.pointerEvents = 'auto';
-          input.style.userSelect = 'text';
-          input.tabIndex = 0;
         });
         
-        // Reset all forms
-        document.querySelectorAll('form').forEach(form => form.reset());
-        
-        // Focus first input field
+        // Focus first input
         const firstInput = document.getElementById('signin-username');
         if (firstInput) {
           firstInput.focus();
@@ -684,38 +684,13 @@
       }, 100);
     });
 
-    // Additional fix for when page becomes visible (handles sign-out redirects)
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        setTimeout(() => {
-          const inputs = document.querySelectorAll('input');
-          inputs.forEach(input => {
-            input.disabled = false;
-            input.readOnly = false;
-            input.removeAttribute('disabled');
-            input.removeAttribute('readonly');
-            input.style.pointerEvents = 'auto';
-            input.style.userSelect = 'text';
-            input.tabIndex = 0;
-          });
-        }, 50);
+    // Simple click handler to ensure inputs work
+    document.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') {
+        e.target.disabled = false;
+        e.target.readOnly = false;
+        setTimeout(() => e.target.focus(), 10);
       }
-    });
-
-    // Force re-enable inputs on any click (fallback)
-    document.addEventListener('click', () => {
-      const inputs = document.querySelectorAll('input');
-      inputs.forEach(input => {
-        if (input.disabled || input.readOnly) {
-          input.disabled = false;
-          input.readOnly = false;
-          input.removeAttribute('disabled');
-          input.removeAttribute('readonly');
-          input.style.pointerEvents = 'auto';
-          input.style.userSelect = 'text';
-          input.tabIndex = 0;
-        }
-      });
     });
 
     // Forgot Password Functions

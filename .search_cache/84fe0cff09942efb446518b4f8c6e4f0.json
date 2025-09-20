@@ -1,0 +1,12 @@
+{
+  "searchParameters": {
+    "q": "\"Pau I Oliver\" linkedin \"Between Technology\" \"Chief Executive Officer\"",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [],
+  "credits": 1
+}

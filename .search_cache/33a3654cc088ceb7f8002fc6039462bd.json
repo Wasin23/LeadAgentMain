@@ -1,0 +1,26 @@
+{
+  "searchParameters": {
+    "q": "\"Mark Tzeng\" linkedin \"EDOM Technology\" \"joined\" OR \"started\" years",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "EDOM Technology - Overview, News & Similar companies",
+      "link": "https://www.zoominfo.com/c/edom-technology/348479510",
+      "snippet": "Who is the CTO of EDOM Technology? EDOM Technology's CTO is Mark Tzeng What does EDOM Technology do?",
+      "position": 1
+    },
+    {
+      "title": "Rick Lin - LNG trader",
+      "subtitle": "台灣 臺北市 台北 · Operation, Contract & Logistics Management LNG Purchase Division · CPC Corporation, Taiwan",
+      "link": "https://tw.linkedin.com/in/rick-lin-49655957",
+      "snippet": "LNG trader · 工作經歷：CPC Corporation, Taiwan · 教育背景：National Taiwan University of Science and Technology · 地點：台北· 159 位LinkedIn 聯絡人。",
+      "position": 2
+    }
+  ],
+  "credits": 1
+}

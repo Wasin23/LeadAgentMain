@@ -1,0 +1,68 @@
+{
+  "searchParameters": {
+    "q": "\"OCTO Technology\" site:http://www.octo.com",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Consultant Tech Lead",
+      "link": "https://www.octo.com/recrutement/offers/consultant-tech-lead-fhn",
+      "snippet": "OCTO TECHNOLOGY | PART OF ACCENTURE. Mentions légales et CGU · Plan du site · Blog · Contact · Protection des données · Accessibilité : non conforme. Inscrivez- ...",
+      "position": 1
+    },
+    {
+      "title": "Learning & Development Manager",
+      "link": "https://www.octo.com/recrutement/offers/learning-development-manager-responsable-formation-fhn",
+      "snippet": "Vous managerez un Learning & Development specialist et échangerez régulièrement avec les équipes d'OCTO Academy, l'organisme de formation d'OCTO Technology.",
+      "position": 2
+    },
+    {
+      "title": "Schéma pluriannuel 2025-2028",
+      "link": "https://www.octo.com/schema-pluriannuel",
+      "snippet": "POLITIQUE D'ACCESSIBILITÉ. OCTO Technology est un cabinet de conseil et réalisation IT : nous accompagnons nos clients dans la conception et ...",
+      "date": "Jun 4, 2025",
+      "position": 3
+    },
+    {
+      "title": "[Stage Data & ML] Automatisation de la génération de ...",
+      "link": "https://www.octo.com/recrutement/offers/stage-data-ml-automatisation-de-la-generation-de-dossiers-techniques-a-partir-dun-croquis-et-de-descriptions",
+      "snippet": "OCTO TECHNOLOGY | PART OF ACCENTURE. Mentions légales et CGU · Plan du site · Blog · Contact · Protection des données · Accessibilité : non conforme. Inscrivez- ...",
+      "position": 4
+    },
+    {
+      "title": "Consultant BI Senior / Expert Tableau",
+      "link": "https://www.octo.com/recrutement/offers/consultant-bi-senior-expert-tableau-fhn",
+      "snippet": "OCTO TECHNOLOGY | PART OF ACCENTURE. Mentions légales et CGU · Plan du site · Blog · Contact · Protection des données · Accessibilité : non conforme. Inscrivez- ...",
+      "position": 5
+    },
+    {
+      "title": "Formations Agile & Lean",
+      "link": "https://www.octo.com/com/com_formation_Scrum.html",
+      "snippet": "© 2025 OCTO Technology - Part of Accenture, Tous droits réservés -. Mentions légales · Protection des données · CGV · CGU · Accessibilité : non conforme. OCTO ...",
+      "position": 6
+    },
+    {
+      "title": "Consultant Senior Fullstack Developer Java / Angular",
+      "link": "https://www.octo.com/recrutement/offers/consultant-senior-fullstack-developer-java-angular-fhn",
+      "snippet": "OCTO TECHNOLOGY | PART OF ACCENTURE. Mentions légales et CGU · Plan du site · Blog · Contact · Protection des données · Accessibilité : non conforme. Inscrivez- ...",
+      "position": 7
+    },
+    {
+      "title": "[Stage Software mobile & IoT] Développer une solution digitale ...",
+      "link": "https://www.octo.com/recrutement/offers/stage-software-mobile-iot-developper-une-solution-digitale-pour-se-reperer-et-etre-guidee-dans-un-batiment",
+      "snippet": "OCTO TECHNOLOGY | PART OF ACCENTURE. Mentions légales et CGU · Plan du site · Blog · Contact · Protection des données · Accessibilité : non conforme · Gestion ...",
+      "position": 8
+    },
+    {
+      "title": "[Stage Cloud & Software] Création d'un framework DevEx",
+      "link": "https://www.octo.com/recrutement/offers/stage-cloud-software-creation-dun-framework-devex",
+      "snippet": "OCTO TECHNOLOGY | PART OF ACCENTURE. Mentions légales et CGU · Plan du site · Blog · Contact · Protection des données · Accessibilité : non conforme · Gestion ...",
+      "position": 9
+    }
+  ],
+  "credits": 1
+}

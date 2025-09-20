@@ -1,0 +1,147 @@
+{
+  "searchParameters": {
+    "q": "PAR Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "High-Performance Computing and Parallel Algorithms for Urban ...",
+      "link": "https://www.mdpi.com/1999-4893/18/4/182",
+      "snippet": "This paper explores the application of parallel algorithms and high-performance computing (HPC) in the processing and forecasting of large-scale water demand ...",
+      "position": 1
+    },
+    {
+      "title": "(PDF) Challenges in High-Performance Computing - ResearchGate",
+      "link": "https://www.researchgate.net/publication/374520836_Challenges_in_High-Performance_Computing",
+      "snippet": "This article presents the main challenges of future supercomputer systems, highlighting the areas that demand the most of HPC servers.",
+      "date": "Aug 1, 2023",
+      "position": 2
+    },
+    {
+      "title": "Artificial intelligence capability: Conceptualization, measurement ...",
+      "link": "https://www.sciencedirect.com/science/article/pii/S0378720621000082",
+      "snippet": "This study draws on the resource-based theory (RBT) of the firm and seeks to examine the resources that are required to build an AI capability.",
+      "position": 3
+    },
+    {
+      "title": "High-Performance Computing and AI: Powering GPU ... - HPCwire",
+      "link": "https://www.hpcwire.com/2024/08/12/high-performance-computing-and-ai-powering-gpu-computing-with-hyperscale-nas/",
+      "snippet": "Building, training, and iterating with effective AI models require access to large amounts of data and extreme performance to feed massive GPU ...",
+      "date": "Aug 12, 2024",
+      "position": 4
+    },
+    {
+      "title": "Scalable Parallel Machine Learning on High Performance ...",
+      "link": "https://hammer.purdue.edu/articles/thesis/Scalable_Parallel_Machine_Learning_on_High_Performance_Computing_Systems_Clustering_and_Reinforcement_Learning/21680567",
+      "snippet": "This thesis explores several parallel strategies and performance optimization techniques using two ML applications.",
+      "date": "Dec 8, 2022",
+      "position": 5
+    },
+    {
+      "title": "Why Machine Learning HPC Requirements Are Crucial for AI",
+      "link": "https://www.rebootmonkey.com/blog/machine-learning-hpc-requirements/",
+      "snippet": "Explore how Machine Learning HPC requirements are transforming AI capabilities, from faster training to real-time inference.",
+      "date": "Feb 18, 2025",
+      "position": 6
+    },
+    {
+      "title": "Parallel and scalable AI in HPC systems for CFD applications and ...",
+      "link": "https://www.frontiersin.org/journals/high-performance-computing/articles/10.3389/fhpcp.2024.1444337/full",
+      "snippet": "The scalability of the library is demonstrated by strong scaling experiments on up to 3,664 Graphical Processing Units (GPUs) resulting in a scaling efficiency ...",
+      "attributes": {
+        "Missing": "PAR initiatives"
+      },
+      "position": 7
+    },
+    {
+      "title": "Why Machine Learning Models Demand High Performance ...",
+      "link": "https://www.databank.com/resources/blogs/why-machine-learning-models-demand-high-performance-computing-hpc/",
+      "snippet": "This allows machine learning models to meet changing business requirements—without costly and time-consuming infrastructure upgrades.",
+      "date": "Sep 26, 2024",
+      "position": 8
+    },
+    {
+      "title": "[PDF] High Performance Computing Education - Current Challenges and ...",
+      "link": "https://sghafoor10.github.io/publications/pdfs/2020/High%20Performance%20Computing%20Education%20-%20Current%20Challenges%20and%20Future%20Directions.pdf",
+      "snippet": "ABSTRACT. High Performance Computing (HPC) is the ability to process data and perform complex calculations at extremely high speeds. Current.",
+      "position": 9
+    },
+    {
+      "title": "High Performance Computing (HPC) and AI - NVIDIA",
+      "link": "https://www.nvidia.com/en-us/high-performance-computing/hpc-and-ai/",
+      "snippet": "HPC and AI can be used in a variety of fields, including researchers working in laboratories, engineers solving complex technical problems.",
+      "sitelinks": [
+        {
+          "title": "Boost Performance With...",
+          "link": "https://www.nvidia.com/en-us/high-performance-computing/hpc-and-ai/#:~:text=Boost%20Performance%20with%20Accelerated%20HPC%20and%20AI"
+        },
+        {
+          "title": "Nvidia Hpc And Ai Solutions...",
+          "link": "https://www.nvidia.com/en-us/high-performance-computing/hpc-and-ai/#:~:text=NVIDIA%20HPC%20and%20AI%20Solutions%20Across%20Workflows"
+        },
+        {
+          "title": "Hpc And Ai In Action",
+          "link": "https://www.nvidia.com/en-us/high-performance-computing/hpc-and-ai/#:~:text=HPC%20and%20AI%20in%20Action"
+        }
+      ],
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "What is the difference between parallel computing and high performance computing?",
+      "snippet": "Parallel computing runs multiple tasks simultaneously on numerous computer servers or processors. HPC uses massively parallel computing, which uses tens of thousands to millions of processors or processor cores.",
+      "title": "What Is High-Performance Computing (HPC)? - IBM",
+      "link": "https://www.ibm.com/think/topics/hpc"
+    },
+    {
+      "question": "What is the difference between AI and high performance computing?",
+      "snippet": "While AI and HPC are distinct technologies, their intersection creates powerful opportunities for advancement in various fields. AI brings intelligent decision-making and automation, while HPC provides the computational muscle needed to process vast amounts of data quickly and accurately.",
+      "title": "AI & HPC: Understanding the Differences and Synergies - LinkedIn",
+      "link": "https://www.linkedin.com/pulse/ai-hpc-understanding-differences-synergies-bipin-pankhania-iqpcf"
+    },
+    {
+      "question": "What are the six main subsets of AI machine learning NLP and more?",
+      "snippet": "WHAT ARE THE 6 SUBSETS OF AI?\nMachine Learning.\nDeep Learning.\nNatural Language processing.\nExpert System.\nRobotics.\nSpeech Recognition.",
+      "title": "6 Subsets of Artificial Intelligence 2025 - Aalpha Information Systems",
+      "link": "https://www.aalpha.net/blog/subsets-of-artificial-intelligence/"
+    },
+    {
+      "question": "Which AI technique is often used to optimize performance in HPC systems?",
+      "snippet": "Artificial Intelligence, mainly through machine learning models, significantly boosts the efficiency and capability of HPC systems, making it possible to tackle increasingly complex problems.",
+      "title": "The Role of Artificial Intelligence in High-Performance Computing",
+      "link": "https://www.zinfi.com/blog/artificial-intelligence-in-high-performance-computing/"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Who is responsible for the accuracy of output from an AI assistant"
+    },
+    {
+      "query": "Challenges in high performance computing"
+    },
+    {
+      "query": "In the context of high performance computing what is load balancing"
+    },
+    {
+      "query": "Artificial intelligence and knowledge sharing: Contributing factors to organizational performance"
+    },
+    {
+      "query": "Examining how AI capabilities can foster organizational performance in public organizations"
+    },
+    {
+      "query": "Trust in AI and its role in the acceptance of AI technologies"
+    },
+    {
+      "query": "Developing an artificial intelligence capability: a theoretical framework for business value"
+    },
+    {
+      "query": "Technology readiness and the organizational journey towards AI adoption: an empirical study"
+    }
+  ],
+  "credits": 1
+}

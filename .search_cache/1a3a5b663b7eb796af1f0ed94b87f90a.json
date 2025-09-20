@@ -1,0 +1,126 @@
+{
+  "searchParameters": {
+    "q": "EDOM Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "(PDF) Challenges in High-Performance Computing - ResearchGate",
+      "link": "https://www.researchgate.net/publication/374520836_Challenges_in_High-Performance_Computing",
+      "snippet": "This article presents the main challenges of future supercomputer systems, highlighting the areas that demand the most of HPC servers.",
+      "date": "Aug 1, 2023",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 1
+    },
+    {
+      "title": "[PDF] Comprehensive Analysis of ML Infrastructure Solutions ... - TechRxiv",
+      "link": "https://www.techrxiv.org/doi/pdf/10.36227/techrxiv.175243279.98052974",
+      "snippet": "This survey systematically reviews energy-efficient infrastructure solutions for Artificial Intelligence (AI) and Machine Learning.",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 2
+    },
+    {
+      "title": "Enhancing performance of machine learning tasks on edge-cloud ...",
+      "link": "https://www.sciencedirect.com/science/article/pii/S0167739X24006605",
+      "snippet": "A framework designed to optimize machine learning (ML) and artificial intelligence (AI) application placement in edge environments, aiming to improve Quality ...",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 3
+    },
+    {
+      "title": "[PDF] High-Performance Computing for the Age of AI and Cloud Computing",
+      "link": "https://gpltech.com/wp-content/uploads/2025/04/HPC-For-The-Age-of-AI-eBook.pdf",
+      "snippet": "Multi-GPU implementations have demonstrated almost linear scaling of performance to address this challenge. And a key architectural enabler to scale performance ...",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 4
+    },
+    {
+      "title": "HPC-Enhanced Training of Large AI Models in the Cloud",
+      "link": "https://www.researchgate.net/publication/383229361_HPC-Enhanced_Training_of_Large_AI_Models_in_the_Cloud",
+      "snippet": "This paper explores the integration of HPC with cloud computing to optimize the training processes of large AI models.",
+      "date": "Aug 19, 2024",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 5
+    },
+    {
+      "title": "[PDF] The Importance of Memory in High-Performance Computing and AI",
+      "link": "https://assets.micron.com/adobe/assets/urn:aaid:aem:8a68fc66-7658-4d0a-98ef-3d70f93181a2/renditions/original/as/import_of_mem_in_hi_perf_compute_and_ai_white_paper.pdf",
+      "snippet": "As AI models grow more complex, the demand for real-time data processing is increasing, driving the need for advanced memory and storage ...",
+      "date": "Aug 25, 2025",
+      "position": 6
+    },
+    {
+      "title": "[PDF] High Performance Computing Education - Current Challenges and ...",
+      "link": "https://sghafoor10.github.io/publications/pdfs/2020/High%20Performance%20Computing%20Education%20-%20Current%20Challenges%20and%20Future%20Directions.pdf",
+      "snippet": "HPC can be performed on dedicated supercomputers typically containing thousands of compute-nodes working together to complete one or more tasks in parallel.",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 7
+    },
+    {
+      "title": "2.1 Edge computing and embedded Artificial Intelligence | ECS SRIA",
+      "link": "https://ecssria.eu/2024_2.1",
+      "snippet": "This chapter focuses on computing components, and more specifically on embedded architectures, edge computing devices and systems using artificial intelligence ...",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 8
+    },
+    {
+      "title": "Indonesia Data Center Processor Market Size and Forecast 2032",
+      "link": "https://www.credenceresearch.com/report/indonesia-data-center-processor-market",
+      "snippet": "ASICs, designed specifically for AI applications, are expected to see rising demand as AI adoption accelerates, particularly in deep learning tasks.",
+      "position": 9
+    },
+    {
+      "title": "[PDF] High Performance Computing Infrastructure Management ...",
+      "link": "https://www.apec.org/apecapi/publication/getfile?publicationId=6c7c58c3-5a09-4986-9915-1260fe729959",
+      "snippet": "Box 1. Best Practice: Procedure for Acceptance Testing. Box 2. Best Practice: Support of Community Codes. Box 3. Useful Methodology: HPC Software TRL.",
+      "attributes": {
+        "Missing": "EDOM | Show results with:EDOM"
+      },
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "What is the infrastructure required for AI?",
+      "snippet": "AI infrastructure is the total ecosystem of data pipelines, compute resources, networking, storage, orchestration, and monitoring solutions. It encompasses: Specialized hardware for training and inference. Container orchestration platforms (think Kubernetes management)",
+      "title": "Build AI Infrastructure: A Practical Guide - Mirantis",
+      "link": "https://www.mirantis.com/blog/build-ai-infrastructure-your-definitive-guide-to-getting-ai-right/"
+    },
+    {
+      "question": "Which technology is primarily used to enable machines to learn from data and improve their performance over time?",
+      "snippet": "On an operational level for business use, AI is a set of technologies that are based primarily on machine learning and deep learning, used for data analytics, predictions and forecasting, object categorization, natural language processing, recommendations, intelligent data retrieval, and more.",
+      "title": "What Is Artificial Intelligence (AI)? | Google Cloud",
+      "link": "https://cloud.google.com/learn/what-is-artificial-intelligence"
+    },
+    {
+      "question": "What are the four underlying technologies that enable cloud computing to be implemented?",
+      "snippet": "Cloud computing relies on virtualisation, networking, data storage systems, and automation technologies.",
+      "title": "Technologies on Which Cloud Computing Relies: Know more",
+      "link": "https://www.digitalregenesys.com/blog/technologies-on-which-cloud-computing-relies"
+    },
+    {
+      "question": "Which technology significantly advanced AI's capabilities by allowing it to learn from vast amounts of data and make decisions?",
+      "snippet": "Deep learning is a subset of machine learning that uses multilayered neural networks, called deep neural networks, that more closely simulate the complex decision-making power of the human brain.",
+      "title": "What Is Artificial Intelligence (AI)? - IBM",
+      "link": "https://www.ibm.com/think/topics/artificial-intelligence"
+    }
+  ],
+  "credits": 1
+}

@@ -1,1 +1,140 @@
-[]
+[
+  {
+    "id": "1758386907032",
+    "timestamp": "2025-09-20T16:48:27.032Z",
+    "status": "pending",
+    "leadId": "First_Technology_Johan_Villiers",
+    "leadCompany": "First Technology",
+    "leadName": "Johan Villiers",
+    "leadEmail": "johand@firsttechnology.co.za",
+    "leadTitle": "Chief Executive Officer",
+    "originalSubject": "Elevate First Technology's AI Initiatives with Our HPC Solutions",
+    "originalBody": "Hi Johan,\n\nI noticed First Technology is actively exploring cloud GPU solutions for AI/ML workloads. This aligns perfectly with the current surge in AI startup funding and corporate investment, creating an ideal environment for your advancements.\n\nExabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide better performance-per-dollar compared to general cloud providers, which is crucial as you scale your AI/ML operations.\n\nGiven our deep understanding of AI/ML compute requirements, we can help First Technology efficiently scale its infrastructure, meeting your computational demands and accelerating your AI development timeline.\n\nWould you be open to a brief discussion on how our specialized HPC solutions can support your growth?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Elevate First Technology's AI Initiatives with Our HPC Solutions",
+    "finalBody": "Hi Johan,\n\nI noticed First Technology is actively exploring cloud GPU solutions for AI/ML workloads. This aligns perfectly with the current surge in AI startup funding and corporate investment, creating an ideal environment for your advancements.\n\nExabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide better performance-per-dollar compared to general cloud providers, which is crucial as you scale your AI/ML operations.\n\nGiven our deep understanding of AI/ML compute requirements, we can help First Technology efficiently scale its infrastructure, meeting your computational demands and accelerating your AI development timeline.\n\nWould you be open to a brief discussion on how our specialized HPC solutions can support your growth?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "First Technology",
+      "contact": "Johan Villiers",
+      "title": "Chief Executive Officer",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "johand@firsttechnology.co.za",
+      "score": 126,
+      "hasIntelligence": {
+        "summary": "First Technology is a company with a focus on high-performance computing, AI, and machine learning infrastructure. They are exploring cloud-based solutions to enhance scalability and manageability of AI/ML workloads.",
+        "aiReadiness": "First Technology is actively exploring AI and ML capabilities, particularly through cloud GPU solutions, indicating a strong readiness to adopt and integrate AI/ML technologies into their operations.",
+        "growthSignals": [
+          "Increased global startup funding in AI, with a 75.6% surge in U.S. AI startup funding in the first half of 2025.",
+          "Corporate AI investment reached $252.3 billion in 2024, showing a significant increase in private investment."
+        ],
+        "painPoints": [
+          "Potential challenges in scaling AI/ML infrastructure efficiently.",
+          "Need for specialized processors to handle high computational demands."
+        ],
+        "opportunityScore": 85,
+        "personalizedAngles": [
+          "Highlight the benefits of cloud GPU solutions for scalable AI/ML infrastructure.",
+          "Emphasize the potential for cost savings and efficiency improvements with cloud-based AI solutions."
+        ],
+        "keyPersonalities": [
+          "CTO is likely a key decision-maker, focusing on technological direction and market trends."
+        ],
+        "recentDevelopments": [
+          "Surge in AI startup funding and corporate investment, indicating a favorable environment for AI technology adoption."
+        ],
+        "competitivePosition": "First Technology is positioned to leverage the growing AI market, with a focus on cloud-based solutions that align with current technological trends. They are likely competitive in the AI/ML infrastructure space, given their exploration of advanced computing capabilities."
+      },
+      "opportunityScore": 85,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "First Technology is actively exploring AI and ML capabilities, particularly through cloud GPU solutions, indicating a strong readiness to adopt and integrate AI/ML technologies into their operations.",
+      "growthSignals": 2,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "First Technology is a company with a focus on high-performance computing, AI, and machine learning infrastructure. They are exploring cloud-based solutions to enhance scalability and manageability of AI/ML workloads.",
+      "opportunityScore": 85,
+      "personalizedAngles": [
+        "Highlight the benefits of cloud GPU solutions for scalable AI/ML infrastructure.",
+        "Emphasize the potential for cost savings and efficiency improvements with cloud-based AI solutions."
+      ],
+      "recentDevelopments": [
+        "Surge in AI startup funding and corporate investment, indicating a favorable environment for AI technology adoption."
+      ]
+    }
+  },
+  {
+    "id": "1758386910823",
+    "timestamp": "2025-09-20T16:48:30.823Z",
+    "status": "pending",
+    "leadId": "PAR_Technology_Savneet_Singh",
+    "leadCompany": "PAR Technology",
+    "leadName": "Savneet Singh",
+    "leadEmail": "savneet_singh@partech.com",
+    "leadTitle": "Chief Executive Officer",
+    "originalSubject": "Enhancing PAR Technology's AI Capabilities Amidst Impressive Growth",
+    "originalBody": "Hi Savneet,\n\nCongratulations on PAR Technology’s remarkable 49% YoY ARR growth in Q2 2025! Your strategic focus on M&A and organic expansion is truly commendable.\n\nAs your team explores AI capabilities, optimizing your computing infrastructure is essential. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide better performance-per-dollar compared to general cloud services, which is crucial as you scale.\n\nGiven PAR Technology’s growth trajectory and interest in building AI capabilities, our expertise in AI-HPC can seamlessly integrate with your existing systems, enhancing operational efficiency and supporting your strategic initiatives.\n\nCould we schedule a brief call to discuss how Exabits can contribute to your AI roadmap?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Enhancing PAR Technology's AI Capabilities Amidst Impressive Growth",
+    "finalBody": "Hi Savneet,\n\nCongratulations on PAR Technology’s remarkable 49% YoY ARR growth in Q2 2025! Your strategic focus on M&A and organic expansion is truly commendable.\n\nAs your team explores AI capabilities, optimizing your computing infrastructure is essential. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide better performance-per-dollar compared to general cloud services, which is crucial as you scale.\n\nGiven PAR Technology’s growth trajectory and interest in building AI capabilities, our expertise in AI-HPC can seamlessly integrate with your existing systems, enhancing operational efficiency and supporting your strategic initiatives.\n\nCould we schedule a brief call to discuss how Exabits can contribute to your AI roadmap?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "PAR Technology",
+      "contact": "Savneet Singh",
+      "title": "Chief Executive Officer",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "savneet_singh@partech.com",
+      "score": 126,
+      "hasIntelligence": {
+        "summary": "PAR Technology is a company focused on providing technology solutions primarily for the restaurant industry. They are known for their point-of-sale (POS) software and have a strong presence in large chain restaurants.",
+        "aiReadiness": "PAR Technology appears to be exploring AI capabilities, as indicated by their interest in building AI capabilities based on resource-based theory. However, there is no direct evidence of advanced AI/ML adoption in their current operations.",
+        "growthSignals": [
+          "49% YoY ARR growth to $286.7M in Q2 2025",
+          "102% YoY growth in Q4 2024",
+          "44% revenue growth in Q2 2025"
+        ],
+        "painPoints": [
+          "Potential challenges in scaling high-performance computing infrastructure",
+          "Need for strategic M&A to sustain growth"
+        ],
+        "opportunityScore": 85,
+        "personalizedAngles": [
+          "Highlight solutions that can enhance their AI capabilities and integrate with existing systems",
+          "Focus on scalability and reliability of infrastructure to support rapid growth",
+          "Emphasize cost-effective solutions for high-performance computing needs"
+        ],
+        "keyPersonalities": [
+          "Joe Yetter, General Manager at Punchh, responsible for business development",
+          "Gregory Parsons, Senior VP and CTO/CIO with extensive experience in technology management"
+        ],
+        "recentDevelopments": [
+          "PAR Technology's strategic M&A and organic growth",
+          "Stock selloff despite strong revenue and ARR growth"
+        ],
+        "competitivePosition": "PAR Technology holds a dominant market position in the POS software sector for large chain restaurants, with significant growth in multiproduct adoption among major brands like Burger King and Popeyes."
+      },
+      "opportunityScore": 85,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "PAR Technology appears to be exploring AI capabilities, as indicated by their interest in building AI capabilities based on resource-based theory. However, there is no direct evidence of advanced AI/ML adoption in their current operations.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "PAR Technology is a company focused on providing technology solutions primarily for the restaurant industry. They are known for their point-of-sale (POS) software and have a strong presence in large chain restaurants.",
+      "opportunityScore": 85,
+      "personalizedAngles": [
+        "Highlight solutions that can enhance their AI capabilities and integrate with existing systems",
+        "Focus on scalability and reliability of infrastructure to support rapid growth",
+        "Emphasize cost-effective solutions for high-performance computing needs"
+      ],
+      "recentDevelopments": [
+        "PAR Technology's strategic M&A and organic growth",
+        "Stock selloff despite strong revenue and ARR growth"
+      ]
+    }
+  }
+]

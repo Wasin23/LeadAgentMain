@@ -1,0 +1,52 @@
+{
+  "searchParameters": {
+    "q": "\"Meriem Berkane\" linkedin \"OCTO Technology\" \"joined\" OR \"started\" years",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "D&I: From Diversity & Inclusion to Discrimination & Insanity?",
+      "link": "https://www.linkedin.com/pulse/di-from-diversity-inclusion-discrimination-insanity-fr%C3%A9d%C3%A9ric-lenci-jx6be",
+      "snippet": "When I joined OCTO Technology, more than 7 years ago, I got to ... Meriem Berkane Emmanuelle Bernardin (Puech) Julie Bleeker Audrey ...",
+      "date": "7 months ago",
+      "position": 1
+    },
+    {
+      "title": "Manon Souris - Sydney, New South Wales, Australia",
+      "link": "https://au.linkedin.com/in/manon-souris-222a22144",
+      "snippet": "... Meriem Berkane, CTO of OCTO Technology. See publication · Women in IT - It's all about pushing your limits and opening your possibilities. Feb 2019. First ...",
+      "position": 2
+    },
+    {
+      "title": "Rémy Saissy - Teads",
+      "subtitle": "Paris, Île-de-France, France · Teads",
+      "link": "https://fr.linkedin.com/in/remysaissy",
+      "snippet": "Storm has gained a lot of interest lately as it has joined the Hadoop ecosystem. EDF Lab and OCTO Technology conducted a Proof of Concept in order to address ...",
+      "position": 3
+    },
+    {
+      "title": "Post de Noémie Coget",
+      "link": "https://fr.linkedin.com/posts/noemie-coget_techrocks-cto-genai-activity-7348954152959369216-Xk5g",
+      "snippet": "... OCTO Technology ( Nelly GRELLIER • OCTO Technology, Antoine CHANTALOU, Ludovic chauvaux, Nicolas Cavallo, Alexandra Caussard, Meriem Berkane).",
+      "date": "2 months ago",
+      "position": 4
+    },
+    {
+      "title": "Thierry D. @thierry_twits - Twitter Profile",
+      "link": "https://twstalker.com/thierry_twits",
+      "snippet": "All tweets are my own opinion. CTO octo technology. Meriem Berkane @Mriem2B1. 654 Followers 493 Following CTO octo technology. Disabled · Sébastien Allemand ...",
+      "position": 5
+    },
+    {
+      "title": "Cédric Pointel @cpointel - Twitter Profile",
+      "link": "https://twstalker.com/cpointel",
+      "snippet": "Cédric Pointel @cpointel. Joined January 2012 ... Swift Connection @swiftconn · 4 years ago. On ... CTO octo technology · Meriem Berkane @Mriem2B1. 654 ...",
+      "position": 6
+    }
+  ],
+  "credits": 1
+}

@@ -1,0 +1,40 @@
+{
+  "searchParameters": {
+    "q": "\"Hemant Rehani\" linkedin \"Aeries Technology\" \"Chief Client Officer\"",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Hemant Rehani - Exciting opportunities at Aeries!",
+      "link": "https://www.linkedin.com/posts/hemantrehani_exciting-opportunities-at-aeries-activity-7211551291485896707-4TtW",
+      "snippet": "Hemant Rehani's Post. View profile for Hemant Rehani · Hemant Rehani. Chief Client Officer at Aeries | Private Equity Value Creation | Global ...",
+      "date": "1 year ago",
+      "position": 1
+    },
+    {
+      "title": "Hemant Rehani's Post - goals #lateralthinking #selfgrowth",
+      "link": "https://www.linkedin.com/posts/hemantrehani_goals-lateralthinking-selfgrowth-activity-6873632405874327552-zPz-",
+      "snippet": "Hemant Rehani's Post. View profile for Hemant Rehani · Hemant Rehani. Chief Client Officer ... View organization page for Aeries Technology · Aeries Technology.",
+      "position": 2
+    },
+    {
+      "title": "The Team",
+      "link": "https://aeriestechnology.com/the-team/",
+      "snippet": "Aeries Technology · aeries technology. What we do · Global Capability Centers ... Hemant Rehani. Chief Client Officer. Oversees client success through global ...",
+      "position": 3
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "Who is the CEO of aeries technology?",
+      "title": "Management | Aeries Technology, Inc. - Investor Relations",
+      "snippet": "Ajay Khare is a Board member and Chief Executive Officer of Aeries since 2025. Prior to that he was the Chief Revenue Officer and Chief Operating Officer of the US division from 2015 to 2025.",
+      "link": "https://ir.aeriestechnology.com/corporate-governance/management/#:~:text=Ajay%20Khare%20is%20a%20Board,division%20from%202015%20to%202025."
+    }
+  ],
+  "credits": 1
+}

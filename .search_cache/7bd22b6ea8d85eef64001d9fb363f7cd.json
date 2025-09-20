@@ -1,0 +1,76 @@
+{
+  "searchParameters": {
+    "q": "\"EDOM Technology\" site:http://www.edomtech.com",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "EDOM Technology - Your Best Solutions Partner",
+      "link": "https://www.edomtech.com/en/",
+      "snippet": "EDOM Technology has devoted our focus to IC channel business. With years' efforts and deployment, our business has grown considerably.",
+      "position": 1
+    },
+    {
+      "title": "Product-EDOM Technology - Your Best Solutions Partner",
+      "link": "https://www.edomtech.com/en/product/",
+      "snippet": "EDOM Technology - Your Best Solutions Partner. Copyright © 2018-2025 EDOM Technology. All Rights Reserved. Privacy Policy. LANGUAGE. 繁體中文 · 簡體中文 ...",
+      "position": 2
+    },
+    {
+      "title": "EDOM Offices",
+      "link": "https://www.edomtech.com/en/offices/",
+      "snippet": "EDOM Technology - Your Best Solutions Partner. Copyright © 2018-2025 EDOM Technology. All Rights Reserved. Privacy Policy. LANGUAGE. 繁體中文 · 簡體中文 ...",
+      "position": 3
+    },
+    {
+      "title": "Investor-EDOM Technology - Your Best Solutions Partner",
+      "link": "https://www.edomtech.com/en/investor/",
+      "snippet": "Information · EDOM Technology Announces Revenue for July 2025 · EDOM Technology Announces Revenue for June 2025 · EDOM Technology Announces Revenue for May 2025.",
+      "position": 4
+    },
+    {
+      "title": "ESG-EDOM Technology - Your Best Solutions Partner",
+      "link": "https://www.edomtech.com/en/esg/",
+      "snippet": "EDOM's Sustainability Focus · ESG Alliance · Charity · Arts · Health · Information · EDOM Technology Announces Revenue for August 2025 · Lotus Microsystems and EDOM ...",
+      "position": 5
+    },
+    {
+      "title": "USI-EDOM Technology - Your Best Solutions Partner",
+      "link": "https://www.edomtech.com/en/manufacturers-detail/usi/",
+      "snippet": "EDOM Technology - Your Best Solutions Partner. Copyright © 2018-2025 EDOM Technology. All Rights Reserved. Privacy Policy. LANGUAGE. 繁體中文 · 簡體中文 ...",
+      "position": 6
+    },
+    {
+      "title": "Financial Reports-EDOM Technology",
+      "link": "https://www.edomtech.com/en/investor/information/financial-reports/",
+      "snippet": "Financial Reports-投資人訊息式暨檔案下載-EDOM Technology - Your Best Solutions Partner.",
+      "position": 7
+    },
+    {
+      "title": "About EDOM-EDOM Technology - Your Best Solutions ...",
+      "link": "https://www.edomtech.com/en/about/",
+      "snippet": "In order to assist IC components vendors to hit the market, EDOM Technology ... EDOM Technology - Your Best Solutions Partner. Copyright © 2018-2025 EDOM ...",
+      "position": 8
+    },
+    {
+      "title": "EDOM Technology Creates Resource Exchange Platform ...",
+      "link": "https://www.edomtech.com/en/edom_news-detail/edom-technology-creates-resource-exchange-platform-to-help-developers-quickly-get-started-with-ai-applications-using-nvidia-jetson/",
+      "snippet": "EDOM Technology provides developers with a one-stop solution to help users get started quickly on generative AI and complete projects smoothly.",
+      "date": "Sep 24, 2024",
+      "position": 9
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "EDOM Technology stock"
+    },
+    {
+      "query": "Edom technology taiwan"
+    }
+  ],
+  "credits": 1
+}

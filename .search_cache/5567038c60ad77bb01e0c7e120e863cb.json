@@ -1,0 +1,123 @@
+{
+  "searchParameters": {
+    "q": "Between Technology (funding OR hiring OR expansion OR partnership OR announcement) 2024 2025",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Regional Technology and Innovation Hubs (Tech Hubs)",
+      "link": "https://www.eda.gov/funding/programs/regional-technology-and-innovation-hubs",
+      "snippet": "On July 2, 2024, EDA announced $504 million in Implementation awards for 12 of the 31 designated Tech Hubs. The remaining 19 Tech Hubs received Consortium ...",
+      "position": 1
+    },
+    {
+      "title": "The Most Talked About Enterprise Partner Programs in 2025",
+      "link": "https://partnerstack.com/articles/enterprise-partner-program-trends",
+      "snippet": "Google pushes partners towards artificial intelligence with a 10x increase in funding · IBM goes 'partner-first' and pledges to double partner-generated revenue.",
+      "position": 2
+    },
+    {
+      "title": "Tech hiring to soar in 2025, with half of employers planning new ...",
+      "link": "https://insights.talintpartners.com/tech-hiring-to-soar-in-2025-with-half-of-employers-planning-new-roles-amid-job-security-fears/",
+      "snippet": "A new survey reveals that workers prioritise job stability over salary, reflecting concerns after a challenging year marked by layoffs and high turnover.",
+      "position": 3
+    },
+    {
+      "title": "2025 In-Demand Technology Roles and Hiring Trends - Robert Half",
+      "link": "https://www.roberthalf.com/us/en/insights/research/data-reveals-which-technology-roles-are-in-highest-demand",
+      "snippet": "Discover the top hiring trends in technology for 2025 and the roles most in demand. Learn how to attract and retain skilled tech ...",
+      "date": "Jun 12, 2025",
+      "position": 4
+    },
+    {
+      "title": "Tech Hubs FAQs for Phase 2 Announcement",
+      "link": "https://www.eda.gov/funding/programs/regional-technology-and-innovation-hubs/phase-2-announcement-faq",
+      "snippet": "After the NOFO was released, Congress appropriated an additional $41 million to the Tech Hubs Program for Fiscal Year 2024. This appropriation allowed EDA to ...",
+      "position": 5
+    },
+    {
+      "title": "McKinsey technology trends outlook 2025",
+      "link": "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-top-trends-in-tech",
+      "snippet": "Countries and corporations have doubled down on sovereign infrastructure, localized chip fabrication, and funding technology initiatives such as ...",
+      "date": "Jul 22, 2025",
+      "position": 6
+    },
+    {
+      "title": "The SignalFire State of Tech Talent Report - 2025",
+      "link": "https://www.signalfire.com/blog/signalfire-state-of-talent-report-2025",
+      "snippet": "Tech's talent gap widens: new grad hiring plummets, Texas loses startup talent, and Anthropic's 80% retention dominance.",
+      "date": "May 20, 2025",
+      "position": 7
+    },
+    {
+      "title": "The Future of Jobs Report 2025 | World Economic Forum",
+      "link": "https://www.weforum.org/publications/the-future-of-jobs-report-2025/digest/",
+      "snippet": "Funding for - and provision of - reskilling and upskilling are seen as the two most welcomed public policies to boost talent availability.",
+      "date": "Jan 7, 2025",
+      "position": 8
+    },
+    {
+      "title": "Technology Commercialization Fund | Department of Energy",
+      "link": "https://www.energy.gov/technologycommercialization/technology-commercialization-fund",
+      "snippet": "On August 29, 2025, DOE announced $35 million for 42 selected projects. The selected projects will leverage over $21 million in cost share from private and ...",
+      "position": 9
+    },
+    {
+      "title": "The state of global technology funding 2025 | HSBC Innovation ...",
+      "link": "https://www.hsbcinnovationbanking.com/il/en/resources/the-state-of-global-technology-funding-2024",
+      "snippet": "After a peak in 2021, global tech funding tumbled through 2022 and 2023 before showing modest signs of recovery in 2024. HSBC's latest analysis reveals that ...",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "What is the next big thing in technology 2025?",
+      "snippet": "Agentic AI Gartner has named agentic AI the top tech trend for 2025. The term refers to autonomous machine \"agents\" that go beyond the query-and-response functionality of generative chatbots. These agents can perform enterprise-related tasks independently without human intervention.",
+      "title": "Top 10 Technology Trends For 2025 - Forbes",
+      "link": "https://www.forbes.com/councils/forbestechcouncil/2025/02/03/top-10-technology-trends-for-2025/"
+    },
+    {
+      "question": "What is the tech industry forecast for 2024?",
+      "snippet": "For the tech sector specifically, analysts are optimistic about a potential return to modest growth in 2024, with more robust prospects for 2025. What could help drive a tech rebound? Global IT investments are expected to be fueled largely by double-digit growth in spending for software and IT services in 2024.",
+      "title": "2024 Technology Industry Outlook | Deloitte US",
+      "link": "https://www.deloitte.com/us/en/Industries/tmt/articles/technology-industry-outlook.html"
+    },
+    {
+      "question": "What is the booming technology in 2024?",
+      "snippet": "Digital experiences, data and analytics, products, all stand to change as technologies like generative AI, spatial computing, and others mature and scale. In this moment of reinvention, enterprises have the chance to build a strategy that maximizes human potential, and erases the friction between people and technology.",
+      "title": "Technology Trends 2024 | Tech Vision - Accenture",
+      "link": "https://www.accenture.com/us-en/insights/technology/technology-trends-2024"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Between technology funding hiring expansion partnership announcement 2024 2025 date"
+    },
+    {
+      "query": "Between technology funding hiring expansion partnership announcement 2024 2025 2022"
+    },
+    {
+      "query": "EDA Tech Hubs"
+    },
+    {
+      "query": "31 Tech Hubs"
+    },
+    {
+      "query": "McKinsey technology trends Outlook 2025"
+    },
+    {
+      "query": "Technology trends 2025"
+    },
+    {
+      "query": "Tech hubs in North America"
+    },
+    {
+      "query": "Tech Hub program"
+    }
+  ],
+  "credits": 1
+}

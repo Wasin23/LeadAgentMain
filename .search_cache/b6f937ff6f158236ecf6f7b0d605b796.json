@@ -1,0 +1,15 @@
+{
+  "searchParameters": {
+    "q": "\"Pau I Oliver\" \"Between Technology\" position tenure experience",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "searchInformation": {
+    "didYouMean": "\"Pau IN Oliver\" \"Between Technology\" position tenure experience"
+  },
+  "organic": [],
+  "credits": 1
+}

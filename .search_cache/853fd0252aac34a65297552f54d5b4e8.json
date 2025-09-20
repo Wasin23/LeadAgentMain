@@ -1,0 +1,32 @@
+{
+  "searchParameters": {
+    "q": "\"Hemant Rehani\" \"Aeries Technology\" position tenure experience",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Vijay Mahantesh - Vice President and Site Leader at Aeries ...",
+      "link": "https://www.zoominfo.com/p/Vijay-Mahantesh/1776845969",
+      "snippet": "Vijay Mahantesh is Vice President and Site Leader at Aeries Technology, responsible for building and leading the India Center of Excellence. ... Hemant Rehani.",
+      "position": 1
+    },
+    {
+      "title": "Contact Pankaj Pathak, Email: ****@aeriestechnology.com & ...",
+      "link": "https://www.zoominfo.com/p/Pankaj-Pathak/2055217617",
+      "snippet": "Pankaj Pathak is a Principal Architect at Aeries Technology, bringing extensive experience in technology, BPM, and consulting services.",
+      "position": 2
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "What is the salary of senior software engineer in aeries technology?",
+      "title": "Aeries Technology Salaries by 2200+ Employees (Updated 2025)",
+      "link": "https://www.ambitionbox.com/salaries/aeries-technology-salaries"
+    }
+  ],
+  "credits": 1
+}

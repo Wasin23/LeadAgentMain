@@ -1,0 +1,86 @@
+{
+  "searchParameters": {
+    "q": "Aeries Technology AI and machine learning infrastructure needs and adoption High-performance computing requirements and scalability challenges GPU computing and parallel processing initiatives",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Whitepaper - Aeries Technology",
+      "link": "https://aeriestechnology.com/category/whitepaper/",
+      "snippet": "Download Aeries Technology's white papers for expert strategies to continuously optimize and manage your business processes.",
+      "position": 1
+    },
+    {
+      "title": "[PDF] the mid-market gcc playbook - Aeries Technology",
+      "link": "https://aeriestechnology.com/Files/GCC-Whitepaper.pdf",
+      "snippet": "GCCs address these needs in one move: centralizing functions and tapping global talent pools to streamline operations, enhance agility, andR unlock innovation.",
+      "attributes": {
+        "Missing": "machine GPU computing parallel"
+      },
+      "position": 2
+    },
+    {
+      "title": "[PDF] High-Performance Computing for the Age of AI and Cloud Computing",
+      "link": "https://gpltech.com/wp-content/uploads/2025/04/HPC-For-The-Age-of-AI-eBook.pdf",
+      "snippet": "Multi-GPU implementations have demonstrated almost linear scaling of performance to address this challenge. And a key architectural enabler to scale performance ...",
+      "attributes": {
+        "Missing": "Aeries | Show results with:Aeries"
+      },
+      "position": 3
+    },
+    {
+      "title": "How Cloud GPUs Power High-Performance AI And ML - AceCloud",
+      "link": "https://acecloud.ai/blog/high-performance-computing-with-cloud-gpus/",
+      "snippet": "Cloud GPUs make high-performance computing for AI and ML faster, more scalable, and easier to manage compared to traditional infrastructure.",
+      "date": "5 days ago",
+      "attributes": {
+        "Missing": "Aeries | Show results with:Aeries"
+      },
+      "position": 4
+    },
+    {
+      "title": "A review on the decarbonization of high-performance computing ...",
+      "link": "https://www.sciencedirect.com/science/article/pii/S1364032123008778",
+      "snippet": "The main contribution of this review is exposing the current trends of the HPC sector from a decarbonization perspective, detailing available data for state-of- ...",
+      "attributes": {
+        "Missing": "Aeries | Show results with:Aeries"
+      },
+      "position": 5
+    },
+    {
+      "title": "[PDF] performance computing hardware and AI benchmarks across domains",
+      "link": "https://joaiar.org/articles/AIR-1017.pdf",
+      "snippet": "In the rapidly evolving fields of Artificial Intelligence (AI) and High-Performance Computing (HPC), benchmarking is a critical tool for optimizing system ...",
+      "position": 6
+    },
+    {
+      "title": "[PDF] high-performance - computing - DEVCOM Army Research Laboratory",
+      "link": "https://arl.devcom.army.mil/wp-content/uploads/sites/3/2020/09/ARL-HPCReview18_19-Section-508.pdf",
+      "snippet": "It is tailored for autonomous systems and AI/ML workloads. Along this same line, we have undertaken, in concert with the HPCMP, an extensive requirements.",
+      "position": 7
+    },
+    {
+      "title": "[PDF] fusion-ai-report.pdf - Clean Air Task Force",
+      "link": "https://cdn.catf.us/wp-content/uploads/2024/11/04152104/fusion-ai-report.pdf",
+      "snippet": "The integration of artificial intelligence (AI) and high performance computing (HPC) is transformative in the fusion design process. AI and HPC enable rapid ...",
+      "position": 8
+    },
+    {
+      "title": "CRAY Computer News - Teratec : le calcul haute performance",
+      "link": "https://teratec.eu/gb/actu/calcul/Cray.html",
+      "snippet": "Cray approach to parallelism and performance include extremely scalable compute, storage and analytics, the Cray systems, software and toolkits help ...",
+      "position": 9
+    },
+    {
+      "title": "[PDF] Map Applications to Target Exascale Architecture with Machine",
+      "link": "https://www.exascaleproject.org/wp-content/uploads/2022/02/ECP_AD_Milestone_Map-Applications-to-Target-Exascale-Architecture_v1.0_20210331_FINAL.pdf",
+      "snippet": "strong parallel scalability, better throughput on GPU platforms, and increased computational efficiency. One key goal for MARBL is enhanced end-user ...",
+      "position": 10
+    }
+  ],
+  "credits": 1
+}

@@ -1,0 +1,88 @@
+{
+  "searchParameters": {
+    "q": "\"riverbed.com\" funding OR investment OR \"series a\" OR \"series b\" OR hiring OR growth",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Riverbed Technology - Crunchbase Company Profile & ...",
+      "link": "https://www.crunchbase.com/organization/riverbed-technology",
+      "snippet": "Company Funding ; Jan 6, 2004. Series B - Riverbed Technology Logo. Series B - Riverbed Technology · 5 ; Jan 10, 2003. Series A - Riverbed Technology Logo. Series ...",
+      "position": 1
+    },
+    {
+      "title": "Multi-National Investment Services Company Upgrades ...",
+      "link": "https://www.riverbed.com/riverbed-wp-content/uploads/2024/07/success-story-investment-services-company.pdf",
+      "snippet": "The investment firm's NetOps team needed to capture and provide complete, reliable data from its multi-national network to Riverbed devices for real-time ...",
+      "position": 2
+    },
+    {
+      "title": "Riverbed Technology - Valuation, Funding & Investors",
+      "link": "https://pitchbook.com/profiles/company/42069-70",
+      "snippet": "Contact Information. Website. www.riverbed.com. Formerly Known As. NBT Technology, Nbt Technology Inc. Ownership Status. Privately Held (backing). Financing ...",
+      "position": 3
+    },
+    {
+      "title": "Financial Details - Riverbed Technology",
+      "link": "https://www.crunchbase.com/organization/riverbed-technology/financial_details",
+      "snippet": "This investment - Series A - InterCloud - was valued at. obfuscated ... Series B - Riverbed Technology Logo. Series B - Riverbed Technology · 5. obfuscated.",
+      "position": 4
+    },
+    {
+      "title": "Riverbed for Investment Services",
+      "link": "https://www.riverbed.com/riverbed-wp-content/uploads/2024/04/riverbed-for-investment-services-sb.pdf",
+      "snippet": "A simple, smart, and open suite that optimizes the digital experience of investment services employees and customers. ... riverbed.com/solutions/financial- ...",
+      "position": 5
+    },
+    {
+      "title": "Riverbed Technology Funding Information",
+      "link": "https://wellfound.com/company/riverbed-technology/funding",
+      "snippet": "Series BDec 2003. Avatar for Goldman Sachs · Avatar for Accel · Avatar for ... About Riverbed Technology. Website. www.riverbed.com. Location. San Francisco.",
+      "position": 6
+    },
+    {
+      "title": "Riverbed - 2025 Company Profile & Team",
+      "link": "https://tracxn.com/d/companies/riverbed/__v-BzTHSi9fVDpQM_5K8i8WHHNngxW8URzjV0QP84Lkg",
+      "snippet": "www.riverbed.com/. Social: Twitter. Registered Address: San Francisco ... Series B. Accel, Lightspeed Venture Partners, and 1 more. lock ...",
+      "date": "Aug 19, 2025",
+      "position": 7
+    },
+    {
+      "title": "Riverbed Technology",
+      "link": "https://en.wikipedia.org/wiki/Riverbed_Technology",
+      "snippet": "www.riverbed.com · Edit this at Wikidata. Riverbed has its headquarters in Redwood City, near San Francisco. Founded in 2002, the company was recapitalized in ...",
+      "position": 8
+    },
+    {
+      "title": "Riverbed Earns 5-Star Rating in 2025 CRN® Partner ...",
+      "link": "https://www.riverbed.com/press-releases/riverbed-earns-5-star-rating-2025-crn-partner-program-guide/",
+      "snippet": "... growth. “We are honored to have Riverbed's new partner program ... Learn more at riverbed.com. Riverbed and certain other terms used ...",
+      "date": "Mar 25, 2025",
+      "position": 9
+    },
+    {
+      "title": "Riverbed Stock Price, Funding, Valuation, Revenue ...",
+      "link": "https://www.cbinsights.com/company/riverbed-technology/financials",
+      "snippet": "Riverbed. Unclaimed. riverbed.com · Overview & Products · Financials · People ... Investment Stage. Other. Series D. Series B. Series A. Companies. Xirrus.",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "Who is Riverbed owned by?",
+      "title": "Riverbed Technology - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/Riverbed_Technology"
+    },
+    {
+      "question": "What is the annual revenue of riverbed?",
+      "title": "End User Experience Monitoring Improves Workforce Productivity for ...",
+      "snippet": "As a corporation with annual revenues exceeding $1 billion, Riverbed® is in the same boat with our 30,000-plus customers: We rely on a high-performing infrastructure to compete effectively and continue to grow.",
+      "link": "https://www.riverbed.com/riverbed-wp-content/uploads/2023/02/riverbed-end-user-experience-monitoring-improves-workforce-productivity-for-riverbed-and-our-customers-case-study.pdf"
+    }
+  ],
+  "credits": 1
+}

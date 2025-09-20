@@ -1,0 +1,26 @@
+{
+  "searchParameters": {
+    "q": "\"Mark Tzeng\" \"EDOM Technology\" position tenure experience",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Mark Tzeng - CTO, VP of EDOM Technology",
+      "subtitle": "台灣 新北市 New Taipei City · CTO · EDOM",
+      "link": "https://tw.linkedin.com/in/mark-tzeng-75965333",
+      "snippet": "工作經歷 ; CTO. EDOM. 2018年10月 - 目前7 年 ; General Manager. AMOD Technology Co. Ltd. 2013年2月 - 2018年10月 5 年9 個月 ; President. Yuban Tech. 2001年10月 - ...",
+      "position": 1
+    },
+    {
+      "title": "6 \"Mark Tzeng\" profiles",
+      "link": "https://www.linkedin.com/pub/dir/Mark/Tzeng",
+      "snippet": "Mark Tzeng. CTO, VP of EDOM Technology. New Taipei City. EDOM, +2 more. University of Illinois at Urbana-Champaign, +1 more. Mark Tzeng. 安 ...",
+      "position": 2
+    }
+  ],
+  "credits": 1
+}

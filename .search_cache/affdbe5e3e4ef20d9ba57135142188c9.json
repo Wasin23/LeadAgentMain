@@ -1,0 +1,111 @@
+{
+  "searchParameters": {
+    "q": "Riverbed Technology (funding OR hiring OR expansion OR partnership OR announcement) 2024 2025",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Riverbed Launches Riverbed ONE Partner Program to Drive Growth ...",
+      "link": "https://www.riverbed.com/press-releases/riverbed-launches-riverbed-one-partner-program/",
+      "snippet": "Riverbed ONE is a partner program built on simplicity and profitability for partners and helping to improve the digital experience of customers.",
+      "position": 1
+    },
+    {
+      "title": "Press Releases | Riverbed | Page 1 of Page 8",
+      "link": "https://www.riverbed.com/about/press-releases/",
+      "snippet": "Riverbed Launches New AI-Driven Intelligent Network Observability Solutions Providing Automated Insights, Higher Performance, and Greater Value. August 5, 2025.",
+      "position": 2
+    },
+    {
+      "title": "Riverbed Newsroom",
+      "link": "https://www.riverbed.com/about/newsroom/",
+      "snippet": "Riverbed Newsroom Announcements · Riverbed Recognized as an Innovator and Outperformer in 2025 GigaOm Radars for Network Observability and AIOps Solutions.",
+      "position": 3
+    },
+    {
+      "title": "Riverbed Technology - GovCon Wire",
+      "link": "https://www.govconwire.com/s/company/riverbed-technology",
+      "snippet": "Riverbed Technology is a company that offers information technology services including network performance management, WAN optimization and application ...",
+      "position": 4
+    },
+    {
+      "title": "Riverbed Earns 5-Star Rating in 2025 CRN® Partner Program Guide",
+      "link": "https://www.businesswire.com/news/home/20250325545132/en/Riverbed-Earns-5-Star-Rating-in-2025-CRN-Partner-Program-Guide",
+      "snippet": "Riverbed ONE channel program recognized as offering high value and aligning with business goals of partners and customers.",
+      "date": "Mar 25, 2025",
+      "position": 5
+    },
+    {
+      "title": "Riverbed Announces Global Partner of the Year Award Winners",
+      "link": "https://www.riverbed.com/press-releases/riverbed-announces-global-partner-of-the-year-award-winners/",
+      "snippet": "In 2025, Riverbed is further investing in the Riverbed Platform and will continue to introduce new AIOps for Observability and Acceleration ...",
+      "date": "Feb 20, 2025",
+      "position": 6
+    },
+    {
+      "title": "Riverbed Announces Global Partner of the Year Award Winners",
+      "link": "https://finance.yahoo.com/news/riverbed-announces-global-partner-award-170000808.html",
+      "snippet": "REDWOOD CITY, Calif., February 20, 2025--Riverbed announces Global Partner of the Year Award winners.",
+      "date": "Feb 20, 2025",
+      "position": 7
+    },
+    {
+      "title": "Riverbed goes back to the future with a renewed focus on acceleration",
+      "link": "https://siliconangle.com/2025/05/14/riverbed-goes-back-future-renewed-focus-acceleration/",
+      "snippet": "Riverbed Technology LLC Tuesday kicked off its 23rd anniversary with the biggest product launch in almost a decade.",
+      "position": 8
+    },
+    {
+      "title": "Riverbed Revamps Network Performance Management To Help ...",
+      "link": "https://www.crn.com/news/networking/2025/riverbed-revamps-network-performance-management-to-help-enterprises-combat-rampant-ai-data-growth",
+      "snippet": "Riverbed Revamps Network Performance Management To Help Enterprises Combat Rampant AI Data Growth. By Gina Narcisi. August 5, 2025, 10:15 AM EDT.",
+      "date": "Aug 5, 2025",
+      "position": 9
+    },
+    {
+      "title": "Riverbed Named Data Observability Solution Provider of the Year in ...",
+      "link": "https://www.riverbed.com/press-releases/named-data-observability-solution-provider-of-the-year/",
+      "snippet": "We're so pleased to recognize Riverbed with the 2025 award for 'Data Observability Solution Provider of the Year!'” The Riverbed Platform, ...",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "Who bought Riverbed Technology?",
+      "snippet": "Vector Capital Completes Acquisition of Riverbed Technology.",
+      "title": "Vector Capital Completes Acquisition of Riverbed Technology",
+      "link": "https://www.riverbed.com/press-releases/vector-capital-completes-acquisition-of-riverbed-technology-dave-donatelli-named-chief-executive-officer/"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Riverbed partners"
+    },
+    {
+      "query": "Riverbed partner portal"
+    },
+    {
+      "query": "Riverbed acquisition"
+    },
+    {
+      "query": "Riverbed HR"
+    },
+    {
+      "query": "Riverbed SD-WAN"
+    },
+    {
+      "query": "Riverbed AppResponse datasheet"
+    },
+    {
+      "query": "Riverbed Events"
+    },
+    {
+      "query": "Riverbed resources"
+    }
+  ],
+  "credits": 1
+}

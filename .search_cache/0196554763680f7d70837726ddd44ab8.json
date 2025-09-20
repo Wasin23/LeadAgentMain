@@ -1,0 +1,20 @@
+{
+  "searchParameters": {
+    "q": "\"Johan Villiers\" professional background \"First Technology\" career",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "CEO Spotlight South Africa's Most Influential CEOs to Know",
+      "link": "https://anyflip.com/qqpla/qptl/basic",
+      "snippet": "Johan Villiers CEO Yael Geffen CEO First Technology www.firs ... A crowning achievement in Johan's career is the transformation of First ...",
+      "date": "Mar 27, 2024",
+      "position": 1
+    }
+  ],
+  "credits": 1
+}

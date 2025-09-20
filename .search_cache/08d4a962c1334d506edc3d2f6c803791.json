@@ -1,0 +1,130 @@
+{
+  "searchParameters": {
+    "q": "\"between.tech\" funding OR investment OR \"series a\" OR \"series b\" OR hiring OR growth",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "BETWEEN TECHNOLOGY - Crunchbase Company Profile ...",
+      "link": "https://www.crunchbase.com/organization/between-technology",
+      "snippet": "Growth Trend - The change in the growth score over the given time period ... www.between.tech · Consulting · Information Technology · Outsourcing · Service ...",
+      "position": 1
+    },
+    {
+      "title": "Investing in the future of tech: Lessons from winning ...",
+      "link": "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/investing-in-the-future-of-tech-lessons-from-winning-companies",
+      "snippet": "In addition to breaking down silos between tech and the business, these types of operating models create a range of business benefits, such ...",
+      "date": "Dec 9, 2024",
+      "position": 2
+    },
+    {
+      "title": "Balancing Risk and Reward in Pre-Seed Deals",
+      "link": "https://www.thenorthstarr.com/podcasts/balancing-risk-and-reward-in-pre-seed-deals/",
+      "snippet": "Unlike Series A or later-stage deals, where growth metrics and ... The Link Between Tech Sales and Venture Capital. For any tech sales ...",
+      "date": "Mar 11, 2025",
+      "position": 3
+    },
+    {
+      "title": "9 Ways Tech Startups Stand Apart From Traditional Ventures",
+      "link": "https://www.forbes.com/sites/abdoriani/2024/10/30/9-ways-tech-startups-stand-apart-from-traditional-ventures/",
+      "snippet": "In this article, our goal is to underline the important differences between tech startups and traditional ventures in order to help you decide ...",
+      "date": "Oct 30, 2024",
+      "position": 4
+    },
+    {
+      "title": "Grant Thornton Survey Reveals Gaps Between Tech Investment ...",
+      "link": "https://www.theconsultingreport.com/grant-thornton-survey-reveals-gaps-between-tech-investment-and-business-alignment/",
+      "snippet": "Grant Thornton Survey Reveals Gaps Between Tech Investment and Business Alignment. Published on Jul 14, 2025. Technology, Latest News. Grant Thornton has ...",
+      "position": 5
+    },
+    {
+      "title": "The Quant Revolution: Shaping Investing and Hiring Trends",
+      "link": "https://www.selbyjennings.com/en-us/industry-insights/hiring-advice/the-quant-revolution-shaping-investing-and-hiring-trends",
+      "snippet": "Systematic investing · Alternative data · Evolving hiring trends in financial services · Collaboration between tech and finance · The future of systematic investing ...",
+      "position": 6
+    },
+    {
+      "title": "Take It or Leave It? Impact of Investments from Tech Giants ...",
+      "link": "https://papers.ssrn.com/sol3/Delivery.cfm/SSRN_ID4496706_code5995700.pdf?abstractid=4496706",
+      "snippet": "The coefficient of InvestCountit shows a significantly positive association between tech giants' investments in IT-startups and the count of patent tech ...",
+      "position": 7
+    },
+    {
+      "title": "Startups are acting like PE buyout firms – here's why",
+      "link": "https://www.linkedin.com/posts/alexandrelazarow_startups-are-acting-like-pe-buyout-firms-activity-7289658438278619137-y3sT",
+      "snippet": "... growth and value, bridging the gap between tech innovation and traditional industries. ... The Series B round was led by Insight Partners ...",
+      "date": "7 months ago",
+      "position": 8
+    },
+    {
+      "title": "Startups and Big Tech in the Age of Regulatory Divergence",
+      "link": "https://trilligent.com/new-rules-new-playbooks-startups-and-big-tech-in-the-age-of-regulatory-divergence/",
+      "snippet": "The traditional relationship between tech giants and startups – one of collaboration, though often with an eye on acquisitions – is undergoing significant ...",
+      "date": "May 15, 2025",
+      "position": 9
+    },
+    {
+      "title": "Advice for Actually Understanding the State of the Tech Job ...",
+      "link": "https://www.apollotechnical.com/advice-for-actually-understanding-the-state-of-the-tech-job-market/",
+      "snippet": "Hiring success today lives in the white space between tech and “everything else. ... Series A? Maybe too early. Series C+ with new GTM hires? Prime time ...",
+      "position": 10
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "Is series A funding better than series B?",
+      "title": "Series A vs Series B Funding: A Showdown of Growth Stages",
+      "snippet": "While Series A focuses on product-market fit and early-stage growth, Series B is all about scaling and proving the business model. Startups that can successfully navigate these rounds set themselves up for further growth and market dominance.Sep 27, 2024",
+      "link": "https://www.pitchdrive.com/academy/series-a-vs-series-b-funding-a-showdown-of-growth-stages#:~:text=While%20Series%20A%20focuses%20on,further%20growth%20and%20market%20dominance."
+    },
+    {
+      "question": "How long between Series A and B funding?",
+      "title": "Carta: The Average Time from Seed to Series A Has Hit 2.2 Years. And ...",
+      "snippet": "Per Carta, the median time between rounds as of the end of 2024: From Seed to Series A 2.2 years. From Series A to Series B 2.5 years. From Series B to Series C 2.4 years.",
+      "link": "https://www.saastr.com/carta-the-average-time-from-seed-to-series-a-has-hit-2-2-years-and-longer-from-series-a-to-series-b/#:~:text=Per%20Carta%2C%20the%20median%20time,to%20Series%20C%202.4%20years"
+    },
+    {
+      "question": "What is the success rate of Series A funding?",
+      "title": "Pre-Seed Startup Funding Probability: Only 2/100 Get Funded - Equidam",
+      "snippet": "The Funding Journey Probabilities\n\nFrom Seed to Series A: Only 1 in 3 startups that raise seed funding successfully raise a Series A round. This 33% progression rate means that even after proving worthy of initial investment, two-thirds of companies fail to reach the next stage.Jul 16, 2025",
+      "link": "https://www.equidam.com/pre-seed-startup-funding-probability-chances-getting-funded-startup-investment-funding-tips/#:~:text=The%20Funding%20Journey%20Probabilities&text=From%20Seed%20to%20Series%20A,to%20reach%20the%20next%20stage."
+    },
+    {
+      "question": "How hard is it to get series B funding?",
+      "title": "Series B Funding - A Complete Guide - Eqvista",
+      "snippet": "Series B rounds are notoriously difficult to raise because they are midway between Series A and Series C. Series B funding represents a maturing startup's transition into awkward adolescent years.",
+      "link": "https://eqvista.com/series-funding/series-b-funding/#:~:text=Series%20B%20rounds%20are%20notoriously,transition%20into%20awkward%20adolescent%20years."
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Between tech funding investment series a series b hiring growth qui"
+    },
+    {
+      "query": "McKinsey never just tech"
+    },
+    {
+      "query": "McKinsey articles 2024"
+    },
+    {
+      "query": "Digital transformation case study McKinsey"
+    },
+    {
+      "query": "McKinsey technology trends Outlook 2024"
+    },
+    {
+      "query": "Future Trends"
+    },
+    {
+      "query": "McKinsey Digital"
+    },
+    {
+      "query": "Digital Trends 2024"
+    }
+  ],
+  "credits": 1
+}

@@ -1,0 +1,69 @@
+{
+  "searchParameters": {
+    "q": "\"Folia Grace\" linkedin \"Aera Technology\" \"joined\" OR \"started\" years",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Aera Technology",
+      "link": "https://ae.linkedin.com/company/aera-technology?trk=ppro_cprof",
+      "snippet": "Folia Grace. CMO, Aera Technology, the leader in… انقر هنا لعرض ملف ... joined Aera Technology's Matt York and CEO Frederic Laluyaux to ...",
+      "position": 1
+    },
+    {
+      "title": "Aera Technology",
+      "link": "https://do.linkedin.com/company/aera-technology",
+      "snippet": "Aera Technology | 33.564 seguidores en LinkedIn. The ... Folia Grace. CMO, Aera Technology, the leader in… ... joined Aera Technology's Matt York and CEO ...",
+      "position": 2
+    },
+    {
+      "title": "Top 5 use cases for Decision Intelligence | Folia Grace posted on ...",
+      "link": "https://www.linkedin.com/posts/foliagrace_decision-intelligence-can-automate-decisions-activity-7240054745707487232-QL71",
+      "snippet": "We've selected the top 5 use cases to help companies get started. View organization page for Aera Technology · Aera Technology. 34,336 followers. 11mo. Fortune ...",
+      "position": 3
+    },
+    {
+      "title": "Aera Technology",
+      "link": "https://ph.linkedin.com/company/aera-technology",
+      "snippet": "Aera Technology | 33346 (na) tagasubaybay sa LinkedIn ... Folia Grace. CMO, Aera Technology, the leader in… ... A big thank you to everyone who joined us for ...",
+      "position": 4
+    },
+    {
+      "title": "Aera Technology",
+      "link": "https://lb.linkedin.com/company/aera-technology?trk=ppro_cprof",
+      "snippet": "Aera Technology | ٣٣٬٣٥١ من المتابعين على LinkedIn ... موظفين في Aera Technology. انقر هنا لعرض ملف Folia Grace الشخصي ... A big thank you to everyone who joined us ...",
+      "position": 5
+    },
+    {
+      "title": "Aera Technology",
+      "link": "https://kw.linkedin.com/company/aera-technology?trk=ppro_cprof",
+      "snippet": "Aera Technology | ٣٣٬٢٨٦ من المتابعين على LinkedIn ... Folia Grace. CMO, Aera Technology, the leader in ... A big thank you to everyone who joined us for ...",
+      "position": 6
+    },
+    {
+      "title": "Aera Technology",
+      "link": "https://kw.linkedin.com/company/aera-technology?trk=similar-pages_result-card_full-click",
+      "snippet": "Aera Technology | ٣٣٬٦٠٨ من المتابعين على LinkedIn ... موظفين في Aera Technology. انقر هنا لعرض ملف Folia Grace الشخصي ... joined Aera Technology's Matt York and ...",
+      "position": 7
+    },
+    {
+      "title": "Andrea Burattin's Post",
+      "link": "https://www.linkedin.com/posts/andreaburattin_icpm24-icpm25-activity-7253410067503337472-uX34",
+      "snippet": "View profile for Folia Grace. Folia Grace. CMO, Aera Technology, the leader in Decision Intelligence solutions. 8mo. Report this post; Close ...",
+      "date": "11 months ago",
+      "position": 8
+    },
+    {
+      "title": "Leviton Network Solutions Europe's Post",
+      "link": "https://www.linkedin.com/posts/leviton-ns-eu_we-are-delighted-to-announce-our-event-partnership-activity-7184143167187750912-Lu-e",
+      "snippet": "View profile for Folia Grace · Folia Grace. CMO, Aera Technology, the leader in Decision Intelligence solutions. 8mo. Report this post; Close ...",
+      "date": "1 year ago",
+      "position": 9
+    }
+  ],
+  "credits": 1
+}
