@@ -57,7 +57,7 @@ export class ZillizEmailTracker {
             {
                 name: 'user_agent',
                 data_type: DataType.VarChar,
-                max_length: 500
+                max_length: 10000
             },
             {
                 name: 'ip_address',
