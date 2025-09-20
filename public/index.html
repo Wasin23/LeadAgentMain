@@ -4040,7 +4040,7 @@
                   <strong>Subject:</strong> ${reply.subject || 'Re: ' + (email.subject || 'No Subject')}
                 </div>
                 <div style="font-size: 0.85rem; color: #374151; line-height: 1.4; margin-bottom: 0.5rem;">
-                  ${(reply.content || reply.ai_response || 'No content available').length > 200 ? (reply.content || reply.ai_response || 'No content available').substring(0, 200) + '...' : (reply.content || reply.ai_response || 'No content available')}
+                  Lead Response: ${reply.lead_message || 'Response received (content not stored)'}
                 </div>
               `;
               
