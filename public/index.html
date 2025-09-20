@@ -4012,6 +4012,11 @@
           `;
           
           // Add reply section if replies exist
+          console.log('DEBUG: Checking replies for email', log.id || log.trackingId);
+          console.log('DEBUG: log.replies exists?', !!log.replies);
+          console.log('DEBUG: log.replies.length:', log.replies?.length);
+          console.log('DEBUG: Full log object:', log);
+          
           if (log.replies && log.replies.length > 0) {
             const repliesSection = document.createElement('div');
             repliesSection.style.cssText = 'margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(16, 185, 129, 0.2);';
