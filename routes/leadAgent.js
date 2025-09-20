@@ -1,7 +1,9 @@
 import express from 'express';
 import { leadContactAgent } from '../agent/leadContactAgent.js';
+import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
 
 const router = express.Router();
+const agentSettings = new AgentSettingsManager();
 
 // Start the Lead Contact Agent
 router.post('/start', async (req, res) => {
@@ -222,6 +224,89 @@ router.get('/progress-stream', (req, res) => {
     console.log('[LEAD AGENT API] Progress stream aborted');
     leadContactAgent.removeListener('progress', progressListener);
   });
+});
+
+// Agent Settings Endpoints
+
+// Get current agent settings
+router.get('/settings', async (req, res) => {
+  try {
+    console.log('[AGENT SETTINGS] Loading agent settings...');
+    const settings = await agentSettings.getSettings();
+    
+    res.json({
+      success: true,
+      settings: settings,
+      message: 'Agent settings loaded successfully'
+    });
+  } catch (error) {
+    console.error('[AGENT SETTINGS] Error loading settings:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to load agent settings'
+    });
+  }
+});
+
+// Save/update agent settings
+router.post('/settings', async (req, res) => {
+  try {
+    console.log('[AGENT SETTINGS] Saving agent settings...');
+    console.log('[AGENT SETTINGS] Settings data:', req.body);
+    
+    const result = await agentSettings.updateSettings(req.body);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        settings: result.settings,
+        message: 'Agent settings saved successfully'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: 'Failed to save agent settings'
+      });
+    }
+  } catch (error) {
+    console.error('[AGENT SETTINGS] Error saving settings:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to save agent settings'
+    });
+  }
+});
+
+// Reset agent settings to defaults
+router.post('/settings/reset', async (req, res) => {
+  try {
+    console.log('[AGENT SETTINGS] Resetting agent settings to defaults...');
+    const result = await agentSettings.resetToDefaults();
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        settings: result.settings,
+        message: 'Agent settings reset to defaults successfully'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: 'Failed to reset agent settings'
+      });
+    }
+  } catch (error) {
+    console.error('[AGENT SETTINGS] Error resetting settings:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to reset agent settings'
+    });
+  }
 });
 
 export default router;

@@ -243,4 +243,47 @@ router.post('/api/replies/clear', async (req, res) => {
   }
 });
 
+// Test email response endpoint
+router.post('/test-response', async (req, res) => {
+  try {
+    console.log('[TEST RESPONSE] Testing AI email response system...');
+    const { test_mode, sample_email } = req.body;
+    
+    const startTime = Date.now();
+    
+    // Mock response generation (in production, this would use OpenAI)
+    const mockResponse = `Thank you for your interest! Based on your question about pricing and implementation timeline, I'd be happy to provide those details.
+
+Our solution typically shows a 30-40% cost reduction within the first quarter after implementation. The implementation timeline is usually 2-4 weeks depending on your current infrastructure.
+
+I'd love to schedule a quick 15-minute call to discuss your specific needs and provide accurate pricing. Would you be available this week for a brief conversation?
+
+Best regards,
+AI Assistant`;
+
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    // Mock intent classification
+    const intent = 'pricing_inquiry_meeting_opportunity';
+    
+    res.json({
+      success: true,
+      test_mode: true,
+      response: mockResponse,
+      intent: intent,
+      response_time: responseTime,
+      message: 'Test response generated successfully'
+    });
+    
+  } catch (error) {
+    console.error('[TEST RESPONSE] Error generating test response:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to generate test response'
+    });
+  }
+});
+
 export default router;

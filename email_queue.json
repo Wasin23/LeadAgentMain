@@ -1,17 +1,17 @@
 [
   {
-    "id": "1758386910823",
-    "timestamp": "2025-09-20T16:48:30.823Z",
+    "id": "1758396094422",
+    "timestamp": "2025-09-20T19:21:34.422Z",
     "status": "pending",
     "leadId": "PAR_Technology_Savneet_Singh",
     "leadCompany": "PAR Technology",
     "leadName": "Savneet Singh",
     "leadEmail": "savneet_singh@partech.com",
     "leadTitle": "Chief Executive Officer",
-    "originalSubject": "Enhancing PAR Technology's AI Capabilities Amidst Impressive Growth",
-    "originalBody": "Hi Savneet,\n\nCongratulations on PAR Technology’s remarkable 49% YoY ARR growth in Q2 2025! Your strategic focus on M&A and organic expansion is truly commendable.\n\nAs your team explores AI capabilities, optimizing your computing infrastructure is essential. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide better performance-per-dollar compared to general cloud services, which is crucial as you scale.\n\nGiven PAR Technology’s growth trajectory and interest in building AI capabilities, our expertise in AI-HPC can seamlessly integrate with your existing systems, enhancing operational efficiency and supporting your strategic initiatives.\n\nCould we schedule a brief call to discuss how Exabits can contribute to your AI roadmap?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
-    "finalSubject": "Enhancing PAR Technology's AI Capabilities Amidst Impressive Growth",
-    "finalBody": "Hi Savneet,\n\nCongratulations on PAR Technology’s remarkable 49% YoY ARR growth in Q2 2025! Your strategic focus on M&A and organic expansion is truly commendable.\n\nAs your team explores AI capabilities, optimizing your computing infrastructure is essential. Exabits specializes in AI-powered High-Performance Computing Solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide better performance-per-dollar compared to general cloud services, which is crucial as you scale.\n\nGiven PAR Technology’s growth trajectory and interest in building AI capabilities, our expertise in AI-HPC can seamlessly integrate with your existing systems, enhancing operational efficiency and supporting your strategic initiatives.\n\nCould we schedule a brief call to discuss how Exabits can contribute to your AI roadmap?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "originalSubject": "Elevate PAR Technology's Growth with AI-Driven HPC Solutions",
+    "originalBody": "Hi Savneet,\n\nCongratulations on PAR Technology's impressive 49% YoY ARR growth and strategic M&A activities. It's clear you're poised for continued success.\n\nWith your exploration into high-performance computing and AI capabilities, Exabits can be a valuable partner. Our AI-powered High-Performance Computing Solutions are designed to enhance scalability and performance, offering GPU clusters specifically tailored for AI demands. This could propel your tech initiatives forward, ensuring you stay ahead of the curve while optimizing costs.\n\nOur clients typically experience significant improvements in computational efficiency and cost-effectiveness, aligning perfectly with your growth trajectory and tech integration plans.\n\nCould we schedule a brief call to explore how our solutions can accelerate PAR Technology's ambitious goals?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Elevate PAR Technology's Growth with AI-Driven HPC Solutions",
+    "finalBody": "Hi Savneet,\n\nCongratulations on PAR Technology's impressive 49% YoY ARR growth and strategic M&A activities. It's clear you're poised for continued success.\n\nWith your exploration into high-performance computing and AI capabilities, Exabits can be a valuable partner. Our AI-powered High-Performance Computing Solutions are designed to enhance scalability and performance, offering GPU clusters specifically tailored for AI demands. This could propel your tech initiatives forward, ensuring you stay ahead of the curve while optimizing costs.\n\nOur clients typically experience significant improvements in computational efficiency and cost-effectiveness, aligning perfectly with your growth trajectory and tech integration plans.\n\nCould we schedule a brief call to explore how our solutions can accelerate PAR Technology's ambitious goals?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
     "finalRecipient": "colton.fidd@gmail.com",
     "testingMode": false,
     "leadDetails": {
@@ -23,8 +23,8 @@
       "email": "savneet_singh@partech.com",
       "score": 126,
       "hasIntelligence": {
-        "summary": "PAR Technology is a company focused on providing technology solutions primarily for the restaurant industry. They are known for their point-of-sale (POS) software and have a strong presence in large chain restaurants.",
-        "aiReadiness": "PAR Technology appears to be exploring AI capabilities, as indicated by their interest in building AI capabilities based on resource-based theory. However, there is no direct evidence of advanced AI/ML adoption in their current operations.",
+        "summary": "PAR Technology is a company focused on providing technology solutions primarily for the restaurant industry. They have shown significant growth in their Annual Recurring Revenue (ARR) and have a strong market position in the point-of-sale (POS) software sector for large chain restaurants.",
+        "aiReadiness": "PAR Technology appears to be exploring high-performance computing and AI capabilities, as indicated by their interest in parallel algorithms and GPU computing. However, there is no direct evidence of AI/ML adoption in their core operations from the provided data.",
         "growthSignals": [
           "49% YoY ARR growth to $286.7M in Q2 2025",
           "102% YoY growth in Q4 2024",
@@ -32,42 +32,182 @@
         ],
         "painPoints": [
           "Potential challenges in scaling high-performance computing infrastructure",
-          "Need for strategic M&A to sustain growth"
+          "Need for effective integration of AI and HPC technologies"
         ],
         "opportunityScore": 85,
         "personalizedAngles": [
-          "Highlight solutions that can enhance their AI capabilities and integrate with existing systems",
-          "Focus on scalability and reliability of infrastructure to support rapid growth",
-          "Emphasize cost-effective solutions for high-performance computing needs"
+          "Highlight solutions that enhance high-performance computing capabilities",
+          "Offer AI/ML integration services to leverage their existing tech capabilities",
+          "Focus on solutions that support their growth in the restaurant technology sector"
         ],
         "keyPersonalities": [
-          "Joe Yetter, General Manager at Punchh, responsible for business development",
-          "Gregory Parsons, Senior VP and CTO/CIO with extensive experience in technology management"
+          "Joe Yetter, General Manager at Punchh, responsible for business development and strategic vision"
         ],
         "recentDevelopments": [
-          "PAR Technology's strategic M&A and organic growth",
-          "Stock selloff despite strong revenue and ARR growth"
+          "Significant ARR growth and strategic M&A activities",
+          "Stock selloff despite strong financial performance, indicating potential undervaluation"
         ],
-        "competitivePosition": "PAR Technology holds a dominant market position in the POS software sector for large chain restaurants, with significant growth in multiproduct adoption among major brands like Burger King and Popeyes."
+        "competitivePosition": "PAR Technology holds a dominant market position in the POS software sector for large chain restaurants, with notable clients like Burger King and Popeyes. Their multiproduct adoption strategy is contributing to their strong market presence."
       },
       "opportunityScore": 85,
       "isVerified": true,
       "verificationConfidence": 95,
-      "aiReadiness": "PAR Technology appears to be exploring AI capabilities, as indicated by their interest in building AI capabilities based on resource-based theory. However, there is no direct evidence of advanced AI/ML adoption in their current operations.",
+      "aiReadiness": "PAR Technology appears to be exploring high-performance computing and AI capabilities, as indicated by their interest in parallel algorithms and GPU computing. However, there is no direct evidence of AI/ML adoption in their core operations from the provided data.",
       "growthSignals": 3,
       "personalizationQuality": "High"
     },
     "intelligenceSummary": {
-      "summary": "PAR Technology is a company focused on providing technology solutions primarily for the restaurant industry. They are known for their point-of-sale (POS) software and have a strong presence in large chain restaurants.",
+      "summary": "PAR Technology is a company focused on providing technology solutions primarily for the restaurant industry. They have shown significant growth in their Annual Recurring Revenue (ARR) and have a strong market position in the point-of-sale (POS) software sector for large chain restaurants.",
       "opportunityScore": 85,
       "personalizedAngles": [
-        "Highlight solutions that can enhance their AI capabilities and integrate with existing systems",
-        "Focus on scalability and reliability of infrastructure to support rapid growth",
-        "Emphasize cost-effective solutions for high-performance computing needs"
+        "Highlight solutions that enhance high-performance computing capabilities",
+        "Offer AI/ML integration services to leverage their existing tech capabilities",
+        "Focus on solutions that support their growth in the restaurant technology sector"
       ],
       "recentDevelopments": [
-        "PAR Technology's strategic M&A and organic growth",
-        "Stock selloff despite strong revenue and ARR growth"
+        "Significant ARR growth and strategic M&A activities",
+        "Stock selloff despite strong financial performance, indicating potential undervaluation"
+      ]
+    }
+  },
+  {
+    "id": "1758396098550",
+    "timestamp": "2025-09-20T19:21:38.550Z",
+    "status": "pending",
+    "leadId": "Elite_Technology_John_Machado",
+    "leadCompany": "Elite Technology",
+    "leadName": "John Machado",
+    "leadEmail": "jmachado@elite.com",
+    "leadTitle": "Chief Technology Officer",
+    "originalSubject": "Elevate Elite Technology's AI Capabilities with Exabits",
+    "originalBody": "Hi John,\n\nI came across Elite Technology’s impressive shift towards AI and machine learning, leveraging GPU architecture. This strategic focus aligns perfectly with Exabits' expertise in AI-powered High-Performance Computing Solutions.\n\nGiven your recent increase in AI investment and the strategic move away from non-core markets, optimizing your AI infrastructure is crucial. Our custom AI infrastructure with NVIDIA H100/H200 GPU clusters not only enhances GPU performance but also offers better performance-per-dollar compared to general cloud solutions.\n\nOur approach typically results in a 40% improvement in AI workload efficiency, maintaining your competitive edge in the rapidly evolving tech landscape.\n\nCould we schedule a brief call next week to explore how our solutions can further empower Elite Technology’s AI initiatives?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Elevate Elite Technology's AI Capabilities with Exabits",
+    "finalBody": "Hi John,\n\nI came across Elite Technology’s impressive shift towards AI and machine learning, leveraging GPU architecture. This strategic focus aligns perfectly with Exabits' expertise in AI-powered High-Performance Computing Solutions.\n\nGiven your recent increase in AI investment and the strategic move away from non-core markets, optimizing your AI infrastructure is crucial. Our custom AI infrastructure with NVIDIA H100/H200 GPU clusters not only enhances GPU performance but also offers better performance-per-dollar compared to general cloud solutions.\n\nOur approach typically results in a 40% improvement in AI workload efficiency, maintaining your competitive edge in the rapidly evolving tech landscape.\n\nCould we schedule a brief call next week to explore how our solutions can further empower Elite Technology’s AI initiatives?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "Elite Technology",
+      "contact": "John Machado",
+      "title": "Chief Technology Officer",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "jmachado@elite.com",
+      "score": 126,
+      "hasIntelligence": {
+        "summary": "Elite Technology is a company focused on high-performance computing and AI, with a strategic shift away from non-core markets. They are investing in AI and machine learning capabilities, leveraging GPU architecture for complex workloads.",
+        "aiReadiness": "Elite Technology demonstrates a strong readiness for AI/ML adoption, as evidenced by their focus on high-performance computing and GPU architecture, which are crucial for AI and machine learning tasks.",
+        "growthSignals": [
+          "Increased corporate AI investment reaching $252.3 billion in 2024.",
+          "Surge in U.S. startup funding by 75.6% in the first half of 2025."
+        ],
+        "painPoints": [
+          "Balancing rapid innovation with managing legacy systems.",
+          "Strategic move away from non-core markets could lead to transitional challenges."
+        ],
+        "opportunityScore": 85,
+        "personalizedAngles": [
+          "Highlight solutions that enhance GPU performance for AI workloads.",
+          "Offer support in managing legacy systems while adopting new technologies.",
+          "Provide insights on navigating strategic shifts in market focus."
+        ],
+        "keyPersonalities": [
+          "Mark Dorman, who sets the global vision and strategy for Elite.",
+          "Haidar Khazen, CTO and VP of Engineering, responsible for the IT strategic plan."
+        ],
+        "recentDevelopments": [
+          "Elite Technology's strategic shift away from non-core markets like China, India, Mexico, Poland, and Singapore."
+        ],
+        "competitivePosition": "Elite Technology is well-positioned in the high-performance computing and AI sectors, focusing on leveraging advanced GPU architecture to maintain a competitive edge. Their strategic market shifts indicate a focus on core competencies and regions."
+      },
+      "opportunityScore": 85,
+      "isVerified": true,
+      "verificationConfidence": 85,
+      "aiReadiness": "Elite Technology demonstrates a strong readiness for AI/ML adoption, as evidenced by their focus on high-performance computing and GPU architecture, which are crucial for AI and machine learning tasks.",
+      "growthSignals": 2,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Elite Technology is a company focused on high-performance computing and AI, with a strategic shift away from non-core markets. They are investing in AI and machine learning capabilities, leveraging GPU architecture for complex workloads.",
+      "opportunityScore": 85,
+      "personalizedAngles": [
+        "Highlight solutions that enhance GPU performance for AI workloads.",
+        "Offer support in managing legacy systems while adopting new technologies.",
+        "Provide insights on navigating strategic shifts in market focus."
+      ],
+      "recentDevelopments": [
+        "Elite Technology's strategic shift away from non-core markets like China, India, Mexico, Poland, and Singapore."
+      ]
+    }
+  },
+  {
+    "id": "1758396102654",
+    "timestamp": "2025-09-20T19:21:42.654Z",
+    "status": "pending",
+    "leadId": "Aera_Technology_Folia_Grace",
+    "leadCompany": "Aera Technology",
+    "leadName": "Folia Grace",
+    "leadEmail": "folia.grace@aeratechnology.com",
+    "leadTitle": "Chief Marketing Officer",
+    "originalSubject": "Enhancing Aera's AI-Driven Decision-Making with Advanced HPC Solutions",
+    "originalBody": "Hi Folia,\n\nCongratulations on Aera Technology's remarkable $80 million Series C financing round! Your focus on AI-driven decision-making platforms is truly pioneering.\n\nGiven your advanced AI/ML adoption, Exabits' AI-powered High-Performance Computing Solutions could significantly bolster Aera's capabilities. Our custom AI infrastructure, featuring NVIDIA H100/H200 GPU clusters, is designed to deliver unparalleled performance and efficiency, which aligns with your objective of optimizing supply chain management.\n\nOur expertise in AI-HPC specialization offers superior performance-per-dollar compared to general cloud solutions, ensuring you achieve cost-effective scalability. This, coupled with expert support, can enhance Aera's agility and resilience in decision-making processes.\n\nWould you be open to a brief discussion to explore how Exabits can propel Aera's AI initiatives to new heights?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Enhancing Aera's AI-Driven Decision-Making with Advanced HPC Solutions",
+    "finalBody": "Hi Folia,\n\nCongratulations on Aera Technology's remarkable $80 million Series C financing round! Your focus on AI-driven decision-making platforms is truly pioneering.\n\nGiven your advanced AI/ML adoption, Exabits' AI-powered High-Performance Computing Solutions could significantly bolster Aera's capabilities. Our custom AI infrastructure, featuring NVIDIA H100/H200 GPU clusters, is designed to deliver unparalleled performance and efficiency, which aligns with your objective of optimizing supply chain management.\n\nOur expertise in AI-HPC specialization offers superior performance-per-dollar compared to general cloud solutions, ensuring you achieve cost-effective scalability. This, coupled with expert support, can enhance Aera's agility and resilience in decision-making processes.\n\nWould you be open to a brief discussion to explore how Exabits can propel Aera's AI initiatives to new heights?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "leadDetails": {
+      "company": "Aera Technology",
+      "contact": "Folia Grace",
+      "title": "Chief Marketing Officer",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "folia.grace@aeratechnology.com",
+      "score": 126,
+      "hasIntelligence": {
+        "summary": "Aera Technology is a company focused on providing AI-driven decision-making platforms, particularly in the supply chain sector. They have been recognized by Gartner for their capabilities in ADM platforms, which enhance agility and resilience in business operations.",
+        "aiReadiness": "Aera Technology is highly advanced in AI/ML adoption, as evidenced by their recognition in the Gartner Market Guide for ADM platforms and their focus on AI-driven decision-making solutions.",
+        "growthSignals": [
+          "Raised $174 million in funding with notable investors like Silver Lake and DFJ Growth.",
+          "Recognized by Gartner for their ADM platforms, indicating strong market validation.",
+          "Focus on increasing revenue in high-tech supply chains, suggesting a strategic market expansion."
+        ],
+        "painPoints": [
+          "Market competition and regulatory changes present challenges.",
+          "Technological disruption could impact their current business model."
+        ],
+        "opportunityScore": 85,
+        "personalizedAngles": [
+          "Highlight the benefits of AI-driven decision-making in supply chain management.",
+          "Emphasize the importance of agility and resilience in business operations.",
+          "Discuss potential partnerships or collaborations to enhance technological capabilities."
+        ],
+        "keyPersonalities": [
+          "Frederic Laluyaux - Co-Founder, President & CEO",
+          "Shariq Mansoor - Co-Founder & CTO, responsible for driving innovation."
+        ],
+        "recentDevelopments": [
+          "Raised $80 million in a Series C financing round led by DFJ Growth.",
+          "Recognition in the 2025 Gartner Market Guide for ADM platforms."
+        ],
+        "competitivePosition": "Aera Technology is well-positioned in the market with strong AI capabilities and significant funding. Their recognition by Gartner and focus on high-tech supply chains suggest a competitive edge in the AI-driven decision-making space."
+      },
+      "opportunityScore": 85,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "Aera Technology is highly advanced in AI/ML adoption, as evidenced by their recognition in the Gartner Market Guide for ADM platforms and their focus on AI-driven decision-making solutions.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Aera Technology is a company focused on providing AI-driven decision-making platforms, particularly in the supply chain sector. They have been recognized by Gartner for their capabilities in ADM platforms, which enhance agility and resilience in business operations.",
+      "opportunityScore": 85,
+      "personalizedAngles": [
+        "Highlight the benefits of AI-driven decision-making in supply chain management.",
+        "Emphasize the importance of agility and resilience in business operations.",
+        "Discuss potential partnerships or collaborations to enhance technological capabilities."
+      ],
+      "recentDevelopments": [
+        "Raised $80 million in a Series C financing round led by DFJ Growth.",
+        "Recognition in the 2025 Gartner Market Guide for ADM platforms."
       ]
     }
   }

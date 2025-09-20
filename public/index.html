@@ -1206,6 +1206,9 @@
       backdrop-filter: blur(5px);
       z-index: 1000;
       overflow-y: auto;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
     }
 
     .settings-modal.show {
@@ -1213,6 +1216,15 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
+    }
+
+    /* When modal is displayed, ensure it's centered */
+    #email-response-settings-modal {
+      display: none;
+    }
+
+    #email-response-settings-modal.show {
+      display: flex !important;
     }
 
     .settings-content {
@@ -1927,6 +1939,11 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0; color: #5a67d8;">Analytics Controls</h3>
                 <div style="display: flex; gap: 0.5rem;">
+                  <button id="email-response-settings" style="background:linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-weight:500;transition:transform 0.2s ease;" 
+                    onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'"
+                    onclick="openEmailResponseSettings()">
+                    🤖 AI Response Settings
+                  </button>
                   <button id="refresh-analytics" style="background:linear-gradient(135deg, #5a67d8 0%, #667eea 100%);color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-weight:500;transition:transform 0.2s ease;" 
                     onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
                     🔄 Refresh Data
@@ -8011,6 +8028,170 @@ Example usage in prompt:
       });
     }
 
+    // Email Response Settings Functions
+    function openEmailResponseSettings() {
+      console.log('📧 Opening Email Response Settings modal...');
+      const modal = document.getElementById('email-response-settings-modal');
+      modal.style.display = 'flex';
+      modal.classList.add('show');
+      loadEmailResponseSettings();
+    }
+
+    function closeEmailResponseSettings() {
+      console.log('📧 Closing Email Response Settings modal...');
+      const modal = document.getElementById('email-response-settings-modal');
+      modal.style.display = 'none';
+      modal.classList.remove('show');
+    }
+
+    async function loadEmailResponseSettings() {
+      console.log('📧 Loading Email Response Settings...');
+      try {
+        const response = await fetch('/api/lead-agent/settings');
+        const data = await response.json();
+        
+        if (data.success && data.settings) {
+          const settings = data.settings;
+          console.log('📧 Loaded settings:', settings);
+          
+          // Company Information
+          document.getElementById('response-company-name').value = settings.company_name || '';
+          document.getElementById('response-product-name').value = settings.product_name || '';
+          document.getElementById('response-value-props').value = (settings.value_propositions || []).join('\n');
+          document.getElementById('response-calendar-link').value = settings.calendar_link || '';
+          
+          // Response Style
+          document.getElementById('response-tone').value = settings.response_tone || 'professional_friendly';
+          document.getElementById('response-meeting-pushiness').value = settings.meeting_pushiness || 'medium';
+          document.getElementById('response-technical-depth').value = settings.technical_depth || 'medium';
+          
+          // Meeting Settings
+          document.getElementById('response-question-threshold').value = settings.question_threshold || '2';
+          document.getElementById('response-positive-immediate').checked = settings.positive_immediate_booking || false;
+          document.getElementById('response-complex-escalation').checked = settings.complex_question_escalation || false;
+        } else {
+          console.log('📧 No existing settings found, using defaults');
+        }
+      } catch (error) {
+        console.error('📧 Error loading email response settings:', error);
+        showNotification('❌ Failed to load email response settings', 'error');
+      }
+    }
+
+    async function saveEmailResponseSettings() {
+      console.log('📧 Saving Email Response Settings...');
+      try {
+        const settings = {
+          // Company Information
+          company_name: document.getElementById('response-company-name').value.trim(),
+          product_name: document.getElementById('response-product-name').value.trim(),
+          value_propositions: document.getElementById('response-value-props').value
+            .split('\n')
+            .map(prop => prop.trim())
+            .filter(prop => prop.length > 0),
+          calendar_link: document.getElementById('response-calendar-link').value.trim(),
+          
+          // Response Style
+          response_tone: document.getElementById('response-tone').value,
+          meeting_pushiness: document.getElementById('response-meeting-pushiness').value,
+          technical_depth: document.getElementById('response-technical-depth').value,
+          
+          // Meeting Settings
+          question_threshold: parseInt(document.getElementById('response-question-threshold').value),
+          positive_immediate_booking: document.getElementById('response-positive-immediate').checked,
+          complex_question_escalation: document.getElementById('response-complex-escalation').checked,
+          
+          // Metadata
+          updated_at: new Date().toISOString()
+        };
+
+        console.log('📧 Saving settings:', settings);
+
+        const response = await fetch('/api/lead-agent/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(settings)
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          console.log('📧 Settings saved successfully!');
+          showNotification('✅ Email response settings saved successfully!', 'success');
+          closeEmailResponseSettings();
+        } else {
+          console.error('📧 Failed to save settings:', data.error);
+          showNotification(`❌ Failed to save settings: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        console.error('📧 Error saving email response settings:', error);
+        showNotification('❌ Network error while saving settings', 'error');
+      }
+    }
+
+    function resetEmailResponseSettings() {
+      if (confirm('Are you sure you want to reset all email response settings to defaults? This cannot be undone.')) {
+        console.log('📧 Resetting Email Response Settings to defaults...');
+        
+        // Company Information - Clear all
+        document.getElementById('response-company-name').value = '';
+        document.getElementById('response-product-name').value = '';
+        document.getElementById('response-value-props').value = '';
+        document.getElementById('response-calendar-link').value = '';
+        
+        // Response Style - Set to defaults
+        document.getElementById('response-tone').value = 'professional_friendly';
+        document.getElementById('response-meeting-pushiness').value = 'medium';
+        document.getElementById('response-technical-depth').value = 'medium';
+        
+        // Meeting Settings - Set to defaults
+        document.getElementById('response-question-threshold').value = '2';
+        document.getElementById('response-positive-immediate').checked = false;
+        document.getElementById('response-complex-escalation').checked = false;
+        
+        showNotification('🔄 Settings reset to defaults. Click "Save Settings" to apply.', 'info');
+      }
+    }
+
+    async function testEmailResponse() {
+      console.log('🧪 Testing Email Response configuration...');
+      showNotification('🧪 Testing AI response system...', 'info');
+      
+      try {
+        const testData = {
+          test_mode: true,
+          sample_email: "Hi, I'm interested in learning more about your solution. Can you tell me about pricing and implementation timeline?"
+        };
+
+        const response = await fetch('/api/webhooks/test-response', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(testData)
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          console.log('🧪 Test response generated:', data.response);
+          
+          // Show test result in a simple alert for now
+          alert(`🧪 Test Response Generated:\n\n${data.response}\n\n📊 Intent: ${data.intent}\n⏱️ Response time: ${data.response_time}ms`);
+          
+          showNotification('✅ Test completed successfully!', 'success');
+        } else {
+          console.error('🧪 Test failed:', data.error);
+          showNotification(`❌ Test failed: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        console.error('🧪 Error testing email response:', error);
+        showNotification('❌ Network error during test', 'error');
+      }
+    }
+
     // Close modal when clicking outside
     document.getElementById('settings-modal').addEventListener('click', function(e) {
       if (e.target === this) {
@@ -8022,6 +8203,13 @@ Example usage in prompt:
     document.getElementById('custom-email-modal').addEventListener('click', function(e) {
       if (e.target === this) {
         closeCustomEmailModal();
+      }
+    });
+
+    // Close email response settings modal when clicking outside
+    document.getElementById('email-response-settings-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeEmailResponseSettings();
       }
     });
 
@@ -10302,6 +10490,114 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('✅ [PERFORMANCE] Optimizations initialized successfully!');
 });
 </script>
+
+<!-- Email Response Settings Modal -->
+<div id="email-response-settings-modal" class="settings-modal">
+  <!-- Fixed close button outside scroll area -->
+  <button class="modal-close-settings" onclick="closeEmailResponseSettings()" title="Close Settings">×</button>
+  <div class="settings-content" style="position: relative;">
+    <div class="settings-header">
+      <h2>🤖 AI Email Response Settings</h2>
+      <p style="margin: 0.5rem 0; color: #64748b; font-size: 0.9rem;">Configure how your AI assistant responds to incoming email replies</p>
+    </div>
+
+    <!-- Company Information Section -->
+    <div class="settings-section">
+      <h3>🏢 Company Information</h3>
+      <div class="modal-form-group">
+        <label for="response-company-name">Company Name</label>
+        <input type="text" id="response-company-name" placeholder="Your Company Name" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+      </div>
+      <div class="modal-form-group">
+        <label for="response-product-name">Product/Service Name</label>
+        <input type="text" id="response-product-name" placeholder="Your Product or Service" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+      </div>
+      <div class="modal-form-group">
+        <label for="response-value-props">Key Value Propositions (one per line)</label>
+        <textarea id="response-value-props" rows="4" placeholder="30% cost reduction&#10;40% faster performance&#10;Expert 24/7 support&#10;Industry-leading security" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;"></textarea>
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+          💡 Each line becomes a separate value proposition the AI can reference
+        </div>
+      </div>
+      <div class="modal-form-group">
+        <label for="response-calendar-link">Calendar Booking Link</label>
+        <input type="url" id="response-calendar-link" placeholder="https://calendly.com/yourname/meeting" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+          📅 AI will include this link when suggesting meetings
+        </div>
+      </div>
+    </div>
+
+    <!-- Response Style Section -->
+    <div class="settings-section">
+      <h3>🎨 Response Style</h3>
+      <div class="modal-form-group">
+        <label for="response-tone">Communication Tone</label>
+        <select id="response-tone" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
+          <option value="professional_friendly">Professional & Friendly</option>
+          <option value="casual">Casual & Approachable</option>
+          <option value="technical">Technical & Detailed</option>
+          <option value="executive">Executive & Concise</option>
+        </select>
+      </div>
+      <div class="modal-form-group">
+        <label for="response-meeting-pushiness">Meeting Approach</label>
+        <select id="response-meeting-pushiness" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
+          <option value="soft">Soft - Gentle suggestions</option>
+          <option value="medium">Balanced - Clear but not pushy</option>
+          <option value="aggressive">Direct - Strong meeting requests</option>
+        </select>
+      </div>
+      <div class="modal-form-group">
+        <label for="response-technical-depth">Technical Detail Level</label>
+        <select id="response-technical-depth" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
+          <option value="basic">Basic - Simple explanations</option>
+          <option value="medium">Medium - Balanced detail</option>
+          <option value="detailed">Detailed - Technical depth</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Meeting Settings Section -->
+    <div class="settings-section">
+      <h3>📅 Meeting & Follow-up Settings</h3>
+      <div class="modal-form-group">
+        <label for="response-question-threshold">Suggest meeting after how many questions?</label>
+        <select id="response-question-threshold" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
+          <option value="1">After 1 question</option>
+          <option value="2">After 2 questions</option>
+          <option value="3">After 3 questions</option>
+          <option value="999">Never auto-suggest</option>
+        </select>
+      </div>
+      <div class="modal-form-group">
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="response-positive-immediate" style="margin: 0;">
+          Immediately offer calendar link for positive responses
+        </label>
+      </div>
+      <div class="modal-form-group">
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="response-complex-escalation" style="margin: 0;">
+          Suggest meetings for complex technical questions
+        </label>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1);">
+      <button onclick="saveEmailResponseSettings()" style="flex: 1; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+        💾 Save Settings
+      </button>
+      <button onclick="resetEmailResponseSettings()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+        🔄 Reset to Defaults
+      </button>
+      <button onclick="testEmailResponse()" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+        🧪 Test Response
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
