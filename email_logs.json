@@ -1,5 +1,90 @@
 [
   {
+    "id": "a5786f8dcb41db9fc28f22f6584fdede",
+    "to": "colton.fidd@gmail.com",
+    "subject": "test email for exabits tracking",
+    "body": "hello, i provide product U, product U is house cleaning. would you like to purchase product U. the rate equation is 12$ per 100sqft of the area you would like cleaned.",
+    "status": "sent",
+    "timestamp": "2025-09-20T14:39:47.751Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": true,
+      "clicked": false,
+      "replied": true,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 2,
+      "lastActivity": "2025-09-20T14:42:45.205Z",
+      "mailgunId": "<tracking-a5786f8dcb41db9fc28f22f6584fdede@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null,
+      "replyCount": 1
+    },
+    "opened": true,
+    "openCount": 2,
+    "clickCount": 0,
+    "replies": [
+      {
+        "tracking_id": "a5786f8dcb41db9fc28f22f6584fdede",
+        "timestamp": "2025-09-20T14:41:52.380Z",
+        "event_type": "conversation",
+        "lead_message": "sure, my house is 4000 sqft. how much would product U be then?\r\n\r\n\r\nOn Sat, Sep 20, 2025 at 7:39 AM ExaMark <noreply@mg.examarkchat.com> wrote:\r\n\r\n> hello, i provide product U, product U is house cleaning. would you like to\r\n> purchase product U. the rate equation is 12$ per 100sqft of the area you\r\n> would like cleaned.\r\n> [image: Email tracking]\r\n>\r\n",
+        "ai_response": "Dear Cole Fidelman,\n\nThank you for your interest in our house cleaning service, Product U. To calculate the cost for cleaning your 4000 sqft house, we will use the rate of $12 per 100sqft. \n\nThe total cost for cleaning your 4000 sqft house would be $480. If you would like to proceed with booking our service, please let us know.\n\nFeel free to contact us if you have any further questions or would like to schedule a cleaning session.\n\nBest regards,\n\nExaMark Cleaning Services",
+        "sender": "Cole Fidelman <colton.fidd@gmail.com>",
+        "recipient": "replies@mg.examarkchat.com",
+        "processed": false
+      }
+    ]
+  },
+  {
+    "id": "aa7aac08-7b22-4a9d-a3d6-3f922ad3c8e8",
+    "to": "colton.fidd@gmail.com",
+    "subject": "ExaMark - Password Reset Code",
+    "body": "ExaMark - Password Reset Code\n\nHello colton.fidelman,\n\nWe received a request to reset your password for your ExaMark account.\n\nEnter this code in the app to reset your password: 645021\n\nThis code will expire in 1 hour for security reasons.\n\nIf you didn't request this password reset, you can safely ignore this email.",
+    "status": "sent",
+    "timestamp": "2025-09-20T14:38:26.527Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-85ac482d-a414-46ed-8265-28f1b9944ab3@mg.examarkchat.com>",
+      "trackingEnabled": false,
+      "desktopTracking": false,
+      "personInfo": null
+    }
+  },
+  {
+    "id": "6a16487b-120f-4f6d-9bd2-9592792cb079",
+    "to": "colton.fidd@gmail.com",
+    "subject": "ExaMark - Password Reset Code",
+    "body": "ExaMark - Password Reset Code\n\nHello colton.fidelman,\n\nWe received a request to reset your password for your ExaMark account.\n\nEnter this code in the app to reset your password: 844520\n\nThis code will expire in 1 hour for security reasons.\n\nIf you didn't request this password reset, you can safely ignore this email.",
+    "status": "sent",
+    "timestamp": "2025-09-20T14:35:01.644Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-d103ce39-83f5-4075-84b6-b0500c3d3e5e@mg.examarkchat.com>",
+      "trackingEnabled": false,
+      "desktopTracking": false,
+      "personInfo": null
+    }
+  },
+  {
     "id": "688fabb3-f554-46e9-a10f-2f0864291f3a",
     "to": "colton.fidd@gmail.com",
     "subject": "ExaMark - Password Reset Code",

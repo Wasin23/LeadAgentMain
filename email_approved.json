@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "1758379185402",
+    "timestamp": "2025-09-20T14:39:45.402Z",
+    "status": "approved",
+    "source": "custom",
+    "leadData": {
+      "email": "colton.fidd@gmail.com",
+      "company": "Custom Email",
+      "name": "colton.fidd",
+      "title": "Custom Contact",
+      "context": "Custom email created by user"
+    },
+    "emailData": {
+      "subject": "test email for exabits tracking",
+      "body": "hello, i provide product U, product U is house cleaning. would you like to purchase product U. the rate equation is 12$ per 100sqft of the area you would like cleaned.",
+      "finalRecipient": "colton.fidd@gmail.com",
+      "finalSubject": "test email for exabits tracking",
+      "finalBody": "hello, i provide product U, product U is house cleaning. would you like to purchase product U. the rate equation is 12$ per 100sqft of the area you would like cleaned."
+    },
+    "metadata": {
+      "customEmail": true,
+      "createdAt": "2025-09-20T14:39:45.402Z",
+      "createdBy": "user"
+    },
+    "approvedAt": "2025-09-20T14:39:47.505Z"
+  }
+]

@@ -218,7 +218,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
 }
 
 // Send email with custom HTML (for password reset emails)
-async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null) {
+async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null, skipLogging = false) {
   try {
     console.log(`[MAILGUN CUSTOM] Sending to: ${to}, Subject: ${subject}`);
     
@@ -257,13 +257,17 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
 
     console.log('[MAILGUN CUSTOM] Sent:', result);
     
-    // Log successful email with tracking ID
-    const loggedId = await logEmailToFile(to, subject, textBody, 'sent', trackingId, {
-      mailgunId: result.id,
-      trackingEnabled: enableTracking,
-      desktopTracking: enableTracking,
-      personInfo: personInfo
-    });
+    let loggedId = null;
+    
+    // Only log if not skipping logging (password reset emails should skip)
+    if (!skipLogging) {
+      loggedId = await logEmailToFile(to, subject, textBody, 'sent', trackingId, {
+        mailgunId: result.id,
+        trackingEnabled: enableTracking,
+        desktopTracking: enableTracking,
+        personInfo: personInfo
+      });
+    }
     
     return {
       success: true,
@@ -273,10 +277,12 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
   } catch (err) {
     console.error('[MAILGUN CUSTOM] Failed:', err);
     
-    // Log failed email
-    await logEmailToFile(to, subject, textBody, 'failed', null, {
-      error: err.message || err.toString()
-    });
+    // Only log failed emails if not skipping logging
+    if (!skipLogging) {
+      await logEmailToFile(to, subject, textBody, 'failed', null, {
+        error: err.message || err.toString()
+      });
+    }
     
     return {
       success: false,
@@ -348,8 +354,8 @@ If you didn't request this password reset, you can safely ignore this email.`;
         </p>
       </div>`;
 
-    // Use the sendEmailMailgun function but with custom HTML
-    const result = await sendEmailMailgunWithCustomHTML(email, subject, textBody, htmlBody);
+    // Use the sendEmailMailgun function but with custom HTML - skip logging for password reset
+    const result = await sendEmailMailgunWithCustomHTML(email, subject, textBody, htmlBody, false, null, true);
     
     if (result.success) {
       console.log(`[PASSWORD RESET] Reset email sent successfully to ${email}`);
