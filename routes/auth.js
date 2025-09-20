@@ -7,8 +7,13 @@ import {
   updateUserSettings, 
   updateApiKeys, 
   updateAiPersonality,
-  verifyMasterPassword 
+  verifyMasterPassword,
+  generatePasswordResetToken,
+  resetPassword,
+  getUserByEmail,
+  verifyPasswordResetToken
 } from '../lib/userManager.js';
+import { sendPasswordResetEmail } from '../tools/emailMailgun.js';
 
 const router = express.Router();
 
@@ -356,6 +361,95 @@ router.post('/settings', async (req, res) => {
   } catch (error) {
     console.error('[AUTH] Update settings error:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Password reset - request reset token
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    
+    const resetResult = await generatePasswordResetToken(email);
+    
+    console.log(`[AUTH] Password reset token generated: ${resetResult.token}`);
+    
+    // Try to send email
+    const emailSent = await sendPasswordResetEmail(email, resetResult.token, resetResult.username);
+    
+    if (emailSent) {
+      res.json({ 
+        success: true, 
+        message: 'Password reset instructions sent to your email'
+      });
+    } else {
+      // Email failed, but still provide token for development
+      res.json({ 
+        success: true, 
+        message: 'Password reset instructions sent! (Email service unavailable - check console for token)',
+        // REMOVE THIS IN PRODUCTION - only for development
+        resetToken: resetResult.token,
+        resetUrl: `/auth.html?tab=forgot&token=${resetResult.token}`
+      });
+    }
+  } catch (error) {
+    console.error('[AUTH] Forgot password error:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Verify reset token (for real-time validation)
+router.post('/verify-reset-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Reset token is required' });
+    }
+    
+    const tokenValid = await verifyPasswordResetToken(token);
+    
+    if (tokenValid.success) {
+      res.json({ 
+        success: true, 
+        message: '✅ Valid reset token!',
+        email: tokenValid.email 
+      });
+    } else {
+      res.status(400).json({ 
+        success: false, 
+        error: 'Invalid or expired reset token' 
+      });
+    }
+  } catch (error) {
+    console.error('[AUTH] Verify reset token error:', error.message);
+    res.status(500).json({ error: 'Server error during token verification' });
+  }
+});
+
+// Password reset - verify token and reset password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Reset token and new password are required' });
+    }
+    
+    const result = await resetPassword(token, newPassword);
+    console.log(`[AUTH] Password reset successful for user: ${result.username}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Password reset successful! You can now sign in with your new password.',
+      username: result.username
+    });
+  } catch (error) {
+    console.error('[AUTH] Reset password error:', error.message);
+    res.status(400).json({ error: error.message });
   }
 });
 

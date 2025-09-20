@@ -60,6 +60,8 @@
       padding: 40px;
       width: 100%;
       max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
@@ -229,6 +231,115 @@
       background: #5a67d8;
       color: white;
     }
+
+    /* Validation indicators */
+    .validation-message {
+      font-size: 0.8rem;
+      margin-top: 5px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .validation-message.valid {
+      color: #059669;
+      opacity: 1;
+    }
+
+    .validation-message.invalid {
+      color: #dc2626;
+      opacity: 1;
+    }
+
+    /* Password strength indicator */
+    .password-strength {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .password-strength.visible {
+      opacity: 1;
+    }
+
+    .strength-bar {
+      width: 100%;
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      margin: 5px 0;
+      overflow: hidden;
+    }
+
+    .strength-fill {
+      height: 100%;
+      transition: width 0.3s ease, background-color 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .strength-weak .strength-fill {
+      width: 33%;
+      background: #dc2626;
+    }
+
+    .strength-medium .strength-fill {
+      width: 66%;
+      background: #f59e0b;
+    }
+
+    .strength-strong .strength-fill {
+      width: 100%;
+      background: #059669;
+    }
+
+    .strength-text {
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    .strength-weak .strength-text {
+      color: #dc2626;
+    }
+
+    .strength-medium .strength-text {
+      color: #f59e0b;
+    }
+
+    .strength-strong .strength-text {
+      color: #059669;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .password-requirements {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 5px;
+    }
+
+    .requirement {
+      display: flex;
+      align-items: center;
+      margin: 2px 0;
+    }
+
+    .requirement-icon {
+      margin-right: 6px;
+      font-size: 12px;
+      opacity: 0.5;
+      transition: all 0.3s ease;
+    }
+
+    .requirement.valid .requirement-icon {
+      color: #059669;
+      opacity: 1;
+    }
+
+    .requirement.valid {
+      color: #059669;
+    }
   </style>
 </head>
 <body>
@@ -239,7 +350,7 @@
     </div>
     
     <div class="auth-tabs">
-      <button class="tab-button active" onclick="switchTab('signin')">Sign In</button>
+      <button class="tab-button active" onclick="switchTab('signin')">Log In</button>
       <button class="tab-button" onclick="switchTab('signup')">Sign Up</button>
     </div>
     
@@ -257,6 +368,9 @@
         <div class="form-group">
           <label for="signin-password">Password</label>
           <input type="password" id="signin-password" required>
+          <div style="text-align: center; margin-top: 10px;">
+            <a href="#" onclick="switchToForgotPassword()" style="color: #64748b; font-size: 0.9rem; text-decoration: none;">Forgot Password?</a>
+          </div>
         </div>
         
         <button type="submit" class="submit-btn" id="signin-btn">
@@ -280,21 +394,85 @@
         
         <div class="form-group">
           <label for="signup-password">Password</label>
-          <input type="password" id="signup-password" required minlength="6">
-          <div class="password-requirements">
-            Minimum 6 characters required
+          <input type="password" id="signup-password" required minlength="6" oninput="validateSignupPassword()">
+          <div id="signup-strength" class="password-strength">
+            <div class="strength-bar">
+              <div class="strength-fill"></div>
+            </div>
+            <div class="strength-text">Password strength</div>
           </div>
         </div>
         
         <div class="form-group">
           <label for="signup-confirm-password">Confirm Password</label>
-          <input type="password" id="signup-confirm-password" required minlength="6">
+          <input type="password" id="signup-confirm-password" required minlength="6" oninput="validateSignupPasswordMatch()">
+          <div id="signup-match-message" class="validation-message">Passwords match</div>
         </div>
         
         <button type="submit" class="submit-btn" id="signup-btn">
           Create Account
         </button>
       </form>
+    </div>
+
+    <!-- Forgot Password Step 1: Enter Email -->
+    <div id="forgot-email-form" class="form-section">
+      <h3 style="margin-bottom: 20px; color: #374151; text-align: center;">Reset Password</h3>
+      <p style="color: #6b7280; margin-bottom: 20px; font-size: 0.9rem; text-align: center;">Enter your email to receive a reset code</p>
+      
+      <form onsubmit="handleForgotPassword(event)">
+        <div class="form-group">
+          <label for="forgot-email">Email Address</label>
+          <input type="email" id="forgot-email" required>
+        </div>
+        
+        <button type="submit" class="submit-btn" id="forgot-email-btn">
+          Send Reset Code
+        </button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="#" onclick="switchToSignIn()" style="color: #64748b; font-size: 0.9rem; text-decoration: none;">← Back to Sign In</a>
+      </div>
+    </div>
+
+    <!-- Forgot Password Step 2: Enter Code & New Password -->
+    <div id="forgot-reset-form" class="form-section">
+      <h3 style="margin-bottom: 20px; color: #374151; text-align: center;">Enter Reset Code</h3>
+      <p style="color: #6b7280; margin-bottom: 20px; font-size: 0.9rem; text-align: center;">Check your email for a 6-digit code</p>
+      
+      <form onsubmit="handlePasswordReset(event)">
+        <div class="form-group">
+          <label for="reset-code">6-Digit Code</label>
+          <input type="text" id="reset-code" required maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 2px;" placeholder="123456" oninput="validateResetCode()">
+          <div id="code-message" class="validation-message">Code is valid</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="new-password">New Password</label>
+          <input type="password" id="new-password" required minlength="6" oninput="validateResetNewPassword()">
+          <div id="reset-strength" class="password-strength">
+            <div class="strength-bar">
+              <div class="strength-fill"></div>
+            </div>
+            <div class="strength-text">Password strength</div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirm-new-password">Confirm New Password</label>
+          <input type="password" id="confirm-new-password" required minlength="6" oninput="validateResetPasswordMatch()">
+          <div id="reset-match-message" class="validation-message">Passwords match</div>
+        </div>
+        
+        <button type="submit" class="submit-btn" id="reset-password-btn">
+          Reset Password
+        </button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="#" onclick="switchToForgotEmail()" style="color: #64748b; font-size: 0.9rem; text-decoration: none;">← Back to Email</a>
+      </div>
     </div>
     
     <div class="guest-mode">
@@ -344,10 +522,26 @@
       const btn = document.getElementById(buttonId);
       if (loading) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="loading"></span> Signing in...';
+        if (buttonId === 'signin-btn') {
+          btn.innerHTML = '<span class="loading"></span> Signing in...';
+        } else if (buttonId === 'signup-btn') {
+          btn.innerHTML = '<span class="loading"></span> Creating account...';
+        } else if (buttonId === 'forgot-email-btn') {
+          btn.innerHTML = '<span class="loading"></span> Sending code...';
+        } else if (buttonId === 'reset-password-btn') {
+          btn.innerHTML = '<span class="loading"></span> Resetting password...';
+        }
       } else {
         btn.disabled = false;
-        btn.innerHTML = buttonId === 'signin-btn' ? 'Sign In' : 'Create Account';
+        if (buttonId === 'signin-btn') {
+          btn.innerHTML = 'Sign In';
+        } else if (buttonId === 'signup-btn') {
+          btn.innerHTML = 'Create Account';
+        } else if (buttonId === 'forgot-email-btn') {
+          btn.innerHTML = 'Send Reset Code';
+        } else if (buttonId === 'reset-password-btn') {
+          btn.innerHTML = 'Reset Password';
+        }
       }
     }
     
@@ -483,6 +677,226 @@
         }
       }, 100);
     });
+
+    // Forgot Password Functions
+    function switchToForgotPassword() {
+      document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+      document.getElementById('forgot-email-form').classList.add('active');
+      hideMessages();
+      document.getElementById('forgot-email').focus();
+    }
+
+    function switchToForgotEmail() {
+      document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+      document.getElementById('forgot-email-form').classList.add('active');
+      hideMessages();
+    }
+
+    function switchToSignIn() {
+      document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+      document.getElementById('signin-form').classList.add('active');
+      hideMessages();
+      // Clear forgot password fields
+      document.getElementById('forgot-email').value = '';
+      document.getElementById('reset-code').value = '';
+      document.getElementById('new-password').value = '';
+      document.getElementById('confirm-new-password').value = '';
+    }
+
+    async function handleForgotPassword(event) {
+      event.preventDefault();
+      const email = document.getElementById('forgot-email').value;
+      
+      if (!email) {
+        showError('Please enter your email address');
+        return;
+      }
+
+      setLoading('forgot-email-btn', true);
+
+      try {
+        const response = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          showSuccess('Reset code sent! Check your email.');
+          setTimeout(() => {
+            document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+            document.getElementById('forgot-reset-form').classList.add('active');
+            document.getElementById('reset-code').focus();
+          }, 1500);
+        } else {
+          showError(data.error || 'Failed to send reset code');
+        }
+      } catch (error) {
+        showError('Network error. Please try again.');
+      } finally {
+        setLoading('forgot-email-btn', false);
+      }
+    }
+
+    async function handlePasswordReset(event) {
+      event.preventDefault();
+      const code = document.getElementById('reset-code').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-new-password').value;
+      
+      if (!code || !newPassword || !confirmPassword) {
+        showError('Please fill in all fields');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showError('Passwords do not match');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        showError('Password must be at least 6 characters');
+        return;
+      }
+
+      setLoading('reset-password-btn', true);
+
+      try {
+        const response = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: code, newPassword })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          showSuccess('Password reset successful! You can now sign in.');
+          setTimeout(() => {
+            switchToSignIn();
+          }, 2000);
+        } else {
+          showError(data.error || 'Failed to reset password');
+        }
+      } catch (error) {
+        showError('Network error. Please try again.');
+      } finally {
+        setLoading('reset-password-btn', false);
+      }
+    }
+
+    // Real-time validation functions
+    function getPasswordStrength(password) {
+      if (password.length < 6) return 'weak';
+      
+      let score = 0;
+      if (password.length >= 8) score++;
+      if (/[A-Z]/.test(password)) score++;
+      if (/[a-z]/.test(password)) score++;
+      if (/[0-9]/.test(password)) score++;
+      if (/[^A-Za-z0-9]/.test(password)) score++;
+      
+      if (score <= 2) return 'weak';
+      if (score <= 3) return 'medium';
+      return 'strong';
+    }
+
+    function updatePasswordStrength(strengthElement, password) {
+      const strength = getPasswordStrength(password);
+      
+      if (password.length === 0) {
+        strengthElement.className = 'password-strength';
+        return;
+      }
+      
+      strengthElement.className = `password-strength visible strength-${strength}`;
+      
+      const strengthText = strengthElement.querySelector('.strength-text');
+      if (strength === 'weak') {
+        strengthText.textContent = 'Weak password - Add more characters and complexity';
+      } else if (strength === 'medium') {
+        strengthText.textContent = 'Moderate password - Consider adding special characters';
+      } else {
+        strengthText.textContent = 'Strong password';
+      }
+    }
+
+    function validateResetCode() {
+      const code = document.getElementById('reset-code').value;
+      const message = document.getElementById('code-message');
+      
+      if (code.length === 6 && /^\d{6}$/.test(code)) {
+        message.className = 'validation-message valid';
+        message.textContent = 'Valid reset code';
+      } else if (code.length > 0) {
+        message.className = 'validation-message invalid';
+        message.textContent = 'Reset code must be exactly 6 digits';
+      } else {
+        message.className = 'validation-message';
+      }
+    }
+
+    function validateResetNewPassword() {
+      const password = document.getElementById('new-password').value;
+      const strengthElement = document.getElementById('reset-strength');
+      
+      updatePasswordStrength(strengthElement, password);
+      validateResetPasswordMatch();
+    }
+
+    function validateResetPasswordMatch() {
+      const password = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-new-password').value;
+      const message = document.getElementById('reset-match-message');
+      
+      if (confirmPassword.length === 0) {
+        message.className = 'validation-message';
+        return;
+      }
+      
+      if (password === confirmPassword && password.length >= 6) {
+        message.className = 'validation-message valid';
+        message.textContent = 'Passwords match';
+      } else if (password !== confirmPassword) {
+        message.className = 'validation-message invalid';
+        message.textContent = 'Passwords do not match';
+      } else {
+        message.className = 'validation-message invalid';
+        message.textContent = 'Password must be at least 6 characters';
+      }
+    }
+
+    function validateSignupPassword() {
+      const password = document.getElementById('signup-password').value;
+      const strengthElement = document.getElementById('signup-strength');
+      
+      updatePasswordStrength(strengthElement, password);
+      validateSignupPasswordMatch();
+    }
+
+    function validateSignupPasswordMatch() {
+      const password = document.getElementById('signup-password').value;
+      const confirmPassword = document.getElementById('signup-confirm-password').value;
+      const message = document.getElementById('signup-match-message');
+      
+      if (confirmPassword.length === 0) {
+        message.className = 'validation-message';
+        return;
+      }
+      
+      if (password === confirmPassword && password.length >= 6) {
+        message.className = 'validation-message valid';
+        message.textContent = 'Passwords match';
+      } else if (password !== confirmPassword) {
+        message.className = 'validation-message invalid';
+        message.textContent = 'Passwords do not match';
+      } else {
+        message.className = 'validation-message invalid';
+        message.textContent = 'Password must be at least 6 characters';
+      }
+    }
   </script>
 </body>
 </html>

@@ -216,3 +216,150 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     };
   }
 }
+
+// Send email with custom HTML (for password reset emails)
+async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null) {
+  try {
+    console.log(`[MAILGUN CUSTOM] Sending to: ${to}, Subject: ${subject}`);
+    
+    let trackingId = null;
+    let finalHtmlBody = htmlBody;
+    
+    // Use desktop email tracker for safe, self-contained tracking
+    if (enableTracking) {
+      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject);
+      finalHtmlBody = trackingResult.html;
+      trackingId = trackingResult.trackingId;
+      
+      console.log(`[DESKTOP TRACKER] Email tracking injected for ${to} with ID: ${trackingId}`);
+    }
+    
+    // Prepare email data
+    const emailData = {
+      from: `ExaMark Support <noreply@${process.env.MAILGUN_DOMAIN}>`,
+      'h:Reply-To': 'replies@mg.examarkchat.com',
+      to,
+      subject: subject,
+      html: finalHtmlBody,
+      text: textBody,
+      'h:Message-ID': `<tracking-${trackingId || uuidv4()}@${process.env.MAILGUN_DOMAIN}>`,
+      'h:X-Tracking-ID': trackingId || 'no-tracking'
+    };
+    
+    // Disable Mailgun's tracking to avoid conflicts
+    if (enableTracking) {
+      emailData['o:tracking'] = 'no';
+      emailData['o:tracking-clicks'] = 'no';
+      emailData['o:tracking-opens'] = 'no';
+    }
+    
+    const result = await mg.messages.create(process.env.MAILGUN_DOMAIN, emailData);
+
+    console.log('[MAILGUN CUSTOM] Sent:', result);
+    
+    // Log successful email with tracking ID
+    const loggedId = await logEmailToFile(to, subject, textBody, 'sent', trackingId, {
+      mailgunId: result.id,
+      trackingEnabled: enableTracking,
+      desktopTracking: enableTracking,
+      personInfo: personInfo
+    });
+    
+    return {
+      success: true,
+      message: `✅ Email sent to ${to}`,
+      trackingId: loggedId
+    };
+  } catch (err) {
+    console.error('[MAILGUN CUSTOM] Failed:', err);
+    
+    // Log failed email
+    await logEmailToFile(to, subject, textBody, 'failed', null, {
+      error: err.message || err.toString()
+    });
+    
+    return {
+      success: false,
+      message: `❌ Failed: ${err.message || err}`,
+      trackingId: null
+    };
+  }
+}
+
+// Send password reset email
+export async function sendPasswordResetEmail(email, resetToken, username) {
+  try {
+    console.log(`[PASSWORD RESET] Sending reset email to ${email} with token ${resetToken}`);
+    
+    const subject = 'ExaMark - Password Reset Code';
+    
+    // Plain text version
+    const textBody = `ExaMark - Password Reset Code
+
+Hello ${username || 'there'},
+
+We received a request to reset your password for your ExaMark account.
+
+Enter this code in the app to reset your password: ${resetToken}
+
+This code will expire in 1 hour for security reasons.
+
+If you didn't request this password reset, you can safely ignore this email.`;
+
+    // HTML version (matching the original format)
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #5a67d8; margin: 0;">ExaMark</h1>
+          <p style="color: #64748b; margin: 5px 0;">AI-Powered Lead Research & Automation</p>
+        </div>
+        
+        <h2 style="color: #374151;">Password Reset Code</h2>
+        
+        <p style="color: #4b5563; line-height: 1.6;">
+          Hello <strong>${username || 'there'}</strong>,
+        </p>
+        
+        <p style="color: #4b5563; line-height: 1.6;">
+          We received a request to reset your password for your ExaMark account.
+        </p>
+        
+        <p style="color: #4b5563; line-height: 1.6;">
+          Enter this code in the app to reset your password:
+        </p>
+        
+        <div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8fafc; border-radius: 8px; border: 2px dashed #5a67d8;">
+          <div style="font-size: 24px; font-weight: bold; color: #5a67d8; letter-spacing: 3px; font-family: monospace; word-break: break-all; max-width: 100%; overflow-wrap: break-word;">
+            ${resetToken}
+          </div>
+          <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
+            Reset Code
+          </p>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+          This code will expire in 1 hour for security reasons.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        
+        <p style="color: #9ca3af; font-size: 12px;">
+          If you didn't request this password reset, you can safely ignore this email.
+        </p>
+      </div>`;
+
+    // Use the sendEmailMailgun function but with custom HTML
+    const result = await sendEmailMailgunWithCustomHTML(email, subject, textBody, htmlBody);
+    
+    if (result.success) {
+      console.log(`[PASSWORD RESET] Reset email sent successfully to ${email}`);
+      return true;
+    } else {
+      console.error(`[PASSWORD RESET] Failed to send reset email: ${result.message}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('[PASSWORD RESET] Error sending reset email:', error);
+    return false;
+  }
+}

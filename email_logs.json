@@ -1,1 +1,71 @@
-[]
+[
+  {
+    "id": "688fabb3-f554-46e9-a10f-2f0864291f3a",
+    "to": "colton.fidd@gmail.com",
+    "subject": "ExaMark - Password Reset Code",
+    "body": "ExaMark - Password Reset Code\n\nHello colton.fidelman,\n\nWe received a request to reset your password for your ExaMark account.\n\nEnter this code in the app to reset your password: 410524\n\nThis code will expire in 1 hour for security reasons.\n\nIf you didn't request this password reset, you can safely ignore this email.",
+    "status": "sent",
+    "timestamp": "2025-09-20T14:29:31.878Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-fc79750f-c24c-4d4d-bbcf-0a7fc4b2839a@mg.examarkchat.com>",
+      "trackingEnabled": false,
+      "desktopTracking": false,
+      "personInfo": null
+    }
+  },
+  {
+    "id": "50ea5e75-48c7-4d3e-bae4-3543ce46be0d",
+    "to": "colton.fidd@gmail.com",
+    "subject": "ExaMark - Password Reset Code",
+    "body": "ExaMark - Password Reset Code\n\nHello colton.fidelman,\n\nWe received a request to reset your password for your ExaMark account.\n\nEnter this code in the app to reset your password: 778992\n\nThis code will expire in 1 hour for security reasons.\n\nIf you didn't request this password reset, you can safely ignore this email.",
+    "status": "sent",
+    "timestamp": "2025-09-20T14:27:12.874Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-2675bec4-6492-45a0-928e-468409b9d650@mg.examarkchat.com>",
+      "trackingEnabled": false,
+      "desktopTracking": false,
+      "personInfo": null
+    }
+  },
+  {
+    "id": "27b22eab-fc66-459c-afff-021059653a07",
+    "to": "colton.fidd@gmail.com",
+    "subject": "🔒 ExaMark Password Reset - Your 6-Digit Code",
+    "body": "Hi colton.fidelman!\n\nYou requested a password reset for your ExaMark account.\n\n🔑 **Your Reset Code: 630446**\n\nThis code will expire in 15 minutes for security.\n\nTo reset your password:\n1. Return to the ExaMark login page\n2. Click \"Forgot Password\"  \n3. Enter this 6-digit code: 630446\n4. Create your new password\n\nIf you didn't request this reset, you can safely ignore this email.\n\nBest regards,\nThe ExaMark Team",
+    "status": "sent",
+    "timestamp": "2025-09-20T14:24:09.116Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-7baedb6b-df73-4ed6-a372-6b1ff8e8a767@mg.examarkchat.com>",
+      "trackingEnabled": false,
+      "desktopTracking": true,
+      "personInfo": null
+    }
+  }
+]
