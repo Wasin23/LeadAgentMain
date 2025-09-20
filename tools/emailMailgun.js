@@ -190,6 +190,35 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
 
     console.log('[MAILGUN] Sent:', result);
     
+    // Save Message-ID → Tracking-ID mapping for webhook correlation
+    if (enableTracking && trackingId && result.id) {
+      try {
+        const messageId = result.id.replace(/[<>]/g, ''); // Remove angle brackets
+        const mappingPath = path.join(process.cwd(), 'message_tracking_map.json');
+        
+        let mappings = {};
+        try {
+          const existingMappings = await fs.readFile(mappingPath, 'utf8');
+          mappings = JSON.parse(existingMappings);
+        } catch (error) {
+          // File doesn't exist, start fresh
+        }
+        
+        mappings[messageId] = {
+          trackingId: trackingId,
+          to: to,
+          subject: subject,
+          sentAt: new Date().toISOString(),
+          source: 'email' // Could be 'manual' or 'lead_agent'
+        };
+        
+        await fs.writeFile(mappingPath, JSON.stringify(mappings, null, 2));
+        console.log(`[MAILGUN] Saved Message-ID mapping: ${messageId} → ${trackingId}`);
+      } catch (error) {
+        console.error('[MAILGUN] Failed to save Message-ID mapping:', error);
+      }
+    }
+    
     // Log successful email with tracking ID
     const loggedId = await logEmailToFile(to, subject, body, 'sent', trackingId, {
       mailgunId: result.id,
