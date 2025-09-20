@@ -174,7 +174,9 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       html: htmlBody,
       text: body,
       'h:Message-ID': `<tracking-${trackingId || uuidv4()}@${process.env.MAILGUN_DOMAIN}>`,
-      'h:X-Tracking-ID': trackingId || 'no-tracking'
+      'h:X-Tracking-ID': trackingId || 'no-tracking',
+      'o:tag': 'transactional', // Force classification as transactional email
+      'o:require-tls': 'yes' // Require TLS for better deliverability
     };
     
     // Disable Mailgun's tracking to avoid conflicts
@@ -243,7 +245,9 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
       html: finalHtmlBody,
       text: textBody,
       'h:Message-ID': `<tracking-${trackingId || uuidv4()}@${process.env.MAILGUN_DOMAIN}>`,
-      'h:X-Tracking-ID': trackingId || 'no-tracking'
+      'h:X-Tracking-ID': trackingId || 'no-tracking',
+      'o:tag': 'transactional', // Force classification as transactional email
+      'o:require-tls': 'yes' // Require TLS for better deliverability
     };
     
     // Disable Mailgun's tracking to avoid conflicts
