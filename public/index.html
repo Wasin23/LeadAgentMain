@@ -8034,10 +8034,11 @@ Example usage in prompt:
         // Reset current user variable
         currentUser = null;
         
-        // Small delay to ensure cleanup completes
-        setTimeout(() => {
-          window.location.href = '/auth.html';
-        }, 100);
+        // Clear any cached data
+        sessionStorage.clear();
+        
+        // Force reload to auth page to ensure clean state
+        window.location.replace('/auth.html');
       }
     }
 
