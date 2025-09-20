@@ -1,7 +1,7 @@
 [
   {
-    "id": "1758331117247",
-    "timestamp": "2025-09-20T01:18:37.247Z",
+    "id": "1758332110963",
+    "timestamp": "2025-09-20T01:35:10.963Z",
     "status": "approved",
     "source": "custom",
     "leadData": {
@@ -12,17 +12,17 @@
       "context": "Custom email created by user"
     },
     "emailData": {
-      "subject": "test email for sales",
-      "body": "hello, i provide product x, product X is house cleaning. would you like to purchase product X. the rate equation is 1$ per 100sqft of the area you would like cleaned.",
+      "subject": "test email for sales 3",
+      "body": "hello, i provide product Y, product Y is house cleaning. would you like to purchase product Y. the rate equation is 12$ per 100sqft of the area you would like cleaned",
       "finalRecipient": "COLTON.FIDD@GMAIL.COM",
-      "finalSubject": "test email for sales",
-      "finalBody": "hello, i provide product x, product X is house cleaning. would you like to purchase product X. the rate equation is 1$ per 100sqft of the area you would like cleaned."
+      "finalSubject": "test email for sales 3",
+      "finalBody": "hello, i provide product Y, product Y is house cleaning. would you like to purchase product Y. the rate equation is 12$ per 100sqft of the area you would like cleaned"
     },
     "metadata": {
       "customEmail": true,
-      "createdAt": "2025-09-20T01:18:37.242Z",
+      "createdAt": "2025-09-20T01:35:10.960Z",
       "createdBy": "user"
     },
-    "approvedAt": "2025-09-20T01:18:39.294Z"
+    "approvedAt": "2025-09-20T01:35:12.695Z"
   }
 ]

@@ -5499,30 +5499,72 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           <!-- Response Content (if any) -->
           ${isReplied ? `
           <div style="background: rgba(139, 92, 246, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #8b5cf6;">
-            <div style="color: #8b5cf6; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-              💬 Conversation
+            <!-- Collapsible Header -->
+            <div onclick="toggleConversation('${email.id}')" style="color: #8b5cf6; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none;">
+              <span id="conversation-arrow-${email.id}" style="transition: transform 0.2s; transform: rotate(-90deg);">▶</span>
+              💬 Conversation (${email.replies ? email.replies.length : 1} message${email.replies && email.replies.length > 1 ? 's' : ''})
               ${responseDate ? `<span style="color: #94a3b8; font-size: 0.8rem; font-weight: normal;">${new Date(responseDate).toLocaleString()}</span>` : ''}
             </div>
             
-            <!-- Lead Response -->
-            ${email.replies && email.replies[0] && email.replies[0].lead_message ? `
-            <div style="margin-bottom: 0.75rem;">
-              <div style="color: #059669; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem;">📧 Lead Response:</div>
-              <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; background: rgba(5, 150, 105, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #059669;">
-                "${email.replies[0].lead_message}"
-              </div>
+            <!-- Collapsible Conversation Container -->
+            <div id="conversation-content-${email.id}" style="display: none; max-height: 400px; overflow-y: auto; margin-bottom: 0.5rem; padding-right: 0.5rem;">
+              ${email.replies && email.replies.length > 0 ? email.replies.map((reply, index) => `
+                <div style="margin-bottom: 1rem; padding-bottom: 0.75rem; ${index < email.replies.length - 1 ? 'border-bottom: 1px solid rgba(139, 92, 246, 0.2);' : ''}">
+                  
+                  <!-- Lead Message -->
+                  ${reply.lead_message ? `
+                  <div style="margin-bottom: 0.75rem;">
+                    <div style="color: #059669; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem;">📧 Lead Response:</div>
+                    <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; background: rgba(5, 150, 105, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #059669; white-space: pre-wrap;">
+                      ${(() => {
+                        // Extract only the lead's actual response, remove quoted email chain
+                        let cleanMessage = reply.lead_message;
+                        
+                        // Remove everything after "On [date] at [time]" pattern
+                        cleanMessage = cleanMessage.split(/\\n\\nOn .+ wrote:/)[0];
+                        cleanMessage = cleanMessage.split(/\\r\\n\\r\\nOn .+ wrote:/)[0];
+                        cleanMessage = cleanMessage.split(/On .+ wrote:/)[0];
+                        
+                        // Remove quoted content (lines starting with >)
+                        cleanMessage = cleanMessage.split('\\n').filter(line => !line.trim().startsWith('>')).join('\\n');
+                        cleanMessage = cleanMessage.split('\\r\\n').filter(line => !line.trim().startsWith('>')).join('\\r\\n');
+                        
+                        // Clean up extra whitespace
+                        cleanMessage = cleanMessage.trim();
+                        
+                        return cleanMessage.length > 300 ? cleanMessage.substring(0, 300) + '...' : cleanMessage;
+                      })()}
+                    </div>
+                  </div>
+                  ` : ''}
+                  
+                  <!-- AI Response -->
+                  ${reply.ai_response ? `
+                  <div style="margin-bottom: 0.5rem;">
+                    <div style="color: #8b5cf6; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem;">🤖 AI Response:</div>
+                    <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; background: rgba(139, 92, 246, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #8b5cf6; white-space: pre-wrap;">
+                      ${reply.ai_response.length > 300 ? reply.ai_response.substring(0, 300) + '...' : reply.ai_response}
+                    </div>
+                  </div>
+                  ` : ''}
+                  
+                  <!-- Conversation Timestamp -->
+                  <div style="color: #94a3b8; font-size: 0.75rem; text-align: right; margin-top: 0.5rem;">
+                    ${new Date(reply.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              `).join('') : `
+                <!-- Fallback for old response format -->
+                <div style="margin-bottom: 0.75rem;">
+                  <div style="color: #8b5cf6; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem;">🤖 AI Response:</div>
+                  <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; background: rgba(139, 92, 246, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #8b5cf6;">
+                    "${responseContent}"
+                  </div>
+                </div>
+              `}
             </div>
-            ` : ''}
             
-            <!-- AI Response -->
-            <div>
-              <div style="color: #8b5cf6; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem;">🤖 AI Response:</div>
-              <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; background: rgba(139, 92, 246, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #8b5cf6;">
-                "${responseContent}"
-              </div>
-            </div>
-            
-            <button onclick="addResponse('${email.id}', '${responseContent}', '${responseDate || ''}')" style="background: none; border: 1px solid #8b5cf6; color: #8b5cf6; cursor: pointer; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 6px; margin-top: 0.5rem; transition: all 0.2s;">
+            <button onclick="addResponse('${email.id}', '${responseContent}', '${responseDate || ''}')" style="background: none; border: 1px solid #8b5cf6; color: #8b5cf6; cursor: pointer; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 6px; transition: all 0.2s;">
               ✏️ Edit Response
             </button>
           </div>
@@ -5775,6 +5817,22 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         contentDiv.style.maxHeight = 'none';
         button.textContent = '📄 Less';
         button.title = 'Show less';
+      }
+    }
+
+    // Toggle conversation visibility
+    function toggleConversation(emailId) {
+      const contentDiv = document.getElementById(`conversation-content-${emailId}`);
+      const arrow = document.getElementById(`conversation-arrow-${emailId}`);
+      
+      if (contentDiv.style.display === 'none') {
+        contentDiv.style.display = 'block';
+        arrow.style.transform = 'rotate(0deg)';
+        arrow.textContent = '▼';
+      } else {
+        contentDiv.style.display = 'none';
+        arrow.style.transform = 'rotate(-90deg)';
+        arrow.textContent = '▶';
       }
     }
 
