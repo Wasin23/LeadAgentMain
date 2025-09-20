@@ -309,4 +309,39 @@ router.post('/settings/reset', async (req, res) => {
   }
 });
 
+// Test calendar integration
+router.post('/calendar/test', async (req, res) => {
+  try {
+    console.log('[CALENDAR TEST] Testing calendar integration...');
+    const { calendar_link } = req.body;
+    
+    if (!calendar_link) {
+      return res.status(400).json({
+        success: false,
+        error: 'calendar_link is required',
+        message: 'Please provide a calendar link to test'
+      });
+    }
+    
+    // Import calendar manager
+    const { calendarManager } = await import('../utils/calendarIntegrationManager.js');
+    
+    const testResult = await calendarManager.testCalendarIntegration(calendar_link);
+    
+    res.json({
+      success: true,
+      calendar_test: testResult,
+      message: 'Calendar integration test completed successfully'
+    });
+    
+  } catch (error) {
+    console.error('[CALENDAR TEST] Error testing calendar integration:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to test calendar integration'
+    });
+  }
+});
+
 export default router;

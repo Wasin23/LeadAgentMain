@@ -164,7 +164,7 @@ export class ResponseTemplateEngine {
 
 Thank you for your interest in {{product_name}}! I'm excited to help you learn more about how we can {{primary_value_prop}}.
 
-{{#if calendar_link}}I'd love to schedule a quick 15-minute call to discuss your specific needs and show you exactly how {{company_name}} can benefit your organization. You can book a convenient time here: {{calendar_link}}{{/if}}
+{{#if smart_calendar_text}}{{smart_calendar_text}}{{/if}}{{#if calendar_link}}{{#if meeting_suggested}}I'd love to schedule a quick {{meeting_duration}} call to discuss your specific needs and show you exactly how {{company_name}} can benefit your organization. You can book a convenient time here: {{calendar_link}}{{/if}}{{/if}}
 
 {{#if value_props_list}}Here are some key benefits our clients typically see:
 • {{value_props_list}}{{/if}}
@@ -179,7 +179,7 @@ Best regards,
 
 Great question about pricing! {{company_name}}'s {{product_name}} is designed to {{primary_value_prop}}, and our pricing reflects the significant value it delivers.
 
-{{#if calendar_link}}I'd be happy to provide you with a customized quote based on your specific requirements. Could we schedule a brief 15-minute call to discuss your needs? You can pick a time that works for you: {{calendar_link}}{{/if}}
+{{#if smart_calendar_text}}{{smart_calendar_text}}{{/if}}{{#if calendar_link}}{{#if meeting_suggested}}I'd be happy to provide you with a customized quote based on your specific requirements. Could we schedule a brief {{meeting_duration}} call {{calendar_custom_message}}? You can pick a time that works for you: {{calendar_link}}{{/if}}{{/if}}
 
 {{#if value_prop_1}}During our call, I'll show you how we typically help companies achieve {{value_prop_1}}{{/if}}{{#if value_prop_2}} and {{value_prop_2}}{{/if}}.
 
@@ -195,7 +195,7 @@ Excellent technical question! {{#if lead_company}}I can see why this would be im
 
 {{product_name}} handles this through our advanced architecture that enables {{primary_value_prop}}. The technical implementation varies based on your specific infrastructure and requirements.
 
-{{#if calendar_link}}I'd love to schedule a technical deep-dive call where I can walk you through exactly how this works in your environment. You can book a time here: {{calendar_link}}{{/if}}
+{{#if smart_calendar_text}}{{smart_calendar_text}}{{/if}}{{#if calendar_link}}{{#if meeting_suggested}}I'd love to schedule a {{meeting_duration}} technical deep-dive call where I can walk you through exactly how this works in your environment. You can book a time here: {{calendar_link}}{{/if}}{{/if}}
 
 {{#if technical_depth}}Based on your question, I think you'd appreciate seeing our detailed technical documentation and perhaps a live demo of the system in action.{{/if}}
 
@@ -211,7 +211,7 @@ I wanted to follow up on our conversation about {{product_name}}. {{#if lead_com
 
 {{#if question_count}}Since you had some great questions, I thought you might be interested in seeing a personalized demo that addresses your specific use case.{{/if}}
 
-{{#if calendar_link}}Would you be available for a quick 15-minute call this week? You can choose a time that works best for you: {{calendar_link}}{{/if}}
+{{#if smart_calendar_text}}{{smart_calendar_text}}{{/if}}{{#if calendar_link}}{{#if meeting_suggested}}Would you be available for a quick {{meeting_duration}} call this week? You can choose a time that works best for you: {{calendar_link}}{{/if}}{{/if}}
 
 {{#if value_props_list}}Just as a reminder, here's what we typically help companies achieve:
 • {{value_props_list}}{{/if}}
@@ -295,7 +295,7 @@ Best regards,
     /**
      * Generate a contextual response based on intent and available data
      */
-    generateContextualResponse(intent, companySettings, leadData = {}, conversationContext = {}) {
+    async generateContextualResponse(intent, companySettings, leadData = {}, conversationContext = {}) {
         console.log(`📝 [TEMPLATE ENGINE] Generating contextual response for intent: ${intent}`);
         
         if (!this.initialized) {
@@ -306,6 +306,11 @@ Best regards,
         this.loadCompanySettings(companySettings);
         this.loadLeadData(leadData);
         this.loadConversationContext(conversationContext);
+        
+        // Integrate calendar functionality if calendar link is available
+        if (companySettings.calendar_link) {
+            await this.loadCalendarIntegration(companySettings.calendar_link, intent, conversationContext);
+        }
         
         // Map intent to template
         let templateName;
@@ -347,6 +352,56 @@ Best regards,
                 success: false,
                 error: `Failed to generate response for intent: ${intent}`
             };
+        }
+    }
+
+    /**
+     * Load calendar integration variables
+     */
+    async loadCalendarIntegration(calendarLink, intent, conversationContext) {
+        try {
+            console.log('📅 [TEMPLATE ENGINE] Loading calendar integration variables...');
+            
+            // Import calendar manager
+            const { calendarManager } = await import('./calendarIntegrationManager.js');
+            
+            // Initialize if needed
+            if (!calendarManager.initialized) {
+                await calendarManager.initialize();
+            }
+            
+            // Generate meeting strategy
+            const strategy = calendarManager.generateMeetingStrategy(
+                intent, 
+                conversationContext.stage || 'initial'
+            );
+            
+            // Generate calendar variables
+            const calendarVars = calendarManager.generateCalendarTemplateVariables(
+                calendarLink, 
+                strategy
+            );
+            
+            // Set calendar-specific variables
+            this.setVariables(calendarVars);
+            
+            // Add smart calendar text
+            const calendarText = calendarManager.generateCalendarText(calendarLink, {
+                intent: intent,
+                urgency: strategy.urgency,
+                duration: strategy.suggested_duration
+            });
+            
+            this.setVariable('smart_calendar_text', calendarText);
+            this.setVariable('meeting_suggested', strategy.should_suggest_meeting);
+            
+            console.log('✅ [TEMPLATE ENGINE] Calendar integration variables loaded');
+            
+        } catch (error) {
+            console.error('❌ [TEMPLATE ENGINE] Error loading calendar integration:', error);
+            // Fallback to basic calendar link
+            this.setVariable('calendar_link', calendarLink);
+            this.setVariable('meeting_suggested', true);
         }
     }
 }
