@@ -5500,12 +5500,28 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           ${isReplied ? `
           <div style="background: rgba(139, 92, 246, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #8b5cf6;">
             <div style="color: #8b5cf6; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-              💬 Response Received
+              💬 Conversation
               ${responseDate ? `<span style="color: #94a3b8; font-size: 0.8rem; font-weight: normal;">${new Date(responseDate).toLocaleString()}</span>` : ''}
             </div>
-            <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; font-style: italic; background: rgba(255, 255, 255, 0.6); padding: 0.75rem; border-radius: 8px;">
-              "${responseContent}"
+            
+            <!-- Lead Response -->
+            ${email.replies && email.replies[0] && email.replies[0].lead_message ? `
+            <div style="margin-bottom: 0.75rem;">
+              <div style="color: #059669; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem;">📧 Lead Response:</div>
+              <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; background: rgba(5, 150, 105, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #059669;">
+                "${email.replies[0].lead_message}"
+              </div>
             </div>
+            ` : ''}
+            
+            <!-- AI Response -->
+            <div>
+              <div style="color: #8b5cf6; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem;">🤖 AI Response:</div>
+              <div style="color: #374151; font-size: 0.9rem; line-height: 1.4; background: rgba(139, 92, 246, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #8b5cf6;">
+                "${responseContent}"
+              </div>
+            </div>
+            
             <button onclick="addResponse('${email.id}', '${responseContent}', '${responseDate || ''}')" style="background: none; border: 1px solid #8b5cf6; color: #8b5cf6; cursor: pointer; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 6px; margin-top: 0.5rem; transition: all 0.2s;">
               ✏️ Edit Response
             </button>
