@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "id": "33493b6943ac0a8c7fca7687adf1d5e1",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "test email for sales",
+    "body": "hello, i provide product x, product X is house cleaning. would you like to purchase product X. the rate equation is 1$ per 100sqft of the area you would like cleaned.",
+    "status": "sent",
+    "timestamp": "2025-09-20T01:18:39.775Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": true,
+      "clicked": false,
+      "replied": true,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 5,
+      "lastActivity": "2025-09-20T01:25:05.525Z",
+      "mailgunId": "<tracking-33493b6943ac0a8c7fca7687adf1d5e1@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null,
+      "replyCount": 1
+    },
+    "opened": true,
+    "openCount": 5,
+    "clickCount": 0,
+    "replies": [
+      {
+        "tracking_id": "33493b6943ac0a8c7fca7687adf1d5e1",
+        "timestamp": "2025-09-20T01:19:51.754Z",
+        "event_type": "ai_reply",
+        "ai_response": "Subject: Re: test email for sales\n\nDear Cole Fidelman,\n\nThank you for your interest in our house cleaning service. Based on the rate equation provided, cleaning a 4000 sqft house would cost $40.\n\nIf you would like to proceed with purchasing product X for your house, please let me know, and we can arrange the cleaning service for you.\n\nFeel free to reach out if you have any further questions or would like to schedule a cleaning.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \nExaMark",
+        "sender": "Cole Fidelman <colton.fidd@gmail.com>",
+        "recipient": "replies@mg.examarkchat.com",
+        "processed": false
+      }
+    ]
+  }
+]

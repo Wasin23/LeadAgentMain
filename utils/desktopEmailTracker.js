@@ -389,6 +389,16 @@ class DesktopEmailTracker {
               if (replyData.success && replyData.replies && replyData.replies.length > 0) {
                 // Store reply data in the email log
                 emailLogs[i].replies = replyData.replies;
+                
+                // Update analytics to show replied status
+                if (!emailLogs[i].analytics) {
+                  emailLogs[i].analytics = {};
+                }
+                
+                emailLogs[i].analytics.replied = true;
+                emailLogs[i].analytics.replyCount = replyData.replies.length;
+                emailLogs[i].analytics.lastActivity = new Date().toISOString();
+                
                 repliesUpdated = true;
                 
                 console.log(`📧 [REPLY SYNC] Found ${replyData.replies.length} replies for ${trackingId}`);

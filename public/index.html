@@ -5442,8 +5442,14 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         const isReplied = analytics.replied || false;
         const openCount = analytics.openCount || 0;
         const clickCount = analytics.clickCount || 0;
-        const responseContent = analytics.responseContent || '';
-        const responseDate = analytics.responseDate;
+        
+        // Get response content from replies array instead of analytics
+        const responseContent = (email.replies && email.replies.length > 0) 
+          ? (email.replies[0].ai_response || email.replies[0].content || '') 
+          : (analytics.responseContent || '');
+        const responseDate = (email.replies && email.replies.length > 0) 
+          ? email.replies[0].timestamp 
+          : analytics.responseDate;
         const lastActivity = analytics.lastActivity;
         
         // Status badges with enhanced styling
