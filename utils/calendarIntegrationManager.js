@@ -6,7 +6,8 @@ import 'dotenv/config';
  */
 export class CalendarIntegrationManager {
     constructor() {
-        this.googleCalendarApiKey = process.env.GOOGLE_CALENDAR_API_KEY;
+        this.googleServiceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+        this.googlePrivateKey = process.env.GOOGLE_PRIVATE_KEY;
         this.googleCalendarId = process.env.GOOGLE_CALENDAR_ID;
         this.calendlyApiKey = process.env.CALENDLY_API_KEY;
         this.calendlyUserId = process.env.CALENDLY_USER_ID;
@@ -16,7 +17,7 @@ export class CalendarIntegrationManager {
     async initialize() {
         console.log('📅 [CALENDAR] Initializing Calendar Integration Manager...');
         
-        if (!this.googleCalendarApiKey && !this.calendlyApiKey) {
+        if (!this.googleServiceAccountEmail && !this.calendlyApiKey) {
             console.warn('⚠️ [CALENDAR] No calendar API keys found. Calendar features will be limited.');
         }
         
@@ -141,17 +142,20 @@ Looking forward to our conversation!`;
      * Create a Google Calendar event (if API configured)
      */
     async createGoogleCalendarEvent(eventDetails) {
-        if (!this.googleCalendarApiKey || !this.googleCalendarId) {
-            console.warn('⚠️ [CALENDAR] Google Calendar API not configured');
-            return { success: false, error: 'Google Calendar API not configured' };
+        if (!this.googleServiceAccountEmail || !this.googlePrivateKey || !this.googleCalendarId) {
+            console.warn('⚠️ [CALENDAR] Google Calendar Service Account not configured');
+            return { success: false, error: 'Google Calendar Service Account not configured' };
         }
 
         console.log('📅 [CALENDAR] Creating Google Calendar event...');
         
         try {
+            // Create JWT token for service account authentication
+            const jwt = await this.createJWT();
+            
             const event = {
                 summary: eventDetails.title || 'Sales Discussion',
-                description: eventDetails.description || 'Scheduled through AI email responder',
+                description: `${eventDetails.description || 'Scheduled through AI email responder'}\n\nProspect Details:\n${eventDetails.attendees?.map(a => `${a.displayName || 'Prospect'}: ${a.email}`).join('\n') || 'No attendees specified'}`,
                 start: {
                     dateTime: eventDetails.startTime,
                     timeZone: eventDetails.timeZone || 'America/New_York'
@@ -159,22 +163,22 @@ Looking forward to our conversation!`;
                 end: {
                     dateTime: eventDetails.endTime,
                     timeZone: eventDetails.timeZone || 'America/New_York'
-                },
-                attendees: eventDetails.attendees || [],
-                conferenceData: {
-                    createRequest: {
-                        requestId: `ai-responder-${Date.now()}`,
-                        conferenceSolutionKey: { type: 'hangoutsMeet' }
-                    }
                 }
+                // Skip conference data for now to avoid permission issues
+                // conferenceData: {
+                //     createRequest: {
+                //         requestId: `ai-responder-${Date.now()}`,
+                //         conferenceSolutionKey: { type: 'hangoutsMeet' }
+                //     }
+                // }
             };
 
             const response = await fetch(
-                `https://www.googleapis.com/calendar/v3/calendars/${this.googleCalendarId}/events?conferenceDataVersion=1`,
+                `https://www.googleapis.com/calendar/v3/calendars/${this.googleCalendarId}/events`,
                 {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${this.googleCalendarApiKey}`,
+                        'Authorization': `Bearer ${jwt}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(event)
@@ -201,6 +205,53 @@ Looking forward to our conversation!`;
             console.error('❌ [CALENDAR] Error creating Google Calendar event:', error);
             return { success: false, error: error.message };
         }
+    }
+
+    /**
+     * Create JWT token for service account authentication
+     */
+    async createJWT() {
+        const header = {
+            alg: 'RS256',
+            typ: 'JWT'
+        };
+
+        const now = Math.floor(Date.now() / 1000);
+        const payload = {
+            iss: this.googleServiceAccountEmail,
+            scope: 'https://www.googleapis.com/auth/calendar',
+            aud: 'https://oauth2.googleapis.com/token',
+            exp: now + 3600,
+            iat: now
+        };
+
+        // Simple JWT creation (in production, use a proper JWT library)
+        const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
+        const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+        
+        const signatureInput = `${encodedHeader}.${encodedPayload}`;
+        
+        // Create signature using private key
+        const crypto = await import('crypto');
+        const signature = crypto.sign('RSA-SHA256', Buffer.from(signatureInput), this.googlePrivateKey);
+        const encodedSignature = signature.toString('base64url');
+        
+        const jwt = `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+        
+        // Exchange JWT for access token
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                assertion: jwt
+            })
+        });
+
+        const tokenData = await tokenResponse.json();
+        return tokenData.access_token;
     }
 
     /**
