@@ -3178,3 +3178,21 @@
 {"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:31:24.789Z","userAgent":"node"}
 {"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:31:53.928Z","userAgent":"node"}
 {"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:31:54.997Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:32:23.949Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:32:24.792Z","userAgent":"node"}
+{"level":"info","message":"Received SIGINT. Starting graceful shutdown...","service":"examark-api","timestamp":"2025-09-21T21:32:31.409Z"}
+{"environment":"development","level":"info","message":"ExaMark server started on port 8080","service":"examark-api","sessionId":"mfu7raotdm3d5eayw7e","timestamp":"2025-09-21T21:32:42.176Z"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:32:45.912Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:32:47.235Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:33:15.904Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:33:17.087Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:33:45.904Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:33:46.802Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:34:15.914Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:34:16.795Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:34:45.924Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:34:46.992Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:35:15.929Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:35:16.790Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/events","service":"examark-api","timestamp":"2025-09-21T21:35:45.932Z","userAgent":"node"}
+{"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/replies/default_1758489459059_1ebd4461","service":"examark-api","timestamp":"2025-09-21T21:35:46.794Z","userAgent":"node"}
