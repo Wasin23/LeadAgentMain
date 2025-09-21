@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "1758421855269",
+    "timestamp": "2025-09-21T02:30:55.269Z",
+    "status": "approved",
+    "source": "custom",
+    "leadData": {
+      "email": "COLTON.FIDD@GMAIL.COM",
+      "company": "Custom Email",
+      "name": "COLTON.FIDD",
+      "title": "Custom Contact",
+      "context": "Custom email created by user"
+    },
+    "emailData": {
+      "subject": "hello this is a sales email for object Y",
+      "body": "Hello, I am selling object Y. Object Y is a granyseed apple. I am selling object Y for $4. Would you like to buy?",
+      "finalRecipient": "COLTON.FIDD@GMAIL.COM",
+      "finalSubject": "hello this is a sales email for object Y",
+      "finalBody": "Hello, I am selling object Y. Object Y is a granyseed apple. I am selling object Y for $4. Would you like to buy?"
+    },
+    "metadata": {
+      "customEmail": true,
+      "createdAt": "2025-09-21T02:30:55.267Z",
+      "createdBy": "user"
+    },
+    "approvedAt": "2025-09-21T02:30:57.986Z"
+  }
+]
