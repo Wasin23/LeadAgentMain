@@ -208,46 +208,60 @@ Looking forward to our conversation!`;
      * Create JWT token for service account authentication
      */
     async createJWT() {
-        const header = {
-            alg: 'RS256',
-            typ: 'JWT'
-        };
+        try {
+            const header = {
+                alg: 'RS256',
+                typ: 'JWT'
+            };
 
-        const now = Math.floor(Date.now() / 1000);
-        const payload = {
-            iss: this.googleServiceAccountEmail,
-            scope: 'https://www.googleapis.com/auth/calendar',
-            aud: 'https://oauth2.googleapis.com/token',
-            exp: now + 3600,
-            iat: now
-        };
+            const now = Math.floor(Date.now() / 1000);
+            const payload = {
+                iss: this.googleServiceAccountEmail,
+                scope: 'https://www.googleapis.com/auth/calendar',
+                aud: 'https://oauth2.googleapis.com/token',
+                exp: now + 3600,
+                iat: now
+            };
 
-        // Simple JWT creation
-        const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-        const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-        
-        const signatureInput = `${encodedHeader}.${encodedPayload}`;
-        
-        // Create signature using private key
-        const signature = crypto.sign('RSA-SHA256', Buffer.from(signatureInput), this.googlePrivateKey);
-        const encodedSignature = signature.toString('base64url');
-        
-        const jwt = `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
-        
-        // Exchange JWT for access token
-        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-                assertion: jwt
-            })
-        });
+            // Simple JWT creation
+            const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
+            const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+            
+            const signatureInput = `${encodedHeader}.${encodedPayload}`;
+            
+            // Properly format private key (handle escaped newlines from environment variables)
+            const privateKey = this.googlePrivateKey.replace(/\\n/g, '\n');
+            
+            // Create signature using private key
+            const signature = crypto.sign('RSA-SHA256', Buffer.from(signatureInput), privateKey);
+            const encodedSignature = signature.toString('base64url');
+            
+            const jwt = `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+            
+            // Exchange JWT for access token
+            const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                    assertion: jwt
+                })
+            });
 
-        const tokenData = await tokenResponse.json();
-        return tokenData.access_token;
+            const tokenData = await tokenResponse.json();
+            
+            if (!tokenData.access_token) {
+                console.error('❌ [CALENDAR] Token exchange failed:', tokenData);
+                throw new Error(`Token exchange failed: ${JSON.stringify(tokenData)}`);
+            }
+            
+            return tokenData.access_token;
+        } catch (error) {
+            console.error('❌ [CALENDAR] JWT creation failed:', error.message);
+            throw error;
+        }
     }
 
     /**
