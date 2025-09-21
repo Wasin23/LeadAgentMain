@@ -223,18 +223,36 @@ Looking forward to our conversation!`;
                 iat: now
             };
 
-            // Simple JWT creation
-            const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-            const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+            // Base64url encode header and payload
+            const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+            
+            const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
             
             const signatureInput = `${encodedHeader}.${encodedPayload}`;
             
-            // Properly format private key (handle escaped newlines from environment variables)
-            const privateKey = this.googlePrivateKey.replace(/\\n/g, '\n');
+            // Properly format private key (handle escaped newlines and quotes)
+            let privateKey = this.googlePrivateKey;
+            if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+                privateKey = privateKey.slice(1, -1);
+            }
+            privateKey = privateKey.replace(/\\n/g, '\n');
             
-            // Create signature using private key
-            const signature = crypto.sign('RSA-SHA256', Buffer.from(signatureInput), privateKey);
-            const encodedSignature = signature.toString('base64url');
+            // Create signature using RSA-SHA256
+            const sign = crypto.createSign('RSA-SHA256');
+            sign.update(signatureInput);
+            sign.end();
+            
+            const signature = sign.sign(privateKey);
+            const encodedSignature = signature.toString('base64')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
             
             const jwt = `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
             

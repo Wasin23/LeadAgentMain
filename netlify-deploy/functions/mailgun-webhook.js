@@ -269,9 +269,14 @@ function extractTrackingId(formData, subject, body) {
     
     // Look for user-specific tracking pattern: <userid_timestamp_hash@domain>
     const userTrackingMatch = inReplyTo.match(/<([^@>]+)@/);
-    if (userTrackingMatch && userTrackingMatch[1].includes('_')) {
-      console.log('[EXTRACT] Found user tracking ID in Message-ID:', userTrackingMatch[1]);
-      return userTrackingMatch[1];
+    if (userTrackingMatch) {
+      const potentialTrackingId = userTrackingMatch[1];
+      // Accept any tracking ID that contains underscore (user-specific format)
+      // Examples: default_1726935600000_calendar, user123_1234567890_meeting
+      if (potentialTrackingId.includes('_') && potentialTrackingId.length >= 5) {
+        console.log('[EXTRACT] Found user tracking ID in Message-ID:', potentialTrackingId);
+        return potentialTrackingId;
+      }
     }
   }
 
@@ -295,9 +300,14 @@ function extractTrackingId(formData, subject, body) {
     
     // Look for user-specific tracking pattern: <userid_timestamp_hash@domain>
     const userTrackingMatch = references.match(/<([^@>]+)@/);
-    if (userTrackingMatch && userTrackingMatch[1].includes('_')) {
-      console.log('[EXTRACT] Found user tracking ID in References:', userTrackingMatch[1]);
-      return userTrackingMatch[1];
+    if (userTrackingMatch) {
+      const potentialTrackingId = userTrackingMatch[1];
+      // Accept any tracking ID that contains underscore (user-specific format)
+      // Examples: default_1726935600000_calendar, user123_1234567890_meeting
+      if (potentialTrackingId.includes('_') && potentialTrackingId.length >= 5) {
+        console.log('[EXTRACT] Found user tracking ID in References:', potentialTrackingId);
+        return potentialTrackingId;
+      }
     }
   }
   
@@ -308,6 +318,17 @@ function extractTrackingId(formData, subject, body) {
     return subjectMatch32[1];
   }
   
+  // Check for user-specific tracking ID format in subject [userid_timestamp_hash]
+  const subjectMatchUserFormat = subject?.match(/\[([a-zA-Z0-9_-]+)\]/);
+  if (subjectMatchUserFormat) {
+    const potentialTrackingId = subjectMatchUserFormat[1];
+    // Accept if it contains underscore and is reasonable length (user-specific format)
+    if (potentialTrackingId.includes('_') && potentialTrackingId.length >= 5) {
+      console.log('[EXTRACT] Found user-format tracking ID in subject:', potentialTrackingId);
+      return potentialTrackingId;
+    }
+  }
+  
   // Also check for Track_ patterns for testing purposes
   const subjectMatchTrack = subject?.match(/Track_([a-zA-Z0-9]+)/);
   if (subjectMatchTrack) {
@@ -315,8 +336,8 @@ function extractTrackingId(formData, subject, body) {
     return subjectMatchTrack[1];
   }
   
-  // Check for tracking ID in brackets with various formats
-  const subjectMatchBracket = subject?.match(/\[([a-zA-Z0-9_-]{5,32})\]/);
+  // Check for tracking ID in brackets with various formats (fallback)
+  const subjectMatchBracket = subject?.match(/\[([a-zA-Z0-9_-]{5,50})\]/);
   if (subjectMatchBracket) {
     console.log('[EXTRACT] Found bracketed tracking ID in subject:', subjectMatchBracket[1]);
     return subjectMatchBracket[1];
@@ -1472,17 +1493,20 @@ function applyTemplateSubstitutions(template, variables) {
 
 // Enhance template response with AI for better personalization
 async function enhanceResponseWithAI(templateResponse, emailData, intent, sentiment, settings, userId = 'default') {
-  // First, get the timezone from settings for this user
+  // First, check if this email is a timezone confirmation response
+  const timezoneConfirmation = await detectTimezoneConfirmation(emailData.body);
+  
+  // Get the timezone from settings for this user
   const defaultTimezone = await getTimezoneFromSettings(userId);
   
-  // Then, check if this email contains a meeting time that needs timezone confirmation
+  // Check if this email contains a meeting time that needs timezone confirmation
   let timeZoneConfirmationNeeded = false;
   let meetingDetails = null;
   
   if (intent === 'meeting_request_positive' || intent === 'meeting_time_preference') {
     try {
       meetingDetails = await detectConfirmedMeetingTime(emailData.body, intent, defaultTimezone);
-      if (meetingDetails.found && meetingDetails.suggestTimeZoneConfirmation) {
+      if (meetingDetails.found && meetingDetails.suggestTimeZoneConfirmation && !timezoneConfirmation.isTimezoneConfirmation) {
         timeZoneConfirmationNeeded = true;
       }
     } catch (error) {
@@ -1502,6 +1526,18 @@ ORIGINAL EMAIL CONTEXT:
 - Intent: ${intent}
 - Sentiment: ${sentiment}
 - Default Timezone: ${defaultTimezone}
+
+${timezoneConfirmation.isTimezoneConfirmation ? `
+IMPORTANT TIMEZONE CONFIRMATION DETECTED:
+The lead has provided their timezone information: ${timezoneConfirmation.detectedTimezone}
+This means they are responding to a timezone question. You should:
+1. Acknowledge their timezone confirmation 
+2. Proceed to schedule the meeting
+3. NOT ask for timezone again
+4. Use their confirmed timezone (${timezoneConfirmation.detectedTimezone}) for scheduling
+
+Example response: "Perfect! Thanks for confirming you're in Pacific Time. I'll go ahead and schedule our meeting and send you a calendar invite shortly."
+` : ''}
 
 ${timeZoneConfirmationNeeded ? `
 IMPORTANT TIMEZONE REQUIREMENT:
@@ -2184,10 +2220,21 @@ async function handleCalendarEventCreation(emailData, aiResponse, trackingId, us
       return { eventCreated: false, reason: 'Google Calendar Service Account not configured' };
     }
     
+    // Check if this email contains timezone confirmation
+    const timezoneConfirmation = await detectTimezoneConfirmation(emailBody);
+    
     // Get user's timezone and calendar ID settings for calendar events
-    const userTimezone = await getTimezoneFromSettings(userId);
+    let userTimezone = await getTimezoneFromSettings(userId);
+    
+    // If user provided timezone confirmation, use that instead
+    if (timezoneConfirmation.isTimezoneConfirmation) {
+      userTimezone = timezoneConfirmation.detectedTimezone;
+      console.log('🕰️ [CALENDAR] Using confirmed timezone from user:', userTimezone);
+    } else {
+      console.log('📅 [CALENDAR] Using user timezone from settings:', userTimezone);
+    }
+    
     const userCalendarId = await getCalendarIdFromSettings(userId);
-    console.log('📅 [CALENDAR] Using user timezone for calendar:', userTimezone);
     console.log('📅 [CALENDAR] Using user calendar ID:', userCalendarId);
     
     // Check if this email contains a confirmed meeting time
@@ -2248,6 +2295,92 @@ async function handleCalendarEventCreation(emailData, aiResponse, trackingId, us
       eventCreated: false,
       error: error.message,
       reason: 'Unexpected error during calendar event creation'
+    };
+  }
+}
+
+// Detect if someone is providing timezone confirmation in their email
+async function detectTimezoneConfirmation(emailBody) {
+  try {
+    console.log('🕰️ [TIMEZONE] Checking if email contains timezone confirmation...');
+    
+    const emailLower = emailBody.toLowerCase();
+    
+    // Check for timezone confirmation patterns
+    const timezonePatterns = [
+      // Direct timezone mentions
+      /i'?m in (.+) time/i,
+      /my time zone is (.+)/i,
+      /i'?m in the (.+) time zone/i,
+      /i'?m (.+) time/i,
+      
+      // Timezone abbreviations
+      /pst|pacific standard time|pacific time/i,
+      /est|eastern standard time|eastern time/i,
+      /cst|central standard time|central time/i,
+      /mst|mountain standard time|mountain time/i,
+      /utc|gmt|greenwich mean time/i,
+      
+      // Geographic references that imply timezone
+      /i'?m in california|west coast|pacific coast/i,
+      /i'?m in new york|east coast|eastern/i,
+      /i'?m in texas|central/i,
+      /i'?m in colorado|mountain/i
+    ];
+    
+    // Check if any timezone patterns match
+    const hasTimezoneInfo = timezonePatterns.some(pattern => pattern.test(emailBody));
+    
+    // Also look for words that indicate timezone confirmation
+    const confirmationWords = [
+      'pacific', 'eastern', 'central', 'mountain',
+      'pst', 'est', 'cst', 'mst', 'utc', 'gmt',
+      'california', 'new york', 'texas', 'colorado',
+      'time zone', 'timezone'
+    ];
+    
+    const hasConfirmationWords = confirmationWords.some(word => 
+      emailLower.includes(word)
+    );
+    
+    if (hasTimezoneInfo || hasConfirmationWords) {
+      console.log('✅ [TIMEZONE] Email appears to contain timezone confirmation');
+      
+      // Try to extract the specific timezone
+      let detectedTimezone = 'America/New_York'; // default
+      
+      if (/pst|pacific/i.test(emailBody)) {
+        detectedTimezone = 'America/Los_Angeles';
+      } else if (/est|eastern/i.test(emailBody)) {
+        detectedTimezone = 'America/New_York';
+      } else if (/cst|central/i.test(emailBody)) {
+        detectedTimezone = 'America/Chicago';
+      } else if (/mst|mountain/i.test(emailBody)) {
+        detectedTimezone = 'America/Denver';
+      } else if (/utc|gmt/i.test(emailBody)) {
+        detectedTimezone = 'UTC';
+      }
+      
+      return {
+        isTimezoneConfirmation: true,
+        detectedTimezone: detectedTimezone,
+        confidence: hasTimezoneInfo ? 'high' : 'medium'
+      };
+    }
+    
+    console.log('❌ [TIMEZONE] No timezone confirmation detected');
+    return {
+      isTimezoneConfirmation: false,
+      detectedTimezone: null,
+      confidence: 'low'
+    };
+    
+  } catch (error) {
+    console.error('❌ [TIMEZONE] Error detecting timezone confirmation:', error);
+    return {
+      isTimezoneConfirmation: false,
+      detectedTimezone: null,
+      confidence: 'low'
     };
   }
 }

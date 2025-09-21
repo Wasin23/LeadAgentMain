@@ -143,24 +143,86 @@ router.get('/replies/:trackingId', async (req, res) => {
         
         console.log(`📧 [ZILLIZ API] Getting replies for tracking ID: ${trackingId}`);
         
-        // Call the Netlify function to get replies
-        const netlifyUrl = `https://examarkchat.com/.netlify/functions/mailgun-webhook?tracking_id=${trackingId}`;
-        const response = await fetch(netlifyUrl);
+        // Query Zilliz directly for reply events
+        let replies = [];
         
-        if (response.ok) {
-            const data = await response.json();
-            res.status(200).json(data);
-        } else {
-            console.error(`❌ Failed to fetch replies: ${response.status}`);
-            // Return empty result instead of error to prevent 404 spam
-            res.status(200).json({
-                success: true,
-                trackingId: trackingId,
-                replies: [],
-                count: 0,
-                note: 'Netlify function temporarily unavailable'
-            });
+        try {
+            if (process.env.ZILLIZ_ENDPOINT && process.env.ZILLIZ_TOKEN) {
+                const { MilvusClient } = await import('@zilliz/milvus2-sdk-node');
+                const client = new MilvusClient({
+                    address: process.env.ZILLIZ_ENDPOINT,
+                    token: process.env.ZILLIZ_TOKEN
+                });
+
+                const collectionName = 'email_tracking_events';
+                
+                // Load collection
+                await client.loadCollection({ collection_name: collectionName });
+
+                // Extract base tracking ID from various formats
+                const baseTrackingId = trackingId
+                    .replace(/^tracking-/, '')
+                    .replace(/^ai-response-/, '')
+                    .replace(/^ai-response-tracking-/, '')
+                    .split('-').slice(0, 3).join('-'); // Keep only userid_timestamp_hash part
+
+                // Query for all events related to this tracking ID
+                const expr = `tracking_id like "${baseTrackingId}%" || tracking_id like "%${baseTrackingId}%"`;
+                
+                const queryResult = await client.query({
+                    collection_name: collectionName,
+                    expr: expr,
+                    limit: 100,
+                    consistency_level: 'Strong',
+                    output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed']
+                });
+
+                const allEvents = queryResult.data || queryResult || [];
+                console.log(`📧 [ZILLIZ API] Found ${allEvents.length} events for tracking ID pattern: ${baseTrackingId}`);
+                
+                // Filter for reply events (ai_reply and lead_message)
+                const replyEvents = allEvents.filter(event => 
+                    event.event_type === 'ai_reply' || event.event_type === 'lead_message'
+                );
+                
+                // Group events into conversations
+                const conversations = {};
+                replyEvents.forEach(event => {
+                    const key = event.tracking_id;
+                    if (!conversations[key]) {
+                        conversations[key] = [];
+                    }
+                    conversations[key].push(event);
+                });
+                
+                // Convert to reply format
+                replies = Object.values(conversations).flat().map(event => ({
+                    trackingId: event.tracking_id,
+                    type: event.event_type,
+                    timestamp: event.timestamp,
+                    from: event.email_address || 'Unknown',
+                    to: event.recipient || 'Unknown',
+                    ai_response: event.event_type === 'ai_reply' ? event.user_agent : null,
+                    lead_message: event.event_type === 'lead_message' ? event.user_agent : null,
+                    ai_response_sent: event.event_type === 'ai_reply',
+                    sentiment: 'neutral' // Default sentiment
+                }));
+                
+                console.log(`📧 [ZILLIZ API] Processed ${replies.length} reply events`);
+
+            } else {
+                console.log('📧 [ZILLIZ API] Zilliz credentials not configured');
+            }
+        } catch (zillizError) {
+            console.error('📧 [ZILLIZ API] Zilliz query failed:', zillizError);
         }
+        
+        res.status(200).json({
+            success: true,
+            trackingId: trackingId,
+            replies: replies,
+            count: replies.length
+        });
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error getting replies:', error);

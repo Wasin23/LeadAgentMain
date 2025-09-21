@@ -49,22 +49,34 @@ router.get('/replies', async (req, res) => {
         const allEvents = queryResult.data || queryResult || [];
         console.log('[REPLIES API] Found', allEvents.length, 'events in Zilliz');
         
-        // Group events by tracking_id to create conversations
-        const conversations = {};
+        // Group by base tracking ID (remove prefixes like 'tracking-', 'ai-response-', etc.)
+        const baseConversations = {};
         
         allEvents.forEach(event => {
-          const trackingId = event.tracking_id;
-          if (!conversations[trackingId]) {
-            conversations[trackingId] = {
-              trackingId: trackingId,
+          // Extract base tracking ID by removing common prefixes
+          let baseTrackingId = event.tracking_id;
+          
+          // Remove prefixes to get the base tracking ID
+          if (baseTrackingId.startsWith('ai-response-')) {
+            // For ai-response-tracking-default_1758486159748_f0b1ed27-1758486249728
+            baseTrackingId = baseTrackingId.replace(/^ai-response-tracking-/, '').split('-')[0];
+          } else if (baseTrackingId.startsWith('tracking-')) {
+            // For tracking-default_1758486159748_f0b1ed27
+            baseTrackingId = baseTrackingId.replace(/^tracking-/, '');
+          }
+          // Base IDs like default_1758486159748_f0b1ed27 remain unchanged
+          
+          if (!baseConversations[baseTrackingId]) {
+            baseConversations[baseTrackingId] = {
+              baseTrackingId: baseTrackingId,
               events: []
             };
           }
-          conversations[trackingId].events.push(event);
+          baseConversations[baseTrackingId].events.push(event);
         });
         
         // Convert to reply format expected by frontend
-        zillizReplies = Object.values(conversations).map(conv => {
+        zillizReplies = Object.values(baseConversations).map(conv => {
           // Sort events by timestamp
           conv.events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           
@@ -74,16 +86,16 @@ router.get('/replies', async (req, res) => {
           const hasLeadMessage = conv.events.some(e => e.event_type === 'lead_message');
           
           return {
-            originalTrackingId: conv.trackingId,
+            originalTrackingId: conv.baseTrackingId, // Use base tracking ID for matching
             from: latestEvent.email_address || 'Unknown',
             timestamp: latestEvent.timestamp,
-            subject: `Reply to ${conv.trackingId}`,
+            subject: `Reply to ${conv.baseTrackingId}`,
             events: conv.events,
             hasAIReply: hasAIReply,
             hasLeadMessage: hasLeadMessage,
             // Extract relevant info for display
-            references: conv.trackingId,
-            inReplyTo: conv.trackingId
+            references: conv.baseTrackingId,
+            inReplyTo: conv.baseTrackingId
           };
         });
         
