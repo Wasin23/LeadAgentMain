@@ -134,12 +134,23 @@ exports.handler = async function(event, context) {
       
       // Generate AI response suggestion first (now with user-specific settings)
       try {
+        console.log('🔍 [DEBUG] About to call generateAIResponse for user:', userId);
         aiResponse = await generateAIResponse(emailData, userId);
+        console.log('🔍 [DEBUG] generateAIResponse completed. Result:', {
+          success: aiResponse?.success,
+          hasResponse: !!aiResponse?.response,
+          hasIntent: !!aiResponse?.intent,
+          intent: aiResponse?.intent,
+          responsePreview: aiResponse?.response?.substring(0, 100) + '...',
+          allKeys: Object.keys(aiResponse || {})
+        });
         console.log('🤖 [NETLIFY WEBHOOK] AI response generated for user:', userId);
         
         // Check if we should automatically create a calendar event FIRST
         console.log('📧 [NETLIFY WEBHOOK] Checking for calendar event creation...');
-        console.log('📧 [NETLIFY WEBHOOK] AI Response object:', {
+        console.log('� [DEBUG] Calendar check - aiResponse type:', typeof aiResponse);
+        console.log('🔍 [DEBUG] Calendar check - aiResponse is null/undefined:', aiResponse == null);
+        console.log('�📧 [NETLIFY WEBHOOK] AI Response object:', {
           success: aiResponse?.success,
           hasResponse: !!aiResponse?.response,
           intent: aiResponse?.intent,
@@ -147,7 +158,12 @@ exports.handler = async function(event, context) {
         });
         
         let calendarEvent = null;
-        if (aiResponse.intent) {
+        console.log('🔍 [DEBUG] Checking if aiResponse.intent exists...');
+        console.log('🔍 [DEBUG] aiResponse.intent value:', aiResponse?.intent);
+        console.log('🔍 [DEBUG] aiResponse.intent type:', typeof aiResponse?.intent);
+        console.log('🔍 [DEBUG] aiResponse.intent truthy?', !!aiResponse?.intent);
+        
+        if (aiResponse && aiResponse.intent) {
           console.log('📅 [NETLIFY WEBHOOK] AI response has intent, attempting calendar event creation...');
           console.log('📅 [NETLIFY WEBHOOK] Intent:', aiResponse.intent);
           try {
@@ -478,25 +494,69 @@ async function getCalendarIdFromSettings(userId = 'default') {
   try {
     console.log('[SETTINGS] Fetching calendar ID from lead agent settings for user:', userId);
     
-    // Try to load settings from the same source as agent settings
+    // Try direct Zilliz query for calendar_id setting
+    if (process.env.ZILLIZ_ENDPOINT && process.env.ZILLIZ_TOKEN) {
+      try {
+        const client = new MilvusClient({
+          address: process.env.ZILLIZ_ENDPOINT,
+          token: process.env.ZILLIZ_TOKEN
+        });
+
+        // Query for calendar_id setting specifically
+        const searchResult = await client.search({
+          collection_name: 'agent_settings',
+          vector: [0.1, 0.2], // Dummy vector since we're using filter
+          limit: 10,
+          filter: `user_id == "${userId}" && setting_key == "calendar_id"`
+        });
+
+        console.log('[SETTINGS] Zilliz search result:', searchResult);
+        
+        if (searchResult.results && searchResult.results.length > 0) {
+          for (const result of searchResult.results) {
+            if (result.user_id === userId && result.setting_key === 'calendar_id') {
+              console.log('[SETTINGS] Found calendar ID in Zilliz:', result.setting_value);
+              return result.setting_value;
+            }
+          }
+        }
+        
+        console.log('[SETTINGS] No calendar_id setting found in Zilliz for user:', userId);
+      } catch (zillizError) {
+        console.log('[SETTINGS] Zilliz query failed:', zillizError.message);
+      }
+    }
+    
+    // Try to load settings from the same source as agent settings (fallback)
     let agentSettings = {};
     try {
       agentSettings = await loadAgentSettings(userId);
+      console.log('[SETTINGS] Agent settings loaded successfully, keys:', Object.keys(agentSettings));
       console.log('[SETTINGS] Looking for calendar_id field...');
+      console.log('[SETTINGS] calendar_id value:', agentSettings.calendar_id);
       
       if (agentSettings.calendar_id) {
         console.log('[SETTINGS] Found calendar ID in agent settings:', agentSettings.calendar_id);
         return agentSettings.calendar_id;
       } else {
         console.log('[SETTINGS] No calendar_id field found in settings');
+        console.log('[SETTINGS] Available settings fields:', Object.keys(agentSettings));
       }
     } catch (error) {
       console.log('[SETTINGS] Could not load agent settings for calendar ID:', error);
     }
     
-    // Fallback to environment variable
+    // Fallback to environment variable or hardcoded value for specific users
     const calendarId = process.env.GOOGLE_CALENDAR_ID;
-    console.log('[SETTINGS] Using fallback calendar ID from environment');
+    console.log('[SETTINGS] Using fallback calendar ID from environment:', calendarId);
+    console.log('[SETTINGS] Environment variable GOOGLE_CALENDAR_ID exists:', !!process.env.GOOGLE_CALENDAR_ID);
+    
+    // Hardcoded fallback for default user while we fix Zilliz settings
+    if (!calendarId && userId === 'default') {
+      console.log('[SETTINGS] Using hardcoded calendar ID for default user');
+      return 'colton.fidd@gmail.com';
+    }
+    
     return calendarId;
   } catch (error) {
     console.error('[SETTINGS] Error fetching calendar ID:', error);
@@ -982,12 +1042,14 @@ Message ID: ${trackingId} | Conversation State: ${conversationState.state}`;
     // CRITICAL: Add tracking-aware headers for conversation threading
     if (trackingId) {
       // Custom Message-ID that includes tracking ID
-      const messageId = `<ai-response-${trackingId}-${Date.now()}@${process.env.MAILGUN_DOMAIN}>`;
+      // Check if trackingId already has ai-response prefix to avoid duplication
+      const cleanTrackingId = trackingId.startsWith('ai-response-') ? trackingId.substring(12) : trackingId;
+      const messageId = `<ai-response-${cleanTrackingId}-${Date.now()}@${process.env.MAILGUN_DOMAIN}>`;
       params.append('h:Message-ID', messageId);
       
       // For proper threading, we need to reference the original outbound email's Message-ID
-      // The original outbound email should have had Message-ID: <tracking-${trackingId}@${domain}>
-      const originalOutboundMessageId = `<tracking-${trackingId}@${process.env.MAILGUN_DOMAIN}>`;
+      // The original outbound email should have had Message-ID: <tracking-${cleanTrackingId}@${domain}>
+      const originalOutboundMessageId = `<tracking-${cleanTrackingId}@${process.env.MAILGUN_DOMAIN}>`;
       
       // Use the actual Message-ID from the incoming reply if available
       const incomingMessageId = originalEmailData.messageId;

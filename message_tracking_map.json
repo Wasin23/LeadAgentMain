@@ -5,5 +5,19 @@
     "subject": "hello, this is a test email for service Y",
     "sentAt": "2025-09-21T21:17:39.423Z",
     "source": "email"
+  },
+  "tracking-default_1758493287742_7c251c7a@mg.examarkchat.com": {
+    "trackingId": "default_1758493287742_7c251c7a",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "Email for service X",
+    "sentAt": "2025-09-21T22:21:28.333Z",
+    "source": "email"
+  },
+  "tracking-default_1758494234907_7921748e@mg.examarkchat.com": {
+    "trackingId": "default_1758494234907_7921748e",
+    "to": "colton.fidd@gmail.com",
+    "subject": "Something G tracking",
+    "sentAt": "2025-09-21T22:37:15.305Z",
+    "source": "email"
   }
 }
