@@ -228,7 +228,7 @@ class DesktopEmailTracker {
 
   // Start polling Zilliz for new tracking events
   startZillizPolling() {
-    console.log('📧 [ZILLIZ POLLING] Starting Zilliz polling every 20 seconds...');
+    console.log('📧 [ZILLIZ POLLING] Starting Zilliz polling every 30 seconds...');
     
     // Wait 5 seconds for server to be ready before starting polling
     setTimeout(() => {
@@ -238,7 +238,7 @@ class DesktopEmailTracker {
       // Set up interval polling
       this.pollingInterval = setInterval(() => {
         this.pollZillizEvents();
-      }, 20000); // Poll every 20 seconds
+      }, 30000); // Poll every 30 seconds
     }, 5000);
   }
 
