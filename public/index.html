@@ -552,7 +552,6 @@
     }
 
     /* White versions of icons for active tabs */
-    .horizontal-tab-button.active .icon-history { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .horizontal-tab-button.active .icon-magnify { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .horizontal-tab-button.active .icon-email { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
     .horizontal-tab-button.active .icon-robot { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
@@ -1010,98 +1009,6 @@
       overflow-y: auto;
     }
 
-    .history-item {
-      margin-bottom: 1rem;
-      padding: 0.8rem;
-      background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(10px);
-      border-radius: 10px;
-      border-left: 3px solid #5a67d8;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .history-input {
-      color: #5a67d8;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      line-height: 1.6;
-    }
-
-    .history-output {
-      color: #64748b;
-      line-height: 1.6;
-    }
-
-    .history-input h1, .history-output h1 {
-      font-size: 1.5em;
-      font-weight: bold;
-      margin: 0.8em 0 0.4em 0;
-    }
-
-    .history-input h2, .history-output h2 {
-      font-size: 1.3em;
-      font-weight: bold;
-      margin: 0.7em 0 0.3em 0;
-    }
-
-    .history-input h3, .history-output h3 {
-      font-size: 1.1em;
-      font-weight: bold;
-      margin: 0.6em 0 0.3em 0;
-    }
-
-    .history-input ul, .history-output ul {
-      margin: 0.5em 0;
-      padding-left: 1.5em;
-    }
-
-    .history-input li, .history-output li {
-      margin: 0.2em 0;
-    }
-
-    .history-input pre, .history-output pre {
-      background: #f5f5f5;
-      padding: 0.8em;
-      border-radius: 4px;
-      margin: 0.8em 0;
-      overflow-x: auto;
-    }
-
-    .history-input code, .history-output code {
-      background: #f0f0f0;
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-family: monospace;
-    }
-
-    .history-input pre code, .history-output pre code {
-      background: none;
-      padding: 0;
-    }
-
-    .history-input table, .history-output table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 0.8em 0;
-      border: 1px solid #ddd;
-    }
-
-    .history-input th, .history-input td, .history-output th, .history-output td {
-      border: 1px solid #ddd;
-      padding: 0.5em 0.8em;
-      text-align: left;
-    }
-
-    .history-input th, .history-output th {
-      background: #f8f9fa;
-      font-weight: bold;
-    }
-
-    .history-input tr:nth-child(even), .history-output tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-
     #email-log-list {
       color: #374151;
       font-size: 0.9rem;
@@ -1500,7 +1407,6 @@
         <!-- Tab Buttons Column -->
         <div class="horizontal-tabs">
           <button class="horizontal-tab-button active" data-tab="chat"><span class="icon icon-chat"></span> ExaMark Chat</button>
-          <button class="horizontal-tab-button" data-tab="history"><span class="icon icon-history"></span> Chat History</button>
           <button class="horizontal-tab-button" data-tab="deepresearch"><span class="icon icon-magnify"></span> Deep Research</button>
           <button class="horizontal-tab-button" data-tab="leadagent"><span class="icon icon-robot"></span> Lead Contact Agent</button>
           <button class="horizontal-tab-button" data-tab="emailqueue"><span class="icon icon-queue"></span> Email Queue</button>
@@ -1546,12 +1452,6 @@
             </div>
           </div>
 
-          <!-- Chat History Tab Content -->
-          <div id="history-content" class="tab-content" style="display:none;">
-            <h3 style="margin:0 0 1rem 0;color:#5a67d8;">Chat History</h3>
-            <div id="history-list"></div>
-          </div>
-          
           <!-- Research Tool Tab Content -->
           <div id="research-content" class="tab-content" style="display:none;">
             <h3 style="margin:0 0 1rem 0;color:#5a67d8;">Background Research</h3>
@@ -2420,86 +2320,6 @@
     const chat = document.getElementById('chat');
     const input = document.getElementById('message');
     const send = document.getElementById('send');
-    const historyList = document.getElementById('history-list');
-    let chatHistory = [];
-
-    // Chat history persistence functions
-    function saveChatHistory() {
-      try {
-        localStorage.setItem('examark_chat_history', JSON.stringify(chatHistory));
-      } catch (error) {
-        console.error('Failed to save chat history:', error);
-      }
-    }
-
-    function loadChatHistory() {
-      try {
-        // First check if server session has changed
-        fetch('/api/session')
-          .then(response => response.json())
-          .then(data => {
-            const currentSessionId = data.sessionId;
-            const savedSessionId = localStorage.getItem('examark_server_session');
-            
-            if (savedSessionId !== currentSessionId) {
-              // Server restarted - clear chat history
-              console.log('Server session changed, clearing chat history');
-              localStorage.removeItem('examark_chat_history');
-              localStorage.setItem('examark_server_session', currentSessionId);
-              chatHistory = [];
-              chat.innerHTML = '';
-              updateHistoryTab();
-              return;
-            }
-            
-            // Session is same, load saved chat history
-            const saved = localStorage.getItem('examark_chat_history');
-            if (saved) {
-              chatHistory = JSON.parse(saved);
-              restoreChatMessages();
-            }
-          })
-          .catch(error => {
-            console.error('Failed to check server session:', error);
-            // Fallback to normal loading if session check fails
-            const saved = localStorage.getItem('examark_chat_history');
-            if (saved) {
-              chatHistory = JSON.parse(saved);
-              restoreChatMessages();
-            }
-          });
-      } catch (error) {
-        console.error('Failed to load chat history:', error);
-        chatHistory = [];
-      }
-    }
-
-    function restoreChatMessages() {
-      // Clear existing chat
-      chat.innerHTML = '';
-      
-      // Restore messages from history
-      chatHistory.forEach(msg => {
-        if (msg.userMessageId && msg.input) {
-          appendMessage(msg.input, 'user', msg.userMessageId);
-        }
-        if (msg.aiMessageId && msg.output) {
-          appendMessage(msg.output, 'ai', msg.aiMessageId);
-        }
-      });
-      
-      // Update the history tab
-      updateHistoryTab();
-    }
-
-    function clearChatHistory() {
-      if (confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
-        chatHistory = [];
-        chat.innerHTML = '';
-        localStorage.removeItem('examark_chat_history');
-        updateHistoryTab();
-      }
-    }
 
     // Auto-resize textarea functionality
     function autoResize() {
@@ -2670,8 +2490,6 @@
           userMessageId: userMessageId,
           aiMessageId: aiMessageId
         });
-        saveChatHistory();
-        updateHistoryTab();
         
         // Check if the response indicates an email was sent
         if (data.response && data.response.includes('✅ Email sent to')) {
@@ -3209,8 +3027,6 @@
         // Remove all history entries after this message
         chatHistory.splice(messageIndex + 1);
         
-        saveChatHistory();
-        updateHistoryTab();
       }
     }
 
@@ -3344,8 +3160,6 @@
           userMessageId: null, // This was an edit, not a new user message
           aiMessageId: aiMessageId
         });
-        saveChatHistory();
-        updateHistoryTab();
         
         // Auto-refresh email logs if email was mentioned
         if (userMessage.toLowerCase().includes('email') || (data.response && data.response.toLowerCase().includes('email'))) {
@@ -3360,26 +3174,6 @@
         console.error('Error regenerating AI response:', error);
         appendMessage('Sorry, I encountered an error. Please try again.', 'ai');
       }
-    }
-
-    function updateHistoryTab() {
-      historyList.innerHTML = '';
-      chatHistory.forEach((msg, index) => {
-        const item = document.createElement('div');
-        item.className = 'history-item';
-        
-        const input = document.createElement('div');
-        input.className = 'history-input';
-        input.innerHTML = `<strong>You:</strong> ${parseMarkdown(msg.input)}`;
-        
-        const output = document.createElement('div');
-        output.className = 'history-output';
-        output.innerHTML = `<strong>AI:</strong> ${parseMarkdown(msg.output)}`;
-        
-        item.appendChild(input);
-        item.appendChild(output);
-        historyList.appendChild(item);
-      });
     }
 
     // Tab functionality
@@ -3511,7 +3305,6 @@
           console.log('[FRONTEND] No greeting or history to display');
         }
         
-        updateHistoryTab();
       } catch (err) {
         console.error('Failed to initialize chat:', err);
       }
@@ -6474,8 +6267,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       currentUser = JSON.parse(userStr);
       updateUserDisplay();
       
-      // Load chat history after authentication
-      loadChatHistory();
+      // Authentication completed
     }
 
     function updateUserDisplay() {
@@ -8058,7 +7850,7 @@ Example usage in prompt:
           document.getElementById('response-company-name').value = settings.company_name || '';
           document.getElementById('response-product-name').value = settings.product_name || '';
           document.getElementById('response-value-props').value = (settings.value_propositions || []).join('\n');
-          document.getElementById('response-calendar-link').value = settings.calendar_link || '';
+          document.getElementById('response-timezone').value = settings.timezone || 'America/New_York';
           
           // Response Style
           document.getElementById('response-tone').value = settings.response_tone || 'professional_friendly';
@@ -8089,7 +7881,7 @@ Example usage in prompt:
             .split('\n')
             .map(prop => prop.trim())
             .filter(prop => prop.length > 0),
-          calendar_link: document.getElementById('response-calendar-link').value.trim(),
+          timezone: document.getElementById('response-timezone').value,
           
           // Response Style
           response_tone: document.getElementById('response-tone').value,
@@ -8139,7 +7931,7 @@ Example usage in prompt:
         document.getElementById('response-company-name').value = '';
         document.getElementById('response-product-name').value = '';
         document.getElementById('response-value-props').value = '';
-        document.getElementById('response-calendar-link').value = '';
+        document.getElementById('response-timezone').value = 'America/New_York';
         
         // Response Style - Set to defaults
         document.getElementById('response-tone').value = 'professional_friendly';
@@ -9893,14 +9685,11 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
       <div class="settings-section">
         <h3>🚪 Account Actions</h3>
         <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-          <button class="save-btn" onclick="clearChatHistory()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-            🗑️ Clear Chat History
-          </button>
           <button class="save-btn" onclick="signOut()" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
             🚪 Sign Out
           </button>
           <div style="color: #64748b; font-size: 0.9rem; flex: 1;">
-            Clear chat history or sign out of your account
+            Sign out of your account
           </div>
         </div>
       </div>
@@ -10520,10 +10309,38 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
       <div class="modal-form-group">
-        <label for="response-calendar-link">Calendar Booking Link</label>
-        <input type="url" id="response-calendar-link" placeholder="https://calendly.com/yourname/meeting" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+        <label for="response-timezone">Default Timezone</label>
+        <select id="response-timezone" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
+          <option value="America/New_York">Eastern Time (EST/EDT)</option>
+          <option value="America/Chicago">Central Time (CST/CDT)</option>
+          <option value="America/Denver">Mountain Time (MST/MDT)</option>
+          <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+          <option value="America/Phoenix">Arizona Time (MST)</option>
+          <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
+          <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+          <option value="UTC">UTC (Coordinated Universal Time)</option>
+          <option value="Europe/London">London Time (GMT/BST)</option>
+          <option value="Europe/Paris">Central European Time (CET/CEST)</option>
+          <option value="Europe/Berlin">Berlin Time (CET/CEST)</option>
+          <option value="Europe/Rome">Rome Time (CET/CEST)</option>
+          <option value="Europe/Madrid">Madrid Time (CET/CEST)</option>
+          <option value="Europe/Amsterdam">Amsterdam Time (CET/CEST)</option>
+          <option value="Europe/Stockholm">Stockholm Time (CET/CEST)</option>
+          <option value="Europe/Zurich">Zurich Time (CET/CEST)</option>
+          <option value="Asia/Tokyo">Japan Time (JST)</option>
+          <option value="Asia/Shanghai">China Time (CST)</option>
+          <option value="Asia/Seoul">Korea Time (KST)</option>
+          <option value="Asia/Hong_Kong">Hong Kong Time (HKT)</option>
+          <option value="Asia/Singapore">Singapore Time (SGT)</option>
+          <option value="Asia/Kolkata">India Time (IST)</option>
+          <option value="Asia/Dubai">UAE Time (GST)</option>
+          <option value="Australia/Sydney">Sydney Time (AEST/AEDT)</option>
+          <option value="Australia/Melbourne">Melbourne Time (AEST/AEDT)</option>
+          <option value="Australia/Perth">Perth Time (AWST)</option>
+          <option value="Pacific/Auckland">New Zealand Time (NZST/NZDT)</option>
+        </select>
         <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-          📅 AI will include this link when suggesting meetings
+          🌍 AI will use this timezone when scheduling meetings and detecting times
         </div>
       </div>
     </div>
