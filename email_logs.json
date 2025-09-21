@@ -1,1 +1,41 @@
-[]
+[
+  {
+    "id": "3e94b648f42ac17ba299f43967759525",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "Sales convo test",
+    "body": "Hello, I am selling object A. Object A is a Granny Smith apple. I am selling object A for $4. Would you like to buy?",
+    "status": "sent",
+    "timestamp": "2025-09-21T14:24:45.044Z",
+    "personInfo": null,
+    "analytics": {
+      "opened": true,
+      "clicked": false,
+      "replied": true,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 5,
+      "lastActivity": "2025-09-21T14:27:26.580Z",
+      "mailgunId": "<tracking-3e94b648f42ac17ba299f43967759525@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": null,
+      "replyCount": 1
+    },
+    "opened": true,
+    "openCount": 5,
+    "clickCount": 0,
+    "replies": [
+      {
+        "tracking_id": "3e94b648f42ac17ba299f43967759525",
+        "timestamp": "2025-09-21T14:26:18.597Z",
+        "event_type": "conversation",
+        "lead_message": "I might want to buy. If i wanted 3 apples, how much would that cost me?\r\n\r\nOn Sun, Sep 21, 2025 at 7:24 AM ExaMark <noreply@mg.examarkchat.com> wrote:\r\n\r\n> Hello, I am selling object A. Object A is a Granny Smith apple. I am\r\n> selling object A for $4. Would you like to buy?\r\n> [image: Email tracking]\r\n>\r\n",
+        "ai_response": "Subject: Re: Pricing Inquiry\n\nHi Cole,\n\nThanks for reaching out with your question about pricing! I’m happy to help you with that. If you're looking to buy 3 Granny Smith apples, the total cost would be $12, as each apple is priced at $4.\n\nI’d love to chat more about this and explore how we can meet your needs for Gmail.\n\nBest regards,  \nThe ExaMark Team",
+        "sender": "Cole Fidelman <colton.fidd@gmail.com>",
+        "recipient": "replies@mg.examarkchat.com",
+        "processed": false
+      }
+    ]
+  }
+]

@@ -40,10 +40,12 @@ class DesktopEmailTracker {
     }
   }
 
-  // Generate unique tracking ID for each email
-  generateTrackingId(recipient, subject) {
-    const unique = `${recipient}-${subject}-${Date.now()}`;
-    return crypto.createHash('md5').update(unique).digest('hex');
+  // Generate unique tracking ID for each email with user ID
+  generateTrackingId(recipient, subject, userId = 'default') {
+    const unique = `${userId}-${recipient}-${subject}-${Date.now()}`;
+    const hash = crypto.createHash('md5').update(unique).digest('hex');
+    // Format: userId_timestamp_hash for easy parsing
+    return `${userId}_${Date.now()}_${hash.substring(0, 8)}`;
   }
 
   // Create trackable link - ALWAYS use domain for external recipients  
@@ -53,11 +55,12 @@ class DesktopEmailTracker {
   }
 
   // Inject tracking into email HTML
-  injectTracking(emailHtml, recipient, subject) {
-    const trackingId = this.generateTrackingId(recipient, subject);
+  injectTracking(emailHtml, recipient, subject, userId = 'default') {
+    const trackingId = this.generateTrackingId(recipient, subject, userId);
     
-    // Store tracking info
+    // Store tracking info with user ID
     this.trackingData.set(trackingId, {
+      userId,
       recipient,
       subject,
       sentAt: new Date().toISOString(),

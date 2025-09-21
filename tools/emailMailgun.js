@@ -141,7 +141,7 @@ function addTrackingToEmail(body, trackingId) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null) {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId = 'default') {
   try {
     // Ensure we always have HTML content for tracking
     let htmlBody = body;
@@ -158,11 +158,11 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     
     // Use desktop email tracker for safe, self-contained tracking
     if (enableTracking) {
-      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject);
+      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject, userId);
       htmlBody = trackingResult.html;
       trackingId = trackingResult.trackingId;
       
-      console.log(`[DESKTOP TRACKER] Email tracking injected for ${to} with ID: ${trackingId}`);
+      console.log(`[DESKTOP TRACKER] Email tracking injected for ${to} with ID: ${trackingId} (User: ${userId})`);
     }
     
     // Prepare email data
