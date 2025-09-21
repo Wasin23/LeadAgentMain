@@ -215,67 +215,74 @@ function verifyWebhookSignature(token, timestamp, signature, signingKey) {
 
 // Function to extract tracking ID from various sources
 function extractTrackingId(formData, subject, body) {
-  // Method 1: Message-ID correlation (MOST RELIABLE)
+  console.log('[EXTRACT] Starting tracking ID extraction...');
+  console.log('[EXTRACT] Form data keys:', Object.keys(formData));
+  console.log('[EXTRACT] Subject:', subject);
+  
+  // Method 1: Look for tracking ID in our AI response Message-ID headers
   const inReplyTo = formData['In-Reply-To'] || formData['in-reply-to'];
   if (inReplyTo) {
-    console.log('[EXTRACT] Checking In-Reply-To for Message-ID correlation:', inReplyTo);
-    // Extract Message-ID from angle brackets: <20250920182642.0f18ea4c1f7d05c9@mg.examarkchat.com>
-    const messageIdMatch = inReplyTo.match(/<([^>]+)>/);
-    if (messageIdMatch) {
-      const messageId = messageIdMatch[1];
-      console.log('[EXTRACT] Found Message-ID:', messageId);
-      
-      // Look up tracking ID from Message-ID mapping
-      // Note: In production, this should query a database or shared storage
-      // For now, we'll still try the direct tracking-ID extraction as fallback
+    console.log('[EXTRACT] Checking In-Reply-To for AI response Message-ID:', inReplyTo);
+    // Look for our AI response pattern: <ai-response-TRACKINGID-timestamp@domain>
+    const aiResponseMatch = inReplyTo.match(/<ai-response-([a-f0-9]{32})-\d+@/);
+    if (aiResponseMatch) {
+      console.log('[EXTRACT] Found tracking ID in AI response Message-ID:', aiResponseMatch[1]);
+      return aiResponseMatch[1];
+    }
+    
+    // Look for original tracking pattern: <tracking-TRACKINGID@domain>
+    const trackingMatch = inReplyTo.match(/<tracking-([a-f0-9]{32})@/);
+    if (trackingMatch) {
+      console.log('[EXTRACT] Found tracking ID in original Message-ID:', trackingMatch[1]);
+      return trackingMatch[1];
+    }
+  }
+
+  // Method 2: Look for tracking ID in References header
+  const references = formData.References || formData.references;
+  if (references) {
+    console.log('[EXTRACT] Checking References header:', references);
+    // Look for our AI response pattern first
+    const aiResponseMatch = references.match(/<ai-response-([a-f0-9]{32})-\d+@/);
+    if (aiResponseMatch) {
+      console.log('[EXTRACT] Found tracking ID in References AI response:', aiResponseMatch[1]);
+      return aiResponseMatch[1];
+    }
+    
+    // Look for original tracking pattern
+    const trackingMatch = references.match(/<tracking-([a-f0-9]{32})@/);
+    if (trackingMatch) {
+      console.log('[EXTRACT] Found tracking ID in References original:', trackingMatch[1]);
+      return trackingMatch[1];
     }
   }
   
-  // Method 2: Look for tracking ID in recipient email address (most reliable)
+  // Method 3: Look for tracking ID in subject line [TRACKINGID]
+  const subjectMatch = subject?.match(/\[([a-f0-9]{32})\]/);
+  if (subjectMatch) {
+    console.log('[EXTRACT] Found tracking ID in subject:', subjectMatch[1]);
+    return subjectMatch[1];
+  }
+  
+  // Method 4: Look for tracking ID in recipient email address
   const recipient = formData.recipient || formData.To || formData.to;
   if (recipient) {
-    const emailMatch = recipient.match(/tracking-(\w+)@/);
+    console.log('[EXTRACT] Checking recipient:', recipient);
+    const emailMatch = recipient.match(/tracking-([a-f0-9]{32})@/);
     if (emailMatch) {
       console.log('[EXTRACT] Found tracking ID in recipient:', emailMatch[1]);
       return emailMatch[1];
     }
   }
   
-  // Method 3: Look for tracking ID in subject line
-  const subjectMatch = subject?.match(/\[(\w+)\]/);
-  if (subjectMatch) {
-    console.log('[EXTRACT] Found tracking ID in subject:', subjectMatch[1]);
-    return subjectMatch[1];
-  }
-  
-  // Method 4: Look for tracking ID in body text
-  const bodyMatch = body?.match(/tracking[_\s]*id[:\s]*(\w+)/i);
+  // Method 5: Look for tracking ID in body text
+  const bodyMatch = body?.match(/Message ID:\s*([a-f0-9]{32})/i);
   if (bodyMatch) {
-    console.log('[EXTRACT] Found tracking ID in body:', bodyMatch[1]);
+    console.log('[EXTRACT] Found tracking ID in body Message ID:', bodyMatch[1]);
     return bodyMatch[1];
   }
   
-  // Method 5: Look in In-Reply-To header for tracking-ID pattern (FIXED)
-  if (inReplyTo) {
-    console.log('[EXTRACT] Checking In-Reply-To header for tracking pattern:', inReplyTo);
-    const trackingMatch = inReplyTo.match(/tracking-([a-f0-9]{32})/i);
-    if (trackingMatch) {
-      console.log('[EXTRACT] Found tracking ID in In-Reply-To:', trackingMatch[1]);
-      return trackingMatch[1];
-    }
-  }
-  
-  // Method 6: Look in References header for tracking-ID pattern (FIXED)
-  const references = formData.References || formData.references;
-  if (references) {
-    console.log('[EXTRACT] Checking References header:', references);
-    const trackingMatch = references.match(/tracking-([a-f0-9]{32})/i);
-    if (trackingMatch) {
-      console.log('[EXTRACT] Found tracking ID in References:', trackingMatch[1]);
-      return trackingMatch[1];
-    }
-  }
-  
+  console.log('[EXTRACT] No tracking ID found in any location');
   return null;
 }
 
@@ -400,6 +407,253 @@ async function storeReplyInZilliz(emailData, trackingId, aiResponse = null) {
   }
 }
 
+// Analyze conversation state to determine if conversation should continue
+async function analyzeConversationState(originalEmailData, aiResponseText, trackingId) {
+  try {
+    console.log('[CONVERSATION STATE] Analyzing conversation state...');
+    
+    const emailBody = originalEmailData.body || '';
+    const aiResponse = aiResponseText || '';
+    
+    // Get conversation history from Zilliz to count interactions
+    const conversationHistory = await getConversationHistory(trackingId);
+    const interactionCount = conversationHistory.length;
+    
+    console.log('[CONVERSATION STATE] Interaction count:', interactionCount);
+    
+    // Use AI to analyze conversation state if OpenAI is available
+    if (process.env.OPENAI_API_KEY) {
+      const aiAnalysis = await analyzeConversationStateWithAI(emailBody, aiResponse, interactionCount);
+      console.log('[CONVERSATION STATE] AI Analysis:', aiAnalysis);
+      return aiAnalysis;
+    }
+    
+    // Fallback to keyword detection if no OpenAI
+    return analyzeConversationStateWithKeywords(emailBody, aiResponse, interactionCount);
+    
+  } catch (error) {
+    console.error('[CONVERSATION STATE] Error analyzing state:', error);
+    // Default to safe behavior - continue conversation
+    return {
+      state: 'error',
+      shouldKeepOpen: true,
+      reason: 'Error in analysis, defaulting to continue'
+    };
+  }
+}
+
+// Smart AI-based conversation state analysis
+async function analyzeConversationStateWithAI(emailBody, aiResponse, interactionCount) {
+  const prompt = `Analyze this email conversation to determine the appropriate next action.
+
+CUSTOMER'S EMAIL: "${emailBody}"
+
+AI RESPONSE SENT: "${aiResponse}"
+
+INTERACTION COUNT: ${interactionCount}
+
+Determine the conversation state. Respond with ONLY one of these JSON objects:
+
+For EXPLICIT REJECTION (customer clearly not interested):
+{"state": "rejected", "shouldKeepOpen": false, "reason": "Customer declined or unsubscribed"}
+
+For CONFIRMED MEETING (specific time/date set or booking confirmed):
+{"state": "meeting_booked", "shouldKeepOpen": false, "reason": "Meeting successfully scheduled with specific time"}
+
+For ACTIVE ENGAGEMENT (customer asking questions, showing interest):
+{"state": "engaged", "shouldKeepOpen": true, "reason": "Customer actively engaging with questions"}
+
+For AUTO-RESPONDER (out of office, vacation message):
+{"state": "auto_responder", "shouldKeepOpen": false, "reason": "Automated out-of-office detected"}
+
+For INTERACTION LIMIT (too many back-and-forth, ${interactionCount} >= 5):
+{"state": "interaction_limit", "shouldKeepOpen": false, "reason": "Maximum interactions reached"}
+
+For NATURAL END (polite closure, thanks without further questions):
+{"state": "natural_end", "shouldKeepOpen": false, "reason": "Conversation naturally concluded"}
+
+IMPORTANT: Only mark as "meeting_booked" if there's a SPECIFIC time/date mentioned or clear confirmation. Questions like "should we schedule?" are NOT bookings.
+
+Respond with ONLY the JSON object, no other text.`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        max_tokens: 100
+      })
+    });
+
+    const data = await response.json();
+    const analysis = JSON.parse(data.choices[0].message.content.trim());
+    
+    console.log('[CONVERSATION STATE] AI analysis result:', analysis);
+    return analysis;
+
+  } catch (error) {
+    console.error('[CONVERSATION STATE] AI analysis failed:', error);
+    // Fallback to keyword detection
+    return analyzeConversationStateWithKeywords(emailBody, aiResponse, interactionCount);
+  }
+}
+
+// Fallback keyword-based analysis (used when OpenAI unavailable)
+async function analyzeConversationStateWithKeywords(emailBody, aiResponse, interactionCount) {
+  const emailBodyLower = emailBody.toLowerCase();
+    
+    // EXPLICIT REJECTION/UNSUBSCRIBE - End conversation immediately
+    const rejectionKeywords = [
+      'unsubscribe', 'remove me', 'not interested', 'stop emailing',
+      'no thanks', 'not a good fit', 'please remove', 'opt out',
+      'don\'t contact', 'already have', 'satisfied with current'
+    ];
+    
+    const hasRejection = rejectionKeywords.some(keyword => emailBodyLower.includes(keyword));
+    if (hasRejection) {
+      console.log('[CONVERSATION STATE] Rejection detected - ending conversation');
+      return {
+        state: 'rejected',
+        shouldKeepOpen: false,
+        reason: 'Customer explicitly declined or unsubscribed'
+      };
+    }
+    
+    // MEETING BOOKED - Only for CONFIRMED bookings with specific times
+    const confirmedMeetingKeywords = [
+      'meeting is set for', 'booked for', 'confirmed for', 'scheduled for',
+      'see you at', 'meeting at', 'appointment at', 'call at',
+      'monday at', 'tuesday at', 'wednesday at', 'thursday at', 'friday at',
+      'pm on', 'am on', 'o\'clock'
+    ];
+    
+    const hasMeetingBooked = confirmedMeetingKeywords.some(keyword => emailBodyLower.includes(keyword));
+    
+    if (hasMeetingBooked) {
+      console.log('[CONVERSATION STATE] Confirmed meeting detected - ending conversation');
+      return {
+        state: 'meeting_booked',
+        shouldKeepOpen: false,
+        reason: 'Meeting successfully scheduled with specific time'
+      };
+    }
+    
+    // ACTIVE ENGAGEMENT - Continue conversation
+    const engagementKeywords = [
+      'tell me more', 'interested', 'question', 'when', 'how',
+      'pricing', 'cost', 'demo', 'trial', 'can you', 'would like',
+      'more information', 'learn more', 'sounds good', 'should we schedule'
+    ];
+    
+    const hasEngagement = engagementKeywords.some(keyword => emailBodyLower.includes(keyword));
+    
+    // INTERACTION LIMIT - Prevent infinite loops (max 5 interactions)
+    if (interactionCount >= 5) {
+      console.log('[CONVERSATION STATE] Interaction limit reached - ending conversation');
+      return {
+        state: 'interaction_limit',
+        shouldKeepOpen: false,
+        reason: 'Maximum interaction count reached (5)'
+      };
+    }
+    
+    // AUTO-RESPONDER DETECTION - End if it looks like an auto-reply
+    const autoResponderKeywords = [
+      'out of office', 'automatic reply', 'auto-generated', 'vacation',
+      'currently unavailable', 'away message'
+    ];
+    
+    const isAutoResponder = autoResponderKeywords.some(keyword => emailBodyLower.includes(keyword));
+    if (isAutoResponder) {
+      console.log('[CONVERSATION STATE] Auto-responder detected - ending conversation');
+      return {
+        state: 'auto_responder',
+        shouldKeepOpen: false,
+        reason: 'Auto-responder detected'
+      };
+    }
+    
+    // CONTINUE CONVERSATION - Keep engaging
+    if (hasEngagement && interactionCount < 3) {
+      console.log('[CONVERSATION STATE] Active engagement - continuing conversation');
+      return {
+        state: 'engaged',
+        shouldKeepOpen: true,
+        reason: 'Customer showing interest, continuing conversation'
+      };
+    }
+    
+    // DEFAULT - End conversation after 2 interactions unless highly engaged
+    if (interactionCount >= 2) {
+      console.log('[CONVERSATION STATE] Default limit reached - ending conversation');
+      return {
+        state: 'natural_end',
+        shouldKeepOpen: false,
+        reason: 'Natural conversation conclusion'
+      };
+    }
+    
+    // FIRST INTERACTION - Always continue
+    console.log('[CONVERSATION STATE] First interaction - continuing conversation');
+    return {
+      state: 'first_interaction',
+      shouldKeepOpen: true,
+      reason: 'First interaction, keeping conversation open'
+    };
+}
+
+// Get conversation history for a tracking ID
+async function getConversationHistory(trackingId) {
+  try {
+    if (!process.env.ZILLIZ_ENDPOINT || !process.env.ZILLIZ_TOKEN) {
+      console.log('[CONVERSATION HISTORY] No Zilliz credentials');
+      return [];
+    }
+
+    const client = new MilvusClient({
+      address: process.env.ZILLIZ_ENDPOINT,
+      token: process.env.ZILLIZ_TOKEN
+    });
+
+    // Search for all interactions with this tracking ID
+    const searchResult = await client.search({
+      collection_name: 'email_tracking_events',
+      vector: [0], // Dummy vector
+      limit: 50,
+      filter: `tracking_id == "${trackingId}"`
+    });
+
+    const interactions = [];
+    if (searchResult.results && searchResult.results.length > 0) {
+      for (const result of searchResult.results) {
+        if (result.tracking_id === trackingId) {
+          interactions.push({
+            timestamp: result.timestamp,
+            event_type: result.event_type,
+            user_agent: result.user_agent // This contains AI responses
+          });
+        }
+      }
+    }
+
+    // Sort by timestamp
+    interactions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    console.log('[CONVERSATION HISTORY] Found', interactions.length, 'interactions for', trackingId);
+    return interactions;
+
+  } catch (error) {
+    console.error('[CONVERSATION HISTORY] Error fetching history:', error);
+    return [];
+  }
+}
+
 // Function to automatically send AI response via Mailgun
 async function sendAutoResponse(originalEmailData, aiResponseText, trackingId) {
   try {
@@ -414,7 +668,20 @@ async function sendAutoResponse(originalEmailData, aiResponseText, trackingId) {
       };
     }
 
-    const fromEmail = `ExaMark Support <noreply@${process.env.MAILGUN_DOMAIN}>`;
+    // Determine conversation state and appropriate reply-to address
+    const conversationState = await analyzeConversationState(originalEmailData, aiResponseText, trackingId);
+    const shouldKeepConversationOpen = conversationState.shouldKeepOpen;
+    
+    // Smart reply routing: use replies@ if conversation should continue, noreply@ if it should end
+    const replyAddress = shouldKeepConversationOpen 
+      ? `replies@${process.env.MAILGUN_DOMAIN}`
+      : `noreply@${process.env.MAILGUN_DOMAIN}`;
+    
+    // Make the from address clearer to ensure replies go to the right place
+    const fromEmail = shouldKeepConversationOpen
+      ? `ExaMark <${replyAddress}>` // Simpler format for active conversations
+      : `ExaMark AI Assistant <${replyAddress}>`;
+    
     const toEmail = originalEmailData.from;
     const subject = generateReplySubject(originalEmailData.subject, trackingId);
     
@@ -423,32 +690,100 @@ async function sendAutoResponse(originalEmailData, aiResponseText, trackingId) {
       toEmail, 
       subject,
       hasAiResponse: !!aiResponseText,
-      responseLength: aiResponseText?.length 
+      responseLength: aiResponseText?.length,
+      conversationState: conversationState.state,
+      keepOpen: shouldKeepConversationOpen
     });
     
-    // Simple text content - no HTML for now to avoid encoding issues
-    const textContent = `${aiResponseText}
-
----
-This is an automated response powered by AI. If you need immediate assistance, please don't hesitate to reach out directly.
+    // Generate conversation-state-aware footer message
+    let footerMessage = '';
+    if (shouldKeepConversationOpen) {
+      footerMessage = `---
+This is an AI-powered response from ExaMark. Feel free to reply with any questions - I'm here to help!
 
 Best regards,
-The ExaMark Team
+ExaMark AI Assistant
+Exabits Team`;
+    } else {
+      // Conversation ending - provide direct contact info
+      const endingReason = conversationState.state === 'meeting_booked' 
+        ? 'Thank you for your interest! We look forward to our upcoming conversation.'
+        : 'If you need further assistance, please feel free to reach out to our team directly.';
+      
+      footerMessage = `---
+${endingReason}
 
-Message ID: ${trackingId} | Powered by ExaMark AI`;
+For immediate assistance, contact us directly at: support@exabits.ai
 
-    // Send email via Mailgun API - simplified version
+Best regards,
+ExaMark AI Assistant
+Exabits Team`;
+    }
+    
+    const textContent = `${aiResponseText}
+
+${footerMessage}
+
+Message ID: ${trackingId} | Conversation State: ${conversationState.state}`;
+
+    // Send email via Mailgun API with explicit Reply-To header
     const params = new URLSearchParams();
     params.append('from', fromEmail);
     params.append('to', toEmail);
     params.append('subject', subject);
     params.append('text', textContent);
     
+    // CRITICAL: Add tracking-aware headers for conversation threading
+    if (trackingId) {
+      // Custom Message-ID that includes tracking ID
+      const messageId = `<ai-response-${trackingId}-${Date.now()}@${process.env.MAILGUN_DOMAIN}>`;
+      params.append('h:Message-ID', messageId);
+      
+      // Use the actual Message-ID from the incoming email for proper threading
+      const incomingMessageId = originalEmailData.messageId;
+      
+      if (incomingMessageId) {
+        // Reply to the actual incoming message
+        params.append('h:In-Reply-To', incomingMessageId);
+        
+        // Build References chain: original thread + this message
+        const existingReferences = originalEmailData.references || '';
+        const referencesChain = existingReferences 
+          ? `${existingReferences} ${incomingMessageId}`
+          : incomingMessageId;
+        params.append('h:References', referencesChain);
+        
+        console.log('[AUTO RESPONSE] Adding threading headers:', {
+          messageId,
+          inReplyTo: incomingMessageId,
+          references: referencesChain
+        });
+      } else {
+        // Fallback: try to reference the original tracking email
+        const originalMessageId = `<tracking-${trackingId}@${process.env.MAILGUN_DOMAIN}>`;
+        params.append('h:In-Reply-To', originalMessageId);
+        params.append('h:References', originalMessageId);
+        
+        console.log('[AUTO RESPONSE] Using fallback tracking headers:', {
+          messageId,
+          inReplyTo: originalMessageId,
+          references: originalMessageId
+        });
+      }
+    }
+    
+    // CRITICAL: Add explicit Reply-To header to ensure replies go to correct address
+    if (shouldKeepConversationOpen) {
+      params.append('h:Reply-To', `ExaMark <${replyAddress}>`);
+      console.log('[AUTO RESPONSE] Setting Reply-To:', `ExaMark <${replyAddress}>`);
+    }
+    
     console.log('[AUTO RESPONSE] Sending email...', { 
       from: fromEmail, 
       to: toEmail, 
       subject,
-      textLength: textContent.length 
+      textLength: textContent.length,
+      replyTo: shouldKeepConversationOpen ? `ExaMark <${replyAddress}>` : 'none'
     });
 
     const response = await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
@@ -507,10 +842,16 @@ Message ID: ${trackingId} | Powered by ExaMark AI`;
   }
 }
 
-// Function to generate appropriate reply subject
+// Function to generate appropriate reply subject  
 function generateReplySubject(originalSubject, trackingId) {
   // Remove existing Re: prefixes
   let cleanSubject = originalSubject?.replace(/^(Re:\s*)+/i, '') || 'Your message';
+  
+  // Include tracking ID in subject for preservation
+  const hasTrackingInSubject = cleanSubject.includes(`[${trackingId}]`);
+  if (!hasTrackingInSubject && trackingId) {
+    cleanSubject = `${cleanSubject} [${trackingId}]`;
+  }
   
   // Add our reply prefix
   return `Re: ${cleanSubject}`;
