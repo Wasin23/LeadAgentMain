@@ -435,16 +435,27 @@ async function createEmbedding(text) {
   }
 }
 
-// Extract user ID from tracking ID format: userId_timestamp_hash
+// Extract user ID from tracking ID format: tracking-userId_timestamp_hash
 function extractUserIdFromTrackingId(trackingId) {
   try {
     if (!trackingId) return 'default';
     
-    // Format: userId_timestamp_hash
+    // Format: tracking-userId_timestamp_hash
+    if (trackingId.startsWith('tracking-')) {
+      const withoutPrefix = trackingId.substring('tracking-'.length);
+      const parts = withoutPrefix.split('_');
+      if (parts.length >= 3) {
+        const userId = parts[0];
+        console.log('[USER ID] Extracted from tracking ID:', userId);
+        return userId;
+      }
+    }
+    
+    // Fallback: try old format userId_timestamp_hash
     const parts = trackingId.split('_');
     if (parts.length >= 3) {
       const userId = parts[0];
-      console.log('[USER ID] Extracted from tracking ID:', userId);
+      console.log('[USER ID] Extracted from tracking ID (fallback):', userId);
       return userId;
     }
     

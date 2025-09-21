@@ -19,5 +19,12 @@
     "subject": "Something G tracking",
     "sentAt": "2025-09-21T22:37:15.305Z",
     "source": "email"
+  },
+  "tracking-default_1758497208325_a86bb55d@mg.examarkchat.com": {
+    "trackingId": "default_1758497208325_a86bb55d",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "Test email for exabits 4",
+    "sentAt": "2025-09-21T23:26:48.642Z",
+    "source": "email"
   }
 }
