@@ -7863,6 +7863,7 @@ Example usage in prompt:
           document.getElementById('response-positive-immediate').checked = settings.positive_immediate_booking || false;
           document.getElementById('response-complex-escalation').checked = settings.complex_question_escalation || false;
           document.getElementById('response-show-ai-disclaimer').checked = settings.show_ai_disclaimer !== false; // Default true
+          document.getElementById('response-calendar-id').value = settings.calendar_id || '';
         } else {
           console.log('📧 No existing settings found, using defaults');
         }
@@ -7896,6 +7897,7 @@ Example usage in prompt:
           positive_immediate_booking: document.getElementById('response-positive-immediate').checked,
           complex_question_escalation: document.getElementById('response-complex-escalation').checked,
           show_ai_disclaimer: document.getElementById('response-show-ai-disclaimer').checked,
+          calendar_id: document.getElementById('response-calendar-id').value.trim(),
           
           // Metadata
           updated_at: new Date().toISOString()
@@ -7948,6 +7950,7 @@ Example usage in prompt:
         document.getElementById('response-positive-immediate').checked = false;
         document.getElementById('response-complex-escalation').checked = false;
         document.getElementById('response-show-ai-disclaimer').checked = true; // Default enabled
+        document.getElementById('response-calendar-id').value = '';
         
         showNotification('🔄 Settings reset to defaults. Click "Save Settings" to apply.', 'info');
       }
@@ -10419,6 +10422,13 @@ document.addEventListener('DOMContentLoaded', function() {
         </label>
         <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px; margin-left: 1.5rem;">
           ⚠️ Displays footer message indicating the response is AI-generated
+        </div>
+      </div>
+      <div class="modal-form-group">
+        <label for="response-calendar-id">Google Calendar ID (Email)</label>
+        <input type="email" id="response-calendar-id" placeholder="your.email@gmail.com" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+          📅 Email address for your Google Calendar where AI will create meeting events
         </div>
       </div>
     </div>
