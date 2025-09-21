@@ -7850,6 +7850,7 @@ Example usage in prompt:
           document.getElementById('response-company-name').value = settings.company_name || '';
           document.getElementById('response-product-name').value = settings.product_name || '';
           document.getElementById('response-value-props').value = (settings.value_propositions || []).join('\n');
+          document.getElementById('response-ai-name').value = settings.ai_assistant_name || '';
           document.getElementById('response-timezone').value = settings.timezone || 'America/New_York';
           
           // Response Style
@@ -7861,6 +7862,7 @@ Example usage in prompt:
           document.getElementById('response-question-threshold').value = settings.question_threshold || '2';
           document.getElementById('response-positive-immediate').checked = settings.positive_immediate_booking || false;
           document.getElementById('response-complex-escalation').checked = settings.complex_question_escalation || false;
+          document.getElementById('response-show-ai-disclaimer').checked = settings.show_ai_disclaimer !== false; // Default true
         } else {
           console.log('📧 No existing settings found, using defaults');
         }
@@ -7881,6 +7883,7 @@ Example usage in prompt:
             .split('\n')
             .map(prop => prop.trim())
             .filter(prop => prop.length > 0),
+          ai_assistant_name: document.getElementById('response-ai-name').value.trim(),
           timezone: document.getElementById('response-timezone').value,
           
           // Response Style
@@ -7892,6 +7895,7 @@ Example usage in prompt:
           question_threshold: parseInt(document.getElementById('response-question-threshold').value),
           positive_immediate_booking: document.getElementById('response-positive-immediate').checked,
           complex_question_escalation: document.getElementById('response-complex-escalation').checked,
+          show_ai_disclaimer: document.getElementById('response-show-ai-disclaimer').checked,
           
           // Metadata
           updated_at: new Date().toISOString()
@@ -7931,6 +7935,7 @@ Example usage in prompt:
         document.getElementById('response-company-name').value = '';
         document.getElementById('response-product-name').value = '';
         document.getElementById('response-value-props').value = '';
+        document.getElementById('response-ai-name').value = '';
         document.getElementById('response-timezone').value = 'America/New_York';
         
         // Response Style - Set to defaults
@@ -7942,6 +7947,7 @@ Example usage in prompt:
         document.getElementById('response-question-threshold').value = '2';
         document.getElementById('response-positive-immediate').checked = false;
         document.getElementById('response-complex-escalation').checked = false;
+        document.getElementById('response-show-ai-disclaimer').checked = true; // Default enabled
         
         showNotification('🔄 Settings reset to defaults. Click "Save Settings" to apply.', 'info');
       }
@@ -10309,6 +10315,13 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
       <div class="modal-form-group">
+        <label for="response-ai-name">AI Assistant Name</label>
+        <input type="text" id="response-ai-name" placeholder="e.g., Sarah, Alex, the ExaMark Team" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+          🤖 Name the AI will use in email signatures
+        </div>
+      </div>
+      <div class="modal-form-group">
         <label for="response-timezone">Default Timezone</label>
         <select id="response-timezone" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;">
           <option value="America/New_York">Eastern Time (EST/EDT)</option>
@@ -10398,6 +10411,15 @@ document.addEventListener('DOMContentLoaded', function() {
           <input type="checkbox" id="response-complex-escalation" style="margin: 0;">
           Suggest meetings for complex technical questions
         </label>
+      </div>
+      <div class="modal-form-group">
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="response-show-ai-disclaimer" style="margin: 0;">
+          Show "AI-powered response" disclaimer in emails
+        </label>
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px; margin-left: 1.5rem;">
+          ⚠️ Displays footer message indicating the response is AI-generated
+        </div>
       </div>
     </div>
 

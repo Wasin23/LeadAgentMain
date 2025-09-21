@@ -15,12 +15,12 @@
       "unsubscribed": false,
       "clickCount": 0,
       "openCount": 5,
-      "lastActivity": "2025-09-21T14:27:26.580Z",
+      "lastActivity": "2025-09-21T14:39:46.268Z",
       "mailgunId": "<tracking-3e94b648f42ac17ba299f43967759525@mg.examarkchat.com>",
       "trackingEnabled": true,
       "desktopTracking": true,
       "personInfo": null,
-      "replyCount": 1
+      "replyCount": 2
     },
     "opened": true,
     "openCount": 5,
@@ -34,6 +34,16 @@
         "ai_response": "Subject: Re: Pricing Inquiry\n\nHi Cole,\n\nThanks for reaching out with your question about pricing! I’m happy to help you with that. If you're looking to buy 3 Granny Smith apples, the total cost would be $12, as each apple is priced at $4.\n\nI’d love to chat more about this and explore how we can meet your needs for Gmail.\n\nBest regards,  \nThe ExaMark Team",
         "sender": "Cole Fidelman <colton.fidd@gmail.com>",
         "recipient": "replies@mg.examarkchat.com",
+        "processed": false
+      },
+      {
+        "tracking_id": "3e94b648f42ac17ba299f43967759525",
+        "timestamp": "2025-09-21T14:34:28.295Z",
+        "event_type": "conversation",
+        "lead_message": "hmmm, I guess i could set up a meeting. how about 6pm tomorrow?\r\n\r\nOn Sun, Sep 21, 2025 at 7:26 AM ExaMark <replies@mg.examarkchat.com> wrote:\r\n\r\n> Subject: Re: Pricing Inquiry\r\n>\r\n> Hi Cole,\r\n>\r\n> Thanks for reaching out with your question about pricing! I’m happy to\r\n> help you with that. If you're looking to buy 3 Granny Smith apples, the\r\n> total cost would be $12, as each apple is priced at $4.\r\n>\r\n> I’d love to chat more about this and explore how we can meet your needs\r\n> for Gmail.\r\n>\r\n> Best regards,\r\n> The ExaMark Team\r\n>\r\n> ---\r\n> This is an AI-powered response from ExaMark. Feel free to reply with any\r\n> questions - I'm here to help!\r\n>\r\n> Best regards,\r\n> ExaMark AI Assistant\r\n> Exabits Team\r\n>\r\n> Message ID: 3e94b648f42ac17ba299f43967759525 | Conversation State: engaged\r\n>\r\n",
+        "ai_response": "Subject: Re: Pricing Inquiry\n\nHi Cole,\n\nThanks so much for your response! I appreciate your willingness to set up a meeting. Tomorrow at 6 PM works perfectly for me, and I’m excited to discuss how Our Company can assist Gmail.\n\nI'll send over a calendar invite shortly to confirm.\n\nLooking forward to our chat!\n\nBest,  \nThe ExaMark Team",
+        "sender": "Cole Fidelman <colton.fidd@gmail.com>",
+        "recipient": "ExaMark <replies@mg.examarkchat.com>",
         "processed": false
       }
     ]
