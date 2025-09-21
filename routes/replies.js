@@ -8,35 +8,117 @@ const router = express.Router();
 // Get all replies with analytics
 router.get('/replies', async (req, res) => {
   try {
-    console.log('[REPLIES API] Getting all replies');
+    console.log('[REPLIES API] Getting all replies from Zilliz');
     
-    // Try to get from local file first
-    const logPath = path.join(process.cwd(), 'email_replies.json');
-    let localReplies = [];
+    // Get from Zilliz email_tracking_events collection (same as Netlify function)
+    let zillizReplies = [];
+    let stats = {
+      totalReplies: 0,
+      positive: 0,
+      negative: 0,
+      neutral: 0,
+      interested: 0,
+      unsubscribes: 0,
+      meetingRequests: 0
+    };
     
     try {
-      const existingData = await fs.readFile(logPath, 'utf8');
-      localReplies = JSON.parse(existingData);
-    } catch (error) {
-      console.log('[REPLIES API] No local replies file found');
+      if (process.env.ZILLIZ_ENDPOINT && process.env.ZILLIZ_TOKEN) {
+        const { MilvusClient } = await import('@zilliz/milvus2-sdk-node');
+        const client = new MilvusClient({
+          address: process.env.ZILLIZ_ENDPOINT,
+          token: process.env.ZILLIZ_TOKEN
+        });
+
+        const collectionName = 'email_tracking_events'; // Same as Netlify function
+        
+        // Load collection
+        await client.loadCollection({ collection_name: collectionName });
+
+        // Query for all reply events (both AI replies and lead messages)
+        const expr = `event_type == "ai_reply" || event_type == "lead_message"`;
+        
+        const queryResult = await client.query({
+          collection_name: collectionName,
+          expr: expr,
+          limit: 1000,
+          consistency_level: 'Strong',
+          output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed']
+        });
+
+        const allEvents = queryResult.data || queryResult || [];
+        console.log('[REPLIES API] Found', allEvents.length, 'events in Zilliz');
+        
+        // Group events by tracking_id to create conversations
+        const conversations = {};
+        
+        allEvents.forEach(event => {
+          const trackingId = event.tracking_id;
+          if (!conversations[trackingId]) {
+            conversations[trackingId] = {
+              trackingId: trackingId,
+              events: []
+            };
+          }
+          conversations[trackingId].events.push(event);
+        });
+        
+        // Convert to reply format expected by frontend
+        zillizReplies = Object.values(conversations).map(conv => {
+          // Sort events by timestamp
+          conv.events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          
+          // Find the latest event to determine overall status
+          const latestEvent = conv.events[conv.events.length - 1];
+          const hasAIReply = conv.events.some(e => e.event_type === 'ai_reply');
+          const hasLeadMessage = conv.events.some(e => e.event_type === 'lead_message');
+          
+          return {
+            originalTrackingId: conv.trackingId,
+            from: latestEvent.email_address || 'Unknown',
+            timestamp: latestEvent.timestamp,
+            subject: `Reply to ${conv.trackingId}`,
+            events: conv.events,
+            hasAIReply: hasAIReply,
+            hasLeadMessage: hasLeadMessage,
+            // Extract relevant info for display
+            references: conv.trackingId,
+            inReplyTo: conv.trackingId
+          };
+        });
+        
+        // Calculate basic stats
+        stats.totalReplies = zillizReplies.length;
+        stats.positive = zillizReplies.filter(r => r.hasAIReply).length;
+        stats.interested = zillizReplies.filter(r => r.hasLeadMessage).length;
+        
+      } else {
+        console.log('[REPLIES API] Zilliz credentials not found, falling back to local file');
+      }
+    } catch (zillizError) {
+      console.error('[REPLIES API] Zilliz query failed:', zillizError);
     }
     
-    // Get reply stats from Zilliz
-    const stats = await replyTracker.getReplyStats();
-    
+    // Fallback to local file if Zilliz failed or no data
+    if (zillizReplies.length === 0) {
+      try {
+        const logPath = path.join(process.cwd(), 'email_replies.json');
+        const existingData = await fs.readFile(logPath, 'utf8');
+        const localReplies = JSON.parse(existingData);
+        
+        console.log('[REPLIES API] Using local replies as fallback:', localReplies.length);
+        zillizReplies = localReplies;
+        stats.totalReplies = localReplies.length;
+      } catch (error) {
+        console.log('[REPLIES API] No local replies file found');
+      }
+    }
+
     res.json({
       success: true,
       data: {
-        replies: localReplies,
-        stats: stats || {
-          totalReplies: localReplies.length,
-          positive: 0,
-          negative: 0,
-          neutral: 0,
-          interested: 0,
-          unsubscribes: 0,
-          meetingRequests: 0
-        }
+        replies: zillizReplies,
+        stats: stats
       }
     });
     
