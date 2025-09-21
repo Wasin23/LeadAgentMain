@@ -138,7 +138,7 @@ exports.handler = async function(event, context) {
               console.log('📅 [NETLIFY WEBHOOK] AI response has intent, attempting calendar event creation...');
               console.log('📅 [NETLIFY WEBHOOK] Intent:', aiResponse.intent);
               try {
-                const calendarResult = await handleCalendarEventCreation(emailData, aiResponse, trackingId);
+                const calendarResult = await handleCalendarEventCreation(emailData, aiResponse, trackingId, userId);
                 console.log('📅 [NETLIFY WEBHOOK] Calendar creation result:', calendarResult);
                 if (calendarResult.eventCreated) {
                   console.log('📅 [NETLIFY WEBHOOK] Calendar event created successfully:', calendarResult.eventDetails);
@@ -253,33 +253,25 @@ function extractTrackingId(formData, subject, body) {
   const inReplyTo = formData['In-Reply-To'] || formData['in-reply-to'];
   if (inReplyTo) {
     console.log('[EXTRACT] Checking In-Reply-To for AI response Message-ID:', inReplyTo);
-    
-    // Look for NEW format AI response pattern: <ai-response-userId_timestamp_hash-timestamp@domain>
-    const newAiResponseMatch = inReplyTo.match(/<ai-response-([a-zA-Z0-9_-]+)-\d+@/);
-    if (newAiResponseMatch) {
-      console.log('[EXTRACT] Found NEW format tracking ID in AI response Message-ID:', newAiResponseMatch[1]);
-      return newAiResponseMatch[1];
+    // Look for our AI response pattern: <ai-response-TRACKINGID-timestamp@domain>
+    const aiResponseMatch = inReplyTo.match(/<ai-response-([a-f0-9]{32})-\d+@/);
+    if (aiResponseMatch) {
+      console.log('[EXTRACT] Found tracking ID in AI response Message-ID:', aiResponseMatch[1]);
+      return aiResponseMatch[1];
     }
     
-    // Look for OLD format AI response pattern: <ai-response-TRACKINGID-timestamp@domain>
-    const oldAiResponseMatch = inReplyTo.match(/<ai-response-([a-f0-9]{32})-\d+@/);
-    if (oldAiResponseMatch) {
-      console.log('[EXTRACT] Found OLD format tracking ID in AI response Message-ID:', oldAiResponseMatch[1]);
-      return oldAiResponseMatch[1];
+    // Look for original tracking pattern: <tracking-TRACKINGID@domain>
+    const trackingMatch = inReplyTo.match(/<tracking-([a-f0-9]{32})@/);
+    if (trackingMatch) {
+      console.log('[EXTRACT] Found tracking ID in original Message-ID:', trackingMatch[1]);
+      return trackingMatch[1];
     }
     
-    // Look for NEW format original tracking pattern: <tracking-userId_timestamp_hash@domain>
-    const newTrackingMatch = inReplyTo.match(/<tracking-([a-zA-Z0-9_-]+)@/);
-    if (newTrackingMatch) {
-      console.log('[EXTRACT] Found NEW format tracking ID in original Message-ID:', newTrackingMatch[1]);
-      return newTrackingMatch[1];
-    }
-    
-    // Look for OLD format original tracking pattern: <tracking-TRACKINGID@domain>
-    const oldTrackingMatch = inReplyTo.match(/<tracking-([a-f0-9]{32})@/);
-    if (oldTrackingMatch) {
-      console.log('[EXTRACT] Found OLD format tracking ID in original Message-ID:', oldTrackingMatch[1]);
-      return oldTrackingMatch[1];
+    // Look for user-specific tracking pattern: <userid_timestamp_hash@domain>
+    const userTrackingMatch = inReplyTo.match(/<([^@>]+)@/);
+    if (userTrackingMatch && userTrackingMatch[1].includes('_')) {
+      console.log('[EXTRACT] Found user tracking ID in Message-ID:', userTrackingMatch[1]);
+      return userTrackingMatch[1];
     }
   }
 
@@ -287,51 +279,33 @@ function extractTrackingId(formData, subject, body) {
   const references = formData.References || formData.references;
   if (references) {
     console.log('[EXTRACT] Checking References header:', references);
-    
-    // Look for NEW format AI response pattern first
-    const newAiResponseMatch = references.match(/<ai-response-([a-zA-Z0-9_-]+)-\d+@/);
-    if (newAiResponseMatch) {
-      console.log('[EXTRACT] Found NEW format tracking ID in References AI response:', newAiResponseMatch[1]);
-      return newAiResponseMatch[1];
+    // Look for our AI response pattern first
+    const aiResponseMatch = references.match(/<ai-response-([a-f0-9]{32})-\d+@/);
+    if (aiResponseMatch) {
+      console.log('[EXTRACT] Found tracking ID in References AI response:', aiResponseMatch[1]);
+      return aiResponseMatch[1];
     }
     
-    // Look for OLD format AI response pattern
-    const oldAiResponseMatch = references.match(/<ai-response-([a-f0-9]{32})-\d+@/);
-    if (oldAiResponseMatch) {
-      console.log('[EXTRACT] Found OLD format tracking ID in References AI response:', oldAiResponseMatch[1]);
-      return oldAiResponseMatch[1];
+    // Look for original tracking pattern
+    const trackingMatch = references.match(/<tracking-([a-f0-9]{32})@/);
+    if (trackingMatch) {
+      console.log('[EXTRACT] Found tracking ID in References original:', trackingMatch[1]);
+      return trackingMatch[1];
     }
     
-    // Look for NEW format original tracking pattern
-    const newTrackingMatch = references.match(/<tracking-([a-zA-Z0-9_-]+)@/);
-    if (newTrackingMatch) {
-      console.log('[EXTRACT] Found NEW format tracking ID in References original:', newTrackingMatch[1]);
-      return newTrackingMatch[1];
-    }
-    
-    // Look for OLD format original tracking pattern
-    const oldTrackingMatch = references.match(/<tracking-([a-f0-9]{32})@/);
-    if (oldTrackingMatch) {
-      console.log('[EXTRACT] Found OLD format tracking ID in References original:', oldTrackingMatch[1]);
-      return oldTrackingMatch[1];
+    // Look for user-specific tracking pattern: <userid_timestamp_hash@domain>
+    const userTrackingMatch = references.match(/<([^@>]+)@/);
+    if (userTrackingMatch && userTrackingMatch[1].includes('_')) {
+      console.log('[EXTRACT] Found user tracking ID in References:', userTrackingMatch[1]);
+      return userTrackingMatch[1];
     }
   }
   
   // Method 3: Look for tracking ID in subject line [TRACKINGID] or Track_ID patterns
-  
-  // Check for NEW format in subject: [userId_timestamp_hash] or (ID: userId_timestamp_hash)
-  const subjectNewMatch = subject?.match(/\[([a-zA-Z0-9_-]+)\]|ID:\s*([a-zA-Z0-9_-]+)\)/);
-  if (subjectNewMatch) {
-    const trackingId = subjectNewMatch[1] || subjectNewMatch[2];
-    console.log('[EXTRACT] Found NEW format tracking ID in subject:', trackingId);
-    return trackingId;
-  }
-  
-  // Check for OLD format in subject: [32-char hex]
-  const subjectOldMatch = subject?.match(/\[([a-f0-9]{32})\]/);
-  if (subjectOldMatch) {
-    console.log('[EXTRACT] Found OLD format tracking ID in subject:', subjectOldMatch[1]);
-    return subjectOldMatch[1];
+  const subjectMatch32 = subject?.match(/\[([a-f0-9]{32})\]/);
+  if (subjectMatch32) {
+    console.log('[EXTRACT] Found 32-char tracking ID in subject:', subjectMatch32[1]);
+    return subjectMatch32[1];
   }
   
   // Also check for Track_ patterns for testing purposes
@@ -352,36 +326,18 @@ function extractTrackingId(formData, subject, body) {
   const recipient = formData.recipient || formData.To || formData.to;
   if (recipient) {
     console.log('[EXTRACT] Checking recipient:', recipient);
-    
-    // Check for NEW format in recipient
-    const newEmailMatch = recipient.match(/tracking-([a-zA-Z0-9_-]+)@/);
-    if (newEmailMatch) {
-      console.log('[EXTRACT] Found NEW format tracking ID in recipient:', newEmailMatch[1]);
-      return newEmailMatch[1];
-    }
-    
-    // Check for OLD format in recipient
-    const oldEmailMatch = recipient.match(/tracking-([a-f0-9]{32})@/);
-    if (oldEmailMatch) {
-      console.log('[EXTRACT] Found OLD format tracking ID in recipient:', oldEmailMatch[1]);
-      return oldEmailMatch[1];
+    const emailMatch = recipient.match(/tracking-([a-f0-9]{32})@/);
+    if (emailMatch) {
+      console.log('[EXTRACT] Found tracking ID in recipient:', emailMatch[1]);
+      return emailMatch[1];
     }
   }
   
   // Method 5: Look for tracking ID in body text
-  
-  // Check for NEW format in body: Message ID: userId_timestamp_hash
-  const newBodyMatch = body?.match(/Message ID:\s*([a-zA-Z0-9_-]+)/i);
-  if (newBodyMatch) {
-    console.log('[EXTRACT] Found NEW format tracking ID in body Message ID:', newBodyMatch[1]);
-    return newBodyMatch[1];
-  }
-  
-  // Check for OLD format in body: Message ID: 32-char hex
-  const oldBodyMatch = body?.match(/Message ID:\s*([a-f0-9]{32})/i);
-  if (oldBodyMatch) {
-    console.log('[EXTRACT] Found OLD format tracking ID in body Message ID:', oldBodyMatch[1]);
-    return oldBodyMatch[1];
+  const bodyMatch = body?.match(/Message ID:\s*([a-f0-9]{32})/i);
+  if (bodyMatch) {
+    console.log('[EXTRACT] Found tracking ID in body Message ID:', bodyMatch[1]);
+    return bodyMatch[1];
   }
   
   console.log('[EXTRACT] No tracking ID found in any location');
@@ -450,9 +406,14 @@ async function getTimezoneFromSettings(userId = 'default') {
     let agentSettings = {};
     try {
       agentSettings = await loadAgentSettings(userId);
+      console.log('[SETTINGS] All available settings:', Object.keys(agentSettings));
+      console.log('[SETTINGS] Looking for timezone field...');
+      
       if (agentSettings.timezone) {
         console.log('[SETTINGS] Found timezone in agent settings:', agentSettings.timezone);
         return agentSettings.timezone;
+      } else {
+        console.log('[SETTINGS] No timezone field found in settings');
       }
     } catch (error) {
       console.log('[SETTINGS] Could not load agent settings for timezone:', error);
@@ -1072,7 +1033,7 @@ async function loadAgentSettings(userId = 'default') {
     // Query all settings for the user
     const searchResult = await client.search({
       collection_name: 'agent_settings',
-      vector: [0], // Dummy vector since we're using filter
+      vector: [0.1, 0.2], // Dummy vector since we're using filter
       limit: 100,
       filter: `user_id == "${userId}"`
     });
@@ -2179,7 +2140,7 @@ async function storeLeadMessage(emailData, trackingId) {
 }
 
 // Smart Calendar Event Creation - Automatically creates calendar events when appropriate
-async function handleCalendarEventCreation(emailData, aiResponse, trackingId) {
+async function handleCalendarEventCreation(emailData, aiResponse, trackingId, userId = 'default') {
   try {
     console.log('📅 [CALENDAR] Analyzing email for automatic calendar event creation...');
     
@@ -2192,8 +2153,12 @@ async function handleCalendarEventCreation(emailData, aiResponse, trackingId) {
       return { eventCreated: false, reason: 'Google Calendar Service Account not configured' };
     }
     
+    // Get user's timezone setting for calendar events
+    const userTimezone = await getTimezoneFromSettings(userId);
+    console.log('📅 [CALENDAR] Using user timezone for calendar:', userTimezone);
+    
     // Check if this email contains a confirmed meeting time
-    const meetingTimeDetected = await detectConfirmedMeetingTime(emailBody, intent);
+    const meetingTimeDetected = await detectConfirmedMeetingTime(emailBody, intent, userTimezone);
     
     if (!meetingTimeDetected.found) {
       console.log('📅 [CALENDAR] No confirmed meeting time detected, skipping event creation');
@@ -2211,7 +2176,7 @@ async function handleCalendarEventCreation(emailData, aiResponse, trackingId) {
       description: `Automatic meeting scheduled via AI email responder\n\nLead: ${leadInfo.name}\nEmail: ${emailData.from}\nCompany: ${leadInfo.company}\n\nTime Zone: ${meetingTimeDetected.timeZone}${meetingTimeDetected.timeZoneSpecified ? ' (confirmed)' : ' (assumed - please confirm)'}\n\nOriginal message:\n${emailBody.substring(0, 300)}...`,
       startTime: meetingTimeDetected.startTime,
       endTime: meetingTimeDetected.endTime,
-      timeZone: meetingTimeDetected.timeZone || 'America/New_York',
+      timeZone: userTimezone, // Use the user's timezone for the calendar event
       attendees: [
         { email: emailData.from, displayName: leadInfo.name }
       ],
@@ -2228,9 +2193,6 @@ async function handleCalendarEventCreation(emailData, aiResponse, trackingId) {
     
     if (result.success) {
       console.log('✅ [CALENDAR] Calendar event created successfully');
-      
-      // Store the event creation in Zilliz for tracking
-      await storeCalendarEventInZilliz(trackingId, result, meetingTimeDetected, leadInfo);
       
       return {
         eventCreated: true,
@@ -2539,46 +2501,5 @@ Return only the JSON object, no other text.`;
   } catch (error) {
     console.error('📅 [CALENDAR] Error detecting meeting time:', error);
     return { found: false, reason: 'Error during meeting time detection' };
-  }
-}
-
-// Store calendar event information in Zilliz for tracking
-async function storeCalendarEventInZilliz(trackingId, calendarResult, meetingTime, leadInfo) {
-  try {
-    console.log('📅 [CALENDAR] Storing calendar event in Zilliz...');
-    
-    if (!process.env.ZILLIZ_ENDPOINT || !process.env.ZILLIZ_TOKEN) {
-      console.log('⚠️ [CALENDAR] Zilliz not configured, skipping storage');
-      return { success: false, reason: 'Zilliz not configured' };
-    }
-    
-    const client = new MilvusClient({
-      address: process.env.ZILLIZ_ENDPOINT,
-      token: process.env.ZILLIZ_TOKEN
-    });
-    
-    const eventData = {
-      tracking_id: trackingId,
-      event_type: 'calendar_event_created',
-      timestamp: new Date().toISOString(),
-      user_agent: `Calendar_Event: ${calendarResult.event_id}`,
-      ip_address: '127.0.0.1',
-      email_address: leadInfo.email || 'Unknown',
-      recipient: 'ExaMark Team',
-      processed: true,
-      embedding: await createEmbedding(`Calendar event created for ${leadInfo.name} at ${meetingTime.startTime}`)
-    };
-    
-    await client.insert({
-      collection_name: 'email_tracking_events',
-      data: [eventData]
-    });
-    
-    console.log('✅ [CALENDAR] Calendar event stored in Zilliz successfully');
-    return { success: true, stored: true };
-    
-  } catch (error) {
-    console.error('❌ [CALENDAR] Failed to store calendar event in Zilliz:', error);
-    return { success: false, error: error.message };
   }
 }
