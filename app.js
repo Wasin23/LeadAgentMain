@@ -182,6 +182,16 @@ try {
   trackingRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Email Response Settings routes
+let emailResponseSettingsRoutes;
+try {
+  emailResponseSettingsRoutes = (await import('./routes/emailResponseSettings.js')).default;
+  console.log('Email response settings routes imported successfully');
+} catch (e) {
+  console.log('Email response settings routes not available:', e.message);
+  emailResponseSettingsRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import System Management routes
 let systemRoutes;
 try {
@@ -315,6 +325,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
+app.use('/api/email-response-settings', emailResponseSettingsRoutes);
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking

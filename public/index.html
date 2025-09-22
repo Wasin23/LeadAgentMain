@@ -7045,7 +7045,7 @@ Example usage in prompt:
     }
 
     async function savePartialSettings(userId, partialData) {
-      // First get current settings
+      // Get current settings from local user settings (JSON file)
       const response = await fetch(`/api/auth/settings/${userId}`);
       const currentData = await response.json();
       
@@ -7054,13 +7054,13 @@ Example usage in prompt:
       const currentLeadSettings = currentSettings.leadContactSettings || {};
       
       // Merge with new data
-      const updatedSettings = { ...currentLeadSettings, ...partialData };
+      const updatedLeadSettings = { ...currentLeadSettings, ...partialData };
       
-      // Save merged settings
+      // Save merged settings back to local JSON file
       const saveResponse = await fetch(`/api/auth/settings/${userId}/lead-contact-settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadContactSettings: updatedSettings })
+        body: JSON.stringify({ leadContactSettings: updatedLeadSettings })
       });
       
       if (!saveResponse.ok) {
@@ -7199,119 +7199,6 @@ Example usage in prompt:
             Error loading search criteria. Please try again.
           </div>
         `;
-      }
-    }
-
-    async function saveLeadContactSettings() {
-      const statusDiv = document.getElementById('lead-settings-status');
-      statusDiv.innerHTML = '<div style="color: #f59e0b;">🔄 Saving settings...</div>';
-
-      try {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        if (!currentUser.userId) {
-          statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Please log in to save settings</div>';
-          return;
-        }
-
-        // Collect all form data with combined bubble and manual selections
-        
-        // Combine bubble selections with manual textarea entries for industries
-        const manualIndustries = document.getElementById('company-industries').value
-          .split('\n')
-          .map(s => s.trim())
-          .filter(s => s.length > 0);
-        const combinedIndustries = [...new Set([...window.selectedIndustries, ...manualIndustries])];
-        
-        // Combine bubble selections with manual textarea entries for positions
-        const manualPositions = document.getElementById('target-positions').value
-          .split('\n')
-          .map(s => s.trim())
-          .filter(s => s.length > 0);
-        const combinedPositions = [...new Set([...window.selectedPositions, ...manualPositions])];
-        
-        const leadContactSettings = {
-          companySizeMin: parseInt(document.getElementById('company-size-min').value) || null,
-          companySizeMax: parseInt(document.getElementById('company-size-max').value) || null,
-          companyIndustries: combinedIndustries,
-          companyKeywords: document.getElementById('company-keywords').value
-            .split(',')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
-          targetPositions: combinedPositions,
-          seniorityLevel: document.getElementById('seniority-level').value,
-          departments: document.getElementById('departments').value
-            .split(',')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
-          targetLocations: document.getElementById('target-locations').value
-            .split('\n')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
-          leadLimit: parseInt(document.getElementById('lead-limit').value) || 10,
-          excludeKeywords: document.getElementById('exclude-keywords').value
-            .split(',')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
-          fundingStage: document.getElementById('funding-stage').value,
-          technologyStack: document.getElementById('technology-stack').value
-            .split(',')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
-          contactIntent: document.getElementById('contact-intent').value
-            .split(',')
-            .map(s => s.trim())
-            .filter(s => s.length > 0),
-          emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null,
-          researchFocus: document.getElementById('research-focus').value.trim() || null,
-          companyBranding: {
-            agentName: document.getElementById('agent-name').value.trim() || 'ExaMark',
-            companyName: document.getElementById('company-name').value.trim() || 'Exabits',
-            agentTitle: document.getElementById('agent-title').value.trim() || 'AI Assistant',
-            primaryService: document.getElementById('primary-service').value.trim() || 'AI-powered High-Performance Computing Solutions',
-            coreOffering: document.getElementById('core-offering').value.trim() || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
-            keyAdvantages: document.getElementById('key-advantages').value.trim() || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
-            expertiseArea: document.getElementById('expertise-area').value.trim() || 'Deep understanding of AI/ML compute requirements'
-          }
-        };
-
-        console.log('[LEAD SETTINGS] Saving for user:', currentUser.userId);
-        console.log('[LEAD SETTINGS] Settings data:', leadContactSettings);
-
-        const response = await fetch(`/api/auth/settings/${currentUser.userId}/lead-contact-settings`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ leadContactSettings })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          statusDiv.innerHTML = '<div style="color: #059669; background: rgba(5, 150, 105, 0.1); padding: 0.5rem; border-radius: 6px;">✅ Lead Contact settings saved successfully!</div>';
-          
-          // Update the AI-generated summary immediately
-          updateSearchSummary();
-          
-          // Also reload from server to ensure consistency
-          setTimeout(() => {
-            loadAndDisplayLeadSettings();
-          }, 500);
-          
-          // Auto-close modal after 1.5 seconds
-          setTimeout(() => {
-            closeLeadContactSettings();
-          }, 1500);
-          
-          setTimeout(() => {
-            statusDiv.innerHTML = '';
-          }, 3000);
-        } else {
-          throw new Error(data.message || 'Failed to save settings');
-        }
-      } catch (error) {
-        console.error('[LEAD SETTINGS] Error saving settings:', error);
-        statusDiv.innerHTML = '<div style="color: #dc2626; background: rgba(220, 38, 38, 0.1); padding: 0.5rem; border-radius: 6px;">❌ Failed to save settings. Please try again.</div>';
       }
     }
 
@@ -7876,6 +7763,12 @@ Example usage in prompt:
     async function saveEmailResponseSettings() {
       console.log('📧 Saving Email Response Settings...');
       try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.userId) {
+          showNotification('❌ Please log in to save settings', 'error');
+          return;
+        }
+
         const settings = {
           // Company Information
           company_name: document.getElementById('response-company-name').value.trim(),
@@ -7903,9 +7796,9 @@ Example usage in prompt:
           updated_at: new Date().toISOString()
         };
 
-        console.log('📧 Saving settings:', settings);
+        console.log('📧 Saving settings for user:', currentUser.userId);
 
-        const response = await fetch('/api/lead-agent/settings', {
+        const response = await fetch(`/api/email-response-settings/${currentUser.userId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -7916,7 +7809,7 @@ Example usage in prompt:
         const data = await response.json();
         
         if (data.success) {
-          console.log('📧 Settings saved successfully!');
+          console.log('📧 Settings saved successfully to Zilliz!');
           showNotification('✅ Email response settings saved successfully!', 'success');
           closeEmailResponseSettings();
         } else {
