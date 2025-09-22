@@ -1,7 +1,7 @@
 [
   {
-    "id": "1758497206776",
-    "timestamp": "2025-09-21T23:26:46.776Z",
+    "id": "1758503763943",
+    "timestamp": "2025-09-22T01:16:03.943Z",
     "status": "approved",
     "source": "custom",
     "leadData": {
@@ -12,17 +12,17 @@
       "context": "Custom email created by user"
     },
     "emailData": {
-      "subject": "Test email for exabits 4",
-      "body": "hello, I am selling object T. Object T is a banana. I am selling it for $6. Would you like to set up a call to potentially purchase Object T?",
+      "subject": "Test email 1",
+      "body": "hello, this is a test email",
       "finalRecipient": "COLTON.FIDD@GMAIL.COM",
-      "finalSubject": "Test email for exabits 4",
-      "finalBody": "hello, I am selling object T. Object T is a banana. I am selling it for $6. Would you like to set up a call to potentially purchase Object T?"
+      "finalSubject": "Test email 1",
+      "finalBody": "hello, this is a test email"
     },
     "metadata": {
       "customEmail": true,
-      "createdAt": "2025-09-21T23:26:46.772Z",
+      "createdAt": "2025-09-22T01:16:03.941Z",
       "createdBy": "user"
     },
-    "approvedAt": "2025-09-21T23:26:48.318Z"
+    "approvedAt": "2025-09-22T01:16:05.508Z"
   }
 ]

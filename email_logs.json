@@ -1,75 +1,28 @@
 [
   {
-    "id": "default_1758497208325_a86bb55d",
+    "id": "tracking-default_1758503765514_0860c8e7",
     "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "Test email for exabits 4",
-    "body": "hello, I am selling object T. Object T is a banana. I am selling it for $6. Would you like to set up a call to potentially purchase Object T?",
+    "subject": "Test email 1",
+    "body": "hello, this is a test email",
     "status": "sent",
-    "timestamp": "2025-09-21T23:26:48.645Z",
+    "timestamp": "2025-09-22T01:16:05.774Z",
     "personInfo": null,
     "analytics": {
       "opened": true,
       "clicked": false,
-      "replied": true,
+      "replied": false,
       "bounced": false,
       "unsubscribed": false,
       "clickCount": 0,
-      "openCount": 4,
-      "lastActivity": "2025-09-22T00:34:44.591Z",
-      "mailgunId": "<tracking-default_1758497208325_a86bb55d@mg.examarkchat.com>",
+      "openCount": 1,
+      "lastActivity": "2025-09-22T01:16:43.997Z",
+      "mailgunId": "<tracking-tracking-default_1758503765514_0860c8e7@mg.examarkchat.com>",
       "trackingEnabled": true,
       "desktopTracking": true,
-      "personInfo": null,
-      "replyCount": 4
+      "personInfo": null
     },
     "opened": true,
-    "openCount": 4,
-    "clickCount": 0,
-    "replies": [
-      {
-        "trackingId": "tracking-default_1758497208325_a86bb55d",
-        "type": "lead_message",
-        "timestamp": "2025-09-21T23:27:46.547Z",
-        "from": "Cole Fidelman <colton.fidd@gmail.com>",
-        "to": "replies@mg.examarkchat.com",
-        "ai_response": null,
-        "lead_message": "Lead_Message: Yes. But first, if i bought 5 of them, how much would that cost me?\r\n\r\nOn Sun, Sep 21, 2025 at 4:26 PM ExaMark <noreply@mg.examarkchat.com> wrote:\r\n\r\n> hello, I am selling object T. Object T is a banana. I am selling it for\r\n> $6. Would you like to set up a call to potentially purchase Object T?\r\n> [image: Email tracking]\r\n>\r\n",
-        "ai_response_sent": false,
-        "sentiment": "neutral"
-      },
-      {
-        "trackingId": "tracking-default_1758497208325_a86bb55d",
-        "type": "ai_reply",
-        "timestamp": "2025-09-21T23:27:46.944Z",
-        "from": "Cole Fidelman <colton.fidd@gmail.com>",
-        "to": "replies@mg.examarkchat.com",
-        "ai_response": "AI_Response: Subject: Re: Pricing Inquiry\n\nHi Cole,\n\nThank you for reaching out with your question about pricing! I'm glad you're interested in our solution. \n\nTo give you a quick overview, our offering is designed to deliver exceptional value through:\n\n• Industry-leading performance\n• 24/7 expert support\n• Seamless integration\n\nI’d love to arrange a meeting where one of our sales representatives can discuss the pricing details with you and explain how we can provide that industry-leading performance and round-the-clock support tailored for your needs.\n\nLooking forward to connecting!\n\nBest regards,  \n[Your Name]  \n[Your Position]  \nExaMark",
-        "lead_message": null,
-        "ai_response_sent": true,
-        "sentiment": "neutral"
-      },
-      {
-        "trackingId": "ai-response-tracking-default_1758497208325_a86bb55d-1758497265760",
-        "type": "lead_message",
-        "timestamp": "2025-09-21T23:32:28.432Z",
-        "from": "Cole Fidelman <colton.fidd@gmail.com>",
-        "to": "ExaMark <replies@mg.examarkchat.com>",
-        "ai_response": null,
-        "lead_message": "Lead_Message: okay! i would like to schedule a meeting for 5pm tommorrow pst\r\n\r\nOn Sun, Sep 21, 2025 at 4:27 PM ExaMark <replies@mg.examarkchat.com> wrote:\r\n\r\n> Subject: Re: Pricing Inquiry\r\n>\r\n> Hi Cole,\r\n>\r\n> Thank you for reaching out with your question about pricing! I'm glad\r\n> you're interested in our solution.\r\n>\r\n> To give you a quick overview, our offering is designed to deliver\r\n> exceptional value through:\r\n>\r\n> • Industry-leading performance\r\n> • 24/7 expert support\r\n> • Seamless integration\r\n>\r\n> I’d love to arrange a meeting where one of our sales representatives can\r\n> discuss the pricing details with you and explain how we can provide that\r\n> industry-leading performance and round-the-clock support tailored for your\r\n> needs.\r\n>\r\n> Looking forward to connecting!\r\n>\r\n> Best regards,\r\n> [Your Name]\r\n> [Your Position]\r\n> ExaMark\r\n>\r\n> ---\r\n> This is an AI-powered response from ExaMark AI Assistant. Feel free to\r\n> reply with any questions - I'm here to help!\r\n>\r\n> Best regards,\r\n> ExaMark AI Assistant\r\n> Our Company Team\r\n>\r\n> Message ID: tracking-default_1758497208325_a86bb55d | Conversation State:\r\n> engaged\r\n>\r\n",
-        "ai_response_sent": false,
-        "sentiment": "neutral"
-      },
-      {
-        "trackingId": "ai-response-tracking-default_1758497208325_a86bb55d-1758497265760",
-        "type": "ai_reply",
-        "timestamp": "2025-09-21T23:32:28.846Z",
-        "from": "Cole Fidelman <colton.fidd@gmail.com>",
-        "to": "ExaMark <replies@mg.examarkchat.com>",
-        "ai_response": "AI_Response: Subject: Re: Pricing Inquiry\n\nHi Cole,\n\nThanks for confirming that you're in Pacific Time! I’d be happy to schedule our meeting for 5 PM tomorrow. I’ll send over a calendar invite shortly with all the details.\n\nLooking forward to our conversation!\n\nBest,  \n[Your Name]  \n[Your Position]  \nExaMark",
-        "lead_message": null,
-        "ai_response_sent": true,
-        "sentiment": "neutral"
-      }
-    ]
+    "openCount": 1,
+    "clickCount": 0
   }
 ]

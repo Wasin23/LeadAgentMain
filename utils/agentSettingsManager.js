@@ -112,8 +112,14 @@ export class AgentSettingsManager {
             // Load collection
             await this.client.loadCollection({ collection_name: this.collectionName });
 
+            // Create a signature system - attach user code to settings
+            const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : 'default';
+            
+            // Add user signature to setting key for identification
+            const signedSettingKey = `${settingKey}_user_${userCode}`;
+
             const data = [{
-                setting_key: settingKey,
+                setting_key: signedSettingKey,  // Include user code in the key itself
                 setting_value: typeof settingValue === 'object' ? JSON.stringify(settingValue) : settingValue,
                 setting_type: settingType,
                 updated_at: new Date().toISOString(),
@@ -121,14 +127,14 @@ export class AgentSettingsManager {
                 dummy_vector: [0.1, 0.2]  // Placeholder vector
             }];
 
-            console.log(`⚙️ [SETTINGS] Updating setting: ${settingKey} (type: ${settingType})`);
+            console.log(`⚙️ [SETTINGS] Updating setting with signature: ${signedSettingKey} (user: ${userCode})`);
 
             await this.client.upsert({
                 collection_name: this.collectionName,
                 data: data
             });
 
-            console.log(`✅ [SETTINGS] Setting updated: ${settingKey}`);
+            console.log(`✅ [SETTINGS] Setting updated with user signature: ${signedSettingKey}`);
             return { success: true };
 
         } catch (error) {

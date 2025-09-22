@@ -160,11 +160,22 @@ router.get('/replies/:trackingId', async (req, res) => {
                 await client.loadCollection({ collection_name: collectionName });
 
                 // Extract base tracking ID from various formats
-                const baseTrackingId = trackingId
-                    .replace(/^tracking-/, '')
-                    .replace(/^ai-response-/, '')
-                    .replace(/^ai-response-tracking-/, '')
-                    .split('-').slice(0, 3).join('-'); // Keep only userid_timestamp_hash part
+                // For new format: tracking-76e84c79_1234567890_abc123 -> 76e84c79_1234567890_abc123
+                // For old format: tracking-default_1234567890_abc123 -> default_1234567890_abc123
+                let baseTrackingId = trackingId;
+                
+                // Remove prefixes but preserve the user code format
+                if (baseTrackingId.startsWith('tracking-')) {
+                    baseTrackingId = baseTrackingId.replace(/^tracking-/, '');
+                }
+                if (baseTrackingId.startsWith('ai-response-')) {
+                    baseTrackingId = baseTrackingId.replace(/^ai-response-/, '');
+                }
+                if (baseTrackingId.startsWith('ai-response-tracking-')) {
+                    baseTrackingId = baseTrackingId.replace(/^ai-response-tracking-/, '');
+                }
+                
+                // Don't split by dashes anymore - preserve the full format including user code
 
                 // Query for all events related to this tracking ID
                 const expr = `tracking_id like "${baseTrackingId}%" || tracking_id like "%${baseTrackingId}%"`;

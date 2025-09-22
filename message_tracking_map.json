@@ -26,5 +26,26 @@
     "subject": "Test email for exabits 4",
     "sentAt": "2025-09-21T23:26:48.642Z",
     "source": "email"
+  },
+  "tracking-default_1758503222977_112da1a5@mg.examarkchat.com": {
+    "trackingId": "default_1758503222977_112da1a5",
+    "to": "colton.fidd@gmail.com",
+    "subject": "hello, test email",
+    "sentAt": "2025-09-22T01:07:03.459Z",
+    "source": "email"
+  },
+  "tracking-tracking-default_1758503379925_0f7038ae@mg.examarkchat.com": {
+    "trackingId": "tracking-default_1758503379925_0f7038ae",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "this is another test email",
+    "sentAt": "2025-09-22T01:09:40.211Z",
+    "source": "email"
+  },
+  "tracking-tracking-default_1758503765514_0860c8e7@mg.examarkchat.com": {
+    "trackingId": "tracking-default_1758503765514_0860c8e7",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "Test email 1",
+    "sentAt": "2025-09-22T01:16:05.772Z",
+    "source": "email"
   }
 }

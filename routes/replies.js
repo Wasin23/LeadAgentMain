@@ -58,13 +58,19 @@ router.get('/replies', async (req, res) => {
           
           // Remove prefixes to get the base tracking ID
           if (baseTrackingId.startsWith('ai-response-')) {
-            // For ai-response-tracking-default_1758486159748_f0b1ed27-1758486249728
-            baseTrackingId = baseTrackingId.replace(/^ai-response-tracking-/, '').split('-')[0];
+            // For ai-response-tracking-76e84c79_1758486159748_f0b1ed27-1758486249728
+            // Remove ai-response-tracking- prefix but preserve user code format
+            baseTrackingId = baseTrackingId.replace(/^ai-response-tracking-/, '');
+            // Remove timestamp suffix if present (after the last dash)
+            const lastDashIndex = baseTrackingId.lastIndexOf('-');
+            if (lastDashIndex > baseTrackingId.indexOf('_')) {
+              baseTrackingId = baseTrackingId.substring(0, lastDashIndex);
+            }
           } else if (baseTrackingId.startsWith('tracking-')) {
-            // For tracking-default_1758486159748_f0b1ed27
+            // For tracking-76e84c79_1758486159748_f0b1ed27
             baseTrackingId = baseTrackingId.replace(/^tracking-/, '');
           }
-          // Base IDs like default_1758486159748_f0b1ed27 remain unchanged
+          // Base IDs like 76e84c79_1758486159748_f0b1ed27 remain unchanged
           
           if (!baseConversations[baseTrackingId]) {
             baseConversations[baseTrackingId] = {
