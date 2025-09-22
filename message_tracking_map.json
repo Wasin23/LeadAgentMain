@@ -47,5 +47,12 @@
     "subject": "Test email 1",
     "sentAt": "2025-09-22T01:16:05.772Z",
     "source": "email"
+  },
+  "tracking-tracking-default_1758504619693_b696ad6e@mg.examarkchat.com": {
+    "trackingId": "tracking-default_1758504619693_b696ad6e",
+    "to": "colton.fidd@gmail.com",
+    "subject": "test email 2",
+    "sentAt": "2025-09-22T01:30:20.265Z",
+    "source": "email"
   }
 }

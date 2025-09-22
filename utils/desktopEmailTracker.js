@@ -55,8 +55,10 @@ class DesktopEmailTracker {
   }
 
   // Inject tracking into email HTML
-  injectTracking(emailHtml, recipient, subject, userId = 'default') {
-    const trackingId = this.generateTrackingId(recipient, subject, userId);
+  injectTracking(emailHtml, recipient, subject, userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411') {
+    // Extract user code from full user ID
+    const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : '76e84c79';
+    const trackingId = this.generateTrackingId(recipient, subject, userCode);
     
     // Store tracking info with user ID
     this.trackingData.set(trackingId, {

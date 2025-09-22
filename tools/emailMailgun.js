@@ -141,7 +141,7 @@ function addTrackingToEmail(body, trackingId) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId = 'default') {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411') {
   try {
     // Ensure we always have HTML content for tracking
     let htmlBody = body;

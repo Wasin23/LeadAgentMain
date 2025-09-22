@@ -1,28 +1,28 @@
 [
   {
-    "id": "1758503763943",
-    "timestamp": "2025-09-22T01:16:03.943Z",
+    "id": "1758504618347",
+    "timestamp": "2025-09-22T01:30:18.347Z",
     "status": "approved",
     "source": "custom",
     "leadData": {
-      "email": "COLTON.FIDD@GMAIL.COM",
+      "email": "colton.fidd@gmail.com",
       "company": "Custom Email",
-      "name": "COLTON.FIDD",
+      "name": "colton.fidd",
       "title": "Custom Contact",
       "context": "Custom email created by user"
     },
     "emailData": {
-      "subject": "Test email 1",
-      "body": "hello, this is a test email",
-      "finalRecipient": "COLTON.FIDD@GMAIL.COM",
-      "finalSubject": "Test email 1",
-      "finalBody": "hello, this is a test email"
+      "subject": "test email 2",
+      "body": "hello this is a test",
+      "finalRecipient": "colton.fidd@gmail.com",
+      "finalSubject": "test email 2",
+      "finalBody": "hello this is a test"
     },
     "metadata": {
       "customEmail": true,
-      "createdAt": "2025-09-22T01:16:03.941Z",
+      "createdAt": "2025-09-22T01:30:18.345Z",
       "createdBy": "user"
     },
-    "approvedAt": "2025-09-22T01:16:05.508Z"
+    "approvedAt": "2025-09-22T01:30:19.687Z"
   }
 ]
