@@ -61,5 +61,12 @@
     "subject": "test email 3",
     "sentAt": "2025-09-22T01:37:15.881Z",
     "source": "email"
+  },
+  "tracking-tracking-76e84c79_1758558354100_9956562e@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1758558354100_9956562e",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "Test email 5",
+    "sentAt": "2025-09-22T16:25:54.901Z",
+    "source": "email"
   }
 }
