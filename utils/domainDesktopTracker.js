@@ -45,10 +45,15 @@ class DomainDesktopTracker extends EventEmitter {
     }
   }
 
-  // Generate unique tracking ID
-  generateTrackingId(recipient, subject) {
-    const unique = `${recipient}-${subject}-${Date.now()}`;
-    return crypto.createHash('md5').update(unique).digest('hex').substring(0, 12);
+  // Generate unique tracking ID with user code
+  generateTrackingId(recipient, subject, userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411') {
+    // Get user code from user ID (first 8 characters)
+    const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : 'default';
+    
+    const unique = `${userCode}-${recipient}-${subject}-${Date.now()}`;
+    const hash = crypto.createHash('md5').update(unique).digest('hex');
+    // Format: tracking-userCode_timestamp_hash
+    return `tracking-${userCode}_${Date.now()}_${hash.substring(0, 8)}`;
   }
 
   // Create tracking pixel URL (uses your domain)

@@ -40,12 +40,15 @@ class DesktopEmailTracker {
     }
   }
 
-  // Generate unique tracking ID for each email with user ID
-  generateTrackingId(recipient, subject, userId = 'default') {
-    const unique = `${userId}-${recipient}-${subject}-${Date.now()}`;
+  // Generate unique tracking ID for each email with user code (first 8 chars of user ID)
+  generateTrackingId(recipient, subject, userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411') {
+    // Get user code from user ID (first 8 characters)
+    const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : 'default';
+    
+    const unique = `${userCode}-${recipient}-${subject}-${Date.now()}`;
     const hash = crypto.createHash('md5').update(unique).digest('hex');
-    // Format: userId_timestamp_hash for easy parsing
-    return `${userId}_${Date.now()}_${hash.substring(0, 8)}`;
+    // Format: tracking-userCode_timestamp_hash for proper webhook processing
+    return `tracking-${userCode}_${Date.now()}_${hash.substring(0, 8)}`;
   }
 
   // Create trackable link - ALWAYS use domain for external recipients  
