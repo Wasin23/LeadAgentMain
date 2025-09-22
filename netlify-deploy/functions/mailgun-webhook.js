@@ -1,6 +1,8 @@
 // LangChain-powered Email Automation Agent
 import { ChatOpenAI } from "@langchain/openai";
 import { DynamicStructuredTool } from "langchain/tools";
+import { createOpenAIFunctionsAgent, AgentExecutor } from "langchain/agents";
+import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { z } from "zod";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import crypto from 'crypto';
@@ -8,9 +10,16 @@ import crypto from 'crypto';
 // === UTILITY FUNCTIONS ===
 
 function parseMailgunPayload(event) {
-  const body = Buffer.from(event.body, 'base64').toString();
-  const formData = new URLSearchParams(body);
-  return Object.fromEntries(formData);
+  // Check if body is base64 encoded (real Mailgun webhooks)
+  if (event.isBase64Encoded) {
+    const body = Buffer.from(event.body, 'base64').toString();
+    const formData = new URLSearchParams(body);
+    return Object.fromEntries(formData);
+  } else {
+    // Plain text body (curl tests)
+    const formData = new URLSearchParams(event.body);
+    return Object.fromEntries(formData);
+  }
 }
 
 function parseMessageHeaders(formData) {
@@ -43,11 +52,24 @@ function extractUserIdFromTrackingId(trackingId) {
 // === ZILLIZ CLIENT SETUP ===
 
 const milvusClient = new MilvusClient({
-  address: process.env.ZILLIZ_ENDPOINT,
+  address: process.env.ZILLIZ_ENDPOINT?.trim(),
   ssl: true,
-  username: 'db_admin',
-  password: process.env.ZILLIZ_TOKEN,
+  token: process.env.ZILLIZ_TOKEN?.trim(),
 });
+
+// Test Zilliz connection
+async function testZillizConnection() {
+  try {
+    console.log('[ZILLIZ] endpoint ok:', !!process.env.ZILLIZ_ENDPOINT, ' token len:', (process.env.ZILLIZ_TOKEN||'').trim().length);
+    console.log('[ZILLIZ] Testing connection...');
+    const collections = await milvusClient.listCollections();
+    console.log('[ZILLIZ] Connection successful, collections:', collections.data);
+    return true;
+  } catch (error) {
+    console.error('[ZILLIZ] Connection failed:', error.message);
+    return false;
+  }
+}
 
 // === DEDUPLICATION SYSTEM ===
 
@@ -85,6 +107,13 @@ const getConversationTool = new DynamicStructuredTool({
     try {
       console.log(`[TOOL] Getting conversation for tracking_id: ${tracking_id}`);
       
+      // Test connection first
+      const connectionOk = await testZillizConnection();
+      if (!connectionOk) {
+        console.log('[TOOL] Zilliz connection failed, returning empty conversation');
+        return JSON.stringify([]);
+      }
+      
       await milvusClient.loadCollection({ collection_name: 'email_tracking_events' });
       
       const result = await milvusClient.query({
@@ -109,10 +138,10 @@ const getConversationTool = new DynamicStructuredTool({
   }
 });
 
-// Tool 2: Get user settings
+// Tool 2: Get user settings (comprehensive)
 const getUserSettingsTool = new DynamicStructuredTool({
   name: "get_user_settings",
-  description: "Get user-specific settings like calendar ID and signature from tracking_id",
+  description: "Get comprehensive user settings including calendar, company info, response style, and knowledge base",
   schema: z.object({
     tracking_id: z.string().describe("The tracking ID to extract user code from")
   }),
@@ -123,26 +152,58 @@ const getUserSettingsTool = new DynamicStructuredTool({
         return JSON.stringify({ error: "Could not extract user ID from tracking_id" });
       }
       
-      console.log(`[TOOL] Getting settings for user: ${userId}`);
+      console.log(`[TOOL] Getting comprehensive settings for user: ${userId}`);
+      
+      // Test connection first
+      const connectionOk = await testZillizConnection();
+      if (!connectionOk) {
+        console.log('[TOOL] Zilliz connection failed, using default settings');
+        return JSON.stringify({
+          calendar_id: 'primary',
+          company_name: 'Exabits',
+          timezone: 'America/Los_Angeles',
+          response_tone: 'professional_friendly'
+        });
+      }
       
       await milvusClient.loadCollection({ collection_name: 'agent_settings' });
       
-      const result = await milvusClient.query({
+      // Get all settings for this user
+      const allSettings = await milvusClient.query({
         collection_name: 'agent_settings',
-        expr: `user_id == "${userId}"`,
-        output_fields: ["calendar_id", "signature", "company_name", "user_name"],
-        limit: 1,
+        expr: `field_name like "%%_user_${userId}"`,
+        output_fields: ["field_name", "field_value", "field_type"],
+        limit: 50,
         consistency_level: "Strong"
       });
       
-      const settings = result.data?.[0] || {
+      // Parse settings into a usable object
+      const settings = {
         calendar_id: 'primary',
-        signature: 'ExaMark AI Assistant',
-        company_name: 'Our Company',
-        user_name: '[Your Name]'
+        company_name: 'Exabits', 
+        timezone: 'America/Los_Angeles',
+        response_tone: 'professional_friendly'
       };
       
-      console.log(`[TOOL] Retrieved settings for user ${userId}`);
+      for (const item of allSettings.data || []) {
+        const fieldName = item.field_name.replace(`_user_${userId}`, '');
+        let value = item.field_value;
+        
+        console.log(`[DEBUG] Zilliz field: ${item.field_name} -> ${fieldName} = ${value}`);
+        
+        // Parse JSON values
+        if (item.field_type === 'json' || (typeof value === 'string' && value.startsWith('{'))) {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            // Keep as string if JSON parse fails
+          }
+        }
+        
+        settings[fieldName] = value;
+      }
+      
+      console.log(`[TOOL] Retrieved ${Object.keys(settings).length} settings for user ${userId}`);
       return JSON.stringify(settings);
       
     } catch (error) {
@@ -175,7 +236,29 @@ const createCalendarEventTool = new DynamicStructuredTool({
       
       // Create JWT for Google OAuth
       const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-      const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+      let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+      
+      // Clean and format the private key properly
+      if (privateKey) {
+        // Handle multiple levels of escaping
+        privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+        
+        // Remove any extra quotes that might have been added
+        privateKey = privateKey.replace(/^["']|["']$/g, '');
+        
+        // Ensure proper PEM format
+        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+          privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+        }
+        
+        // Clean up any double newlines
+        privateKey = privateKey.replace(/\n\n+/g, '\n');
+      }
+      
+      console.log('[TOOL] Service account email:', serviceAccountEmail);
+      console.log('[TOOL] Private key length:', privateKey ? privateKey.length : 'undefined');
+      console.log('[TOOL] Private key starts with:', privateKey ? privateKey.substring(0, 50) : 'undefined');
+      console.log('[TOOL] Private key ends with:', privateKey ? privateKey.substring(privateKey.length - 50) : 'undefined');
       
       const now = Math.floor(Date.now() / 1000);
       const jwtPayload = {
@@ -190,9 +273,20 @@ const createCalendarEventTool = new DynamicStructuredTool({
       const payload = Buffer.from(JSON.stringify(jwtPayload)).toString('base64url');
       const signData = `${header}.${payload}`;
       
-      const signature = crypto.sign('sha256', Buffer.from(signData))
-        .update(privateKey)
-        .sign('base64url');
+      // Create signature with better error handling
+      let signature;
+      try {
+        const sign = crypto.createSign('RSA-SHA256');
+        sign.update(signData);
+        signature = sign.sign(privateKey, 'base64url');
+      } catch (signError) {
+        console.error('[TOOL] Crypto signing error:', signError.message);
+        return JSON.stringify({ 
+          success: false, 
+          error: `Signing failed: ${signError.message}`,
+          details: 'Check private key format'
+        });
+      }
       
       const jwt = `${signData}.${signature}`;
       
@@ -216,13 +310,12 @@ const createCalendarEventTool = new DynamicStructuredTool({
       const accessToken = tokenData.access_token;
       console.log('[TOOL] Got access token successfully');
       
-      // Create calendar event
+      // Create calendar event (no attendees - service account lacks permission)
       const event = {
         summary: title,
         start: { dateTime: start_time, timeZone: timezone },
         end: { dateTime: end_time, timeZone: timezone },
-        attendees: attendees.map(email => ({ email })),
-        description: 'Meeting scheduled through ExaMark AI Assistant'
+        description: `Meeting scheduled through ExaMark AI Assistant\n\nContact: ${attendees.join(', ')}`
       };
       
       const calendarResponse = await fetch(
@@ -355,6 +448,17 @@ const storeEventTool = new DynamicStructuredTool({
         ...additional_data
       };
       
+      // Test connection first
+      const connectionOk = await testZillizConnection();
+      if (!connectionOk) {
+        console.log('[TOOL] Zilliz connection failed, skipping storage');
+        return JSON.stringify({
+          success: false,
+          error: 'Database connection failed',
+          skipped: true
+        });
+      }
+      
       await milvusClient.loadCollection({ collection_name: 'email_tracking_events' });
       
       const result = await milvusClient.insert({
@@ -394,25 +498,34 @@ const model = new ChatOpenAI({
   model: "gpt-4o-mini",
   temperature: 0.3,
   apiKey: process.env.OPENAI_API_KEY
-}).bindTools(tools);
+});
 
-const SYSTEM_PROMPT = `You are ExaMark's intelligent email automation agent. Your goals:
+const SYSTEM_PROMPT = `You are an AI-powered sales assistant with access to tools. Your job is to:
 
-1. ANALYZE the incoming email and conversation history to understand context
-2. DETECT when users propose, confirm, or accept meeting times
-3. CREATE calendar events immediately when time is agreed upon - don't just promise to send invites
-4. SEND professional, contextual email replies that move conversations forward
-5. STORE all interactions for proper tracking and follow-up
+1. ALWAYS start by using get_user_settings tool to learn about the company you're representing
+2. When someone proposes a meeting time, use create_calendar_event tool to schedule it with correct dates
+3. Use send_email tool to reply to prospects
+4. Use store_event tool to log interactions
 
-Key behaviors:
-- When a user gives a specific time (like "tomorrow at 5pm PST"), ALWAYS call create_calendar_event
-- Include the user's email in the attendees list for calendar events
-- Use conversation history to maintain context and avoid repetition
-- Keep replies concise and professional
-- Always call store_event after significant actions (sending emails, creating calendars)
-- Use proper email threading with in_reply_to and references
+CURRENT DATE/TIME INFO:
+- Today is: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+- Current date: ${new Date().toISOString().split('T')[0]}
+- Tomorrow's date: ${new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]}
 
-Remember: Your tools handle all the technical work. Focus on intelligent decision-making about when and how to use them.`;
+IMPORTANT RULES:
+- ALWAYS use tools when appropriate - this is critical for system functionality
+- When you see meeting time proposals like "tomorrow at 3pm EST", create calendar event using tomorrow's date above
+- Write natural business emails, never include technical data or JSON in email content
+- Use company information from settings to personalize your responses
+
+Tools available:
+- get_user_settings: Get company info and settings
+- create_calendar_event: Schedule meetings when times are proposed (use correct dates!)
+- send_email: Send professional replies
+- store_event: Log interactions
+- get_conversation: View conversation history
+
+Use these tools actively to provide excellent sales support.`;
 
 // === MAIN HANDLER ===
 
@@ -476,13 +589,11 @@ export async function handler(event) {
     
     console.log(`[WEBHOOK] Using tracking ID: ${trackingId}`);
     
-    // Store the incoming message first
-    await storeEventTool.func({
+    // Store the incoming message first (skip for testing)
+    console.log('[WEBHOOK] Would store message to Zilliz:', {
       tracking_id: trackingId,
       event_type: 'lead_message',
-      user_agent: `Lead_Message: ${emailData.body}`,
-      email_address: emailData.from,
-      recipient: emailData.to
+      from: emailData.from
     });
     
     // Prepare context for the agent
@@ -494,11 +605,57 @@ export async function handler(event) {
     
     console.log('[WEBHOOK] Calling LangChain agent...');
     
-    // Call the LangChain agent
-    const agentResponse = await model.invoke([
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: JSON.stringify(agentInput) }
+    // Set up the LangChain agent properly
+    const model = new ChatOpenAI({
+      temperature: 0.1,
+      modelName: "gpt-4o-mini",
+      openAIApiKey: process.env.OPENAI_API_KEY
+    });
+    
+    // Create agent tools array
+    const tools = [
+      getConversationTool,
+      getUserSettingsTool,
+      createCalendarEventTool,
+      sendEmailTool,
+      storeEventTool
+    ];
+    
+    // Create the prompt template for the agent
+    const prompt = ChatPromptTemplate.fromMessages([
+      ["system", SYSTEM_PROMPT],
+      ["user", "{input}"],
+      new MessagesPlaceholder("agent_scratchpad")
     ]);
+    
+    // Create the agent
+    const agent = await createOpenAIFunctionsAgent({
+      llm: model,
+      tools: tools,
+      prompt: prompt
+    });
+    
+    // Create the agent executor
+    const agentExecutor = new AgentExecutor({
+      agent: agent,
+      tools: tools,
+      verbose: true,
+      maxIterations: 10
+    });
+    
+    // Execute the agent with proper input
+    const input = `Email from: ${emailData.from}
+Subject: ${emailData.subject}
+Body: ${emailData.body}
+Tracking ID: ${trackingId}
+
+Please process this email appropriately. If it contains a meeting request or time proposal, create a calendar event AND send a professional reply.`;
+    
+    const agentResponse = await agentExecutor.invoke({
+      input: input
+    });
+    
+    console.log('[WEBHOOK] Agent response:', agentResponse);
     
     console.log('[WEBHOOK] Agent processing completed');
     
@@ -509,7 +666,7 @@ export async function handler(event) {
         success: true,
         processed: true,
         tracking_id: trackingId,
-        agent_response: typeof agentResponse.content === 'string' ? agentResponse.content.substring(0, 200) : 'Tools executed'
+        agent_response: agentResponse.output || 'Agent executed successfully'
       })
     };
     
