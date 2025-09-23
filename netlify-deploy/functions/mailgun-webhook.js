@@ -1124,16 +1124,27 @@ export async function handler(event) {
       console.log('[WEBHOOK] Extracted userId:', userId);
       if (userId) {
         console.log('[WEBHOOK] Calling getUserSettings tool...');
-        const settingsResult = await getUserSettingsTool.func({ tracking_id: trackingId });
+        const settingsResult = await Promise.race([
+          getUserSettingsTool.func({ tracking_id: trackingId }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Settings timeout')), 5000))
+        ]);
         console.log('[WEBHOOK] getUserSettings raw result:', settingsResult);
-        userSettings = JSON.parse(settingsResult);
-        console.log('[WEBHOOK] Parsed userSettings:', userSettings);
-        console.log('[WEBHOOK] Using personalized settings for', userId);
+        
+        if (settingsResult && settingsResult !== 'null') {
+          userSettings = JSON.parse(settingsResult);
+          console.log('[WEBHOOK] Parsed userSettings:', userSettings);
+          console.log('[WEBHOOK] Using personalized settings for', userId);
+        } else {
+          console.log('[WEBHOOK] No settings found, using defaults');
+          userSettings = null;
+        }
       } else {
         console.log('[WEBHOOK] No userId extracted from trackingId:', trackingId);
       }
     } catch (error) {
       console.error('[WEBHOOK] Failed to get user settings:', error);
+      console.log('[WEBHOOK] Falling back to default settings');
+      userSettings = null;
     }
 
     // Create personalized system prompt based on user settings
@@ -1154,12 +1165,13 @@ export async function handler(event) {
       prompt: prompt
     });
     
-    // Create the agent executor
+    // Create the agent executor with enhanced debugging
     const agentExecutor = new AgentExecutor({
       agent: agent,
       tools: tools,
       verbose: true,
-      maxIterations: 20
+      maxIterations: 20,
+      returnIntermediateSteps: true // This helps debug tool execution
     });
     
     // Execute the agent with proper input
@@ -1191,16 +1203,31 @@ REMEMBER: You are responding DIRECTLY to the sender - speak to them, not about t
       console.error('[WEBHOOK] Failed to log lead message:', error);
     }
     
-    const agentResponse = await agentExecutor.invoke({
-      input: input
-    });
+    // Execute agent with timeout (30 seconds max)
+    const agentResponse = await Promise.race([
+      agentExecutor.invoke({
+        input: input
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Agent execution timeout after 30 seconds')), 30000)
+      )
+    ]);
     
     // Note: Removed automatic AI response logging to avoid cluttering tracking with internal thoughts
     // AI will manually log significant events like calendar_created using store_event tool
     
     console.log('[WEBHOOK] Agent response:', agentResponse);
     
-    console.log('[WEBHOOK] Agent processing completed');
+    // Validate agent actually executed successfully
+    if (!agentResponse) {
+      throw new Error('Agent returned empty response');
+    }
+    
+    if (agentResponse.error) {
+      throw new Error(`Agent execution failed: ${agentResponse.error}`);
+    }
+    
+    console.log('[WEBHOOK] Agent processing completed successfully');
     
     return {
       statusCode: 200,
@@ -1215,13 +1242,32 @@ REMEMBER: You are responding DIRECTLY to the sender - speak to them, not about t
     
   } catch (error) {
     console.error('[WEBHOOK] Error processing email:', error);
+    console.error('[WEBHOOK] Error stack:', error.stack);
+    
+    // Determine error type for better debugging
+    let errorType = 'unknown';
+    if (error.message?.includes('timeout')) {
+      errorType = 'timeout';
+    } else if (error.message?.includes('OpenAI')) {
+      errorType = 'openai_api';
+    } else if (error.message?.includes('Zilliz')) {
+      errorType = 'zilliz_api';
+    } else if (error.message?.includes('Google')) {
+      errorType = 'google_api';
+    } else if (error.message?.includes('Agent')) {
+      errorType = 'agent_execution';
+    }
+    
+    console.error(`[WEBHOOK] Error type identified: ${errorType}`);
     
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: false,
-        error: error.message
+        error: error.message,
+        error_type: errorType,
+        tracking_id: trackingId || 'unknown'
       })
     };
   }
