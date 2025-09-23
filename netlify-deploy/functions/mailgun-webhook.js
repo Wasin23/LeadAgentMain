@@ -370,6 +370,11 @@ const sendEmailTool = new DynamicStructuredTool({
   func: async ({ to, subject, body, in_reply_to, references, tracking_id }) => {
     try {
       console.log(`[TOOL] Sending email to: ${to}`);
+      console.log(`[TOOL] Mailgun API key available: ${!!process.env.MAILGUN_API_KEY}`);
+      
+      if (!process.env.MAILGUN_API_KEY) {
+        throw new Error('MAILGUN_API_KEY environment variable not set');
+      }
       
       const auth = Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString('base64');
       
@@ -390,14 +395,19 @@ const sendEmailTool = new DynamicStructuredTool({
       
       const response = await fetch(`https://api.mailgun.net/v3/mg.examarkchat.com/messages`, {
         method: 'POST',
-        headers: { 'Authorization': `Basic ${auth}` },
+        headers: { 
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
         body: formData
       });
       
       const result = await response.json();
+      console.log(`[TOOL] Mailgun response status: ${response.status}`);
+      console.log(`[TOOL] Mailgun response:`, result);
       
       if (!response.ok) {
-        throw new Error(`Mailgun send failed: ${result.message || 'Unknown error'}`);
+        throw new Error(`Mailgun send failed: ${result.message || JSON.stringify(result)}`);
       }
       
       console.log(`[TOOL] Email sent successfully: ${messageId}`);
@@ -425,12 +435,12 @@ const storeEventTool = new DynamicStructuredTool({
   schema: z.object({
     tracking_id: z.string().describe("Tracking ID for this conversation"),
     event_type: z.string().describe("Type of event (e.g., 'ai_reply', 'lead_message', 'calendar_created')"),
-    user_agent: z.string().describe("Event content or user agent string"),
+    event_content: z.string().describe("The actual email content, reply text, or event description"),
     email_address: z.string().optional().describe("Email address involved"),
     recipient: z.string().optional().describe("Recipient email address"),
     additional_data: z.record(z.any()).optional().describe("Additional event data")
   }),
-  func: async ({ tracking_id, event_type, user_agent, email_address, recipient, additional_data }) => {
+  func: async ({ tracking_id, event_type, event_content, email_address, recipient, additional_data }) => {
     try {
       console.log(`[TOOL] Storing event: ${event_type} for ${tracking_id}`);
       
@@ -438,7 +448,7 @@ const storeEventTool = new DynamicStructuredTool({
         tracking_id,
         event_type,
         timestamp: new Date().toISOString(),
-        user_agent: user_agent.substring(0, 500), // Truncate to prevent issues
+        user_agent: event_content.substring(0, 500), // Store actual content, not user agent
         email_address: email_address || '',
         recipient: recipient || '',
         ip_address: '127.0.0.1',
@@ -462,7 +472,7 @@ const storeEventTool = new DynamicStructuredTool({
       
       const result = await milvusClient.insert({
         collection_name: 'email_tracking_events',
-        fields_data: [eventData]
+        data: [eventData] // Fix: use 'data' not 'fields_data'
       });
       
       console.log(`[TOOL] Event stored successfully in Zilliz`);
@@ -504,24 +514,39 @@ const SYSTEM_PROMPT = `You are an AI-powered sales assistant with access to tool
 1. ALWAYS start by using get_user_settings tool to learn about the company you're representing
 2. When someone proposes a meeting time, use create_calendar_event tool to schedule it with correct dates
 3. Use send_email tool to reply to prospects
-4. Use store_event tool to log interactions
+4. Use store_event tool to log important interactions (use 'event_content' parameter for actual email/reply content)
 
 CURRENT DATE/TIME INFO:
 - Today is: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 - Current date: ${new Date().toISOString().split('T')[0]}
 - Tomorrow's date: ${new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]}
 
+DATE CONSTRUCTION EXAMPLES:
+- For "tomorrow at 3pm PST": use "${new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]}T15:00:00-08:00"
+- For "tomorrow at 5pm EST": use "${new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]}T17:00:00-05:00"  
+- For "today at 2pm PST": use "${new Date().toISOString().split('T')[0]}T14:00:00-08:00"
+
+TIMEZONE OFFSETS:
+- PST (Pacific Standard Time): -08:00
+- EST (Eastern Standard Time): -05:00
+- CST (Central Standard Time): -06:00
+- MST (Mountain Standard Time): -07:00
+
 IMPORTANT RULES:
 - ALWAYS use tools when appropriate - this is critical for system functionality
-- When you see meeting time proposals like "tomorrow at 3pm EST", create calendar event using tomorrow's date above
+- When you see meeting time proposals like "tomorrow at 3pm PST", create calendar event using EXACTLY tomorrow's date above
+- Use the DATE CONSTRUCTION EXAMPLES above to build proper ISO datetime strings
 - Write natural business emails, never include technical data or JSON in email content
 - Use company information from settings to personalize your responses
+- When using store_event tool, put actual email content in 'event_content' parameter (not user agent info)
+- ALWAYS use the provided In-Reply-To and References headers when sending email replies for proper threading
+- For subject lines, prefix with "Re: " when replying to maintain email thread
 
 Tools available:
 - get_user_settings: Get company info and settings
 - create_calendar_event: Schedule meetings when times are proposed (use correct dates!)
 - send_email: Send professional replies
-- store_event: Log interactions
+- store_event: Log interactions with actual content
 - get_conversation: View conversation history
 
 Use these tools actively to provide excellent sales support.`;
@@ -647,12 +672,47 @@ export async function handler(event) {
 Subject: ${emailData.subject}
 Body: ${emailData.body}
 Tracking ID: ${trackingId}
+Original Message-ID: ${emailData.messageId || 'unknown'}
 
-Please process this email appropriately. If it contains a meeting request or time proposal, create a calendar event AND send a professional reply.`;
+THREADING INFO FOR REPLIES:
+- Use In-Reply-To: ${emailData.messageId || ''}
+- Use References: ${emailData.references ? emailData.references + ' ' + emailData.messageId : emailData.messageId || ''}
+
+Please process this email appropriately. If it contains a meeting request or time proposal, create a calendar event AND send a professional reply with proper threading headers.`;
+
+    // First, automatically log the incoming lead message
+    try {
+      await storeEventTool.func({
+        tracking_id: trackingId,
+        event_type: 'lead_message',
+        event_content: `Subject: ${emailData.subject}\n\nFrom: ${emailData.from}\n\n${emailData.body}`,
+        email_address: emailData.from,
+        recipient: emailData.to
+      });
+      console.log('[WEBHOOK] Logged incoming lead message');
+    } catch (error) {
+      console.error('[WEBHOOK] Failed to log lead message:', error);
+    }
     
     const agentResponse = await agentExecutor.invoke({
       input: input
     });
+    
+    // After agent processes, automatically log the AI response if one was generated
+    try {
+      if (agentResponse.output && agentResponse.output.trim()) {
+        await storeEventTool.func({
+          tracking_id: trackingId,
+          event_type: 'ai_reply',
+          event_content: agentResponse.output,
+          email_address: emailData.to,
+          recipient: emailData.from
+        });
+        console.log('[WEBHOOK] Logged AI response');
+      }
+    } catch (error) {
+      console.error('[WEBHOOK] Failed to log AI response:', error);
+    }
     
     console.log('[WEBHOOK] Agent response:', agentResponse);
     
