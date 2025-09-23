@@ -1035,7 +1035,7 @@ export async function handler(event) {
       agent: agent,
       tools: tools,
       verbose: true,
-      maxIterations: 10
+      maxIterations: 20
     });
     
     // Execute the agent with proper input
