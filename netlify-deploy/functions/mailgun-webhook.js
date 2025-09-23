@@ -978,15 +978,20 @@ YOUR JOB:
    a) FIRST use check_availability tool to verify the time is free
    b) If busy, use the suggested alternative time from check_availability
    c) Create calendar event with availability_checked=true
-4. Use send_email tool to reply with proper threading
+4. MANDATORY: ALWAYS use send_email tool to reply - NEVER just summarize what you would send
 5. Use store_event tool ONLY for significant events (not internal thoughts)
+
+CRITICAL: YOU MUST SEND AN ACTUAL EMAIL REPLY
+- EVERY email requires a response using the send_email tool
+- Do NOT say "I sent a reply" - actually USE the send_email tool
+- Do NOT summarize what you would say - SAY IT using send_email
+- Your response should be the email content itself, not a description of sending an email
 
 COMMUNICATION STYLE:
 - You are responding DIRECTLY to the email sender (the lead/prospect)
-- Do NOT say "I have sent a reply" or "I informed them" - you ARE the reply
-- Act as ${userSettings.ai_assistant_name} representing ${userSettings.company_name}
-- Example: Instead of "I told them you're busy" say "Unfortunately, Colton is unavailable at that time"
+- Write the email content as if you ARE ${userSettings.ai_assistant_name} from ${userSettings.company_name}
 - Be conversational and helpful, speaking directly to the person who sent the email
+- Example: "Hi Sarah, unfortunately Colton is unavailable at 9pm. Could we schedule for 2pm tomorrow instead?"
 
 CALENDAR EVENT RULES:
 - MANDATORY: Always check availability before scheduling
@@ -1185,9 +1190,13 @@ THREADING INFO FOR REPLIES:
 - Use In-Reply-To: ${emailData.messageId || ''}
 - Use References: ${emailData.references ? emailData.references + ' ' + emailData.messageId : emailData.messageId || ''}
 
-Please process this email appropriately. If it contains a meeting request or time proposal, create a calendar event AND send a professional reply with proper threading headers. 
+MANDATORY ACTIONS FOR EVERY EMAIL:
+1. Use get_user_settings tool
+2. Use get_conversation tool  
+3. If meeting request: use check_availability, then create_calendar_event if needed
+4. ALWAYS use send_email tool to reply (never skip this step)
 
-REMEMBER: You are responding DIRECTLY to the sender - speak to them, not about them!`;
+CRITICAL: You must ACTUALLY send an email response using the send_email tool. Do not summarize or report - just send the email response directly to the sender.`;
 
     // First, automatically log the incoming lead message
     try {
