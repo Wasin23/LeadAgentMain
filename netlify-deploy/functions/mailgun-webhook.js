@@ -216,10 +216,76 @@ const getUserSettingsTool = new DynamicStructuredTool({
   }
 });
 
+// Helper function to check if time is within business hours (8am-8pm) in USER'S timezone
+function isBusinessHours(date, userTimezone) {
+  // Get hour directly in user's timezone without double conversion
+  const hour = parseInt(date.toLocaleString("en-US", {
+    timeZone: userTimezone,
+    hour: 'numeric',
+    hour12: false
+  }));
+  return hour >= 8 && hour < 20; // 8am to 8pm in USER'S timezone
+}
+
+// Helper function to find business hours alternatives
+async function findBusinessHoursAlternative(calendar_id, requestedStart, duration_minutes, timezone, accessToken) {
+  // Priority 1: Same day, within ±4 hours (8am-8pm only)
+  const sameDayAlternatives = [];
+  const requestedDate = new Date(requestedStart);
+  requestedDate.setHours(8, 0, 0, 0); // Start at 8am same day
+  
+  for (let i = 0; i < 12 * 4; i++) { // Check every 15 minutes for 12 hours (8am-8pm)
+    const testStart = new Date(requestedDate.getTime() + i * 15 * 60 * 1000);
+    const testEnd = new Date(testStart.getTime() + duration_minutes * 60 * 1000);
+    
+    // Skip if outside business hours
+    if (!isBusinessHours(testStart, timezone) || !isBusinessHours(testEnd, timezone)) continue;
+    
+    // Skip if too far from original request (>4 hours)
+    const hoursDiff = Math.abs(testStart.getTime() - requestedStart.getTime()) / (1000 * 60 * 60);
+    if (hoursDiff > 4) continue;
+    
+    // Check if this slot is free
+    const testTimeMin = testStart.toISOString();
+    const testTimeMax = testEnd.toISOString();
+    
+    const testEventsResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${calendar_id}/events?timeMin=${encodeURIComponent(testTimeMin)}&timeMax=${encodeURIComponent(testTimeMax)}&singleEvents=true`,
+      {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }
+    );
+    
+    const testEventsData = await testEventsResponse.json();
+    if (testEventsResponse.ok && (!testEventsData.items || testEventsData.items.length === 0)) {
+      const timeString = testStart.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        timeZone: timezone 
+      });
+      
+      return JSON.stringify({
+        available: false,
+        suggested_time: testStart.toISOString().replace('Z', requested_time.slice(-6)), // Use original timezone offset
+        suggested_end_time: testEnd.toISOString().replace('Z', requested_time.slice(-6)),
+        message: `Requested time is outside business hours (8am-8pm). Suggested alternative: ${timeString} (within business hours)`,
+        alternative_type: "business_hours_alternative"
+      });
+    }
+  }
+  
+  // If no alternatives found
+  return JSON.stringify({
+    available: false,
+    message: "Requested time is outside business hours (8am-8pm) and no suitable alternatives found within business hours. Please suggest a time between 8am-8pm.",
+    alternative_type: "manual_suggestion_needed"
+  });
+}
+
 // Tool 2: Check Calendar Availability and Suggest Alternatives
 const checkAvailabilityTool = new DynamicStructuredTool({
   name: "check_availability",
-  description: "Check calendar availability for requested time and suggest alternatives if busy. Always use before creating calendar events.",
+  description: "Check calendar availability for requested time and suggest alternatives if busy or outside business hours (8am-8pm). Always use before creating calendar events.",
   schema: z.object({
     calendar_id: z.string().describe("User's calendar ID to check availability"),
     requested_time: z.string().describe("ISO datetime string for requested meeting time"),
@@ -229,6 +295,88 @@ const checkAvailabilityTool = new DynamicStructuredTool({
   func: async ({ calendar_id, requested_time, duration_minutes, timezone }) => {
     try {
       console.log(`[AVAILABILITY] Checking availability for ${requested_time} on calendar ${calendar_id}`);
+      
+      // Calculate time range to check
+      const requestedStart = new Date(requested_time);
+      const requestedEnd = new Date(requestedStart.getTime() + duration_minutes * 60 * 1000);
+      
+      // FIRST: Check if requested time is within business hours (8am-8pm)
+      if (!isBusinessHours(requestedStart, timezone) || !isBusinessHours(requestedEnd, timezone)) {
+        // Get the hour directly in user's timezone for logging
+        const requestedHour = parseInt(requestedStart.toLocaleString("en-US", {
+          timeZone: timezone,
+          hour: 'numeric',
+          hour12: false
+        }));
+        const requestedMinute = parseInt(requestedStart.toLocaleString("en-US", {
+          timeZone: timezone,
+          minute: 'numeric'
+        }));
+        const timeString = `${requestedHour}:${requestedMinute.toString().padStart(2, '0')}`;
+        
+        console.log(`[AVAILABILITY] Requested time ${timeString} is outside business hours (8am-8pm) in ${timezone}`);
+        
+        // Get access token first for the alternative search
+        const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+        let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+        
+        if (!serviceAccountEmail || !privateKey) {
+          return JSON.stringify({
+            available: false,
+            error: "Missing Google service account credentials"
+          });
+        }
+        
+        // Clean private key
+        privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+        privateKey = privateKey.replace(/^["']|["']$/g, '');
+        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+          privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+        }
+        privateKey = privateKey.replace(/\n\n+/g, '\n');
+        
+        // Create JWT
+        const now = Math.floor(Date.now() / 1000);
+        const jwtPayload = {
+          iss: serviceAccountEmail,
+          scope: 'https://www.googleapis.com/auth/calendar',
+          aud: 'https://oauth2.googleapis.com/token',
+          exp: now + 3600,
+          iat: now
+        };
+        
+        const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+        const payload = Buffer.from(JSON.stringify(jwtPayload)).toString('base64url');
+        const signData = `${header}.${payload}`;
+        
+        const sign = crypto.createSign('RSA-SHA256');
+        sign.update(signData);
+        const signature = sign.sign(privateKey, 'base64url');
+        const jwt = `${signData}.${signature}`;
+        
+        // Get access token
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            assertion: jwt
+          })
+        });
+        
+        const tokenData = await tokenResponse.json();
+        if (!tokenResponse.ok) {
+          return JSON.stringify({
+            available: false,
+            error: "Failed to get access token"
+          });
+        }
+        
+        const accessToken = tokenData.access_token;
+        
+        // Find alternative within business hours - same day first
+        return await findBusinessHoursAlternative(calendar_id, requestedStart, duration_minutes, timezone, accessToken);
+      }
       
       // Create JWT for Google OAuth (same as calendar creation)
       const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -288,11 +436,7 @@ const checkAvailabilityTool = new DynamicStructuredTool({
       
       const accessToken = tokenData.access_token;
       
-      // Calculate time range to check
-      const requestedStart = new Date(requested_time);
-      const requestedEnd = new Date(requestedStart.getTime() + duration_minutes * 60 * 1000);
-      
-      // Check for conflicts in requested time slot
+      // SECOND: Check for calendar conflicts in requested time slot (business hours already validated above)
       const timeMin = requestedStart.toISOString();
       const timeMax = requestedEnd.toISOString();
       
@@ -317,7 +461,7 @@ const checkAvailabilityTool = new DynamicStructuredTool({
       const conflicts = eventsData.items || [];
       console.log(`[AVAILABILITY] Found ${conflicts.length} conflicting events`);
       
-      // If no conflicts, requested time is available
+      // If no conflicts and within business hours, requested time is available
       if (conflicts.length === 0) {
         return JSON.stringify({
           available: true,
@@ -326,34 +470,8 @@ const checkAvailabilityTool = new DynamicStructuredTool({
         });
       }
       
-      // Find alternative times
+      // Find alternative times if there were conflicts
       console.log(`[AVAILABILITY] Finding alternatives for busy slot`);
-      
-      // Helper function to check if time is within business hours (8am-8pm) in USER'S timezone
-      const isBusinessHours = (date, userTimezone) => {
-        // Convert to user's timezone for business hours check
-        const userTime = new Date(date.toLocaleString("en-US", {timeZone: userTimezone}));
-        const hour = userTime.getHours();
-        return hour >= 8 && hour < 20; // 8am to 8pm in USER'S timezone
-      };
-      
-      // Check if requested time is within user's business hours
-      const requestedInUserTz = new Date(requestedStart.toLocaleString("en-US", {timeZone: timezone}));
-      const requestedEndInUserTz = new Date(requestedEnd.toLocaleString("en-US", {timeZone: timezone}));
-      
-      if (!isBusinessHours(requestedInUserTz, timezone) || !isBusinessHours(requestedEndInUserTz, timezone)) {
-        const requestedHour = requestedInUserTz.getHours();
-        const requestedMinute = requestedInUserTz.getMinutes();
-        const timeString = `${requestedHour}:${requestedMinute.toString().padStart(2, '0')}`;
-        
-        return JSON.stringify({
-          available: false,
-          business_hours_violation: true,
-          message: `Requested time (${timeString} in your timezone) is outside business hours (8:00 AM - 8:00 PM). Please suggest a time between 8am-8pm in your timezone.`,
-          user_timezone: timezone,
-          requested_time_in_user_tz: requestedInUserTz.toISOString()
-        });
-      }
       
       // Priority 1: Same day, within ±4 hours
       const sameDayAlternatives = [];
