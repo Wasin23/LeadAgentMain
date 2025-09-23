@@ -1,86 +1,9 @@
 {
-  "tracking-default_1758489459059_1ebd4461@mg.examarkchat.com": {
-    "trackingId": "default_1758489459059_1ebd4461",
+  "tracking-tracking-76e84c79_1758601722651_1f600750@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1758601722651_1f600750",
     "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "hello, this is a test email for service Y",
-    "sentAt": "2025-09-21T21:17:39.423Z",
-    "source": "email"
-  },
-  "tracking-default_1758493287742_7c251c7a@mg.examarkchat.com": {
-    "trackingId": "default_1758493287742_7c251c7a",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "Email for service X",
-    "sentAt": "2025-09-21T22:21:28.333Z",
-    "source": "email"
-  },
-  "tracking-default_1758494234907_7921748e@mg.examarkchat.com": {
-    "trackingId": "default_1758494234907_7921748e",
-    "to": "colton.fidd@gmail.com",
-    "subject": "Something G tracking",
-    "sentAt": "2025-09-21T22:37:15.305Z",
-    "source": "email"
-  },
-  "tracking-default_1758497208325_a86bb55d@mg.examarkchat.com": {
-    "trackingId": "default_1758497208325_a86bb55d",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "Test email for exabits 4",
-    "sentAt": "2025-09-21T23:26:48.642Z",
-    "source": "email"
-  },
-  "tracking-default_1758503222977_112da1a5@mg.examarkchat.com": {
-    "trackingId": "default_1758503222977_112da1a5",
-    "to": "colton.fidd@gmail.com",
-    "subject": "hello, test email",
-    "sentAt": "2025-09-22T01:07:03.459Z",
-    "source": "email"
-  },
-  "tracking-tracking-default_1758503379925_0f7038ae@mg.examarkchat.com": {
-    "trackingId": "tracking-default_1758503379925_0f7038ae",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "this is another test email",
-    "sentAt": "2025-09-22T01:09:40.211Z",
-    "source": "email"
-  },
-  "tracking-tracking-default_1758503765514_0860c8e7@mg.examarkchat.com": {
-    "trackingId": "tracking-default_1758503765514_0860c8e7",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "Test email 1",
-    "sentAt": "2025-09-22T01:16:05.772Z",
-    "source": "email"
-  },
-  "tracking-tracking-default_1758504619693_b696ad6e@mg.examarkchat.com": {
-    "trackingId": "tracking-default_1758504619693_b696ad6e",
-    "to": "colton.fidd@gmail.com",
-    "subject": "test email 2",
-    "sentAt": "2025-09-22T01:30:20.265Z",
-    "source": "email"
-  },
-  "tracking-tracking-76e84c79_1758505035574_85cb82e0@mg.examarkchat.com": {
-    "trackingId": "tracking-76e84c79_1758505035574_85cb82e0",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "test email 3",
-    "sentAt": "2025-09-22T01:37:15.881Z",
-    "source": "email"
-  },
-  "tracking-tracking-76e84c79_1758558354100_9956562e@mg.examarkchat.com": {
-    "trackingId": "tracking-76e84c79_1758558354100_9956562e",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "Test email 5",
-    "sentAt": "2025-09-22T16:25:54.901Z",
-    "source": "email"
-  },
-  "tracking-tracking-76e84c79_1758586235023_e8cf08b3@mg.examarkchat.com": {
-    "trackingId": "tracking-76e84c79_1758586235023_e8cf08b3",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "test email 34",
-    "sentAt": "2025-09-23T00:10:35.432Z",
-    "source": "email"
-  },
-  "tracking-tracking-76e84c79_1758599656629_96edeebf@mg.examarkchat.com": {
-    "trackingId": "tracking-76e84c79_1758599656629_96edeebf",
-    "to": "COLTON.FIDD@GMAIL.COM",
-    "subject": "test email 51",
-    "sentAt": "2025-09-23T03:54:17.031Z",
+    "subject": "Test email 53",
+    "sentAt": "2025-09-23T04:28:43.144Z",
     "source": "email"
   }
 }

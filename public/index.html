@@ -3894,7 +3894,15 @@
         }
         
         console.log('[FRONTEND] Displaying', logs.length, 'email logs');
-        logs.forEach(log => {
+        
+        // Sort emails by timestamp (most recent first)
+        const sortedLogs = logs.sort((a, b) => {
+          const dateA = new Date(a.timestamp);
+          const dateB = new Date(b.timestamp);
+          return dateB - dateA; // Most recent first
+        });
+        
+        sortedLogs.forEach(log => {
           const emailItem = document.createElement('div');
           emailItem.className = 'email-log-item';
           
