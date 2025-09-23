@@ -813,15 +813,14 @@ Do not attempt to create calendar events or send detailed responses without prop
 
   // Calculate dates in user's timezone
   const userTimezone = userSettings.timezone;
-  const today = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', month: '2-digit', day: '2-digit', 
-    timeZone: userTimezone 
-  }).replace(/\//g, '-');
+  // Format dates in ISO format (YYYY-MM-DD) for proper Date() parsing
+  const todayDate = new Date();
+  const todayInUserTz = new Date(todayDate.toLocaleString('en-US', { timeZone: userTimezone }));
+  const today = todayInUserTz.toISOString().split('T')[0]; // YYYY-MM-DD format
   
-  const tomorrow = new Date(Date.now() + 24*60*60*1000).toLocaleDateString('en-US', { 
-    year: 'numeric', month: '2-digit', day: '2-digit', 
-    timeZone: userTimezone 
-  }).replace(/\//g, '-');
+  const tomorrowDate = new Date(Date.now() + 24*60*60*1000);
+  const tomorrowInUserTz = new Date(tomorrowDate.toLocaleString('en-US', { timeZone: userTimezone }));
+  const tomorrow = tomorrowInUserTz.toISOString().split('T')[0]; // YYYY-MM-DD format
 
   const todayLong = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
