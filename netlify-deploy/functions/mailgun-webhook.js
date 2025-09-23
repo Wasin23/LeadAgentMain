@@ -1190,13 +1190,15 @@ THREADING INFO FOR REPLIES:
 - Use In-Reply-To: ${emailData.messageId || ''}
 - Use References: ${emailData.references ? emailData.references + ' ' + emailData.messageId : emailData.messageId || ''}
 
-MANDATORY ACTIONS FOR EVERY EMAIL:
+YOU MUST COMPLETE THESE EXACT STEPS IN ORDER:
 1. Use get_user_settings tool
 2. Use get_conversation tool  
 3. If meeting request: use check_availability, then create_calendar_event if needed
-4. ALWAYS use send_email tool to reply (never skip this step)
+4. Use send_email tool to send your response (REQUIRED FOR EVERY EMAIL)
+5. After using send_email tool, respond with: "Email sent successfully"
 
-CRITICAL: You must ACTUALLY send an email response using the send_email tool. Do not summarize or report - just send the email response directly to the sender.`;
+DO NOT SKIP STEP 4. DO NOT SAY YOU SENT AN EMAIL - ACTUALLY USE THE SEND_EMAIL TOOL.
+Your final response should only be "Email sent successfully" after you have used the send_email tool.`;
 
     // First, automatically log the incoming lead message
     try {
