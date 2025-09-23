@@ -1095,7 +1095,7 @@ export async function handler(event) {
     const agentInput = {
       inbound_email: emailData,
       tracking_id: trackingId,
-      instructions: "Analyze this email and take appropriate actions. If the user proposes a meeting time, create a calendar event. Always send a professional reply."
+      instructions: "Analyze this email and take appropriate actions. If the user proposes a meeting time, create a calendar event. Always respond DIRECTLY to the email sender - you ARE the response, not reporting about a response."
     };
     
     console.log('[WEBHOOK] Calling LangChain agent...');
