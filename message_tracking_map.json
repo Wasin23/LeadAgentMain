@@ -40,5 +40,19 @@
     "subject": "hello test test 6666",
     "sentAt": "2025-09-24T21:46:30.442Z",
     "source": "email"
+  },
+  "tracking-tracking-76e84c79_1758753794310_9d006868@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1758753794310_9d006868",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "test email for sales444",
+    "sentAt": "2025-09-24T22:43:14.715Z",
+    "source": "email"
+  },
+  "tracking-tracking-76e84c79_1758754758096_8ca44ac3@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1758754758096_8ca44ac3",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "test email for exabits tracking",
+    "sentAt": "2025-09-24T22:59:18.380Z",
+    "source": "email"
   }
 }

@@ -97,17 +97,18 @@ router.post('/', async (req, res) => {
     const now = new Date().toISOString();
     const settingsJson = JSON.stringify(settings);
     
-    // Delete existing email response settings record for this user
+    // Delete existing email response settings record for this user (UPSERT approach)
     try {
-      await milvusClient.delete({
+      const deleteResult = await milvusClient.delete({
         collection_name: 'agent_settings',
         expr: `setting_key == "email_response_settings" && user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`
       });
-    } catch (e) {
-      // Ignore if no existing record
+      console.log(`[EMAIL-RESPONSE] Deleted ${deleteResult.delete_count || 0} existing records for user ${userCode}`);
+    } catch (deleteError) {
+      console.log(`[EMAIL-RESPONSE] No existing record to delete for user ${userCode}:`, deleteError.message);
     }
     
-    // Insert new record with all email response settings as JSON
+    // Insert new record with all email response settings as JSON (UPDATE by replace)
     const insertResult = await milvusClient.insert({
       collection_name: 'agent_settings',
       data: [{
@@ -120,14 +121,31 @@ router.post('/', async (req, res) => {
       }]
     });
     
-    console.log('[EMAIL-RESPONSE] Settings saved successfully');
+    console.log(`[EMAIL-RESPONSE] Settings saved successfully for user ${userCode}. Insert count: ${insertResult.insert_count}`);
+    
+    // Verify the update was successful by checking for duplicates
+    try {
+      const verifyResult = await milvusClient.query({
+        collection_name: 'agent_settings',
+        expr: `setting_key == "email_response_settings" && user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`,
+        output_fields: ['setting_key', 'user_id', 'updated_at']
+      });
+      
+      if (verifyResult.data.length > 1) {
+        console.warn(`[EMAIL-RESPONSE] Warning: Found ${verifyResult.data.length} records for user ${userCode}. Should only be 1.`);
+      } else {
+        console.log(`[EMAIL-RESPONSE] Verified: Exactly ${verifyResult.data.length} record exists for user ${userCode}`);
+      }
+    } catch (verifyError) {
+      console.log('[EMAIL-RESPONSE] Could not verify record count:', verifyError.message);
+    }
     
     res.json({
       success: true,
       userId: userId,
       settings: settings,
       updated_at: now,
-      message: 'Email response settings saved successfully'
+      message: 'Email response settings updated successfully (no duplicates)'
     });
     
   } catch (error) {

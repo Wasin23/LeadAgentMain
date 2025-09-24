@@ -84,9 +84,18 @@ router.post('/clear-logs', authenticateToken, async (req, res) => {
       const existingApproved = await fs.readFile(approvedPath, 'utf8');
       approvedEmails = JSON.parse(existingApproved);
       // Keep only approved emails that don't belong to this user
+      // Check both trackingId pattern AND userId field for comprehensive filtering
       approvedEmails = approvedEmails.filter(email => {
+        // Check if it's this user by userId field
+        if (email.userId === userId) {
+          return false; // Remove this user's approved emails
+        }
+        // Also check trackingId pattern for other types of entries
         const trackingId = email.trackingId || email.id;
-        return !trackingId || !trackingId.startsWith(`tracking-${userCode}_`);
+        if (trackingId && trackingId.startsWith(`tracking-${userCode}_`)) {
+          return false; // Remove emails with this user's tracking pattern
+        }
+        return true; // Keep emails that don't belong to this user
       });
     } catch (error) {
       console.log('[EMAIL LOGS] No existing approved emails found');
