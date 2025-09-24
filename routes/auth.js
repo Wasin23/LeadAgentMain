@@ -332,9 +332,9 @@ router.get('/settings', async (req, res) => {
   try {
     console.log('[AUTH] GET /settings - Request received');
     
-    // Get current user from session or return empty settings
-    // For now, we'll use a default approach
-    const currentUser = { userId: 'default' }; // This should come from session
+    // TODO: Get current user from session or return empty settings
+    // For now, return error if no session
+    return res.status(401).json({ error: 'User session required' });
     
     const settings = await getUserSettings(currentUser.userId);
     console.log('[AUTH] Settings retrieved:', Object.keys(settings));
@@ -351,8 +351,9 @@ router.post('/settings', async (req, res) => {
     console.log('[AUTH] POST /settings - Request received');
     console.log('[AUTH] Request body:', req.body);
     
-    // Get current user from session or use default
-    const currentUser = { userId: 'default' }; // This should come from session
+    // TODO: Get current user from session
+    // For now, return error if no session
+    return res.status(401).json({ error: 'User session required' });
     
     const result = await updateUserSettings(currentUser.userId, req.body);
     console.log('[AUTH] Settings updated successfully');

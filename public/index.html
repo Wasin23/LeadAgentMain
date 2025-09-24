@@ -2459,7 +2459,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: '76e84c79-9b13-4c55-be86-d0bd9baa9411',
+            userId: currentUser.userId,
             userInput: text
           })
         });
@@ -3126,7 +3126,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: '76e84c79-9b13-4c55-be86-d0bd9baa9411',
+            userId: currentUser.userId,
             userInput: userMessage
           })
         });
@@ -3272,7 +3272,7 @@
     // Auto-greeting initialization
     async function initializeChat() {
       try {
-        const userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411'; // UUID from user registration
+        const userId = currentUser.userId; // UUID from user registration
         const response = await fetch('/chat/init', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -41,7 +41,7 @@ class DesktopEmailTracker {
   }
 
   // Generate unique tracking ID for each email with user code (first 8 chars of user ID)
-  generateTrackingId(recipient, subject, userCode = '76e84c79') {
+  generateTrackingId(recipient, subject, userCode) {
     const unique = `${userCode}-${recipient}-${subject}-${Date.now()}`;
     const hash = crypto.createHash('md5').update(unique).digest('hex');
     // Format: tracking-userCode_timestamp_hash for proper webhook processing
@@ -55,7 +55,7 @@ class DesktopEmailTracker {
   }
 
   // Inject tracking into email HTML
-  injectTracking(emailHtml, recipient, subject, userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411') {
+  injectTracking(emailHtml, recipient, subject, userId) {
     // Extract user code from full user ID
     const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : '76e84c79';
     const trackingId = this.generateTrackingId(recipient, subject, userCode);

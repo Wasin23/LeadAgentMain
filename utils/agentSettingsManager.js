@@ -103,7 +103,7 @@ export class AgentSettingsManager {
     /**
      * Update or insert a setting (upsert operation)
      */
-    async updateSetting(settingKey, settingValue, settingType = 'general', userId = 'default') {
+    async updateSetting(settingKey, settingValue, settingType = 'general', userId) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -113,7 +113,7 @@ export class AgentSettingsManager {
             await this.client.loadCollection({ collection_name: this.collectionName });
 
             // Create a signature system - attach user code to settings
-            const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : 'default';
+            const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : null;
             
             // Add user signature to setting key for identification
             const signedSettingKey = `${settingKey}_user_${userCode}`;
@@ -146,7 +146,7 @@ export class AgentSettingsManager {
     /**
      * Get a specific setting
      */
-    async getSetting(settingKey, userId = 'default') {
+    async getSetting(settingKey, userId) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -190,7 +190,7 @@ export class AgentSettingsManager {
     /**
      * Get all settings for a user
      */
-    async getAllSettings(userId = 'default') {
+    async getAllSettings(userId) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -238,7 +238,7 @@ export class AgentSettingsManager {
     /**
      * Initialize default settings for a new user
      */
-    async initializeDefaultSettings(userId = 'default') {
+    async initializeDefaultSettings(userId) {
         const defaultSettings = {
             company_info: {
                 name: "Your Company",
@@ -287,7 +287,7 @@ export class AgentSettingsManager {
     /**
      * Get all settings formatted for the UI
      */
-    async getSettings(userId = 'default') {
+    async getSettings(userId) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -312,7 +312,7 @@ export class AgentSettingsManager {
     /**
      * Update multiple settings at once (bulk update)
      */
-    async updateSettings(settingsObject, userId = 'default') {
+    async updateSettings(settingsObject, userId) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -345,7 +345,7 @@ export class AgentSettingsManager {
     /**
      * Reset settings to defaults
      */
-    async resetToDefaults(userId = 'default') {
+    async resetToDefaults(userId) {
         try {
             if (!this.initialized) {
                 await this.initialize();

@@ -29,7 +29,10 @@ async function getLinkedInCredentials(userId) {
 
 // LinkedIn OAuth flow - initiate
 router.get('/auth', async (req, res) => {
-  const userId = req.query.userId || 'default'; // In production, get from session
+  const userId = req.query.userId; // Should come from session in production
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
   const credentials = await getLinkedInCredentials(userId);
   
   if (!credentials.clientId) {
@@ -59,7 +62,10 @@ router.get('/auth', async (req, res) => {
 // LinkedIn OAuth callback
 router.get('/callback', async (req, res) => {
   const { code, state, error } = req.query;
-  const userId = req.query.userId || 'default'; // In production, get from session
+  const userId = req.query.userId; // Should come from session in production
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
   
   if (error) {
     return res.status(400).json({
