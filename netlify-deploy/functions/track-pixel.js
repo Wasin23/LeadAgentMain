@@ -93,7 +93,7 @@ exports.handler = async (event, context) => {
             
             console.log(`Email ${trackingId} marked as opened for first time`);
           } else {
-            console.log(`Tracking event filtered out for ${trackingId} (bot: ${isBot}, already opened: ${alreadyOpened})`);
+            console.log(`Tracking event filtered out for ${trackingId} (image proxy: ${isImageProxy}, already opened: ${alreadyOpened})`);
           }
         }
       } catch (e) {
