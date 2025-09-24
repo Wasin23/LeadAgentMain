@@ -2320,6 +2320,9 @@
     const chat = document.getElementById('chat');
     const input = document.getElementById('message');
     const send = document.getElementById('send');
+    
+    // Initialize chat history array
+    let chatHistory = [];
 
     // Auto-resize textarea functionality
     function autoResize() {
@@ -2457,8 +2460,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: '76e84c79-9b13-4c55-be86-d0bd9baa9411',
-            userInput: text,
-            chatHistory: chatHistory
+            userInput: text
           })
         });
 
@@ -3125,8 +3127,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: '76e84c79-9b13-4c55-be86-d0bd9baa9411',
-            userInput: userMessage,
-            chatHistory: chatHistory
+            userInput: userMessage
           })
         });
         
