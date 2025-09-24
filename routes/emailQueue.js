@@ -1,8 +1,12 @@
 import express from 'express';
 import { emailQueue } from '../lib/emailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
+
+// Apply JWT authentication to ALL routes in this router
+router.use(authenticateToken);
 
 // Get email queue with formatted data (root route)
 router.get('/', async (req, res) => {
@@ -83,6 +87,7 @@ router.post('/custom', async (req, res) => {
     const customEmail = {
       status: 'pending',
       source: source,
+      userId: req.user.userId, // Add userId from JWT token for proper tracking
       leadData: {
         email: to,
         company: 'Custom Email',
@@ -172,11 +177,13 @@ router.post('/:id/approve', async (req, res) => {
     
     // Send the actual email with person information
     const personInfo = approvedEmail.leadDetails?.personInfo || null;
+    const userId = approvedEmail.userId || null; // Get userId from queue data
     const sendResult = await leadEmail(
       finalRecipient,
       finalSubject,
       finalBody,
-      personInfo
+      personInfo,
+      userId
     );
     
     if (sendResult.success) {

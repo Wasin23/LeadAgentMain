@@ -1,8 +1,12 @@
 import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
+
+// Apply JWT authentication to ALL routes in this router
+router.use(authenticateToken);
 
 // Get all replies with analytics
 router.get('/replies', async (req, res) => {

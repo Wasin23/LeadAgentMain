@@ -3,8 +3,19 @@ import { AgentSettingsManager } from './utils/agentSettingsManager.js';
 
 console.log('⚙️ Setting up Agent Configuration System...');
 
+// Get userId from command line argument or environment variable
+const userId = process.argv[2] || process.env.USER_ID;
+
+if (!userId) {
+    console.error('❌ User ID is required!');
+    console.log('Usage: node setup-agent-config.mjs <userId>');
+    console.log('   or: Set USER_ID environment variable');
+    process.exit(1);
+}
+
+console.log(`Setting up configuration for user: ${userId}`);
+
 const settingsManager = new AgentSettingsManager();
-const userId = '76e84c79-9b13-4c55-be86-d0bd9baa9411'; // Your actual user ID
 
 try {
     await settingsManager.initialize();

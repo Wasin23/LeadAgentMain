@@ -164,9 +164,10 @@ export class ZillizEmailTracker {
                 collection_name: this.collectionName
             });
 
-            // Query all events without field filtering (more reliable)
+            // Query all events with explicit field selection to ensure user_agent is included
             const results = await this.client.query({
                 collection_name: this.collectionName,
+                output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed'],
                 limit: 1000
             });
 
@@ -199,7 +200,33 @@ export class ZillizEmailTracker {
         }
     }
 
-    // Clear all tracking events from Zilliz
+    // Clear tracking events for a specific user (based on user ID in tracking ID)
+    async clearUserTrackingEvents(userId) {
+        try {
+            if (!this.initialized) {
+                await this.initialize();
+            }
+
+            // Extract first 8 characters of user ID for matching tracking IDs
+            const userCode = userId.substring(0, 8);
+            console.log(`🗑️ [ZILLIZ] Clearing tracking events for user: ${userCode}...`);
+
+            // Delete all events where tracking_id starts with "tracking-{userCode}_"
+            const deleteResult = await this.client.delete({
+                collection_name: this.collectionName,
+                filter: `tracking_id like "tracking-${userCode}_%"`
+            });
+
+            console.log(`✅ [ZILLIZ] Cleared ${deleteResult.delete_count || 'unknown number of'} tracking events for user ${userCode}`);
+            return true;
+
+        } catch (error) {
+            console.error(`❌ [ZILLIZ] Failed to clear tracking events for user:`, error);
+            return false;
+        }
+    }
+
+    // Clear all tracking events from Zilliz (admin function - drops entire collection)
     async clearAllTrackingEvents() {
         try {
             if (!this.initialized) {

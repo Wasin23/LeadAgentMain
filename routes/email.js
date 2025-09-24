@@ -2,6 +2,7 @@ import express from 'express';
 import { sendEmailTool } from '../lib/myEmailTool.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
@@ -45,51 +46,96 @@ router.get('/logs', async (req, res) => {
   }
 });
 
-// New endpoint to clear email logs
-router.post('/clear-logs', async (req, res) => {
-  console.log('[EMAIL LOGS] POST /clear-logs request received');
+// New endpoint to clear email logs for current user
+router.post('/clear-logs', authenticateToken, async (req, res) => {
+  console.log('[EMAIL LOGS] POST /clear-logs - Authentication passed, processing request...');
+  
+  const userId = req.user?.userId;
+  if (!userId) {
+    console.log('[EMAIL LOGS] ERROR: User ID not found in token');
+    return res.status(400).json({ success: false, error: 'User ID not found in token' });
+  }
+
+  const userCode = userId.substring(0, 8);
+  console.log(`[EMAIL LOGS] POST /clear-logs request received for user: ${userCode}`);
+  
   try {
     const logPath = path.join(process.cwd(), 'email_logs.json');
     const approvedPath = path.join(process.cwd(), 'email_approved.json');
-    console.log('[EMAIL LOGS] Clearing logs at:', logPath);
-    console.log('[EMAIL LOGS] Clearing approved emails at:', approvedPath);
+    console.log('[EMAIL LOGS] Filtering logs for user:', userCode);
     
-    // Write empty array to both files
-    await fs.writeFile(logPath, '[]', 'utf8');
-    await fs.writeFile(approvedPath, '[]', 'utf8');
+    // Filter logs to keep only other users' data
+    let emailLogs = [];
+    let approvedEmails = [];
     
-    // Also clear Zilliz tracking data
     try {
-      console.log('[EMAIL LOGS] Clearing Zilliz tracking data...');
+      const existingLogs = await fs.readFile(logPath, 'utf8');
+      emailLogs = JSON.parse(existingLogs);
+      // Keep only logs that don't belong to this user (tracking IDs that don't start with user code)
+      emailLogs = emailLogs.filter(log => {
+        const trackingId = log.trackingId || log.id;
+        return !trackingId || !trackingId.startsWith(`tracking-${userCode}_`);
+      });
+    } catch (error) {
+      console.log('[EMAIL LOGS] No existing email logs found');
+    }
+
+    try {
+      const existingApproved = await fs.readFile(approvedPath, 'utf8');
+      approvedEmails = JSON.parse(existingApproved);
+      // Keep only approved emails that don't belong to this user
+      approvedEmails = approvedEmails.filter(email => {
+        const trackingId = email.trackingId || email.id;
+        return !trackingId || !trackingId.startsWith(`tracking-${userCode}_`);
+      });
+    } catch (error) {
+      console.log('[EMAIL LOGS] No existing approved emails found');
+    }
+    
+    // Write filtered arrays back to files
+    await fs.writeFile(logPath, JSON.stringify(emailLogs, null, 2), 'utf8');
+    await fs.writeFile(approvedPath, JSON.stringify(approvedEmails, null, 2), 'utf8');
+    
+    // Also clear Zilliz tracking data for this user
+    try {
+      console.log(`[EMAIL LOGS] Clearing Zilliz tracking data for user: ${userCode}...`);
+      
+      // Get JWT token from request headers
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
       const response = await fetch('http://localhost:8080/api/zilliz-tracking/clear', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (response.ok) {
-        console.log('[EMAIL LOGS] ✅ Zilliz tracking data cleared successfully');
+        console.log(`[EMAIL LOGS] ✅ Zilliz tracking data cleared successfully for user: ${userCode}`);
       } else {
-        console.log('[EMAIL LOGS] ⚠️ Failed to clear Zilliz tracking data:', response.status);
+        console.log(`[EMAIL LOGS] ⚠️ Failed to clear Zilliz tracking data for user: ${userCode}`, response.status);
       }
     } catch (zillizError) {
-      console.log('[EMAIL LOGS] ⚠️ Error clearing Zilliz tracking data:', zillizError.message);
+      console.log(`[EMAIL LOGS] ⚠️ Error clearing Zilliz tracking data for user: ${userCode}:`, zillizError.message);
     }
 
-    // Clear local desktop tracking data
+    // Clear local desktop tracking data for this user
     try {
       const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
-      desktopEmailTracker.clearAllTrackingData();
-      console.log('[EMAIL LOGS] ✅ Desktop tracking data cleared successfully');
+      desktopEmailTracker.clearUserTrackingData(userId);
+      console.log(`[EMAIL LOGS] ✅ Desktop tracking data cleared successfully for user: ${userCode}`);
     } catch (desktopError) {
-      console.log('[EMAIL LOGS] ⚠️ Error clearing desktop tracking data:', desktopError.message);
+      console.log(`[EMAIL LOGS] ⚠️ Error clearing desktop tracking data for user: ${userCode}:`, desktopError.message);
     }
     
-    console.log('[EMAIL LOGS] ✅ Successfully cleared email logs and approved emails');
+    console.log(`[EMAIL LOGS] ✅ Successfully cleared email logs and approved emails for user: ${userCode}`);
     
     res.json({ 
       success: true, 
-      message: 'Email logs, approved emails, and tracking data cleared successfully',
-      clearedCount: 0 // Since we just cleared it
+      message: `Email logs, approved emails, and tracking data cleared successfully for user ${userCode}`,
+      userCode: userCode
     });
   } catch (err) {
     console.error('[EMAIL LOGS] ❌ Failed to clear logs:', err);

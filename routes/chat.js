@@ -1,6 +1,10 @@
 // ...existing code...
 import express from 'express';
 const router = express.Router();
+import { authenticateToken } from '../middleware/jwt.js';
+
+// Apply JWT authentication to ALL routes in this router
+router.use(authenticateToken);
 
 import { chatWithAgent } from '../src/langchainAgent.js';
 import { createResearchSession } from '../src/researchAgent.js';
@@ -60,12 +64,13 @@ router.post('/analyze', async (req, res) => {
   }
 });
 
-router.post('/chat', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { userId, userInput } = req.body;
+    const { userInput } = req.body;
+    const userId = req.user.userId; // Get from JWT token
     console.log('[CHAT ROUTE] Received request - userId:', userId, 'userInput length:', userInput?.length);
-    if (!userId || !userInput) {
-      return res.status(400).json({ error: 'Missing userId or userInput' });
+    if (!userInput) {
+      return res.status(400).json({ error: 'Missing userInput' });
     }
     
     // Get or initialize chat history for this user
@@ -121,10 +126,7 @@ router.post('/clear', async (req, res) => {
 // Auto-greeting initialization endpoint
 router.post('/init', async (req, res) => {
   try {
-    const { userId } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId' });
-    }
+    const userId = req.user.userId; // Get from JWT token
     
     // Get or initialize chat history for this user
     if (!userHistories[userId]) userHistories[userId] = [];

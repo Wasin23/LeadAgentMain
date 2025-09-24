@@ -119,6 +119,29 @@
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
     }
+
+    /* Auth Error Notification Animations */
+    @keyframes slideInRight {
+      from { 
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to { 
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOutRight {
+      from { 
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to { 
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
     .icon-analytics { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235a67d8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/%3E%3C/svg%3E") no-repeat center; background-size: contain; }
 
     /* Loading Spinner CSS - Optimized for Performance */
@@ -2455,9 +2478,8 @@
       chat.scrollTop = chat.scrollHeight;
 
       try {
-        const res = await fetch('/api/chat', {
+        const res = await authenticatedFetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: currentUser.userId,
             userInput: text
@@ -2502,7 +2524,18 @@
         // Remove thinking indicator
         thinkingBubble.remove();
         console.error('Error sending message:', error);
-        appendMessage('Sorry, I encountered an error. Please try again.', 'ai');
+        
+        // Show appropriate error message based on error type
+        let errorMessage = 'Sorry, I encountered an error. Please try again.';
+        if (error.message.includes('Authentication') || error.message.includes('session has expired')) {
+          errorMessage = '🔑 Please log in to continue using ExaMark.';
+        } else if (error.message.includes('Network')) {
+          errorMessage = '🌐 Network error. Please check your connection and try again.';
+        } else if (error.message.includes('Server')) {
+          errorMessage = '⚠️ Server error. Please try again in a moment.';
+        }
+        
+        appendMessage(errorMessage, 'ai');
       }
     }
 
@@ -3122,9 +3155,8 @@
         chat.scrollTop = chat.scrollHeight;
         
         // Send to AI using the same format as the working sendMessage function
-        const response = await fetch('/api/chat', {
+        const response = await authenticatedFetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: currentUser.userId,
             userInput: userMessage
@@ -3273,9 +3305,8 @@
     async function initializeChat() {
       try {
         const userId = currentUser.userId; // UUID from user registration
-        const response = await fetch('/chat/init', {
+        const response = await authenticatedFetch('/chat/init', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId })
         });
         
@@ -3348,9 +3379,8 @@
 
       try {
         // Start research session
-        const response = await fetch('/api/research/start', {
+        const response = await authenticatedFetch('/api/research/start', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query, sessionId })
         });
 
@@ -3451,7 +3481,7 @@
 
     async function loadResearchResults(sessionId) {
       try {
-        const response = await fetch(`/api/research/results/${sessionId}`);
+        const response = await authenticatedFetch(`/api/research/results/${sessionId}`);
         const data = await response.json();
 
         if (data.success && data.results) {
@@ -3591,9 +3621,8 @@
       document.getElementById('deep-research-stats').style.display = 'none';
       
       // Start the streaming request
-      fetch('/api/research/deep-stream', {
+      authenticatedFetch('/api/research/deep-stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, mode, limit })
       })
       .then(response => {
@@ -3881,7 +3910,7 @@
     async function loadEmailLogs() {
       try {
         console.log('[FRONTEND] Loading email logs...');
-        const response = await fetch('/api/logs');
+        const response = await authenticatedFetch('/api/logs');
         const logs = await response.json();
         console.log('[FRONTEND] Received email logs:', logs);
         
@@ -4063,9 +4092,8 @@
       
       try {
         console.log('[FRONTEND] Clearing email logs...');
-        const response = await fetch('/api/clear-logs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await authenticatedFetch('/api/clear-logs', {
+          method: 'POST'
         });
         
         const result = await response.json();
@@ -4096,9 +4124,8 @@
       
       try {
         console.log('[FRONTEND] Clearing search cache...');
-        const response = await fetch('/api/clear-search-cache', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await authenticatedFetch('/api/clear-search-cache', {
+          method: 'POST'
         });
         
         const result = await response.json();
@@ -4124,9 +4151,8 @@
       
       try {
         console.log('[FRONTEND] Clearing search cache...');
-        const response = await fetch('/api/clear-search-cache', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await authenticatedFetch('/api/clear-search-cache', {
+          method: 'POST'
         });
         
         const result = await response.json();
@@ -4478,7 +4504,7 @@ Intensive multi-modal research with advanced analysis:
 
     async function refreshAgentStatus() {
       try {
-        const response = await fetch('/api/lead-agent/status');
+        const response = await authenticatedFetch('/api/lead-agent/status');
         const data = await response.json();
         
         if (data.success) {
@@ -4667,9 +4693,8 @@ Intensive multi-modal research with advanced analysis:
           addActivityLog(`⏰ Using custom interval: ${customMinutes} minutes`);
         }
         
-        const response = await fetch('/api/lead-agent/start', {
+        const response = await authenticatedFetch('/api/lead-agent/start', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)
         });
         
@@ -4733,9 +4758,8 @@ Intensive multi-modal research with advanced analysis:
         
         addActivityLog('⏹️ Stopping Lead Contact Agent...');
         
-        const response = await fetch('/api/lead-agent/stop', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await authenticatedFetch('/api/lead-agent/stop', {
+          method: 'POST'
         });
         
         const data = await response.json();
@@ -4792,9 +4816,8 @@ Intensive multi-modal research with advanced analysis:
       try {
         addActivityLog('🔄 Running immediate cycle...');
         
-        const response = await fetch('/api/lead-agent/run-cycle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await authenticatedFetch('/api/lead-agent/run-cycle', {
+          method: 'POST'
         });
         
         const data = await response.json();
@@ -4822,9 +4845,8 @@ Intensive multi-modal research with advanced analysis:
       try {
         addActivityLog('🔄 Resetting agent...');
         
-        const response = await fetch('/api/lead-agent/reset', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await authenticatedFetch('/api/lead-agent/reset', {
+          method: 'POST'
         });
         
         const data = await response.json();
@@ -4853,9 +4875,8 @@ Intensive multi-modal research with advanced analysis:
       try {
         addActivityLog(`⏰ Setting cycle interval to ${minutes} minutes...`);
         
-        const response = await fetch('/api/lead-agent/set-interval', {
+        const response = await authenticatedFetch('/api/lead-agent/set-interval', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ minutes: minutes })
         });
         
@@ -4878,9 +4899,8 @@ Intensive multi-modal research with advanced analysis:
       try {
         addActivityLog('🔄 Resetting to default cycle interval...');
         
-        const response = await fetch('/api/lead-agent/reset-interval', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+        const response = await authenticatedFetch('/api/lead-agent/reset-interval', {
+          method: 'POST'
         });
         
         const data = await response.json();
@@ -4968,7 +4988,7 @@ Intensive multi-modal research with advanced analysis:
 
     async function refreshEmailQueue() {
       try {
-        const response = await fetch('/api/email-queue');
+        const response = await authenticatedFetch('/api/email-queue');
         const data = await response.json();
         
         if (data.success) {
@@ -5120,7 +5140,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
     // Function to fetch and display replies for a specific email
     async function loadRepliesForEmail(emailId, trackingId) {
       try {
-        const response = await fetch('/api/replies');
+        const response = await authenticatedFetch('/api/replies');
         const replies = await response.json();
         
         // Filter replies for this email (match by tracking ID)
@@ -5184,7 +5204,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     async function approveEmail(emailId) {
       try {
-        const response = await fetch(`/api/email-queue/${emailId}/approve`, {
+        const response = await authenticatedFetch(`/api/email-queue/${emailId}/approve`, {
           method: 'POST'
         });
         const data = await response.json();
@@ -5203,7 +5223,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     async function rejectEmail(emailId) {
       try {
-        const response = await fetch(`/api/email-queue/${emailId}/reject`, {
+        const response = await authenticatedFetch(`/api/email-queue/${emailId}/reject`, {
           method: 'POST'
         });
         const data = await response.json();
@@ -5702,11 +5722,8 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
     async function clearEmailLogs() {
       if (confirm('Are you sure you want to clear all email logs? This action cannot be undone.')) {
         try {
-          const response = await fetch('/api/clear-logs', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            }
+          const response = await authenticatedFetch('/api/clear-logs', {
+            method: 'POST'
           });
           
           const data = await response.json();
@@ -6288,6 +6305,115 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       }
     }
 
+    // Utility function to get auth headers for API requests
+    function getAuthHeaders() {
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      return headers;
+    }
+
+    // Utility function for authenticated fetch requests
+    async function authenticatedFetch(url, options = {}) {
+      const authHeaders = getAuthHeaders();
+      
+      // Merge headers
+      const headers = {
+        ...authHeaders,
+        ...(options.headers || {})
+      };
+      
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+
+      // Handle authentication errors
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({ error: 'Authentication failed' }));
+        
+        // Show user-friendly error message
+        const isTokenExpired = errorData.expired || errorData.error?.includes('expired');
+        const errorMessage = isTokenExpired 
+          ? '🔑 Your session has expired. Please log in again.' 
+          : '🔑 Authentication required. Please log in to continue.';
+        
+        // Show error notification
+        showAuthError(errorMessage);
+        
+        // Clear invalid token AND user data
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        
+        // Redirect to auth page after a brief delay
+        setTimeout(() => {
+          window.location.href = '/auth.html';
+        }, 2000);
+        
+        // Throw error to prevent further processing
+        throw new Error(errorMessage);
+      }
+
+      return response;
+    }
+
+    // Show authentication error notification
+    function showAuthError(message) {
+      // Remove any existing auth error
+      const existingError = document.getElementById('auth-error-notification');
+      if (existingError) existingError.remove();
+      
+      // Create error notification
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'auth-error-notification';
+      errorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        z-index: 10000;
+        font-weight: 600;
+        max-width: 400px;
+        animation: slideInRight 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+      `;
+      errorDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>${message}</span>
+          <button onclick="this.parentElement.parentElement.remove()" 
+            style="background: rgba(255,255,255,0.2); border: none; color: white; 
+                   border-radius: 50%; width: 24px; height: 24px; cursor: pointer; 
+                   display: flex; align-items: center; justify-content: center; margin-left: auto;">
+            ✕
+          </button>
+        </div>
+        <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 0.5rem;">
+          Redirecting to login page...
+        </div>
+      `;
+      
+      document.body.appendChild(errorDiv);
+      
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        if (errorDiv.parentElement) {
+          errorDiv.style.animation = 'slideOutRight 0.3s ease';
+          setTimeout(() => errorDiv.remove(), 300);
+        }
+      }, 3000);
+    }
+
     function openSettings() {
       const modal = document.getElementById('settings-modal');
       modal.classList.add('show');
@@ -6347,7 +6473,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       try {
         statusDiv.innerHTML = '<div style="color: #5a67d8; background: rgba(90, 103, 216, 0.1); padding: 0.5rem; border-radius: 6px;">⏳ Adding email to queue...</div>';
 
-        const response = await fetch('/api/email-queue/custom', {
+        const response = await authenticatedFetch('/api/email-queue/custom', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -6619,7 +6745,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           return;
         }
 
-        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        const response = await authenticatedFetch(`/api/auth/settings`);
         if (response.ok) {
           const settings = await response.json();
           const leadSettings = settings.leadContactSettings || {};
@@ -7055,7 +7181,7 @@ Example usage in prompt:
 
     async function savePartialSettings(userId, partialData) {
       // Get current settings from local user settings (JSON file)
-      const response = await fetch(`/api/auth/settings/${userId}`);
+      const response = await authenticatedFetch(`/api/auth/settings`);
       const currentData = await response.json();
       
       // Handle wrapped response structure
@@ -7066,9 +7192,8 @@ Example usage in prompt:
       const updatedLeadSettings = { ...currentLeadSettings, ...partialData };
       
       // Save merged settings back to local JSON file
-      const saveResponse = await fetch(`/api/auth/settings/${userId}/lead-contact-settings`, {
+      const saveResponse = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadContactSettings: updatedLeadSettings })
       });
       
@@ -7110,7 +7235,7 @@ Example usage in prompt:
         }
 
         // Get current settings
-        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        const response = await authenticatedFetch(`/api/auth/settings`);
         const data = await response.json();
         
         // Handle wrapped response structure
@@ -7341,7 +7466,7 @@ Example usage in prompt:
         }
 
         console.log('[LEAD SETTINGS] Loading settings for user:', currentUser.userId);
-        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        const response = await authenticatedFetch(`/api/auth/settings`);
         if (response.ok) {
           const settings = await response.json();
           const leadSettings = settings.leadContactSettings || {};
@@ -7370,7 +7495,7 @@ Example usage in prompt:
         userInitialBtn.textContent = userInitial;
         
         // Load API keys (masked)
-        fetch(`/api/auth/settings/${currentUser.userId}/api-keys`)
+        authenticatedFetch(`/api/auth/settings/api-keys`)
           .then(response => response.json())
           .then(data => {
             if (data.success && data.settings && data.settings.apiKeys) {
@@ -7450,7 +7575,7 @@ Example usage in prompt:
           .catch(console.error);
 
         // Load domain settings
-        fetch(`/api/auth/settings/${currentUser.userId}/domain-settings`)
+        authenticatedFetch(`/api/auth/settings/domain-settings`)
           .then(response => response.json())
           .then(data => {
             if (data.success && data.settings && data.settings.domainSettings) {
@@ -7513,9 +7638,8 @@ Example usage in prompt:
         if (!apiKeys[key]) delete apiKeys[key];
       });
 
-      fetch(`/api/auth/settings/${currentUser.userId}/api-keys`, {
+      authenticatedFetch(`/api/auth/settings/api-keys`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKeys, vectorStore })
       })
       .then(response => response.json())
@@ -7568,9 +7692,8 @@ Example usage in prompt:
         return;
       }
 
-      fetch(`/api/auth/settings/${currentUser.userId}/verify-master-password`, {
+      authenticatedFetch(`/api/auth/settings/verify-master-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ masterPassword })
       })
       .then(response => response.json())
@@ -7596,9 +7719,8 @@ Example usage in prompt:
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const systemPrompt = document.getElementById('modal-ai-personality').value;
 
-      fetch(`/api/auth/settings/${currentUser.userId}/ai-personality`, {
+      authenticatedFetch(`/api/auth/settings/ai-personality`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ systemPrompt })
       })
       .then(response => response.json())
@@ -7624,9 +7746,8 @@ Example usage in prompt:
         email: document.getElementById('modal-email').value
       };
 
-      fetch(`/api/auth/settings/${currentUser.userId}/preferences`, {
+      authenticatedFetch(`/api/auth/settings/preferences`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preferences)
       })
       .then(response => response.json())
@@ -7691,9 +7812,8 @@ Example usage in prompt:
         if (!domainSettings[key]) delete domainSettings[key];
       });
 
-      fetch(`/api/auth/settings/${currentUser.userId}/domain-settings`, {
+      authenticatedFetch(`/api/auth/settings/domain-settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domainSettings })
       })
       .then(response => response.json())
@@ -7735,7 +7855,7 @@ Example usage in prompt:
     async function loadEmailResponseSettings() {
       console.log('📧 Loading Email Response Settings...');
       try {
-        const response = await fetch('/api/lead-agent/settings');
+        const response = await authenticatedFetch('/api/lead-agent/settings');
         const data = await response.json();
         
         if (data.success && data.settings) {
@@ -7807,11 +7927,8 @@ Example usage in prompt:
 
         console.log('📧 Saving settings for user:', currentUser.userId);
 
-        const response = await fetch(`/api/email-response-settings/${currentUser.userId}`, {
+        const response = await authenticatedFetch(`/api/email-response-settings`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify(settings)
         });
 
@@ -7952,7 +8069,7 @@ Example usage in prompt:
       }
 
       try {
-        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        const response = await authenticatedFetch(`/api/auth/settings`);
         const data = await response.json();
         
         if (data.success) {
@@ -7994,7 +8111,7 @@ Provide specific, contextual recommendations for sales outreach based on your re
       }
 
       try {
-        const response = await fetch(`/api/auth/settings/${currentUser.userId}`);
+        const response = await authenticatedFetch(`/api/auth/settings`);
         const data = await response.json();
         
         if (data.success) {
@@ -9246,7 +9363,7 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
       }
 
       try {
-        const response = await fetch(`/api/auth/settings/${currentUser.userId}/api-keys`);
+        const response = await authenticatedFetch(`/api/auth/settings/api-keys`);
         const data = await response.json();
         
         if (data.success && data.settings && data.settings.apiKeys) {
@@ -10349,6 +10466,107 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
+
+<!-- Authentication Check Script -->
+<script>
+// Check authentication status on page load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('[AUTH CHECK] Validating user authentication...');
+  
+  // Check if we have a token
+  const token = localStorage.getItem('authToken');
+  
+  if (!token) {
+    console.log('[AUTH CHECK] No token found, redirecting to login');
+    showAuthError('🔑 Please log in to access ExaMark.');
+    setTimeout(() => {
+      window.location.href = '/auth.html';
+    }, 1500);
+    return;
+  }
+  
+  // Validate token by making a test request
+  validateAuthToken();
+});
+
+async function validateAuthToken() {
+  try {
+    const response = await authenticatedFetch('/api/auth/settings');
+    if (response.ok) {
+      console.log('[AUTH CHECK] ✅ Token is valid');
+      // Initialize the app normally
+      initializeApp();
+    }
+  } catch (error) {
+    console.log('[AUTH CHECK] ❌ Token validation failed:', error.message);
+    // The authenticatedFetch function will handle showing error and redirecting
+  }
+}
+
+function initializeApp() {
+  console.log('[APP] 🚀 Initializing ExaMark application...');
+  
+  // Set user initial from token if available
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    try {
+      // Decode JWT token to get user info (basic parsing, not validation)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userInitial = payload.username ? payload.username.charAt(0).toUpperCase() : 'U';
+      const userInitialBtn = document.getElementById('user-initial-btn');
+      if (userInitialBtn) {
+        userInitialBtn.textContent = userInitial;
+        userInitialBtn.title = `Logged in as: ${payload.username || payload.email || 'User'}`;
+      }
+    } catch (e) {
+      console.warn('[AUTH] Could not parse user info from token:', e);
+    }
+  }
+  
+  // Initialize chat greeting
+  if (typeof initializeChat === 'function') {
+    initializeChat();
+  }
+}
+
+// Add logout functionality
+function logout() {
+  localStorage.removeItem('authToken');
+  window.location.href = '/auth.html';
+}
+
+// Add logout option to settings (if settings modal exists)
+if (typeof openSettings === 'function') {
+  const originalOpenSettings = openSettings;
+  window.openSettings = function() {
+    originalOpenSettings();
+    
+    // Add logout button to settings modal if not already added
+    setTimeout(() => {
+      const settingsModal = document.querySelector('.settings-content');
+      if (settingsModal && !document.getElementById('logout-btn')) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.id = 'logout-btn';
+        logoutBtn.innerHTML = '🚪 Logout';
+        logoutBtn.style.cssText = `
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px;
+          cursor: pointer; font-weight: 600; margin-top: 1rem; width: 100%;
+          transition: transform 0.2s ease;
+        `;
+        logoutBtn.onmouseover = () => logoutBtn.style.transform = 'translateY(-2px)';
+        logoutBtn.onmouseout = () => logoutBtn.style.transform = 'translateY(0)';
+        logoutBtn.onclick = () => {
+          if (confirm('Are you sure you want to logout?')) {
+            logout();
+          }
+        };
+        settingsModal.appendChild(logoutBtn);
+      }
+    }, 100);
+  };
+}
+</script>
 
 </body>
 </html>

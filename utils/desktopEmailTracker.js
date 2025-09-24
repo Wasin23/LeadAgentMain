@@ -56,8 +56,12 @@ class DesktopEmailTracker {
 
   // Inject tracking into email HTML
   injectTracking(emailHtml, recipient, subject, userId) {
-    // Extract user code from full user ID
-    const userCode = userId && typeof userId === 'string' ? userId.substring(0, 8) : '76e84c79';
+    // Extract user code from full user ID - REQUIRE userId for proper multi-user support
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('userId is required for email tracking - ensure user is authenticated');
+    }
+    
+    const userCode = userId.substring(0, 8);
     const trackingId = this.generateTrackingId(recipient, subject, userCode);
     
     // Store tracking info with user ID
@@ -256,7 +260,7 @@ class DesktopEmailTracker {
   // Poll Zilliz for new tracking events
   async pollZillizEvents() {
     try {
-      const zillizApiUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/events`;
+      const zillizApiUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/internal/events`;
       
       const response = await fetch(zillizApiUrl);
       
@@ -293,7 +297,16 @@ class DesktopEmailTracker {
       for (const event of zillizEvents) {
         const trackingId = event.tracking_id;
         if (!eventsByTrackingId[trackingId]) {
-          eventsByTrackingId[trackingId] = { opens: 0, clicks: 0, uniqueOpens: new Set(), uniqueClicks: new Set() };
+          eventsByTrackingId[trackingId] = { 
+            opens: 0, 
+            clicks: 0, 
+            replies: 0,
+            aiReplies: [],
+            leadMessages: [],
+            uniqueOpens: new Set(), 
+            uniqueClicks: new Set(),
+            uniqueReplies: new Set()
+          };
         }
         
         if (event.event_type === 'email_open') {
@@ -309,6 +322,38 @@ class DesktopEmailTracker {
             eventsByTrackingId[trackingId].uniqueClicks.add(uniqueKey);
             eventsByTrackingId[trackingId].clicks++;
           }
+        } else if (event.event_type === 'ai_reply') {
+          // Track AI replies - use timestamp + content for deduplication
+          const uniqueKey = `ai_reply_${event.timestamp}_${event.recipient}`;
+          if (!eventsByTrackingId[trackingId].uniqueReplies.has(uniqueKey)) {
+            eventsByTrackingId[trackingId].uniqueReplies.add(uniqueKey);
+            eventsByTrackingId[trackingId].replies++;
+            
+
+            
+            eventsByTrackingId[trackingId].aiReplies.push({
+              timestamp: event.timestamp,
+              recipient: event.recipient || event.email_address,
+              content: event.user_agent, // AI reply content is stored in user_agent field
+              type: 'ai_reply'
+            });
+          }
+        } else if (event.event_type === 'lead_message') {
+          // Track lead messages - use timestamp + content for deduplication
+          const uniqueKey = `lead_message_${event.timestamp}_${event.email_address}`;
+          if (!eventsByTrackingId[trackingId].uniqueReplies.has(uniqueKey)) {
+            eventsByTrackingId[trackingId].uniqueReplies.add(uniqueKey);
+            eventsByTrackingId[trackingId].replies++;
+            
+
+            
+            eventsByTrackingId[trackingId].leadMessages.push({
+              timestamp: event.timestamp,
+              from: event.email_address,
+              content: event.user_agent, // Lead message content is stored in user_agent field
+              type: 'lead_message'
+            });
+          }
         }
       }
 
@@ -323,8 +368,10 @@ class DesktopEmailTracker {
           // Set opened status and counts to match Zilliz exactly
           const shouldBeOpened = zillizData.opens > 0;
           const shouldBeClicked = zillizData.clicks > 0;
+          const shouldBeReplied = zillizData.replies > 0;
           const correctOpenCount = zillizData.opens;
           const correctClickCount = zillizData.clicks;
+          const correctReplyCount = zillizData.replies;
           
           // Update the analytics object within the log
           if (!log.analytics) {
@@ -335,18 +382,67 @@ class DesktopEmailTracker {
           const currentOpenCount = log.analytics.openCount || 0;
           const currentClickCount = log.analytics.clickCount || 0;
           const currentClicked = log.analytics.clicked || false;
+          const currentReplied = log.analytics.replied || false;
+          const currentReplyCount = log.analytics.replyCount || 0;
           
           if (currentOpened !== shouldBeOpened || currentOpenCount !== correctOpenCount || 
-              currentClickCount !== correctClickCount || currentClicked !== shouldBeClicked) {
+              currentClickCount !== correctClickCount || currentClicked !== shouldBeClicked ||
+              currentReplied !== shouldBeReplied || currentReplyCount !== correctReplyCount) {
             
+            // Create unified replies array for frontend compatibility
+            const unifiedReplies = [];
+            
+            // Add lead messages as replies
+            if (zillizData.leadMessages && zillizData.leadMessages.length > 0) {
+              zillizData.leadMessages.forEach(msg => {
+                unifiedReplies.push({
+                  timestamp: msg.timestamp,
+                  from_email: msg.from,
+                  sender: msg.from,
+                  lead_message: msg.content,
+                  type: 'lead_message',
+                  subject: msg.content.includes('Subject:') ? 
+                    msg.content.split('\n').find(line => line.startsWith('Subject:'))?.replace('Subject: ', '') : 
+                    'Re: ' + (log.subject || 'No Subject')
+                });
+              });
+            }
+            
+            // Add AI replies as replies
+            if (zillizData.aiReplies && zillizData.aiReplies.length > 0) {
+              zillizData.aiReplies.forEach(reply => {
+                unifiedReplies.push({
+                  timestamp: reply.timestamp,
+                  ai_response: reply.content,
+                  ai_response_timestamp: reply.timestamp,
+                  ai_response_sent: true,
+                  type: 'ai_reply',
+                  to_email: reply.recipient,
+                  subject: reply.content.includes('Subject:') ? 
+                    reply.content.split('\n').find(line => line.startsWith('Subject:'))?.replace('Subject: ', '') : 
+                    'Re: ' + (log.subject || 'No Subject')
+                });
+              });
+            }
+            
+            // Sort replies by timestamp
+            unifiedReplies.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
             emailLogs[i].analytics = {
               ...log.analytics,
               opened: shouldBeOpened,
               clicked: shouldBeClicked,
+              replied: shouldBeReplied,
               openCount: correctOpenCount,
               clickCount: correctClickCount,
-              lastActivity: shouldBeOpened || shouldBeClicked ? new Date().toISOString() : log.analytics.lastActivity
+              replyCount: correctReplyCount,
+              aiReplies: zillizData.aiReplies || [],
+              leadMessages: zillizData.leadMessages || [],
+              lastActivity: (shouldBeOpened || shouldBeClicked || shouldBeReplied) ? new Date().toISOString() : log.analytics.lastActivity
             };
+            
+            // Add unified replies array for frontend
+            emailLogs[i].replies = unifiedReplies;
             
             // Also update the legacy fields for backward compatibility
             emailLogs[i].opened = shouldBeOpened;
@@ -354,7 +450,7 @@ class DesktopEmailTracker {
             emailLogs[i].clickCount = correctClickCount;
             
             logsChanged = true;
-            console.log(`📧 [SYNC] Updated ${trackingId}: opens=${correctOpenCount}, clicks=${correctClickCount}`);
+            console.log(`📧 [SYNC] Updated ${trackingId}: opens=${correctOpenCount}, clicks=${correctClickCount}, replies=${correctReplyCount}`);
           }
         }
       }
@@ -488,11 +584,29 @@ class DesktopEmailTracker {
     return stats;
   }
 
-  // Clear all tracking data
+  // Clear tracking data for a specific user
+  clearUserTrackingData(userId) {
+    const userCode = userId.substring(0, 8);
+    console.log(`🗑️ [DESKTOP TRACKER] Clearing local tracking data for user: ${userCode}...`);
+    
+    let clearedCount = 0;
+    for (const [key, value] of this.trackingData.entries()) {
+      if (key.startsWith(`tracking-${userCode}_`)) {
+        this.trackingData.delete(key);
+        clearedCount++;
+      }
+    }
+    
+    console.log(`✅ [DESKTOP TRACKER] Cleared ${clearedCount} local tracking entries for user: ${userCode}`);
+    this.saveTrackingData(); // Save changes to file
+  }
+
+  // Clear all tracking data (admin function)
   clearAllTrackingData() {
     console.log('🗑️ [DESKTOP TRACKER] Clearing all local tracking data...');
     this.trackingData.clear();
     console.log('✅ [DESKTOP TRACKER] Local tracking data cleared');
+    this.saveTrackingData(); // Save changes to file
   }
 
   // Load email logs from file

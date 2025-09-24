@@ -320,9 +320,10 @@ app.get('/api/session', (req, res) => {
   res.json({ sessionId: SERVER_SESSION_ID });
 });
 
+app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking for polling - MUST BE FIRST
 app.use('/api', emailRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api', chatRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/api/email-response-settings', emailResponseSettingsRoutes);
@@ -334,7 +335,6 @@ app.use('/api/linkedin', linkedinRoutes); // LinkedIn profile builder routes
 app.use('/api/linkedin-api', linkedinApiRoutes); // LinkedIn API integration routes
 app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
-app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking for polling
 
 // Import manual sync routes
 let manualSyncRoutes;

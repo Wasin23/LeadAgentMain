@@ -121,6 +121,7 @@ class LeadContactAgent extends EventEmitter {
       
       const userSettings = await getUserSettings(targetUserId);
       this.leadContactSettings = userSettings.leadContactSettings || null;
+      this.currentUserId = targetUserId; // Store userId for email tracking
       
       if (this.leadContactSettings) {
         console.log(`[LEAD AGENT] ✅ Loaded custom Lead Contact Settings:`);
@@ -1673,6 +1674,7 @@ BODY: [email body]`;
           finalBody: finalBody,
           finalRecipient: finalRecipient,
           testingMode: false, // No longer using testing mode
+          userId: this.currentUserId, // Add userId for proper email tracking
           // Enhanced lead details with intelligence
           leadDetails: {
             company: lead.company,

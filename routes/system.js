@@ -2,8 +2,12 @@
 import express from 'express';
 import { backupManager } from '../utils/backup.js';
 import { memoryMonitor } from '../utils/memoryMonitor.js';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
+
+// Apply JWT authentication to ALL routes in this router
+router.use(authenticateToken);
 
 // Add middleware to check if user has admin privileges (simplified for now)
 const requireAdmin = (req, res, next) => {

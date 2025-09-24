@@ -1,10 +1,33 @@
 import express from 'express';
 import fetch from 'node-fetch';
 import { ZillizEmailTracker } from '../utils/zillizEmailTracker.js';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
 const tracker = new ZillizEmailTracker();
+
+// Simple test route to check if authentication is being applied globally
+router.get('/test-no-auth', (req, res) => {
+    res.json({ message: 'This endpoint works without auth!', timestamp: new Date().toISOString() });
+});
+
+// Internal API endpoint for polling tracking events (unprotected for server-to-server)
+router.get('/internal/events', async (req, res) => {
+    try {
+        const events = await tracker.getTrackingEvents();
+        
+        res.status(200).json({
+            success: true,
+            count: events.length,
+            events: events
+        });
+
+    } catch (error) {
+        console.error('❌ [ZILLIZ API] Error getting events:', error);
+        res.status(500).json({ error: 'Failed to retrieve events' });
+    }
+});
 
 // Webhook endpoint for email tracking events from Netlify
 router.post('/email-opened', async (req, res) => {
@@ -41,8 +64,8 @@ router.post('/email-opened', async (req, res) => {
     }
 });
 
-// API endpoint for polling tracking events
-router.get('/events', async (req, res) => {
+// API endpoint for polling tracking events (protected)
+router.get('/events', authenticateToken, async (req, res) => {
     try {
         const events = await tracker.getTrackingEvents();
         
@@ -59,7 +82,7 @@ router.get('/events', async (req, res) => {
 });
 
 // API endpoint for getting events by tracking ID
-router.get('/events/:trackingId', async (req, res) => {
+router.get('/events/:trackingId', authenticateToken, async (req, res) => {
     try {
         const { trackingId } = req.params;
         
@@ -80,17 +103,25 @@ router.get('/events/:trackingId', async (req, res) => {
     }
 });
 
-// Clear all tracking events (for analytics reset)
-router.delete('/clear', async (req, res) => {
+// Clear tracking events for the current user (user-specific reset)
+router.delete('/clear', authenticateToken, async (req, res) => {
     try {
-        console.log('🗑️ [ZILLIZ API] Request to clear all tracking events');
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID not found in token'
+            });
+        }
+
+        console.log(`🗑️ [ZILLIZ API] Request to clear tracking events for user: ${userId.substring(0, 8)}`);
         
-        const success = await tracker.clearAllTrackingEvents();
+        const success = await tracker.clearUserTrackingEvents(userId);
         
         if (success) {
             res.status(200).json({
                 success: true,
-                message: 'All tracking events cleared successfully'
+                message: `Tracking events cleared successfully for user ${userId.substring(0, 8)}`
             });
         } else {
             res.status(500).json({
@@ -109,7 +140,7 @@ router.delete('/clear', async (req, res) => {
 });
 
 // Recreate collection with updated schema
-router.post('/recreate-collection', async (req, res) => {
+router.post('/recreate-collection', authenticateToken, async (req, res) => {
     try {
         console.log('🔄 [ZILLIZ API] Request to recreate collection');
         
@@ -137,7 +168,7 @@ router.post('/recreate-collection', async (req, res) => {
 });
 
 // API endpoint for getting reply data by tracking ID
-router.get('/replies/:trackingId', async (req, res) => {
+router.get('/replies/:trackingId', authenticateToken, async (req, res) => {
     try {
         const { trackingId } = req.params;
         
@@ -242,7 +273,7 @@ router.get('/replies/:trackingId', async (req, res) => {
 });
 
 // Test route to create Zilliz replies collection manually
-router.post('/create-replies-collection', async (req, res) => {
+router.post('/create-replies-collection', authenticateToken, async (req, res) => {
     try {
         console.log('🔧 [ZILLIZ API] Creating replies collection manually...');
         

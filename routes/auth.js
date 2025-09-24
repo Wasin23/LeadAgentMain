@@ -14,6 +14,7 @@ import {
   verifyPasswordResetToken
 } from '../lib/userManager.js';
 import { sendPasswordResetEmail } from '../tools/emailMailgun.js';
+import { generateToken, authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
@@ -45,9 +46,13 @@ router.post('/register', async (req, res) => {
     const user = await registerUser(username, email, password);
     console.log(`[AUTH] New user registered: ${username} (${email})`);
     
+    // Generate JWT token
+    const token = generateToken(user);
+    
     res.json({ 
       success: true, 
       message: 'User registered successfully',
+      token: token,
       user: { userId: user.userId, username: user.username, email: user.email }
     });
   } catch (error) {
@@ -68,9 +73,13 @@ router.post('/login', async (req, res) => {
     const user = await loginUser(username, password);
     console.log(`[AUTH] User logged in: ${username}`);
     
+    // Generate JWT token
+    const token = generateToken(user);
+    
     res.json({ 
       success: true, 
       message: 'Login successful',
+      token: token,
       user: { userId: user.userId, username: user.username, email: user.email }
     });
   } catch (error) {
@@ -79,11 +88,11 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Get API keys (for frontend that's calling the wrong endpoint) - MUST BE BEFORE THE GENERAL SETTINGS ROUTE
-router.get('/settings/:userId/api-keys', async (req, res) => {
+// Get API keys (for frontend) - MUST BE BEFORE THE GENERAL SETTINGS ROUTE
+router.get('/settings/api-keys', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
-    console.log(`[AUTH] GET /settings/${userId}/api-keys - Request received (SPECIFIC ROUTE)`);
+    const userId = req.user.userId; // Get from JWT token
+    console.log(`[AUTH] GET /settings/api-keys - Request received for user: ${userId}`);
     
     const settings = await getUserSettings(userId);
     console.log(`[AUTH] Raw settings for ${userId}:`, settings);
@@ -111,10 +120,10 @@ router.get('/settings/:userId/api-keys', async (req, res) => {
 });
 
 // Get user settings
-router.get('/settings/:userId', async (req, res) => {
+router.get('/settings', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
-    console.log(`[AUTH] GET /settings/${userId} - Request received`);
+    const userId = req.user.userId; // Get from JWT token
+    console.log(`[AUTH] GET /settings - Request received for user: ${userId}`);
     
     const settings = await getUserSettings(userId);
     console.log(`[AUTH] Raw settings for ${userId}:`, settings);
@@ -145,14 +154,14 @@ router.get('/settings/:userId', async (req, res) => {
 });
 
 // Update API keys
-router.post('/settings/:userId/api-keys', async (req, res) => {
+router.post('/settings/api-keys', authenticateToken, async (req, res) => {
   console.log('[AUTH] ====== API Keys update request received ======');
-  console.log('[AUTH] UserId:', req.params.userId);
+  const userId = req.user.userId; // Get from JWT token
+  console.log('[AUTH] UserId:', userId);
   console.log('[AUTH] Request body:', req.body);
   console.log('[AUTH] Request headers:', req.headers);
   
   try {
-    const { userId } = req.params;
     const { apiKeys, vectorStore } = req.body;
     
     if (!apiKeys) {
@@ -206,9 +215,9 @@ router.post('/settings/:userId/api-keys', async (req, res) => {
 });
 
 // Update AI personality (requires master password)
-router.post('/settings/:userId/ai-personality', async (req, res) => {
+router.post('/settings/ai-personality', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.userId; // Get from JWT token
     const { masterPassword, aiPersonality } = req.body;
     
     if (!masterPassword) {
@@ -234,9 +243,9 @@ router.post('/settings/:userId/ai-personality', async (req, res) => {
 });
 
 // Update general preferences
-router.post('/settings/:userId/preferences', async (req, res) => {
+router.post('/settings/preferences', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.userId; // Get from JWT token
     const { preferences } = req.body;
     
     const currentSettings = await getUserSettings(userId);
@@ -270,10 +279,10 @@ router.post('/verify-master-password', (req, res) => {
 });
 
 // Domain settings endpoints
-router.get('/settings/:userId/domain-settings', async (req, res) => {
+router.get('/settings/domain-settings', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
-    console.log(`[AUTH] GET /settings/${userId}/domain-settings - Request received`);
+    const userId = req.user.userId; // Get from JWT token
+    console.log(`[AUTH] GET /settings/domain-settings - Request received for user: ${userId}`);
     
     const settings = await getUserSettings(userId);
     console.log(`[AUTH] Domain settings for ${userId}:`, settings.domainSettings);
@@ -290,12 +299,12 @@ router.get('/settings/:userId/domain-settings', async (req, res) => {
   }
 });
 
-router.post('/settings/:userId/domain-settings', async (req, res) => {
+router.post('/settings/domain-settings', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.userId; // Get from JWT token
     const { domainSettings } = req.body;
     
-    console.log(`[AUTH] POST /settings/${userId}/domain-settings - Request received`);
+    console.log(`[AUTH] POST /settings/domain-settings - Request received for user: ${userId}`);
     console.log('[AUTH] Domain settings to save:', domainSettings);
     
     await updateUserSettings(userId, { domainSettings });
@@ -309,10 +318,10 @@ router.post('/settings/:userId/domain-settings', async (req, res) => {
 });
 
 // Lead Contact Settings routes
-router.post('/settings/:userId/lead-contact-settings', async (req, res) => {
+router.post('/settings/lead-contact-settings', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
-    console.log(`[AUTH] POST /settings/${userId}/lead-contact-settings - Request received`);
+    const userId = req.user.userId; // Get from JWT token
+    console.log(`[AUTH] POST /settings/lead-contact-settings - Request received for user: ${userId}`);
     console.log(`[AUTH] Lead contact settings data:`, req.body);
     
     const settings = await getUserSettings(userId);
@@ -323,44 +332,6 @@ router.post('/settings/:userId/lead-contact-settings', async (req, res) => {
     res.json({ success: true, message: 'Lead Contact settings saved successfully' });
   } catch (error) {
     console.error('[AUTH] Update lead contact settings error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// General settings routes (without userId in path)
-router.get('/settings', async (req, res) => {
-  try {
-    console.log('[AUTH] GET /settings - Request received');
-    
-    // TODO: Get current user from session or return empty settings
-    // For now, return error if no session
-    return res.status(401).json({ error: 'User session required' });
-    
-    const settings = await getUserSettings(currentUser.userId);
-    console.log('[AUTH] Settings retrieved:', Object.keys(settings));
-    
-    res.json(settings);
-  } catch (error) {
-    console.error('[AUTH] Get settings error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/settings', async (req, res) => {
-  try {
-    console.log('[AUTH] POST /settings - Request received');
-    console.log('[AUTH] Request body:', req.body);
-    
-    // TODO: Get current user from session
-    // For now, return error if no session
-    return res.status(401).json({ error: 'User session required' });
-    
-    const result = await updateUserSettings(currentUser.userId, req.body);
-    console.log('[AUTH] Settings updated successfully');
-    
-    res.json({ success: true, message: 'Settings saved successfully' });
-  } catch (error) {
-    console.error('[AUTH] Update settings error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

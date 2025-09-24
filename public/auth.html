@@ -574,8 +574,9 @@
         const data = await response.json();
         
         if (data.success) {
-          // Store user info in localStorage
+          // Store user info and JWT token in localStorage
           localStorage.setItem('currentUser', JSON.stringify(data.user));
+          localStorage.setItem('authToken', data.token);
           showSuccess('Sign in successful! Redirecting...');
           
           // Redirect to main app after short delay
@@ -622,11 +623,15 @@
         const data = await response.json();
         
         if (data.success) {
-          showSuccess('Account created successfully! You can now sign in.');
+          // Store user info and JWT token in localStorage (auto-login after registration)
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+          localStorage.setItem('authToken', data.token);
+          showSuccess('Account created successfully! Redirecting...');
           
-          // Switch to sign in tab and clear form
-          switchTab('signin');
-          document.getElementById('signup-form').querySelector('form').reset();
+          // Redirect to main app after short delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
         } else {
           showError(data.error || 'Registration failed');
         }

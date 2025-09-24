@@ -1,8 +1,12 @@
 import express from 'express';
 import { leadContactAgent } from '../agent/leadContactAgent.js';
 import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
+
+// Apply JWT authentication to ALL routes in this router
+router.use(authenticateToken);
 const agentSettings = new AgentSettingsManager();
 
 // Start the Lead Contact Agent
@@ -231,8 +235,9 @@ router.get('/progress-stream', (req, res) => {
 // Get current agent settings
 router.get('/settings', async (req, res) => {
   try {
-    console.log('[AGENT SETTINGS] Loading agent settings...');
-    const settings = await agentSettings.getSettings();
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[AGENT SETTINGS] Loading agent settings for user:', userId);
+    const settings = await agentSettings.getSettings(userId);
     
     res.json({
       success: true,
@@ -252,10 +257,11 @@ router.get('/settings', async (req, res) => {
 // Save/update agent settings
 router.post('/settings', async (req, res) => {
   try {
-    console.log('[AGENT SETTINGS] Saving agent settings...');
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[AGENT SETTINGS] Saving agent settings for user:', userId);
     console.log('[AGENT SETTINGS] Settings data:', req.body);
     
-    const result = await agentSettings.updateSettings(req.body);
+    const result = await agentSettings.updateSettings(req.body, userId);
     
     if (result.success) {
       res.json({
@@ -283,8 +289,9 @@ router.post('/settings', async (req, res) => {
 // Reset agent settings to defaults
 router.post('/settings/reset', async (req, res) => {
   try {
-    console.log('[AGENT SETTINGS] Resetting agent settings to defaults...');
-    const result = await agentSettings.resetToDefaults();
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[AGENT SETTINGS] Resetting agent settings to defaults for user:', userId);
+    const result = await agentSettings.resetToDefaults(userId);
     
     if (result.success) {
       res.json({

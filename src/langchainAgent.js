@@ -706,7 +706,8 @@ Ready to collaborate on making me better! 🚀`;
       const result = await sendEmailTool({
         to: email,
         subject: subject,
-        body: body
+        body: body,
+        userId: userId
       });
       
       console.log('[chatWithAgent] Email tool result:', result);

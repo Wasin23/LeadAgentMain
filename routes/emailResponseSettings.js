@@ -1,8 +1,12 @@
 // Email Response Settings API Route
 import express from 'express';
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
+
+// Apply JWT authentication to ALL routes in this router
+router.use(authenticateToken);
 
 // Zilliz client setup
 const milvusClient = new MilvusClient({
@@ -21,10 +25,10 @@ async function ensureEmailResponseSettingsCollection() {
   }
 }
 
-// GET /api/email-response-settings/:userId
-router.get('/:userId', async (req, res) => {
+// GET /api/email-response-settings
+router.get('/', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.userId; // Get from JWT token
     console.log(`[EMAIL-RESPONSE] Getting settings for user: ${userId}`);
     
     // Extract first 8 characters for user code
@@ -76,10 +80,10 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
-// POST /api/email-response-settings/:userId
-router.post('/:userId', async (req, res) => {
+// POST /api/email-response-settings
+router.post('/', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.userId; // Get from JWT token
     const settings = req.body;
     
     // Extract first 8 characters for user code
