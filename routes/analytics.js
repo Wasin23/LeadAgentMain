@@ -33,23 +33,47 @@ router.get('/debug/email-html/:trackingId', async (req, res) => {
 router.get('/track/open/:trackingId', async (req, res) => {
   try {
     const { trackingId } = req.params;
+    const userAgent = req.get('User-Agent') || '';
+    const referer = req.get('Referer') || '';
+    
+    // Detect image proxy services (these are false positives)
+    const imageProxyPatterns = [
+      /GoogleImageProxy/i,
+      /ggpht\.com/i,
+      /proxymail\.facebook\.com/i,
+      /outlook\.com.*safelinks/i,
+      /protection\.outlook\.com/i,
+      /mimecast/i,
+      /barracuda/i,
+      /proofpoint/i,
+      /symantec/i,
+      /messagelab/i
+    ];
+    
+    const isImageProxy = imageProxyPatterns.some(pattern => 
+      pattern.test(userAgent) || pattern.test(referer)
+    );
     
     console.log('[EMAIL TRACKING] ===== EMAIL OPENED =====');
     console.log('[EMAIL TRACKING] Tracking ID:', trackingId);
-    console.log('[EMAIL TRACKING] User Agent:', req.get('User-Agent'));
-    console.log('[EMAIL TRACKING] Referer:', req.get('Referer'));
+    console.log('[EMAIL TRACKING] User Agent:', userAgent);
+    console.log('[EMAIL TRACKING] Is Image Proxy:', isImageProxy);
     console.log('[EMAIL TRACKING] IP:', req.ip);
-    console.log('[EMAIL TRACKING] Headers:', JSON.stringify(req.headers, null, 2));
     console.log('[EMAIL TRACKING] ========================');
     
-    // Update analytics
-    await updateEmailAnalytics(trackingId, {
-      opened: true,
-      openCount: 1, // Will be incremented if already opened
-      lastActivity: new Date().toISOString(),
-      userAgent: req.get('User-Agent'),
-      ipAddress: req.ip
-    });
+    // Only count as real open if not from image proxy
+    if (!isImageProxy) {
+      console.log('[EMAIL TRACKING] ✅ Real user open detected');
+      // Update analytics
+      await updateEmailAnalytics(trackingId, {
+        opened: true,
+        openCount: 1, // Will be incremented if already opened
+        lastActivity: new Date().toISOString(),
+        ipAddress: req.ip
+      });
+    } else {
+      console.log('[EMAIL TRACKING] 🤖 Image proxy request ignored (not counted as open)');
+    }
     
     // Return 1x1 transparent pixel
     const pixel = Buffer.from(

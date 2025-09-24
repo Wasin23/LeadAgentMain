@@ -30,11 +30,25 @@ exports.handler = async (event, context) => {
           const userAgent = event.headers['user-agent'] || 'Unknown';
           const ipAddress = event.headers['x-forwarded-for'] || 'Unknown';
           
-          // Filter out known bots/proxies that cause duplicates
-          const isBot = userAgent.includes('bot') || 
-                       userAgent.includes('crawler') || 
-                       userAgent.includes('spider') ||
-                       userAgent.includes('facebookexternalhit');
+          // Filter out known bots/proxies that cause duplicates and image proxies
+          const referer = event.headers['referer'] || '';
+          
+          const imageProxyPatterns = [
+            /bot/i, /crawler/i, /spider/i, /facebookexternalhit/i,
+            /GoogleImageProxy/i, /ggpht\.com/i,
+            /proxymail\.facebook\.com/i,
+            /outlook\.com.*safelinks/i, /protection\.outlook\.com/i,
+            /mimecast/i, /barracuda/i, /proofpoint/i,
+            /symantec/i, /messagelab/i
+          ];
+          
+          const isImageProxy = imageProxyPatterns.some(pattern => 
+            pattern.test(userAgent) || pattern.test(referer)
+          );
+          
+          if (isImageProxy) {
+            console.log(`Image proxy detected: ${userAgent} - Not counting as real open`);
+          }
           
           // Check if this email has EVER been opened before (single open tracking)
           let alreadyOpened = false;
@@ -58,8 +72,8 @@ exports.handler = async (event, context) => {
             console.log('Search error (proceeding with insert):', searchError);
           }
           
-          // Only insert if not a bot and not already opened
-          if (!isBot && !alreadyOpened) {
+          // Only insert if not an image proxy and not already opened
+          if (!isImageProxy && !alreadyOpened) {
             const data = [{
               tracking_id: trackingId,
               event_type: 'email_open',

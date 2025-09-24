@@ -13,18 +13,48 @@ preg_match('/\/track\/pixel\/([^\/\?]+)/', $path, $matches);
 $trackingId = $matches[1] ?? null;
 
 if ($trackingId) {
-    // Prepare tracking data for Zilliz
-    $trackingData = [
-        'tracking_id' => $trackingId,
-        'event_type' => 'email_open',
-        'timestamp' => date('c'),
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
-        'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'Unknown',
-        'email_address' => 'Unknown',
-        'recipient' => 'Unknown',
-        'processed' => false,
-        'dummy_vector' => [0.0, 0.0]
+    // Check for image proxy services (false positives)
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $referer = $_SERVER['HTTP_REFERER'] ?? '';
+    
+    $imageProxyPatterns = [
+        '/GoogleImageProxy/i',
+        '/ggpht\.com/i', 
+        '/proxymail\.facebook\.com/i',
+        '/outlook\.com.*safelinks/i',
+        '/protection\.outlook\.com/i',
+        '/mimecast/i',
+        '/barracuda/i',
+        '/proofpoint/i',
+        '/symantec/i',
+        '/messagelab/i',
+        '/bot/i',
+        '/crawler/i',
+        '/spider/i'
     ];
+    
+    $isImageProxy = false;
+    foreach ($imageProxyPatterns as $pattern) {
+        if (preg_match($pattern, $userAgent) || preg_match($pattern, $referer)) {
+            $isImageProxy = true;
+            break;
+        }
+    }
+    
+    // Only process if not an image proxy
+    if (!$isImageProxy) {
+        // Prepare tracking data for Zilliz
+        $trackingData = [
+            'tracking_id' => $trackingId,
+            'event_type' => 'email_open',
+            'timestamp' => date('c'),
+            'user_agent' => $userAgent,
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'Unknown',
+            'email_address' => 'Unknown',
+            'recipient' => 'Unknown',
+            'processed' => false,
+            'dummy_vector' => [0.0, 0.0]
+        ];
 
     // Send to your deployed server's Zilliz API endpoint
     // TODO: Replace with your actual deployed server URL
@@ -48,6 +78,10 @@ if ($trackingId) {
     
     // Try to send to Zilliz (don't block if it fails)
     @file_get_contents($zillizUrl, false, $context);
+    } else {
+        // Log image proxy detection (optional)
+        error_log("Image proxy detected for tracking $trackingId: $userAgent");
+    }
 }
 
 // Return 16x16 green PNG image

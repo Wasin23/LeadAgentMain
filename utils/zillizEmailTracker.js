@@ -110,10 +110,16 @@ export class ZillizEmailTracker {
         }
     }
 
-    async storeTrackingEvent(trackingId, eventType, userAgent, ipAddress, emailAddress) {
+    async storeTrackingEvent(trackingId, eventType, userAgent, ipAddress, emailAddress, isImageProxy = false) {
         try {
             if (!this.initialized) {
                 await this.initialize();
+            }
+            
+            // Skip storing image proxy requests for email_open events to avoid false positives
+            if (eventType === 'email_open' && isImageProxy) {
+                console.log(`🤖 [ZILLIZ] Skipping image proxy request for: ${trackingId}`);
+                return true;
             }
 
             // Debug: Check collection schema first
