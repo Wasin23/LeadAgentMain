@@ -3,7 +3,7 @@ import { deepResearch } from '../tools/deepResearch.js';
 import { leadResearch } from '../tools/leadResearch.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { emailQueue } from '../lib/emailQueue.js';
-import { zillizSettingsManager } from '../utils/zillizSettingsManager.js';
+import zillizSettingsManager from '../utils/zillizSettingsManager.js';
 import { ChatOpenAI } from "@langchain/openai";
 import { EventEmitter } from 'events';
 import fs from 'fs/promises';
@@ -87,27 +87,27 @@ class LeadContactAgent extends EventEmitter {
     console.log(`[LEAD AGENT] Cycle interval: ${this.cycleInterval / (1000 * 60)} minutes`);
   }
 
-  // Convert new Zilliz settings format to legacy format
+  // Convert simplified Zilliz settings format to legacy format expected by agent
   convertZillizToLegacyFormat(zillizSettings) {
     if (!zillizSettings) return null;
     
     return {
-      companySizeMin: zillizSettings.targetingCriteria?.companySizeMin || 200,
-      companySizeMax: zillizSettings.targetingCriteria?.companySizeMax || 300,
-      companyIndustries: zillizSettings.targetingCriteria?.companyIndustries || [],
-      companyKeywords: zillizSettings.targetingCriteria?.companyKeywords || [],
-      targetLocations: zillizSettings.targetingCriteria?.targetLocations || ['United States'],
-      targetPositions: zillizSettings.targetingCriteria?.targetPositions || [
+      companySizeMin: zillizSettings.companyCriteria?.companySizeMin || 200,
+      companySizeMax: zillizSettings.companyCriteria?.companySizeMax || 300,
+      companyIndustries: zillizSettings.companyCriteria?.companyIndustries || [],
+      companyKeywords: zillizSettings.companyCriteria?.companyKeywords || [],
+      targetLocations: zillizSettings.geographicSettings?.targetLocations || ['United States'],
+      targetPositions: zillizSettings.contactCriteria?.targetPositions || [
         'CTO', 'Chief Technology Officer', 'VP of Engineering', 'IT Director',
         'CEO', 'Chief Executive Officer', 'Founder'
       ],
-      seniorityLevel: zillizSettings.targetingCriteria?.seniorityLevel || 'senior',
-      departments: zillizSettings.targetingCriteria?.departments || [],
-      fundingStage: zillizSettings.targetingCriteria?.fundingStage || 'any',
-      technologyStack: zillizSettings.targetingCriteria?.technologyStack || [],
-      contactIntent: zillizSettings.targetingCriteria?.contactIntent || [],
-      leadLimit: zillizSettings.searchSettings?.leadLimit || 10,
-      excludeKeywords: zillizSettings.searchSettings?.excludeKeywords || [],
+      seniorityLevel: zillizSettings.contactCriteria?.seniorityLevel || 'senior',
+      departments: zillizSettings.contactCriteria?.departments || [],
+      fundingStage: zillizSettings.advancedCriteria?.fundingStage || 'any',
+      technologyStack: zillizSettings.advancedCriteria?.technologiesUsed || [],
+      contactIntent: zillizSettings.contactCriteria?.contactKeywords || [],
+      leadLimit: zillizSettings.geographicSettings?.leadLimit || 10,
+      excludeKeywords: zillizSettings.contactCriteria?.excludedTitles || [],
       
       // Company branding (as nested object - the agent expects this structure)
       companyBranding: {
@@ -121,8 +121,8 @@ class LeadContactAgent extends EventEmitter {
       },
       
       // Additional fields that the agent uses
-      researchFocus: zillizSettings.targetingCriteria?.researchFocus || '',
-      emailBuilderPrompt: zillizSettings.companyBranding?.emailBuilderPrompt || ''
+      researchFocus: zillizSettings.researchFocus?.focusAreas?.join(', ') || '',
+      emailBuilderPrompt: zillizSettings.emailBuilder?.customPrompt || ''
     };
   }
 
@@ -131,30 +131,30 @@ class LeadContactAgent extends EventEmitter {
     try {
       console.log(`[LEAD AGENT] Loading Lead Contact Settings for user: ${userId}`);
       
-      // Try to get the actual current user ID (this would come from session in a real app)
-      // For now, we'll check if there's a specific user or use default
+      // Try to get the actual current user ID
       let targetUserId = userId;
       
-      // If no specific userId provided, try to find the most recent user
+      // If no specific userId provided, try to find a user from Zilliz or fallback to JSON
       if (userId === 'default') {
         try {
-          // Always try to find an actual user ID from the settings file first
+          // First, try to get users from the JSON file (temporary fallback)
           const fs = await import('fs/promises');
           const path = await import('path');
-          const settingsPath = path.join(process.cwd(), 'lib', 'data', 'user_settings.json');
-          const settingsData = await fs.readFile(settingsPath, 'utf8');
-          const allSettings = JSON.parse(settingsData);
+          const usersPath = path.join(process.cwd(), 'lib', 'data', 'users.json');
+          const usersData = await fs.readFile(usersPath, 'utf8');
+          const users = JSON.parse(usersData);
           
-          // Use the first user ID we find (should be the actual user)
-          const userIds = Object.keys(allSettings);
+          // Use the first user ID we find
+          const userIds = Object.keys(users);
           if (userIds.length > 0) {
-            targetUserId = userIds[0];
-            console.log(`[LEAD AGENT] ✅ Found actual user ID: ${targetUserId}`);
+            const username = userIds[0];
+            targetUserId = users[username].id;
+            console.log(`[LEAD AGENT] ✅ Found user ID from users.json: ${targetUserId.substring(0, 8)}... (${username})`);
           } else {
-            console.log(`[LEAD AGENT] ⚠️ No users found in settings file`);
+            console.log(`[LEAD AGENT] ⚠️ No users found in users.json`);
           }
         } catch (error) {
-          console.log(`[LEAD AGENT] ❌ Could not read settings file, using default:`, error.message);
+          console.log(`[LEAD AGENT] ❌ Could not read users file, using default:`, error.message);
         }
       }
       

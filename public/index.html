@@ -7239,18 +7239,33 @@ Example usage in prompt:
           return;
         }
 
-        // Get current settings
-        const response = await authenticatedFetch(`/api/auth/settings`);
-        const data = await response.json();
+        // Get lead contact settings from Zilliz
+        console.log('[SEARCH SUMMARY] Fetching from /api/auth/settings/lead-contact-settings...');
+        const response = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`);
+        console.log('[SEARCH SUMMARY] Response status:', response.status);
+        console.log('[SEARCH SUMMARY] Response ok:', response.ok);
         
-        // Handle wrapped response structure
-        const settings = data.settings || data;
-        const leadSettings = settings.leadContactSettings || {};
+        const data = await response.json();
+        console.log('[SEARCH SUMMARY] Response data:', data);
+        
+        // Handle Zilliz response structure
+        const rawLeadSettings = data.leadContactSettings || {};
+        console.log('[SEARCH SUMMARY] Raw lead settings:', rawLeadSettings);
+        console.log('[SEARCH SUMMARY] Raw lead settings type:', typeof rawLeadSettings);
+        
+        // Convert from new Zilliz structure to format expected by UI
+        const leadSettings = {
+          companySizeMin: rawLeadSettings.companyCriteria?.companySizeMin,
+          companySizeMax: rawLeadSettings.companyCriteria?.companySizeMax,
+          companyIndustries: rawLeadSettings.companyCriteria?.companyIndustries || [],
+          companyKeywords: rawLeadSettings.companyCriteria?.companyKeywords || [],
+          targetPositions: rawLeadSettings.contactCriteria?.targetPositions || [],
+          targetLocations: rawLeadSettings.geographicSettings?.targetLocations || [],
+          leadLimit: rawLeadSettings.geographicSettings?.leadLimit
+        };
         
         console.log('[SEARCH SUMMARY] Full response:', data);
-        console.log('[SEARCH SUMMARY] Settings object:', settings);
-        console.log('[SEARCH SUMMARY] Settings keys:', Object.keys(settings));
-        console.log('[SEARCH SUMMARY] Settings.leadContactSettings:', settings.leadContactSettings);
+        console.log('[SEARCH SUMMARY] Raw lead settings:', rawLeadSettings);
         console.log('[SEARCH SUMMARY] Lead settings object:', leadSettings);
         console.log('[SEARCH SUMMARY] Lead settings keys:', Object.keys(leadSettings));
         console.log('[SEARCH SUMMARY] Company size min:', leadSettings.companySizeMin);
@@ -7471,12 +7486,10 @@ Example usage in prompt:
         }
 
         console.log('[LEAD SETTINGS] Loading settings for user:', currentUser.userId);
-        const response = await authenticatedFetch(`/api/auth/settings`);
+        const response = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`);
         if (response.ok) {
-          const settings = await response.json();
-          const leadSettings = settings.leadContactSettings || {};
-          
-          console.log('[LEAD SETTINGS] Loaded settings:', leadSettings);
+          const rawLeadSettings = await response.json();
+          console.log('[LEAD SETTINGS] Raw Zilliz settings loaded:', rawLeadSettings);
           
           // Update the preview with AI-generated summary
           updateSearchSummary();

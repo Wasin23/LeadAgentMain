@@ -214,6 +214,41 @@ router.post('/settings/domain-settings', authenticateToken, async (req, res) => 
 });
 
 // Lead Contact Settings routes
+router.get('/settings/lead-contact-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log(`[AUTH] GET /settings/lead-contact-settings - Request received for user: ${userId}`);
+    console.log(`[AUTH] User object from token:`, req.user);
+    
+    // Import the Zilliz settings manager
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    // Get the 8-character user code that will be used for Zilliz search
+    const userCode = userId.substring(0, 8);
+    console.log(`[AUTH] Using user code for Zilliz search: ${userCode}`);
+    
+    // Get lead agent settings from Zilliz
+    const leadAgentSettings = await zillizSettingsManager.getLeadAgentSettings(userId);
+    
+    console.log(`[AUTH] Raw settings from Zilliz:`, leadAgentSettings);
+    console.log(`[AUTH] Settings type:`, typeof leadAgentSettings);
+    console.log(`[AUTH] Settings keys:`, leadAgentSettings ? Object.keys(leadAgentSettings) : 'null');
+    
+    if (leadAgentSettings) {
+      console.log(`[AUTH] ✅ Retrieved lead contact settings from Zilliz for user: ${userId} (code: ${userCode})`);
+      console.log(`[AUTH] Sending response:`, { success: true, leadContactSettings: leadAgentSettings });
+      res.json({ success: true, leadContactSettings: leadAgentSettings });
+    } else {
+      console.log(`[AUTH] ⚠️ No lead contact settings found in Zilliz for user: ${userId} (code: ${userCode})`);
+      res.json({ success: true, leadContactSettings: null });
+    }
+  } catch (error) {
+    console.error('[AUTH] Get lead contact settings error:', error.message);
+    console.error('[AUTH] Full error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/settings/lead-contact-settings', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
