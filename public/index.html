@@ -7499,85 +7499,7 @@ Example usage in prompt:
         const userInitial = (currentUser.username || 'A').charAt(0).toUpperCase();
         userInitialBtn.textContent = userInitial;
         
-        // Load API keys (masked)
-        authenticatedFetch(`/api/auth/settings/api-keys`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.success && data.settings && data.settings.apiKeys) {
-              const keys = data.settings.apiKeys;
-              
-              // Update placeholders
-              document.getElementById('modal-openai-key').placeholder = keys.openai ? '••••••••••••' + keys.openai.slice(-4) : 'sk-...';
-              document.getElementById('modal-serper-key').placeholder = keys.serper ? '••••••••••••' + keys.serper.slice(-4) : 'Your Serper API key';
-              document.getElementById('modal-apollo-key').placeholder = keys.apollo ? '••••••••••••' + keys.apollo.slice(-4) : 'Your Apollo API key';
-              document.getElementById('modal-mailgun-key').placeholder = keys.mailgun ? '••••••••••••' + keys.mailgun.slice(-4) : 'Your Mailgun API key';
-              
-              // LinkedIn API placeholders
-              document.getElementById('modal-linkedin-client-id').placeholder = keys.linkedinClientId ? '••••••••••••' + keys.linkedinClientId.slice(-4) : 'Your LinkedIn Client ID';
-              document.getElementById('modal-linkedin-client-secret').placeholder = keys.linkedinClientSecret ? '••••••••••••' + keys.linkedinClientSecret.slice(-4) : 'Your LinkedIn Client Secret';
-              
-              // HeyReach API placeholders
-              document.getElementById('modal-heyreach-api-key').placeholder = keys.heyreachApiKey ? '••••••••••••' + keys.heyreachApiKey.slice(-4) : 'Your HeyReach API key';
-              
-              // Lead Contact Enhancement API placeholders
-              document.getElementById('modal-zerobounce-key').placeholder = keys.zerobounce ? '••••••••••••' + keys.zerobounce.slice(-4) : 'Your ZeroBounce API key';
-              document.getElementById('modal-hunter-key').placeholder = keys.hunter ? '••••••••••••' + keys.hunter.slice(-4) : 'Your Hunter.io API key';
-              
-              // Load Zilliz settings if available
-              if (data.settings.vectorStore?.zilliz) {
-                const zilliz = data.settings.vectorStore.zilliz;
-                document.getElementById('modal-zilliz-endpoint').placeholder = zilliz.endpoint ? zilliz.endpoint.substring(0, 20) + '...' : 'Zilliz endpoint URL';
-                document.getElementById('modal-zilliz-token').placeholder = zilliz.token ? '••••••••••••' + zilliz.token.slice(-4) : 'Your Zilliz API token';
-              }
-              
-              // Update preview elements
-              document.getElementById('modal-openai-preview').textContent = keys.openai ? `Current: ${keys.openai}` : 'Current: None';
-              document.getElementById('modal-serper-preview').textContent = keys.serper ? `Current: ${keys.serper}` : 'Current: None';
-              document.getElementById('modal-apollo-preview').textContent = keys.apollo ? `Current: ${keys.apollo}` : 'Current: None';
-              document.getElementById('modal-mailgun-preview').textContent = keys.mailgun ? `Current: ${keys.mailgun}` : 'Current: None';
-              document.getElementById('modal-mailgun-domain-preview').textContent = keys.mailgunDomain ? `Current: ${keys.mailgunDomain}` : 'Current: None';
-              
-              // LinkedIn API previews
-              document.getElementById('modal-linkedin-client-id-preview').textContent = keys.linkedinClientId ? `Current: ${keys.linkedinClientId}` : 'Current: None';
-              document.getElementById('modal-linkedin-client-secret-preview').textContent = keys.linkedinClientSecret ? `Current: ••••••••••••${keys.linkedinClientSecret.slice(-4)}` : 'Current: None';
-              document.getElementById('modal-linkedin-redirect-uri-preview').textContent = keys.linkedinRedirectUri ? `Current: ${keys.linkedinRedirectUri}` : 'Current: http://localhost:8080/api/linkedin-api/callback';
-              
-              // HeyReach API previews
-              document.getElementById('modal-heyreach-api-key-preview').textContent = keys.heyreachApiKey ? `Current: ••••••••••••${keys.heyreachApiKey.slice(-4)}` : 'Current: None';
-              document.getElementById('modal-heyreach-base-url-preview').textContent = keys.heyreachBaseUrl ? `Current: ${keys.heyreachBaseUrl}` : 'Current: https://api.heyreach.io';
-              
-              // Lead Contact Enhancement API previews
-              document.getElementById('modal-zerobounce-preview').textContent = keys.zerobounce ? `Current: ••••••••••••${keys.zerobounce.slice(-4)}` : 'Current: None';
-              document.getElementById('modal-hunter-preview').textContent = keys.hunter ? `Current: ••••••••••••${keys.hunter.slice(-4)}` : 'Current: None';
-              document.getElementById('modal-builtwith-preview').textContent = keys.builtwith ? `Current: ••••••••••••${keys.builtwith.slice(-4)}` : 'Current: None';
-              document.getElementById('modal-clearbit-preview').textContent = keys.clearbit ? `Current: ••••••••••••${keys.clearbit.slice(-4)}` : 'Current: None';
-              
-              console.log('🔑 Updated API key previews:', keys);
-            } else {
-              // Set defaults if no data
-              document.getElementById('modal-openai-preview').textContent = 'Current: None';
-              document.getElementById('modal-serper-preview').textContent = 'Current: None';
-              document.getElementById('modal-apollo-preview').textContent = 'Current: None';
-              document.getElementById('modal-mailgun-preview').textContent = 'Current: None';
-              document.getElementById('modal-mailgun-domain-preview').textContent = 'Current: None';
-              
-              // LinkedIn defaults
-              document.getElementById('modal-linkedin-client-id-preview').textContent = 'Current: None';
-              document.getElementById('modal-linkedin-client-secret-preview').textContent = 'Current: None';
-              document.getElementById('modal-linkedin-redirect-uri-preview').textContent = 'Current: http://localhost:8080/api/linkedin-api/callback';
-              
-              // HeyReach defaults
-              document.getElementById('modal-heyreach-api-key-preview').textContent = 'Current: None';
-              document.getElementById('modal-heyreach-base-url-preview').textContent = 'Current: https://api.heyreach.io';
-              
-              // Lead Contact Enhancement defaults
-              document.getElementById('modal-zerobounce-preview').textContent = 'Current: None';
-              document.getElementById('modal-hunter-preview').textContent = 'Current: None';
-              document.getElementById('modal-builtwith-preview').textContent = 'Current: None';
-              document.getElementById('modal-clearbit-preview').textContent = 'Current: None';
-            }
-          })
-          .catch(console.error);
+
 
         // Load domain settings
         authenticatedFetch(`/api/auth/settings/domain-settings`)
@@ -7605,88 +7527,7 @@ Example usage in prompt:
       }
     }
 
-    function saveApiKeys() {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      if (!currentUser.userId) return;
 
-      const apiKeys = {
-        openai: document.getElementById('modal-openai-key').value,
-        serper: document.getElementById('modal-serper-key').value,
-        apollo: document.getElementById('modal-apollo-key').value,
-        mailgunKey: document.getElementById('modal-mailgun-key').value,
-        mailgunDomain: document.getElementById('modal-mailgun-domain').value,
-        
-        // LinkedIn API keys
-        linkedinClientId: document.getElementById('modal-linkedin-client-id').value,
-        linkedinClientSecret: document.getElementById('modal-linkedin-client-secret').value,
-        linkedinRedirectUri: document.getElementById('modal-linkedin-redirect-uri').value,
-        
-        // HeyReach API keys
-        heyreachApiKey: document.getElementById('modal-heyreach-api-key').value,
-        heyreachBaseUrl: document.getElementById('modal-heyreach-base-url').value,
-        
-        // Lead Contact Enhancement APIs
-        zerobounce: document.getElementById('modal-zerobounce-key').value,
-        hunter: document.getElementById('modal-hunter-key').value
-      };
-      
-      // Vector Database Configuration (separate from API keys)
-      const vectorStore = {
-        zilliz: {
-          endpoint: document.getElementById('modal-zilliz-endpoint').value,
-          token: document.getElementById('modal-zilliz-token').value
-        }
-      };
-
-      // Remove empty keys
-      Object.keys(apiKeys).forEach(key => {
-        if (!apiKeys[key]) delete apiKeys[key];
-      });
-
-      authenticatedFetch(`/api/auth/settings/api-keys`, {
-        method: 'POST',
-        body: JSON.stringify({ apiKeys, vectorStore })
-      })
-      .then(response => response.json())
-      .then(data => {
-        const statusDiv = document.getElementById('api-keys-status');
-        if (data.success) {
-          statusDiv.innerHTML = '<div class="status-message success">✅ API keys saved successfully!</div>';
-          // Clear input fields
-          document.getElementById('modal-openai-key').value = '';
-          document.getElementById('modal-serper-key').value = '';
-          document.getElementById('modal-apollo-key').value = '';
-          document.getElementById('modal-mailgun-key').value = '';
-          document.getElementById('modal-mailgun-domain').value = '';
-          
-          // Clear LinkedIn fields
-          document.getElementById('modal-linkedin-client-id').value = '';
-          document.getElementById('modal-linkedin-client-secret').value = '';
-          document.getElementById('modal-linkedin-redirect-uri').value = '';
-          
-          // Clear HeyReach fields
-          document.getElementById('modal-heyreach-api-key').value = '';
-          document.getElementById('modal-heyreach-base-url').value = '';
-          
-          // Clear Lead Contact Enhancement fields
-          document.getElementById('modal-zerobounce-key').value = '';
-          document.getElementById('modal-hunter-key').value = '';
-          
-          // Clear Zilliz fields
-          document.getElementById('modal-zilliz-endpoint').value = '';
-          document.getElementById('modal-zilliz-token').value = '';
-          
-          loadSettingsData(); // Reload to show updated previews
-        } else {
-          statusDiv.innerHTML = `<div class="status-message error">❌ ${data.message}</div>`;
-        }
-        setTimeout(() => statusDiv.innerHTML = '', 3000);
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('api-keys-status').innerHTML = '<div class="status-message error">❌ Network error</div>';
-      });
-    }
 
     function verifyMasterPassword() {
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -7779,57 +7620,43 @@ Example usage in prompt:
       });
     }
 
-    // Domain Setup Functions
-    function setTrackingPreset(preset) {
-      const domainInput = document.getElementById('modal-tracking-domain');
-      const portInput = document.getElementById('modal-server-port');
-      
-      switch(preset) {
-        case 'localhost':
-          domainInput.value = 'localhost:8080';
-          portInput.value = '8080';
-          showNotification('🏠 Localhost preset applied - No external tracking', 'info');
-          break;
-        case 'ngrok':
-          domainInput.value = 'your-ngrok-url.ngrok.io';
-          portInput.value = '8080';
-          showNotification('🔗 ngrok preset applied - Update with your ngrok URL', 'info');
-          break;
-        case 'custom':
-          domainInput.value = 'yourdomain.com';
-          portInput.value = '443';
-          showNotification('🌐 Custom domain preset applied - Configure your domain', 'info');
-          break;
+    // Password Change Function
+    function changePassword() {
+      const currentPassword = document.getElementById('modal-current-password').value;
+      const newPassword = document.getElementById('modal-new-password').value;
+      const confirmPassword = document.getElementById('modal-confirm-password').value;
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        document.getElementById('password-change-status').innerHTML = '<div class="status-message error">❌ All fields are required</div>';
+        return;
       }
-    }
 
-    function saveDomainSettings() {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      if (!currentUser.userId) return;
+      if (newPassword !== confirmPassword) {
+        document.getElementById('password-change-status').innerHTML = '<div class="status-message error">❌ New passwords do not match</div>';
+        return;
+      }
 
-      const domainSettings = {
-        trackingDomain: document.getElementById('modal-tracking-domain').value,
-        serverPort: parseInt(document.getElementById('modal-server-port').value) || 8080
-      };
+      if (newPassword.length < 6) {
+        document.getElementById('password-change-status').innerHTML = '<div class="status-message error">❌ Password must be at least 6 characters</div>';
+        return;
+      }
 
-      // Remove empty values
-      Object.keys(domainSettings).forEach(key => {
-        if (!domainSettings[key]) delete domainSettings[key];
-      });
-
-      authenticatedFetch(`/api/auth/settings/domain-settings`, {
+      authenticatedFetch(`/api/auth/change-password`, {
         method: 'POST',
-        body: JSON.stringify({ domainSettings })
+        body: JSON.stringify({
+          currentPassword: currentPassword,
+          newPassword: newPassword
+        })
       })
       .then(response => response.json())
       .then(data => {
-        const statusDiv = document.getElementById('domain-settings-status');
+        const statusDiv = document.getElementById('password-change-status');
         if (data.success) {
-          statusDiv.innerHTML = '<div class="status-message success">✅ Domain settings saved! Restart app to apply changes.</div>';
-          // Clear input fields
-          document.getElementById('modal-tracking-domain').value = '';
-          document.getElementById('modal-server-port').value = '';
-          loadSettingsData(); // Reload to show updated previews
+          statusDiv.innerHTML = '<div class="status-message success">✅ Password changed successfully!</div>';
+          // Clear the form
+          document.getElementById('modal-current-password').value = '';
+          document.getElementById('modal-new-password').value = '';
+          document.getElementById('modal-confirm-password').value = '';
         } else {
           statusDiv.innerHTML = `<div class="status-message error">❌ ${data.message}</div>`;
         }
@@ -7837,8 +7664,29 @@ Example usage in prompt:
       })
       .catch(error => {
         console.error('Error:', error);
-        document.getElementById('domain-settings-status').innerHTML = '<div class="status-message error">❌ Network error</div>';
+        document.getElementById('password-change-status').innerHTML = '<div class="status-message error">❌ Network error</div>';
       });
+    }
+
+    // Logout Function
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        // Clear all local storage
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('userSettings');
+        
+        // Close settings modal
+        closeSettings();
+        
+        // Show logout notification
+        showNotification('👋 Logged out successfully', 'success');
+        
+        // Redirect to auth page after a short delay
+        setTimeout(() => {
+          window.location.href = 'auth.html';
+        }, 1000);
+      }
     }
 
     // Email Response Settings Functions
@@ -8060,33 +7908,7 @@ Example usage in prompt:
       alert(`Account Info:\n\nUsername: ${currentUser.username || 'Not set'}\nEmail: ${currentUser.email || 'Not set'}\nUser ID: ${currentUser.userId || 'Unknown'}\n\nUse Settings to update your information.`);
     }
 
-    // Get user's API keys for API calls
-    async function getUserApiKeys() {
-      if (!currentUser || currentUser.isGuest) {
-        // For guest users, use environment variables or show warning
-        return {
-          openai: '',
-          serper: '',
-          apollo: '',
-          mailgun: '',
-          sendgrid: ''
-        };
-      }
 
-      try {
-        const response = await authenticatedFetch(`/api/auth/settings`);
-        const data = await response.json();
-        
-        if (data.success) {
-          // Return actual API keys for use in API calls (not masked)
-          return data.settings.apiKeys;
-        }
-      } catch (error) {
-        console.error('Failed to get user API keys:', error);
-      }
-
-      return {};
-    }
 
     // Get user's AI personality settings
     async function getUserAiPersonality() {
@@ -8308,7 +8130,7 @@ ${optimization.content}
         
         if (!result.success) {
           if (result.error.includes('not configured')) {
-            showNotification('LinkedIn API not configured. Please add LinkedIn credentials in Settings → API Keys.', 'warning');
+            showNotification('LinkedIn API not configured. Please configure LinkedIn credentials in environment variables.', 'warning');
           } else {
             showNotification('Failed to initiate LinkedIn connection: ' + result.error, 'error');
           }
@@ -9359,70 +9181,32 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
       logToConsole('💡 Ready to enhance AI critical thinking capabilities', 'info');
     }
 
-    // Check Enhanced APIs status
+    // Check Enhanced APIs status - Now configured via environment variables
     async function checkApiStatus() {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      if (!currentUser.userId) {
-        console.log('No user logged in for API status check');
-        return;
+      // Update ZeroBounce status
+      const zeroBounceEl = document.getElementById('zerobounce-status');
+      if (zeroBounceEl) {
+        zeroBounceEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">ZeroBounce</div><div style="color:#059669;">✅ Server Configured</div>';
       }
-
-      try {
-        const response = await authenticatedFetch(`/api/auth/settings/api-keys`);
-        const data = await response.json();
-        
-        if (data.success && data.settings && data.settings.apiKeys) {
-          const keys = data.settings.apiKeys;
-          
-          // Update ZeroBounce status
-          const zeroBounceEl = document.getElementById('zerobounce-status');
-          if (zeroBounceEl) {
-            if (keys.zerobounce) {
-              zeroBounceEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">ZeroBounce</div><div style="color:#059669;">✅ Configured</div>';
-            } else {
-              zeroBounceEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">ZeroBounce</div><div style="color:#dc2626;">❌ Missing</div>';
-            }
-          }
-          
-          // Update Hunter.io status
-          const hunterEl = document.getElementById('hunter-status');
-          if (hunterEl) {
-            if (keys.hunter) {
-              hunterEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">Hunter.io</div><div style="color:#059669;">✅ Configured</div>';
-            } else {
-              hunterEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">Hunter.io</div><div style="color:#dc2626;">❌ Missing</div>';
-            }
-          }
-          
-          // Count configured APIs
-          const configuredCount = [keys.zerobounce, keys.hunter].filter(Boolean).length;
-          
-          // Update overall status
-          let overallMessage = '';
-          if (configuredCount === 2) {
-            overallMessage = '🚀 All enhanced APIs configured - Maximum lead quality enabled!';
-          } else if (configuredCount === 1) {
-            overallMessage = `⚡ ${configuredCount}/2 enhanced APIs configured - Good lead quality`;
-          } else {
-            overallMessage = '❌ No enhanced APIs configured - Using basic lead research + free alternatives';
-          }
-          
-          // Update the footer message
-          const statusContainer = document.getElementById('enhanced-apis-status');
-          if (statusContainer) {
-            const footerEl = statusContainer.querySelector('div[style*="font-size:0.75rem"]');
-            if (footerEl) {
-              footerEl.textContent = overallMessage;
-              footerEl.style.color = configuredCount >= 1 ? '#059669' : '#dc2626';
-              footerEl.style.fontWeight = '600';
-            }
-          }
-          
-        } else {
-          console.error('Failed to get API keys for status check');
+      
+      // Update Hunter.io status
+      const hunterEl = document.getElementById('hunter-status');
+      if (hunterEl) {
+        hunterEl.innerHTML = '<div style="font-weight:600;color:#7c3aed;">Hunter.io</div><div style="color:#059669;">✅ Server Configured</div>';
+      }
+      
+      // Update overall status - APIs are now configured via environment variables
+      const overallMessage = '🚀 APIs configured via server environment - Maximum lead quality enabled!';
+      
+      // Update the footer message
+      const statusContainer = document.getElementById('enhanced-apis-status');
+      if (statusContainer) {
+        const footerEl = statusContainer.querySelector('div[style*="font-size:0.75rem"]');
+        if (footerEl) {
+          footerEl.textContent = overallMessage;
+          footerEl.style.color = '#059669';
+          footerEl.style.fontWeight = '600';
         }
-      } catch (error) {
-        console.error('Error checking API status:', error);
       }
     }
 
@@ -9451,7 +9235,7 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
           logToConsole('🧠 Training embeddings will be stored for analysis', 'info');
         } else {
           logToConsole(`❌ Connection failed: ${data.error}`, 'error');
-          logToConsole('💡 Check your Zilliz settings in Settings → API Keys', 'info');
+          logToConsole('💡 Check your Zilliz settings in environment variables', 'info');
         }
       } catch (error) {
         logToConsole('❌ Connection error: ' + error.message, 'error');
@@ -9522,166 +9306,7 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
         <h2><span class="icon icon-cog"></span> Settings</h2>
       </div>
 
-      <!-- API Keys Section -->
-      <div class="settings-section">
-        <h3>🔑 API Keys</h3>
-        <div class="modal-form-group">
-          <label for="modal-openai-key">OpenAI API Key</label>
-          <input type="password" id="modal-openai-key" placeholder="sk-..." />
-          <div class="api-key-preview" id="modal-openai-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-serper-key">Serper API Key (for web search)</label>
-          <input type="password" id="modal-serper-key" placeholder="Your Serper API key" />
-          <div class="api-key-preview" id="modal-serper-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-apollo-key">Apollo API Key (for lead research)</label>
-          <input type="password" id="modal-apollo-key" placeholder="Your Apollo API key" />
-          <div class="api-key-preview" id="modal-apollo-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-mailgun-key">Mailgun API Key</label>
-          <input type="password" id="modal-mailgun-key" placeholder="Your Mailgun API key" />
-          <div class="api-key-preview" id="modal-mailgun-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-mailgun-domain">Mailgun Domain</label>
-          <input type="text" id="modal-mailgun-domain" placeholder="mg.yourdomain.com" />
-          <div class="api-key-preview" id="modal-mailgun-domain-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-        </div>
-        
-        <!-- LinkedIn API Settings -->
-        <div class="modal-form-group">
-          <label for="modal-linkedin-client-id">LinkedIn Client ID</label>
-          <input type="text" id="modal-linkedin-client-id" placeholder="Your LinkedIn Client ID" />
-          <div class="api-key-preview" id="modal-linkedin-client-id-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-            💡 Get this from <a href="https://www.linkedin.com/developers/" target="_blank" style="color: #5a67d8;">LinkedIn Developers</a>
-          </div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-linkedin-client-secret">LinkedIn Client Secret</label>
-          <input type="password" id="modal-linkedin-client-secret" placeholder="Your LinkedIn Client Secret" />
-          <div class="api-key-preview" id="modal-linkedin-client-secret-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-linkedin-redirect-uri">LinkedIn Redirect URI</label>
-          <input type="text" id="modal-linkedin-redirect-uri" placeholder="http://localhost:8080/api/linkedin-api/callback" />
-          <div class="api-key-preview" id="modal-linkedin-redirect-uri-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: http://localhost:8080/api/linkedin-api/callback</div>
-        </div>
-        
-        <!-- HeyReach API Settings -->
-        <div class="modal-form-group">
-          <label for="modal-heyreach-api-key">HeyReach API Key</label>
-          <input type="password" id="modal-heyreach-api-key" placeholder="Your HeyReach API key" />
-          <div class="api-key-preview" id="modal-heyreach-api-key-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-            💡 Get this from <a href="https://heyreach.io/" target="_blank" style="color: #5a67d8;">HeyReach Dashboard</a> → Settings → API Keys
-          </div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-heyreach-base-url">HeyReach Base URL</label>
-          <input type="text" id="modal-heyreach-base-url" placeholder="https://api.heyreach.io" />
-          <div class="api-key-preview" id="modal-heyreach-base-url-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: https://api.heyreach.io</div>
-        </div>
-        
-        <!-- Lead Contact Enhancement APIs -->
-        <h4 style="color: #7c3aed; margin: 2rem 0 1rem 0; padding-top: 1rem; border-top: 2px solid rgba(124, 58, 237, 0.2);">🎯 Lead Contact Enhancement APIs</h4>
-        
-        <div class="modal-form-group">
-          <label for="modal-zerobounce-key">ZeroBounce API Key (Email Verification)</label>
-          <input type="password" id="modal-zerobounce-key" placeholder="Your ZeroBounce API key" />
-          <div class="api-key-preview" id="modal-zerobounce-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-            💡 Get this from <a href="https://www.zerobounce.net/" target="_blank" style="color: #5a67d8;">ZeroBounce Dashboard</a> → API Keys
-          </div>
-        </div>
-        
-        <div class="modal-form-group">
-          <label for="modal-hunter-key">Hunter.io API Key (Email Finder)</label>
-          <input type="password" id="modal-hunter-key" placeholder="Your Hunter.io API key" />
-          <div class="api-key-preview" id="modal-hunter-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-            💡 Get this from <a href="https://hunter.io/" target="_blank" style="color: #5a67d8;">Hunter.io Dashboard</a> → API
-          </div>
-        </div>
-        
-        <!-- Zilliz Vector Database for AI Training -->
-        <div class="modal-form-group" style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem;">
-          <h4 style="color: #374151; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">🧠 Zilliz Vector Database (AI Training Lab)</h4>
-          <label for="modal-zilliz-endpoint">Zilliz Endpoint URL</label>
-          <input type="text" id="modal-zilliz-endpoint" placeholder="https://your-cluster.api.gcp-us-west1.zillizcloud.com" />
-          <div class="api-key-preview" id="modal-zilliz-endpoint-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-        </div>
-        
-        <div class="modal-form-group">
-          <label for="modal-zilliz-token">Zilliz API Token</label>
-          <input type="password" id="modal-zilliz-token" placeholder="Your Zilliz API token" />
-          <div class="api-key-preview" id="modal-zilliz-token-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-            💡 Get this from <a href="https://cloud.zilliz.com/" target="_blank" style="color: #5a67d8;">Zilliz Cloud Console</a> → API Keys<br>
-            🎯 Used exclusively for AI Training Lab performance analytics and embeddings
-          </div>
-        </div>
-        
-        <button class="save-btn" onclick="saveApiKeys()">💾 Save API Keys</button>
-        <div id="api-keys-status"></div>
-      </div>
 
-      <!-- Domain Setup Section -->
-      <div class="settings-section">
-        <h3>🌐 Domain & Email Tracking Setup</h3>
-        <div class="modal-form-group">
-          <label for="modal-tracking-domain">Tracking Domain</label>
-          <input type="text" id="modal-tracking-domain" placeholder="yourdomain.com or localhost:8080" />
-          <div class="api-key-preview" id="modal-tracking-domain-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: None</div>
-          <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-            💡 <strong>For localhost:</strong> Use "localhost:8080" (email tracking won't work externally)<br>
-            💡 <strong>For custom domain:</strong> Use "yourdomain.com" (requires domain configuration)
-          </div>
-        </div>
-        <div class="modal-form-group">
-          <label for="modal-server-port">Server Port</label>
-          <input type="number" id="modal-server-port" placeholder="8080" min="1" max="65535" />
-          <div class="api-key-preview" id="modal-server-port-preview" style="font-size: 0.8rem; color: #9ca3af; margin-top: 3px; font-family: monospace;">Current: 8080</div>
-        </div>
-        
-        <!-- Domain Setup Instructions -->
-        <div style="background: rgba(90, 103, 216, 0.1); border-radius: 8px; padding: 1rem; margin: 1rem 0; border-left: 4px solid #5a67d8;">
-          <h4 style="color: #5a67d8; margin: 0 0 0.5rem 0;">📋 Custom Domain Setup Instructions</h4>
-          <div style="font-size: 0.9rem; color: #374151; line-height: 1.4;">
-            <strong>To enable email tracking with your custom domain:</strong><br>
-            1. Point your domain/subdomain to your server's IP address<br>
-            2. Set up SSL certificate (HTTPS required for email clients)<br>
-            3. Configure reverse proxy (nginx/Apache) to route traffic to this app<br>
-            4. Test tracking URL: <code>https://yourdomain.com/track/open/test</code><br><br>
-            <strong>For easy setup, use services like:</strong><br>
-            • <a href="https://ngrok.com" target="_blank" style="color: #5a67d8;">ngrok</a> (temporary tunneling)<br>
-            • <a href="https://www.cloudflare.com" target="_blank" style="color: #5a67d8;">Cloudflare</a> (DNS + SSL)<br>
-            • <a href="https://vercel.com" target="_blank" style="color: #5a67d8;">Vercel</a> or <a href="https://render.com" target="_blank" style="color: #5a67d8;">Render</a> (hosting)
-          </div>
-        </div>
-
-        <!-- Quick Setup Presets -->
-        <div style="margin: 1rem 0;">
-          <h4 style="color: #374151; margin: 0 0 0.5rem 0;">⚡ Quick Setup Presets</h4>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button onclick="setTrackingPreset('localhost')" style="background: #64748b; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-              🏠 Localhost
-            </button>
-            <button onclick="setTrackingPreset('ngrok')" style="background: #059669; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-              🔗 ngrok Setup
-            </button>
-            <button onclick="setTrackingPreset('custom')" style="background: #5a67d8; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-              🌐 Custom Domain
-            </button>
-          </div>
-        </div>
-
-        <button class="save-btn" onclick="saveDomainSettings()">💾 Save Domain Settings</button>
-        <div id="domain-settings-status"></div>
-      </div>
 
       <!-- AI Personality Section -->
       <div class="settings-section">
@@ -9716,16 +9341,27 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
 
       <!-- Account Actions Section -->
       <div class="settings-section">
-        <h3>🚪 Account Actions</h3>
-        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-          <button class="save-btn" onclick="signOut()" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
-            🚪 Sign Out
-          </button>
-          <div style="color: #64748b; font-size: 0.9rem; flex: 1;">
-            Sign out of your account
-          </div>
+        <h3><span class="icon icon-key"></span> Account Actions</h3>
+        <div class="modal-form-group">
+          <label for="modal-current-password">Current Password</label>
+          <input type="password" id="modal-current-password" placeholder="Enter current password" />
+        </div>
+        <div class="modal-form-group">
+          <label for="modal-new-password">New Password</label>
+          <input type="password" id="modal-new-password" placeholder="Enter new password" />
+        </div>
+        <div class="modal-form-group">
+          <label for="modal-confirm-password">Confirm New Password</label>
+          <input type="password" id="modal-confirm-password" placeholder="Confirm new password" />
+        </div>
+        <button class="save-btn" onclick="changePassword()">🔐 Change Password</button>
+        <div id="password-change-status"></div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1);">
+          <button class="save-btn" onclick="logout()" style="background: #dc2626; color: white;">🚪 Logout</button>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -10540,37 +10176,7 @@ function logout() {
   window.location.href = '/auth.html';
 }
 
-// Add logout option to settings (if settings modal exists)
-if (typeof openSettings === 'function') {
-  const originalOpenSettings = openSettings;
-  window.openSettings = function() {
-    originalOpenSettings();
-    
-    // Add logout button to settings modal if not already added
-    setTimeout(() => {
-      const settingsModal = document.querySelector('.settings-content');
-      if (settingsModal && !document.getElementById('logout-btn')) {
-        const logoutBtn = document.createElement('button');
-        logoutBtn.id = 'logout-btn';
-        logoutBtn.innerHTML = '🚪 Logout';
-        logoutBtn.style.cssText = `
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px;
-          cursor: pointer; font-weight: 600; margin-top: 1rem; width: 100%;
-          transition: transform 0.2s ease;
-        `;
-        logoutBtn.onmouseover = () => logoutBtn.style.transform = 'translateY(-2px)';
-        logoutBtn.onmouseout = () => logoutBtn.style.transform = 'translateY(0)';
-        logoutBtn.onclick = () => {
-          if (confirm('Are you sure you want to logout?')) {
-            logout();
-          }
-        };
-        settingsModal.appendChild(logoutBtn);
-      }
-    }, 100);
-  };
-}
+
 </script>
 
 </body>

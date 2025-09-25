@@ -1,11 +1,12 @@
 // Authentication and user management routes
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { 
   registerUser, 
   loginUser, 
   getUserSettings, 
   updateUserSettings, 
-  updateApiKeys, 
   updateAiPersonality,
   verifyMasterPassword,
   generatePasswordResetToken,
@@ -88,36 +89,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Get API keys (for frontend) - MUST BE BEFORE THE GENERAL SETTINGS ROUTE
-router.get('/settings/api-keys', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.userId; // Get from JWT token
-    console.log(`[AUTH] GET /settings/api-keys - Request received for user: ${userId}`);
-    
-    const settings = await getUserSettings(userId);
-    console.log(`[AUTH] Raw settings for ${userId}:`, settings);
-    
-    // Return API key previews (first 8 characters) for display
-    const apiKeyPreviews = Object.keys(settings.apiKeys).reduce((acc, key) => {
-      if (settings.apiKeys[key]) {
-        // Return first 8 characters for preview
-        const preview = settings.apiKeys[key].substring(0, 8) + '...';
-        acc[key] = preview;
-        console.log(`[AUTH] Key ${key}: ${settings.apiKeys[key]} -> ${preview}`);
-      } else {
-        acc[key] = '';
-        console.log(`[AUTH] Key ${key}: empty`);
-      }
-      return acc;
-    }, {});
-    
-    console.log(`[AUTH] Sending API key previews:`, apiKeyPreviews);
-    res.json({ success: true, settings: { apiKeys: apiKeyPreviews } });
-  } catch (error) {
-    console.error('[AUTH] Get API keys error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Get user settings
 router.get('/settings', authenticateToken, async (req, res) => {
@@ -128,88 +99,13 @@ router.get('/settings', authenticateToken, async (req, res) => {
     const settings = await getUserSettings(userId);
     console.log(`[AUTH] Raw settings for ${userId}:`, settings);
     
-    // Return API key previews (first 8 characters) for display
-    const safeSettings = {
-      ...settings,
-      apiKeys: Object.keys(settings.apiKeys).reduce((acc, key) => {
-        if (settings.apiKeys[key]) {
-          // Return first 8 characters for preview
-          const preview = settings.apiKeys[key].substring(0, 8) + '...';
-          acc[key] = preview;
-          console.log(`[AUTH] Key ${key}: ${settings.apiKeys[key]} -> ${preview}`);
-        } else {
-          acc[key] = '';
-          console.log(`[AUTH] Key ${key}: empty`);
-        }
-        return acc;
-      }, {})
-    };
+    // Remove API keys from settings before sending to frontend
+    const { apiKeys, ...safeSettings } = settings;
     
     console.log(`[AUTH] Sending safe settings:`, safeSettings);
     res.json({ success: true, settings: safeSettings });
   } catch (error) {
     console.error('[AUTH] Get settings error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update API keys
-router.post('/settings/api-keys', authenticateToken, async (req, res) => {
-  console.log('[AUTH] ====== API Keys update request received ======');
-  const userId = req.user.userId; // Get from JWT token
-  console.log('[AUTH] UserId:', userId);
-  console.log('[AUTH] Request body:', req.body);
-  console.log('[AUTH] Request headers:', req.headers);
-  
-  try {
-    const { apiKeys, vectorStore } = req.body;
-    
-    if (!apiKeys) {
-      console.log('[AUTH] No apiKeys in request body');
-      return res.status(400).json({ error: 'API keys data is required' });
-    }
-    
-    console.log('[AUTH] Processing API keys for user:', userId);
-    console.log('[AUTH] API keys received:', apiKeys);
-    console.log('[AUTH] Vector store config received:', vectorStore);
-    
-    // Don't filter out empty values - allow them to clear existing keys
-    // But we need to handle them properly in the tools
-    const keysToUpdate = {};
-    Object.entries(apiKeys).forEach(([key, value]) => {
-      // Always update the key, even if it's empty (allows clearing)
-      keysToUpdate[key] = value ? value.trim() : '';
-    });
-    
-    console.log('[AUTH] Keys to update:', keysToUpdate);
-    
-    const updatedKeys = await updateApiKeys(userId, keysToUpdate);
-    
-    // Update vector store settings if provided
-    if (vectorStore) {
-      console.log('[AUTH] Updating vector store settings:', vectorStore);
-      await updateUserSettings(userId, { vectorStore });
-    }
-    
-    console.log(`[AUTH] API keys updated successfully for user: ${userId}`);
-    console.log('[AUTH] Updated keys result:', updatedKeys);
-    
-    // Return masked keys for security
-    const maskedKeys = Object.keys(updatedKeys).reduce((acc, key) => {
-      acc[key] = updatedKeys[key] && updatedKeys[key] !== '' ? '***set***' : '';
-      return acc;
-    }, {});
-    
-    console.log('[AUTH] Sending response with masked keys:', maskedKeys);
-    
-    res.json({ 
-      success: true, 
-      message: 'API keys updated successfully',
-      apiKeys: maskedKeys
-    });
-  } catch (error) {
-    console.error('[AUTH] Update API keys error:', error);
-    console.error('[AUTH] Error stack:', error.stack);
     res.status(500).json({ error: error.message });
   }
 });
@@ -324,11 +220,18 @@ router.post('/settings/lead-contact-settings', authenticateToken, async (req, re
     console.log(`[AUTH] POST /settings/lead-contact-settings - Request received for user: ${userId}`);
     console.log(`[AUTH] Lead contact settings data:`, req.body);
     
+    // Import the new Zilliz settings manager
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    // Save directly to Zilliz instead of JSON file
+    await zillizSettingsManager.saveLeadAgentSettings(userId, req.body.leadContactSettings);
+    
+    // Also update the old JSON file for backwards compatibility (temporary)
     const settings = await getUserSettings(userId);
     settings.leadContactSettings = req.body.leadContactSettings;
     await updateUserSettings(userId, settings);
     
-    console.log(`[AUTH] ✅ Lead Contact Settings saved for user: ${userId}`);
+    console.log(`[AUTH] ✅ Lead Contact Settings saved to both Zilliz and JSON for user: ${userId}`);
     res.json({ success: true, message: 'Lead Contact settings saved successfully' });
   } catch (error) {
     console.error('[AUTH] Update lead contact settings error:', error.message);
@@ -422,6 +325,70 @@ router.post('/reset-password', async (req, res) => {
   } catch (error) {
     console.error('[AUTH] Reset password error:', error.message);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Change password for authenticated users
+router.post('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.userId;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password and new password are required' 
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'New password must be at least 6 characters' 
+      });
+    }
+
+    // Get user data to verify current password
+    const users = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'lib/data/users.json'), 'utf8'));
+    const user = users.find(u => u.userId === userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Verify current password using the same hash comparison as login
+    const bcrypt = await import('bcrypt');
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Current password is incorrect' 
+      });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password in users.json
+    user.password = hashedNewPassword;
+    fs.writeFileSync(path.join(process.cwd(), 'lib/data/users.json'), JSON.stringify(users, null, 2));
+    
+    console.log(`[AUTH] Password changed successfully for user: ${user.username}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Password changed successfully' 
+    });
+  } catch (error) {
+    console.error('[AUTH] Change password error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during password change' 
+    });
   }
 });
 

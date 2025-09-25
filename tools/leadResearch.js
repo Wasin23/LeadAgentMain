@@ -268,26 +268,17 @@ async function enrichCompanyData(domain, userId = null) {
   }
 }
 
-// Helper function to get API key from user settings first, then environment
+// Helper function to get API key from environment variables
 async function getApiKey(keyName, userId = null) {
   try {
-    if (userId) {
-      const userSettings = await getUserSettings(userId);
-      const userApiKey = userSettings?.apiKeys?.[keyName];
-      if (userApiKey && userApiKey.trim() !== '') {
-        console.log(`🔑 [API] Using user-configured ${keyName.toUpperCase()} API key`);
-        return userApiKey;
-      }
-    }
-    
-    // Fall back to environment variable
+    // Use environment variable
     const envKey = process.env[`${keyName.toUpperCase()}_API_KEY`];
     if (envKey && envKey.trim() !== '') {
       console.log(`🔑 [API] Using environment ${keyName.toUpperCase()} API key`);
       return envKey;
     }
     
-    throw new Error(`${keyName.toUpperCase()} API key not found in user settings or environment`);
+    throw new Error(`${keyName.toUpperCase()} API key not found in environment variables`);
   } catch (error) {
     console.error(`[API] Error getting ${keyName} API key:`, error.message);
     throw error;

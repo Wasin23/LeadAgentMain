@@ -12,7 +12,7 @@ import { BufferMemory } from "langchain/memory";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
-import { getUserApiKeys, getUserAiPersonality } from "../lib/userManager.js";
+import { getUserAiPersonality } from "../lib/userManager.js";
 
 // Wrap internet search as a LangChain tool
 const serperTool = new DynamicTool({
@@ -51,17 +51,13 @@ const serperTool = new DynamicTool({
 
 // Returns an agent executor and memory instance
 export async function getLangchainAgentWithMemory(userId = null) {
-  // Get user-specific settings if userId is provided
-  let userApiKeys = {};
+  // Get user-specific AI personality if userId is provided
   let userPersonality = '';
   
   if (userId) {
     try {
-      userApiKeys = await getUserApiKeys(userId) || {};
       userPersonality = await getUserAiPersonality(userId) || '';
-      console.log('[LANGCHAIN AGENT] Loaded user settings for:', userId, 'Has API keys:', Object.keys(userApiKeys).length > 0, 'Has custom personality:', userPersonality.length > 0);
-      console.log('[LANGCHAIN AGENT] DEBUG - userApiKeys object:', userApiKeys);
-      console.log('[LANGCHAIN AGENT] DEBUG - userApiKeys.serper:', userApiKeys.serper);
+      console.log('[LANGCHAIN AGENT] Loaded user settings for:', userId, 'Has custom personality:', userPersonality.length > 0);
     } catch (error) {
       console.warn('[LANGCHAIN AGENT] Failed to load user settings:', error.message);
     }
@@ -89,31 +85,16 @@ export async function getLangchainAgentWithMemory(userId = null) {
         query = input.query || input.input || input;
       }
       console.log('[SERPER TOOL] Executing search for query:', query);
-      console.log('[SERPER TOOL] userApiKeys object:', userApiKeys);
-      console.log('[SERPER TOOL] userApiKeys.serper:', userApiKeys.serper);
       try {
-        // Prioritize user's API key first, then fallback to env variable
-        const userKey = userApiKeys.serper;
-        const envKey = process.env.SERPER_API_KEY;
+        // Use API key from environment variable
+        const apiKey = process.env.SERPER_API_KEY;
         
-        console.log('[SERPER TOOL] userKey:', userKey);
-        console.log('[SERPER TOOL] envKey:', envKey);
-        
-        let apiKey, keySource;
-        if (userKey && userKey.trim() !== '') {
-          apiKey = userKey;
-          keySource = 'user settings';
-          console.log(`[SERPER TOOL] Using API key from user settings (${userKey.substring(0, 10)}...)`);
-        } else if (envKey) {
-          apiKey = envKey;
-          keySource = 'environment variable';
-          console.log(`[SERPER TOOL] Using API key from environment variable (${envKey.substring(0, 10)}...)`);
-        } else {
-          console.error('[SERPER TOOL] No API key available from any source');
-          throw new Error('No Serper API key available. Please set SERPER_API_KEY environment variable or add your API key in settings.');
+        if (!apiKey) {
+          console.error('[SERPER TOOL] No SERPER_API_KEY environment variable found');
+          throw new Error('No Serper API key available. Please set SERPER_API_KEY environment variable.');
         }
         
-        console.log(`[SERPER TOOL] API Key source: ${keySource}`);
+        console.log('[SERPER TOOL] Using API key from environment variable');
         const result = await internetSearchWithKey(query, apiKey);
         console.log('[SERPER TOOL] Search completed, result length:', JSON.stringify(result).length);
         return JSON.stringify(result);
@@ -173,7 +154,7 @@ export async function getLangchainAgentWithMemory(userId = null) {
           return "Error: deep_research requires a 'query' parameter";
         }
         
-        const options = { mode, limit, apiKeys: userApiKeys };
+        const options = { mode, limit };
         const result = await deepResearch(query, options);
         return JSON.stringify(result);
       } catch (error) {
@@ -184,16 +165,6 @@ export async function getLangchainAgentWithMemory(userId = null) {
 
   const tools = [serperTool, deepResearchTool];
   console.log('[LANGCHAIN AGENT] Tools registered:', tools.map(t => t.name));
-  
-  if (userId) {
-    try {
-      userApiKeys = await getUserApiKeys(userId) || {};
-      userPersonality = await getUserAiPersonality(userId) || '';
-      console.log('[LANGCHAIN AGENT] Loaded user settings for:', userId, 'Has API keys:', Object.keys(userApiKeys).length > 0, 'Has custom personality:', userPersonality.length > 0);
-    } catch (error) {
-      console.warn('[LANGCHAIN AGENT] Failed to load user settings:', error.message);
-    }
-  }
   
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 

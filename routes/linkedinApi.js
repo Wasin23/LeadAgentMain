@@ -1,5 +1,4 @@
 import express from 'express';
-import { getUserSettings } from '../lib/userManager.js';
 
 const router = express.Router();
 
@@ -8,23 +7,12 @@ const userTokens = new Map();
 
 // Helper function to get LinkedIn credentials for a user
 async function getLinkedInCredentials(userId) {
-  try {
-    const settings = await getUserSettings(userId);
-    const apiKeys = settings?.apiKeys || {};
-    
-    return {
-      clientId: apiKeys.linkedinClientId || process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: apiKeys.linkedinClientSecret || process.env.LINKEDIN_CLIENT_SECRET,
-      redirectUri: apiKeys.linkedinRedirectUri || process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:8080/api/linkedin-api/callback'
-    };
-  } catch (error) {
-    console.error('Error getting LinkedIn credentials:', error);
-    return {
-      clientId: process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-      redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:8080/api/linkedin-api/callback'
-    };
-  }
+  // Use LinkedIn credentials from environment variables only
+  return {
+    clientId: process.env.LINKEDIN_CLIENT_ID,
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+    redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:8080/api/linkedin-api/callback'
+  };
 }
 
 // LinkedIn OAuth flow - initiate

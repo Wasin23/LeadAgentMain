@@ -3,7 +3,7 @@ import { deepResearch } from '../tools/deepResearch.js';
 import { leadResearch } from '../tools/leadResearch.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { emailQueue } from '../lib/emailQueue.js';
-import { getUserSettings } from '../lib/userManager.js';
+import { zillizSettingsManager } from '../utils/zillizSettingsManager.js';
 import { ChatOpenAI } from "@langchain/openai";
 import { EventEmitter } from 'events';
 import fs from 'fs/promises';
@@ -87,6 +87,45 @@ class LeadContactAgent extends EventEmitter {
     console.log(`[LEAD AGENT] Cycle interval: ${this.cycleInterval / (1000 * 60)} minutes`);
   }
 
+  // Convert new Zilliz settings format to legacy format
+  convertZillizToLegacyFormat(zillizSettings) {
+    if (!zillizSettings) return null;
+    
+    return {
+      companySizeMin: zillizSettings.targetingCriteria?.companySizeMin || 200,
+      companySizeMax: zillizSettings.targetingCriteria?.companySizeMax || 300,
+      companyIndustries: zillizSettings.targetingCriteria?.companyIndustries || [],
+      companyKeywords: zillizSettings.targetingCriteria?.companyKeywords || [],
+      targetLocations: zillizSettings.targetingCriteria?.targetLocations || ['United States'],
+      targetPositions: zillizSettings.targetingCriteria?.targetPositions || [
+        'CTO', 'Chief Technology Officer', 'VP of Engineering', 'IT Director',
+        'CEO', 'Chief Executive Officer', 'Founder'
+      ],
+      seniorityLevel: zillizSettings.targetingCriteria?.seniorityLevel || 'senior',
+      departments: zillizSettings.targetingCriteria?.departments || [],
+      fundingStage: zillizSettings.targetingCriteria?.fundingStage || 'any',
+      technologyStack: zillizSettings.targetingCriteria?.technologyStack || [],
+      contactIntent: zillizSettings.targetingCriteria?.contactIntent || [],
+      leadLimit: zillizSettings.searchSettings?.leadLimit || 10,
+      excludeKeywords: zillizSettings.searchSettings?.excludeKeywords || [],
+      
+      // Company branding (as nested object - the agent expects this structure)
+      companyBranding: {
+        agentName: zillizSettings.companyBranding?.agentName || 'ExaMark',
+        companyName: zillizSettings.companyBranding?.companyName || 'Exabits',
+        agentTitle: zillizSettings.companyBranding?.agentTitle || 'AI Assistant',
+        primaryService: zillizSettings.companyBranding?.primaryService || 'AI-powered High-Performance Computing Solutions',
+        coreOffering: zillizSettings.companyBranding?.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+        keyAdvantages: zillizSettings.companyBranding?.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+        expertiseArea: zillizSettings.companyBranding?.expertiseArea || 'Deep understanding of AI/ML compute requirements'
+      },
+      
+      // Additional fields that the agent uses
+      researchFocus: zillizSettings.targetingCriteria?.researchFocus || '',
+      emailBuilderPrompt: zillizSettings.companyBranding?.emailBuilderPrompt || ''
+    };
+  }
+
   // Load Lead Contact Settings from user preferences
   async loadLeadContactSettings(userId = 'default') {
     try {
@@ -119,8 +158,8 @@ class LeadContactAgent extends EventEmitter {
         }
       }
       
-      const userSettings = await getUserSettings(targetUserId);
-      this.leadContactSettings = userSettings.leadContactSettings || null;
+      const leadAgentSettings = await zillizSettingsManager.getLeadAgentSettings(targetUserId);
+      this.leadContactSettings = this.convertZillizToLegacyFormat(leadAgentSettings);
       this.currentUserId = targetUserId; // Store userId for email tracking
       
       if (this.leadContactSettings) {
