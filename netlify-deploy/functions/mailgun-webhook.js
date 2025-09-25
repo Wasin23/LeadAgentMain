@@ -49,6 +49,38 @@ function extractUserIdFromTrackingId(trackingId) {
   return match ? match[1] : null;
 }
 
+function getTimezoneOffset(timezone) {
+  // Get current timezone offset based on timezone name
+  const now = new Date();
+  
+  switch (timezone) {
+    case 'America/Los_Angeles':
+      // PST = -08:00, PDT = -07:00 (check if DST is active)
+      const isDST = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+      return isDST ? '-07:00' : '-08:00';
+      
+    case 'America/New_York':
+      // EST = -05:00, EDT = -04:00 (check if DST is active)
+      const isEDT = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+      return isEDT ? '-04:00' : '-05:00';
+      
+    case 'America/Chicago':
+      // CST = -06:00, CDT = -05:00
+      const isCDT = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+      return isCDT ? '-05:00' : '-06:00';
+      
+    case 'America/Denver':
+      // MST = -07:00, MDT = -06:00
+      const isMDT = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+      return isMDT ? '-06:00' : '-07:00';
+      
+    default:
+      // Default to PST/PDT for unrecognized timezones
+      const defaultDST = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+      return defaultDST ? '-07:00' : '-08:00';
+  }
+}
+
 // === ZILLIZ CLIENT SETUP ===
 
 const milvusClient = new MilvusClient({
@@ -962,9 +994,23 @@ USER TIMEZONE SETTINGS:
 - Tomorrow's date: ${tomorrow}
 
 DATE CONSTRUCTION (using user's ${userTimezone} timezone):
-- For "tomorrow at 3pm": use "${tomorrow}T15:00:00${userTimezone === 'America/Los_Angeles' ? '-07:00' : userTimezone === 'America/New_York' ? '-04:00' : '-05:00'}"
-- For "tomorrow at 5pm": use "${tomorrow}T17:00:00${userTimezone === 'America/Los_Angeles' ? '-07:00' : userTimezone === 'America/New_York' ? '-04:00' : '-05:00'}"
-- For "today at 2pm": use "${today}T14:00:00${userTimezone === 'America/Los_Angeles' ? '-07:00' : userTimezone === 'America/New_York' ? '-04:00' : '-05:00'}"
+- For "tomorrow at 3pm": use "${tomorrow}T15:00:00${getTimezoneOffset(userTimezone)}"
+- For "tomorrow at 5pm": use "${tomorrow}T17:00:00${getTimezoneOffset(userTimezone)}"
+- For "today at 2pm": use "${today}T14:00:00${getTimezoneOffset(userTimezone)}"
+
+TIMEZONE CONVERSION RULES (CRITICAL - READ CAREFULLY):
+When user mentions a time in a different timezone, you MUST convert it correctly:
+
+EST/EDT to PST/PDT: Subtract 3 hours
+- "5pm EST" = "2pm PST" 
+- "3pm EST" = "12pm PST"
+
+PST/PDT to EST/EDT: Add 3 hours  
+- "2pm PST" = "5pm EST"
+- "12pm PST" = "3pm EST"
+
+ALWAYS create calendar events using the CONVERTED time in YOUR configured timezone (${userTimezone}).
+Example: If user says "5pm EST" and you're in PST, schedule for 2pm PST in your calendar.
 
 BEHAVIOR SETTINGS:
 - Meeting Pushiness: ${userSettings.meeting_pushiness}
@@ -992,6 +1038,11 @@ COMMUNICATION STYLE:
 - Write the email content as if you ARE ${userSettings.ai_assistant_name} from ${userSettings.company_name}
 - Be conversational and helpful, speaking directly to the person who sent the email
 - Example: "Hi Sarah, unfortunately Colton is unavailable at 9pm. Could we schedule for 2pm tomorrow instead?"
+
+TIMEZONE CONVERSION EXAMPLES:
+- If user asks for "5pm EST" and you're in PST: Convert to "2pm PST" and schedule at 2pm PST
+- If user asks for "3pm PST" and you're in EST: Convert to "6pm EST" and schedule at 6pm EST
+- ALWAYS mention the converted time in your response: "I've scheduled our meeting for 2pm PST (5pm your time)"
 
 CALENDAR EVENT RULES:
 - MANDATORY: Always check availability before scheduling

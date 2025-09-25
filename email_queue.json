@@ -1,1 +1,289 @@
-[]
+[
+  {
+    "id": "1758767403367",
+    "timestamp": "2025-09-25T02:30:03.367Z",
+    "status": "pending",
+    "leadId": "Advanced_Integration_Technology_Peter_Berntsson",
+    "leadCompany": "Advanced Integration Technology",
+    "leadName": "Peter Berntsson",
+    "leadEmail": "pberntsson@aint.com",
+    "leadTitle": "CTO",
+    "originalSubject": "Elevate AIT's AI Initiatives with Tailored HPC Solutions",
+    "originalBody": "Hi Peter,\n\nI noticed AIT's impressive $401M funding round, underscoring your strategic focus on AI/ML adoption. With AI platforms poised for substantial growth, integrating scalable AI infrastructure is crucial. Exabits offers specialized AI-powered HPC solutions, leveraging NVIDIA's H100/H200 GPU clusters, designed to seamlessly integrate with your existing systems. Our solutions provide superior performance-per-dollar compared to general cloud services, ensuring you maximize efficiency while minimizing disruption.\n\nGiven AIT's readiness for AI/ML and commitment to innovation, our custom infrastructure can accelerate your strategic initiatives. I’d welcome the opportunity to discuss how our expertise in AI/ML compute can support AIT's growth trajectory.\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Elevate AIT's AI Initiatives with Tailored HPC Solutions",
+    "finalBody": "Hi Peter,\n\nI noticed AIT's impressive $401M funding round, underscoring your strategic focus on AI/ML adoption. With AI platforms poised for substantial growth, integrating scalable AI infrastructure is crucial. Exabits offers specialized AI-powered HPC solutions, leveraging NVIDIA's H100/H200 GPU clusters, designed to seamlessly integrate with your existing systems. Our solutions provide superior performance-per-dollar compared to general cloud services, ensuring you maximize efficiency while minimizing disruption.\n\nGiven AIT's readiness for AI/ML and commitment to innovation, our custom infrastructure can accelerate your strategic initiatives. I’d welcome the opportunity to discuss how our expertise in AI/ML compute can support AIT's growth trajectory.\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "leadDetails": {
+      "company": "Advanced Integration Technology",
+      "contact": "Peter Berntsson",
+      "title": "CTO",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "pberntsson@aint.com",
+      "score": 126,
+      "hasIntelligence": {
+        "summary": "Advanced Integration Technology (AIT) is a leading provider of automation, factory integration, and tooling solutions, primarily serving the aerospace, defense, and space launch sectors. The company is known for its ability to transform complex challenges into opportunities, focusing on cost reduction, risk mitigation, and timely delivery of systems.",
+        "aiReadiness": "AIT appears to be well-positioned for AI/ML adoption, given its focus on advanced integration and technology solutions. The company's interest in AI infrastructure and differentiation between AI and ML suggests a strategic approach to leveraging these technologies.",
+        "growthSignals": [
+          "Raised $401M in funding from prominent investors like Qatar Investment Authority and Onex.",
+          "Positioned in a rapidly growing AI platforms market, expected to reach $56.3 billion by 2030."
+        ],
+        "painPoints": [
+          "Potential challenges in integrating AI infrastructure with existing systems.",
+          "Need for continuous innovation to stay ahead in a competitive market."
+        ],
+        "opportunityScore": 85,
+        "personalizedAngles": [
+          "Highlight solutions that enhance AI infrastructure integration.",
+          "Emphasize cost-saving and risk-reduction benefits of AI/ML technologies.",
+          "Offer insights on staying competitive in the fast-evolving AI platforms market."
+        ],
+        "keyPersonalities": [
+          "Paiman Nodoushani, Chief Technology Officer, known for scaling organizations and leading technological transformations."
+        ],
+        "recentDevelopments": [
+          "Recent funding round in the secondary market, indicating financial growth and investor confidence."
+        ],
+        "competitivePosition": "AIT holds a strong market position as the largest provider of automation and integration solutions in its sectors. However, it faces competition from companies like Votaw and others, necessitating continuous innovation and strategic partnerships."
+      },
+      "opportunityScore": 85,
+      "isVerified": true,
+      "verificationConfidence": 90,
+      "aiReadiness": "AIT appears to be well-positioned for AI/ML adoption, given its focus on advanced integration and technology solutions. The company's interest in AI infrastructure and differentiation between AI and ML suggests a strategic approach to leveraging these technologies.",
+      "growthSignals": 2,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Advanced Integration Technology (AIT) is a leading provider of automation, factory integration, and tooling solutions, primarily serving the aerospace, defense, and space launch sectors. The company is known for its ability to transform complex challenges into opportunities, focusing on cost reduction, risk mitigation, and timely delivery of systems.",
+      "opportunityScore": 85,
+      "personalizedAngles": [
+        "Highlight solutions that enhance AI infrastructure integration.",
+        "Emphasize cost-saving and risk-reduction benefits of AI/ML technologies.",
+        "Offer insights on staying competitive in the fast-evolving AI platforms market."
+      ],
+      "recentDevelopments": [
+        "Recent funding round in the secondary market, indicating financial growth and investor confidence."
+      ]
+    }
+  },
+  {
+    "id": "1758767410056",
+    "timestamp": "2025-09-25T02:30:10.056Z",
+    "status": "pending",
+    "leadId": "InnoLight_Technology_Bill_Lee",
+    "leadCompany": "InnoLight Technology",
+    "leadName": "Bill Lee",
+    "leadEmail": "blee@innolight.com",
+    "leadTitle": "CTO",
+    "originalSubject": "Enhancing InnoLight's AI Interconnectivity with Advanced GPU Clusters",
+    "originalBody": "Hi Bill,\n\nInnoLight Technology's impressive 69.4% YoY profit growth and innovative 400G/800G optical transceiver development highlight your readiness for cutting-edge AI solutions. As your AI initiatives expand, ensuring efficient data flow in your data centers becomes crucial.\n\nExabits specializes in AI-powered High-Performance Computing solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide superior performance-per-dollar compared to general cloud services, tailored for AI interconnectivity. This aligns perfectly with your focus on AI and data center networking.\n\nOur deep expertise in AI/ML computing ensures that our GPU clusters can boost your data processing capabilities, supporting the rapid growth driven by 5G infrastructure and cloud computing demands. This will enhance your AI interconnectivity, ensuring seamless data flow and increased efficiency.\n\nI'd love to discuss how Exabits can support InnoLight's continued success. Are you available for a brief call next week?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Enhancing InnoLight's AI Interconnectivity with Advanced GPU Clusters",
+    "finalBody": "Hi Bill,\n\nInnoLight Technology's impressive 69.4% YoY profit growth and innovative 400G/800G optical transceiver development highlight your readiness for cutting-edge AI solutions. As your AI initiatives expand, ensuring efficient data flow in your data centers becomes crucial.\n\nExabits specializes in AI-powered High-Performance Computing solutions, offering custom AI infrastructure with NVIDIA H100/H200 GPU clusters. Our solutions provide superior performance-per-dollar compared to general cloud services, tailored for AI interconnectivity. This aligns perfectly with your focus on AI and data center networking.\n\nOur deep expertise in AI/ML computing ensures that our GPU clusters can boost your data processing capabilities, supporting the rapid growth driven by 5G infrastructure and cloud computing demands. This will enhance your AI interconnectivity, ensuring seamless data flow and increased efficiency.\n\nI'd love to discuss how Exabits can support InnoLight's continued success. Are you available for a brief call next week?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "leadDetails": {
+      "company": "InnoLight Technology",
+      "contact": "Bill Lee",
+      "title": "CTO",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "blee@innolight.com",
+      "score": 126,
+      "hasIntelligence": {
+        "summary": "InnoLight Technology is a leading developer in the field of cloud data centers, wireless networks, fiber-to-the-home, and metro to long-haul infrastructure. The company is actively involved in AI and data center networking, with a focus on high-speed optical transceivers.",
+        "aiReadiness": "InnoLight Technology demonstrates a strong readiness for AI/ML adoption, as evidenced by their development of 400G/800G optical transceivers aimed at AI interconnects and their involvement in AI and data center networking.",
+        "growthSignals": [
+          "69.4% YoY increase in net profit for H1 2025",
+          "Revenue growth driven by demand in 5G infrastructure and cloud computing",
+          "Partnership with Tower Semiconductor for AI and 6G telecommunications"
+        ],
+        "painPoints": [
+          "Potential over-reliance on partnerships for innovation",
+          "Need for continuous improvement and scalability in technology"
+        ],
+        "opportunityScore": 85,
+        "personalizedAngles": [
+          "Highlight solutions that enhance AI interconnectivity and data center efficiency",
+          "Emphasize capabilities in supporting 5G infrastructure and cloud computing",
+          "Offer insights into independent innovation strategies to reduce partnership reliance"
+        ],
+        "keyPersonalities": [
+          "Sheng Liu - CEO",
+          "Wei-Long William Lee - CTO",
+          "Charlie X. Wang - VP"
+        ],
+        "recentDevelopments": [
+          "Significant profit growth in H1 2025",
+          "Interim dividend signals strong earnings performance",
+          "Collaboration with Tower Semiconductor on silicon photonics technology"
+        ],
+        "competitivePosition": "InnoLight Technology holds a strong market position as a leader in optical transceivers and infrastructure for cloud data centers and AI networking. The company is well-positioned to capitalize on the growing demand for 5G and digital transformation, particularly in key regions like North America and Asia-Pacific."
+      },
+      "opportunityScore": 85,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "InnoLight Technology demonstrates a strong readiness for AI/ML adoption, as evidenced by their development of 400G/800G optical transceivers aimed at AI interconnects and their involvement in AI and data center networking.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "InnoLight Technology is a leading developer in the field of cloud data centers, wireless networks, fiber-to-the-home, and metro to long-haul infrastructure. The company is actively involved in AI and data center networking, with a focus on high-speed optical transceivers.",
+      "opportunityScore": 85,
+      "personalizedAngles": [
+        "Highlight solutions that enhance AI interconnectivity and data center efficiency",
+        "Emphasize capabilities in supporting 5G infrastructure and cloud computing",
+        "Offer insights into independent innovation strategies to reduce partnership reliance"
+      ],
+      "recentDevelopments": [
+        "Significant profit growth in H1 2025",
+        "Interim dividend signals strong earnings performance",
+        "Collaboration with Tower Semiconductor on silicon photonics technology"
+      ]
+    }
+  },
+  {
+    "id": "1758767415242",
+    "timestamp": "2025-09-25T02:30:15.242Z",
+    "status": "pending",
+    "leadId": "Stila_Cosmetics_Ken_Kilar",
+    "leadCompany": "Stila Cosmetics",
+    "leadName": "Ken Kilar",
+    "leadEmail": "ken@stilacosmetics.com",
+    "leadTitle": "Cto/vp Technology",
+    "originalSubject": "Boost Stila Cosmetics with AI-Driven Customization",
+    "originalBody": "Hi Ken,\n\nCongratulations on Stila Cosmetics' 30-year milestone and your exploration of AI in cosmetology. With your interest in AI/ML adoption to innovate product offerings, Exabits' AI-powered High-Performance Computing solutions can be transformative. Our custom AI infrastructure, featuring NVIDIA H100/H200 GPU clusters, is designed to enhance performance while offering superior cost efficiency compared to general cloud solutions.\n\nOur deep expertise in AI/ML compute requirements aligns perfectly with your strategic goals, enabling personalized product development that resonates with your cruelty-free ethos. By leveraging our tailored HPC solutions, Stila can accelerate its AI initiatives, leading to enhanced customer satisfaction and sustained growth.\n\nI'd love to discuss how we can support Stila's journey in AI innovation. When would be a good time for a conversation?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Boost Stila Cosmetics with AI-Driven Customization",
+    "finalBody": "Hi Ken,\n\nCongratulations on Stila Cosmetics' 30-year milestone and your exploration of AI in cosmetology. With your interest in AI/ML adoption to innovate product offerings, Exabits' AI-powered High-Performance Computing solutions can be transformative. Our custom AI infrastructure, featuring NVIDIA H100/H200 GPU clusters, is designed to enhance performance while offering superior cost efficiency compared to general cloud solutions.\n\nOur deep expertise in AI/ML compute requirements aligns perfectly with your strategic goals, enabling personalized product development that resonates with your cruelty-free ethos. By leveraging our tailored HPC solutions, Stila can accelerate its AI initiatives, leading to enhanced customer satisfaction and sustained growth.\n\nI'd love to discuss how we can support Stila's journey in AI innovation. When would be a good time for a conversation?\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "leadDetails": {
+      "company": "Stila Cosmetics",
+      "contact": "Ken Kilar",
+      "title": "Cto/vp Technology",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "ken@stilacosmetics.com",
+      "score": 124,
+      "hasIntelligence": {
+        "summary": "Stila Cosmetics is a well-established brand in the beauty industry, known for its artistry-proven, cruelty-free makeup products. The company has experienced a revival and is celebrating its 30-year milestone with a focus on innovation and modern strategies.",
+        "aiReadiness": "Stila Cosmetics appears to be in the early stages of AI/ML adoption, with some interest in leveraging AI for innovation in cosmetology, but no significant AI initiatives are highlighted in the data.",
+        "growthSignals": [
+          "Revival and strategic evolution after a period of decline",
+          "Celebration of a 30-year milestone indicating brand longevity",
+          "Institutional investment from Peabody Capital"
+        ],
+        "painPoints": [
+          "Potential need for enhanced AI/ML capabilities to stay competitive",
+          "Maintaining innovation while staying true to brand values"
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight AI solutions that can enhance product customization and innovation",
+          "Emphasize the importance of staying ahead in AI/ML to maintain competitive edge",
+          "Offer partnerships or solutions that align with their cruelty-free and artistry-proven brand values"
+        ],
+        "keyPersonalities": [
+          "Ken Kilar, CTO/VP Technology, who is actively involved in the company's technological direction"
+        ],
+        "recentDevelopments": [
+          "Celebration of a 30-year milestone",
+          "Revival with new team and fresh formulas"
+        ],
+        "competitivePosition": "Stila Cosmetics is positioned as a high-end brand with competitors like Procter & Gamble, Douglas, and Glossier. The company is focusing on modern strategies to regain its prestige in the beauty industry."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "Stila Cosmetics appears to be in the early stages of AI/ML adoption, with some interest in leveraging AI for innovation in cosmetology, but no significant AI initiatives are highlighted in the data.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Stila Cosmetics is a well-established brand in the beauty industry, known for its artistry-proven, cruelty-free makeup products. The company has experienced a revival and is celebrating its 30-year milestone with a focus on innovation and modern strategies.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight AI solutions that can enhance product customization and innovation",
+        "Emphasize the importance of staying ahead in AI/ML to maintain competitive edge",
+        "Offer partnerships or solutions that align with their cruelty-free and artistry-proven brand values"
+      ],
+      "recentDevelopments": [
+        "Celebration of a 30-year milestone",
+        "Revival with new team and fresh formulas"
+      ]
+    }
+  },
+  {
+    "id": "1758767419224",
+    "timestamp": "2025-09-25T02:30:19.224Z",
+    "status": "pending",
+    "leadId": "Intact_Technology_Wayne_Chattaway",
+    "leadCompany": "Intact Technology",
+    "leadName": "Wayne Chattaway",
+    "leadEmail": "wchattaway@intact-tech.com",
+    "leadTitle": "Chief Innovation Officer",
+    "originalSubject": "Elevate Intact Technology’s Growth with AI-Powered HPC Solutions",
+    "originalBody": "Hi Wayne,\n\nI was impressed by Intact Technology's 8% earnings growth in Q2 2025 and your customer-centric approach. As you explore AI/ML to enhance IT infrastructure, Exabits' AI-powered High-Performance Computing solutions can play a pivotal role in this journey.\n\nOur custom AI infrastructure, featuring NVIDIA H100/H200 GPU clusters, is designed to deliver superior performance-per-dollar compared to general cloud solutions. This targeted approach aligns with Intact Technology’s focus on scalable technology and digital evolution, ensuring efficient, high-impact outcomes.\n\nBy integrating our solutions, you can drive greater efficiency and elevate customer satisfaction, keeping you ahead in the competitive tech landscape.\n\nLet's discuss how Exabits can support your innovation goals.\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalSubject": "Elevate Intact Technology’s Growth with AI-Powered HPC Solutions",
+    "finalBody": "Hi Wayne,\n\nI was impressed by Intact Technology's 8% earnings growth in Q2 2025 and your customer-centric approach. As you explore AI/ML to enhance IT infrastructure, Exabits' AI-powered High-Performance Computing solutions can play a pivotal role in this journey.\n\nOur custom AI infrastructure, featuring NVIDIA H100/H200 GPU clusters, is designed to deliver superior performance-per-dollar compared to general cloud solutions. This targeted approach aligns with Intact Technology’s focus on scalable technology and digital evolution, ensuring efficient, high-impact outcomes.\n\nBy integrating our solutions, you can drive greater efficiency and elevate customer satisfaction, keeping you ahead in the competitive tech landscape.\n\nLet's discuss how Exabits can support your innovation goals.\n\nBest regards,  \nExaMark  \nExabits AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "leadDetails": {
+      "company": "Intact Technology",
+      "contact": "Wayne Chattaway",
+      "title": "Chief Innovation Officer",
+      "industry": "Technology",
+      "employeeCount": "Unknown",
+      "email": "wchattaway@intact-tech.com",
+      "score": 121,
+      "hasIntelligence": {
+        "summary": "Intact Technology is a ServiceNow consultant known for its innovative business model that prioritizes customer success and sustained digital evolution. The company has a strong focus on developing, implementing, and automating IT infrastructure for government and enterprise clients, achieving $31.7M in revenue with a 226-person team.",
+        "aiReadiness": "Intact Technology appears to be well-positioned for AI/ML adoption, given its emphasis on scalable technology and digital evolution. However, specific AI/ML initiatives are not explicitly mentioned in the available data.",
+        "growthSignals": [
+          "Achieved $31.7M in revenue with a 226-person team.",
+          "Strong focus on customer-centric business model.",
+          "Positive employee satisfaction with 88% rating it as a great place to work."
+        ],
+        "painPoints": [
+          "Potential challenges in scaling operations while maintaining customer satisfaction.",
+          "Need for continuous innovation to stay ahead in the competitive ServiceNow consulting market."
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight AI/ML solutions that can enhance their IT infrastructure offerings.",
+          "Emphasize the potential for increased efficiency and customer satisfaction through advanced technology integration.",
+          "Discuss strategies for maintaining competitive advantage in the ServiceNow consulting space."
+        ],
+        "keyPersonalities": [
+          "Jesse White, CEO, known for his leadership and vision in driving the company's growth and innovation."
+        ],
+        "recentDevelopments": [
+          "Reported 8% earnings growth in Q2 2025, indicating strong financial performance."
+        ],
+        "competitivePosition": "Intact Technology is positioned as a leading ServiceNow consultant with a unique business model that differentiates it from competitors. The company is recognized for its customer-centric approach and strong employee satisfaction, which contribute to its competitive advantage."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 90,
+      "aiReadiness": "Intact Technology appears to be well-positioned for AI/ML adoption, given its emphasis on scalable technology and digital evolution. However, specific AI/ML initiatives are not explicitly mentioned in the available data.",
+      "growthSignals": 3,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Intact Technology is a ServiceNow consultant known for its innovative business model that prioritizes customer success and sustained digital evolution. The company has a strong focus on developing, implementing, and automating IT infrastructure for government and enterprise clients, achieving $31.7M in revenue with a 226-person team.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight AI/ML solutions that can enhance their IT infrastructure offerings.",
+        "Emphasize the potential for increased efficiency and customer satisfaction through advanced technology integration.",
+        "Discuss strategies for maintaining competitive advantage in the ServiceNow consulting space."
+      ],
+      "recentDevelopments": [
+        "Reported 8% earnings growth in Q2 2025, indicating strong financial performance."
+      ]
+    }
+  }
+]

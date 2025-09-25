@@ -54,5 +54,19 @@
     "subject": "test email for exabits tracking",
     "sentAt": "2025-09-24T22:59:18.380Z",
     "source": "email"
+  },
+  "tracking-tracking-76e84c79_1758755808052_ffc10d88@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1758755808052_ffc10d88",
+    "to": "kellystott23@gmail.com",
+    "subject": "Email for scheduling. Talk to it!",
+    "sentAt": "2025-09-24T23:16:48.398Z",
+    "source": "email"
+  },
+  "tracking-tracking-76e84c79_1758767568402_bccf401c@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1758767568402_bccf401c",
+    "to": "colton.fidd@gmail.com",
+    "subject": "Elevate Ingo Payments' Fraud Detection with Custom AI Infrastructure",
+    "sentAt": "2025-09-25T02:32:48.944Z",
+    "source": "email"
   }
 }

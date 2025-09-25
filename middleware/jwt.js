@@ -11,8 +11,11 @@ export function authenticateToken(req, res, next) {
   // Get token from Authorization header: "Bearer <token>"
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  
+  console.log(`[JWT] Auth check for ${req.method} ${req.path} - Token present: ${!!token}`);
 
   if (!token) {
+    console.log(`[JWT] No token provided for ${req.method} ${req.path}`);
     return res.status(401).json({ 
       error: 'Access denied. No token provided.',
       requiresAuth: true 

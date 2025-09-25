@@ -341,14 +341,17 @@ router.post('/research/deep', async (req, res) => {
 
 // Deep Research with Real-time Progress Updates
 router.post('/research/deep-stream', async (req, res) => {
+  console.log(`[DeepResearch] Route hit - User: ${req.user?.userId || 'unknown'}`);
+  
   try {
     const { query, mode, limit } = req.body;
     
     if (!query) {
+      console.log(`[DeepResearch] ERROR: Missing query parameter`);
       return res.status(400).json({ error: 'Missing required field: query' });
     }
 
-    console.log(`[DeepResearch] Starting streamed research for: "${query}" (mode: ${mode || 'fresh'})`);
+    console.log(`[DeepResearch] Starting streamed research for: "${query}" (mode: ${mode || 'fresh'}) - User: ${req.user?.userId}`);
 
     // Set up Server-Sent Events
     res.writeHead(200, {

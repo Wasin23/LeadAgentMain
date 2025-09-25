@@ -599,13 +599,19 @@ Based on the following research results about "${query}", identify and analyze p
 Research Results:
 ${resultsText}
 
-Please provide a comprehensive lead analysis that:
+Please provide a comprehensive lead analysis in **markdown format** that:
 1. Identifies companies that could benefit from AI automation
 2. Highlights key decision makers and their contact information
 3. Explains why each lead would be a good fit for Exabits' services
 4. Suggests potential AI use cases for each prospect
 5. Prioritizes leads based on their AI readiness and budget potential
 6. Notes any current technology stack or competitors mentioned
+
+Use proper markdown formatting with:
+- **Bold text** for company names and key points
+- ## Headers for main sections (e.g., "## High Priority Leads")
+- ### Subheaders for each company
+- Bullet points for use cases and details
 
 Lead Analysis:`;
     } else {
@@ -614,12 +620,18 @@ Lead Analysis:`;
 Research Results:
 ${resultsText}
 
-Please provide a thorough summary that:
+Please provide a thorough summary in **markdown format** that:
 1. Identifies the main themes and key points
 2. Highlights the most significant findings
 3. Notes any patterns or consensus across sources
 4. Mentions diverse perspectives if present
 5. Organizes information logically
+
+Use proper markdown formatting with:
+- **Bold text** for important points
+- ## Headers for main sections
+- ### Subheaders for subsections
+- Bullet points where appropriate
 
 Summary:`;
     }

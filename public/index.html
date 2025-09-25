@@ -3620,9 +3620,12 @@
       document.getElementById('deep-research-current-task').textContent = 'Initializing...';
       document.getElementById('deep-research-stats').style.display = 'none';
       
-      // Start the streaming request
-      authenticatedFetch('/api/research/deep-stream', {
+      // Start the streaming request - use debug route for testing
+      fetch('/api/research/debug', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ query, mode, limit })
       })
       .then(response => {
@@ -3646,8 +3649,10 @@
                   updateDeepResearchProgress(progressData);
                   
                   // Handle completion
+                  console.log('[FRONTEND] Received progress data:', progressData);
                   if (progressData.stage === 'complete' && progressData.result) {
                     console.log('[FRONTEND] Research completed, displaying results');
+                    console.log('[FRONTEND] Result data:', progressData.result);
                     displayDeepResearchResults(progressData.result);
                     resetDeepResearchUI();
                   } else if (progressData.stage === 'error') {
