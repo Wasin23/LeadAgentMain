@@ -37,7 +37,7 @@ class ZillizTraining {
 
       // Initialize OpenAI embeddings for training data
       this.embeddings = new OpenAIEmbeddings({
-        openAIApiKey: settings?.apiKeys?.openai || process.env.OPENAI_API_KEY,
+        openAIApiKey: process.env.OPENAI_API_KEY,
         modelName: 'text-embedding-3-small' // Cost-effective model for training
       });
 

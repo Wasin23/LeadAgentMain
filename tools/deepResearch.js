@@ -191,27 +191,20 @@ async function searchGithub(query, limit = 4) {
 }
 
 // Apollo API search for leads and contacts
-async function searchApollo(query, limit = 10, apiKeys = {}) {
+async function searchApollo(query, limit = 10) {
   try {
     console.log(`🎯 [Apollo] Searching for leads: ${query}`);
     
-    // Apollo API configuration - prioritize user settings first, then env variable
-    const userApolloKey = apiKeys.apollo;
-    const envApolloKey = process.env.APOLLO_API_KEY;
+    // Apollo API configuration - use environment variable only
+    const apolloApiKey = process.env.APOLLO_API_KEY;
     
-    let apolloApiKey, apolloKeySource;
-    if (userApolloKey && userApolloKey !== 'your_apollo_api_key_here' && userApolloKey.trim() !== '') {
-      apolloApiKey = userApolloKey;
-      apolloKeySource = 'user settings';
-      console.log(`[APOLLO] Using API key from user settings (${userApolloKey.substring(0, 10)}...)`);
-    } else if (envApolloKey && envApolloKey !== 'your_apollo_api_key_here') {
-      apolloApiKey = envApolloKey;
-      apolloKeySource = 'environment variable';
-      console.log(`[APOLLO] Using API key from environment variable (${envApolloKey.substring(0, 10)}...)`);
-    } else {
-      console.log(`⚠️ [APOLLO] No valid API key available (env: ${envApolloKey ? 'placeholder' : 'missing'}, user: ${userApolloKey ? 'placeholder' : 'missing'}), skipping Apollo search`);
+    if (!apolloApiKey || apolloApiKey === 'your_apollo_api_key_here') {
+      console.log(`[APOLLO] No valid API key available in environment variables`);
       return [];
     }
+    
+    console.log(`[APOLLO] Using API key from environment variable (${apolloApiKey.substring(0, 10)}...)`);
+    const apolloKeySource = 'environment variable';
     
     console.log(`[APOLLO] API Key source: ${apolloKeySource}`);
 
@@ -441,29 +434,18 @@ function scoreAndRankResults(results, query, mode) {
 
 // Main deep research function
 export async function deepResearch(query, options = {}) {
-  const { mode = 'fresh', limit = 25, progressCallback, apiKeys = {} } = options;
+  const { mode = 'fresh', limit = 25, progressCallback } = options;
   
   console.log(`🔬 [DeepResearch] Starting research for: "${query}" (mode: ${mode})`);
   
-  // Create OpenAI instance with prioritized API key - user settings first
-  const userOpenAIKey = apiKeys.openai;
-  const envOpenAIKey = process.env.OPENAI_API_KEY;
+  // Create OpenAI instance with environment variable API key
+  const openAIApiKey = process.env.OPENAI_API_KEY;
   
-  let openAIApiKey, openAIKeySource;
-  if (userOpenAIKey && userOpenAIKey.trim() !== '') {
-    openAIApiKey = userOpenAIKey;
-    openAIKeySource = 'user settings';
-    console.log(`[DEEP RESEARCH] Using OpenAI API key from user settings (${userOpenAIKey.substring(0, 10)}...)`);
-  } else if (envOpenAIKey) {
-    openAIApiKey = envOpenAIKey;
-    openAIKeySource = 'environment variable';
-    console.log(`[DEEP RESEARCH] Using OpenAI API key from environment variable (${envOpenAIKey.substring(0, 10)}...)`);
+  if (!openAIApiKey) {
+    console.warn('[DEEP RESEARCH] No OpenAI API key available in environment variables - text processing will be disabled');
   } else {
-    console.warn('[DEEP RESEARCH] No OpenAI API key available - text processing will be disabled');
-  }
-  
-  if (openAIApiKey) {
-    console.log(`[DEEP RESEARCH] OpenAI API Key source: ${openAIKeySource}`);
+    console.log(`[DEEP RESEARCH] Using OpenAI API key from environment variable (${openAIApiKey.substring(0, 10)}...)`);
+    console.log(`[DEEP RESEARCH] OpenAI API Key source: environment variable`);
   }
   
   const chatModel = openAIApiKey ? new ChatOpenAI({
@@ -474,16 +456,12 @@ export async function deepResearch(query, options = {}) {
   
   // Helper function to use correct search method based on available API keys
   const performInternetSearch = async (searchQuery) => {
-    // Prioritize user settings first, then env variable
-    const userSerperKey = apiKeys.serper;
-    const envSerperKey = process.env.SERPER_API_KEY;
+    // Use Serper API key from environment variable only
+    const serperKey = process.env.SERPER_API_KEY;
     
-    if (userSerperKey && userSerperKey.trim() !== '') {
-      console.log(`[DEEP RESEARCH] Using Serper API key from user settings for query: ${searchQuery}`);
-      return await internetSearchWithKey(searchQuery, userSerperKey);
-    } else if (envSerperKey) {
+    if (serperKey) {
       console.log(`[DEEP RESEARCH] Using Serper API key from environment variable for query: ${searchQuery}`);
-      return await internetSearchWithKey(searchQuery, envSerperKey);
+      return await internetSearchWithKey(searchQuery, serperKey);
     } else {
       console.log(`[DEEP RESEARCH] No Serper API key available, using fallback method for query: ${searchQuery}`);
       return await internetSearch(searchQuery);
@@ -528,7 +506,7 @@ export async function deepResearch(query, options = {}) {
         // Lead mode: High-quality web results + comprehensive Apollo search
         searchPromises = [
           performInternetSearch(variant),
-          searchApollo(variant, 15, apiKeys) // Increased for better lead coverage
+          searchApollo(variant, 15) // Increased for better lead coverage
         ];
       } else {
         console.log(`🔍 [FreshMode] Using comprehensive research sources`);

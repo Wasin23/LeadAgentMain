@@ -258,18 +258,173 @@ router.post('/settings/lead-contact-settings', authenticateToken, async (req, re
     // Import the new Zilliz settings manager
     const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
     
-    // Save directly to Zilliz instead of JSON file
+    // Save directly to Zilliz (replaces any existing record for this user)
     await zillizSettingsManager.saveLeadAgentSettings(userId, req.body.leadContactSettings);
     
-    // Also update the old JSON file for backwards compatibility (temporary)
-    const settings = await getUserSettings(userId);
-    settings.leadContactSettings = req.body.leadContactSettings;
-    await updateUserSettings(userId, settings);
-    
-    console.log(`[AUTH] ✅ Lead Contact Settings saved to both Zilliz and JSON for user: ${userId}`);
+    console.log(`[AUTH] ✅ Lead Contact Settings saved to Zilliz for user: ${userId}`);
     res.json({ success: true, message: 'Lead Contact settings saved successfully' });
   } catch (error) {
     console.error('[AUTH] Update lead contact settings error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Section-specific lead settings update routes
+router.post('/settings/lead-contact-settings/company', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating company section for user: ${userId}`, req.body);
+    
+    await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'companyCriteria', req.body);
+    
+    res.json({ success: true, message: 'Company settings updated successfully' });
+  } catch (error) {
+    console.error('[AUTH] Company settings update error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings/lead-contact-settings/contact', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating contact section for user: ${userId}`, req.body);
+    
+    // The contact data from frontend contains mixed data that needs to be split across sections
+    const data = req.body;
+    
+    // Update contact criteria section
+    if (data.targetPositions || data.seniorityLevel || data.departments) {
+      const contactCriteria = {
+        targetPositions: data.targetPositions,
+        seniorityLevel: data.seniorityLevel,
+        excludedTitles: data.excludedTitles || [],
+        contactKeywords: data.contactKeywords || []
+      };
+      await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'contactCriteria', contactCriteria);
+    }
+    
+    // Update geographic settings section
+    if (data.targetLocations || data.leadLimit) {
+      const geographicSettings = {
+        targetLocations: data.targetLocations,
+        leadLimit: data.leadLimit,
+        excludedLocations: data.excludedLocations || [],
+        timezone: data.timezone || 'UTC'
+      };
+      await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'geographicSettings', geographicSettings);
+    }
+    
+    // Update advanced criteria section
+    if (data.excludeKeywords || data.fundingStage || data.technologyStack) {
+      const advancedCriteria = {
+        fundingStage: data.fundingStage || 'any',
+        fundingAmount: data.fundingAmount || '',
+        growthStage: data.growthStage || 'any',
+        technologiesUsed: data.technologyStack || [],
+        recentNews: data.recentNews || false
+      };
+      await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'advancedCriteria', advancedCriteria);
+    }
+    
+    // Update research focus section
+    if (data.contactIntent) {
+      const researchFocus = {
+        focusAreas: data.contactIntent,
+        researchDepth: data.researchDepth || 'standard',
+        includeCompanyNews: data.includeCompanyNews || false,
+        includePersonalInfo: data.includePersonalInfo || false,
+        includeSocialMedia: data.includeSocialMedia || false
+      };
+      await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'researchFocus', researchFocus);
+    }
+    
+    res.json({ success: true, message: 'Contact settings updated successfully across multiple sections' });
+  } catch (error) {
+    console.error('[AUTH] Contact settings update error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings/lead-contact-settings/geographic', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating geographic section for user: ${userId}`, req.body);
+    
+    await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'geographicSettings', req.body);
+    
+    res.json({ success: true, message: 'Geographic settings updated successfully' });
+  } catch (error) {
+    console.error('[AUTH] Geographic settings update error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings/lead-contact-settings/advanced', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating advanced section for user: ${userId}`, req.body);
+    
+    await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'advancedCriteria', req.body);
+    
+    res.json({ success: true, message: 'Advanced settings updated successfully' });
+  } catch (error) {
+    console.error('[AUTH] Advanced settings update error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings/lead-contact-settings/research', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating research section for user: ${userId}`, req.body);
+    
+    await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'researchFocus', req.body);
+    
+    res.json({ success: true, message: 'Research settings updated successfully' });
+  } catch (error) {
+    console.error('[AUTH] Research settings update error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings/lead-contact-settings/email-builder', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating email builder section for user: ${userId}`, req.body);
+    
+    await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'emailBuilder', req.body);
+    
+    res.json({ success: true, message: 'Email builder settings updated successfully' });
+  } catch (error) {
+    console.error('[AUTH] Email builder settings update error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/settings/lead-contact-settings/branding', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating branding section for user: ${userId}`, req.body);
+    
+    await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'companyBranding', req.body);
+    
+    res.json({ success: true, message: 'Branding settings updated successfully' });
+  } catch (error) {
+    console.error('[AUTH] Branding settings update error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

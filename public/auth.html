@@ -658,18 +658,37 @@
     
     // Check if user is already logged in and ensure inputs work
     window.addEventListener('load', () => {
+      console.log('[AUTH] Page load - checking authentication state...');
+      
+      // Check if user just logged out - if so, don't redirect
+      const justLoggedOut = localStorage.getItem('justLoggedOut');
+      const authToken = localStorage.getItem('authToken');
       const currentUser = localStorage.getItem('currentUser');
-      if (currentUser) {
+      
+      console.log('[AUTH] Logout flag:', justLoggedOut, 'Auth token:', authToken ? 'present' : 'none', 'Current user:', currentUser ? 'present' : 'none');
+      
+      if (justLoggedOut === 'true') {
+        localStorage.removeItem('justLoggedOut');
+        console.log('[AUTH] User just logged out, staying on auth page');
+        return;
+      }
+      
+      // Only redirect if we have BOTH a valid user AND a valid token
+      if (currentUser && authToken) {
         try {
           const user = JSON.parse(currentUser);
           if (user && user.userId && user.userId !== '') {
+            console.log('[AUTH] Valid user and token found, redirecting to main page');
             window.location.href = '/';
             return;
           }
         } catch (e) {
+          console.log('[AUTH] Invalid user data, cleaning up');
           localStorage.removeItem('currentUser');
         }
       }
+      
+      console.log('[AUTH] Staying on login page');
       
       // Simple input enablement - no cloning or complex operations
       setTimeout(() => {

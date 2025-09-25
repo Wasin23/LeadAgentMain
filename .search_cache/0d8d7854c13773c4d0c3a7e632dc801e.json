@@ -1,0 +1,115 @@
+{
+  "searchParameters": {
+    "q": "density of a diamond",
+    "gl": "us",
+    "hl": "en",
+    "type": "search",
+    "num": 10,
+    "engine": "google"
+  },
+  "organic": [
+    {
+      "title": "Diamond - Wikipedia",
+      "link": "https://en.wikipedia.org/wiki/Diamond",
+      "snippet": "It also has a high density, ranging from 3150 to 3530 kilograms per cubic metre (over three times the density of water) in natural diamonds and 3520 kg/m3 in ...",
+      "position": 1
+    },
+    {
+      "title": "Diamond - HyperPhysics",
+      "link": "http://hyperphysics.phy-astr.gsu.edu/hbase/Minerals/diamond.html",
+      "snippet": "Diamond is a crystalline form of carbon which has a density of has a density of 3.51 gm/cm 3 compared to 2.26 gm/cm 3 in the graphite form.",
+      "position": 2
+    },
+    {
+      "title": "Diamond Mechanical Properties: Density, Hardness and Fragility",
+      "link": "https://www.info-diamond.com/polished/mechanical-properties.html?srsltid=AfmBOooCes2InGR8kMQrcd4l3s7AYN8wls4YwauSeLQUazPiuaTGo4aN",
+      "snippet": "Diamond has an average density of 3.52. This figure can vary according to its content of elements traces and inclusions.",
+      "position": 3
+    },
+    {
+      "title": "What is the density of diamond? - Shiree Odiz",
+      "link": "https://www.shireeodiz.com/pages/what-is-the-density-of-diamond",
+      "snippet": "The density of diamond is approximately 3.5 grams per cubic centimeter (g/cm³). This high density is due to the compact, tetrahedral crystal structure of carbon ...",
+      "position": 4
+    },
+    {
+      "title": "Diamond density - kg-m3.com",
+      "link": "https://kg-m3.com/material/diamond",
+      "snippet": "Density of Diamond is 3500 kg/m 3. Volumetric mass density of Diamond (other) in other popular units: 3.5 [kg/L] or [g/mL] or [g/cm 3 ] or [t/m 3 ]",
+      "position": 5
+    },
+    {
+      "title": "Density for Some Select Substances - gchem",
+      "link": "https://gchem.cm.utexas.edu/data/section2.php?target=densities.php",
+      "snippet": "Density for Some Select Substances ; diamond, 3.50 ; gold, 19.3 ; helium, 0.000179 ; iron, 7.87.",
+      "position": 6
+    },
+    {
+      "title": "Specific Gravity Values of Selected Gems - International Gem Society",
+      "link": "https://www.gemsociety.org/article/select-gems-ordered-density/",
+      "snippet": "Weigh the gem in air · Weigh it submerged in water · Calculate: SG = Weight in air / (Weight in air - Weight in water).",
+      "date": "Apr 27, 2025",
+      "position": 7
+    },
+    {
+      "title": "How to Measure Diamond Quality - Jason Ree",
+      "link": "https://jasonree.com.au/blogs/news/how-to-measure-diamond-quality?srsltid=AfmBOooamZ5GJ8VBVnCE3EkgtLctycPkBVyQkOHZM5Yall7C-ddyT2VI",
+      "snippet": "Diamonds are known for their high density, ranging from 3150 to 3530 kilograms per cubic metre (over three times the density of water) in ...",
+      "date": "Nov 23, 2022",
+      "position": 8
+    },
+    {
+      "title": "Diamond Mineral Data - Mineralogy Database",
+      "link": "https://webmineral.com/data/Diamond.shtml",
+      "snippet": "Bulk Density (Electron Density)=3.52 gm/cc note: Specific Gravity of Diamond ... U=PEDiamond x rElectron Density= 0.56 barns/cc. Help on Radioactivity ...",
+      "position": 9
+    }
+  ],
+  "peopleAlsoAsk": [
+    {
+      "question": "Is 1 carat diamond 1 gram?",
+      "snippet": "Carat is the unit of measurement for the physical weight of diamonds. One carat equals 0.200 grams or 1/5 gram and is subdivided into 100 points. For comparison, in units more familiar in the United States, one carat equals 0.007 ounce avoirdupois.",
+      "title": "Understanding Diamond Carat Weight - AGS - American Gem Society",
+      "link": "https://www.americangemsociety.org/buying-diamonds-with-confidence/4cs-of-diamonds/understanding-diamond-carat-weight-the-4cs-of-diamonds/"
+    },
+    {
+      "question": "Is diamond or gold denser?",
+      "snippet": "Density for Some Select Substances\nSubstance\ndensity, ρ (g/mL)\ndiamond\n3.50\ngold\n19.3\nhelium\n0.000179\niron\n7.87",
+      "title": "Density for Some Select Substances - gchem",
+      "link": "https://gchem.cm.utexas.edu/data/section2.php?target=densities.php"
+    },
+    {
+      "question": "What is the density of a 1 carat diamond?",
+      "snippet": "One carat is equal to 0.200 g. The **density **of the diamond is 3.51 g/mL. The volume of a 5.0 carat diamond can be calculated as follows:Volume = mass / densityWe can start by calculating the **mass **of the diamond using the fact that 1 carat is equal to 0.200 g.",
+      "title": "Diamonds are measured in carats, and 1 carat =0.200 g. The density of ...",
+      "link": "https://brainly.com/question/33739939"
+    }
+  ],
+  "relatedSearches": [
+    {
+      "query": "Density of a diamond in kg m3"
+    },
+    {
+      "query": "density of diamond in g/cm3"
+    },
+    {
+      "query": "Density of a diamond formula"
+    },
+    {
+      "query": "Density of a diamond in grams"
+    },
+    {
+      "query": "Density of graphite"
+    },
+    {
+      "query": "Density of water"
+    },
+    {
+      "query": "Density of gold"
+    },
+    {
+      "query": "How to calculate density of a diamond"
+    }
+  ],
+  "credits": 1
+}

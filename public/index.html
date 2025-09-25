@@ -6339,8 +6339,13 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         headers
       });
 
-      // Handle authentication errors
+      // Handle authentication errors (but not during logout)
       if (response.status === 401 || response.status === 403) {
+        // Skip auth error handling if we're already logging out
+        if (typeof isLoggingOut !== 'undefined' && isLoggingOut) {
+          throw new Error('Authentication failed during logout');
+        }
+        
         const errorData = await response.json().catch(() => ({ error: 'Authentication failed' }));
         
         // Show user-friendly error message
@@ -6370,6 +6375,11 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     // Show authentication error notification
     function showAuthError(message) {
+      // Don't show auth errors during logout
+      if (typeof isLoggingOut !== 'undefined' && isLoggingOut) {
+        return;
+      }
+      
       // Remove any existing auth error
       const existingError = document.getElementById('auth-error-notification');
       if (existingError) existingError.remove();
@@ -6425,7 +6435,116 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       loadSettingsData();
     }
 
-    function closeSettings() {
+    // Collect all form data from the settings modal
+    function collectAllLeadSettings() {
+      // Company Criteria
+      const manualIndustries = document.getElementById('company-industries').value
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      const combinedIndustries = [...new Set([...(window.selectedIndustries || []), ...manualIndustries])];
+
+      // Contact Criteria  
+      const manualPositions = document.getElementById('target-positions').value
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      const combinedPositions = [...new Set([...(window.selectedPositions || []), ...manualPositions])];
+
+      return {
+        companyBranding: {
+          agentName: document.getElementById('agent-name')?.value?.trim() || 'ExaMark',
+          companyName: document.getElementById('company-name')?.value?.trim() || 'Exabits',
+          agentTitle: document.getElementById('agent-title')?.value?.trim() || 'AI Assistant',
+          companyWebsite: '',
+          companyDescription: ''
+        },
+        companyCriteria: {
+          companySizeMin: parseInt(document.getElementById('company-size-min')?.value) || null,
+          companySizeMax: parseInt(document.getElementById('company-size-max')?.value) || null,
+          companyIndustries: combinedIndustries,
+          excludedCompanies: [],
+          companyKeywords: document.getElementById('company-keywords')?.value
+            ?.split(',')
+            ?.map(s => s.trim())
+            ?.filter(s => s.length > 0) || []
+        },
+        contactCriteria: {
+          targetPositions: combinedPositions,
+          seniorityLevel: document.getElementById('seniority-level')?.value || 'senior',
+          excludedTitles: [],
+          contactKeywords: []
+        },
+        geographicSettings: {
+          targetLocations: document.getElementById('target-locations')?.value
+            ?.split('\n')
+            ?.map(s => s.trim())
+            ?.filter(s => s.length > 0) || [],
+          excludedLocations: [],
+          leadLimit: parseInt(document.getElementById('lead-limit')?.value) || 10,
+          timezone: 'UTC'
+        },
+        advancedCriteria: {
+          fundingStage: document.getElementById('funding-stage')?.value || 'any',
+          fundingAmount: '',
+          growthStage: 'any',
+          technologiesUsed: document.getElementById('technology-stack')?.value
+            ?.split(',')
+            ?.map(s => s.trim())
+            ?.filter(s => s.length > 0) || [],
+          recentNews: false
+        },
+        researchFocus: {
+          focusAreas: document.getElementById('research-focus')?.value?.trim() ? [document.getElementById('research-focus').value.trim()] : [],
+          researchDepth: 'standard',
+          includeCompanyNews: false,
+          includePersonalInfo: false,
+          includeSocialMedia: false
+        },
+        emailBuilder: {
+          emailTemplate: 'professional',
+          customPrompt: document.getElementById('email-builder-prompt')?.value?.trim() || '',
+          tone: 'professional',
+          length: 'medium',
+          callToAction: 'meeting',
+          personalization: 'high'
+        },
+        updatedAt: new Date().toISOString(),
+        version: '2.0'
+      };
+    }
+
+    async function closeSettings() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.userId) {
+          console.log('[CLOSE SETTINGS] Auto-saving all lead settings...');
+          
+          const allSettings = collectAllLeadSettings();
+          console.log('[CLOSE SETTINGS] Collected settings:', allSettings);
+          
+          // Save all settings at once to Zilliz
+          const saveResponse = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ leadContactSettings: allSettings })
+          });
+          
+          if (saveResponse.ok) {
+            console.log('[CLOSE SETTINGS] ✅ All settings auto-saved successfully');
+            // Update the search summary with new settings
+            setTimeout(() => updateSearchSummary(), 500);
+          } else {
+            console.error('[CLOSE SETTINGS] Failed to auto-save settings');
+          }
+        }
+      } catch (error) {
+        console.error('[CLOSE SETTINGS] Error during auto-save:', error);
+      }
+      
+      // Always close the modal, even if save fails
       const modal = document.getElementById('settings-modal');
       modal.classList.remove('show');
     }
@@ -6951,7 +7070,7 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
             .filter(s => s.length > 0)
         };
 
-        await savePartialSettings(currentUser.userId, companyData);
+        await saveLeadSettingsSection('company', companyData);
         showSuccessMessage('🏢 Company criteria saved!');
         updateSearchSummary();
       } catch (error) {
@@ -7003,7 +7122,8 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
             .filter(s => s.length > 0)
         };
 
-        await savePartialSettings(currentUser.userId, contactData);
+        // For now, save to contact section - this contains mixed data that should be split
+        await saveLeadSettingsSection('contact', contactData);
         showSuccessMessage('👤 Contact criteria saved!');
         updateSearchSummary();
       } catch (error) {
@@ -7024,7 +7144,7 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
           emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null
         };
 
-        await savePartialSettings(currentUser.userId, emailData);
+        await saveLeadSettingsSection('email-builder', emailData);
         showSuccessMessage('📧 Email prompt saved!');
       } catch (error) {
         console.error('Error saving email prompt:', error);
@@ -7052,7 +7172,7 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
             .filter(s => s.length > 0)
         };
 
-        await savePartialSettings(currentUser.userId, advancedData);
+        await saveLeadSettingsSection('advanced', advancedData);
         showSuccessMessage('⚡ Advanced criteria saved!');
         updateSearchSummary();
       } catch (error) {
@@ -7073,7 +7193,7 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
           researchFocus: document.getElementById('research-focus').value.trim() || null
         };
 
-        await savePartialSettings(currentUser.userId, researchData);
+        await saveLeadSettingsSection('research', researchData);
         showSuccessMessage('🔍 Research focus saved!');
       } catch (error) {
         console.error('Error saving research focus:', error);
@@ -7093,7 +7213,7 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
           emailBuilderPrompt: document.getElementById('email-builder-prompt').value.trim() || null
         };
 
-        await savePartialSettings(currentUser.userId, emailBuilderData);
+        await saveLeadSettingsSection('email-builder', emailBuilderData);
         showSuccessMessage('📧 Email builder prompt saved!');
       } catch (error) {
         console.error('Error saving email builder prompt:', error);
@@ -7136,18 +7256,16 @@ Example usage in prompt:
         }
 
         const brandingData = {
-          companyBranding: {
-            agentName: document.getElementById('agent-name').value.trim() || 'ExaMark',
-            companyName: document.getElementById('company-name').value.trim() || 'Exabits',
-            agentTitle: document.getElementById('agent-title').value.trim() || 'AI Assistant',
-            primaryService: document.getElementById('primary-service').value.trim() || 'AI-powered High-Performance Computing Solutions',
-            coreOffering: document.getElementById('core-offering').value.trim() || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
-            keyAdvantages: document.getElementById('key-advantages').value.trim() || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
-            expertiseArea: document.getElementById('expertise-area').value.trim() || 'Deep understanding of AI/ML compute requirements'
-          }
+          agentName: document.getElementById('agent-name').value.trim() || 'ExaMark',
+          companyName: document.getElementById('company-name').value.trim() || 'Exabits',
+          agentTitle: document.getElementById('agent-title').value.trim() || 'AI Assistant',
+          primaryService: document.getElementById('primary-service').value.trim() || 'AI-powered High-Performance Computing Solutions',
+          coreOffering: document.getElementById('core-offering').value.trim() || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+          keyAdvantages: document.getElementById('key-advantages').value.trim() || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+          expertiseArea: document.getElementById('expertise-area').value.trim() || 'Deep understanding of AI/ML compute requirements'
         };
 
-        await savePartialSettings(currentUser.userId, brandingData);
+        await saveLeadSettingsSection('branding', brandingData);
         showSuccessMessage('🏢 Company branding saved!');
       } catch (error) {
         console.error('Error saving company branding:', error);
@@ -7175,7 +7293,7 @@ Example usage in prompt:
             .filter(s => s.length > 0)
         };
 
-        await savePartialSettings(currentUser.userId, geographicData);
+        await saveLeadSettingsSection('geographic', geographicData);
         showSuccessMessage('🌍 Geographic settings saved!');
         updateSearchSummary();
       } catch (error) {
@@ -7184,6 +7302,29 @@ Example usage in prompt:
       }
     }
 
+    // New Zilliz-based section saving function
+    async function saveLeadSettingsSection(sectionName, sectionData) {
+      console.log(`[SAVE SECTION] Saving ${sectionName} to Zilliz:`, sectionData);
+      
+      const saveResponse = await authenticatedFetch(`/api/auth/settings/lead-contact-settings/${sectionName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(sectionData)
+      });
+      
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(errorData.error || 'Failed to save settings section');
+      }
+      
+      const result = await saveResponse.json();
+      console.log(`[SAVE SECTION] ✅ ${sectionName} saved successfully:`, result);
+      return result;
+    }
+
+    // Legacy function - keeping for backwards compatibility during migration
     async function savePartialSettings(userId, partialData) {
       // Get current settings from local user settings (JSON file)
       const response = await authenticatedFetch(`/api/auth/settings`);
@@ -7681,10 +7822,25 @@ Example usage in prompt:
       });
     }
 
+    // Global flag to prevent auth errors during logout
+    let isLoggingOut = false;
+    
     // Logout Function
     function logout() {
       if (confirm('Are you sure you want to logout?')) {
-        // Clear all local storage
+        // Set logout flag to prevent auth error popups
+        isLoggingOut = true;
+        
+        // Clear any active monitoring intervals to prevent API calls
+        if (typeof activeStatusMonitoringInterval !== 'undefined' && activeStatusMonitoringInterval) {
+          clearInterval(activeStatusMonitoringInterval);
+          activeStatusMonitoringInterval = null;
+        }
+        
+        // Set logout flag first to prevent auth page redirect
+        localStorage.setItem('justLoggedOut', 'true');
+        
+        // Clear all authentication data IMMEDIATELY to prevent race conditions
         localStorage.removeItem('authToken');
         localStorage.removeItem('currentUser');
         localStorage.removeItem('userSettings');
@@ -7692,13 +7848,13 @@ Example usage in prompt:
         // Close settings modal
         closeSettings();
         
-        // Show logout notification
+        // Show logout notification and redirect with small delay to ensure localStorage operations complete
         showNotification('👋 Logged out successfully', 'success');
         
-        // Redirect to auth page after a short delay
+        // Use setTimeout to ensure localStorage changes are committed before redirect
         setTimeout(() => {
           window.location.href = 'auth.html';
-        }, 1000);
+        }, 50);
       }
     }
 
@@ -9371,7 +9527,10 @@ Make it specific to ExaMark, results-focused, and designed to attract their targ
         <div id="password-change-status"></div>
         
         <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1);">
-          <button class="save-btn" onclick="logout()" style="background: #dc2626; color: white;">🚪 Logout</button>
+          <button onclick="logout()" 
+                  style="width: 100%; background: white; color: #5a67d8; border: 2px solid #5a67d8; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s ease;"
+                  onmouseover="this.style.background='#5a67d8'; this.style.color='white';"
+                  onmouseout="this.style.background='white'; this.style.color='#5a67d8';">Logout</button>
         </div>
       </div>
 
@@ -9446,11 +9605,8 @@ Your Name" required></textarea>
 
       <!-- Company Criteria Section -->
       <div class="settings-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem;">
           <h3 style="margin: 0;">🏢 Company Criteria</h3>
-          <button onclick="saveCompanyCriteria()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-            💾 Save
-          </button>
         </div>
         
         <div class="modal-form-group">
@@ -9519,11 +9675,8 @@ Your Name" required></textarea>
 
       <!-- Contact Person Criteria Section -->
       <div class="settings-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem;">
           <h3 style="margin: 0;">👤 Contact Person Criteria</h3>
-          <button onclick="saveContactCriteria()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-            💾 Save
-          </button>
         </div>
         
         <div class="modal-form-group">
@@ -9582,11 +9735,8 @@ Your Name" required></textarea>
 
       <!-- Geographic & Search Criteria -->
       <div class="settings-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem;">
           <h3 style="margin: 0;">🌍 Geographic & Search Settings</h3>
-          <button onclick="saveGeographicSettings()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-            💾 Save
-          </button>
         </div>
         
         <div class="modal-form-group">
@@ -9623,11 +9773,8 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
 
       <!-- Advanced Criteria -->
       <div class="settings-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem;">
           <h3 style="margin: 0;">⚡ Advanced Criteria</h3>
-          <button onclick="saveAdvancedCriteria()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-            💾 Save
-          </button>
         </div>
         
         <div class="modal-form-group">
@@ -9660,11 +9807,8 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
 
       <!-- Research Focus Section -->
       <div class="settings-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem;">
           <h3 style="margin: 0;">🔍 Research Focus</h3>
-          <button onclick="saveResearchFocus()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-            💾 Save
-          </button>
         </div>
         
         <div class="modal-form-group">
@@ -9686,14 +9830,9 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
       <div class="settings-section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
           <h3 style="margin: 0;">📧 Email Builder AI Prompt</h3>
-          <div style="display: flex; gap: 0.5rem;">
-            <button onclick="insertTemplateVariables()" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-              🎯 Template Guide
-            </button>
-            <button onclick="saveEmailBuilderPrompt()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-              💾 Save
-            </button>
-          </div>
+          <button onclick="insertTemplateVariables()" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            🎯 Template Guide
+          </button>
         </div>
         
         <div class="modal-form-group">

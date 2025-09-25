@@ -194,6 +194,41 @@ export class ZillizSettingsManager {
     }
   }
 
+  // Partial update method - updates specific section while preserving others
+  async updateLeadAgentSettingsPartial(userId, sectionName, sectionData) {
+    try {
+      console.log(`[ZILLIZ-SETTINGS] Partial update for ${sectionName} - user: ${this.getUserCode(userId)}`);
+      
+      // 1. Get current full settings
+      const currentSettings = await this.getLeadAgentSettings(userId) || {};
+      
+      // 2. Merge the specific section
+      const updatedSettings = {
+        ...currentSettings,
+        [sectionName]: {
+          ...currentSettings[sectionName],
+          ...sectionData
+        }
+      };
+      
+      // 3. Add update timestamp
+      updatedSettings.updatedAt = new Date().toISOString();
+      updatedSettings.version = updatedSettings.version || '2.0';
+      
+      console.log(`[ZILLIZ-SETTINGS] Updating ${sectionName} section:`, sectionData);
+      
+      // 4. Save complete updated blob
+      const result = await this.saveLeadAgentSettings(userId, updatedSettings);
+      
+      console.log(`[ZILLIZ-SETTINGS] ✅ Partial update completed for ${sectionName}`);
+      return result;
+      
+    } catch (error) {
+      console.error(`[ZILLIZ-SETTINGS] Error in partial update for ${sectionName}:`, error);
+      throw error;
+    }
+  }
+
   // === UTILITY METHODS ===
 
   async getCollectionStats() {

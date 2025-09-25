@@ -490,23 +490,16 @@ ${userPersonality}
   console.log('[LANGCHAIN AGENT] Contains CRITICAL INSTRUCTION?:', systemPrompt.includes('CRITICAL INSTRUCTION'));
   console.log('[LANGCHAIN AGENT] Contains superhero prevention?:', systemPrompt.includes('superhero'));
 
-  // Use user's OpenAI API key if available, otherwise fall back to environment
-  const envOpenAIKey = process.env.OPENAI_API_KEY;
-  const userOpenAIKey = userApiKeys.openai;
+  // Use OpenAI API key from environment variable
+  const apiKey = process.env.OPENAI_API_KEY;
   
-  let apiKey, keySource;
-  if (envOpenAIKey) {
-    apiKey = envOpenAIKey;
-    keySource = 'environment variable';
-    console.log(`[LANGCHAIN AGENT] Using OpenAI API key from environment variable (${envOpenAIKey.substring(0, 10)}...)`);
-  } else if (userOpenAIKey) {
-    apiKey = userOpenAIKey;
-    keySource = 'user settings';
-    console.log(`[LANGCHAIN AGENT] Using OpenAI API key from user settings (${userOpenAIKey.substring(0, 10)}...)`);
-  } else {
-    console.error('[LANGCHAIN AGENT] No OpenAI API key available from any source');
-    throw new Error('No OpenAI API key available. User must configure their API key in settings.');
+  if (!apiKey) {
+    console.error('[LANGCHAIN AGENT] No OpenAI API key available in environment variables');
+    throw new Error('No OpenAI API key available. Please set OPENAI_API_KEY environment variable.');
   }
+  
+  console.log(`[LANGCHAIN AGENT] Using OpenAI API key from environment variable (${apiKey.substring(0, 10)}...)`);
+  const keySource = 'environment variable';
   
   console.log(`[LANGCHAIN AGENT] OpenAI API Key source: ${keySource}`);
 
