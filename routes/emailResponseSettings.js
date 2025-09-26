@@ -99,11 +99,11 @@ router.post('/', async (req, res) => {
     
     // Delete existing email response settings record for this user (UPSERT approach)
     try {
-      const deleteResult = await milvusClient.delete({
+      const deleteResult = await milvusClient.deleteEntities({
         collection_name: 'agent_settings',
         expr: `setting_key == "email_response_settings" && user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`
       });
-      console.log(`[EMAIL-RESPONSE] Deleted ${deleteResult.delete_count || 0} existing records for user ${userCode}`);
+      console.log(`[EMAIL-RESPONSE] Deleted ${deleteResult.delete_cnt || 0} existing records for user ${userCode}`);
     } catch (deleteError) {
       console.log(`[EMAIL-RESPONSE] No existing record to delete for user ${userCode}:`, deleteError.message);
     }
