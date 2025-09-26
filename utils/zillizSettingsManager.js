@@ -59,13 +59,13 @@ export class ZillizSettingsManager {
 
       // Delete existing settings for this user
       try {
-        const deleteResult = await this.milvusClient.delete({
+        const deleteResult = await this.milvusClient.deleteEntities({
           collection_name: 'user_settings',
           expr: `user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`,
         });
-        console.log(`[ZILLIZ-SETTINGS] Existing user settings deleted for ${userCode}`);
+        console.log(`[ZILLIZ-SETTINGS] Existing user settings deleted for ${userCode}. Count: ${deleteResult.delete_cnt || 0}`);
       } catch (deleteError) {
-        console.log(`[ZILLIZ-SETTINGS] No existing user settings to delete for ${userCode}`);
+        console.log(`[ZILLIZ-SETTINGS] No existing user settings to delete for ${userCode}:`, deleteError.message);
       }
 
       // Insert new settings
@@ -99,16 +99,32 @@ export class ZillizSettingsManager {
 
   getDefaultUserSettings() {
     return {
-      preferences: {
-        username: '',
-        email: '',
-        notifications: true,
-        theme: 'light'
-      },
       aiPersonality: {
-        tone: 'professional',
-        style: 'concise',
-        creativity: 'balanced'
+        systemPrompt: `You are an expert AI sales and research assistant for ExaMark. You help users research leads, analyze companies, and generate personalized sales outreach.
+
+Your personality:
+- Professional but friendly
+- Highly knowledgeable about sales and marketing
+- Detail-oriented and thorough
+- Proactive in suggesting improvements
+- Always aim to provide actionable insights
+
+When researching companies, focus on:
+- AI/ML initiatives and expansion
+- Recent funding or growth signals
+- Technology hiring patterns
+- Leadership quotes about digital transformation
+- Competitive positioning in AI space
+
+Provide specific, contextual recommendations for sales outreach based on your research findings.`,
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      preferences: {
+        theme: 'dark',
+        emailSignature: '',
+        defaultLeadLimit: 10,
+        autoSaveInterval: 300000 // 5 minutes
       }
     };
   }

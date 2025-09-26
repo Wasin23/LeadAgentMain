@@ -6518,31 +6518,35 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         if (currentUser.userId) {
-          console.log('[CLOSE SETTINGS] Auto-saving all lead settings in structured format...');
+          // Show saving notification
+          showNotification('💾 Saving user preferences...', 'info');
           
-          // Collect all form data and structure it properly for Zilliz
-          const structuredSettings = collectStructuredLeadSettings();
-          console.log('[CLOSE SETTINGS] Collected structured settings:', structuredSettings);
+          console.log('[CLOSE SETTINGS] Auto-saving user preferences...');
           
-          // Save all settings at once using the main endpoint
-          const saveResponse = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`, {
+          // Auto-save user preferences (name and email)
+          const preferences = {
+            username: document.getElementById('modal-user-name').value,
+            email: document.getElementById('modal-email').value
+          };
+
+          const saveResponse = await authenticatedFetch(`/api/auth/settings/preferences`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ leadContactSettings: structuredSettings })
+            body: JSON.stringify(preferences)
           });
           
-          if (saveResponse.ok) {
-            console.log('[CLOSE SETTINGS] ✅ All settings auto-saved successfully');
-            // Update the search summary with new settings
-            setTimeout(() => updateSearchSummary(), 500);
+          const data = await saveResponse.json();
+          
+          if (data.success) {
+            console.log('[CLOSE SETTINGS] ✅ User preferences auto-saved successfully');
+            showNotification('✅ User preferences saved!', 'success');
           } else {
-            console.error('[CLOSE SETTINGS] Failed to auto-save settings');
+            console.error('[CLOSE SETTINGS] Failed to auto-save preferences:', data.message);
+            showNotification('❌ Failed to save user preferences', 'error');
           }
         }
       } catch (error) {
         console.error('[CLOSE SETTINGS] Error during auto-save:', error);
+        showNotification('❌ Error saving user preferences', 'error');
       }
       
       // Always close the modal
@@ -7921,8 +7925,65 @@ Example usage in prompt:
       loadEmailResponseSettings();
     }
 
-    function closeEmailResponseSettings() {
+    async function closeEmailResponseSettings() {
       console.log('📧 Closing Email Response Settings modal...');
+      
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.userId) {
+          // Show saving notification
+          showNotification('💾 Saving email response settings...', 'info');
+          
+          console.log('📧 Auto-saving email response settings...');
+          
+          const settings = {
+            // Company Information
+            company_name: document.getElementById('response-company-name').value.trim(),
+            product_name: document.getElementById('response-product-name').value.trim(),
+            value_propositions: document.getElementById('response-value-props').value
+              .split('\n')
+              .map(prop => prop.trim())
+              .filter(prop => prop.length > 0),
+            ai_assistant_name: document.getElementById('response-ai-name').value.trim(),
+            timezone: document.getElementById('response-timezone').value,
+            
+            // Response Style
+            response_tone: document.getElementById('response-tone').value,
+            meeting_pushiness: document.getElementById('response-meeting-pushiness').value,
+            technical_depth: document.getElementById('response-technical-depth').value,
+            
+            // Meeting Settings
+            question_threshold: parseInt(document.getElementById('response-question-threshold').value),
+            positive_immediate_booking: document.getElementById('response-positive-immediate').checked,
+            complex_question_escalation: document.getElementById('response-complex-escalation').checked,
+            show_ai_disclaimer: document.getElementById('response-show-ai-disclaimer').checked,
+            calendar_id: document.getElementById('response-calendar-id').value.trim(),
+            
+            // Metadata
+            updated_at: new Date().toISOString()
+          };
+
+          const response = await authenticatedFetch(`/api/email-response-settings`, {
+            method: 'POST',
+            body: JSON.stringify(settings)
+          });
+
+          const data = await response.json();
+          
+          if (data.success) {
+            console.log('📧 ✅ Email response settings auto-saved successfully to Zilliz');
+            showNotification('✅ Email response settings saved!', 'success');
+          } else {
+            console.error('📧 Failed to auto-save email response settings:', data.error);
+            showNotification('❌ Failed to save email response settings', 'error');
+          }
+        }
+      } catch (error) {
+        console.error('📧 Error during auto-save:', error);
+        showNotification('❌ Error saving email response settings', 'error');
+      }
+      
+      // Always close the modal
       const modal = document.getElementById('email-response-settings-modal');
       modal.style.display = 'none';
       modal.classList.remove('show');
