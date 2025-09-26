@@ -156,13 +156,13 @@ export class ZillizSettingsManager {
 
       // Delete existing settings for this user
       try {
-        const deleteResult = await this.milvusClient.delete({
+        const deleteResult = await this.milvusClient.deleteEntities({
           collection_name: 'lead_agent_settings',
           expr: `user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`,
         });
-        console.log(`[ZILLIZ-SETTINGS] Existing lead agent settings deleted for ${userCode}`);
+        console.log(`[ZILLIZ-SETTINGS] ✅ Existing lead agent settings deleted for ${userCode}:`, deleteResult);
       } catch (deleteError) {
-        console.log(`[ZILLIZ-SETTINGS] No existing lead agent settings to delete for ${userCode}`);
+        console.log(`[ZILLIZ-SETTINGS] ⚠️ Error deleting existing settings for ${userCode}:`, deleteError.message);
       }
 
       // Insert new settings
@@ -230,6 +230,31 @@ export class ZillizSettingsManager {
   }
 
   // === UTILITY METHODS ===
+
+  async clearLeadAgentSettingsCollection() {
+    try {
+      console.log('[ZILLIZ-SETTINGS] Clearing lead_agent_settings collection...');
+      
+      await this.milvusClient.loadCollection({ collection_name: 'lead_agent_settings' });
+      
+      // Delete all records from the collection using a wildcard expression
+      const deleteResult = await this.milvusClient.deleteEntities({
+        collection_name: 'lead_agent_settings',
+        expr: 'user_id != ""' // This will match all records since all user_ids are non-empty strings
+      });
+      
+      // Flush to ensure deletion is committed
+      await this.milvusClient.flushSync({ collection_names: ['lead_agent_settings'] });
+      
+      console.log('[ZILLIZ-SETTINGS] Successfully cleared lead_agent_settings collection');
+      console.log('[ZILLIZ-SETTINGS] Delete result:', deleteResult);
+      
+      return { success: true, message: 'Lead agent settings collection cleared successfully' };
+    } catch (error) {
+      console.error('[ZILLIZ-SETTINGS] Error clearing lead_agent_settings collection:', error);
+      return { success: false, error: error.message };
+    }
+  }
 
   async getCollectionStats() {
     try {

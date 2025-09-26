@@ -6435,8 +6435,8 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       loadSettingsData();
     }
 
-    // Collect all form data from the settings modal
-    function collectAllLeadSettings() {
+    // Collect all form data from the settings modal in structured format for Zilliz
+    function collectStructuredLeadSettings() {
       // Company Criteria
       const manualIndustries = document.getElementById('company-industries').value
         .split('\n')
@@ -6518,18 +6518,19 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         if (currentUser.userId) {
-          console.log('[CLOSE SETTINGS] Auto-saving all lead settings...');
+          console.log('[CLOSE SETTINGS] Auto-saving all lead settings in structured format...');
           
-          const allSettings = collectAllLeadSettings();
-          console.log('[CLOSE SETTINGS] Collected settings:', allSettings);
+          // Collect all form data and structure it properly for Zilliz
+          const structuredSettings = collectStructuredLeadSettings();
+          console.log('[CLOSE SETTINGS] Collected structured settings:', structuredSettings);
           
-          // Save all settings at once to Zilliz
+          // Save all settings at once using the main endpoint
           const saveResponse = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ leadContactSettings: allSettings })
+            body: JSON.stringify({ leadContactSettings: structuredSettings })
           });
           
           if (saveResponse.ok) {
@@ -6544,7 +6545,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         console.error('[CLOSE SETTINGS] Error during auto-save:', error);
       }
       
-      // Always close the modal, even if save fails
+      // Always close the modal
       const modal = document.getElementById('settings-modal');
       modal.classList.remove('show');
     }
@@ -6648,7 +6649,44 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       loadLeadContactSettings();
     }
 
-    function closeLeadContactSettings() {
+    async function closeLeadContactSettings() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.userId) {
+          // Show saving notification
+          showNotification('💾 Saving settings...', 'info');
+          
+          console.log('[CLOSE LEAD SETTINGS] Auto-saving lead settings to Zilliz...');
+          
+          const structuredSettings = collectStructuredLeadSettings();
+          console.log('[CLOSE LEAD SETTINGS] Collected structured settings:', structuredSettings);
+          
+          // Save all settings at once to Zilliz using the proper structured format
+          const saveResponse = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ leadContactSettings: structuredSettings })
+          });
+          
+          if (saveResponse.ok) {
+            console.log('[CLOSE LEAD SETTINGS] ✅ Lead settings auto-saved successfully to Zilliz');
+            // Show success notification
+            showNotification('✅ Settings saved!', 'success');
+            // Update the search summary with new settings
+            setTimeout(() => updateSearchSummary(), 500);
+          } else {
+            console.error('[CLOSE LEAD SETTINGS] Failed to auto-save lead settings');
+            showNotification('❌ Failed to save settings', 'error');
+          }
+        }
+      } catch (error) {
+        console.error('[CLOSE LEAD SETTINGS] Error during auto-save:', error);
+        showNotification('❌ Error saving settings', 'error');
+      }
+      
+      // Always close the modal
       const modal = document.getElementById('lead-contact-settings-modal');
       modal.style.display = 'none';
       modal.classList.remove('show');
@@ -6869,70 +6907,85 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           return;
         }
 
-        const response = await authenticatedFetch(`/api/auth/settings`);
+        const response = await authenticatedFetch(`/api/auth/settings/lead-contact-settings`);
         if (response.ok) {
-          const settings = await response.json();
-          const leadSettings = settings.leadContactSettings || {};
+          const data = await response.json();
+          const leadSettings = data.leadContactSettings || {};
           
-          // Populate form fields with saved settings
-          document.getElementById('company-size-min').value = leadSettings.companySizeMin || '';
-          document.getElementById('company-size-max').value = leadSettings.companySizeMax || '';
+          console.log('[LEAD SETTINGS] Raw Zilliz settings loaded:', leadSettings);
+          
+          // Extract from new structured format
+          const companyCriteria = leadSettings.companyCriteria || {};
+          const contactCriteria = leadSettings.contactCriteria || {};
+          const geographicSettings = leadSettings.geographicSettings || {};
+          const emailBuilder = leadSettings.emailBuilder || {};
+          const brandingCriteria = leadSettings.branding || {};
+          const advanced = leadSettings.advanced || {};
+          const research = leadSettings.research || {};
+          
+          // === COMPANY CRITERIA SECTION ===
+          document.getElementById('company-size-min').value = companyCriteria.companySizeMin || '';
+          document.getElementById('company-size-max').value = companyCriteria.companySizeMax || '';
           
           // Initialize keyword selectors first
           initializeKeywordSelectors();
           
           // Load saved industries into bubble system
-          window.selectedIndustries = leadSettings.companyIndustries || [];
+          window.selectedIndustries = companyCriteria.companyIndustries || [];
           updateIndustryBubbles();
           updateIndustryTextarea();
           
           // Show saved company keywords
           const keywordsField = document.getElementById('company-keywords');
-          const savedKeywords = (leadSettings.companyKeywords || []).join(', ');
+          const savedKeywords = (companyCriteria.companyKeywords || []).join(', ');
           keywordsField.value = savedKeywords;
           
+          // === CONTACT CRITERIA SECTION ===
           // Load saved positions into bubble system
-          window.selectedPositions = leadSettings.targetPositions || [];
+          window.selectedPositions = contactCriteria.targetPositions || [];
           updatePositionBubbles();
           updatePositionTextarea();
           
           // Show saved seniority level
-          document.getElementById('seniority-level').value = leadSettings.seniorityLevel || 'any';
+          document.getElementById('seniority-level').value = contactCriteria.seniorityLevel || 'any';
           
-          // Show saved departments
+          // Show saved departments  
           const departmentsField = document.getElementById('departments');
-          const savedDepartments = (leadSettings.departments || []).join(', ');
+          const savedDepartments = (contactCriteria.departments || []).join(', ');
           departmentsField.value = savedDepartments;
           
+          // === GEOGRAPHIC SETTINGS SECTION ===
           // Show saved locations
           const locationsField = document.getElementById('target-locations');
-          const savedLocations = (leadSettings.targetLocations || []).join('\n');
+          const savedLocations = (geographicSettings.targetLocations || []).join('\n');
           locationsField.value = savedLocations;
           
           // Show saved lead limit
-          document.getElementById('lead-limit').value = leadSettings.leadLimit || 10;
+          document.getElementById('lead-limit').value = geographicSettings.leadLimit || 10;
           
+          // === ADVANCED CRITERIA SECTION ===
           // Show saved exclude keywords
           const excludeField = document.getElementById('exclude-keywords');
-          const savedExclude = (leadSettings.excludeKeywords || []).join(', ');
+          const savedExclude = (advanced.excludeKeywords || []).join(', ');
           excludeField.value = savedExclude;
           
           // Show saved funding stage
-          document.getElementById('funding-stage').value = leadSettings.fundingStage || 'any';
+          document.getElementById('funding-stage').value = advanced.fundingStage || 'any';
           
           // Show saved technology stack
           const techField = document.getElementById('technology-stack');
-          const savedTech = (leadSettings.technologyStack || []).join(', ');
+          const savedTech = (advanced.technologyStack || []).join(', ');
           techField.value = savedTech;
           
           // Show saved contact intent
           const intentField = document.getElementById('contact-intent');
-          const savedIntent = (leadSettings.contactIntent || []).join(', ');
+          const savedIntent = (advanced.contactIntent || []).join(', ');
           intentField.value = savedIntent;
           
+          // === EMAIL BUILDER SECTION ===
           // Load email builder prompt - only use default if no saved value exists
-          if (leadSettings.emailBuilderPrompt) {
-            document.getElementById('email-builder-prompt').value = leadSettings.emailBuilderPrompt;
+          if (emailBuilder.emailBuilderPrompt) {
+            document.getElementById('email-builder-prompt').value = emailBuilder.emailBuilderPrompt;
           } else {
             const defaultEmailPrompt = `You are {{AGENT_NAME}}, the AI assistant for {{COMPANY_NAME}}. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
 
@@ -7009,9 +7062,10 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
             document.getElementById('email-builder-prompt').value = defaultEmailPrompt;
           }
           
+          // === RESEARCH FOCUS SECTION ===
           // Load research focus - only use default if no saved value exists
-          if (leadSettings.researchFocus) {
-            document.getElementById('research-focus').value = leadSettings.researchFocus;
+          if (research.researchFocus) {
+            document.getElementById('research-focus').value = research.researchFocus;
           } else {
             const defaultResearchFocus = `- Employee communication challenges and workforce management
 - HR technology adoption and digital transformation initiatives
@@ -7023,15 +7077,15 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
             document.getElementById('research-focus').value = defaultResearchFocus;
           }
           
+          // === COMPANY BRANDING SECTION ===
           // Load company branding - use defaults if no saved values exist
-          const branding = leadSettings.companyBranding || {};
-          document.getElementById('agent-name').value = branding.agentName || 'ExaMark';
-          document.getElementById('company-name').value = branding.companyName || 'Exabits';
-          document.getElementById('agent-title').value = branding.agentTitle || 'AI Assistant';
-          document.getElementById('primary-service').value = branding.primaryService || 'AI-powered High-Performance Computing Solutions';
-          document.getElementById('core-offering').value = branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters';
-          document.getElementById('key-advantages').value = branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support';
-          document.getElementById('expertise-area').value = branding.expertiseArea || 'Deep understanding of AI/ML compute requirements';
+          document.getElementById('agent-name').value = brandingCriteria.agentName || 'ExaMark';
+          document.getElementById('company-name').value = brandingCriteria.companyName || 'Exabits';
+          document.getElementById('agent-title').value = brandingCriteria.agentTitle || 'AI Assistant';
+          document.getElementById('primary-service').value = brandingCriteria.primaryService || 'AI-powered High-Performance Computing Solutions';
+          document.getElementById('core-offering').value = brandingCriteria.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters';
+          document.getElementById('key-advantages').value = brandingCriteria.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support';
+          document.getElementById('expertise-area').value = brandingCriteria.expertiseArea || 'Deep understanding of AI/ML compute requirements';
           
           console.log('[LEAD SETTINGS] ✅ Loaded settings for user:', currentUser.userId);
           
@@ -8045,6 +8099,13 @@ Example usage in prompt:
     document.getElementById('custom-email-modal').addEventListener('click', function(e) {
       if (e.target === this) {
         closeCustomEmailModal();
+      }
+    });
+
+    // Close lead contact settings modal when clicking outside
+    document.getElementById('lead-contact-settings-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeLeadContactSettings();
       }
     });
 
