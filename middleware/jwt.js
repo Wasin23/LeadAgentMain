@@ -33,12 +33,14 @@ export function authenticateToken(req, res, next) {
     // Add user info to request object
     req.user = decoded;
     
-    // Track user activity for presence-based polling (async)
-    trackUserActivity(req, res, next).catch(error => {
+    // Track user activity for presence-based polling (async) - but don't let it consume next()
+    trackUserActivity(req, res, () => {}).catch(error => {
       console.error('[JWT] Error in activity tracking:', error);
-      // Continue anyway - don't block the request
-      next();
     });
+    
+    // Continue to next middleware/route handler
+    console.log(`[JWT] Calling next() for ${req.method} ${req.path}`);
+    next();
   } catch (error) {
     console.error('[AUTH] JWT verification failed:', error.message);
     

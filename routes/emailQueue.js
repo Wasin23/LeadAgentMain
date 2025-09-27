@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
-// Apply JWT authentication to ALL routes in this router
+// Apply JWT authentication middleware to all routes
 router.use(authenticateToken);
 
 // Helper function to get user-specific email queue
@@ -68,8 +68,11 @@ router.get('/stats', async (req, res) => {
 
 // Add custom email to queue
 router.post('/custom', async (req, res) => {
-  console.log('[EMAIL QUEUE] Custom email endpoint hit');
-  console.log('[EMAIL QUEUE] Request body:', req.body);
+  console.log('[EMAIL QUEUE] 🚀 CUSTOM EMAIL ENDPOINT HIT!');
+  console.log('[EMAIL QUEUE] Raw body type:', typeof req.body);
+  console.log('[EMAIL QUEUE] Raw body:', req.body);
+  console.log('[EMAIL QUEUE] Headers:', req.headers);
+  console.log('[EMAIL QUEUE] User from JWT:', req.user);
   try {
     const { to, subject, body, leadContext, source = 'custom' } = req.body;
     
@@ -135,6 +138,12 @@ router.post('/custom', async (req, res) => {
     
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error adding custom email:', error);
+    console.error('[EMAIL QUEUE API] Error stack:', error.stack);
+    console.error('[EMAIL QUEUE API] Error details:', {
+      name: error.name,
+      message: error.message,
+      userId: req.user?.userId
+    });
     res.status(500).json({ 
       success: false, 
       message: 'Failed to add custom email to queue',

@@ -197,15 +197,18 @@ export class ZillizEmailTracker {
                 collection_name: this.collectionName
             });
 
-            // Query events filtered by userId pattern in tracking_id (tracking-{userId}_...)
+            // Extract 8-character user code from full userId (tracking IDs use first 8 chars)
+            const userCode = userId.substring(0, 8);
+            
+            // Query events filtered by userCode pattern in tracking_id (tracking-{userCode}_...)
             const results = await this.client.query({
                 collection_name: this.collectionName,
-                expr: `tracking_id like "tracking-${userId}_%"`,
+                expr: `tracking_id like "tracking-${userCode}_%"`,
                 output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed'],
                 limit: 1000
             });
 
-            console.log(`📊 [ZILLIZ] Retrieved ${results.data?.length || 0} tracking events for user ${userId}`);
+            console.log(`📊 [ZILLIZ] Retrieved ${results.data?.length || 0} tracking events for user ${userId} (code: ${userCode})`);
             return results.data || [];
 
         } catch (error) {

@@ -5362,7 +5362,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
     // Analytics Functions
     async function loadAnalyticsData() {
       try {
-        const response = await fetch('/api/analytics/summary');
+        const response = await authenticatedFetch('/api/analytics/summary');
         const data = await response.json();
         
         if (data.success) {
@@ -5389,7 +5389,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     async function loadEmailAnalyticsList() {
       try {
-        const response = await fetch('/api/analytics/emails');
+        const response = await authenticatedFetch('/api/analytics/emails');
         const data = await response.json();
         
         if (data.success) {
@@ -5618,7 +5618,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
     // Enhanced Email Management Functions
     async function exportEmailData() {
       try {
-        const response = await fetch('/api/analytics/emails');
+        const response = await authenticatedFetch('/api/analytics/emails');
         const data = await response.json();
         
         if (data.success && data.data.length > 0) {
@@ -5757,7 +5757,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       if (responseDate === null) return; // User cancelled
       
       try {
-        const response = await fetch('/api/analytics/track-response', {
+        const response = await authenticatedFetch('/api/analytics/track-response', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -5819,7 +5819,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     async function copyEmailContent(emailId) {
       try {
-        const response = await fetch('/api/analytics/emails');
+        const response = await authenticatedFetch('/api/analytics/emails');
         const data = await response.json();
         
         if (data.success) {
@@ -6313,12 +6313,14 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
     // Utility function to get auth headers for API requests
     function getAuthHeaders() {
       const token = localStorage.getItem('authToken');
+      console.log('[DEBUG] Auth token from localStorage:', token);
       const headers = {
         'Content-Type': 'application/json'
       };
       
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log('[DEBUG] Authorization header:', headers['Authorization']);
       }
       
       return headers;
@@ -6602,18 +6604,23 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       try {
         statusDiv.innerHTML = '<div style="color: #5a67d8; background: rgba(90, 103, 216, 0.1); padding: 0.5rem; border-radius: 6px;">⏳ Adding email to queue...</div>';
 
+        // Debug the request body before sending
+        const requestBody = {
+          to,
+          subject,
+          body,
+          leadContext: leadContext || 'Custom email created by user',
+          source: 'custom'
+        };
+        console.log('[DEBUG] Request body object:', requestBody);
+        console.log('[DEBUG] JSON stringified:', JSON.stringify(requestBody));
+
         const response = await authenticatedFetch('/api/email-queue/custom', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            to,
-            subject,
-            body,
-            leadContext: leadContext || 'Custom email created by user',
-            source: 'custom'
-          })
+          body: JSON.stringify(requestBody)
         });
 
         console.log('Response status:', response.status);
