@@ -2384,3 +2384,4 @@
 {"ip":"::1","level":"info","message":"GET /api/analytics/emails","service":"examark-api","timestamp":"2025-09-27T21:50:40.051Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
 {"ip":"::1","level":"info","message":"GET /api/zilliz-tracking/internal/events","service":"examark-api","timestamp":"2025-09-27T21:51:05.092Z","userAgent":"node"}
 {"level":"info","message":"Received SIGINT. Starting graceful shutdown...","service":"examark-api","timestamp":"2025-09-27T21:51:20.264Z"}
+{"deploymentMode":"web","environment":"development","level":"info","message":"ExaMark server started on port 8080","service":"examark-api","sessionId":"mg2u5movt9jee4zpw5j","timestamp":"2025-09-27T22:21:51.163Z"}

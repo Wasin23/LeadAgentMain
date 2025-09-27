@@ -25,8 +25,10 @@ class LeadContactAgent extends EventEmitter {
     this.isRunning = false;
     this.currentCycle = 0;
     this.currentStatus = 'idle'; // Track detailed status
-    this.stateFile = path.join(process.cwd(), 'agent', 'leadAgent_state.json');
-    this.leadsFile = path.join(process.cwd(), 'agent', 'leads_database.json');
+    // State file will be set when user ID is provided
+    this.stateFile = null;
+    // Leads file will be set when user ID is provided
+    this.leadsFile = null;
     this.intervalId = null;
     this.cycleInProgress = false; // Prevent concurrent cycles
     
@@ -87,6 +89,22 @@ class LeadContactAgent extends EventEmitter {
     console.log(`[LEAD AGENT] Cycle interval: ${this.cycleInterval / (1000 * 60)} minutes`);
   }
 
+  // Set user-specific file paths
+  setUserContext(userId) {
+    if (!userId) {
+      throw new Error('User ID is required to set user context');
+    }
+    
+    this.currentUserId = userId;
+    const userCode = userId.substring(0, 8);
+    
+    // Set user-specific file paths
+    this.stateFile = path.join(process.cwd(), 'agent', `leadAgent_state_${userCode}.json`);
+    this.leadsFile = path.join(process.cwd(), 'agent', `leads_database_${userCode}.json`);
+    
+    console.log(`[LEAD AGENT] 📁 Set user-specific files for ${userCode}: state=${this.stateFile}, db=${this.leadsFile}`);
+  }
+
   // Convert simplified Zilliz settings format to legacy format expected by agent
   convertZillizToLegacyFormat(zillizSettings) {
     if (!zillizSettings) return null;
@@ -127,40 +145,27 @@ class LeadContactAgent extends EventEmitter {
   }
 
   // Load Lead Contact Settings from user preferences
-  async loadLeadContactSettings(userId = 'default') {
+  async loadLeadContactSettings(userId = null) {
     try {
-      console.log(`[LEAD AGENT] Loading Lead Contact Settings for user: ${userId}`);
+      // Always use the current authenticated user ID
+      const targetUserId = userId || this.currentUserId;
       
-      // Try to get the actual current user ID
-      let targetUserId = userId;
-      
-      // If no specific userId provided, try to find a user from Zilliz or fallback to JSON
-      if (userId === 'default') {
-        try {
-          // First, try to get users from the JSON file (temporary fallback)
-          const fs = await import('fs/promises');
-          const path = await import('path');
-          const usersPath = path.join(process.cwd(), 'lib', 'data', 'users.json');
-          const usersData = await fs.readFile(usersPath, 'utf8');
-          const users = JSON.parse(usersData);
-          
-          // Use the first user ID we find
-          const userIds = Object.keys(users);
-          if (userIds.length > 0) {
-            const username = userIds[0];
-            targetUserId = users[username].id;
-            console.log(`[LEAD AGENT] ✅ Found user ID from users.json: ${targetUserId.substring(0, 8)}... (${username})`);
-          } else {
-            console.log(`[LEAD AGENT] ⚠️ No users found in users.json`);
-          }
-        } catch (error) {
-          console.log(`[LEAD AGENT] ❌ Could not read users file, using default:`, error.message);
-        }
+      if (!targetUserId) {
+        console.error(`[LEAD AGENT] ❌ No user ID provided for settings loading. Agent must be started with user context.`);
+        return null;
       }
+      
+      console.log(`[LEAD AGENT] Loading Lead Contact Settings for authenticated user: ${targetUserId.substring(0, 8)}...`);
+      
+      // Remove the fallback logic - always use the provided/current user ID
       
       const leadAgentSettings = await zillizSettingsManager.getLeadAgentSettings(targetUserId);
       this.leadContactSettings = this.convertZillizToLegacyFormat(leadAgentSettings);
-      this.currentUserId = targetUserId; // Store userId for email tracking
+      
+      // Ensure currentUserId is set (may already be set in start method)
+      if (!this.currentUserId) {
+        this.currentUserId = targetUserId; 
+      }
       
       if (this.leadContactSettings) {
         console.log(`[LEAD AGENT] ✅ Loaded custom Lead Contact Settings:`);
@@ -461,13 +466,20 @@ class LeadContactAgent extends EventEmitter {
     };
   }
 
-  async start(customMinutes = null) {
+  async start(customMinutes = null, userId = null) {
     if (this.isRunning) {
       console.log('[LEAD AGENT] Agent is already running');
       return { success: false, message: 'Agent is already running' };
     }
 
     try {
+      // Ensure user context is set
+      if (!this.currentUserId || !this.stateFile || !this.leadsFile) {
+        throw new Error('Agent must be initialized with user context. Use getUserAgent(userId) factory function.');
+      }
+      
+      console.log('[LEAD AGENT] 🔒 Starting agent for user:', this.currentUserId.substring(0, 8) + '...');
+
       // Set custom interval if provided
       if (customMinutes !== null) {
         this.setCycleInterval(customMinutes);
@@ -846,7 +858,7 @@ class LeadContactAgent extends EventEmitter {
     
     // Load user settings before starting research
     this.updateFluidProgress('⚙️ Loading Lead Contact Settings...', 2);
-    await this.loadLeadContactSettings();
+    await this.loadLeadContactSettings(this.currentUserId);
     
     // Work within the existing progress framework - research is step 2 out of 6
     // We'll use sub-progress within this step rather than overriding the main progress
@@ -902,7 +914,7 @@ class LeadContactAgent extends EventEmitter {
       try {
         const researchResult = await leadResearch(query, { 
           limit: leadLimit,
-          userId: this.userId, // Pass actual userId to access API keys from settings
+          userId: this.currentUserId, // Pass actual authenticated userId to access API keys from settings
           researchFocus: this.leadContactSettings?.researchFocus?.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(line => line.length > 0),
           leadContactSettings: this.leadContactSettings
         });
@@ -2024,4 +2036,24 @@ BODY: [email body]`;
 }
 
 // Export singleton instance
+// User-specific agent instances
+const userAgents = new Map();
+
+// Factory function to get or create user-specific agent
+export function getUserAgent(userId) {
+  if (!userId) {
+    throw new Error('User ID is required to get agent instance');
+  }
+  
+  if (!userAgents.has(userId)) {
+    console.log('[LEAD AGENT FACTORY] 🏭 Creating new agent instance for user:', userId.substring(0, 8) + '...');
+    const agent = new LeadContactAgent();
+    agent.setUserContext(userId); // Set user context and file paths
+    userAgents.set(userId, agent);
+  }
+  
+  return userAgents.get(userId);
+}
+
+// Export the legacy singleton for backward compatibility during transition
 export const leadContactAgent = new LeadContactAgent();

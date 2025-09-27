@@ -1,5 +1,5 @@
 import express from 'express';
-import { leadContactAgent } from '../agent/leadContactAgent.js';
+import { getUserAgent } from '../agent/leadContactAgent.js';
 import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
 import { authenticateToken } from '../middleware/jwt.js';
 
@@ -12,10 +12,13 @@ const agentSettings = new AgentSettingsManager();
 // Start the Lead Contact Agent
 router.post('/start', async (req, res) => {
   try {
-    console.log('[LEAD AGENT API] Starting Lead Contact Agent...');
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[LEAD AGENT API] Starting Lead Contact Agent for user:', userId);
     const { minutes } = req.body; // Optional custom interval in minutes
     
-    const result = await leadContactAgent.start(minutes);
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    const result = await userAgent.start(minutes, userId);
     
     res.json({
       success: result.success,
@@ -41,6 +44,7 @@ router.post('/start', async (req, res) => {
 // Set custom cycle interval
 router.post('/set-interval', async (req, res) => {
   try {
+    const userId = req.user.userId; // Get from JWT token
     const { minutes } = req.body;
     
     if (!minutes || typeof minutes !== 'number') {
@@ -51,8 +55,10 @@ router.post('/set-interval', async (req, res) => {
       });
     }
     
-    console.log(`[LEAD AGENT API] Setting custom cycle interval to ${minutes} minutes...`);
-    const result = await leadContactAgent.setCycleInterval(minutes);
+    console.log(`[LEAD AGENT API] Setting custom cycle interval to ${minutes} minutes for user:`, userId);
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    const result = await userAgent.setCycleInterval(minutes);
     
     res.json({
       success: result.success,
@@ -75,8 +81,11 @@ router.post('/set-interval', async (req, res) => {
 // Reset to default cycle interval
 router.post('/reset-interval', async (req, res) => {
   try {
-    console.log('[LEAD AGENT API] Resetting to default cycle interval...');
-    const result = await leadContactAgent.resetCycleInterval();
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[LEAD AGENT API] Resetting to default cycle interval for user:', userId);
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    const result = await userAgent.resetCycleInterval();
     
     res.json({
       success: result.success,
@@ -99,8 +108,11 @@ router.post('/reset-interval', async (req, res) => {
 // Stop the Lead Contact Agent
 router.post('/stop', async (req, res) => {
   try {
-    console.log('[LEAD AGENT API] Stopping Lead Contact Agent...');
-    const result = await leadContactAgent.stop();
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[LEAD AGENT API] Stopping Lead Contact Agent for user:', userId);
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    const result = await userAgent.stop();
     
     res.json({
       success: result.success,
@@ -122,7 +134,10 @@ router.post('/stop', async (req, res) => {
 // Get status of the Lead Contact Agent
 router.get('/status', async (req, res) => {
   try {
-    const status = await leadContactAgent.getStatus();
+    const userId = req.user.userId; // Get from JWT token
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    const status = await userAgent.getStatus();
     
     res.json({
       success: true,
@@ -141,8 +156,11 @@ router.get('/status', async (req, res) => {
 // Reset the Lead Contact Agent (clears both state and leads database)
 router.post('/reset', async (req, res) => {
   try {
-    console.log('[LEAD AGENT API] Resetting Lead Contact Agent...');
-    const result = await leadContactAgent.resetAgent();
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[LEAD AGENT API] Resetting Lead Contact Agent for user:', userId);
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    const result = await userAgent.resetAgent();
     
     res.json({
       success: result.success,
@@ -161,8 +179,12 @@ router.post('/reset', async (req, res) => {
 // Force run a cycle (for testing)
 router.post('/run-cycle', async (req, res) => {
   try {
-    console.log('[LEAD AGENT API] Force running cycle...');
-    const result = await leadContactAgent.runCycle();
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[LEAD AGENT API] Force running cycle for user:', userId);
+    
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    const result = await userAgent.runCycle();
     
     res.json({
       success: result.success,
@@ -197,8 +219,12 @@ router.get('/progress-stream', (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
+  // Get user-specific agent instance
+  const userId = req.user.userId; // Get from JWT token
+  const userAgent = getUserAgent(userId);
+
   // Send current status immediately
-  leadContactAgent.getStatus().then(status => {
+  userAgent.getStatus().then(status => {
     sendProgress({
       type: 'status',
       data: status
@@ -215,18 +241,18 @@ router.get('/progress-stream', (req, res) => {
     });
   };
 
-  // Add event listener to the agent for progress updates
-  leadContactAgent.on('progress', progressListener);
+  // Add event listener to the user's agent for progress updates
+  userAgent.on('progress', progressListener);
 
   // Handle client disconnect
   req.on('close', () => {
     console.log('[LEAD AGENT API] Progress stream client disconnected');
-    leadContactAgent.removeListener('progress', progressListener);
+    userAgent.removeListener('progress', progressListener);
   });
 
   req.on('aborted', () => {
     console.log('[LEAD AGENT API] Progress stream aborted');
-    leadContactAgent.removeListener('progress', progressListener);
+    userAgent.removeListener('progress', progressListener);
   });
 });
 
