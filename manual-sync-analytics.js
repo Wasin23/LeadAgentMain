@@ -7,7 +7,8 @@ async function manualSyncAnalytics() {
     
     // Get tracking events from Zilliz
     console.log('📊 Fetching events from Zilliz...');
-    const response = await fetch('http://localhost:8080/api/zilliz-tracking/events');
+    const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
+    const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events`);
     const zillizData = await response.json();
     
     if (!zillizData.success || !zillizData.events) {

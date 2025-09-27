@@ -7,7 +7,7 @@ class DesktopEmailTracker {
   constructor() {
     this.trackingDataFile = path.join(process.cwd(), 'lib', 'data', 'email_tracking.json');
     this.baseUrl = 'https://examarkchat.com'; // Your domain for tracking
-    this.localPort = process.env.PORT || 8080; // Desktop app port
+    this.apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080'; // API server URL
     this.renderWebhookUrl = process.env.TRACKING_DOMAIN || 'https://examark-ga2o.onrender.com'; // Your Render app URL
     this.trackingData = new Map();
     this.lastPolledTimestamp = Date.now(); // Track last poll time for Zilliz
@@ -260,7 +260,7 @@ class DesktopEmailTracker {
   // Poll Zilliz for new tracking events
   async pollZillizEvents() {
     try {
-      const zillizApiUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/internal/events`;
+      const zillizApiUrl = `${this.apiBaseUrl}/api/zilliz-tracking/internal/events`;
       
       const response = await fetch(zillizApiUrl);
       
@@ -481,7 +481,7 @@ class DesktopEmailTracker {
         
         if (trackingId) {
           try {
-            const replyUrl = `http://localhost:${this.localPort}/api/zilliz-tracking/replies/${trackingId}`;
+            const replyUrl = `${this.apiBaseUrl}/api/zilliz-tracking/replies/${trackingId}`;
             const response = await fetch(replyUrl);
             
             if (response.ok) {

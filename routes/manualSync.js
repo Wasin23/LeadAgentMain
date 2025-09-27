@@ -10,7 +10,8 @@ router.post('/manual-sync', async (req, res) => {
     console.log('🔄 [MANUAL SYNC] Starting manual sync of analytics with Zilliz data...');
     
     // Get tracking events from Zilliz
-    const response = await fetch('http://localhost:8080/api/zilliz-tracking/events');
+    const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
+    const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events`);
     const zillizData = await response.json();
     
     if (!zillizData.success || !zillizData.events) {
@@ -99,7 +100,8 @@ router.post('/manual-sync', async (req, res) => {
 router.get('/sync-status', async (req, res) => {
   try {
     // Get Zilliz events
-    const zillizResponse = await fetch('http://localhost:8080/api/zilliz-tracking/events');
+    const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
+    const zillizResponse = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events`);
     const zillizData = await zillizResponse.json();
     
     // Get email logs

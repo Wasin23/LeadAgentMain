@@ -112,8 +112,9 @@ router.post('/clear-logs', authenticateToken, async (req, res) => {
       // Get JWT token from request headers
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
+      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
       
-      const response = await fetch('http://localhost:8080/api/zilliz-tracking/clear', {
+      const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/clear`, {
         method: 'DELETE',
         headers: { 
           'Content-Type': 'application/json',
