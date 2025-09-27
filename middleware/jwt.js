@@ -1,5 +1,6 @@
 // JWT Authentication Middleware
 import jwt from 'jsonwebtoken';
+import { trackUserActivity } from './activityTracker.js';
 
 /**
  * Middleware to authenticate JWT tokens and populate req.user
@@ -26,11 +27,18 @@ export function authenticateToken(req, res, next) {
     // Verify token and extract payload
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+    console.log(`[JWT] Decoded token:`, decoded);
+    console.log(`[JWT] Setting req.user.userId to:`, decoded.userId);
+    
     // Add user info to request object
     req.user = decoded;
     
-    // Continue to next middleware/route handler
-    next();
+    // Track user activity for presence-based polling (async)
+    trackUserActivity(req, res, next).catch(error => {
+      console.error('[JWT] Error in activity tracking:', error);
+      // Continue anyway - don't block the request
+      next();
+    });
   } catch (error) {
     console.error('[AUTH] JWT verification failed:', error.message);
     

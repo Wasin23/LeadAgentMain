@@ -186,6 +186,34 @@ export class ZillizEmailTracker {
         }
     }
 
+    async getTrackingEventsByUserId(userId) {
+        try {
+            if (!this.initialized) {
+                await this.initialize();
+            }
+
+            // Load collection into memory for querying
+            await this.client.loadCollection({
+                collection_name: this.collectionName
+            });
+
+            // Query events filtered by userId pattern in tracking_id (tracking-{userId}_...)
+            const results = await this.client.query({
+                collection_name: this.collectionName,
+                expr: `tracking_id like "tracking-${userId}_%"`,
+                output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed'],
+                limit: 1000
+            });
+
+            console.log(`📊 [ZILLIZ] Retrieved ${results.data?.length || 0} tracking events for user ${userId}`);
+            return results.data || [];
+
+        } catch (error) {
+            console.error(`❌ [ZILLIZ] Failed to get tracking events for user ${userId}:`, error);
+            return [];
+        }
+    }
+
     async getEventsByTrackingId(trackingId) {
         try {
             if (!this.initialized) {

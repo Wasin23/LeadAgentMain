@@ -53,6 +53,12 @@ class DomainDesktopTracker extends EventEmitter {
     return `tracking-${userCode}_${Date.now()}_${hash.substring(0, 8)}`;
   }
 
+  // Extract userId from trackingId format: tracking-{userId}_timestamp_hash
+  extractUserIdFromTrackingId(trackingId) {
+    const userIdMatch = trackingId.match(/tracking-([^_]+)_/);
+    return userIdMatch ? userIdMatch[1] : null;
+  }
+
   // Create tracking pixel URL (uses your domain)
   createTrackingPixel(trackingId) {
     return `https://${this.trackingDomain}/track/pixel/${trackingId}.png?webhook=${encodeURIComponent(`http://localhost:${this.localPort}/webhook/open`)}&secret=${this.webhookSecret}`;
@@ -122,12 +128,16 @@ class DomainDesktopTracker extends EventEmitter {
       });
       
       await this.saveTrackingData();
+      
+      // Extract userId for user-specific logging
+      const userId = this.extractUserIdFromTrackingId(trackingId);
+      
       await this.logEvent('open', {
         trackingId,
         recipient: tracking.recipient,
         subject: tracking.subject,
         timestamp: new Date().toISOString()
-      });
+      }, userId);
       
       console.log(`📧 [OPEN] ${tracking.recipient} opened email "${tracking.subject}"`);
       this.emit('email-opened', { trackingId, recipient: tracking.recipient });
@@ -150,13 +160,17 @@ class DomainDesktopTracker extends EventEmitter {
       });
       
       await this.saveTrackingData();
+      
+      // Extract userId for user-specific logging
+      const userId = this.extractUserIdFromTrackingId(trackingId);
+      
       await this.logEvent('click', {
         trackingId,
         recipient: tracking.recipient,
         subject: tracking.subject,
         url,
         timestamp: new Date().toISOString()
-      });
+      }, userId);
       
       console.log(`🔗 [CLICK] ${tracking.recipient} clicked: ${url}`);
       this.emit('email-clicked', { trackingId, recipient: tracking.recipient, url });
@@ -167,9 +181,12 @@ class DomainDesktopTracker extends EventEmitter {
   }
 
   // Log event to email_logs.json for analytics
-  async logEvent(type, data) {
+  async logEvent(type, data, userId = null) {
     try {
-      const logsFile = path.join(process.cwd(), 'email_logs.json');
+      // Use user-specific logs file if userId provided
+      const logsFile = userId 
+        ? path.join(process.cwd(), `email_logs_${userId}.json`)
+        : path.join(process.cwd(), 'email_logs.json');
       let logs = [];
       
       try {

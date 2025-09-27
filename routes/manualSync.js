@@ -1,24 +1,26 @@
 import express from 'express';
 import fs from 'fs/promises';
 import fetch from 'node-fetch';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
 // Manual sync endpoint to force update analytics with Zilliz data
-router.post('/manual-sync', async (req, res) => {
+router.post('/manual-sync', authenticateToken, async (req, res) => {
   try {
-    console.log('🔄 [MANUAL SYNC] Starting manual sync of analytics with Zilliz data...');
+    const userId = req.user.userId;
+    console.log(`🔄 [MANUAL SYNC] Starting manual sync for user ${userId}...`);
     
-    // Get tracking events from Zilliz
+    // Get tracking events from Zilliz - filtered by user
     const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
-    const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events`);
+    const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events?userId=${userId}`);
     const zillizData = await response.json();
     
     if (!zillizData.success || !zillizData.events) {
       throw new Error('Failed to fetch Zilliz events');
     }
     
-    console.log(`📊 [MANUAL SYNC] Found ${zillizData.events.length} tracking events in Zilliz`);
+    console.log(`📊 [MANUAL SYNC] Found ${zillizData.events.length} tracking events for user ${userId}`);
     
     // Group events by tracking ID
     const eventsByTrackingId = {};
@@ -35,8 +37,8 @@ router.post('/manual-sync', async (req, res) => {
       }
     }
     
-    // Load email logs
-    const logPath = 'email_logs.json';
+    // Load user-specific email logs
+    const logPath = `email_logs_${userId}.json`;
     let emailLogs = [];
     
     try {
@@ -74,9 +76,9 @@ router.post('/manual-sync', async (req, res) => {
     }
     
     if (updated) {
-      // Save updated logs
+      // Save updated user-specific logs
       await fs.writeFile(logPath, JSON.stringify(emailLogs, null, 2));
-      console.log(`✅ [MANUAL SYNC] Updated ${updateCount} email analytics successfully!`);
+      console.log(`✅ [MANUAL SYNC] Updated ${updateCount} email analytics for user ${userId}!`);
     }
     
     res.json({
@@ -97,15 +99,17 @@ router.post('/manual-sync', async (req, res) => {
 });
 
 // Check sync status endpoint
-router.get('/sync-status', async (req, res) => {
+router.get('/sync-status', authenticateToken, async (req, res) => {
   try {
-    // Get Zilliz events
+    const userId = req.user.userId;
+    
+    // Get user-specific Zilliz events
     const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
-    const zillizResponse = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events`);
+    const zillizResponse = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events?userId=${userId}`);
     const zillizData = await zillizResponse.json();
     
-    // Get email logs
-    const logPath = 'email_logs.json';
+    // Get user-specific email logs
+    const logPath = `email_logs_${userId}.json`;
     let emailLogs = [];
     try {
       const existingLogs = await fs.readFile(logPath, 'utf8');

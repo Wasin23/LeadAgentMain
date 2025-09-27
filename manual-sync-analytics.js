@@ -3,7 +3,17 @@ import fetch from 'node-fetch';
 
 async function manualSyncAnalytics() {
   try {
-    console.log('🔄 Starting manual sync of analytics with Zilliz data...');
+    // Check deployment mode - this script should only be used in desktop mode
+    const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'desktop';
+    
+    if (DEPLOYMENT_MODE === 'web') {
+      console.error('🚫 [DEPLOYMENT GUARD] This standalone sync script is NOT SAFE for web deployment!');
+      console.error('🌐 [DEPLOYMENT GUARD] Use the /api/sync/manual-sync endpoint instead for user-scoped syncing.');
+      console.error('❌ [DEPLOYMENT GUARD] Aborting to prevent data leakage between users.');
+      process.exit(1);
+    }
+    
+    console.log('🔄 [DESKTOP MODE] Starting manual sync of analytics with Zilliz data...');
     
     // Get tracking events from Zilliz
     console.log('📊 Fetching events from Zilliz...');

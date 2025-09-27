@@ -14,9 +14,9 @@ const mg = mailgun.client({
 });
 
 // Function to log email with enhanced analytics data
-async function logEmailToFile(to, subject, body, status, trackingId = null, metadata = {}) {
+async function logEmailToFile(to, subject, body, status, trackingId = null, metadata = {}, userId = null) {
   try {
-    console.log('[EMAIL LOG] Attempting to log email:', { to, subject, body, status, trackingId });
+    console.log('[EMAIL LOG] Attempting to log email:', { to, subject, body, status, trackingId, userId });
     
     const logEntry = {
       id: trackingId || uuidv4(),
@@ -26,6 +26,7 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
       status,
       timestamp: new Date().toISOString(),
       personInfo: metadata.personInfo || null, // Store person information
+      userId: userId, // Store user ID for tracking
       analytics: {
         opened: false,
         clicked: false,
@@ -39,7 +40,9 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
       }
     };
 
-    const logPath = path.join(process.cwd(), 'email_logs.json');
+    // Use user-specific log file if userId provided, otherwise fall back to global file
+    const logFileName = userId ? `email_logs_${userId}.json` : 'email_logs.json';
+    const logPath = path.join(process.cwd(), logFileName);
     console.log('[EMAIL LOG] Log path:', logPath);
     
     let logs = [];
@@ -74,15 +77,45 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
 // Function to update email analytics
 async function updateEmailAnalytics(trackingId, updates) {
   try {
-    const logPath = path.join(process.cwd(), 'email_logs.json');
+    // Extract userId from trackingId if it follows the pattern tracking-{userId}_xxx
+    let userId = null;
+    const userIdMatch = trackingId.match(/tracking-([^_]+)_/);
+    if (userIdMatch) {
+      userId = userIdMatch[1];
+    }
+    
+    // Use user-specific log file if userId found, otherwise try global file for backward compatibility
+    const logFileName = userId ? `email_logs_${userId}.json` : 'email_logs.json';
+    const logPath = path.join(process.cwd(), logFileName);
     let logs = [];
     
     try {
       const existingLogs = await fs.readFile(logPath, 'utf8');
       logs = JSON.parse(existingLogs);
     } catch (error) {
-      console.log('[EMAIL ANALYTICS] No logs found');
-      return false;
+      console.log(`[EMAIL ANALYTICS] No logs found at ${logFileName}`);
+      
+      // If user-specific file doesn't exist, try to find in global file and migrate
+      if (userId) {
+        try {
+          const globalLogPath = path.join(process.cwd(), 'email_logs.json');
+          const globalLogs = await fs.readFile(globalLogPath, 'utf8');
+          const allLogs = JSON.parse(globalLogs);
+          
+          // Find this specific email in global logs
+          const emailEntry = allLogs.find(log => log.id === trackingId);
+          if (emailEntry) {
+            console.log(`[EMAIL ANALYTICS] Found email in global file, migrating to user-specific file`);
+            logs = [emailEntry]; // Start user file with this entry
+          }
+        } catch (globalError) {
+          console.log('[EMAIL ANALYTICS] No global logs found either');
+        }
+      }
+      
+      if (logs.length === 0) {
+        return false;
+      }
     }
     
     // Find and update the email entry
@@ -225,7 +258,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       trackingEnabled: enableTracking,
       desktopTracking: true, // Flag to indicate this uses desktop tracking
       personInfo: personInfo // Include person information in the log
-    });
+    }, userId);
     
     return {
       success: true,
@@ -238,7 +271,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     // Log failed email
     await logEmailToFile(to, subject, body, 'failed', null, {
       error: err.message || err.toString()
-    });
+    }, userId);
     
     return {
       success: false,
@@ -249,7 +282,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
 }
 
 // Send email with custom HTML (for password reset emails)
-async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null, skipLogging = false) {
+async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null, skipLogging = false, userId = null) {
   try {
     console.log(`[MAILGUN CUSTOM] Sending to: ${to}, Subject: ${subject}`);
     
@@ -299,7 +332,7 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
         trackingEnabled: enableTracking,
         desktopTracking: enableTracking,
         personInfo: personInfo
-      });
+      }, userId);
     }
     
     return {
@@ -314,7 +347,7 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
     if (!skipLogging) {
       await logEmailToFile(to, subject, textBody, 'failed', null, {
         error: err.message || err.toString()
-      });
+      }, userId);
     }
     
     return {

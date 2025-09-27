@@ -10,12 +10,15 @@ class DesktopEmailTracker {
     this.apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080'; // API server URL
     this.renderWebhookUrl = process.env.TRACKING_DOMAIN || 'https://examark-ga2o.onrender.com'; // Your Render app URL
     this.trackingData = new Map();
-    this.lastPolledTimestamp = Date.now(); // Track last poll time for Zilliz
-    this.pollingInterval = null; // Store polling interval reference
+    
+    // User session polling management
+    this.userPollingIntervals = new Map(); // userId -> polling interval reference
+    this.userLastPolledTimestamp = new Map(); // userId -> last poll timestamp
+    
     this.loadTrackingData();
     
-    // Start Zilliz polling when tracker is created
-    this.startZillizPolling();
+    // No automatic polling - will be started per user session
+    console.log('📧 [EMAIL TRACKER] Ready for user session-based polling');
   }
 
   // Load existing tracking data
@@ -232,21 +235,7 @@ class DesktopEmailTracker {
     }
   }
 
-  // Start polling Zilliz for new tracking events
-  startZillizPolling() {
-    console.log('📧 [ZILLIZ POLLING] Starting Zilliz polling every 30 seconds...');
-    
-    // Wait 5 seconds for server to be ready before starting polling
-    setTimeout(() => {
-      // Poll immediately on start
-      this.pollZillizEvents();
-      
-      // Set up interval polling
-      this.pollingInterval = setInterval(() => {
-        this.pollZillizEvents();
-      }, 30000); // Poll every 30 seconds
-    }, 5000);
-  }
+  // REMOVED: Old global polling - now using user session-based polling
 
   // Stop polling Zilliz
   stopZillizPolling() {
@@ -257,33 +246,7 @@ class DesktopEmailTracker {
     }
   }
 
-  // Poll Zilliz for new tracking events
-  async pollZillizEvents() {
-    try {
-      const zillizApiUrl = `${this.apiBaseUrl}/api/zilliz-tracking/internal/events`;
-      
-      const response = await fetch(zillizApiUrl);
-      
-      if (!response.ok) {
-        console.error(`📧 [ZILLIZ POLLING] Failed to fetch events: ${response.status}`);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.events && data.events.length > 0) {
-        console.log(`📧 [ZILLIZ POLLING] Syncing with ${data.events.length} Zilliz events`);
-        
-        // Sync email logs with Zilliz data instead of incrementing
-        await this.syncWithZillizData(data.events);
-        
-        console.log(`📧 [ZILLIZ POLLING] Sync completed`);
-      }
-      
-    } catch (error) {
-      console.error('📧 [ZILLIZ POLLING] Error polling Zilliz:', error);
-    }
-  }
+  // REMOVED: Old global polling method - replaced with user-specific polling
 
   // Sync email logs with actual Zilliz data (don't increment, just set correct counts)
   async syncWithZillizData(zillizEvents) {
@@ -632,6 +595,84 @@ class DesktopEmailTracker {
       await fs.writeFile(logPath, JSON.stringify(emailLogs, null, 2), 'utf8');
     } catch (error) {
       console.error('📧 [SYNC] Error saving email logs:', error);
+    }
+  }
+
+  // Start polling for a specific user session
+  startUserPolling(userId) {
+    // Don't start if already polling for this user
+    if (this.userPollingIntervals.has(userId)) {
+      console.log(`📧 [USER POLLING] Already polling for user ${userId}`);
+      return;
+    }
+
+    console.log(`📧 [USER POLLING] Starting polling for user ${userId}`);
+    this.userLastPolledTimestamp.set(userId, Date.now());
+
+    // Start polling every 30 seconds for this user
+    const intervalId = setInterval(async () => {
+      await this.pollZillizEventsForUser(userId);
+    }, 30000);
+
+    this.userPollingIntervals.set(userId, intervalId);
+    
+    // Do an immediate poll
+    this.pollZillizEventsForUser(userId);
+  }
+
+  // Stop polling for a specific user session
+  stopUserPolling(userId) {
+    const intervalId = this.userPollingIntervals.get(userId);
+    if (intervalId) {
+      clearInterval(intervalId);
+      this.userPollingIntervals.delete(userId);
+      this.userLastPolledTimestamp.delete(userId);
+      console.log(`📧 [USER POLLING] Stopped polling for user ${userId}`);
+    }
+  }
+
+  // Poll Zilliz for events specific to a user
+  async pollZillizEventsForUser(userId) {
+    try {
+      // Use the internal events endpoint with server secret for polling, filtered by userId
+      const serverSecret = process.env.SERVER_SECRET || 'internal-polling-secret-2024';
+      const zillizApiUrl = `${this.apiBaseUrl}/api/zilliz-tracking/internal/events?userId=${encodeURIComponent(userId)}`;
+      
+      const response = await fetch(zillizApiUrl, {
+        headers: {
+          'x-server-secret': serverSecret,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error(`📧 [USER POLLING] Failed to fetch events for user ${userId}: ${response.status}`);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.events && data.events.length > 0) {
+        // Events are already filtered by userId on the server side
+        console.log(`📧 [USER POLLING] User ${userId}: Syncing ${data.events.length} events`);
+        await this.syncUserEvents(userId, data.events);
+      }
+      
+    } catch (error) {
+      console.error(`📧 [USER POLLING] Error polling for user ${userId}:`, error);
+    }
+  }
+
+  // Get list of users currently being polled
+  getActiveUserPolling() {
+    return Array.from(this.userPollingIntervals.keys());
+  }
+
+  // Stop all user polling (for shutdown)
+  stopAllUserPolling() {
+    console.log('📧 [USER POLLING] Stopping all user polling sessions');
+    for (const userId of this.userPollingIntervals.keys()) {
+      this.stopUserPolling(userId);
     }
   }
 }

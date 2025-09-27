@@ -77,6 +77,8 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
     
+    // Note: Polling will be started automatically when user becomes active via activity tracker
+    
     res.json({ 
       success: true, 
       message: 'Login successful',
@@ -89,6 +91,106 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// User logout
+router.post('/logout', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log(`[AUTH] User logging out: ${userId}`);
+    
+    // Note: Polling will stop automatically when user becomes inactive via activity tracker
+    
+    res.json({ 
+      success: true, 
+      message: 'Logout successful' 
+    });
+  } catch (error) {
+    console.error('[AUTH] Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  }
+});
+
+// Get user session status (including polling status)
+router.get('/session-status', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Check if user has active polling and activity tracking
+    let pollingActive = false;
+    let activeUsers = [];
+    let activityUsers = [];
+    
+    try {
+      const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
+      const { getActiveUsers } = await import('../middleware/activityTracker.js');
+      
+      activeUsers = desktopEmailTracker.getActiveUserPolling();
+      pollingActive = activeUsers.includes(userId);
+      activityUsers = getActiveUsers();
+    } catch (error) {
+      console.error(`[AUTH] Error checking polling status for user ${userId}:`, error);
+    }
+    
+    const userActivity = activityUsers.find(u => u.userId === userId);
+    
+    res.json({
+      success: true,
+      userId: userId,
+      username: req.user.username,
+      pollingActive: pollingActive,
+      totalActivePollers: activeUsers.length,
+      activityTracking: {
+        isActive: !!userActivity,
+        lastActivity: userActivity?.lastActivity || null,
+        secondsAgo: userActivity?.secondsAgo || null
+      },
+      totalActiveUsers: activityUsers.length
+    });
+  } catch (error) {
+    console.error('[AUTH] Session status error:', error);
+    res.status(500).json({ error: 'Failed to get session status' });
+  }
+});
+
+// Debug endpoint to see all active users and polling status
+router.get('/debug-activity', authenticateToken, async (req, res) => {
+  try {
+    console.log(`[AUTH] Debug activity status requested`);
+    
+    let pollingUsers = [];
+    let activityUsers = [];
+    
+    try {
+      const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
+      const { getActiveUsers } = await import('../middleware/activityTracker.js');
+      
+      pollingUsers = desktopEmailTracker.getActiveUserPolling();
+      activityUsers = getActiveUsers();
+    } catch (error) {
+      console.error(`[AUTH] Error getting debug info:`, error);
+    }
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      polling: {
+        activeUsers: pollingUsers,
+        count: pollingUsers.length
+      },
+      activity: {
+        activeUsers: activityUsers,
+        count: activityUsers.length
+      },
+      currentUser: {
+        userId: req.user.userId,
+        hasPolling: pollingUsers.includes(req.user.userId),
+        hasActivity: activityUsers.some(u => u.userId === req.user.userId)
+      }
+    });
+  } catch (error) {
+    console.error('[AUTH] Debug activity error:', error);
+    res.status(500).json({ error: 'Failed to get debug info' });
+  }
+});
 
 // Get user settings
 router.get('/settings', authenticateToken, async (req, res) => {

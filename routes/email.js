@@ -23,20 +23,24 @@ router.post('/email', async (req, res) => {
   }
 });
 
-// New endpoint to get email logs
-router.get('/logs', async (req, res) => {
+// New endpoint to get email logs - USER-SCOPED and AUTHENTICATED
+router.get('/logs', authenticateToken, async (req, res) => {
   console.log('[EMAIL LOGS] GET /logs request received');
   try {
-    const logPath = path.join(process.cwd(), 'email_logs.json');
+    const userId = req.user.userId;
+    console.log(`[EMAIL LOGS] Getting logs for user: ${userId}`);
+    
+    // Use user-specific log file
+    const logPath = path.join(process.cwd(), `email_logs_${userId}.json`);
     console.log('[EMAIL LOGS] Reading from:', logPath);
     
     try {
       const logsData = await fs.readFile(logPath, 'utf8');
       const logs = JSON.parse(logsData);
-      console.log('[EMAIL LOGS] Found', logs.length, 'logs');
+      console.log(`[EMAIL LOGS] Found ${logs.length} logs for user ${userId}`);
       res.json(logs || []);
     } catch (error) {
-      console.log('[EMAIL LOGS] File not found or empty, returning empty array');
+      console.log(`[EMAIL LOGS] No user-specific file found for user ${userId}, returning empty array`);
       // File doesn't exist or is empty
       res.json([]);
     }
@@ -60,50 +64,39 @@ router.post('/clear-logs', authenticateToken, async (req, res) => {
   console.log(`[EMAIL LOGS] POST /clear-logs request received for user: ${userCode}`);
   
   try {
-    const logPath = path.join(process.cwd(), 'email_logs.json');
-    const approvedPath = path.join(process.cwd(), 'email_approved.json');
-    console.log('[EMAIL LOGS] Filtering logs for user:', userCode);
+    // Use user-specific files instead of filtering global files
+    const userLogPath = path.join(process.cwd(), `email_logs_${userId}.json`);
+    const userApprovedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
+    const userQueuePath = path.join(process.cwd(), `email_queue_${userId}.json`);
     
-    // Filter logs to keep only other users' data
-    let emailLogs = [];
-    let approvedEmails = [];
+    console.log(`[EMAIL LOGS] Clearing user-specific files for user: ${userCode}`);
+    console.log(`[EMAIL LOGS] User log path: ${userLogPath}`);
+    console.log(`[EMAIL LOGS] User approved path: ${userApprovedPath}`);
+    console.log(`[EMAIL LOGS] User queue path: ${userQueuePath}`);
+    
+    // Clear user-specific files by writing empty arrays
+    const emptyArray = [];
     
     try {
-      const existingLogs = await fs.readFile(logPath, 'utf8');
-      emailLogs = JSON.parse(existingLogs);
-      // Keep only logs that don't belong to this user (tracking IDs that don't start with user code)
-      emailLogs = emailLogs.filter(log => {
-        const trackingId = log.trackingId || log.id;
-        return !trackingId || !trackingId.startsWith(`tracking-${userCode}_`);
-      });
+      await fs.writeFile(userLogPath, JSON.stringify(emptyArray, null, 2), 'utf8');
+      console.log(`[EMAIL LOGS] ✅ Cleared email logs for user: ${userCode}`);
     } catch (error) {
-      console.log('[EMAIL LOGS] No existing email logs found');
-    }
-
-    try {
-      const existingApproved = await fs.readFile(approvedPath, 'utf8');
-      approvedEmails = JSON.parse(existingApproved);
-      // Keep only approved emails that don't belong to this user
-      // Check both trackingId pattern AND userId field for comprehensive filtering
-      approvedEmails = approvedEmails.filter(email => {
-        // Check if it's this user by userId field
-        if (email.userId === userId) {
-          return false; // Remove this user's approved emails
-        }
-        // Also check trackingId pattern for other types of entries
-        const trackingId = email.trackingId || email.id;
-        if (trackingId && trackingId.startsWith(`tracking-${userCode}_`)) {
-          return false; // Remove emails with this user's tracking pattern
-        }
-        return true; // Keep emails that don't belong to this user
-      });
-    } catch (error) {
-      console.log('[EMAIL LOGS] No existing approved emails found');
+      console.log(`[EMAIL LOGS] ℹ️ No email logs file to clear for user: ${userCode}`);
     }
     
-    // Write filtered arrays back to files
-    await fs.writeFile(logPath, JSON.stringify(emailLogs, null, 2), 'utf8');
-    await fs.writeFile(approvedPath, JSON.stringify(approvedEmails, null, 2), 'utf8');
+    try {
+      await fs.writeFile(userApprovedPath, JSON.stringify(emptyArray, null, 2), 'utf8');
+      console.log(`[EMAIL LOGS] ✅ Cleared approved emails for user: ${userCode}`);
+    } catch (error) {
+      console.log(`[EMAIL LOGS] ℹ️ No approved emails file to clear for user: ${userCode}`);
+    }
+    
+    try {
+      await fs.writeFile(userQueuePath, JSON.stringify(emptyArray, null, 2), 'utf8');
+      console.log(`[EMAIL LOGS] ✅ Cleared email queue for user: ${userCode}`);
+    } catch (error) {
+      console.log(`[EMAIL LOGS] ℹ️ No email queue file to clear for user: ${userCode}`);
+    }
     
     // Also clear Zilliz tracking data for this user
     try {

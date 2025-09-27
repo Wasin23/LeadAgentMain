@@ -12,16 +12,41 @@ router.get('/test-no-auth', (req, res) => {
     res.json({ message: 'This endpoint works without auth!', timestamp: new Date().toISOString() });
 });
 
-// Internal API endpoint for polling tracking events (unprotected for server-to-server)
+// Internal API endpoint for polling tracking events (server-to-server with secret)
 router.get('/internal/events', async (req, res) => {
     try {
-        const events = await tracker.getTrackingEvents();
+        // Check for server secret for internal polling
+        const serverSecret = req.headers['x-server-secret'] || req.query.serverSecret;
+        const expectedSecret = process.env.SERVER_SECRET || 'internal-polling-secret-2024';
         
-        res.status(200).json({
-            success: true,
-            count: events.length,
-            events: events
-        });
+        if (serverSecret !== expectedSecret) {
+            return res.status(403).json({ error: 'Invalid server secret for internal endpoint' });
+        }
+        
+        const userId = req.query.userId;
+        
+        if (userId) {
+            console.log(`📊 [ZILLIZ INTERNAL] Getting events for user ${userId}`);
+            // Get events filtered by userId
+            const events = await tracker.getTrackingEventsByUserId(userId);
+            
+            res.status(200).json({
+                success: true,
+                count: events.length,
+                events: events
+            });
+        } else {
+            console.log('📊 [ZILLIZ INTERNAL] Getting all events for server polling');
+            
+            // Get all events for server-side polling (legacy support)
+            const events = await tracker.getTrackingEvents();
+            
+            res.status(200).json({
+                success: true,
+                count: events.length,
+                events: events
+            });
+        }
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error getting events:', error);
@@ -67,12 +92,37 @@ router.post('/email-opened', async (req, res) => {
 // API endpoint for polling tracking events (protected)
 router.get('/events', authenticateToken, async (req, res) => {
     try {
-        const events = await tracker.getTrackingEvents();
+        const userId = req.user.userId;
+        const requestedUserId = req.query.userId;
+        
+        // Security check: users can only access their own events
+        if (requestedUserId && requestedUserId !== userId) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Access denied: You can only access your own tracking events' 
+            });
+        }
+        
+        const allEvents = await tracker.getTrackingEvents();
+        
+        // Filter events by userId - tracking IDs contain user codes
+        const userEvents = allEvents.filter(event => {
+            const trackingId = event.tracking_id;
+            // Match tracking IDs that contain the user ID pattern
+            return trackingId && (
+                trackingId.includes(`-${userId}_`) ||     // tracking-{userId}_xxx
+                trackingId.includes(`_${userId}_`) ||     // other_userId_xxx patterns
+                trackingId.startsWith(`${userId}-`) ||    // userId-xxx patterns
+                trackingId === userId                      // exact match
+            );
+        });
+        
+        console.log(`📊 [ZILLIZ API] Filtered ${userEvents.length}/${allEvents.length} events for user ${userId}`);
         
         res.status(200).json({
             success: true,
-            count: events.length,
-            events: events
+            count: userEvents.length,
+            events: userEvents
         });
 
     } catch (error) {

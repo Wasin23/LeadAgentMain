@@ -5247,7 +5247,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
 
     async function updateEmailField(emailId, field, value) {
       try {
-        const response = await fetch(`/api/email-queue/${emailId}`, {
+        const response = await authenticatedFetch(`/api/email-queue/${emailId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -5275,12 +5275,12 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       }
       
       try {
-        const response = await fetch('/api/email-queue');
+        const response = await authenticatedFetch('/api/email-queue');
         const data = await response.json();
         
         if (data.success && data.data.pending.length > 0) {
           const promises = data.data.pending.map(email => 
-            fetch(`/api/email-queue/${email.id}/approve`, { method: 'POST' })
+            authenticatedFetch(`/api/email-queue/${email.id}/approve`, { method: 'POST' })
           );
           
           await Promise.all(promises);
@@ -5299,12 +5299,12 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       }
       
       try {
-        const response = await fetch('/api/email-queue');
+        const response = await authenticatedFetch('/api/email-queue');
         const data = await response.json();
         
         if (data.success && data.data.pending.length > 0) {
           const promises = data.data.pending.map(email => 
-            fetch(`/api/email-queue/${email.id}/reject`, { method: 'POST' })
+            authenticatedFetch(`/api/email-queue/${email.id}/reject`, { method: 'POST' })
           );
           
           await Promise.all(promises);

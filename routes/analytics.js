@@ -1,5 +1,6 @@
 import express from 'express';
 import { updateEmailAnalytics } from '../tools/emailMailgun.js';
+import { authenticateToken } from '../middleware/jwt.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -124,9 +125,12 @@ router.get('/track/click/:trackingId', async (req, res) => {
 });
 
 // Analytics API endpoints
-router.get('/api/analytics/summary', async (req, res) => {
+router.get('/api/analytics/summary', authenticateToken, async (req, res) => {
   try {
-    const logPath = path.join(process.cwd(), 'email_logs.json');
+    const userId = req.user.userId;
+    
+    // Load user-specific email logs
+    const logPath = path.join(process.cwd(), `email_logs_${userId}.json`);
     let logs = [];
     
     try {
@@ -228,9 +232,12 @@ router.get('/api/analytics/summary', async (req, res) => {
 });
 
 // Get detailed email analytics
-router.get('/api/analytics/emails', async (req, res) => {
+router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
   try {
-    const logPath = path.join(process.cwd(), 'email_logs.json');
+    const userId = req.user.userId;
+    
+    // Load user-specific email logs
+    const logPath = path.join(process.cwd(), `email_logs_${userId}.json`);
     let logs = [];
     
     try {
@@ -270,7 +277,7 @@ router.get('/api/analytics/emails', async (req, res) => {
 });
 
 // Track email responses (manual)
-router.post('/api/analytics/track-response', async (req, res) => {
+router.post('/api/analytics/track-response', authenticateToken, async (req, res) => {
   try {
     const { trackingId, responseContent, responseDate } = req.body;
     

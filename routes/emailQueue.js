@@ -1,5 +1,5 @@
 import express from 'express';
-import { emailQueue } from '../lib/emailQueue.js';
+import { EmailQueue } from '../lib/emailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
 
@@ -8,11 +8,17 @@ const router = express.Router();
 // Apply JWT authentication to ALL routes in this router
 router.use(authenticateToken);
 
+// Helper function to get user-specific email queue
+function getUserEmailQueue(userId) {
+  return new EmailQueue(userId);
+}
+
 // Get email queue with formatted data (root route)
 router.get('/', async (req, res) => {
   try {
-    const queue = await emailQueue.getQueue();
-    const approved = await emailQueue.getApproved();
+    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const queue = await userEmailQueue.getQueue();
+    const approved = await userEmailQueue.getApproved();
     
     // Format data for frontend
     const pending = queue.filter(e => e.status === 'pending');
@@ -40,7 +46,8 @@ router.get('/', async (req, res) => {
 // Get all emails in queue
 router.get('/queue', async (req, res) => {
   try {
-    const queue = await emailQueue.getQueue();
+    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const queue = await userEmailQueue.getQueue();
     res.json(queue);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting queue:', error);
@@ -110,7 +117,13 @@ router.post('/custom', async (req, res) => {
     };
     
     // Add to queue (this will add id and timestamp)
-    const addedEmail = await emailQueue.addToQueue(customEmail);
+    console.log(`[EMAIL QUEUE] req.user object:`, req.user);
+    console.log(`[EMAIL QUEUE] req.user.userId:`, req.user?.userId);
+    console.log(`[EMAIL QUEUE] Creating user queue for userId: ${req.user?.userId}`);
+    const userEmailQueue = getUserEmailQueue(req.user?.userId);
+    console.log(`[EMAIL QUEUE] Adding email to queue...`);
+    const addedEmail = await userEmailQueue.addToQueue(customEmail);
+    console.log(`[EMAIL QUEUE] Email added successfully:`, addedEmail);
     
     console.log(`[EMAIL QUEUE] ✏️ Added custom email to queue: ${to} - ${subject}`);
     
@@ -136,7 +149,8 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    const updatedEmail = await emailQueue.updateEmail(id, updates);
+    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const updatedEmail = await userEmailQueue.updateEmail(id, updates);
     res.json(updatedEmail);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error updating email:', error);
@@ -150,7 +164,8 @@ router.post('/:id/approve', async (req, res) => {
     const { id } = req.params;
     
     // Get the email from queue first
-    const queue = await emailQueue.getQueue();
+    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const queue = await userEmailQueue.getQueue();
     const email = queue.find(e => e.id === id);
     
     if (!email) {
@@ -158,7 +173,7 @@ router.post('/:id/approve', async (req, res) => {
     }
     
     // Approve the email (moves it from queue to approved)
-    const approvedEmail = await emailQueue.approveEmail(id);
+    const approvedEmail = await userEmailQueue.approveEmail(id);
     
     // Handle both old format (direct fields) and new format (nested in emailData)
     const emailData = approvedEmail.emailData || {};
@@ -213,7 +228,8 @@ router.post('/:id/reject', async (req, res) => {
     const { id } = req.params;
     const reason = req.body?.reason || ''; // Handle undefined body
     
-    const rejectedEmail = await emailQueue.rejectEmail(id, reason);
+    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const rejectedEmail = await userEmailQueue.rejectEmail(id, reason);
     res.json({ success: true, email: rejectedEmail });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error rejecting email:', error);
@@ -224,7 +240,8 @@ router.post('/:id/reject', async (req, res) => {
 // Get approved emails history
 router.get('/approved', async (req, res) => {
   try {
-    const approved = await emailQueue.getApproved();
+    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const approved = await userEmailQueue.getApproved();
     res.json(approved);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting approved emails:', error);

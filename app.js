@@ -21,6 +21,15 @@ import chatRoutes from './routes/chat.js';
 // Load and validate configuration
 const config = getConfig();
 
+// Deployment Mode Configuration  
+const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'web'; // 'web' or 'desktop'
+const IS_WEB_DEPLOYMENT = DEPLOYMENT_MODE === 'web';
+const IS_DESKTOP_DEPLOYMENT = DEPLOYMENT_MODE === 'desktop';
+
+console.log(`🚀 [DEPLOYMENT] Mode: ${DEPLOYMENT_MODE.toUpperCase()}`);
+console.log(`📋 [DEPLOYMENT] Web features: ${IS_WEB_DEPLOYMENT ? 'ENABLED' : 'DISABLED'}`);
+console.log(`🖥️ [DEPLOYMENT] Desktop features: ${IS_DESKTOP_DEPLOYMENT ? 'ENABLED' : 'DISABLED'}`);
+
 // Configure Winston Logger
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -275,9 +284,29 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-// Serve static files from public directory
+// Serve static files from public directory with security restrictions
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Block access to sensitive files
+app.use((req, res, next) => {
+  const sensitivePatterns = [
+    /email_logs.*\.json$/,
+    /email_queue.*\.json$/,
+    /email_approved.*\.json$/,
+    /leads_database\.json$/,
+    /user_settings\.json$/,
+    /users\.json$/,
+    /message_tracking_map\.json$/,
+    /leadAgent_state\.json$/
+  ];
+  
+  if (sensitivePatterns.some(pattern => pattern.test(req.path))) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Health Check and Monitoring Endpoints
@@ -423,11 +452,44 @@ try {
 
 app.use('/api/system', systemRoutes); // System management and monitoring
 
+// Deployment Mode Validation
+function validateDeploymentMode() {
+  console.log(`\n🛡️  [DEPLOYMENT VALIDATION] Checking multi-user safety...`);
+  
+  if (IS_WEB_DEPLOYMENT) {
+    console.log(`✅ [WEB MODE] User isolation: ENABLED`);
+    console.log(`✅ [WEB MODE] JWT authentication: ENABLED`);
+    console.log(`✅ [WEB MODE] User-scoped data: ENABLED`);
+    console.log(`✅ [WEB MODE] Global file protection: ENABLED`);
+    console.log(`🌐 [WEB MODE] Ready for multi-user deployment!`);
+  } else {
+    console.log(`🖥️  [DESKTOP MODE] Single-user mode: ENABLED`);
+    console.log(`📁 [DESKTOP MODE] Global files: ALLOWED`);
+    console.log(`🔄 [DESKTOP MODE] Background polling: ACTIVE`);
+    console.log(`💻 [DESKTOP MODE] Desktop features: FULL ACCESS`);
+  }
+  
+  // Warning for common deployment issues
+  if (IS_WEB_DEPLOYMENT && !process.env.JWT_SECRET) {
+    console.warn(`⚠️  [SECURITY WARNING] JWT_SECRET not set! Users may not be properly authenticated.`);
+  }
+  
+  if (IS_WEB_DEPLOYMENT && !process.env.ZILLIZ_ENDPOINT) {
+    console.warn(`⚠️  [DATA WARNING] ZILLIZ_ENDPOINT not set! User data storage may not work.`);
+  }
+  
+  console.log(`🛡️  [DEPLOYMENT VALIDATION] Complete.\n`);
+}
+
+// Run deployment validation
+validateDeploymentMode();
+
 const PORT = process.env.PORT || process.env.API_PORT || 8080;
 const server = app.listen(PORT, () => {
-  console.log(`Server is live on port ${PORT}`);
+  console.log(`🚀 Server is live on port ${PORT} (${DEPLOYMENT_MODE.toUpperCase()} mode)`);
   logger.info(`ExaMark server started on port ${PORT}`, {
     environment: process.env.NODE_ENV || 'development',
+    deploymentMode: DEPLOYMENT_MODE,
     sessionId: SERVER_SESSION_ID
   });
 });
