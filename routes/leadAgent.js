@@ -9,6 +9,12 @@ const router = express.Router();
 router.use(authenticateToken);
 const agentSettings = new AgentSettingsManager();
 
+// DEBUG: Test route to verify routes are loading
+router.get('/test', (req, res) => {
+  console.log('[LEAD AGENT] Test route hit!');
+  res.json({ message: 'Lead agent routes working!' });
+});
+
 // Start the Lead Contact Agent
 router.post('/start', async (req, res) => {
   try {

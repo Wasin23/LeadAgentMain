@@ -83,11 +83,15 @@ try {
 }
 
 // Import lead agent routes
+console.log('[APP] Attempting to load lead agent routes...');
 let leadAgentRoutes;
 try {
-  leadAgentRoutes = (await import('./routes/leadAgent.js')).default;
+  const importResult = await import('./routes/leadAgent.js');
+  leadAgentRoutes = importResult.default;
+  console.log('[APP] Lead agent routes loaded successfully, router type:', typeof leadAgentRoutes);
 } catch (e) {
-  console.log('Lead agent routes not available');
+  console.error('[APP] Failed to load lead agent routes:', e.message);
+  console.error('[APP] Full error:', e);
   leadAgentRoutes = (req, res, next) => next(); // No-op if not present
 }
 

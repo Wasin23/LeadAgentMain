@@ -35,9 +35,7 @@ exports.handler = async (event, context) => {
           
           const imageProxyPatterns = [
             /bot/i, /crawler/i, /spider/i, /facebookexternalhit/i,
-            /GoogleImageProxy/i, /ggpht\.com/i,
             /proxymail\.facebook\.com/i,
-            /outlook\.com.*safelinks/i, /protection\.outlook\.com/i,
             /mimecast/i, /barracuda/i, /proofpoint/i,
             /symantec/i, /messagelab/i
           ];

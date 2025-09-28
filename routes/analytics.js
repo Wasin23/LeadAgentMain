@@ -37,13 +37,13 @@ router.get('/track/open/:trackingId', async (req, res) => {
     const userAgent = req.get('User-Agent') || '';
     const referer = req.get('Referer') || '';
     
-    // Detect image proxy services (these are false positives)
+    // Detect actual bots/crawlers (but allow email client proxies like Gmail)
     const imageProxyPatterns = [
-      /GoogleImageProxy/i,
-      /ggpht\.com/i,
+      /bot/i,
+      /crawler/i,
+      /spider/i,
+      /facebookexternalhit/i,
       /proxymail\.facebook\.com/i,
-      /outlook\.com.*safelinks/i,
-      /protection\.outlook\.com/i,
       /mimecast/i,
       /barracuda/i,
       /proofpoint/i,

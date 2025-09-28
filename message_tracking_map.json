@@ -75,5 +75,12 @@
     "subject": "test email for sales 44",
     "sentAt": "2025-09-27T21:48:01.027Z",
     "source": "email"
+  },
+  "tracking-tracking-76e84c79_1759078407278_292f4f3f@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1759078407278_292f4f3f",
+    "to": "colton.fidd@gmail.com",
+    "subject": "Enhancing Workforce Optimization at Aspen Technology",
+    "sentAt": "2025-09-28T16:53:27.788Z",
+    "source": "email"
   }
 }

@@ -4449,13 +4449,20 @@ Intensive multi-modal research with advanced analysis:
       
       progressEventSource.onerror = function(error) {
         console.error('[UI] Progress stream error:', error);
-        // Fall back to polling if SSE fails
+        // DISABLED: Do not fall back to polling to avoid server spam
         if (activeStatusMonitoringInterval) {
           clearInterval(activeStatusMonitoringInterval);
+          activeStatusMonitoringInterval = null;
         }
-        activeStatusMonitoringInterval = setInterval(() => {
-          refreshAgentStatus();
-        }, 3000);
+        console.log('[UI] Status monitoring disabled - no fallback polling');
+        updateStatusDisplay({
+          isRunning: false,
+          currentCycle: 0,
+          emailQueueNote: "Server unavailable",
+          remainingLeads: 0,
+          lastCycleTime: null,
+          nextCycleTime: null
+        });
       };
       
       addActivityLog('🔄 Started real-time progress monitoring');
@@ -4499,34 +4506,57 @@ Intensive multi-modal research with advanced analysis:
       document.getElementById('reset-interval').addEventListener('click', resetInterval);
       
       // Auto-refresh status every 30 seconds when agent tab is active
+      // DISABLED: Causing server spam when routes unavailable
+      /*
       setInterval(() => {
         const agentTab = document.getElementById('leadagent-content');
         if (agentTab && agentTab.style.display !== 'none') {
           refreshAgentStatus();
         }
       }, 30000);
+      */
     });
 
+    // Flag to prevent excessive agent status requests when server is down
+    let agentStatusUnavailable = false;
+    
     async function refreshAgentStatus() {
+      if (agentStatusUnavailable) {
+        console.log('[UI] Skipping status refresh - agent status marked as unavailable');
+        return;
+      }
+      
       try {
         const response = await authenticatedFetch('/api/lead-agent/status');
+        
+        if (!response.ok) {
+          if (response.status >= 500 || response.status === 404) {
+            agentStatusUnavailable = true;
+            console.log('[UI] Agent status appears down - disabling further status requests');
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
+          agentStatusUnavailable = false; // Reset flag on success
           updateStatusDisplay(data.data);
         } else {
           console.error('Error getting agent status:', data.message);
+          throw new Error(data.message);
         }
       } catch (error) {
         console.error('Error fetching agent status:', error);
         updateStatusDisplay({
           isRunning: false,
           currentCycle: 0,
-          emailQueueNote: "Check Email Queue tab",
+          emailQueueNote: "Server unavailable",
           remainingLeads: 0,
           lastCycleTime: null,
           nextCycleTime: null
         });
+        throw error;
       }
     }
 
@@ -4907,6 +4937,18 @@ Intensive multi-modal research with advanced analysis:
         const response = await authenticatedFetch('/api/lead-agent/reset-interval', {
           method: 'POST'
         });
+        
+        // Check if response is actually JSON before parsing
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server error (${response.status}): ${errorText.substring(0, 100)}...`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const errorText = await response.text();
+          throw new Error(`Server returned HTML error page instead of JSON: ${errorText.substring(0, 100)}...`);
+        }
         
         const data = await response.json();
         

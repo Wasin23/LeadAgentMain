@@ -49,6 +49,9 @@ async function verifyEmailDeliverability(email, userId = null) {
     if (data.status === 'valid') {
       console.log(`✅ Email verified: ${email} - ${data.status}`);
       return { valid: true, score: SCORING_WEIGHTS.EMAIL_VERIFIED, deliverabilityScore: data.sub_result };
+    } else if (data.status === 'catch-all') {
+      console.log(`⚠️ Email catch-all (accepting anyway): ${email} - ${data.status}`);
+      return { valid: true, score: SCORING_WEIGHTS.EMAIL_VERIFIED * 0.7, deliverabilityScore: data.sub_result }; // Slightly lower score but still valid
     } else {
       console.log(`❌ Email invalid: ${email} - ${data.status}`);
       return { valid: false, score: 0, reason: data.status };
@@ -296,7 +299,7 @@ export async function leadResearch(query, options = {}) {
   
   try {
     // Step 1: Get initial leads from Apollo
-    const apolloLeads = await searchApollo(query, limit, userId);
+    const apolloLeads = await searchApollo(query, limit, userId, leadContactSettings);
     console.log(`📊 [LEAD RESEARCH] Found ${apolloLeads.length} Apollo leads`);
     
     // Step 2: Enhanced verification and scoring on top leads
@@ -698,7 +701,7 @@ function calculateConfidenceScore(insights) {
 }
 
 // Import Apollo search functionality
-async function searchApollo(query, limit = 5, userId = null) { // Reduced default from 10 to 5 for cost optimization
+async function searchApollo(query, limit = 5, userId = null, leadContactSettings = null) { // Reduced default from 10 to 5 for cost optimization
   const apiKey = await getApiKey('apollo', userId);
   if (!apiKey) {
     throw new Error('Apollo API key not found in user settings or environment');
@@ -706,29 +709,24 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
 
   console.log(`🔑 [Apollo] API Key check: Present (${apiKey.substring(0, 10)}...)`);
   
-  // HARDCODED POSITION EXTRACTION - CANNOT BE EDITED OUT
-  // Extract the actual target position from the query string
-  let apolloQuery = 'CTO'; // default fallback
-  let industry = '';
-  let position = 'CTO'; // default
+  // Extract target positions from user settings instead of hardcoded values
+  const targetPositions = leadContactSettings?.contactCriteria?.targetPositions || [];
   
-  // HARDCODED: Extract exact position from query - this ensures proper targeting
-  if (query.includes('Chief Technology Officer')) {
-    position = 'Chief Technology Officer';
-    apolloQuery = 'Chief Technology Officer';
-  } else if (query.includes('IT Director')) {
-    position = 'IT Director';
-    apolloQuery = 'IT Director';
-  } else if (query.includes('CEO')) {
-    position = 'CEO';
-    apolloQuery = 'CEO';
-  } else if (query.includes('Founder')) {
-    position = 'Founder';
-    apolloQuery = 'Founder';
-  } else if (query.includes('CTO')) {
-    position = 'CTO';
-    apolloQuery = 'CTO';
+  let apolloQuery = targetPositions[0] || 'CEO'; // Use first target position from user settings
+  let industry = '';
+  let position = targetPositions[0] || 'CEO'; // fallback to generic position
+  
+  // Use target positions from user settings instead of hardcoded tech positions
+  for (const targetPos of targetPositions) {
+    if (query.includes(targetPos)) {
+      position = targetPos;
+      apolloQuery = targetPos;
+      break;
+    }
   }
+  
+  console.log(`[LEAD RESEARCH] Using target positions from settings:`, targetPositions);
+  console.log(`[LEAD RESEARCH] Selected position for search:`, position);
   
   // Use cached result if available - but include position in cache key for proper deduplication
   const cacheKey = `${query}_${apolloQuery}_${Math.floor(Date.now() / 3600000)}`; // Cache per hour per unique query+position
@@ -739,33 +737,25 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
   }
 
   try {
-    // HARDCODED INDUSTRY EXTRACTION - CANNOT BE EDITED OUT
-    // Extract industry keywords for proper targeting
-    if (query.includes('technology') || query.includes('software') || query.includes('AI') || query.includes('machine learning')) {
-      industry = 'technology';
-    } else if (query.includes('startup')) {
-      industry = 'startup';  
-    } else if (query.includes('fast food')) {
-      industry = 'fast food';
-    } else if (query.includes('luxury clothing')) {
-      industry = 'luxury clothing';
-    } else if (query.includes('grocery')) {
-      industry = 'grocery';
-    } else if (query.includes('catering')) {
-      industry = 'catering';
-    } else if (query.includes('food')) {
-      industry = 'food';
-    } else if (query.includes('computer vision')) {
-      industry = 'computer vision';
-    } else if (query.includes('autonomous')) {
-      industry = 'autonomous';
-    } else if (query.includes('cryptocurrency')) {
-      industry = 'fintech';
-    } else if (query.includes('pharmaceutical')) {
-      industry = 'pharma';
-    } else if (query.includes('financial')) {
-      industry = 'fintech';
+    // Extract industry from user settings instead of hardcoded values
+    const targetIndustries = leadContactSettings?.companyCriteria?.companyIndustries || [];
+    
+    // Use first target industry from user settings, or try to match from query
+    industry = '';
+    for (const targetIndustry of targetIndustries) {
+      if (query.toLowerCase().includes(targetIndustry.toLowerCase())) {
+        industry = targetIndustry;
+        break;
+      }
     }
+    
+    // If no industry match found, use the first target industry
+    if (!industry && targetIndustries.length > 0) {
+      industry = targetIndustries[0];
+    }
+    
+    console.log(`[LEAD RESEARCH] Using target industries from settings:`, targetIndustries);
+    console.log(`[LEAD RESEARCH] Selected industry for search:`, industry);
     
     // HARDCODED: Build targeted search query with position + industry for uniqueness
     if (industry && position !== 'CTO') {
@@ -778,20 +768,16 @@ async function searchApollo(query, limit = 5, userId = null) { // Reduced defaul
 
     console.log(`🎯 [Apollo] Searching for leads: ${apolloQuery}`);
     
-    // HARDCODED: Extract location from query - CANNOT BE EDITED OUT
-    let location = [];
-    if (query.includes('United States')) {
-      location = ['United States'];
-    }
+    // Extract location from user settings instead of hardcoded values
+    const targetLocations = leadContactSettings?.geographicSettings?.targetLocations || [];
+    let location = targetLocations;
     
-    // HARDCODED: Extract company size from query - CANNOT BE EDITED OUT
-    let companySizeMin = null;
-    let companySizeMax = null;
-    const sizeMatch = query.match(/(\d+)\s+to\s+(\d+)\s+employees/);
-    if (sizeMatch) {
-      companySizeMin = parseInt(sizeMatch[1]);
-      companySizeMax = parseInt(sizeMatch[2]);
-    }
+    // Extract company size from user settings instead of hardcoded values  
+    let companySizeMin = leadContactSettings?.companyCriteria?.companySizeMin || null;
+    let companySizeMax = leadContactSettings?.companyCriteria?.companySizeMax || null;
+    
+    console.log(`[LEAD RESEARCH] Using target locations from settings:`, location);
+    console.log(`[LEAD RESEARCH] Using company size range from settings:`, `${companySizeMin}-${companySizeMax}`);
     
     // HARDCODED: Build Apollo search payload with proper filters - CANNOT BE EDITED OUT
     const searchPayload = {

@@ -40,8 +40,13 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
       }
     };
 
-    // Use user-specific log file if userId provided, otherwise fall back to global file
-    const logFileName = userId ? `email_logs_${userId}.json` : 'email_logs.json';
+    // Only use user-specific log files - no global logging
+    if (!userId) {
+      console.log('[EMAIL LOG] No userId provided - skipping global email logging');
+      return emailLog;
+    }
+    
+    const logFileName = `email_logs_${userId}.json`;
     const logPath = path.join(process.cwd(), logFileName);
     console.log('[EMAIL LOG] Log path:', logPath);
     
@@ -84,8 +89,13 @@ async function updateEmailAnalytics(trackingId, updates) {
       userId = userIdMatch[1];
     }
     
-    // Use user-specific log file if userId found, otherwise try global file for backward compatibility
-    const logFileName = userId ? `email_logs_${userId}.json` : 'email_logs.json';
+    // Only use user-specific log files - no global logging
+    if (!userId) {
+      console.log('[EMAIL ANALYTICS] No userId found in trackingId - skipping global email analytics logging');
+      return;
+    }
+    
+    const logFileName = `email_logs_${userId}.json`;
     const logPath = path.join(process.cwd(), logFileName);
     let logs = [];
     

@@ -168,8 +168,11 @@ class DesktopEmailTracker {
     }
   }
 
-  // Log event to email_logs.json (for analytics compatibility)
+  // DISABLED: Global email logging - use user-specific files only
   async logEvent(type, data) {
+    console.log('[DESKTOP EMAIL] Skipping global email logging - use user-specific files only');
+    return;
+    /*
     try {
       const logsFile = path.join(process.cwd(), 'email_logs.json');
       let logs = [];
@@ -191,10 +194,14 @@ class DesktopEmailTracker {
     } catch (error) {
       console.error('Error logging event:', error);
     }
+    */
   }
 
-  // Update the main email log record with tracking events
+  // DISABLED: Global email log tracking - use user-specific files only  
   async updateEmailLogTracking(trackingId, eventType) {
+    console.log('[DESKTOP EMAIL] Skipping global email log tracking - use user-specific files only');
+    return;
+    /*
     try {
       const logsFile = path.join(process.cwd(), 'email_logs.json');
       let logs = [];
@@ -233,6 +240,7 @@ class DesktopEmailTracker {
     } catch (error) {
       console.error('Error updating email log tracking:', error);
     }
+    */
   }
 
   // REMOVED: Old global polling - now using user session-based polling
