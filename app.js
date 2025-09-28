@@ -394,7 +394,8 @@ app.post('/api/research/debug', async (req, res) => {
     };
 
     console.log('[DEBUG] Calling deepResearch function...');
-    const result = await deepResearch(query, options);
+    const userId = req.user?.userId; // May be null for debug route
+    const result = await deepResearch(query, options, userId);
     
     console.log(`[DEBUG] Deep research completed: ${result.success ? 'SUCCESS' : 'FAILED'}`);
     

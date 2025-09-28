@@ -20,7 +20,7 @@ router.post('/start', async (req, res) => {
     const userAgent = getUserAgent(userId);
     const result = await userAgent.start(minutes, userId);
     
-    res.json({
+    return res.json({
       success: result.success,
       message: result.message,
       data: {
@@ -60,7 +60,7 @@ router.post('/set-interval', async (req, res) => {
     const userAgent = getUserAgent(userId);
     const result = await userAgent.setCycleInterval(minutes);
     
-    res.json({
+    return res.json({
       success: result.success,
       message: result.message,
       data: {

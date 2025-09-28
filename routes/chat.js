@@ -317,7 +317,8 @@ router.post('/research/deep', async (req, res) => {
     };
 
     // Execute deep research
-    const result = await deepResearch(query, options);
+    const userId = req.user?.userId;
+    const result = await deepResearch(query, options, userId);
     
     console.log(`[DeepResearch] Completed: ${result.success ? 'SUCCESS' : 'FAILED'}`);
     if (result.success) {
@@ -376,7 +377,8 @@ router.post('/research/deep-stream', async (req, res) => {
     };
 
     // Execute deep research with progress updates
-    const result = await deepResearch(query, options);
+    const userId = req.user?.userId;
+    const result = await deepResearch(query, options, userId);
     
     console.log(`[DeepResearch] Completed: ${result.success ? 'SUCCESS' : 'FAILED'}`);
     
@@ -399,6 +401,40 @@ router.post('/research/deep-stream', async (req, res) => {
       error: err.message 
     })}\n\n`);
     res.end();
+  }
+});
+
+// Get user's research history
+router.get('/research/history', async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { getUserResearchHistory } = await import('../tools/deepResearch.js');
+    const userHistory = getUserResearchHistory(userId);
+
+    res.json({
+      success: true,
+      userId: userId,
+      totalQueries: userHistory.results.length,
+      lastActivity: userHistory.lastActivity,
+      history: userHistory.results.map((result, index) => ({
+        id: index + 1,
+        query: result.query,
+        timestamp: result.timestamp,
+        totalSources: result.totalSources,
+        summary: result.summary.substring(0, 200) + (result.summary.length > 200 ? '...' : '') // Truncated summary
+      }))
+    });
+
+  } catch (err) {
+    console.error('[Research History] Error:', err);
+    res.status(500).json({ 
+      success: false,
+      error: err.message
+    });
   }
 });
 

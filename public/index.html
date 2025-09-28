@@ -6930,9 +6930,13 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           const contactCriteria = leadSettings.contactCriteria || {};
           const geographicSettings = leadSettings.geographicSettings || {};
           const emailBuilder = leadSettings.emailBuilder || {};
-          const brandingCriteria = leadSettings.branding || {};
-          const advanced = leadSettings.advanced || {};
-          const research = leadSettings.research || {};
+          const brandingCriteria = leadSettings.companyBranding || {};
+          const advanced = leadSettings.advancedCriteria || {};
+          const research = leadSettings.researchFocus || {};
+          
+          console.log('[SECTION DEBUG] advanced:', advanced);
+          console.log('[SECTION DEBUG] research:', research);
+          console.log('[SECTION DEBUG] emailBuilder:', emailBuilder);
           
           // === COMPANY CRITERIA SECTION ===
           document.getElementById('company-size-min').value = companyCriteria.companySizeMin || '';
@@ -7075,8 +7079,10 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
           
           // === RESEARCH FOCUS SECTION ===
           // Load research focus - only use default if no saved value exists
-          if (research.researchFocus) {
-            document.getElementById('research-focus').value = research.researchFocus;
+          console.log('[RESEARCH DEBUG] research object:', research);
+          if (research.focusAreas && research.focusAreas.length > 0) {
+            document.getElementById('research-focus').value = research.focusAreas[0];
+            console.log('[RESEARCH DEBUG] Loaded saved research focus:', research.focusAreas[0]);
           } else {
             const defaultResearchFocus = `- Employee communication challenges and workforce management
 - HR technology adoption and digital transformation initiatives
@@ -7086,17 +7092,25 @@ TEMPLATE VARIABLES TO CUSTOMIZE:
 - Industry-specific operational challenges
 - Leadership quotes about employee experience or workplace efficiency`;
             document.getElementById('research-focus').value = defaultResearchFocus;
+            console.log('[RESEARCH DEBUG] Using default research focus');
           }
           
           // === COMPANY BRANDING SECTION ===
           // Load company branding - use defaults if no saved values exist
-          document.getElementById('agent-name').value = brandingCriteria.agentName || 'ExaMark';
-          document.getElementById('company-name').value = brandingCriteria.companyName || 'Exabits';
-          document.getElementById('agent-title').value = brandingCriteria.agentTitle || 'AI Assistant';
-          document.getElementById('primary-service').value = brandingCriteria.primaryService || 'AI-powered High-Performance Computing Solutions';
-          document.getElementById('core-offering').value = brandingCriteria.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters';
-          document.getElementById('key-advantages').value = brandingCriteria.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support';
-          document.getElementById('expertise-area').value = brandingCriteria.expertiseArea || 'Deep understanding of AI/ML compute requirements';
+          console.log('[BRANDING DEBUG] brandingCriteria full object:', brandingCriteria);
+          console.log('[BRANDING DEBUG] agentName:', brandingCriteria.agentName);
+          console.log('[BRANDING DEBUG] companyName:', brandingCriteria.companyName);
+          
+          document.getElementById('agent-name').value = brandingCriteria.agentName || '';
+          document.getElementById('company-name').value = brandingCriteria.companyName || '';
+          document.getElementById('agent-title').value = brandingCriteria.agentTitle || '';
+          document.getElementById('primary-service').value = brandingCriteria.primaryService || '';
+          document.getElementById('core-offering').value = brandingCriteria.coreOffering || '';
+          document.getElementById('key-advantages').value = brandingCriteria.keyAdvantages || '';
+          document.getElementById('expertise-area').value = brandingCriteria.expertiseArea || '';
+          
+          console.log('[BRANDING DEBUG] ✅ Loaded agent name:', document.getElementById('agent-name').value);
+          console.log('[BRANDING DEBUG] ✅ Loaded company name:', document.getElementById('company-name').value);
           
           console.log('[LEAD SETTINGS] ✅ Loaded settings for user:', currentUser.userId);
           
@@ -9922,11 +9936,8 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
 
       <!-- Company Branding Section -->
       <div class="settings-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem;">
           <h3 style="margin: 0;">🏢 Company Branding</h3>
-          <button onclick="saveCompanyBranding()" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-            💾 Save
-          </button>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -9946,24 +9957,24 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
           </div>
           
           <div class="modal-form-group">
-            <label for="primary-service">Primary Service</label>
-            <input id="primary-service" type="text" placeholder="AI-powered High-Performance Computing Solutions" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+            <label for="primary-service">Primary Service <span style="display: inline-block; width: 14px; height: 14px; background: #64748b; color: white; border-radius: 50%; text-align: center; font-size: 10px; line-height: 14px; margin-left: 6px; cursor: help; font-weight: bold;" title="Employee Text Messaging & HR Communication Platform integrated with ADP Workforce Now">i</span></label>
+            <input id="primary-service" type="text" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
           </div>
         </div>
         
         <div class="modal-form-group">
-          <label for="core-offering">Core Offering Details</label>
-          <input id="core-offering" type="text" placeholder="Custom AI infrastructure with NVIDIA H100/H200 GPU clusters" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+          <label for="core-offering">Core Offering Details <span style="display: inline-block; width: 14px; height: 14px; background: #64748b; color: white; border-radius: 50%; text-align: center; font-size: 10px; line-height: 14px; margin-left: 6px; cursor: help; font-weight: bold;" title="Text messaging platform that integrates directly with ADP Workforce Now to automate shift reminders, policy updates, emergency alerts, and HR communications">i</span></label>
+          <input id="core-offering" type="text" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
         </div>
         
         <div class="modal-form-group">
-          <label for="key-advantages">Key Competitive Advantages</label>
-          <textarea id="key-advantages" rows="2" placeholder="AI-HPC specialization, better performance-per-dollar vs general cloud, expert support" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
+          <label for="key-advantages">Key Competitive Advantages <span style="display: inline-block; width: 14px; height: 14px; background: #64748b; color: white; border-radius: 50%; text-align: center; font-size: 10px; line-height: 14px; margin-left: 6px; cursor: help; font-weight: bold;" title="Seamless ADP integration, instant employee reach via SMS, automated HR workflows, real-time emergency notifications, higher engagement than email">i</span></label>
+          <textarea id="key-advantages" rows="2" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;"></textarea>
         </div>
         
         <div class="modal-form-group">
-          <label for="expertise-area">Industry Expertise</label>
-          <input id="expertise-area" type="text" placeholder="Deep understanding of AI/ML compute requirements" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+          <label for="expertise-area">Industry Expertise <span style="display: inline-block; width: 14px; height: 14px; background: #64748b; color: white; border-radius: 50%; text-align: center; font-size: 10px; line-height: 14px; margin-left: 6px; cursor: help; font-weight: bold;" title="Deep understanding of HR communication challenges and ADP Workforce Now integration requirements">i</span></label>
+          <input id="expertise-area" type="text" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
         </div>
         
         <div style="font-size: 0.8rem; color: #64748b; margin-top: 10px;">

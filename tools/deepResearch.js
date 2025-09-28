@@ -432,11 +432,52 @@ function scoreAndRankResults(results, query, mode) {
   }).sort((a, b) => b.relevanceScore - a.relevanceScore);
 }
 
+// User-specific research history (in-memory)
+const userResearchHistory = new Map();
+
+// Helper function to get or create user research history
+function getUserResearchHistory(userId) {
+  if (!userId) return null;
+  
+  if (!userResearchHistory.has(userId)) {
+    userResearchHistory.set(userId, {
+      queries: [],
+      recentResults: new Map(),
+      queryCount: 0,
+      lastActive: new Date()
+    });
+    console.log(`[DEEP RESEARCH] 📝 Created research history for user: ${userId.substring(0, 8)}...`);
+  }
+  
+  return userResearchHistory.get(userId);
+}
+
 // Main deep research function
 export async function deepResearch(query, options = {}) {
-  const { mode = 'fresh', limit = 25, progressCallback } = options;
+  const { mode = 'fresh', limit = 25, progressCallback, userId } = options;
   
-  console.log(`🔬 [DeepResearch] Starting research for: "${query}" (mode: ${mode})`);
+  console.log(`🔬 [DeepResearch] Starting research for: "${query}" (mode: ${mode})${userId ? ` - User: ${userId.substring(0, 8)}...` : ''}`);
+  
+  // Track user research history if userId provided
+  let userHistory = null;
+  if (userId) {
+    userHistory = getUserResearchHistory(userId);
+    userHistory.queries.push({
+      query,
+      mode,
+      timestamp: new Date(),
+      limit
+    });
+    userHistory.queryCount++;
+    userHistory.lastActive = new Date();
+    
+    // Keep only last 50 queries per user to prevent memory bloat
+    if (userHistory.queries.length > 50) {
+      userHistory.queries = userHistory.queries.slice(-50);
+    }
+    
+    console.log(`[DEEP RESEARCH] 📊 User query #${userHistory.queryCount} - Recent queries: ${userHistory.queries.length}`);
+  }
   
   // Create OpenAI instance with environment variable API key
   const openAIApiKey = process.env.OPENAI_API_KEY;
@@ -615,6 +656,18 @@ Summary:`;
     }
 
     const summary = await chatWithTextOnly(summaryPrompt, chatModel);
+    
+    // Store results in user's research history
+    if (userId) {
+        const userHistory = getUserResearchHistory(userId);
+        userHistory.results.push({
+            query: researchQuery,
+            summary: summary,
+            totalSources: allResults.length,
+            timestamp: new Date().toISOString()
+        });
+        console.log(`Stored research result for user ${userId}. History now has ${userHistory.results.length} entries`);
+    }
     
     sendProgress('completed', 100, 'Research completed successfully!');
     

@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { deepResearch } from '../tools/deepResearch.js';
 import { leadResearch } from '../tools/leadResearch.js';
 import { leadEmail } from '../tools/leadEmail.js';
-import { emailQueue } from '../lib/emailQueue.js';
+import { EmailQueue } from '../lib/emailQueue.js';
 import zillizSettingsManager from '../utils/zillizSettingsManager.js';
 import { ChatOpenAI } from "@langchain/openai";
 import { EventEmitter } from 'events';
@@ -101,6 +101,9 @@ class LeadContactAgent extends EventEmitter {
     // Set user-specific file paths
     this.stateFile = path.join(process.cwd(), 'agent', `leadAgent_state_${userCode}.json`);
     this.leadsFile = path.join(process.cwd(), 'agent', `leads_database_${userCode}.json`);
+    
+    // Initialize user-specific email queue
+    this.emailQueue = new EmailQueue(userId);
     
     console.log(`[LEAD AGENT] 📁 Set user-specific files for ${userCode}: state=${this.stateFile}, db=${this.leadsFile}`);
   }
@@ -1754,7 +1757,7 @@ BODY: [email body]`;
         };
         
         emailProgressStep(`📤 Adding to email approval queue...`);
-        await emailQueue.addToQueue(queueData);
+        await this.emailQueue.addToQueue(queueData);
         
         console.log(`[LEAD AGENT] 📧 Added to email queue: ${lead.company} (${lead.email})`);
         emailProgressStep(`✅ Email queued for ${lead.company} - ready for review`);

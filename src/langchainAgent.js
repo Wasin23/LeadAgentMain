@@ -155,7 +155,7 @@ export async function getLangchainAgentWithMemory(userId = null) {
         }
         
         const options = { mode, limit };
-        const result = await deepResearch(query, options);
+        const result = await deepResearch(query, options, userId);
         return JSON.stringify(result);
       } catch (error) {
         return `Error: ${error.message}`;
