@@ -257,10 +257,10 @@ class DesktopEmailTracker {
   // REMOVED: Old global polling method - replaced with user-specific polling
 
   // Sync email logs with actual Zilliz data (don't increment, just set correct counts)
-  async syncWithZillizData(zillizEvents) {
+  async syncWithZillizData(zillizEvents, userId = null) {
     try {
-      // Load current email logs
-      const emailLogs = await this.loadEmailLogs();
+      // Load current email logs for specific user
+      const emailLogs = await this.loadEmailLogs(userId);
       let logsChanged = false;
 
       // Group Zilliz events by tracking ID (deduplicated)
@@ -428,8 +428,8 @@ class DesktopEmailTracker {
 
       // Save if changes were made
       if (logsChanged) {
-        await this.saveEmailLogs(emailLogs);
-        console.log(`📧 [SYNC] Email logs synchronized with Zilliz data`);
+        await this.saveEmailLogs(emailLogs, userId);
+        console.log(`📧 [SYNC] Email logs synchronized with Zilliz data for user ${userId || 'all users'}`);
       }
 
       // Also fetch and sync reply data for emails that have tracking IDs
@@ -580,19 +580,44 @@ class DesktopEmailTracker {
     this.saveTrackingData(); // Save changes to file
   }
 
-  // Load email logs from file
-  async loadEmailLogs() {
+  // Load email logs from file - now user-specific
+  async loadEmailLogs(userId = null) {
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
-      const logPath = path.join(process.cwd(), 'email_logs.json');
-      const data = await fs.readFile(logPath, 'utf8');
-      return JSON.parse(data);
+      
+      // If userId provided, use user-specific file, otherwise try to load all user files
+      if (userId) {
+        const logPath = path.join(process.cwd(), `email_logs_${userId}.json`);
+        const data = await fs.readFile(logPath, 'utf8');
+        return JSON.parse(data);
+      } else {
+        // Load all user-specific files and combine them
+        const allLogs = [];
+        try {
+          const files = await fs.readdir(process.cwd());
+          const userLogFiles = files.filter(f => f.startsWith('email_logs_') && f.endsWith('.json') && f !== 'email_logs.json');
+          
+          for (const file of userLogFiles) {
+            try {
+              const filePath = path.join(process.cwd(), file);
+              const data = await fs.readFile(filePath, 'utf8');
+              const logs = JSON.parse(data);
+              allLogs.push(...logs);
+            } catch (fileError) {
+              console.log(`📧 [SYNC] Skipping file ${file}:`, fileError.message);
+            }
+          }
+        } catch (dirError) {
+          console.log('📧 [SYNC] Error reading directory:', dirError.message);
+        }
+        
+        return allLogs;
+      }
     } catch (error) {
-      // If file doesn't exist, create it with empty array
+      // If file doesn't exist, return empty array (don't create files here)
       if (error.code === 'ENOENT') {
-        console.log('📧 [SYNC] Creating new email_logs.json file');
-        await this.saveEmailLogs([]);
+        console.log(`📧 [SYNC] No email logs found for user ${userId || 'all users'}`);
         return [];
       }
       console.error('📧 [SYNC] Error loading email logs:', error);
@@ -600,13 +625,48 @@ class DesktopEmailTracker {
     }
   }
 
-  // Save email logs to file
-  async saveEmailLogs(emailLogs) {
+  // Save email logs to user-specific files
+  async saveEmailLogs(emailLogs, userId = null) {
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
-      const logPath = path.join(process.cwd(), 'email_logs.json');
-      await fs.writeFile(logPath, JSON.stringify(emailLogs, null, 2), 'utf8');
+      
+      if (userId) {
+        // Save to specific user file
+        const logPath = path.join(process.cwd(), `email_logs_${userId}.json`);
+        await fs.writeFile(logPath, JSON.stringify(emailLogs, null, 2), 'utf8');
+        console.log(`📧 [SYNC] Saved ${emailLogs.length} emails for user ${userId}`);
+      } else {
+        // Group logs by userId and save to separate files
+        const logsByUser = {};
+        
+        emailLogs.forEach(log => {
+          // Extract userId from tracking ID
+          const trackingId = log.trackingId || log.id;
+          let logUserId = null;
+          
+          if (trackingId && trackingId.includes('_')) {
+            const match = trackingId.match(/tracking-([^_]+)_/);
+            if (match) {
+              logUserId = match[1];
+            }
+          }
+          
+          if (logUserId) {
+            if (!logsByUser[logUserId]) {
+              logsByUser[logUserId] = [];
+            }
+            logsByUser[logUserId].push(log);
+          }
+        });
+        
+        // Save each user's logs to their specific file
+        for (const [uId, logs] of Object.entries(logsByUser)) {
+          const logPath = path.join(process.cwd(), `email_logs_${uId}.json`);
+          await fs.writeFile(logPath, JSON.stringify(logs, null, 2), 'utf8');
+          console.log(`📧 [SYNC] Saved ${logs.length} emails for user ${uId}`);
+        }
+      }
     } catch (error) {
       console.error('📧 [SYNC] Error saving email logs:', error);
     }
@@ -669,7 +729,7 @@ class DesktopEmailTracker {
       if (data.success && data.events && data.events.length > 0) {
         // Events are already filtered by userId on the server side
         console.log(`📧 [USER POLLING] User ${userId}: Syncing ${data.events.length} events`);
-        await this.syncWithZillizData(data.events);
+        await this.syncWithZillizData(data.events, userId);
       }
       
     } catch (error) {

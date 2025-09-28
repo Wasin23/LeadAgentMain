@@ -53,31 +53,45 @@ function getTimezoneOffset(timezone) {
   // Get current timezone offset based on timezone name
   const now = new Date();
   
+  // Create dates in the specific timezone to check DST properly
+  const checkDST = (tz) => {
+    const january = new Date(now.getFullYear(), 0, 1);
+    const july = new Date(now.getFullYear(), 6, 1);
+    
+    const janOffset = new Intl.DateTimeFormat('en', {
+      timeZoneName: 'longOffset',
+      timeZone: tz
+    }).formatToParts(january).find(part => part.type === 'timeZoneName').value;
+    
+    const julyOffset = new Intl.DateTimeFormat('en', {
+      timeZoneName: 'longOffset', 
+      timeZone: tz
+    }).formatToParts(july).find(part => part.type === 'timeZoneName').value;
+    
+    const currentOffset = new Intl.DateTimeFormat('en', {
+      timeZoneName: 'longOffset',
+      timeZone: tz
+    }).formatToParts(now).find(part => part.type === 'timeZoneName').value;
+    
+    return currentOffset;
+  };
+  
   switch (timezone) {
     case 'America/Los_Angeles':
-      // PST = -08:00, PDT = -07:00 (check if DST is active)
-      const isDST = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
-      return isDST ? '-07:00' : '-08:00';
+      return checkDST('America/Los_Angeles');
       
     case 'America/New_York':
-      // EST = -05:00, EDT = -04:00 (check if DST is active)
-      const isEDT = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
-      return isEDT ? '-04:00' : '-05:00';
+      return checkDST('America/New_York');
       
     case 'America/Chicago':
-      // CST = -06:00, CDT = -05:00
-      const isCDT = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
-      return isCDT ? '-05:00' : '-06:00';
+      return checkDST('America/Chicago');
       
     case 'America/Denver':
-      // MST = -07:00, MDT = -06:00
-      const isMDT = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
-      return isMDT ? '-06:00' : '-07:00';
+      return checkDST('America/Denver');
       
     default:
       // Default to PST/PDT for unrecognized timezones
-      const defaultDST = now.getTimezoneOffset() < new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
-      return defaultDST ? '-07:00' : '-08:00';
+      return checkDST('America/Los_Angeles');
   }
 }
 
@@ -1038,6 +1052,13 @@ COMMUNICATION STYLE:
 - Write the email content as if you ARE ${userSettings.ai_assistant_name} from ${userSettings.company_name}
 - Be conversational and helpful, speaking directly to the person who sent the email
 - Example: "Hi Sarah, unfortunately Colton is unavailable at 9pm. Could we schedule for 2pm tomorrow instead?"
+
+CRITICAL FORMATTING RULES:
+- NEVER use bullet points, numbered lists, or markdown formatting in email responses
+- Write in natural conversational paragraphs that flow like a real conversation
+- Instead of listing features as "1. Feature A 2. Feature B", weave them naturally into sentences
+- Example: "Our platform helps you reach employees instantly through SMS, which gets much better engagement than email. We integrate seamlessly with your existing ADP Workforce Now system to streamline your HR workflows and ensure critical information like policy updates reaches everyone immediately."
+- Keep responses warm, personal, and naturally flowing like a human conversation
 
 TIMEZONE CONVERSION EXAMPLES:
 - If user asks for "5pm EST" and you're in PST: Convert to "2pm PST" and schedule at 2pm PST

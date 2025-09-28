@@ -5435,6 +5435,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         const data = await response.json();
         
         if (data.success) {
+          console.log('[DEBUG] Analytics data received:', data.data);
           updateEmailAnalyticsList(data.data);
         } else {
           console.error('Error getting email analytics list:', data.message);
@@ -5461,13 +5462,22 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
         const sentDate = new Date(email.timestamp).toLocaleDateString();
         const sentTime = new Date(email.timestamp).toLocaleTimeString();
         
-        // Use analytics object data
-        const analytics = email.analytics || {};
-        const isOpened = analytics.opened || false;
-        const isClicked = analytics.clicked || false;
-        const isReplied = analytics.replied || false;
+        // Use analytics object data (check both analytics and analyticsStatus for compatibility)
+        const analytics = email.analytics || email.analyticsStatus || {};
+        const isOpened = analytics.opened || analytics.hasOpened || false;
+        const isClicked = analytics.clicked || analytics.hasClicked || false;
+        const isReplied = analytics.replied || analytics.hasReplied || false;
         const openCount = analytics.openCount || 0;
         const clickCount = analytics.clickCount || 0;
+        
+        // Debug logging for first few emails
+        if (email.id && email.id.includes('tracking-76e84c79')) {
+          console.log(`[DEBUG] Email ${email.id} analytics:`, {
+            rawAnalytics: email.analytics,
+            rawAnalyticsStatus: email.analyticsStatus,
+            computed: { isOpened, isClicked, isReplied, openCount, clickCount }
+          });
+        }
         
         // Get response content from replies array instead of analytics
         const responseContent = (email.replies && email.replies.length > 0) 
