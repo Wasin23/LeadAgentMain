@@ -581,6 +581,12 @@ class DesktopEmailTracker {
       const data = await fs.readFile(logPath, 'utf8');
       return JSON.parse(data);
     } catch (error) {
+      // If file doesn't exist, create it with empty array
+      if (error.code === 'ENOENT') {
+        console.log('📧 [SYNC] Creating new email_logs.json file');
+        await this.saveEmailLogs([]);
+        return [];
+      }
       console.error('📧 [SYNC] Error loading email logs:', error);
       return [];
     }
@@ -655,7 +661,7 @@ class DesktopEmailTracker {
       if (data.success && data.events && data.events.length > 0) {
         // Events are already filtered by userId on the server side
         console.log(`📧 [USER POLLING] User ${userId}: Syncing ${data.events.length} events`);
-        await this.syncUserEvents(userId, data.events);
+        await this.syncWithZillizData(data.events);
       }
       
     } catch (error) {

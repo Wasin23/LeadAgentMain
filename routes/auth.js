@@ -531,6 +531,22 @@ router.post('/settings/lead-contact-settings/branding', authenticateToken, async
   }
 });
 
+router.post('/settings/lead-contact-settings/companyBranding', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');
+    
+    console.log(`[AUTH] Updating companyBranding section for user: ${userId}`, req.body);
+    
+    await zillizSettingsManager.updateLeadAgentSettingsPartial(userId, 'companyBranding', req.body);
+    
+    res.json({ success: true, message: 'Company branding settings updated successfully' });
+  } catch (error) {
+    console.error('[AUTH] Company branding settings update error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Password reset - request reset token
 router.post('/forgot-password', async (req, res) => {
   try {

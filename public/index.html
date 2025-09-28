@@ -6458,6 +6458,10 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
           agentName: document.getElementById('agent-name')?.value?.trim() || 'ExaMark',
           companyName: document.getElementById('company-name')?.value?.trim() || 'Exabits',
           agentTitle: document.getElementById('agent-title')?.value?.trim() || 'AI Assistant',
+          primaryService: document.getElementById('primary-service')?.value?.trim() || 'AI-powered High-Performance Computing Solutions',
+          coreOffering: document.getElementById('core-offering')?.value?.trim() || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+          keyAdvantages: document.getElementById('key-advantages')?.value?.trim() || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
+          expertiseArea: document.getElementById('expertise-area')?.value?.trim() || 'Deep understanding of AI/ML compute requirements',
           companyWebsite: '',
           companyDescription: ''
         },
@@ -7344,7 +7348,7 @@ Example usage in prompt:
           expertiseArea: document.getElementById('expertise-area').value.trim() || 'Deep understanding of AI/ML compute requirements'
         };
 
-        await saveLeadSettingsSection('branding', brandingData);
+        await saveLeadSettingsSection('companyBranding', brandingData);
         showSuccessMessage('🏢 Company branding saved!');
       } catch (error) {
         console.error('Error saving company branding:', error);
