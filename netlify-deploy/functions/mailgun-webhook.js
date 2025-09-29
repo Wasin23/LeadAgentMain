@@ -73,7 +73,8 @@ function getTimezoneOffset(timezone) {
       timeZone: tz
     }).formatToParts(now).find(part => part.type === 'timeZoneName').value;
     
-    return currentOffset;
+    // Remove "GMT" prefix to get proper ISO format
+    return currentOffset.replace('GMT', '');
   };
   
   switch (timezone) {
