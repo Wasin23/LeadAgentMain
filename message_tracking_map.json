@@ -96,5 +96,12 @@
     "subject": "test email for actiontrac 2",
     "sentAt": "2025-09-28T17:36:16.720Z",
     "source": "email"
+  },
+  "tracking-tracking-76e84c79_1759105337615_e40cf591@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1759105337615_e40cf591",
+    "to": "colton.fidd@gmail.com",
+    "subject": "Enhance AI Integration with Seamless HR Communication NOW",
+    "sentAt": "2025-09-29T00:22:18.005Z",
+    "source": "email"
   }
 }

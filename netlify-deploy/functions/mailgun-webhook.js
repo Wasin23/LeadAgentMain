@@ -331,12 +331,12 @@ async function findBusinessHoursAlternative(calendar_id, requestedStart, duratio
 // Tool 2: Check Calendar Availability and Suggest Alternatives
 const checkAvailabilityTool = new DynamicStructuredTool({
   name: "check_availability",
-  description: "Check calendar availability for requested time and suggest alternatives if busy or outside business hours (8am-8pm). Always use before creating calendar events.",
+  description: "Check calendar availability for requested time and suggest alternatives if busy or outside business hours (8am-8pm). Always use before creating calendar events. CRITICAL: Always use the user's timezone from their email response settings - NEVER use GMT/UTC.",
   schema: z.object({
     calendar_id: z.string().describe("User's calendar ID to check availability"),
     requested_time: z.string().describe("ISO datetime string for requested meeting time"),
     duration_minutes: z.number().default(30).describe("Meeting duration in minutes"),
-    timezone: z.string().describe("Timezone for scheduling")
+    timezone: z.string().describe("MANDATORY: User's timezone from email response settings (e.g., 'America/New_York', 'America/Los_Angeles') - NEVER use GMT or UTC")
   }),
   func: async ({ calendar_id, requested_time, duration_minutes, timezone }) => {
     try {
@@ -636,14 +636,14 @@ const checkAvailabilityTool = new DynamicStructuredTool({
 // Tool 3: Create calendar event (enhanced with availability checking)
 const createCalendarEventTool = new DynamicStructuredTool({
   name: "create_calendar_event",
-  description: "Create a Google Calendar event. ALWAYS check availability first using check_availability tool. If time is busy, use the suggested alternative time.",
+  description: "Create a Google Calendar event. ALWAYS check availability first using check_availability tool. If time is busy, use the suggested alternative time. CRITICAL: Always use the user's timezone from their email response settings - NEVER use GMT/UTC.",
   schema: z.object({
     calendar_id: z.string().default('primary').describe("Calendar ID to create event in"),
     start_time: z.string().describe("ISO datetime string for event start (e.g., 2025-09-23T15:00:00-07:00 for 3pm PDT)"),
     end_time: z.string().optional().describe("ISO datetime string for event end - if not provided, will add 30 minutes to start_time"),
     title: z.string().default("Sales Discussion").describe("Event title"),
     attendees: z.array(z.string()).describe("Array of email addresses to invite"),
-    timezone: z.string().default("America/Los_Angeles").describe("Timezone for the event"),
+    timezone: z.string().describe("MANDATORY: User's timezone from email response settings (e.g., 'America/New_York', 'America/Los_Angeles') - NEVER use GMT or UTC"),
     availability_checked: z.boolean().default(false).describe("Whether availability was already checked - should be true if using suggested time from check_availability")
   }),
   func: async ({ calendar_id, start_time, end_time, title, attendees, timezone, availability_checked }) => {
@@ -977,6 +977,15 @@ Do not attempt to create calendar events or send detailed responses without prop
 
   // Calculate dates in user's timezone
   const userTimezone = userSettings.timezone;
+  
+  // Ensure timezone is configured
+  if (!userTimezone || userTimezone === 'UTC' || userTimezone === 'GMT') {
+    return `You are an AI assistant with incomplete timezone configuration. 
+
+Please inform the user: "I need you to configure your timezone in the Email Response Settings before I can schedule meetings properly. Currently your timezone is set to ${userTimezone || 'undefined'}, but I need a specific timezone like America/New_York or America/Los_Angeles to schedule meetings correctly."
+
+Do not attempt to create calendar events without proper timezone configuration.`;
+  }
   // Format dates in ISO format (YYYY-MM-DD) for proper Date() parsing
   const todayDate = new Date();
   const todayInUserTz = new Date(todayDate.toLocaleString('en-US', { timeZone: userTimezone }));
@@ -1076,6 +1085,12 @@ CALENDAR EVENT RULES:
   * Always inform user about the change and why
 - TIME PARSING: Parse the EXACT time mentioned by user (3pm = 15:00, NOT 16:00)
 - TIMEZONE: Always use user's timezone (${userTimezone}) for business hours enforcement
+
+CRITICAL TIMEZONE REQUIREMENT:
+- When calling check_availability tool, ALWAYS pass timezone parameter as: "${userTimezone}"
+- When calling create_calendar_event tool, ALWAYS pass timezone parameter as: "${userTimezone}"
+- NEVER use GMT, UTC, or any other timezone - ONLY use the user's configured timezone: ${userTimezone}
+- The AI must remember and use this timezone for ALL calendar operations
 
 IMPORTANT RULES:
 - Use EXACTLY the dates shown above for ${userTimezone} timezone
