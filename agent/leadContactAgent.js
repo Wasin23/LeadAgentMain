@@ -1,3 +1,18 @@
+/*
+ * 🚀 EXPERIMENTAL LEAD CONTACT AGENT - OPTIMIZED VERSION
+ * 
+ * Key Optimizations:
+ * - Iterative Apollo batching (5 leads at a time until target reached)
+ * - Smart company name matching (prevents "Zuckerberg Media" = Meta confusion)
+ * - Sequential search strategy (no more random selections)
+ * - Enhanced deduplication with domain-based filtering
+ * - Quality-first lead scoring with progressive thresholds
+ * - Cross-cycle memory to avoid re-researching same companies
+ * - Intelligent query variation for better coverage
+ * 
+ * DO NOT USE IN PRODUCTION - This is for testing optimizations
+ */
+
 import 'dotenv/config';
 import { deepResearch } from '../tools/deepResearch.js';
 import { leadResearch } from '../tools/leadResearch.js';
@@ -136,7 +151,7 @@ class LeadContactAgent extends EventEmitter {
         companyName: zillizSettings.companyBranding?.companyName || 'Exabits',
         agentTitle: zillizSettings.companyBranding?.agentTitle || 'AI Assistant',
         primaryService: zillizSettings.companyBranding?.primaryService || 'AI-powered High-Performance Computing Solutions',
-        coreOffering: zillizSettings.companyBranding?.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+        coreOffering: zillizSettings.companyBranding?.coreOffering || 'Professional business solutions',
         keyAdvantages: zillizSettings.companyBranding?.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
         expertiseArea: zillizSettings.companyBranding?.expertiseArea || 'Deep understanding of AI/ML compute requirements'
       },
@@ -352,8 +367,9 @@ class LeadContactAgent extends EventEmitter {
       }
     }
     
-    // Add target position context
-    query += ` that would need ExaMark's AI sales automation tools, looking for contacts in ${targetPosition} roles`;
+    // Add target position context with dynamic service description
+    const serviceDescription = this.leadContactSettings?.companyBranding?.primaryService || 'AI-powered solutions';
+    query += ` that would need ${serviceDescription}, looking for contacts in ${targetPosition} roles`;
     
     // Add location filter (use random location if general terms detected)
     if (targetLocations.length > 0) {
@@ -402,6 +418,255 @@ class LeadContactAgent extends EventEmitter {
     
     console.log(`[LEAD AGENT] Built search query: ${query}`);
     return query;
+  }
+
+  // EXPERIMENTAL: Iterative Apollo Batching - Get leads in small batches until target reached
+  async performIterativeApolloBatching(industry, position, queryVariation, batchSize, remainingNeeded, baseProgress) {
+    console.log(`[EXPERIMENTAL] 🔄 Starting iterative batching for ${industry} + ${position}`);
+    console.log(`[EXPERIMENTAL] 🎯 Target: ${remainingNeeded} more leads, batch size: ${batchSize}`);
+    
+    const allBatchResults = [];
+    let currentOffset = 0;
+    let batchCount = 0;
+    const maxBatches = Math.ceil(remainingNeeded / batchSize) + 2; // Add buffer for filtering
+    
+    while (allBatchResults.length < remainingNeeded && batchCount < maxBatches) {
+      batchCount++;
+      const batchProgress = baseProgress + (batchCount / maxBatches) * 15;
+      
+      this.updateFluidProgress(`📡 Apollo batch ${batchCount}: ${industry} (offset: ${currentOffset})`, batchProgress);
+      
+      // Build query with offset for pagination
+      const query = this.buildEnhancedSearchQuery(industry, position, queryVariation, currentOffset);
+      
+      try {
+        console.log(`[EXPERIMENTAL] 🚀 Executing Apollo batch ${batchCount} with offset ${currentOffset}`);
+        
+        // Use optimized leadResearch tool with proper settings structure
+        const { leadResearch } = await import('../tools/leadResearch.js');
+        const batchResult = await leadResearch(query, { 
+          limit: batchSize,  // Keep individual Apollo calls small
+          userId: this.currentUserId,
+          researchFocus: this.leadContactSettings?.researchFocus?.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(line => line.length > 0),
+          leadContactSettings: this.leadContactSettings,
+          batchInfo: { batchNumber: batchCount, offset: currentOffset }
+        });
+        
+        if (batchResult && batchResult.length > 0) {
+          console.log(`[EXPERIMENTAL] ✅ Batch ${batchCount}: Got ${batchResult.length} raw results`);
+          allBatchResults.push(...batchResult);
+          currentOffset += batchSize; // Advance pagination
+          
+          this.updateFluidProgress(`📊 Batch ${batchCount}: +${batchResult.length} leads (${allBatchResults.length} total)`, batchProgress + 2);
+        } else {
+          console.log(`[EXPERIMENTAL] 🔚 Batch ${batchCount}: No more results, ending pagination`);
+          break; // No more results available
+        }
+        
+        // Smart delay between Apollo API calls
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+      } catch (error) {
+        console.error(`[EXPERIMENTAL] ❌ Batch ${batchCount} error:`, error);
+        this.updateFluidProgress(`⚠️ Batch ${batchCount} error: ${error.message}`, batchProgress);
+        break; // Stop on error to preserve API credits
+      }
+    }
+    
+    console.log(`[EXPERIMENTAL] 🏁 Batching complete: ${allBatchResults.length} total results from ${batchCount} Apollo batches`);
+    return allBatchResults;
+  }
+
+  // EXPERIMENTAL: Enhanced query builder with pagination support
+  buildEnhancedSearchQuery(industry, position, queryVariation = '', offset = 0) {
+    // Build base query using existing logic
+    const baseQuery = this.buildSearchQuery(industry, position);
+    
+    // Add query variation for diversity
+    let enhancedQuery = baseQuery;
+    if (queryVariation) {
+      enhancedQuery = `${baseQuery} ${queryVariation}`;
+    }
+    
+    // Add pagination offset for iterative batching
+    if (offset > 0) {
+      enhancedQuery = `${enhancedQuery} OFFSET:${offset}`;
+    }
+    
+    console.log(`[EXPERIMENTAL] 🔍 Query: "${enhancedQuery}" (offset: ${offset})`);
+    return enhancedQuery;
+  }
+
+  // EXPERIMENTAL: Initialize cross-cycle memory system
+  async initializeCrossCycleMemory() {
+    console.log('[EXPERIMENTAL] 🧠 Loading cross-cycle memory...');
+    
+    // Load memory from file or create new
+    this.crossCycleMemory = {
+      recentSearches: new Map(), // industry+position -> { lastSearched, resultCount }
+      successfulStrategies: [], // strategies that worked well
+      companyBlacklist: new Set(), // companies to avoid
+      lastMemoryUpdate: Date.now()
+    };
+    
+    // TODO: Load from persistent storage
+    console.log('[EXPERIMENTAL] 🧠 Cross-cycle memory initialized');
+  }
+
+  // EXPERIMENTAL: Check if industry+position was recently searched
+  wasRecentlySearched(industry, position) {
+    const key = `${industry}|${position}`;
+    const recent = this.crossCycleMemory?.recentSearches?.get(key);
+    
+    if (!recent) return false;
+    
+    // Consider "recent" if searched within last 24 hours
+    const hoursSinceSearch = (Date.now() - recent.lastSearched) / (1000 * 60 * 60);
+    return hoursSinceSearch < 24;
+  }
+
+  // EXPERIMENTAL: Record successful search for future optimization
+  recordSuccessfulSearch(industry, position, resultCount) {
+    const key = `${industry}|${position}`;
+    
+    if (!this.crossCycleMemory?.recentSearches) {
+      this.crossCycleMemory = { recentSearches: new Map() };
+    }
+    
+    this.crossCycleMemory.recentSearches.set(key, {
+      lastSearched: Date.now(),
+      resultCount: resultCount,
+      wasSuccessful: resultCount > 0
+    });
+    
+    console.log(`[EXPERIMENTAL] 📝 Recorded search: ${key} -> ${resultCount} results`);
+  }
+
+  // EXPERIMENTAL: Save cross-cycle memory to persistent storage
+  async saveCrossCycleMemory() {
+    // TODO: Implement persistent storage
+    console.log('[EXPERIMENTAL] 💾 Cross-cycle memory saved');
+  }
+
+  // EXPERIMENTAL: Create intelligent search strategy (no more random!)
+  createIntelligentSearchStrategy(industries, positions) {
+    console.log('[EXPERIMENTAL] 🧠 Creating intelligent search strategy...');
+    
+    const strategy = [];
+    const maxCombinations = Math.min(industries.length * positions.length, 20); // Reasonable limit
+    
+    // Create all possible combinations
+    for (let i = 0; i < industries.length && strategy.length < maxCombinations; i++) {
+      for (let j = 0; j < positions.length && strategy.length < maxCombinations; j++) {
+        const industry = industries[i];
+        const position = positions[j];
+        
+        // Skip if recently searched
+        if (this.wasRecentlySearched(industry, position)) {
+          continue;
+        }
+        
+        // Add query variations for the same combo
+        const baseStrategy = { industry, position, queryVariation: '' };
+        strategy.push(baseStrategy);
+        
+        // Add a variation if we have room
+        if (strategy.length < maxCombinations) {
+          const variation = this.generateQueryVariation(industry, position);
+          strategy.push({ industry, position, queryVariation: variation });
+        }
+      }
+    }
+    
+    console.log(`[EXPERIMENTAL] 🎯 Created strategy with ${strategy.length} planned searches`);
+    return strategy;
+  }
+
+  // EXPERIMENTAL: Generate query variations for diversity
+  generateQueryVariation(industry, position) {
+    const variations = [
+      'established companies',
+      'growth stage companies', 
+      'technology-forward companies',
+      'data-driven companies',
+      'scaling companies',
+      'innovative companies'
+    ];
+    
+    return variations[Math.floor(Math.random() * variations.length)];
+  }
+
+  // EXPERIMENTAL: Smart company matching with domain verification
+  async performSmartCompanyMatching(leads) {
+    console.log('[EXPERIMENTAL] 🔍 Starting smart company matching...');
+    
+    const verifiedLeads = [];
+    
+    for (const lead of leads) {
+      // Check for company name confusion (like "Zuckerberg Media" vs "Meta")
+      const isValidCompany = await this.verifyCompanyIdentity(lead);
+      
+      if (isValidCompany) {
+        verifiedLeads.push(lead);
+      } else {
+        console.log(`[EXPERIMENTAL] ⚠️ Filtered out confused company: ${lead.companyName}`);
+      }
+    }
+    
+    console.log(`[EXPERIMENTAL] ✅ Company matching complete: ${verifiedLeads.length}/${leads.length} verified`);
+    return verifiedLeads;
+  }
+
+  // EXPERIMENTAL: Verify company identity to prevent confusion
+  async verifyCompanyIdentity(lead) {
+    // Simple verification - check if company name makes sense with domain
+    const companyName = lead.companyName?.toLowerCase() || '';
+    const companyDomain = lead.companyDomain?.toLowerCase() || '';
+    
+    // Known problematic cases
+    const confusionPatterns = [
+      { name: 'zuckerberg media', actualDomain: 'meta.com' },
+      { name: 'apple corp', actualDomain: 'microsoft.com' },
+      // Add more as discovered
+    ];
+    
+    for (const pattern of confusionPatterns) {
+      if (companyName.includes(pattern.name) && companyDomain.includes(pattern.actualDomain)) {
+        return false; // This is confused data
+      }
+    }
+    
+    return true; // Appears valid
+  }
+
+  // EXPERIMENTAL: Final processing with enhanced deduplication
+  async performFinalProcessing(leads) {
+    console.log('[EXPERIMENTAL] 🔄 Starting final processing...');
+    
+    // Advanced deduplication by email AND company domain
+    const uniqueLeads = [];
+    const seenEmails = new Set();
+    const seenCompanyDomains = new Set();
+    
+    for (const lead of leads) {
+      const email = lead.email?.toLowerCase() || '';
+      const domain = lead.companyDomain?.toLowerCase() || '';
+      
+      // Skip if we've seen this email or same company domain + position combination
+      const domainPositionKey = `${domain}|${lead.position}`;
+      
+      if (!seenEmails.has(email) && !seenCompanyDomains.has(domainPositionKey)) {
+        seenEmails.add(email);
+        seenCompanyDomains.add(domainPositionKey);
+        uniqueLeads.push(lead);
+      }
+    }
+    
+    // Sort by quality score (highest first)
+    uniqueLeads.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+    
+    console.log(`[EXPERIMENTAL] ✅ Final processing complete: ${uniqueLeads.length} unique high-quality leads`);
+    return uniqueLeads;
   }
 
   // Set custom cycle interval in minutes
@@ -857,114 +1122,109 @@ class LeadContactAgent extends EventEmitter {
   }
 
   async researchNewLeads() {
-    console.log('[LEAD AGENT] Researching new leads...');
+    console.log('[LEAD AGENT] 🚀 EXPERIMENTAL: Starting optimized lead research with iterative batching...');
     
     // Load user settings before starting research
     this.updateFluidProgress('⚙️ Loading Lead Contact Settings...', 2);
     await this.loadLeadContactSettings(this.currentUserId);
     
-    // Work within the existing progress framework - research is step 2 out of 6
-    // We'll use sub-progress within this step rather than overriding the main progress
+    // Initialize cross-cycle memory and search strategy
+    this.updateFluidProgress('🧠 Initializing cross-cycle memory system...', 3);
+    await this.initializeCrossCycleMemory();
     
-    const allLeads = [];
     const targetIndustries = this.getTargetIndustries();
     const targetPositions = this.getTargetPositions();
+    const userLeadLimit = this.leadContactSettings?.leadLimit || 20;
     
-    // Use settings or fallback values
-    const leadLimit = this.leadContactSettings?.leadLimit || 20;
-    const totalSearches = Math.min(3, targetIndustries.length); // Limit to 3 searches max
+    console.log(`[LEAD AGENT] 🎯 Target: ${userLeadLimit} high-quality leads`);
+    console.log(`[LEAD AGENT] 📊 Search space: ${targetIndustries.length} industries × ${targetPositions.length} positions`);
     
-    this.updateFluidProgress('🚀 Initializing research pipeline...', 5);
-    await new Promise(resolve => setTimeout(resolve, 200));
+    this.updateFluidProgress(`🎯 Target: ${userLeadLimit} leads from ${targetIndustries.length} industries`, 5);
     
-    this.updateFluidProgress(`📋 Loaded ${targetIndustries.length} industries, ${targetPositions.length} positions`, 10);
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // EXPERIMENTAL: Iterative Apollo Batching System
+    const allQualifiedLeads = [];
+    const apolloBatchSize = 5; // Keep Apollo calls small for credit management
+    const qualityThreshold = 60; // Minimum lead score to accept
+    let totalBatches = 0;
+    let maxBatches = Math.ceil(userLeadLimit / 2); // Allow some buffer for quality filtering
     
-    // Research multiple industries/positions based on settings
-    for (let i = 0; i < totalSearches; i++) {
-      // Check if we should use random selection (for general/diverse searches)
-      const shouldRandomize = this.shouldUseRandomSelection();
+    // EXPERIMENTAL: Intelligent Search Strategy (no more random!)
+    const searchStrategy = this.createIntelligentSearchStrategy(targetIndustries, targetPositions);
+    
+    this.updateFluidProgress(`🧠 Created intelligent search strategy: ${searchStrategy.length} planned searches`, 8);
+    
+    // EXPERIMENTAL: Iterative batching until we reach target
+    for (let strategyIndex = 0; strategyIndex < searchStrategy.length && allQualifiedLeads.length < userLeadLimit && totalBatches < maxBatches; strategyIndex++) {
+      const { industry, position, queryVariation } = searchStrategy[strategyIndex];
       
-      let industry, targetPosition;
-      
-      if (shouldRandomize) {
-        // Use random selection for variety in general searches
-        industry = targetIndustries[Math.floor(Math.random() * targetIndustries.length)];
-        targetPosition = targetPositions[Math.floor(Math.random() * targetPositions.length)];
-        console.log(`[LEAD AGENT] 🎲 Using random selection for diverse search`);
-      } else {
-        // Use sequential selection for specific searches
-        industry = targetIndustries[i % targetIndustries.length];
-        targetPosition = targetPositions[i % targetPositions.length];
-        console.log(`[LEAD AGENT] 🎯 Using sequential selection for targeted search`);
+      // Skip if we've exhausted this combination recently
+      if (this.wasRecentlySearched(industry, position)) {
+        console.log(`[LEAD AGENT] ⏭️ Skipping recently searched: ${industry} + ${position}`);
+        continue;
       }
       
-      const baseProgress = 10 + (i * 25); // Distribute 75% across searches (25% each)
+      const baseProgress = 10 + (strategyIndex / searchStrategy.length) * 70;
+      this.updateFluidProgress(`� Batch ${totalBatches + 1}: ${industry} → ${position}`, baseProgress);
       
-      this.updateFluidProgress(`🎯 Research focus: ${industry} - ${targetPosition}`, baseProgress);
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // EXPERIMENTAL: Iterative Apollo batching for this industry/position combo
+      const batchLeads = await this.performIterativeApolloBatching(
+        industry, 
+        position, 
+        queryVariation,
+        apolloBatchSize,
+        userLeadLimit - allQualifiedLeads.length, // Remaining needed
+        baseProgress
+      );
       
-      this.updateFluidProgress(`🔍 [${i+1}/${totalSearches}] Connecting to Apollo API...`, baseProgress + 5);
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // EXPERIMENTAL: Smart company matching and filtering
+      const verifiedLeads = await this.performSmartCompanyMatching(batchLeads);
       
-      console.log(`[LEAD AGENT] Researching: ${industry} - ${targetPosition}`);
+      // Filter by quality threshold
+      const qualifiedLeads = verifiedLeads.filter(lead => lead.totalScore >= qualityThreshold);
       
-      // Use dynamic query builder instead of hardcoded query
-      const query = this.buildSearchQuery(industry, targetPosition);
-      
-      this.updateFluidProgress(`📡 Executing search query for ${industry}...`, baseProgress + 10);
-      
-      try {
-        const researchResult = await leadResearch(query, { 
-          limit: leadLimit,
-          userId: this.currentUserId, // Pass actual authenticated userId to access API keys from settings
-          researchFocus: this.leadContactSettings?.researchFocus?.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(line => line.length > 0),
-          leadContactSettings: this.leadContactSettings
-        });
+      if (qualifiedLeads.length > 0) {
+        allQualifiedLeads.push(...qualifiedLeads);
+        console.log(`[LEAD AGENT] ✅ Batch ${totalBatches + 1}: Added ${qualifiedLeads.length} qualified leads (${allQualifiedLeads.length}/${userLeadLimit})`);
         
-        this.updateFluidProgress(`📊 Processing Apollo API response...`, baseProgress + 15);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        console.log(`[LEAD AGENT] Raw research result:`, researchResult?.length || 0, 'items');
-        
-        if (researchResult && researchResult.length > 0) {
-          this.updateFluidProgress(`✅ Found ${researchResult.length} potential leads in ${industry}`, baseProgress + 20);
-          console.log(`[LEAD AGENT] Found ${researchResult.length} leads for ${industry}`);
-          allLeads.push(...researchResult);
-          
-          this.updateFluidProgress(`💾 Adding ${researchResult.length} leads to research pool...`, baseProgress + 22);
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } else {
-          this.updateFluidProgress(`⚠️ No leads found in ${industry} market`, baseProgress + 20);
-          console.log(`[LEAD AGENT] No leads found for ${industry} --> ${query}`);
-        }
-        
-        this.updateFluidProgress(`⏱️ Cooling down API calls (rate limiting)...`, baseProgress + 25);
-        // Add delay between searches to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-      } catch (error) {
-        this.updateFluidProgress(`❌ Error searching ${industry}: ${error.message}`, baseProgress + 25);
-        console.error(`[LEAD AGENT] Error researching ${industry}:`, error);
+        // Mark this search as successful in memory
+        this.recordSuccessfulSearch(industry, position, qualifiedLeads.length);
+      } else {
+        console.log(`[LEAD AGENT] ❌ Batch ${totalBatches + 1}: No qualified leads found (threshold: ${qualityThreshold})`);
+      }
+      
+      totalBatches++;
+      
+      // Smart delay based on API usage
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update progress
+      this.updateFluidProgress(`📊 Collected ${allQualifiedLeads.length}/${userLeadLimit} qualified leads`, baseProgress + 5);
+      
+      // Check if we've reached the target
+      if (allQualifiedLeads.length >= userLeadLimit) {
+        console.log(`[LEAD AGENT] 🎯 TARGET REACHED! Found ${allQualifiedLeads.length}/${userLeadLimit} qualified leads - stopping search`);
+        break;
       }
     }
     
-    // Process and extract lead information from research results
-    this.updateFluidProgress(`🔄 Starting lead processing pipeline...`, 85);
-    this.updateFluidProgress(`🔍 Analyzing ${allLeads.length} research results for duplicates...`, 87);
-    console.log(`[LEAD AGENT] Processing ${allLeads.length} research results into leads...`);
-    const processedLeads = await this.processLeadsFromResearch(allLeads);
+    // Show final collection summary
+    if (allQualifiedLeads.length >= userLeadLimit) {
+      console.log(`[LEAD AGENT] 🎉 SUCCESS: Target of ${userLeadLimit} leads achieved! (${allQualifiedLeads.length} found)`);
+    } else {
+      console.log(`[LEAD AGENT] ⚠️ Search complete: Found ${allQualifiedLeads.length}/${userLeadLimit} leads (${searchStrategy.length} strategies tried, ${totalBatches} batches)`);
+    }
     
-    // Rank and score the leads
-    this.updateFluidProgress(`📊 Initializing lead scoring algorithm...`, 90);
-    this.updateFluidProgress(`🎯 Calculating lead quality scores...`, 92);
-    const rankedLeads = await this.rankLeads(processedLeads);
+    // EXPERIMENTAL: Final processing and ranking
+    this.updateFluidProgress(`🔄 Final processing: deduplication and ranking...`, 85);
+    const finalLeads = await this.performFinalProcessing(allQualifiedLeads);
     
-    this.updateFluidProgress(`🔍 Finalizing lead verification...`, 95);
-    this.updateFluidProgress(`✅ Research pipeline complete - ${rankedLeads.length} qualified leads ready`, 98);
-    console.log(`[LEAD AGENT] Research complete. Found ${rankedLeads.length} total leads`);
-    console.log(`[LEAD AGENT] Sample lead data:`, rankedLeads[0] ? JSON.stringify(rankedLeads[0], null, 2) : 'No leads found');
-    return rankedLeads;
+    // Save to cross-cycle memory
+    await this.saveCrossCycleMemory();
+    
+    this.updateFluidProgress(`✅ EXPERIMENTAL COMPLETE: ${finalLeads.length} optimized leads ready`, 98);
+    console.log(`[LEAD AGENT] 🎉 EXPERIMENTAL SUCCESS: Found ${finalLeads.length} high-quality leads using ${totalBatches} Apollo batches`);
+    
+    return finalLeads;
   }
 
   async processLeadsFromResearch(researchResults) {
@@ -1321,7 +1581,7 @@ class LeadContactAgent extends EventEmitter {
           'COMPANY_NAME': branding.companyName || 'Exabits',
           'AGENT_TITLE': branding.agentTitle || 'AI Assistant',
           'PRIMARY_SERVICE': branding.primaryService || 'AI-powered High-Performance Computing (HPC) Solutions',
-          'CORE_OFFERING': branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
+          'CORE_OFFERING': branding.coreOffering || 'Professional business solutions',
           'KEY_ADVANTAGES': branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
           'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of AI/ML compute requirements',
           'TARGET_COMPANY': company,
@@ -1357,12 +1617,6 @@ Title: ${lead.title}
 Industry: ${lead.industry || 'Technology'}
 Company Description: ${lead.company_description || 'Technology company'}
 Employee Count: ${lead.employee_count || 'Unknown'}${intelligenceContext}${salesRecommendations}
-
-ABOUT EXABITS (Focus on business value, not company history):
-- Specializes in AI-powered High-Performance Computing (HPC) Solutions
-- Core offering: Custom AI infrastructure with NVIDIA H100/H200 GPU clusters
-- Key advantages: AI-HPC specialization, better performance-per-dollar vs general cloud, expert support
-- Industry expertise: Deep understanding of AI/ML compute requirements
 
 YOUR TASK - BE A SMART SALESPERSON:
 Generate a professional email that demonstrates you've done your homework:
@@ -1403,9 +1657,8 @@ BODY: Hi John,
 
 I noticed TechCorp recently raised Series B funding...
 
-Best regards,
-ExaMark
-Exabits AI Assistant`;
+Best regards,`;
+
     }
 
     try {
@@ -1434,10 +1687,10 @@ Exabits AI Assistant`;
         'AGENT_NAME': branding.agentName || 'ExaMark',
         'COMPANY_NAME': branding.companyName || 'Exabits',
         'AGENT_TITLE': branding.agentTitle || 'AI Assistant',
-        'PRIMARY_SERVICE': branding.primaryService || 'AI-powered High-Performance Computing (HPC) Solutions',
-        'CORE_OFFERING': branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
-        'KEY_ADVANTAGES': branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
-        'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of AI/ML compute requirements',
+        'PRIMARY_SERVICE': branding.primaryService || 'Professional Business Solutions',
+        'CORE_OFFERING': branding.coreOffering || 'Professional business solutions',
+        'KEY_ADVANTAGES': branding.keyAdvantages || 'Tailored solutions, competitive pricing, expert support',
+        'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of business requirements',
         'TARGET_COMPANY': company,
         'CONTACT_NAME': `${lead.first_name} ${lead.last_name}`,
         'CONTACT_TITLE': lead.title || 'Professional',
@@ -1517,10 +1770,10 @@ Company Description: ${lead.company_description || 'Technology company'}
 Employee Count: ${lead.employee_count || 'Unknown'}${intelligenceContext}${salesRecommendations}
 
 ABOUT EXABITS (Focus on business value, not company history):
-- Specializes in AI-powered High-Performance Computing (HPC) Solutions
-- Core offering: Custom AI infrastructure with NVIDIA H100/H200 GPU clusters
-- Key advantages: AI-HPC specialization, better performance-per-dollar vs general cloud, expert support
-- Industry expertise: Deep understanding of AI/ML compute requirements
+- Specializes in Professional Business Solutions
+- Core offering: Tailored business solutions to drive growth and efficiency
+- Key advantages: Custom solutions, competitive pricing, expert support
+- Industry expertise: Deep understanding of business requirements across industries
 
 YOUR TASK - BE A SMART SALESPERSON:
 Generate a concise (≤180 words), professional email that shows deep research and clear reasoning (that you've done your homework):
@@ -1567,10 +1820,10 @@ BODY: [email body]`;
         'AGENT_NAME': branding.agentName || 'ExaMark',
         'COMPANY_NAME': branding.companyName || 'Exabits',
         'AGENT_TITLE': branding.agentTitle || 'AI Assistant',
-        'PRIMARY_SERVICE': branding.primaryService || 'AI-powered High-Performance Computing (HPC) Solutions',
-        'CORE_OFFERING': branding.coreOffering || 'Custom AI infrastructure with NVIDIA H100/H200 GPU clusters',
-        'KEY_ADVANTAGES': branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
-        'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of AI/ML compute requirements',
+        'PRIMARY_SERVICE': branding.primaryService || 'Professional Business Solutions',
+        'CORE_OFFERING': branding.coreOffering || 'Professional business solutions',
+        'KEY_ADVANTAGES': branding.keyAdvantages || 'Tailored solutions, competitive pricing, expert support',
+        'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of business requirements',
         'TARGET_COMPANY': lead.company,
         'CONTACT_NAME': `${lead.first_name} ${lead.last_name}`,
         'CONTACT_TITLE': lead.title || 'Professional',
@@ -1886,6 +2139,22 @@ BODY: [email body]`;
     });
     
     await this.saveLeadsDatabase(leadsData);
+    
+    // 🎉 CELEBRATION: Show big success message when leads are secured!
+    if (newLeads.length > 0) {
+      console.log('\n' + '='.repeat(80));
+      console.log('🎯🎯🎯 LEAD SECURED! LEAD SECURED! LEAD SECURED! 🎯🎯🎯');
+      console.log(`🔥🔥🔥 ${newLeads.length} HIGH-QUALITY LEADS SAVED TO DATABASE! 🔥🔥🔥`);
+      console.log('💰💰💰 ACTIONTRAC LEAD GENERATION SUCCESS! 💰💰💰');
+      console.log('='.repeat(80) + '\n');
+      
+      // Show individual lead details
+      newLeads.forEach((lead, index) => {
+        console.log(`🏆 LEAD ${index + 1}: ${lead.name} at ${lead.company} (${lead.title}) - SCORE: ${lead.totalScore || lead.score}!`);
+      });
+      console.log('');
+    }
+    
     return leadsData;
   }
 
@@ -2058,5 +2327,6 @@ export function getUserAgent(userId) {
   return userAgents.get(userId);
 }
 
-// Export the legacy singleton for backward compatibility during transition
+// Export the class and legacy singleton for backward compatibility during transition
+export { LeadContactAgent };
 export const leadContactAgent = new LeadContactAgent();

@@ -6,97 +6,33 @@ import { internetSearch } from './internetSearch.js';
 import { companyIntelligence } from './companyIntelligence.js';
 import { getUserSettings } from '../lib/userManager.js';
 
-// EXPERIMENTAL: Universal lead scoring weights - works for ANY industry/domain
+// Enhanced lead scoring weights - optimized for 2 paid APIs + free alternatives
 const SCORING_WEIGHTS = {
-  EMAIL_VERIFIED: 35,        // Email deliverability verified 
-  BUSINESS_RELEVANCE: 25,    // Company matches user's target criteria (NOT just tech!)
-  COMPANY_HEALTH: 20,        // Growth, stability, hiring indicators
-  ROLE_AUTHORITY: 15,        // Decision-making position for user's solution
-  TIMING_SIGNALS: 5          // Recent activity or trigger events
+  EMAIL_VERIFIED: 35,        // Email deliverability verified (increased weight)
+  TECH_STACK_MATCH: 25,      // Uses relevant technology (free detection)
+  COMPANY_GROWTH: 20,        // Funding, hiring, or growth indicators (free enrichment)
+  ROLE_AUTHORITY: 15,        // Decision-making position (free analysis)
+  TIMING_SIGNALS: 5          // Recent activity or trigger events (free search)
 };
 
-// Decision-maker titles for authority scoring
-const DECISION_MAKER_TITLES = [
-  'cto', 'ceo', 'vp', 'director', 'head of', 'chief', 'founder', 'president',
-  'lead', 'principal', 'senior', 'manager', 'architect'
-];
-
-// Technology keywords for timing signals (keeping for compatibility)
+// Technology keywords for scoring
 const AI_ML_TECHNOLOGIES = [
   'tensorflow', 'pytorch', 'cuda', 'docker', 'kubernetes', 'aws', 'gcp', 'azure',
   'python', 'jupyter', 'nvidia', 'gpu', 'machine learning', 'artificial intelligence',
   'deep learning', 'neural networks', 'computer vision', 'nlp', 'data science'
 ];
 
-// EXPERIMENTAL: Universal business relevance indicators (NOT just tech!)
-function getBusinessRelevanceIndicators(leadContactSettings) {
-  const userKeywords = leadContactSettings?.companyKeywords || [];
-  const userIndustries = leadContactSettings?.companyIndustries || [];
-  const userService = leadContactSettings?.companyBranding?.primaryService || '';
-  
-  // Build comprehensive business indicators based on user's actual offering
-  let relevanceIndicators = [...userKeywords];
-  
-  // Add industry-specific business indicators (NOT just tech!)
-  userIndustries.forEach(industry => {
-    switch(industry.toLowerCase()) {
-      case 'e-commerce':
-        relevanceIndicators.push('online retail', 'customer service', 'order management', 'inventory', 'fulfillment');
-        break;
-      case 'healthcare':
-        relevanceIndicators.push('patient care', 'medical records', 'appointments', 'staff coordination', 'compliance');
-        break;
-      case 'manufacturing':
-        relevanceIndicators.push('production', 'quality control', 'workforce management', 'safety protocols', 'shift scheduling');
-        break;
-      case 'retail':
-        relevanceIndicators.push('customer experience', 'staff training', 'inventory management', 'point of sale', 'employee scheduling');
-        break;
-      case 'hospitality':
-        relevanceIndicators.push('guest services', 'staff coordination', 'reservations', 'housekeeping', 'front desk');
-        break;
-      case 'construction':
-        relevanceIndicators.push('project management', 'crew coordination', 'safety compliance', 'equipment tracking', 'site communication');
-        break;
-      case 'education':
-        relevanceIndicators.push('student services', 'faculty coordination', 'administration', 'campus communication', 'enrollment');
-        break;
-      default:
-        // Universal business needs
-        relevanceIndicators.push('employee communication', 'team coordination', 'operational efficiency', 'workforce management');
-    }
-  });
-  
-  // Add service-specific indicators from user's primary service
-  if (userService.toLowerCase().includes('hr') || userService.toLowerCase().includes('employee')) {
-    relevanceIndicators.push('human resources', 'employee engagement', 'workforce', 'staff communication', 'payroll', 'benefits');
-  }
-  
-  // Always include universal business indicators
-  relevanceIndicators.push('communication', 'efficiency', 'productivity', 'management', 'operations', 'workflow', 'integration');
-  
-  return [...new Set(relevanceIndicators)]; // Remove duplicates
-}
-
-// EXPERIMENTAL: Dynamic growth indicators (generic business signals)
+// Growth indicators
 const GROWTH_INDICATORS = [
   'series a', 'series b', 'funding', 'investment', 'hiring', 'expansion',
-  'scale', 'growth', 'ipo', 'acquisition', 'partnership', 'revenue', 'employee growth'
+  'scale', 'growth', 'ipo', 'acquisition', 'partnership', 'revenue'
 ];
 
-// EXPERIMENTAL: Dynamic decision-maker detection based on user's target positions
-function getDecisionMakerTitles(leadContactSettings) {
-  const userPositions = leadContactSettings?.targetPositions || [];
-  
-  // Start with user's target positions
-  let decisionMakers = [...userPositions];
-  
-  // Add common decision-maker patterns
-  decisionMakers.push('ceo', 'cto', 'vp', 'director', 'head of', 'chief', 'founder', 'president',
-    'lead', 'principal', 'senior', 'manager', 'architect');
-  
-  return [...new Set(decisionMakers.map(title => title.toLowerCase()))];
-}
+// Decision-maker titles
+const DECISION_MAKER_TITLES = [
+  'cto', 'ceo', 'vp', 'director', 'head of', 'chief', 'founder', 'president',
+  'lead', 'principal', 'senior', 'manager', 'architect'
+];
 
 // Advanced email verification using ZeroBounce
 async function verifyEmailDeliverability(email, userId = null) {
@@ -157,13 +93,13 @@ async function findEmailWithHunter(firstName, lastName, domain, userId = null) {
 }
 
 // Technology stack detection using BuiltWith
-// EXPERIMENTAL: Universal business relevance detection (NOT just tech stack!)
-async function detectBusinessRelevance(domain, userId = null, options = {}) {
+// Free technology stack detection using web scraping
+async function detectTechnologyStack(domain, userId = null) {
   try {
-    console.log(`🔍 Analyzing business relevance for ${domain} using universal methods...`);
+    console.log(`🔍 Detecting technology stack for ${domain} using free methods...`);
     
-    const businessIndicators = [];
-    let relevanceScore = 0;
+    const techStack = [];
+    let techScore = 0;
     
     // Method 1: Check common technology patterns in HTTP headers and HTML
     try {
@@ -177,19 +113,24 @@ async function detectBusinessRelevance(domain, userId = null, options = {}) {
       const html = await response.text();
       const headers = response.headers;
       
-      // EXPERIMENTAL: Universal business patterns (NOT just tech frameworks!)
-      const businessPatterns = {
-        'E-commerce': [/shop/i, /cart/i, /product/i, /checkout/i, /order/i, /inventory/i],
-        'Healthcare': [/patient/i, /medical/i, /health/i, /clinic/i, /hospital/i, /appointment/i],
-        'Manufacturing': [/production/i, /quality/i, /safety/i, /equipment/i, /facility/i],
-        'Retail': [/store/i, /customer/i, /service/i, /location/i, /hours/i],
-        'Hospitality': [/guest/i, /room/i, /reservation/i, /hotel/i, /restaurant/i],
-        'Construction': [/project/i, /contractor/i, /building/i, /construction/i, /site/i],
-        'Education': [/student/i, /faculty/i, /course/i, /campus/i, /enrollment/i],
-        'HR & Workforce': [/employee/i, /staff/i, /workforce/i, /hr/i, /payroll/i, /benefits/i],
-        'Communication': [/message/i, /notification/i, /alert/i, /communication/i, /chat/i],
-        'Integration': [/api/i, /integration/i, /connect/i, /sync/i, /workflow/i],
-        'Management': [/dashboard/i, /admin/i, /management/i, /control/i, /oversight/i]
+      // Check for common frameworks in HTML
+      const techPatterns = {
+        'React': [/react/i, /_react/i, /data-reactroot/i],
+        'Vue.js': [/vue\.js/i, /vue@/i, /__vue__/i],
+        'Angular': [/ng-/i, /angular/i, /_angular/i],
+        'Next.js': [/next\.js/i, /__next/i, /_next/i],
+        'Nuxt.js': [/nuxt/i, /__nuxt/i],
+        'Django': [/django/i, /csrftoken/i],
+        'Rails': [/rails/i, /ruby/i],
+        'WordPress': [/wp-content/i, /wp-includes/i, /wordpress/i],
+        'Shopify': [/shopify/i, /cdn\.shopify/i],
+        'Node.js': [/express/i, /koa/i],
+        'Docker': [/docker/i],
+        'Kubernetes': [/k8s/i, /kubernetes/i],
+        'AWS': [/amazonaws/i, /aws/i],
+        'Python': [/python/i, /django/i, /flask/i],
+        'TensorFlow': [/tensorflow/i, /tf\./i],
+        'PyTorch': [/pytorch/i, /torch/i]
       };
       
       // Check HTTP headers for server info
@@ -197,8 +138,8 @@ async function detectBusinessRelevance(domain, userId = null, options = {}) {
       const poweredBy = headers.get('x-powered-by') || '';
       const generator = headers.get('generator') || '';
       
-      // EXPERIMENTAL: Analyze business relevance (NOT just tech!)
-      for (const [businessType, patterns] of Object.entries(businessPatterns)) {
+      // Analyze HTML content and headers
+      for (const [tech, patterns] of Object.entries(techPatterns)) {
         const found = patterns.some(pattern => 
           pattern.test(html) || 
           pattern.test(serverHeader) || 
@@ -207,26 +148,15 @@ async function detectBusinessRelevance(domain, userId = null, options = {}) {
         );
         
         if (found) {
-          businessIndicators.push(businessType.toLowerCase());
+          techStack.push(tech.toLowerCase());
           
-          // EXPERIMENTAL: Dynamic scoring based on user's actual business needs
-          const relevanceIndicators = getBusinessRelevanceIndicators(options.leadContactSettings || {});
-          const userIndustries = options.leadContactSettings?.companyIndustries || [];
-          
-          // Full points if matches user's industry
-          if (userIndustries.some(industry => businessType.toLowerCase().includes(industry.toLowerCase()))) {
-            relevanceScore = SCORING_WEIGHTS.BUSINESS_RELEVANCE;
-          }
-          // High points if matches user's service indicators  
-          else if (relevanceIndicators.some(indicator => 
-            businessType.toLowerCase().includes(indicator.toLowerCase()) || 
-            html.toLowerCase().includes(indicator.toLowerCase())
-          )) {
-            relevanceScore = Math.max(relevanceScore, Math.floor(SCORING_WEIGHTS.BUSINESS_RELEVANCE * 0.8));
-          }
-          // Medium points for any business activity
-          else {
-            relevanceScore = Math.max(relevanceScore, Math.floor(SCORING_WEIGHTS.BUSINESS_RELEVANCE * 0.4));
+          // More generous scoring: Any relevant technology gets points
+          if (AI_ML_TECHNOLOGIES.some(aiTech => tech.toLowerCase().includes(aiTech))) {
+            techScore = SCORING_WEIGHTS.TECH_STACK_MATCH; // Full points for AI/ML tech
+          } else if (['docker', 'kubernetes', 'aws', 'node.js', 'react', 'angular', 'vue.js'].some(modernTech => tech.toLowerCase().includes(modernTech))) {
+            techScore = Math.max(techScore, Math.floor(SCORING_WEIGHTS.TECH_STACK_MATCH * 0.6)); // 60% for modern tech
+          } else {
+            techScore = Math.max(techScore, Math.floor(SCORING_WEIGHTS.TECH_STACK_MATCH * 0.3)); // 30% for any tech
           }
         }
       }
@@ -235,20 +165,20 @@ async function detectBusinessRelevance(domain, userId = null, options = {}) {
       console.log(`⚠️ Could not fetch website directly: ${error.message}`);
     }
     
-    console.log(`🎯 Business relevance detected: ${businessIndicators.join(', ')} (Score: ${relevanceScore})`);
+    console.log(`� Technology stack detected: ${techStack.join(', ')} (Score: ${techScore})`);
     
     return {
-      businessTypes: businessIndicators,
-      score: relevanceScore,
-      allIndicators: businessIndicators
+      technologies: techStack,
+      score: techScore,
+      allTech: techStack
     };
     
   } catch (error) {
-    console.error('Business relevance detection error:', error);
+    console.error('Technology detection error:', error);
     return {
-      businessTypes: [],
+      technologies: [],
       score: 0,
-      allIndicators: []
+      allTech: []
     };
   }
 }
@@ -321,7 +251,7 @@ async function enrichCompanyData(domain, userId = null) {
     }
     
     // Cap the score
-    growthScore = Math.min(growthScore, SCORING_WEIGHTS.COMPANY_HEALTH);
+    growthScore = Math.min(growthScore, SCORING_WEIGHTS.COMPANY_GROWTH);
     
     console.log(`💼 Company enrichment complete for ${domain} (Score: ${growthScore})`);
     
@@ -407,12 +337,12 @@ export async function leadResearch(query, options = {}) {
         }
       }
       
-      // EXPERIMENTAL: Universal Business Relevance Analysis (replaces tech-only analysis)
+      // Technology Stack Analysis
       if (domain) {
-        const businessAnalysis = await detectBusinessRelevance(domain, userId, options);
-        totalScore += businessAnalysis.score;
-        scoringBreakdown.businessRelevance = businessAnalysis;
-        enrichmentData.businessRelevance = businessAnalysis;
+        const techAnalysis = await detectTechnologyStack(domain, userId);
+        totalScore += techAnalysis.score;
+        scoringBreakdown.technologyStack = techAnalysis;
+        enrichmentData.technologies = techAnalysis;
       }
       
       // Company Data Enrichment
@@ -779,14 +709,12 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
 
   console.log(`🔑 [Apollo] API Key check: Present (${apiKey.substring(0, 10)}...)`);
   
-  // EXPERIMENTAL: Extract target positions from YOUR settings structure (not nested contactCriteria)
-  const targetPositions = leadContactSettings?.targetPositions || [];
+  // Extract target positions from user settings instead of hardcoded values
+  const targetPositions = leadContactSettings?.contactCriteria?.targetPositions || [];
   
   let apolloQuery = targetPositions[0] || 'CEO'; // Use first target position from user settings
   let industry = '';
   let position = targetPositions[0] || 'CEO'; // fallback to generic position
-  
-  console.log(`[EXPERIMENTAL] 🔧 Fixed settings extraction - found ${targetPositions.length} positions:`, targetPositions);
   
   // Use target positions from user settings instead of hardcoded tech positions
   for (const targetPos of targetPositions) {
@@ -809,10 +737,8 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
   }
 
   try {
-    // EXPERIMENTAL: Extract industry from YOUR settings structure (not nested companyCriteria)  
-    const targetIndustries = leadContactSettings?.companyIndustries || [];
-    
-    console.log(`[EXPERIMENTAL] 🔧 Fixed industry extraction - found ${targetIndustries.length} industries:`, targetIndustries);
+    // Extract industry from user settings instead of hardcoded values
+    const targetIndustries = leadContactSettings?.companyCriteria?.companyIndustries || [];
     
     // Use first target industry from user settings, or try to match from query
     industry = '';
@@ -831,30 +757,24 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
     console.log(`[LEAD RESEARCH] Using target industries from settings:`, targetIndustries);
     console.log(`[LEAD RESEARCH] Selected industry for search:`, industry);
     
-    // EXPERIMENTAL: Build flexible search query for better results
+    // HARDCODED: Build targeted search query with position + industry for uniqueness
     if (industry && position !== 'CTO') {
-      // Try position first, then add industry as secondary filter
-      apolloQuery = position;
-      console.log(`[EXPERIMENTAL] 🎯 Using position-focused search: "${position}" with industry filter`);
+      apolloQuery = `${position} ${industry}`;
     } else if (industry) {
-      apolloQuery = position;
-      console.log(`[EXPERIMENTAL] 🎯 Using position-only search: "${position}"`);
+      apolloQuery = `${position} ${industry}`;
     } else {
       apolloQuery = position;
     }
 
     console.log(`🎯 [Apollo] Searching for leads: ${apolloQuery}`);
     
-    // EXPERIMENTAL: Extract location and company size from YOUR settings structure
-    const targetLocations = leadContactSettings?.targetLocations || [];
+    // Extract location from user settings instead of hardcoded values
+    const targetLocations = leadContactSettings?.geographicSettings?.targetLocations || [];
     let location = targetLocations;
     
-    // Extract company size from YOUR settings structure (not nested)
-    let companySizeMin = leadContactSettings?.companySizeMin || null;
-    let companySizeMax = leadContactSettings?.companySizeMax || null;
-    
-    console.log(`[EXPERIMENTAL] 🔧 Fixed location extraction:`, targetLocations);
-    console.log(`[EXPERIMENTAL] 🔧 Fixed company size extraction: ${companySizeMin}-${companySizeMax}`);
+    // Extract company size from user settings instead of hardcoded values  
+    let companySizeMin = leadContactSettings?.companyCriteria?.companySizeMin || null;
+    let companySizeMax = leadContactSettings?.companyCriteria?.companySizeMax || null;
     
     console.log(`[LEAD RESEARCH] Using target locations from settings:`, location);
     console.log(`[LEAD RESEARCH] Using company size range from settings:`, `${companySizeMin}-${companySizeMax}`);
@@ -871,13 +791,9 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
       searchPayload.person_locations = location;
     }
     
-    // EXPERIMENTAL: Make company size filter broader for testing
+    // Add company size filter if specified
     if (companySizeMin && companySizeMax) {
-      // Broaden the range for better results
-      const broadMin = Math.max(100, Math.floor(companySizeMin * 0.5)); // 50% lower
-      const broadMax = Math.min(10000, Math.floor(companySizeMax * 2)); // 2x higher
-      searchPayload.organization_num_employees_ranges = [`${broadMin},${broadMax}`];
-      console.log(`[EXPERIMENTAL] 🎯 Broadened company size: ${companySizeMin}-${companySizeMax} → ${broadMin}-${broadMax}`);
+      searchPayload.organization_num_employees_ranges = [`${companySizeMin},${companySizeMax}`];
     }
     
     // Add industry filter based on the industry we detected

@@ -12,7 +12,7 @@
  * - Quality-first scoring
  */
 
-import { LeadContactAgent } from './agent/leadContactAgent_EXPERIMENTAL.js';
+import { LeadContactAgent } from './agent/leadContactAgent.js';
 
 async function testExperimentalAgent() {
   console.log('🚀 TESTING EXPERIMENTAL LEAD AGENT');

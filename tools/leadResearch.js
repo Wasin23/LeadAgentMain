@@ -6,33 +6,239 @@ import { internetSearch } from './internetSearch.js';
 import { companyIntelligence } from './companyIntelligence.js';
 import { getUserSettings } from '../lib/userManager.js';
 
-// Enhanced lead scoring weights - optimized for 2 paid APIs + free alternatives
+// EXPERIMENTAL: Universal lead scoring weights - works for ANY industry/domain
 const SCORING_WEIGHTS = {
-  EMAIL_VERIFIED: 35,        // Email deliverability verified (increased weight)
-  TECH_STACK_MATCH: 25,      // Uses relevant technology (free detection)
-  COMPANY_GROWTH: 20,        // Funding, hiring, or growth indicators (free enrichment)
-  ROLE_AUTHORITY: 15,        // Decision-making position (free analysis)
-  TIMING_SIGNALS: 5          // Recent activity or trigger events (free search)
+  EMAIL_VERIFIED: 35,        // Email deliverability verified 
+  BUSINESS_RELEVANCE: 25,    // Company matches user's target criteria (NOT just tech!)
+  COMPANY_HEALTH: 20,        // Growth, stability, hiring indicators
+  ROLE_AUTHORITY: 15,        // Decision-making position for user's solution
+  TIMING_SIGNALS: 5          // Recent activity or trigger events
 };
 
-// Technology keywords for scoring
-const AI_ML_TECHNOLOGIES = [
-  'tensorflow', 'pytorch', 'cuda', 'docker', 'kubernetes', 'aws', 'gcp', 'azure',
-  'python', 'jupyter', 'nvidia', 'gpu', 'machine learning', 'artificial intelligence',
-  'deep learning', 'neural networks', 'computer vision', 'nlp', 'data science'
-];
-
-// Growth indicators
-const GROWTH_INDICATORS = [
-  'series a', 'series b', 'funding', 'investment', 'hiring', 'expansion',
-  'scale', 'growth', 'ipo', 'acquisition', 'partnership', 'revenue'
-];
-
-// Decision-maker titles
+// Decision-maker titles for authority scoring
 const DECISION_MAKER_TITLES = [
   'cto', 'ceo', 'vp', 'director', 'head of', 'chief', 'founder', 'president',
   'lead', 'principal', 'senior', 'manager', 'architect'
 ];
+
+// Generate industry-specific technology keywords
+function getIndustryTechnologies(leadContactSettings) {
+  const userIndustry = leadContactSettings.businessProfile?.industry?.toLowerCase() || 'business';
+  
+  const industryTech = {
+    'e-commerce': ['shopify', 'magento', 'woocommerce', 'payment processing', 'inventory management', 'customer analytics'],
+    'healthcare': ['ehr', 'emr', 'hipaa', 'telemedicine', 'patient management', 'medical devices'],
+    'manufacturing': ['erp', 'scada', 'plc', 'iot sensors', 'quality management', 'supply chain'],
+    'retail': ['pos systems', 'inventory management', 'crm', 'analytics', 'mobile commerce'],
+    'hospitality': ['pms', 'booking systems', 'guest management', 'revenue management', 'mobile apps'],
+    'construction': ['project management', 'bim', 'safety systems', 'scheduling', 'cost management'],
+    'education': ['lms', 'student information systems', 'online learning', 'assessment tools'],
+    'technology': ['cloud computing', 'microservices', 'devops', 'agile', 'api development'],
+    'ai': ['tensorflow', 'pytorch', 'machine learning', 'data science', 'neural networks'],
+    'finance': ['fintech', 'blockchain', 'risk management', 'compliance software', 'trading systems'],
+    'legal': ['case management', 'document management', 'legal research', 'compliance tracking'],
+    'consulting': ['project management', 'analytics', 'reporting tools', 'client management'],
+    'default': ['business software', 'productivity tools', 'analytics', 'automation', 'cloud services']
+  };
+
+  return industryTech[userIndustry] || industryTech['default'];
+}
+
+// Helper function to get current and previous year for search queries
+function getCurrentSearchYears() {
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+  return { currentYear, previousYear, yearString: `${previousYear} ${currentYear}` };
+}
+
+// Generate industry-specific search terms based on user's business
+function getIndustrySearchTerms(leadContactSettings) {
+  const userIndustry = leadContactSettings.businessProfile?.industry?.toLowerCase() || 'business';
+  
+  // Map industries to relevant search terms
+  const industryTerms = {
+    'e-commerce': ['online sales', 'ecommerce platform', 'digital marketing', 'customer acquisition'],
+    'healthcare': ['patient care', 'medical technology', 'health outcomes', 'clinical operations'],
+    'manufacturing': ['production efficiency', 'supply chain', 'automation', 'quality control'],
+    'retail': ['customer experience', 'inventory management', 'point of sale', 'merchandising'],
+    'hospitality': ['guest experience', 'property management', 'booking systems', 'customer service'],
+    'construction': ['project management', 'building automation', 'safety compliance', 'construction technology'],
+    'education': ['student outcomes', 'learning management', 'educational technology', 'curriculum development'],
+    'technology': ['software development', 'infrastructure', 'digital transformation', 'innovation'],
+    'tech': ['software development', 'infrastructure', 'digital transformation', 'innovation'],
+    'software': ['application development', 'software solutions', 'technology stack', 'digital platforms'],
+    'ai': ['artificial intelligence', 'machine learning', 'data science', 'automation'],
+    'artificial intelligence': ['AI implementation', 'machine learning', 'data science', 'intelligent systems'],
+    'machine learning': ['ML models', 'data science', 'predictive analytics', 'AI algorithms'],
+    'finance': ['financial services', 'risk management', 'compliance', 'fintech solutions'],
+    'financial': ['financial planning', 'investment management', 'banking technology', 'payment systems'],
+    'banking': ['digital banking', 'financial technology', 'customer services', 'regulatory compliance'],
+    'legal': ['legal technology', 'case management', 'compliance', 'document management'],
+    'law': ['legal services', 'litigation support', 'regulatory compliance', 'legal research'],
+    'consulting': ['business strategy', 'operational efficiency', 'process improvement', 'advisory services'],
+    'default': ['business growth', 'operational efficiency', 'digital solutions', 'productivity']
+  };
+
+  return industryTerms[userIndustry] || industryTerms['default'];
+}
+
+// Generate industry-specific detection patterns and sales angles
+function getIndustryInsightPatterns(leadContactSettings) {
+  const userIndustry = leadContactSettings.businessProfile?.industry?.toLowerCase() || 'business';
+  const coreOffering = leadContactSettings.companyBranding?.coreOffering || 'Professional business solutions';
+  
+  const patterns = {
+    'e-commerce': {
+      keywords: ['ecommerce', 'online sales', 'digital marketing', 'customer acquisition'],
+      expansionType: 'Digital Commerce Expansion',
+      expansionMessage: 'expanding digital commerce capabilities',
+      expansionAngle: `Perfect timing for ${coreOffering} to support growth`,
+      hiringRoles: ['marketing', 'ecommerce', 'digital'],
+      hiringMessage: 'actively hiring digital commerce talent',
+      hiringAngle: `New commerce teams need ${coreOffering}`
+    },
+    'healthcare': {
+      keywords: ['patient care', 'medical technology', 'health outcomes', 'clinical'],
+      expansionType: 'Healthcare Technology Expansion',
+      expansionMessage: 'expanding healthcare technology initiatives',
+      expansionAngle: `Perfect timing for ${coreOffering} to improve patient outcomes`,
+      hiringRoles: ['medical', 'clinical', 'health'],
+      hiringMessage: 'actively hiring healthcare technology talent',
+      hiringAngle: `New healthcare teams need ${coreOffering}`
+    },
+    'finance': {
+      keywords: ['financial services', 'fintech', 'banking', 'investment'],
+      expansionType: 'Financial Technology Expansion',
+      expansionMessage: 'expanding financial technology capabilities',
+      expansionAngle: `Perfect timing for ${coreOffering} to enhance financial services`,
+      hiringRoles: ['financial', 'fintech', 'banking'],
+      hiringMessage: 'actively hiring financial technology talent',
+      hiringAngle: `New financial teams need ${coreOffering}`
+    },
+    'technology': {
+      keywords: ['software development', 'infrastructure', 'digital transformation'],
+      expansionType: 'Technology Infrastructure Expansion',
+      expansionMessage: 'expanding technology infrastructure',
+      expansionAngle: `Perfect timing for ${coreOffering} to scale technology`,
+      hiringRoles: ['engineer', 'developer', 'technology'],
+      hiringMessage: 'actively hiring technology talent',
+      hiringAngle: `New technology teams need ${coreOffering}`
+    },
+    'ai': {
+      keywords: ['artificial intelligence', 'machine learning', 'ai', 'ml'],
+      expansionType: 'AI/ML Technology Expansion',
+      expansionMessage: 'expanding AI/ML initiatives',
+      expansionAngle: `Perfect timing for ${coreOffering} to support AI growth`,
+      hiringRoles: ['ai', 'ml', 'data scientist'],
+      hiringMessage: 'actively hiring AI/ML talent',
+      hiringAngle: `New AI teams need ${coreOffering}`
+    },
+    'default': {
+      keywords: ['business growth', 'expansion', 'development', 'innovation'],
+      expansionType: 'Business Expansion',
+      expansionMessage: 'expanding business operations',
+      expansionAngle: `Perfect timing for ${coreOffering} to support growth`,
+      hiringRoles: ['manager', 'specialist', 'analyst'],
+      hiringMessage: 'actively hiring business talent',
+      hiringAngle: `New business teams need ${coreOffering}`
+    }
+  };
+
+  return patterns[userIndustry] || patterns['default'];
+}
+
+// EXPERIMENTAL: Universal business relevance indicators (NOT just tech!)
+function getBusinessRelevanceIndicators(leadContactSettings) {
+  const userKeywords = leadContactSettings?.companyKeywords || [];
+  const userIndustries = leadContactSettings?.companyIndustries || [];
+  const userService = leadContactSettings?.companyBranding?.primaryService || '';
+  
+  // Build comprehensive business indicators based on user's actual offering
+  let relevanceIndicators = [...userKeywords];
+  
+  // Add industry-specific business indicators (NOT just tech!)
+  userIndustries.forEach(industry => {
+    switch(industry.toLowerCase()) {
+      case 'e-commerce':
+        relevanceIndicators.push('online retail', 'customer service', 'order management', 'inventory', 'fulfillment');
+        break;
+      case 'healthcare':
+        relevanceIndicators.push('patient care', 'medical records', 'appointments', 'staff coordination', 'compliance');
+        break;
+      case 'manufacturing':
+        relevanceIndicators.push('production', 'quality control', 'workforce management', 'safety protocols', 'shift scheduling');
+        break;
+      case 'retail':
+        relevanceIndicators.push('customer experience', 'staff training', 'inventory management', 'point of sale', 'employee scheduling');
+        break;
+      case 'hospitality':
+        relevanceIndicators.push('guest services', 'staff coordination', 'reservations', 'housekeeping', 'front desk');
+        break;
+      case 'construction':
+        relevanceIndicators.push('project management', 'crew coordination', 'safety compliance', 'equipment tracking', 'site communication');
+        break;
+      case 'education':
+        relevanceIndicators.push('student services', 'faculty coordination', 'administration', 'campus communication', 'enrollment');
+        break;
+      case 'technology':
+      case 'tech':
+      case 'software':
+        relevanceIndicators.push('development teams', 'remote work', 'agile workflows', 'sprint planning', 'code deployment', 'tech support', 'engineering coordination');
+        break;
+      case 'ai':
+      case 'artificial intelligence':
+      case 'machine learning':
+      case 'ml':
+        relevanceIndicators.push('data science', 'model training', 'research teams', 'algorithm development', 'data pipelines', 'ml ops', 'ai research', 'deep learning', 'neural networks');
+        break;
+      case 'finance':
+      case 'financial':
+      case 'banking':
+        relevanceIndicators.push('compliance', 'audit', 'risk management', 'client communication', 'regulatory reporting', 'branch operations');
+        break;
+      case 'legal':
+      case 'law':
+        relevanceIndicators.push('case management', 'client communication', 'document review', 'court scheduling', 'billable hours', 'paralegal coordination');
+        break;
+      case 'consulting':
+        relevanceIndicators.push('client projects', 'team collaboration', 'deliverables', 'client communication', 'resource allocation', 'project timelines');
+        break;
+      default:
+        // Universal business needs
+        relevanceIndicators.push('employee communication', 'team coordination', 'operational efficiency', 'workforce management');
+    }
+  });
+  
+  // Add service-specific indicators from user's primary service
+  if (userService.toLowerCase().includes('hr') || userService.toLowerCase().includes('employee')) {
+    relevanceIndicators.push('human resources', 'employee engagement', 'workforce', 'staff communication', 'payroll', 'benefits');
+  }
+  
+  // Always include universal business indicators
+  relevanceIndicators.push('communication', 'efficiency', 'productivity', 'management', 'operations', 'workflow', 'integration');
+  
+  return [...new Set(relevanceIndicators)]; // Remove duplicates
+}
+
+// EXPERIMENTAL: Dynamic growth indicators (generic business signals)
+const GROWTH_INDICATORS = [
+  'series a', 'series b', 'funding', 'investment', 'hiring', 'expansion',
+  'scale', 'growth', 'ipo', 'acquisition', 'partnership', 'revenue', 'employee growth'
+];
+
+// EXPERIMENTAL: Dynamic decision-maker detection based on user's target positions
+function getDecisionMakerTitles(leadContactSettings) {
+  const userPositions = leadContactSettings?.targetPositions || [];
+  
+  // Start with user's target positions
+  let decisionMakers = [...userPositions];
+  
+  // Add common decision-maker patterns
+  decisionMakers.push('ceo', 'cto', 'vp', 'director', 'head of', 'chief', 'founder', 'president',
+    'lead', 'principal', 'senior', 'manager', 'architect');
+  
+  return [...new Set(decisionMakers.map(title => title.toLowerCase()))];
+}
 
 // Advanced email verification using ZeroBounce
 async function verifyEmailDeliverability(email, userId = null) {
@@ -93,13 +299,13 @@ async function findEmailWithHunter(firstName, lastName, domain, userId = null) {
 }
 
 // Technology stack detection using BuiltWith
-// Free technology stack detection using web scraping
-async function detectTechnologyStack(domain, userId = null) {
+// EXPERIMENTAL: Universal business relevance detection (NOT just tech stack!)
+async function detectBusinessRelevance(domain, userId = null, options = {}) {
   try {
-    console.log(`🔍 Detecting technology stack for ${domain} using free methods...`);
+    console.log(`🔍 Analyzing business relevance for ${domain} using universal methods...`);
     
-    const techStack = [];
-    let techScore = 0;
+    const businessIndicators = [];
+    let relevanceScore = 0;
     
     // Method 1: Check common technology patterns in HTTP headers and HTML
     try {
@@ -113,24 +319,19 @@ async function detectTechnologyStack(domain, userId = null) {
       const html = await response.text();
       const headers = response.headers;
       
-      // Check for common frameworks in HTML
-      const techPatterns = {
-        'React': [/react/i, /_react/i, /data-reactroot/i],
-        'Vue.js': [/vue\.js/i, /vue@/i, /__vue__/i],
-        'Angular': [/ng-/i, /angular/i, /_angular/i],
-        'Next.js': [/next\.js/i, /__next/i, /_next/i],
-        'Nuxt.js': [/nuxt/i, /__nuxt/i],
-        'Django': [/django/i, /csrftoken/i],
-        'Rails': [/rails/i, /ruby/i],
-        'WordPress': [/wp-content/i, /wp-includes/i, /wordpress/i],
-        'Shopify': [/shopify/i, /cdn\.shopify/i],
-        'Node.js': [/express/i, /koa/i],
-        'Docker': [/docker/i],
-        'Kubernetes': [/k8s/i, /kubernetes/i],
-        'AWS': [/amazonaws/i, /aws/i],
-        'Python': [/python/i, /django/i, /flask/i],
-        'TensorFlow': [/tensorflow/i, /tf\./i],
-        'PyTorch': [/pytorch/i, /torch/i]
+      // EXPERIMENTAL: Universal business patterns (NOT just tech frameworks!)
+      const businessPatterns = {
+        'E-commerce': [/shop/i, /cart/i, /product/i, /checkout/i, /order/i, /inventory/i],
+        'Healthcare': [/patient/i, /medical/i, /health/i, /clinic/i, /hospital/i, /appointment/i],
+        'Manufacturing': [/production/i, /quality/i, /safety/i, /equipment/i, /facility/i],
+        'Retail': [/store/i, /customer/i, /service/i, /location/i, /hours/i],
+        'Hospitality': [/guest/i, /room/i, /reservation/i, /hotel/i, /restaurant/i],
+        'Construction': [/project/i, /contractor/i, /building/i, /construction/i, /site/i],
+        'Education': [/student/i, /faculty/i, /course/i, /campus/i, /enrollment/i],
+        'HR & Workforce': [/employee/i, /staff/i, /workforce/i, /hr/i, /payroll/i, /benefits/i],
+        'Communication': [/message/i, /notification/i, /alert/i, /communication/i, /chat/i],
+        'Integration': [/api/i, /integration/i, /connect/i, /sync/i, /workflow/i],
+        'Management': [/dashboard/i, /admin/i, /management/i, /control/i, /oversight/i]
       };
       
       // Check HTTP headers for server info
@@ -138,8 +339,8 @@ async function detectTechnologyStack(domain, userId = null) {
       const poweredBy = headers.get('x-powered-by') || '';
       const generator = headers.get('generator') || '';
       
-      // Analyze HTML content and headers
-      for (const [tech, patterns] of Object.entries(techPatterns)) {
+      // EXPERIMENTAL: Analyze business relevance (NOT just tech!)
+      for (const [businessType, patterns] of Object.entries(businessPatterns)) {
         const found = patterns.some(pattern => 
           pattern.test(html) || 
           pattern.test(serverHeader) || 
@@ -148,15 +349,26 @@ async function detectTechnologyStack(domain, userId = null) {
         );
         
         if (found) {
-          techStack.push(tech.toLowerCase());
+          businessIndicators.push(businessType.toLowerCase());
           
-          // More generous scoring: Any relevant technology gets points
-          if (AI_ML_TECHNOLOGIES.some(aiTech => tech.toLowerCase().includes(aiTech))) {
-            techScore = SCORING_WEIGHTS.TECH_STACK_MATCH; // Full points for AI/ML tech
-          } else if (['docker', 'kubernetes', 'aws', 'node.js', 'react', 'angular', 'vue.js'].some(modernTech => tech.toLowerCase().includes(modernTech))) {
-            techScore = Math.max(techScore, Math.floor(SCORING_WEIGHTS.TECH_STACK_MATCH * 0.6)); // 60% for modern tech
-          } else {
-            techScore = Math.max(techScore, Math.floor(SCORING_WEIGHTS.TECH_STACK_MATCH * 0.3)); // 30% for any tech
+          // EXPERIMENTAL: Dynamic scoring based on user's actual business needs
+          const relevanceIndicators = getBusinessRelevanceIndicators(options.leadContactSettings || {});
+          const userIndustries = options.leadContactSettings?.companyIndustries || [];
+          
+          // Full points if matches user's industry
+          if (userIndustries.some(industry => businessType.toLowerCase().includes(industry.toLowerCase()))) {
+            relevanceScore = SCORING_WEIGHTS.BUSINESS_RELEVANCE;
+          }
+          // High points if matches user's service indicators  
+          else if (relevanceIndicators.some(indicator => 
+            businessType.toLowerCase().includes(indicator.toLowerCase()) || 
+            html.toLowerCase().includes(indicator.toLowerCase())
+          )) {
+            relevanceScore = Math.max(relevanceScore, Math.floor(SCORING_WEIGHTS.BUSINESS_RELEVANCE * 0.8));
+          }
+          // Medium points for any business activity
+          else {
+            relevanceScore = Math.max(relevanceScore, Math.floor(SCORING_WEIGHTS.BUSINESS_RELEVANCE * 0.4));
           }
         }
       }
@@ -165,20 +377,20 @@ async function detectTechnologyStack(domain, userId = null) {
       console.log(`⚠️ Could not fetch website directly: ${error.message}`);
     }
     
-    console.log(`� Technology stack detected: ${techStack.join(', ')} (Score: ${techScore})`);
+    console.log(`🎯 Business relevance detected: ${businessIndicators.join(', ')} (Score: ${relevanceScore})`);
     
     return {
-      technologies: techStack,
-      score: techScore,
-      allTech: techStack
+      businessTypes: businessIndicators,
+      score: relevanceScore,
+      allIndicators: businessIndicators
     };
     
   } catch (error) {
-    console.error('Technology detection error:', error);
+    console.error('Business relevance detection error:', error);
     return {
-      technologies: [],
+      businessTypes: [],
       score: 0,
-      allTech: []
+      allIndicators: []
     };
   }
 }
@@ -251,7 +463,7 @@ async function enrichCompanyData(domain, userId = null) {
     }
     
     // Cap the score
-    growthScore = Math.min(growthScore, SCORING_WEIGHTS.COMPANY_GROWTH);
+    growthScore = Math.min(growthScore, SCORING_WEIGHTS.COMPANY_HEALTH);
     
     console.log(`💼 Company enrichment complete for ${domain} (Score: ${growthScore})`);
     
@@ -337,12 +549,12 @@ export async function leadResearch(query, options = {}) {
         }
       }
       
-      // Technology Stack Analysis
+      // EXPERIMENTAL: Universal Business Relevance Analysis (replaces tech-only analysis)
       if (domain) {
-        const techAnalysis = await detectTechnologyStack(domain, userId);
-        totalScore += techAnalysis.score;
-        scoringBreakdown.technologyStack = techAnalysis;
-        enrichmentData.technologies = techAnalysis;
+        const businessAnalysis = await detectBusinessRelevance(domain, userId, options);
+        totalScore += businessAnalysis.score;
+        scoringBreakdown.businessRelevance = businessAnalysis;
+        enrichmentData.businessRelevance = businessAnalysis;
       }
       
       // Company Data Enrichment
@@ -359,7 +571,7 @@ export async function leadResearch(query, options = {}) {
       scoringBreakdown.roleAuthority = { score: authorityScore, title: lead.title };
       
       // Timing Signals Detection
-      const timingSignals = await detectTimingSignals(companyName, userId);
+      const timingSignals = await detectTimingSignals(companyName, leadContactSettings, userId);
       totalScore += timingSignals.score;
       scoringBreakdown.timingSignals = timingSignals;
       enrichmentData.timingSignals = timingSignals.signals;
@@ -378,7 +590,8 @@ export async function leadResearch(query, options = {}) {
         scoringBreakdown: scoringBreakdown,
         enrichmentData: enrichmentData,
         personInfo: personInfo, // Add the detailed person information
-        leadQuality: totalScore >= 70 ? 'high' : totalScore >= 40 ? 'medium' : 'low',
+        leadQuality: totalScore >= (leadContactSettings.qualityThresholds?.high || 70) ? 'high' : 
+                    totalScore >= (leadContactSettings.qualityThresholds?.medium || 40) ? 'medium' : 'low',
         verificationStatus: 'enhanced_verified'
       };
       
@@ -431,10 +644,11 @@ function calculateAuthorityScore(title) {
 }
 
 // Detect timing signals for outreach
-async function detectTimingSignals(companyName, userId = null) {
+async function detectTimingSignals(companyName, leadContactSettings, userId = null) {
   try {
     // Search for recent company news, funding, hiring, etc.
-    const searchQuery = `${companyName} (funding OR hiring OR expansion OR partnership OR announcement) 2024 2025`;
+    const { yearString } = getCurrentSearchYears();
+    const searchQuery = `${companyName} (funding OR hiring OR expansion OR partnership OR announcement) ${yearString}`;
     const results = await internetSearch(searchQuery);
     
     let timingScore = 0;
@@ -455,8 +669,9 @@ async function detectTimingSignals(companyName, userId = null) {
           });
         }
         
-        // Look for technology mentions
-        if (AI_ML_TECHNOLOGIES.some(tech => text.includes(tech))) {
+        // Look for industry-specific technology mentions
+        const industryTech = getIndustryTechnologies(leadContactSettings);
+        if (industryTech.some(tech => text.includes(tech))) {
           timingScore += 3;
           signals.push({
             type: 'tech_signal', 
@@ -486,12 +701,14 @@ async function enrichLeadWithIntelligence(lead) {
     console.log(`🎯 [INTELLIGENCE] Researching ${company} for sales opportunities...`);
     
     // Multi-angle research queries
+    const { yearString, currentYear } = getCurrentSearchYears();
+    const industryTerms = getIndustrySearchTerms(leadContactSettings);
     const researchQueries = [
-      `${company} AI artificial intelligence machine learning 2024 2025`,
-      `${company} funding series venture capital investment 2024`,
-      `${company} hiring jobs ML engineer data scientist AI`,
-      `${company} CEO CTO interview AI transformation digital`,
-      `${company} competitors artificial intelligence infrastructure`
+      `${company} ${industryTerms.join(' ')} ${yearString}`,
+      `${company} funding series venture capital investment ${currentYear}`,
+      `${company} hiring jobs ${industryTerms[0]} ${industryTerms[1]}`,
+      `${company} CEO CTO interview ${industryTerms[2]} transformation`,
+      `${company} competitors ${industryTerms.join(' OR ')}`
     ];
     
     const salesIntelligence = [];
@@ -553,13 +770,16 @@ function extractSalesInsights(searchResults, company) {
       relevance: 'medium'
     };
     
-    // AI/ML Expansion Signals
-    if (text.includes('ai') || text.includes('artificial intelligence') || text.includes('machine learning')) {
+    // Industry-specific expansion signals
+    const industryPatterns = getIndustryInsightPatterns(leadContactSettings);
+    const hasIndustryKeyword = industryPatterns.keywords.some(keyword => text.includes(keyword));
+    
+    if (hasIndustryKeyword) {
       if (text.includes('launch') || text.includes('new') || text.includes('start')) {
-        insight.type = 'ai_expansion';
-        insight.message = `${company} is expanding into AI/ML initiatives`;
+        insight.type = 'industry_expansion';
+        insight.message = `${company} is ${industryPatterns.expansionMessage}`;
         insight.relevance = 'high';
-        insight.salesAngle = 'Perfect timing for AI infrastructure scaling';
+        insight.salesAngle = industryPatterns.expansionAngle;
       }
     }
     
@@ -573,21 +793,24 @@ function extractSalesInsights(searchResults, company) {
     
     // Hiring & Scaling Signals
     if (text.includes('hiring') || text.includes('jobs') || text.includes('engineer')) {
-      if (text.includes('ai') || text.includes('ml') || text.includes('data scientist')) {
-        insight.type = 'ai_hiring';
-        insight.message = `${company} is actively hiring AI/ML talent`;
+      const hasIndustryHiring = industryPatterns.hiringRoles.some(role => text.includes(role));
+      if (hasIndustryHiring) {
+        insight.type = 'industry_hiring';
+        insight.message = `${company} is ${industryPatterns.hiringMessage}`;
         insight.relevance = 'high';
-        insight.salesAngle = 'New AI team needs high-performance computing resources';
+        insight.salesAngle = industryPatterns.hiringAngle;
       }
     }
     
-    // Leadership AI Focus
+    // Leadership Focus
     if (text.includes('ceo') || text.includes('cto') || text.includes('chief')) {
-      if (text.includes('ai') || text.includes('digital transformation')) {
-        insight.type = 'leadership_ai_focus';
-        insight.message = `${company} leadership is prioritizing AI transformation`;
+      const hasIndustryFocus = industryPatterns.keywords.some(keyword => text.includes(keyword)) || 
+                              text.includes('digital transformation') || text.includes('growth') || text.includes('expansion');
+      if (hasIndustryFocus) {
+        insight.type = 'leadership_focus';
+        insight.message = `${company} leadership is prioritizing business transformation and growth`;
         insight.relevance = 'high';
-        insight.salesAngle = 'Executive mandate for AI requires enterprise-grade infrastructure';
+        insight.salesAngle = `Executive mandate for growth requires ${industryPatterns.expansionAngle.split('for ')[1] || 'professional solutions'}`;
       }
     }
     
@@ -606,7 +829,8 @@ function extractSalesInsights(searchResults, company) {
       insight.type = 'scale_challenges';
       insight.message = `${company} discussing scaling or performance needs`;
       insight.relevance = 'medium';
-      insight.salesAngle = 'Specialized HPC can solve performance bottlenecks';
+      const coreOffering = leadContactSettings.companyBranding?.coreOffering || 'Specialized business solutions';
+      insight.salesAngle = `${coreOffering} can solve performance and scaling challenges`;
     }
     
     if (insight.type) {
@@ -642,40 +866,46 @@ function buildSalesProfile(insights, company) {
   // Generate targeted sales opportunities
   if (insightsByType.ai_expansion) {
     profile.primaryOpportunities.push({
-      type: 'AI Infrastructure Scaling',
+      type: 'Technology Infrastructure Scaling',
       priority: 'high',
-      reasoning: 'Company is actively expanding AI capabilities and will need specialized computing resources',
-      exabitsValue: 'NVIDIA H100/H200 clusters optimized for AI workloads'
+      reasoning: 'Company is actively expanding technology capabilities and will need specialized solutions',
+      exabitsValue: leadContactSettings.companyBranding?.coreOffering || 'Tailored business solutions to drive growth and efficiency'
     });
   }
   
   if (insightsByType.funding_growth) {
     profile.primaryOpportunities.push({
-      type: 'Growth Infrastructure Investment',
+      type: 'Growth Investment Opportunity',
       priority: 'high', 
-      reasoning: 'Recent funding provides budget for infrastructure upgrades',
-      exabitsValue: 'Cost-efficient AI-HPC solutions vs general cloud providers'
+      reasoning: 'Recent funding provides budget for business expansion and improvements',
+      exabitsValue: leadContactSettings.companyBranding?.coreOffering || 'Cost-effective business solutions for growing companies'
     });
   }
   
-  if (insightsByType.ai_hiring) {
+  if (insightsByType.industry_hiring) {
+    const industryPatterns = getIndustryInsightPatterns(leadContactSettings);
     profile.primaryOpportunities.push({
-      type: 'New Team Infrastructure Needs',
+      type: 'Team Expansion Support',
       priority: 'high',
-      reasoning: 'Growing AI team needs high-performance computing resources',
-      exabitsValue: 'Expert HPC support for new AI teams'
+      reasoning: `Growing teams need ${industryPatterns.expansionType.toLowerCase()} support`,
+      exabitsValue: leadContactSettings.companyBranding?.coreOffering || 'Professional support for expanding teams'
     });
   }
   
   // Generate personalized sales angles
+  const coreOffering = leadContactSettings.companyBranding?.coreOffering || 'professional business solutions';
+  const keyAdvantages = leadContactSettings.companyBranding?.keyAdvantages || 'tailored solutions, competitive pricing, expert support';
+  const primaryService = leadContactSettings.companyBranding?.primaryService || 'Professional Business Solutions';
+  
   profile.salesRecommendations = [
-    'Lead with AI-specific infrastructure advantages over general cloud',
-    'Emphasize performance-per-dollar benefits for AI workloads',
-    'Highlight expert HPC support vs generalist cloud support'
+    `Lead with ${primaryService.toLowerCase()} advantages over generic alternatives`,
+    `Emphasize ${keyAdvantages.split(',')[0].trim()} benefits`,
+    `Highlight ${keyAdvantages.split(',')[2]?.trim() || 'expert support'} vs competitors`
   ];
   
   if (highValueInsights.length > 0) {
-    profile.salesRecommendations.unshift('Reference specific company AI initiatives found in research');
+    const industryPatterns = getIndustryInsightPatterns(leadContactSettings);
+    profile.salesRecommendations.unshift(`Reference specific company ${industryPatterns.expansionMessage} found in research`);
   }
   
   // Key conversation triggers
@@ -709,12 +939,14 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
 
   console.log(`🔑 [Apollo] API Key check: Present (${apiKey.substring(0, 10)}...)`);
   
-  // Extract target positions from user settings instead of hardcoded values
-  const targetPositions = leadContactSettings?.contactCriteria?.targetPositions || [];
+  // EXPERIMENTAL: Extract target positions from YOUR settings structure (not nested contactCriteria)
+  const targetPositions = leadContactSettings?.targetPositions || [];
   
   let apolloQuery = targetPositions[0] || 'CEO'; // Use first target position from user settings
   let industry = '';
   let position = targetPositions[0] || 'CEO'; // fallback to generic position
+  
+  console.log(`[EXPERIMENTAL] 🔧 Fixed settings extraction - found ${targetPositions.length} positions:`, targetPositions);
   
   // Use target positions from user settings instead of hardcoded tech positions
   for (const targetPos of targetPositions) {
@@ -737,8 +969,10 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
   }
 
   try {
-    // Extract industry from user settings instead of hardcoded values
-    const targetIndustries = leadContactSettings?.companyCriteria?.companyIndustries || [];
+    // EXPERIMENTAL: Extract industry from YOUR settings structure (not nested companyCriteria)  
+    const targetIndustries = leadContactSettings?.companyIndustries || [];
+    
+    console.log(`[EXPERIMENTAL] 🔧 Fixed industry extraction - found ${targetIndustries.length} industries:`, targetIndustries);
     
     // Use first target industry from user settings, or try to match from query
     industry = '';
@@ -757,24 +991,30 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
     console.log(`[LEAD RESEARCH] Using target industries from settings:`, targetIndustries);
     console.log(`[LEAD RESEARCH] Selected industry for search:`, industry);
     
-    // HARDCODED: Build targeted search query with position + industry for uniqueness
+    // EXPERIMENTAL: Build flexible search query for better results
     if (industry && position !== 'CTO') {
-      apolloQuery = `${position} ${industry}`;
+      // Try position first, then add industry as secondary filter
+      apolloQuery = position;
+      console.log(`[EXPERIMENTAL] 🎯 Using position-focused search: "${position}" with industry filter`);
     } else if (industry) {
-      apolloQuery = `${position} ${industry}`;
+      apolloQuery = position;
+      console.log(`[EXPERIMENTAL] 🎯 Using position-only search: "${position}"`);
     } else {
       apolloQuery = position;
     }
 
     console.log(`🎯 [Apollo] Searching for leads: ${apolloQuery}`);
     
-    // Extract location from user settings instead of hardcoded values
-    const targetLocations = leadContactSettings?.geographicSettings?.targetLocations || [];
+    // EXPERIMENTAL: Extract location and company size from YOUR settings structure
+    const targetLocations = leadContactSettings?.targetLocations || [];
     let location = targetLocations;
     
-    // Extract company size from user settings instead of hardcoded values  
-    let companySizeMin = leadContactSettings?.companyCriteria?.companySizeMin || null;
-    let companySizeMax = leadContactSettings?.companyCriteria?.companySizeMax || null;
+    // Extract company size from YOUR settings structure (not nested)
+    let companySizeMin = leadContactSettings?.companySizeMin || null;
+    let companySizeMax = leadContactSettings?.companySizeMax || null;
+    
+    console.log(`[EXPERIMENTAL] 🔧 Fixed location extraction:`, targetLocations);
+    console.log(`[EXPERIMENTAL] 🔧 Fixed company size extraction: ${companySizeMin}-${companySizeMax}`);
     
     console.log(`[LEAD RESEARCH] Using target locations from settings:`, location);
     console.log(`[LEAD RESEARCH] Using company size range from settings:`, `${companySizeMin}-${companySizeMax}`);
@@ -791,9 +1031,13 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
       searchPayload.person_locations = location;
     }
     
-    // Add company size filter if specified
+    // EXPERIMENTAL: Make company size filter broader for testing
     if (companySizeMin && companySizeMax) {
-      searchPayload.organization_num_employees_ranges = [`${companySizeMin},${companySizeMax}`];
+      // Broaden the range for better results
+      const broadMin = Math.max(100, Math.floor(companySizeMin * 0.5)); // 50% lower
+      const broadMax = Math.min(10000, Math.floor(companySizeMax * 2)); // 2x higher
+      searchPayload.organization_num_employees_ranges = [`${broadMin},${broadMax}`];
+      console.log(`[EXPERIMENTAL] 🎯 Broadened company size: ${companySizeMin}-${companySizeMax} → ${broadMin}-${broadMax}`);
     }
     
     // Add industry filter based on the industry we detected
