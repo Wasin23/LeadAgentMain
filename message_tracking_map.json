@@ -110,5 +110,12 @@
     "subject": "test email for sales 4",
     "sentAt": "2025-09-29T01:23:37.899Z",
     "source": "email"
+  },
+  "tracking-tracking-76e84c79_1759255061256_4826c586@mg.examarkchat.com": {
+    "trackingId": "tracking-76e84c79_1759255061256_4826c586",
+    "to": "colton.fidd@gmail.com",
+    "subject": "Enhancing Wright-Patt Credit Union's HR Efficiency with ActionTrac",
+    "sentAt": "2025-09-30T17:57:41.594Z",
+    "source": "email"
   }
 }
