@@ -421,7 +421,7 @@ class LeadContactAgent extends EventEmitter {
   }
 
   // EXPERIMENTAL: Iterative Apollo Batching - Get leads in small batches until target reached
-  async performIterativeApolloBatching(industry, position, queryVariation, batchSize, remainingNeeded, baseProgress) {
+  async performIterativeApolloBatching(industry, position, queryVariation, batchSize, remainingNeeded, baseProgress, currentQualifiedCount = 0) {
     console.log(`[EXPERIMENTAL] 🔄 Starting iterative batching for ${industry} + ${position}`);
     console.log(`[EXPERIMENTAL] 🎯 Target: ${remainingNeeded} more leads, batch size: ${batchSize}`);
     
@@ -429,6 +429,7 @@ class LeadContactAgent extends EventEmitter {
     let currentOffset = 0;
     let batchCount = 0;
     const maxBatches = Math.ceil(remainingNeeded / batchSize) + 2; // Add buffer for filtering
+    const userLeadLimit = this.leadContactSettings?.leadLimit || 20;
     
     while (allBatchResults.length < remainingNeeded && batchCount < maxBatches) {
       batchCount++;
@@ -1173,23 +1174,47 @@ class LeadContactAgent extends EventEmitter {
         queryVariation,
         apolloBatchSize,
         userLeadLimit - allQualifiedLeads.length, // Remaining needed
-        baseProgress
+        baseProgress,
+        allQualifiedLeads.length // Current qualified count
       );
       
       // EXPERIMENTAL: Smart company matching and filtering
       const verifiedLeads = await this.performSmartCompanyMatching(batchLeads);
       
-      // Filter by quality threshold
-      const qualifiedLeads = verifiedLeads.filter(lead => lead.totalScore >= qualityThreshold);
+      // MID-BATCH PROCESSING: Check limit during processing to stop immediately
+      let batchQualifiedCount = 0;
+      let targetReachedMidBatch = false;
       
-      if (qualifiedLeads.length > 0) {
-        allQualifiedLeads.push(...qualifiedLeads);
-        console.log(`[LEAD AGENT] ✅ Batch ${totalBatches + 1}: Added ${qualifiedLeads.length} qualified leads (${allQualifiedLeads.length}/${userLeadLimit})`);
+      for (const lead of verifiedLeads) {
+        if (lead.totalScore >= qualityThreshold) {
+          allQualifiedLeads.push(lead);
+          batchQualifiedCount++;
+          
+          console.log(`[LEAD AGENT] ✅ Qualified lead ${allQualifiedLeads.length}/${userLeadLimit}: ${lead.companyName} - ${lead.contactName} (Score: ${lead.totalScore})`);
+          
+          // IMMEDIATE MID-BATCH CHECK: Stop as soon as target is reached
+          if (allQualifiedLeads.length >= userLeadLimit) {
+            console.log(`[LEAD AGENT] 🎯 TARGET REACHED MID-BATCH! Found ${allQualifiedLeads.length}/${userLeadLimit} qualified leads - stopping immediately`);
+            targetReachedMidBatch = true;
+            break; // Exit lead processing loop immediately
+          }
+        } else {
+          console.log(`[LEAD AGENT] ❌ Lead below threshold: ${lead.companyName} - ${lead.contactName} (Score: ${lead.totalScore}/${qualityThreshold})`);
+        }
+      }
+      
+      if (batchQualifiedCount > 0) {
+        console.log(`[LEAD AGENT] ✅ Batch ${totalBatches + 1}: Added ${batchQualifiedCount} qualified leads (${allQualifiedLeads.length}/${userLeadLimit})`);
         
         // Mark this search as successful in memory
-        this.recordSuccessfulSearch(industry, position, qualifiedLeads.length);
+        this.recordSuccessfulSearch(industry, position, batchQualifiedCount);
       } else {
         console.log(`[LEAD AGENT] ❌ Batch ${totalBatches + 1}: No qualified leads found (threshold: ${qualityThreshold})`);
+      }
+      
+      // Exit main search loop if target reached mid-batch
+      if (targetReachedMidBatch) {
+        break;
       }
       
       totalBatches++;
