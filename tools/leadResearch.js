@@ -507,7 +507,8 @@ export async function leadResearch(query, options = {}) {
   const userId = options.userId || null; // Get userId from options for API key lookup
   const researchFocus = options.researchFocus || null; // Get custom research focus
   const leadContactSettings = options.leadContactSettings || null; // Get lead contact settings
-  console.log(`🔍 [LEAD RESEARCH] Starting enhanced multi-source research for: ${query} (limit: ${limit})`);
+  const remainingNeeded = options.remainingNeeded || 5; // How many qualified leads are still needed
+  console.log(`🔍 [LEAD RESEARCH] Starting enhanced multi-source research for: ${query} (limit: ${limit}, remainingNeeded: ${remainingNeeded})`);
   
   try {
     // Step 1: Get initial leads from Apollo
@@ -599,6 +600,12 @@ export async function leadResearch(query, options = {}) {
       if (totalScore >= 25 || (verifiedEmail && scoringBreakdown.emailVerification?.valid)) {
         enhancedLeads.push(finalEnhancedLead);
         console.log(`✅ [ENHANCED RESEARCH] Lead qualified: ${companyName} - Score: ${totalScore} (${finalEnhancedLead.leadQuality})`);
+        
+        // 🎯 EARLY STOP: Check if we have enough qualified leads
+        if (enhancedLeads.length >= remainingNeeded) {
+          console.log(`🎯 [RESEARCH TARGET REACHED] Found ${enhancedLeads.length}/${remainingNeeded} qualified leads - stopping research immediately!`);
+          break; // Exit the processing loop to save API calls and processing time
+        }
       } else {
         console.log(`❌ [ENHANCED RESEARCH] Lead filtered out: ${companyName} - Score: ${totalScore} (below threshold of 25)`);
       }

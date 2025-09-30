@@ -450,7 +450,8 @@ class LeadContactAgent extends EventEmitter {
           userId: this.currentUserId,
           researchFocus: this.leadContactSettings?.researchFocus?.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(line => line.length > 0),
           leadContactSettings: this.leadContactSettings,
-          batchInfo: { batchNumber: batchCount, offset: currentOffset }
+          batchInfo: { batchNumber: batchCount, offset: currentOffset },
+          remainingNeeded: remainingNeeded - currentQualifiedCount // Pass remaining count to stop research early
         });
         
         if (batchResult && batchResult.length > 0) {
