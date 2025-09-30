@@ -15,6 +15,19 @@ const SCORING_WEIGHTS = {
   TIMING_SIGNALS: 5          // Recent activity or trigger events
 };
 
+// Decision-maker titles for authority scoring
+const DECISION_MAKER_TITLES = [
+  'cto', 'ceo', 'vp', 'director', 'head of', 'chief', 'founder', 'president',
+  'lead', 'principal', 'senior', 'manager', 'architect'
+];
+
+// Technology keywords for timing signals (keeping for compatibility)
+const AI_ML_TECHNOLOGIES = [
+  'tensorflow', 'pytorch', 'cuda', 'docker', 'kubernetes', 'aws', 'gcp', 'azure',
+  'python', 'jupyter', 'nvidia', 'gpu', 'machine learning', 'artificial intelligence',
+  'deep learning', 'neural networks', 'computer vision', 'nlp', 'data science'
+];
+
 // EXPERIMENTAL: Universal business relevance indicators (NOT just tech!)
 function getBusinessRelevanceIndicators(leadContactSettings) {
   const userKeywords = leadContactSettings?.companyKeywords || [];
@@ -308,7 +321,7 @@ async function enrichCompanyData(domain, userId = null) {
     }
     
     // Cap the score
-    growthScore = Math.min(growthScore, SCORING_WEIGHTS.COMPANY_GROWTH);
+    growthScore = Math.min(growthScore, SCORING_WEIGHTS.COMPANY_HEALTH);
     
     console.log(`💼 Company enrichment complete for ${domain} (Score: ${growthScore})`);
     
@@ -818,11 +831,14 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
     console.log(`[LEAD RESEARCH] Using target industries from settings:`, targetIndustries);
     console.log(`[LEAD RESEARCH] Selected industry for search:`, industry);
     
-    // HARDCODED: Build targeted search query with position + industry for uniqueness
+    // EXPERIMENTAL: Build flexible search query for better results
     if (industry && position !== 'CTO') {
-      apolloQuery = `${position} ${industry}`;
+      // Try position first, then add industry as secondary filter
+      apolloQuery = position;
+      console.log(`[EXPERIMENTAL] 🎯 Using position-focused search: "${position}" with industry filter`);
     } else if (industry) {
-      apolloQuery = `${position} ${industry}`;
+      apolloQuery = position;
+      console.log(`[EXPERIMENTAL] 🎯 Using position-only search: "${position}"`);
     } else {
       apolloQuery = position;
     }
@@ -855,9 +871,13 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
       searchPayload.person_locations = location;
     }
     
-    // Add company size filter if specified
+    // EXPERIMENTAL: Make company size filter broader for testing
     if (companySizeMin && companySizeMax) {
-      searchPayload.organization_num_employees_ranges = [`${companySizeMin},${companySizeMax}`];
+      // Broaden the range for better results
+      const broadMin = Math.max(100, Math.floor(companySizeMin * 0.5)); // 50% lower
+      const broadMax = Math.min(10000, Math.floor(companySizeMax * 2)); // 2x higher
+      searchPayload.organization_num_employees_ranges = [`${broadMin},${broadMax}`];
+      console.log(`[EXPERIMENTAL] 🎯 Broadened company size: ${companySizeMin}-${companySizeMax} → ${broadMin}-${broadMax}`);
     }
     
     // Add industry filter based on the industry we detected

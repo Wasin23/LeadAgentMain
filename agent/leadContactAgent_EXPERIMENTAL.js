@@ -1199,6 +1199,19 @@ class LeadContactAgent extends EventEmitter {
       
       // Update progress
       this.updateFluidProgress(`📊 Collected ${allQualifiedLeads.length}/${userLeadLimit} qualified leads`, baseProgress + 5);
+      
+      // Check if we've reached the target
+      if (allQualifiedLeads.length >= userLeadLimit) {
+        console.log(`[LEAD AGENT] 🎯 TARGET REACHED! Found ${allQualifiedLeads.length}/${userLeadLimit} qualified leads - stopping search`);
+        break;
+      }
+    }
+    
+    // Show final collection summary
+    if (allQualifiedLeads.length >= userLeadLimit) {
+      console.log(`[LEAD AGENT] 🎉 SUCCESS: Target of ${userLeadLimit} leads achieved! (${allQualifiedLeads.length} found)`);
+    } else {
+      console.log(`[LEAD AGENT] ⚠️ Search complete: Found ${allQualifiedLeads.length}/${userLeadLimit} leads (${searchStrategy.length} strategies tried, ${totalBatches} batches)`);
     }
     
     // EXPERIMENTAL: Final processing and ranking
@@ -2126,6 +2139,22 @@ BODY: [email body]`;
     });
     
     await this.saveLeadsDatabase(leadsData);
+    
+    // 🎉 CELEBRATION: Show big success message when leads are secured!
+    if (newLeads.length > 0) {
+      console.log('\n' + '='.repeat(80));
+      console.log('🎯🎯🎯 LEAD SECURED! LEAD SECURED! LEAD SECURED! 🎯🎯🎯');
+      console.log(`🔥🔥🔥 ${newLeads.length} HIGH-QUALITY LEADS SAVED TO DATABASE! 🔥🔥🔥`);
+      console.log('💰💰💰 ACTIONTRAC LEAD GENERATION SUCCESS! 💰💰💰');
+      console.log('='.repeat(80) + '\n');
+      
+      // Show individual lead details
+      newLeads.forEach((lead, index) => {
+        console.log(`🏆 LEAD ${index + 1}: ${lead.name} at ${lead.company} (${lead.title}) - SCORE: ${lead.totalScore || lead.score}!`);
+      });
+      console.log('');
+    }
+    
     return leadsData;
   }
 
