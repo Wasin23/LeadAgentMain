@@ -1,1 +1,542 @@
-{}
+{
+  "allLeads": [
+    {
+      "id": "60d9e56e03c39e000123c806",
+      "first_name": "Melissa",
+      "last_name": "Pietrantonio",
+      "name": "Melissa Pietrantonio",
+      "linkedin_url": "http://www.linkedin.com/in/melissa-pietrantonio-65986768",
+      "title": "HR Manager",
+      "email_status": "verified",
+      "photo_url": "https://media.licdn.com/dms/image/v2/D5603AQGLUHcooOQ9KA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1709488364946?e=2147483647&v=beta&t=pyJjOtQv7u8ORH-ioy1WKf53KdvL4Qravbrr5wxkAsw",
+      "twitter_url": null,
+      "github_url": null,
+      "facebook_url": null,
+      "extrapolated_email_confidence": null,
+      "headline": "HR Manager at Wright-Patt Credit Union",
+      "email": "mpietrantonio@wpcu.coop",
+      "organization_id": "54a11c3369702d9d7ee29100",
+      "employment_history": [
+        {
+          "_id": "68cd7ff0db89a80001074574",
+          "created_at": null,
+          "current": true,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": null,
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "54a11c3369702d9d7ee29100",
+          "organization_name": "Wright-Patt Credit Union",
+          "raw_address": null,
+          "start_date": "2021-11-01",
+          "title": "HR Manager",
+          "updated_at": null,
+          "id": "68cd7ff0db89a80001074574",
+          "key": "68cd7ff0db89a80001074574"
+        },
+        {
+          "_id": "68cd7ff0db89a80001074575",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2021-11-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "54a11c3369702d9d7ee29100",
+          "organization_name": "Wright-Patt Credit Union",
+          "raw_address": null,
+          "start_date": "2020-09-01",
+          "title": "Senior HR Generalist",
+          "updated_at": null,
+          "id": "68cd7ff0db89a80001074575",
+          "key": "68cd7ff0db89a80001074575"
+        },
+        {
+          "_id": "68cd7ff0db89a80001074576",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2020-09-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "54a11c3369702d9d7ee29100",
+          "organization_name": "Wright-Patt Credit Union",
+          "raw_address": null,
+          "start_date": "2016-03-01",
+          "title": "HR Generalist II",
+          "updated_at": null,
+          "id": "68cd7ff0db89a80001074576",
+          "key": "68cd7ff0db89a80001074576"
+        },
+        {
+          "_id": "68cd7ff0db89a80001074577",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2016-03-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "54a129c469702dab370cdf01",
+          "organization_name": "Pet Valu",
+          "raw_address": null,
+          "start_date": "2014-04-01",
+          "title": "Human Resources Manager",
+          "updated_at": null,
+          "id": "68cd7ff0db89a80001074577",
+          "key": "68cd7ff0db89a80001074577"
+        },
+        {
+          "_id": "68cd7ff0db89a80001074578",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2014-04-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "5a9d9718a6da98d997762e1b",
+          "organization_name": "Nelson Tree Service, Inc.",
+          "raw_address": null,
+          "start_date": "2007-09-01",
+          "title": "Human Resource Administrative Assistant",
+          "updated_at": null,
+          "id": "68cd7ff0db89a80001074578",
+          "key": "68cd7ff0db89a80001074578"
+        },
+        {
+          "_id": "68cd7ff0db89a80001074579",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2007-08-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "5a9d9718a6da98d997762e1b",
+          "organization_name": "Nelson Tree Service, Inc.",
+          "raw_address": null,
+          "start_date": "2004-09-01",
+          "title": "Utility Service (Payroll) Administrator",
+          "updated_at": null,
+          "id": "68cd7ff0db89a80001074579",
+          "key": "68cd7ff0db89a80001074579"
+        },
+        {
+          "_id": "68cd7ff0db89a8000107457a",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2004-08-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "5ed4cbd84d4c6d0001ef0a99",
+          "organization_name": "Miami-Jacobs Career College",
+          "raw_address": null,
+          "start_date": "2004-02-01",
+          "title": "Director of Admissions",
+          "updated_at": null,
+          "id": "68cd7ff0db89a8000107457a",
+          "key": "68cd7ff0db89a8000107457a"
+        },
+        {
+          "_id": "68cd7ff0db89a8000107457b",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2004-01-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "5ed4cbd84d4c6d0001ef0a99",
+          "organization_name": "Miami-Jacobs Career College",
+          "raw_address": null,
+          "start_date": "2003-08-01",
+          "title": "Director of Student Services",
+          "updated_at": null,
+          "id": "68cd7ff0db89a8000107457b",
+          "key": "68cd7ff0db89a8000107457b"
+        }
+      ],
+      "street_address": "",
+      "city": "Dayton",
+      "state": "Ohio",
+      "country": "United States",
+      "postal_code": null,
+      "formatted_address": "Dayton, OH, USA",
+      "time_zone": "America/New_York",
+      "organization": {
+        "id": "54a11c3369702d9d7ee29100",
+        "name": "Wright-Patt Credit Union",
+        "website_url": "http://www.wpcu.coop",
+        "blog_url": null,
+        "angellist_url": null,
+        "linkedin_url": "http://www.linkedin.com/company/wright-patt-credit-union",
+        "twitter_url": "https://twitter.com/wpcu",
+        "facebook_url": "https://www.facebook.com/WrightPattCreditUnion",
+        "primary_phone": {
+          "number": "+1 937-912-7000",
+          "source": "Owler",
+          "sanitized_number": "+19379127000"
+        },
+        "languages": [
+          "English"
+        ],
+        "alexa_ranking": 100545,
+        "phone": "+1 937-912-7000",
+        "linkedin_uid": "53914",
+        "founded_year": 1932,
+        "publicly_traded_symbol": null,
+        "publicly_traded_exchange": null,
+        "logo_url": "https://zenprospect-production.s3.amazonaws.com/uploads/pictures/68da1b2b7178790001dc2184/picture",
+        "crunchbase_url": null,
+        "primary_domain": "wpcu.coop",
+        "sic_codes": [
+          "6061"
+        ],
+        "naics_codes": [
+          "52213"
+        ],
+        "sanitized_phone": "+19379127000",
+        "organization_headcount_six_month_growth": 0.02770448548812665,
+        "organization_headcount_twelve_month_growth": 0.03728362183754994,
+        "organization_headcount_twenty_four_month_growth": 0.1065340909090909
+      },
+      "departments": [
+        "master_human_resources"
+      ],
+      "subdepartments": [
+        "human_resources"
+      ],
+      "seniority": "manager",
+      "functions": [
+        "human_resources"
+      ],
+      "intent_strength": null,
+      "show_intent": true,
+      "email_domain_catchall": true,
+      "revealed_for_current_team": true,
+      "source": "Apollo",
+      "verification": {
+        "isVerified": true,
+        "confidence": 95,
+        "reason": "The search results consistently show Wright-Patt Credit Union as a legitimate financial institution with a strong online presence, including an official website and LinkedIn profile. The domain matches the expected domain, and there is consistent contact information across multiple sources.",
+        "companyType": "nonprofit",
+        "legitimacyFlags": {
+          "hasOfficialWebsite": true,
+          "hasLinkedInPresence": true,
+          "hasNewsOrPRMentions": false,
+          "domainMatches": true,
+          "hasContactInfo": true
+        },
+        "riskFactors": [],
+        "verifiedInfo": {
+          "actualCompanyName": "Wright-Patt Credit Union",
+          "industry": "Financial Services",
+          "location": "Beavercreek, OH",
+          "companySize": "Large (7905 followers on LinkedIn)"
+        }
+      },
+      "intelligence": {
+        "gatheringDate": "2025-10-01T00:04:19.108Z",
+        "categories": {
+          "techCapabilities": [
+            {
+              "title": "[PDF] Computers, personnel administration, and citizen rights - GovInfo",
+              "url": "https://www.govinfo.gov/content/pkg/GOVPUB-C13-4a2389174326d37221814701c1a7dc23/pdf/GOVPUB-C13-4a2389174326d37221814701c1a7dc23.pdf",
+              "snippet": "This study of computer use and privacy issues in personnel admini- stration follows an earlier NBS-sponsored study, Computers, Health Records ,.",
+              "category": "techCapabilities",
+              "relevance": 0,
+              "extractedAt": "2025-10-01T00:04:19.121Z"
+            },
+            {
+              "title": "[PDF] MOS Manual NAVMC 1200.1E.pdf - Marines.mil",
+              "url": "https://www.marines.mil/portals/1/Publications/MOS%20Manual%20NAVMC%201200.1E.pdf",
+              "snippet": "This Manual defines occupational specialties found on tables of organization in TFSMS that lead to generation of the authorized strength report containing ...",
+              "category": "techCapabilities",
+              "relevance": 0,
+              "extractedAt": "2025-10-01T00:04:19.121Z"
+            },
+            {
+              "title": "[PDF] ABA Journal of Labor & Employment Law - American Bar Association",
+              "url": "https://www.americanbar.org/content/dam/aba/publications/aba_journal_of_labor_employment_law/v36/no-2/lel-journal-vol36-no2.pdf",
+              "snippet": "The Journal provides an opportunity for members of the labor and employment bar to share insights and perspectives on practical issues of ...",
+              "category": "techCapabilities",
+              "relevance": 0,
+              "extractedAt": "2025-10-01T00:04:19.121Z"
+            }
+          ],
+          "businessIntel": [
+            {
+              "title": "[PDF] 2024 ANNUAL REPORT - Wright-Patt Credit Union",
+              "url": "https://www.wpcu.coop/en-us/PDFDocuments/2024%20Annual%20Report%20-%20WPCU.pdf",
+              "snippet": "WPCU has over 520,000 members, assets exceeding $9 billion, and returned $239.4M to members in 2024, with $119.5M in special patronage dividend.",
+              "category": "businessIntel",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:20.637Z"
+            },
+            {
+              "title": "2024 Special Patronage Dividend | Wright-Patt Credit Union",
+              "url": "https://www.wpcu.coop/special-patronage-dividend",
+              "snippet": "The 2024 Special Patronage Dividend is $6.75 million, paid to active members in good standing as of Dec 31, 2024, who were members as of Nov 30, 2024 and ...",
+              "category": "businessIntel",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:20.638Z"
+            },
+            {
+              "title": "Wright-Patt Credit Union® Members Save Over $2.3 Million Through ...",
+              "url": "https://thecreditunionconnection.com/wright-patt-credit-union-members-save-over-2-3-million-through-save-to-win-program/",
+              "snippet": "Launched in April 2024, WPCU's Save to Win campaign exceeded expectations, resulting in the opening of 2,743 new accounts and the awarding of ...",
+              "category": "businessIntel",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:20.638Z"
+            }
+          ],
+          "leadership": [
+            {
+              "title": "Melissa Pietrantonio - Wright-Patt Credit Union - LinkedIn",
+              "url": "https://www.linkedin.com/in/melissa-pietrantonio-65986768",
+              "snippet": "A Human Resources & Payroll Manager with over 12 years of progressive experience… · Experience: Wright-Patt Credit Union · Education: Wright State ...",
+              "category": "leadership",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:22.152Z"
+            },
+            {
+              "title": "Wright-Patt Credit Union HR Department - RocketReach",
+              "url": "https://rocketreach.co/wright-patt-credit-union-hr-department_b5c6cb48f42e0cca",
+              "snippet": "Wright-Patt Credit Union's HR department is led by Pam Cima (Vice President, Human Resources) and has 16 employees. Wright-Patt Credit Union HR ...",
+              "category": "leadership",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:22.153Z"
+            },
+            {
+              "title": "Michelle Lewis - Wright-Patt Credit Union - LinkedIn",
+              "url": "https://www.linkedin.com/in/michelle-lewis-26820b43",
+              "snippet": "Translates WPCU's vision for service excellence into an actionable plan and works with business unit leaders on successful implementation. • Oversees service ...",
+              "category": "leadership",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:22.153Z"
+            }
+          ],
+          "market": [
+            {
+              "title": "[PDF] 2024 ANNUAL REPORT - Wright-Patt Credit Union",
+              "url": "https://www.wpcu.coop/en-us/PDFDocuments/2024%20Annual%20Report%20-%20WPCU.pdf",
+              "snippet": "Now over 520,000 members strong, our credit union continues to grow and impact more lives in the communities we serve. Our financials reflect ...",
+              "category": "market",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:23.670Z"
+            },
+            {
+              "title": "Ready To Make The Most Of Today's Lending Environment? Wright ...",
+              "url": "https://creditunions.com/features/ready-to-make-the-most-of-todays-lending-environment-wright-patt-is/",
+              "snippet": "Wright-Patt reported mixed performance in 2023 as interest rates and inflation impacted members' wallets. · Cautious optimism and seizing ...",
+              "category": "market",
+              "relevance": 0,
+              "extractedAt": "2025-10-01T00:04:23.670Z"
+            },
+            {
+              "title": "[PDF] 2023 Annual Report - Wright-Patt Credit Union",
+              "url": "https://www.wpcu.coop/en-us/PDFDocuments/2023%20Annual%20Report%20-%20WPCU.pdf",
+              "snippet": "In 2023, we were able to help almost 100,000 members Save Better by taking advantage of our great rates on new share products, and we paid members $141 million ...",
+              "category": "market",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T00:04:23.670Z"
+            }
+          ]
+        },
+        "analysis": {
+          "summary": "Wright-Patt Credit Union (WPCU) is a large financial cooperative with over 520,000 members and assets exceeding $9 billion. The credit union has demonstrated strong financial performance, returning significant dividends to its members and launching successful savings campaigns.",
+          "aiReadiness": "The intelligence data does not provide specific insights into WPCU's adoption of AI/ML technologies. However, the absence of tech-related capabilities in the data suggests a potential area for growth in AI/ML adoption.",
+          "growthSignals": [
+            "Over 520,000 members and growing",
+            "Assets exceeding $9 billion",
+            "Successful 'Save to Win' campaign with 2,743 new accounts",
+            "Significant patronage dividends returned to members"
+          ],
+          "painPoints": [
+            "Potential challenges in adapting to new technologies",
+            "Impact of interest rates and inflation on member finances"
+          ],
+          "opportunityScore": 75,
+          "personalizedAngles": [
+            "Highlight AI/ML solutions to enhance member services and operational efficiency",
+            "Offer strategies to mitigate the impact of economic fluctuations on member finances",
+            "Propose technology solutions to support continued growth and member engagement"
+          ],
+          "keyPersonalities": [
+            "Melissa Pietrantonio - Human Resources & Payroll Manager",
+            "Pam Cima - Vice President, Human Resources",
+            "Michelle Lewis - Oversees service excellence and implementation"
+          ],
+          "recentDevelopments": [
+            "2024 Special Patronage Dividend of $6.75 million",
+            "Launch of 'Save to Win' campaign in April 2024"
+          ],
+          "competitivePosition": "Wright-Patt Credit Union is a strong player in the credit union market, with a large and growing member base and a solid financial foundation. The credit union's ability to return significant dividends and launch successful campaigns indicates a competitive edge in member engagement and financial management."
+        }
+      },
+      "personalization": {
+        "emailSubjects": [
+          "Enhancing Member Services at Wright-Patt with AI Solutions",
+          "Mitigating Economic Challenges for WPCU Members",
+          "Driving Growth and Engagement at Wright-Patt Credit Union"
+        ],
+        "openingLines": [
+          "Hi Melissa, I noticed Wright-Patt Credit Union's impressive growth with over 520,000 members and wanted to discuss how AI can further enhance your member services.",
+          "Hello Melissa, with WPCU's recent $6.75 million patronage dividend, I'm curious about your strategies for maintaining such strong member engagement.",
+          "Hi Melissa, given the success of your 'Save to Win' campaign, I believe there are opportunities to leverage technology for even greater member participation."
+        ],
+        "valuePropositions": [
+          "Implement AI-driven solutions to streamline HR processes, enhancing efficiency and member service quality.",
+          "Develop strategies to cushion the impact of economic fluctuations on your members, ensuring financial stability and satisfaction.",
+          "Introduce technology solutions that support WPCU's growth trajectory and deepen member engagement."
+        ],
+        "specificMentions": {
+          "recentNews": "2024 Special Patronage Dividend of $6.75 million",
+          "companyInitiatives": "Potential growth in AI/ML adoption to enhance operational efficiency",
+          "personalConnection": "As HR Manager, your role is pivotal in driving organizational efficiency and member satisfaction."
+        },
+        "callToAction": [
+          "Would you be open to a brief call to explore how AI can enhance your HR operations?",
+          "Can we schedule a meeting to discuss strategies for mitigating economic impacts on your members?"
+        ],
+        "conversationStarters": [
+          "How is WPCU planning to leverage its recent financial successes to further enhance member services?",
+          "What are the current challenges you face in adapting to new technologies within HR at WPCU?"
+        ],
+        "credibilityBuilders": [
+          "Our recent collaboration with a leading credit union resulted in a 20% increase in operational efficiency through AI solutions.",
+          "We helped a financial cooperative similar to WPCU implement technology strategies that significantly improved member engagement."
+        ],
+        "tone": "formal",
+        "personalityNotes": "As an HR Manager, Melissa is likely focused on efficiency, member satisfaction, and adapting to new technologies to support organizational growth."
+      },
+      "enhancedAt": "2025-10-01T00:04:43.479Z",
+      "totalScore": 60.5,
+      "scoringBreakdown": {
+        "emailVerification": {
+          "valid": true,
+          "score": 24.5
+        },
+        "businessRelevance": {
+          "businessTypes": [
+            "e-commerce",
+            "healthcare",
+            "retail",
+            "hospitality",
+            "construction",
+            "education",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ],
+          "score": 25,
+          "allIndicators": [
+            "e-commerce",
+            "healthcare",
+            "retail",
+            "hospitality",
+            "construction",
+            "education",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ]
+        },
+        "companyGrowth": {
+          "enriched": true,
+          "score": 4,
+          "data": {
+            "enriched": false,
+            "description": "WPCU is here to help you reach your financial goals. Serving Columbus, Dayton and Cincinnati, we make your life a little easier with our products and services."
+          }
+        },
+        "roleAuthority": {
+          "score": 7,
+          "title": "HR Manager"
+        },
+        "timingSignals": {
+          "score": 0,
+          "signals": []
+        }
+      },
+      "enrichmentData": {
+        "emailVerification": {
+          "valid": true,
+          "score": 24.5
+        },
+        "businessRelevance": {
+          "businessTypes": [
+            "e-commerce",
+            "healthcare",
+            "retail",
+            "hospitality",
+            "construction",
+            "education",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ],
+          "score": 25,
+          "allIndicators": [
+            "e-commerce",
+            "healthcare",
+            "retail",
+            "hospitality",
+            "construction",
+            "education",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ]
+        },
+        "companyData": {
+          "enriched": false,
+          "description": "WPCU is here to help you reach your financial goals. Serving Columbus, Dayton and Cincinnati, we make your life a little easier with our products and services."
+        },
+        "timingSignals": []
+      },
+      "personInfo": {
+        "fullName": "Melissa Pietrantonio",
+        "currentPosition": "HR Manager",
+        "company": "Wright-Patt Credit Union",
+        "tenure": null,
+        "startDate": null,
+        "experience": null,
+        "bio": null,
+        "education": null,
+        "previousRoles": []
+      },
+      "leadQuality": "medium",
+      "verificationStatus": "enhanced_verified"
+    }
+  ],
+  "emailedCompanies": [
+    null
+  ]
+}

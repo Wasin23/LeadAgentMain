@@ -1,0 +1,75 @@
+[
+  {
+    "id": "1759277089374",
+    "timestamp": "2025-10-01T00:04:49.374Z",
+    "status": "pending",
+    "leadId": "60d9e56e03c39e000123c806",
+    "leadName": "Melissa Pietrantonio",
+    "leadEmail": "mpietrantonio@wpcu.coop",
+    "leadTitle": "HR Manager",
+    "originalSubject": "Enhancing HR Communication for Wright-Patt Credit Union's Growth",
+    "originalBody": "Hi Melissa,\n\nCongratulations on Wright-Patt Credit Union's impressive growth, now serving over 520,000 members with assets exceeding $9 billion. As your organization continues to expand, effective employee communication is crucial for maintaining operational efficiency and service quality.\n\nActionTrac's Employee Text Messaging & HR Communication Platform, seamlessly integrated with ADP Workforce Now, can transform your HR processes. Our solution offers instant SMS reach to employees, automates shift reminders, policy updates, and emergency alerts, ensuring timely and efficient communication. This is especially vital in a fast-growing environment like yours, where traditional email engagement might not suffice.\n\nOur platform not only meets compliance and regulatory requirements but also enhances employee engagement, vital for sustaining your growth momentum and exploring new opportunities in AI/ML adoption.\n\nWould you be open to a brief discussion on how ActionTrac can support Wright-Patt Credit Union’s HR communication needs?\n\nBest regards,  \nActionBot  \nActionTrac AI Assistant",
+    "finalSubject": "Enhancing HR Communication for Wright-Patt Credit Union's Growth",
+    "finalBody": "Hi Melissa,\n\nCongratulations on Wright-Patt Credit Union's impressive growth, now serving over 520,000 members with assets exceeding $9 billion. As your organization continues to expand, effective employee communication is crucial for maintaining operational efficiency and service quality.\n\nActionTrac's Employee Text Messaging & HR Communication Platform, seamlessly integrated with ADP Workforce Now, can transform your HR processes. Our solution offers instant SMS reach to employees, automates shift reminders, policy updates, and emergency alerts, ensuring timely and efficient communication. This is especially vital in a fast-growing environment like yours, where traditional email engagement might not suffice.\n\nOur platform not only meets compliance and regulatory requirements but also enhances employee engagement, vital for sustaining your growth momentum and exploring new opportunities in AI/ML adoption.\n\nWould you be open to a brief discussion on how ActionTrac can support Wright-Patt Credit Union’s HR communication needs?\n\nBest regards,  \nActionBot  \nActionTrac AI Assistant",
+    "finalRecipient": "colton.fidd@gmail.com",
+    "testingMode": false,
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "leadDetails": {
+      "contact": "Melissa Pietrantonio",
+      "title": "HR Manager",
+      "industry": "Unknown",
+      "employeeCount": "Unknown",
+      "email": "mpietrantonio@wpcu.coop",
+      "score": "N/A",
+      "hasIntelligence": {
+        "summary": "Wright-Patt Credit Union (WPCU) is a large financial cooperative with over 520,000 members and assets exceeding $9 billion. The credit union has demonstrated strong financial performance, returning significant dividends to its members and launching successful savings campaigns.",
+        "aiReadiness": "The intelligence data does not provide specific insights into WPCU's adoption of AI/ML technologies. However, the absence of tech-related capabilities in the data suggests a potential area for growth in AI/ML adoption.",
+        "growthSignals": [
+          "Over 520,000 members and growing",
+          "Assets exceeding $9 billion",
+          "Successful 'Save to Win' campaign with 2,743 new accounts",
+          "Significant patronage dividends returned to members"
+        ],
+        "painPoints": [
+          "Potential challenges in adapting to new technologies",
+          "Impact of interest rates and inflation on member finances"
+        ],
+        "opportunityScore": 75,
+        "personalizedAngles": [
+          "Highlight AI/ML solutions to enhance member services and operational efficiency",
+          "Offer strategies to mitigate the impact of economic fluctuations on member finances",
+          "Propose technology solutions to support continued growth and member engagement"
+        ],
+        "keyPersonalities": [
+          "Melissa Pietrantonio - Human Resources & Payroll Manager",
+          "Pam Cima - Vice President, Human Resources",
+          "Michelle Lewis - Oversees service excellence and implementation"
+        ],
+        "recentDevelopments": [
+          "2024 Special Patronage Dividend of $6.75 million",
+          "Launch of 'Save to Win' campaign in April 2024"
+        ],
+        "competitivePosition": "Wright-Patt Credit Union is a strong player in the credit union market, with a large and growing member base and a solid financial foundation. The credit union's ability to return significant dividends and launch successful campaigns indicates a competitive edge in member engagement and financial management."
+      },
+      "opportunityScore": 75,
+      "isVerified": true,
+      "verificationConfidence": 95,
+      "aiReadiness": "The intelligence data does not provide specific insights into WPCU's adoption of AI/ML technologies. However, the absence of tech-related capabilities in the data suggests a potential area for growth in AI/ML adoption.",
+      "growthSignals": 4,
+      "personalizationQuality": "High"
+    },
+    "intelligenceSummary": {
+      "summary": "Wright-Patt Credit Union (WPCU) is a large financial cooperative with over 520,000 members and assets exceeding $9 billion. The credit union has demonstrated strong financial performance, returning significant dividends to its members and launching successful savings campaigns.",
+      "opportunityScore": 75,
+      "personalizedAngles": [
+        "Highlight AI/ML solutions to enhance member services and operational efficiency",
+        "Offer strategies to mitigate the impact of economic fluctuations on member finances",
+        "Propose technology solutions to support continued growth and member engagement"
+      ],
+      "recentDevelopments": [
+        "2024 Special Patronage Dividend of $6.75 million",
+        "Launch of 'Save to Win' campaign in April 2024"
+      ]
+    }
+  }
+]

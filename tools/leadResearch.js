@@ -1038,13 +1038,10 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
       searchPayload.person_locations = location;
     }
     
-    // EXPERIMENTAL: Make company size filter broader for testing
+    // Use exact company size range as specified by user
     if (companySizeMin && companySizeMax) {
-      // Broaden the range for better results
-      const broadMin = Math.max(100, Math.floor(companySizeMin * 0.5)); // 50% lower
-      const broadMax = Math.min(10000, Math.floor(companySizeMax * 2)); // 2x higher
-      searchPayload.organization_num_employees_ranges = [`${broadMin},${broadMax}`];
-      console.log(`[EXPERIMENTAL] 🎯 Broadened company size: ${companySizeMin}-${companySizeMax} → ${broadMin}-${broadMax}`);
+      searchPayload.organization_num_employees_ranges = [`${companySizeMin},${companySizeMax}`];
+      console.log(`[LEAD RESEARCH] Using exact company size range: ${companySizeMin}-${companySizeMax} employees`);
     }
     
     // Add industry filter based on the industry we detected
