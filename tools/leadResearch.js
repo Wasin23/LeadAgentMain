@@ -509,10 +509,14 @@ export async function leadResearch(query, options = {}) {
   const leadContactSettings = options.leadContactSettings || null; // Get lead contact settings
   const remainingNeeded = options.remainingNeeded || 5; // How many qualified leads are still needed
   const existingRejectedLeads = options.rejectedLeads || []; // Previously rejected leads for deduplication
+  const existingContactedLeads = options.contactedLeads || []; // Previously contacted leads for deduplication
   
   console.log(`🔍 [LEAD RESEARCH] Starting enhanced multi-source research for: ${query} (limit: ${limit}, remainingNeeded: ${remainingNeeded})`);
   if (existingRejectedLeads.length > 0) {
     console.log(`🚫 [DEDUPLICATION] Loaded ${existingRejectedLeads.length} previously rejected leads for deduplication`);
+  }
+  if (existingContactedLeads.length > 0) {
+    console.log(`📧 [DEDUPLICATION] Loaded ${existingContactedLeads.length} previously contacted leads for deduplication`);
   }
   
   try {
@@ -520,16 +524,54 @@ export async function leadResearch(query, options = {}) {
     const apolloLeads = await searchApollo(query, limit, userId, leadContactSettings);
     console.log(`📊 [LEAD RESEARCH] Found ${apolloLeads.length} Apollo leads`);
     
-    // Step 2: Deduplication - Filter out previously rejected leads
+    // Step 2: Comprehensive Deduplication - Filter out previously rejected AND contacted leads (by email AND company)
     let filteredLeads = apolloLeads;
-    if (existingRejectedLeads.length > 0) {
+    const totalExistingLeads = existingRejectedLeads.length + existingContactedLeads.length;
+    
+    if (totalExistingLeads > 0) {
+      // Create sets of emails and companies to exclude
       const rejectedEmails = new Set(existingRejectedLeads.map(rejected => rejected.email));
-      const beforeCount = filteredLeads.length;
-      filteredLeads = filteredLeads.filter(lead => !rejectedEmails.has(lead.email));
-      const dedupedCount = beforeCount - filteredLeads.length;
+      const rejectedCompanies = new Set(existingRejectedLeads.map(rejected => rejected.companyName?.toLowerCase()));
       
-      if (dedupedCount > 0) {
-        console.log(`🚫 [DEDUPLICATION] Filtered out ${dedupedCount} previously rejected leads (${filteredLeads.length} remaining)`);
+      const contactedEmails = new Set(existingContactedLeads.map(contacted => contacted.email));
+      const contactedCompanies = new Set(existingContactedLeads.map(contacted => 
+        (contacted.organization?.name || contacted.company)?.toLowerCase()
+      ));
+      
+      const beforeCount = filteredLeads.length;
+      
+      // Filter out leads by email OR company
+      filteredLeads = filteredLeads.filter(lead => {
+        const leadEmail = lead.email;
+        const leadCompany = (lead.organization?.name || lead.company)?.toLowerCase();
+        
+        const isRejectedEmail = rejectedEmails.has(leadEmail);
+        const isRejectedCompany = rejectedCompanies.has(leadCompany);
+        const isContactedEmail = contactedEmails.has(leadEmail);
+        const isContactedCompany = contactedCompanies.has(leadCompany);
+        
+        // Exclude if email OR company has been rejected/contacted
+        return !isRejectedEmail && !isRejectedCompany && !isContactedEmail && !isContactedCompany;
+      });
+      
+      const rejectedEmailCount = apolloLeads.filter(lead => rejectedEmails.has(lead.email)).length;
+      const rejectedCompanyCount = apolloLeads.filter(lead => 
+        rejectedCompanies.has((lead.organization?.name || lead.company)?.toLowerCase())
+      ).length;
+      const contactedEmailCount = apolloLeads.filter(lead => contactedEmails.has(lead.email)).length;
+      const contactedCompanyCount = apolloLeads.filter(lead => 
+        contactedCompanies.has((lead.organization?.name || lead.company)?.toLowerCase())
+      ).length;
+      
+      const totalDedupedCount = beforeCount - filteredLeads.length;
+      
+      if (totalDedupedCount > 0) {
+        console.log(`🚫 [DEDUPLICATION] Filtered out ${totalDedupedCount} duplicate leads:`);
+        if (rejectedEmailCount > 0) console.log(`   - ${rejectedEmailCount} previously rejected emails`);
+        if (rejectedCompanyCount > 0) console.log(`   - ${rejectedCompanyCount} from previously rejected companies`);
+        if (contactedEmailCount > 0) console.log(`   - ${contactedEmailCount} already contacted emails`);
+        if (contactedCompanyCount > 0) console.log(`   - ${contactedCompanyCount} from already contacted companies`);
+        console.log(`   - ${filteredLeads.length} remaining for processing`);
       } else {
         console.log(`✅ [DEDUPLICATION] No duplicate leads found, processing all ${filteredLeads.length} leads`);
       }

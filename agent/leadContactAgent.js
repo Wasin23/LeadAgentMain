@@ -421,7 +421,7 @@ class LeadContactAgent extends EventEmitter {
   }
 
   // EXPERIMENTAL: Iterative Apollo Batching - Get leads in small batches until target reached
-  async performIterativeApolloBatching(industry, position, queryVariation, batchSize, remainingNeeded, baseProgress, currentQualifiedCount = 0, rejectedLeads = []) {
+  async performIterativeApolloBatching(industry, position, queryVariation, batchSize, remainingNeeded, baseProgress, currentQualifiedCount = 0, rejectedLeads = [], contactedLeads = []) {
     console.log(`[EXPERIMENTAL] 🔄 Starting iterative batching for ${industry} + ${position}`);
     console.log(`[EXPERIMENTAL] 🎯 Target: ${remainingNeeded} more leads, batch size: ${batchSize}`);
     
@@ -453,7 +453,8 @@ class LeadContactAgent extends EventEmitter {
           leadContactSettings: this.leadContactSettings,
           batchInfo: { batchNumber: batchCount, offset: currentOffset },
           remainingNeeded: remainingNeeded - currentQualifiedCount, // Pass remaining count to stop research early
-          rejectedLeads: rejectedLeads // Pass rejected leads for deduplication
+          rejectedLeads: rejectedLeads, // Pass rejected leads for deduplication
+          contactedLeads: contactedLeads // Pass already contacted leads for deduplication
         });
         
         // Handle new structured result format
@@ -1206,7 +1207,8 @@ class LeadContactAgent extends EventEmitter {
         userLeadLimit - allQualifiedLeads.length, // Remaining needed
         baseProgress,
         allQualifiedLeads.length, // Current qualified count
-        leadsData.rejectedLeads || [] // Pass rejected leads for deduplication
+        leadsData.rejectedLeads || [], // Pass rejected leads for deduplication
+        leadsData.allLeads || [] // Pass already contacted leads for deduplication
       );
       
       // Handle new structured result format

@@ -1,1 +1,536 @@
-{}
+{
+  "rejectedLeads": [
+    {
+      "companyName": "HR Path",
+      "contactName": "Stephen Stone",
+      "email": "stephen.stone@hr-path.com",
+      "totalScore": 47,
+      "rejectionReason": "Low quality score: 47/60 threshold",
+      "rejectedAt": "2025-10-01T01:42:19.537Z",
+      "scoringBreakdown": {
+        "emailVerification": {
+          "valid": true,
+          "score": 35
+        },
+        "businessRelevance": {
+          "businessTypes": [],
+          "score": 0,
+          "allIndicators": []
+        },
+        "companyGrowth": {
+          "enriched": true,
+          "score": 0,
+          "data": {
+            "enriched": false
+          }
+        },
+        "roleAuthority": {
+          "score": 7,
+          "title": "Manager"
+        },
+        "timingSignals": {
+          "score": 5,
+          "signals": [
+            {
+              "type": "growth_signal",
+              "description": "HR Path Expands in US with PredictiveHR Acquisition",
+              "url": "https://hr-path.com/en/our-news/hr-path-strengthens-global-presence-with-strategic-acquisition-of-predictivehr/2025/08/06/"
+            },
+            {
+              "type": "growth_signal",
+              "description": "HR Path Expands UKG Partnership in Australia and Singapore",
+              "url": "https://hr-path.com/en/our-news/hr-path-expands-ukg-partnership-in-australia-and-singapore/2025/03/05/"
+            },
+            {
+              "type": "growth_signal",
+              "description": "HR Path Continues to Expand its Presence in the U.S. Market with ...",
+              "url": "https://hr-path.com/en/our-news/hr-path-continues-to-expand-its-presence-in-the-u-s-market-with-the-acquisition-of-next-generation-inc-ngi/2025/09/10/"
+            },
+            {
+              "type": "growth_signal",
+              "description": "HR Path acquires US-based PredictiveHR | Staffing Industry Analysts",
+              "url": "https://www.staffingindustry.com/editorial/healthcare-staffing-report/hr-path-acquires-us-based-predictivehr"
+            }
+          ]
+        }
+      },
+      "source": "Apollo"
+    }
+  ],
+  "emailedCompanies": [
+    null
+  ],
+  "allLeads": [
+    {
+      "id": "54a8e308746869334a718c08",
+      "first_name": "Kelly",
+      "last_name": "Harrison",
+      "name": "Kelly Harrison",
+      "linkedin_url": "http://www.linkedin.com/in/kellyharrison89",
+      "title": "HR Manager",
+      "email_status": "verified",
+      "photo_url": "https://media.licdn.com/dms/image/v2/C4D03AQEcNpvh7KqHeg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1544647734662?e=1759363200&v=beta&t=Z9-u2VTTwEfRL37F-HfRUpl953L0lCcjSjnRcVGFcAA",
+      "twitter_url": null,
+      "github_url": null,
+      "facebook_url": null,
+      "extrapolated_email_confidence": null,
+      "headline": "Brown Advisory, Human Resources",
+      "email": "kharrison@brownadvisory.com",
+      "organization_id": "54a11fae69702d7fe6220902",
+      "employment_history": [
+        {
+          "_id": "68b15f5136305600016ceb92",
+          "created_at": null,
+          "current": true,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": null,
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "54a11fae69702d7fe6220902",
+          "organization_name": "Brown Advisory",
+          "raw_address": null,
+          "start_date": "2025-05-01",
+          "title": "HR Manager",
+          "updated_at": null,
+          "id": "68b15f5136305600016ceb92",
+          "key": "68b15f5136305600016ceb92"
+        },
+        {
+          "_id": "68b15f5136305600016ceb93",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2018-06-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": null,
+          "organization_name": "Morgan Stanley",
+          "raw_address": null,
+          "start_date": "2014-09-01",
+          "title": "Campus Recruiter",
+          "updated_at": null,
+          "id": "68b15f5136305600016ceb93",
+          "key": "68b15f5136305600016ceb93"
+        },
+        {
+          "_id": "68b15f5136305600016ceb94",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2014-07-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "5c9a6cffe7adb1099e425e15",
+          "organization_name": "Vocus",
+          "raw_address": null,
+          "start_date": "2012-05-01",
+          "title": "Talent Acquisition Specialist",
+          "updated_at": null,
+          "id": "68b15f5136305600016ceb94",
+          "key": "68b15f5136305600016ceb94"
+        },
+        {
+          "_id": "68b15f5136305600016ceb95",
+          "created_at": null,
+          "current": false,
+          "degree": null,
+          "description": null,
+          "emails": null,
+          "end_date": "2012-05-01",
+          "grade_level": null,
+          "kind": null,
+          "major": null,
+          "organization_id": "5c9a6cffe7adb1099e425e15",
+          "organization_name": "Vocus",
+          "raw_address": null,
+          "start_date": "2011-05-01",
+          "title": "Business Development Assocaite",
+          "updated_at": null,
+          "id": "68b15f5136305600016ceb95",
+          "key": "68b15f5136305600016ceb95"
+        }
+      ],
+      "street_address": "",
+      "city": "Baltimore",
+      "state": "Maryland",
+      "country": "United States",
+      "postal_code": null,
+      "formatted_address": "Baltimore, MD, USA",
+      "time_zone": "America/New_York",
+      "organization": {
+        "id": "54a11fae69702d7fe6220902",
+        "name": "Brown Advisory",
+        "website_url": "http://www.brownadvisory.com",
+        "blog_url": null,
+        "angellist_url": null,
+        "linkedin_url": "http://www.linkedin.com/company/brown-advisory",
+        "twitter_url": "https://twitter.com/BrownAdvisory",
+        "facebook_url": "https://facebook.com/brownadvisory",
+        "primary_phone": {
+          "number": "+1 410-537-5400",
+          "source": "Owler",
+          "sanitized_number": "+14105375400"
+        },
+        "languages": [
+          "English"
+        ],
+        "alexa_ranking": 817064,
+        "phone": "+1 410-537-5400",
+        "linkedin_uid": "37074",
+        "founded_year": 1993,
+        "publicly_traded_symbol": null,
+        "publicly_traded_exchange": null,
+        "logo_url": "https://zenprospect-production.s3.amazonaws.com/uploads/pictures/68d44a6a7087f90001412676/picture",
+        "crunchbase_url": null,
+        "primary_domain": "brownadvisory.com",
+        "sic_codes": [
+          "6732"
+        ],
+        "naics_codes": [
+          "5239"
+        ],
+        "sanitized_phone": "+14105375400",
+        "organization_headcount_six_month_growth": 0.04751619870410367,
+        "organization_headcount_twelve_month_growth": 0.08866442199775533,
+        "organization_headcount_twenty_four_month_growth": 0.1672683513838749
+      },
+      "departments": [
+        "master_human_resources"
+      ],
+      "subdepartments": [
+        "human_resources"
+      ],
+      "seniority": "manager",
+      "functions": [
+        "human_resources"
+      ],
+      "intent_strength": null,
+      "show_intent": true,
+      "email_domain_catchall": false,
+      "revealed_for_current_team": true,
+      "source": "Apollo",
+      "verification": {
+        "isVerified": true,
+        "confidence": 95,
+        "reason": "Brown Advisory is consistently mentioned across multiple reputable sources, including its official website, LinkedIn, and Bloomberg. The information about the company is consistent, and it operates in the financial services industry as an independent investment management and strategic advisory firm.",
+        "companyType": "enterprise",
+        "legitimacyFlags": {
+          "hasOfficialWebsite": true,
+          "hasLinkedInPresence": true,
+          "hasNewsOrPRMentions": true,
+          "domainMatches": true,
+          "hasContactInfo": true
+        },
+        "riskFactors": [],
+        "verifiedInfo": {
+          "actualCompanyName": "Brown Advisory",
+          "industry": "Financial Services",
+          "location": "901 South Bond Street Suite 400 Baltimore, MD",
+          "companySize": "1,001-5,000 employees"
+        }
+      },
+      "intelligence": {
+        "gatheringDate": "2025-10-01T01:42:31.765Z",
+        "categories": {
+          "techCapabilities": [
+            {
+              "title": "What is HR Technology? | Human Resources Tech Explained - ADP",
+              "url": "https://www.adp.com/resources/articles-and-insights/articles/h/hr-technology.aspx",
+              "snippet": "HR tech can help you unify core HR functions, eliminate costly redundancies and synchronize data to inform decision-making. Learn more about HR tech.",
+              "category": "techCapabilities",
+              "relevance": 0,
+              "extractedAt": "2025-10-01T01:42:32.865Z"
+            },
+            {
+              "title": "[XML] https://www.adp.com/sitemap",
+              "url": "https://www.adp.com/sitemap",
+              "snippet": "... brown.aspx</loc> </url> <url> <loc>https://www.adp.com/about-adp/leadership ... employee-social-security-payroll-taxes.aspx</loc> </url> <url> <loc> ...",
+              "category": "techCapabilities",
+              "relevance": 0,
+              "extractedAt": "2025-10-01T01:42:32.865Z"
+            },
+            {
+              "title": "[PDF] HUMAN RESOURCE MANAGEMENT - Homework For You",
+              "url": "https://www.homeworkforyou.com/static_media/uploadedfiles/1729231381_4129798__015..pdf",
+              "snippet": "The sixteenth edition includes a chapter dedicated exclusively to the global opportunities and challenges that exist within the field of HR. In addition ...",
+              "category": "techCapabilities",
+              "relevance": 0,
+              "extractedAt": "2025-10-01T01:42:32.865Z"
+            }
+          ],
+          "businessIntel": [
+            {
+              "title": "Our Current Stance | 2024 Outlook - Brown Advisory",
+              "url": "https://www.brownadvisory.com/insights/2024outlook/current-stance",
+              "snippet": "We have modestly reduced our equity allocations, trimming most notably from the richly valued US large-cap growth segment.",
+              "category": "businessIntel",
+              "relevance": 33,
+              "extractedAt": "2025-10-01T01:42:35.078Z"
+            },
+            {
+              "title": "Latest News & Press Releases - Brown Advisory",
+              "url": "https://www.brownadvisory.com/intl/firm/news",
+              "snippet": "June 25, 2025. Brown Advisory opens office in Abu Dhabi Global Market to meet growing regional demand for its U.S. and global investment strategies. May 07, ...",
+              "category": "businessIntel",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:35.078Z"
+            },
+            {
+              "title": "2025 Asset Allocation Perspectives / Outlook - Brown Advisory",
+              "url": "https://www.brownadvisory.com/us/insights/2025-asset-allocation-perspectives-outlook",
+              "snippet": "In addition to discussing our asset allocation and portfolio positioning for 2025, this year's outlook examines several investment themes and macro topics.",
+              "category": "businessIntel",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:35.078Z"
+            }
+          ],
+          "leadership": [
+            {
+              "title": "Leadership | Brown Advisory",
+              "url": "https://www.brownadvisory.com/people/leadership",
+              "snippet": "Chief Human Resources Officer. Brien White. Chief Operating Officer. INVESTMENT ... Portfolio Manager, Co-CIO of Private Client, Endowments and Foundations ...",
+              "category": "leadership",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:37.333Z"
+            },
+            {
+              "title": "Our People | Brown Advisory",
+              "url": "https://www.brownadvisory.com/us/people",
+              "snippet": "Brown Advisory is an independent investment management and strategic advisory firm committed to delivering a combination of first-class performance, strategic ...",
+              "category": "leadership",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:37.333Z"
+            },
+            {
+              "title": "Leona Byrnes, PHR - Brown Advisory",
+              "url": "https://www.brownadvisory.com/people/leona-byrnes-phr",
+              "snippet": "Leona is a director of human resources at Brown Advisory. She is responsible for overseeing HR operations and compliance, driving consistency, efficiency, and ...",
+              "category": "leadership",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:37.333Z"
+            }
+          ],
+          "market": [
+            {
+              "title": "Equity Beat: One Theme to Rule Them All | Brown Advisory",
+              "url": "https://www.brownadvisory.com/us/insights/equity-beat-one-theme-rule-them-all",
+              "snippet": "Market leadership has narrowed significantly, with only 35% of constituents outperforming the S&P 500 Index since April 8. The Industrials ...",
+              "category": "market",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:39.620Z"
+            },
+            {
+              "title": "[PDF] POSITIONING FOR UNCERTAINTY - Brown Advisory",
+              "url": "https://www.brownadvisory.com/sites/default/files/2025Asset_Allocation_Perspectives_and_Outlook.pdf",
+              "snippet": "Our focus is on capitalizing on current opportunities at attractive valuations while positioning for transformative developments in the future.",
+              "category": "market",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:39.620Z"
+            },
+            {
+              "title": "Small Wonders: Embracing U.S. Small Caps | Brown Advisory",
+              "url": "https://www.brownadvisory.com/intl/insights/small-wonders-embracing-us-small-caps",
+              "snippet": "In this article, we examine why we believe that U.S. small-cap stocks deserve attention today, despite their perceived increased risk and recent ...",
+              "category": "market",
+              "relevance": 30,
+              "extractedAt": "2025-10-01T01:42:39.620Z"
+            }
+          ]
+        },
+        "analysis": {
+          "summary": "Brown Advisory is an independent investment management and strategic advisory firm that focuses on delivering first-class performance and strategic advice. The firm has recently expanded its global presence by opening an office in Abu Dhabi to meet growing regional demand for its investment strategies.",
+          "aiReadiness": "The intelligence data does not provide specific insights into Brown Advisory's adoption of AI/ML technologies. However, their strategic focus on asset allocation and market insights suggests a data-driven approach, which could imply readiness for AI/ML integration.",
+          "growthSignals": [
+            "Opening of a new office in Abu Dhabi, indicating geographic expansion.",
+            "Focus on U.S. small-cap stocks, suggesting a strategic shift or diversification in investment strategies."
+          ],
+          "painPoints": [
+            "Potential challenges in synchronizing global operations and maintaining consistency across new and existing markets.",
+            "Managing market volatility and adjusting asset allocations in response to economic changes."
+          ],
+          "opportunityScore": 75,
+          "personalizedAngles": [
+            "Discuss AI/ML solutions that can enhance their data-driven investment strategies.",
+            "Offer insights into HR technology that can streamline their global HR operations, especially with their recent expansion."
+          ],
+          "keyPersonalities": [
+            "Brien White, Chief Operating Officer",
+            "Leona Byrnes, Director of Human Resources"
+          ],
+          "recentDevelopments": [
+            "Opening of an office in Abu Dhabi Global Market.",
+            "Reduction in equity allocations, particularly in the US large-cap growth segment."
+          ],
+          "competitivePosition": "Brown Advisory is strategically positioned in the investment management sector, focusing on both U.S. and global markets. Their recent expansion into the Middle East and focus on small-cap stocks indicate a proactive approach to capturing new opportunities and managing risks."
+        }
+      },
+      "personalization": {
+        "emailSubjects": [
+          "Enhancing Brown Advisory's Global HR Operations with AI",
+          "Streamlining HR for Brown Advisory's Abu Dhabi Expansion",
+          "Unlocking AI Potential in Brown Advisory's Investment Strategies"
+        ],
+        "openingLines": [
+          "Congratulations on Brown Advisory's recent expansion into Abu Dhabi! This strategic move highlights your commitment to global growth.",
+          "I noticed Brown Advisory's focus on U.S. small-cap stocks—an exciting shift that aligns with current market opportunities.",
+          "With Brown Advisory's new office in Abu Dhabi, synchronizing global operations must be a top priority. Let's explore how technology can assist."
+        ],
+        "valuePropositions": [
+          "Our AI-driven HR solutions can help streamline your global operations, ensuring consistency across Brown Advisory's expanding markets.",
+          "Leverage our advanced AI/ML tools to enhance your data-driven investment strategies, particularly in volatile markets.",
+          "Our HR technology can support Brown Advisory in managing the complexities of a geographically diverse workforce, especially with your new presence in the Middle East."
+        ],
+        "specificMentions": {
+          "recentNews": "Opening of an office in Abu Dhabi Global Market.",
+          "companyInitiatives": "Exploring AI/ML solutions to enhance investment strategies.",
+          "personalConnection": "As an HR Manager, you play a crucial role in ensuring seamless integration of new offices into Brown Advisory's global operations."
+        },
+        "callToAction": [
+          "Would you be open to a brief call to discuss how our solutions can support Brown Advisory's HR needs?",
+          "Can we schedule a time to explore how AI can enhance your investment strategies and HR operations?"
+        ],
+        "conversationStarters": [
+          "How is Brown Advisory planning to address the challenges of synchronizing operations across its new and existing markets?",
+          "What role do you see AI playing in Brown Advisory's future investment and HR strategies?"
+        ],
+        "credibilityBuilders": [
+          "We've helped firms like [Similar Company] streamline their HR operations during global expansions.",
+          "Our AI solutions have enabled [Another Company] to enhance their investment strategies, resulting in improved market performance."
+        ],
+        "tone": "formal",
+        "personalityNotes": "As an HR Manager, Kelly is likely focused on ensuring smooth operations and integration across Brown Advisory's expanding global presence. She may be interested in solutions that offer efficiency and consistency."
+      },
+      "enhancedAt": "2025-10-01T01:42:55.871Z",
+      "totalScore": 76,
+      "scoringBreakdown": {
+        "emailVerification": {
+          "valid": true,
+          "score": 35
+        },
+        "businessRelevance": {
+          "businessTypes": [
+            "e-commerce",
+            "retail",
+            "construction",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ],
+          "score": 25,
+          "allIndicators": [
+            "e-commerce",
+            "retail",
+            "construction",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ]
+        },
+        "companyGrowth": {
+          "enriched": true,
+          "score": 4,
+          "data": {
+            "enriched": false,
+            "name": "Brown Advisory Global Homepage | Brown Advisory"
+          }
+        },
+        "roleAuthority": {
+          "score": 7,
+          "title": "HR Manager"
+        },
+        "timingSignals": {
+          "score": 5,
+          "signals": [
+            {
+              "type": "growth_signal",
+              "description": "Brown Advisory Appoints Logie Fitzwilliams Co-CEO to Serve ...",
+              "url": "https://www.brownadvisory.com/intl/brown-advisory-appoints-logie-fitzwilliams-co-ceo-serve-alongside-long-time-ceo-mike-hankin"
+            },
+            {
+              "type": "growth_signal",
+              "description": "Brown Advisory Global Homepage | Brown Advisory",
+              "url": "https://www.brownadvisory.com/"
+            },
+            {
+              "type": "growth_signal",
+              "description": "[PDF] Global Focus Strategy - Brown Advisory",
+              "url": "https://info.brownadvisory.com/Global_Focus_January_2025_Investor_Letter.pdf"
+            }
+          ]
+        }
+      },
+      "enrichmentData": {
+        "emailVerification": {
+          "valid": true,
+          "score": 35
+        },
+        "businessRelevance": {
+          "businessTypes": [
+            "e-commerce",
+            "retail",
+            "construction",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ],
+          "score": 25,
+          "allIndicators": [
+            "e-commerce",
+            "retail",
+            "construction",
+            "hr & workforce",
+            "communication",
+            "integration",
+            "management"
+          ]
+        },
+        "companyData": {
+          "enriched": false,
+          "name": "Brown Advisory Global Homepage | Brown Advisory"
+        },
+        "timingSignals": [
+          {
+            "type": "growth_signal",
+            "description": "Brown Advisory Appoints Logie Fitzwilliams Co-CEO to Serve ...",
+            "url": "https://www.brownadvisory.com/intl/brown-advisory-appoints-logie-fitzwilliams-co-ceo-serve-alongside-long-time-ceo-mike-hankin"
+          },
+          {
+            "type": "growth_signal",
+            "description": "Brown Advisory Global Homepage | Brown Advisory",
+            "url": "https://www.brownadvisory.com/"
+          },
+          {
+            "type": "growth_signal",
+            "description": "[PDF] Global Focus Strategy - Brown Advisory",
+            "url": "https://info.brownadvisory.com/Global_Focus_January_2025_Investor_Letter.pdf"
+          }
+        ]
+      },
+      "personInfo": {
+        "fullName": "Kelly Harrison",
+        "currentPosition": "HR Manager",
+        "company": "Brown Advisory",
+        "tenure": null,
+        "startDate": null,
+        "experience": null,
+        "bio": null,
+        "education": null,
+        "previousRoles": []
+      },
+      "leadQuality": "high",
+      "verificationStatus": "enhanced_verified"
+    }
+  ]
+}
