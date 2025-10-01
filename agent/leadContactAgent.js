@@ -421,17 +421,18 @@ class LeadContactAgent extends EventEmitter {
   }
 
   // EXPERIMENTAL: Iterative Apollo Batching - Get leads in small batches until target reached
-  async performIterativeApolloBatching(industry, position, queryVariation, batchSize, remainingNeeded, baseProgress, currentQualifiedCount = 0) {
+  async performIterativeApolloBatching(industry, position, queryVariation, batchSize, remainingNeeded, baseProgress, currentQualifiedCount = 0, rejectedLeads = []) {
     console.log(`[EXPERIMENTAL] 🔄 Starting iterative batching for ${industry} + ${position}`);
     console.log(`[EXPERIMENTAL] 🎯 Target: ${remainingNeeded} more leads, batch size: ${batchSize}`);
     
-    const allBatchResults = [];
+    const allQualifiedLeads = [];
+    const allRejectedLeads = [];
     let currentOffset = 0;
     let batchCount = 0;
     const maxBatches = Math.ceil(remainingNeeded / batchSize) + 2; // Add buffer for filtering
     const userLeadLimit = this.leadContactSettings?.leadLimit || 20;
     
-    while (allBatchResults.length < remainingNeeded && batchCount < maxBatches) {
+    while (allQualifiedLeads.length < remainingNeeded && batchCount < maxBatches) {
       batchCount++;
       const batchProgress = baseProgress + (batchCount / maxBatches) * 15;
       
@@ -451,15 +452,28 @@ class LeadContactAgent extends EventEmitter {
           researchFocus: this.leadContactSettings?.researchFocus?.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(line => line.length > 0),
           leadContactSettings: this.leadContactSettings,
           batchInfo: { batchNumber: batchCount, offset: currentOffset },
-          remainingNeeded: remainingNeeded - currentQualifiedCount // Pass remaining count to stop research early
+          remainingNeeded: remainingNeeded - currentQualifiedCount, // Pass remaining count to stop research early
+          rejectedLeads: rejectedLeads // Pass rejected leads for deduplication
         });
         
-        if (batchResult && batchResult.length > 0) {
-          console.log(`[EXPERIMENTAL] ✅ Batch ${batchCount}: Got ${batchResult.length} raw results`);
-          allBatchResults.push(...batchResult);
+        // Handle new structured result format
+        if (batchResult && (batchResult.qualifiedLeads || batchResult.rejectedLeads)) {
+          const qualifiedCount = batchResult.qualifiedLeads?.length || 0;
+          const rejectedCount = batchResult.rejectedLeads?.length || 0;
+          
+          console.log(`[EXPERIMENTAL] ✅ Batch ${batchCount}: Got ${qualifiedCount} qualified, ${rejectedCount} rejected leads`);
+          
+          if (batchResult.qualifiedLeads?.length > 0) {
+            allQualifiedLeads.push(...batchResult.qualifiedLeads);
+          }
+          
+          if (batchResult.rejectedLeads?.length > 0) {
+            allRejectedLeads.push(...batchResult.rejectedLeads);
+          }
+          
           currentOffset += batchSize; // Advance pagination
           
-          this.updateFluidProgress(`📊 Batch ${batchCount}: +${batchResult.length} leads (${allBatchResults.length} total)`, batchProgress + 2);
+          this.updateFluidProgress(`📊 Batch ${batchCount}: +${qualifiedCount} qualified leads (${allQualifiedLeads.length} total)`, batchProgress + 2);
         } else {
           console.log(`[EXPERIMENTAL] 🔚 Batch ${batchCount}: No more results, ending pagination`);
           break; // No more results available
@@ -475,8 +489,13 @@ class LeadContactAgent extends EventEmitter {
       }
     }
     
-    console.log(`[EXPERIMENTAL] 🏁 Batching complete: ${allBatchResults.length} total results from ${batchCount} Apollo batches`);
-    return allBatchResults;
+    console.log(`[EXPERIMENTAL] 🏁 Batching complete: ${allQualifiedLeads.length} qualified, ${allRejectedLeads.length} rejected from ${batchCount} Apollo batches`);
+    
+    // Return structured results for proper handling
+    return {
+      qualifiedLeads: allQualifiedLeads,
+      rejectedLeads: allRejectedLeads
+    };
   }
 
   // EXPERIMENTAL: Enhanced query builder with pagination support
@@ -1138,6 +1157,12 @@ class LeadContactAgent extends EventEmitter {
     this.updateFluidProgress('🧠 Initializing cross-cycle memory system...', 3);
     await this.initializeCrossCycleMemory();
     
+    // Load existing rejected leads for deduplication
+    this.updateFluidProgress('📋 Loading rejected leads database for deduplication...', 4);
+    const leadsData = await this.loadLeadsDatabase();
+    const rejectedLeadsCount = leadsData.rejectedLeads?.length || 0;
+    console.log(`[LEAD AGENT] 📋 Loaded ${rejectedLeadsCount} previously rejected leads for deduplication`);
+    
     const targetIndustries = this.getTargetIndustries();
     const targetPositions = this.getTargetPositions();
     const userLeadLimit = this.leadContactSettings?.leadLimit || 20;
@@ -1152,7 +1177,7 @@ class LeadContactAgent extends EventEmitter {
     const apolloBatchSize = 5; // Keep Apollo calls small for credit management
     const qualityThreshold = 60; // Minimum lead score to accept
     let totalBatches = 0;
-    let maxBatches = Math.ceil(userLeadLimit / 2); // Allow some buffer for quality filtering
+    let maxBatches = Math.max(10, userLeadLimit * 3); // Allow sufficient batches for quality filtering and rejections
     
     // EXPERIMENTAL: Intelligent Search Strategy (no more random!)
     const searchStrategy = this.createIntelligentSearchStrategy(targetIndustries, targetPositions);
@@ -1173,15 +1198,26 @@ class LeadContactAgent extends EventEmitter {
       this.updateFluidProgress(`� Batch ${totalBatches + 1}: ${industry} → ${position}`, baseProgress);
       
       // EXPERIMENTAL: Iterative Apollo batching for this industry/position combo
-      const batchLeads = await this.performIterativeApolloBatching(
+      const batchResults = await this.performIterativeApolloBatching(
         industry, 
         position, 
         queryVariation,
         apolloBatchSize,
         userLeadLimit - allQualifiedLeads.length, // Remaining needed
         baseProgress,
-        allQualifiedLeads.length // Current qualified count
+        allQualifiedLeads.length, // Current qualified count
+        leadsData.rejectedLeads || [] // Pass rejected leads for deduplication
       );
+      
+      // Handle new structured result format
+      const batchLeads = batchResults.qualifiedLeads || [];
+      const batchRejectedLeads = batchResults.rejectedLeads || [];
+      
+      // Store rejected leads for future deduplication
+      if (batchRejectedLeads.length > 0) {
+        console.log(`[LEAD AGENT] 📝 Storing ${batchRejectedLeads.length} rejected leads for future deduplication`);
+        await this.addRejectedLeads(batchRejectedLeads);
+      }
       
       // EXPERIMENTAL: Smart company matching and filtering
       const verifiedLeads = await this.performSmartCompanyMatching(batchLeads);
@@ -1205,6 +1241,21 @@ class LeadContactAgent extends EventEmitter {
           }
         } else {
           console.log(`[LEAD AGENT] ❌ Lead below threshold: ${lead.companyName} - ${lead.contactName} (Score: ${lead.totalScore}/${qualityThreshold})`);
+          
+          // Store rejected lead for future deduplication
+          const rejectedLead = {
+            companyName: lead.companyName,
+            contactName: lead.contactName,
+            email: lead.email,
+            totalScore: lead.totalScore,
+            rejectionReason: `Low quality score: ${lead.totalScore}/${qualityThreshold} threshold`,
+            rejectedAt: new Date().toISOString(),
+            scoringBreakdown: lead.scoringBreakdown || {},
+            source: 'agent_processing'
+          };
+          
+          console.log(`[LEAD AGENT] 📝 Storing rejected lead for deduplication: ${lead.companyName} - ${lead.contactName}`);
+          await this.addRejectedLeads([rejectedLead]);
         }
       }
       
@@ -2193,6 +2244,45 @@ BODY: [email body]`;
     return leadsData;
   }
 
+  // Add rejected leads to database for future deduplication
+  async addRejectedLeads(rejectedLeads) {
+    const leadsData = await this.loadLeadsDatabase();
+    
+    if (!leadsData.rejectedLeads) {
+      leadsData.rejectedLeads = [];
+    }
+    
+    // Add new rejected leads, avoiding duplicates based on email
+    const existingEmails = new Set(leadsData.rejectedLeads.map(lead => lead.email));
+    
+    let addedCount = 0;
+    rejectedLeads.forEach(lead => {
+      if (!existingEmails.has(lead.email)) {
+        leadsData.rejectedLeads.push({
+          companyName: lead.companyName,
+          contactName: lead.contactName,
+          email: lead.email,
+          totalScore: lead.totalScore,
+          rejectionReason: lead.rejectionReason,
+          rejectedAt: lead.rejectedAt,
+          scoringBreakdown: lead.scoringBreakdown,
+          source: lead.source
+        });
+        existingEmails.add(lead.email);
+        addedCount++;
+      }
+    });
+    
+    if (addedCount > 0) {
+      console.log(`[LEAD AGENT] 📝 Added ${addedCount} new rejected leads to database (total: ${leadsData.rejectedLeads.length})`);
+      await this.saveLeadsDatabase(leadsData);
+    } else {
+      console.log(`[LEAD AGENT] 📝 All ${rejectedLeads.length} rejected leads already exist in database`);
+    }
+    
+    return leadsData;
+  }
+
   async loadState() {
     try {
       const data = await fs.readFile(this.stateFile, 'utf8');
@@ -2250,12 +2340,26 @@ BODY: [email body]`;
   async loadLeadsDatabase() {
     try {
       const data = await fs.readFile(this.leadsFile, 'utf8');
-      return JSON.parse(data);
+      const leadsData = JSON.parse(data);
+      
+      // Ensure new structure exists
+      if (!leadsData.rejectedLeads) {
+        leadsData.rejectedLeads = [];
+      }
+      if (!leadsData.emailedCompanies) {
+        leadsData.emailedCompanies = [];
+      }
+      if (!leadsData.allLeads) {
+        leadsData.allLeads = [];
+      }
+      
+      return leadsData;
     } catch (error) {
       // File doesn't exist, start fresh
       return {
         allLeads: [],
-        emailedCompanies: []
+        emailedCompanies: [],
+        rejectedLeads: [] // Track rejected leads with reasons to avoid re-research
       };
     }
   }

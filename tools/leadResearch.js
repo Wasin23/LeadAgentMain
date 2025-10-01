@@ -508,16 +508,37 @@ export async function leadResearch(query, options = {}) {
   const researchFocus = options.researchFocus || null; // Get custom research focus
   const leadContactSettings = options.leadContactSettings || null; // Get lead contact settings
   const remainingNeeded = options.remainingNeeded || 5; // How many qualified leads are still needed
+  const existingRejectedLeads = options.rejectedLeads || []; // Previously rejected leads for deduplication
+  
   console.log(`🔍 [LEAD RESEARCH] Starting enhanced multi-source research for: ${query} (limit: ${limit}, remainingNeeded: ${remainingNeeded})`);
+  if (existingRejectedLeads.length > 0) {
+    console.log(`🚫 [DEDUPLICATION] Loaded ${existingRejectedLeads.length} previously rejected leads for deduplication`);
+  }
   
   try {
     // Step 1: Get initial leads from Apollo
     const apolloLeads = await searchApollo(query, limit, userId, leadContactSettings);
     console.log(`📊 [LEAD RESEARCH] Found ${apolloLeads.length} Apollo leads`);
     
-    // Step 2: Enhanced verification and scoring on top leads
-    const topLeads = apolloLeads.slice(0, 5);
+    // Step 2: Deduplication - Filter out previously rejected leads
+    let filteredLeads = apolloLeads;
+    if (existingRejectedLeads.length > 0) {
+      const rejectedEmails = new Set(existingRejectedLeads.map(rejected => rejected.email));
+      const beforeCount = filteredLeads.length;
+      filteredLeads = filteredLeads.filter(lead => !rejectedEmails.has(lead.email));
+      const dedupedCount = beforeCount - filteredLeads.length;
+      
+      if (dedupedCount > 0) {
+        console.log(`🚫 [DEDUPLICATION] Filtered out ${dedupedCount} previously rejected leads (${filteredLeads.length} remaining)`);
+      } else {
+        console.log(`✅ [DEDUPLICATION] No duplicate leads found, processing all ${filteredLeads.length} leads`);
+      }
+    }
+    
+    // Step 3: Enhanced verification and scoring on top leads
+    const topLeads = filteredLeads.slice(0, 5);
     const enhancedLeads = [];
+    const rejectedLeads = []; // Track rejected leads with reasons
     
     for (const lead of topLeads) {
       const companyName = lead.organization?.name || lead.company;
@@ -596,8 +617,8 @@ export async function leadResearch(query, options = {}) {
         verificationStatus: 'enhanced_verified'
       };
       
-      // Only include leads with minimum score or verified emails
-      if (totalScore >= 25 || (verifiedEmail && scoringBreakdown.emailVerification?.valid)) {
+      // Check if lead qualifies or should be rejected
+      if (totalScore >= 60) {
         enhancedLeads.push(finalEnhancedLead);
         console.log(`✅ [ENHANCED RESEARCH] Lead qualified: ${companyName} - Score: ${totalScore} (${finalEnhancedLead.leadQuality})`);
         
@@ -607,7 +628,21 @@ export async function leadResearch(query, options = {}) {
           break; // Exit the processing loop to save API calls and processing time
         }
       } else {
-        console.log(`❌ [ENHANCED RESEARCH] Lead filtered out: ${companyName} - Score: ${totalScore} (below threshold of 25)`);
+        // Create rejected lead entry with detailed rejection reason
+        const rejectedLead = {
+          companyName: companyName,
+          contactName: lead.name || 'Unknown Contact',
+          email: verifiedEmail,
+          title: lead.title || 'Unknown Title',
+          totalScore: totalScore,
+          rejectionReason: `Low quality score: ${totalScore}/60 threshold`,
+          rejectedAt: new Date().toISOString(),
+          scoringBreakdown: scoringBreakdown,
+          source: 'Apollo'
+        };
+        
+        rejectedLeads.push(rejectedLead);
+        console.log(`❌ [ENHANCED RESEARCH] Lead rejected: ${companyName} - Score: ${totalScore} (below threshold of 60)`);
       }
     }
     
@@ -615,10 +650,14 @@ export async function leadResearch(query, options = {}) {
     enhancedLeads.sort((a, b) => b.totalScore - a.totalScore);
     
     console.log(`🎯 [ENHANCED RESEARCH] Qualified ${enhancedLeads.length}/${topLeads.length} leads with enhanced scoring`);
+    console.log(`🗂️ [REJECTED LEADS] Rejected ${rejectedLeads.length} leads for future deduplication`);
     
-    // Return enhanced leads + remaining basic leads if needed
-    const remainingLeads = apolloLeads.slice(5);
-    return [...enhancedLeads, ...remainingLeads];
+    // Return structured results with both qualified and rejected leads
+    // Only return properly scored and verified leads - no more unprocessed leads
+    return {
+      qualifiedLeads: enhancedLeads,
+      rejectedLeads: rejectedLeads
+    };
     
   } catch (error) {
     console.error('[ENHANCED RESEARCH] Error:', error);
