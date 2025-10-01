@@ -6355,7 +6355,7 @@ ${email.leadDetails ? JSON.stringify(email.leadDetails, null, 2) : 'No research 
       return {
         companyBranding: {
           agentName: document.getElementById('agent-name')?.value?.trim() || 'ExaMark',
-          companyName: document.getElementById('company-name')?.value?.trim() || 'Exabits',
+          companyName: document.getElementById('company-name')?.value?.trim() || '',
           agentTitle: document.getElementById('agent-title')?.value?.trim() || 'AI Assistant',
           primaryService: document.getElementById('primary-service')?.value?.trim() || 'Professional business solutions',
           coreOffering: document.getElementById('core-offering')?.value?.trim() || 'Custom solutions tailored to your business needs',
@@ -6971,7 +6971,7 @@ Best regards,
 
 TEMPLATE VARIABLES TO CUSTOMIZE:
 - {{AGENT_NAME}}: Your AI assistant's name (e.g., "ExaMark")
-- {{COMPANY_NAME}}: Your company name (e.g., "Exabits")
+- {{COMPANY_NAME}}: Your company name (e.g., "Your Business Inc")
 - {{AGENT_TITLE}}: Your AI assistant's title (e.g., "AI Assistant")
 - {{PRIMARY_SERVICE}}: Main service offering
 - {{CORE_OFFERING}}: Specific product/service details
@@ -7239,7 +7239,7 @@ Example usage in prompt:
 
         const brandingData = {
           agentName: document.getElementById('agent-name').value.trim() || 'ExaMark',
-          companyName: document.getElementById('company-name').value.trim() || 'Exabits',
+          companyName: document.getElementById('company-name').value.trim() || '',
           agentTitle: document.getElementById('agent-title').value.trim() || 'AI Assistant',
           primaryService: document.getElementById('primary-service').value.trim() || 'Professional business solutions',
           coreOffering: document.getElementById('core-offering').value.trim() || 'Custom solutions tailored to your business needs',
@@ -7869,7 +7869,7 @@ Example usage in prompt:
     async function loadEmailResponseSettings() {
       console.log('📧 Loading Email Response Settings...');
       try {
-        const response = await authenticatedFetch('/api/lead-agent/settings');
+        const response = await authenticatedFetch('/api/email-response-settings');
         const data = await response.json();
         
         if (data.success && data.settings) {
@@ -9846,12 +9846,12 @@ London" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div class="modal-form-group">
             <label for="agent-name">AI Assistant Name</label>
-            <input id="agent-name" type="text" placeholder="ExaMark" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+            <input id="agent-name" type="text" placeholder="Your AI assistant name" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
           </div>
           
           <div class="modal-form-group">
             <label for="company-name">Company Name</label>
-            <input id="company-name" type="text" placeholder="Exabits" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
+            <input id="company-name" type="text" placeholder="Your company name" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px; font-family: inherit;">
           </div>
           
           <div class="modal-form-group">
@@ -10121,7 +10121,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="modal-form-group">
         <label for="response-ai-name">AI Assistant Name</label>
-        <input type="text" id="response-ai-name" placeholder="e.g., Sarah, Alex, the ExaMark Team" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
+        <input type="text" id="response-ai-name" placeholder="e.g., Sarah, Alex, AI Assistant" style="width: 100%; padding: 0.8rem; border: 2px solid rgba(90, 103, 216, 0.2); border-radius: 8px;" />
         <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
           🤖 Name the AI will use in email signatures
         </div>
