@@ -41,10 +41,10 @@ try {
 
     await settingsManager.updateSetting('knowledge_base', {
         technical_answers: {
-            "how does it work": "Our AI GPU compute infrastructure provides dedicated NVIDIA H100/H200 clusters optimized for machine learning workloads, delivering superior performance-per-dollar compared to general cloud services.",
-            "performance benefits": "Clients typically see 30% cost reduction and 40% faster model training through our optimized infrastructure and custom configurations.",
-            "integration process": "Integration is seamless - we provide dedicated clusters that work with your existing ML frameworks and tools.",
-            "scaling capabilities": "Our infrastructure scales automatically based on your compute demands, from small experiments to enterprise-wide deployments."
+            "how does it work": "Our professional business solutions are tailored to meet your specific operational needs and business objectives.",
+            "performance benefits": "Clients typically see improved efficiency and cost optimization through our customized approach and expert support.",
+            "integration process": "Integration is seamless - we work with your existing systems and processes to ensure smooth implementation.",
+            "scaling capabilities": "Our solutions scale with your business growth, from startup requirements to enterprise-wide implementations."
         },
         pricing_guidance: {
             "cost_model": "We offer performance-per-dollar advantages with transparent pricing based on your specific compute requirements.",
@@ -66,15 +66,15 @@ try {
     await settingsManager.updateSetting('calendar_id', 'colton.fidd@gmail.com', 'string', userId);
 
     // Add missing individual settings that were in the original 16
-    await settingsManager.updateSetting('product_name', 'AI-Powered High-Performance Computing Solutions', 'string', userId);
+    await settingsManager.updateSetting('product_name', 'Professional Business Solutions', 'string', userId);
     await settingsManager.updateSetting('timezone', 'America/Los_Angeles', 'string', userId);
     await settingsManager.updateSetting('technical_depth', 'medium', 'string', userId);
     await settingsManager.updateSetting('complex_question_escalation', false, 'boolean', userId);
     await settingsManager.updateSetting('company_name', 'Exabits', 'string', userId);
     await settingsManager.updateSetting('value_propositions', [
-        "30% cost reduction compared to general cloud services",
-        "40% faster model training with optimized infrastructure", 
-        "Custom AI infrastructure tailored to your specific needs"
+        "Cost-effective solutions compared to traditional approaches",
+        "Improved efficiency through optimized processes", 
+        "Custom solutions tailored to your specific business needs"
     ], 'array', userId);
     await settingsManager.updateSetting('response_tone', 'professional_friendly', 'string', userId);
     await settingsManager.updateSetting('meeting_pushiness', 'medium', 'string', userId);

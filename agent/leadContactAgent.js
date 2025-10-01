@@ -150,7 +150,7 @@ class LeadContactAgent extends EventEmitter {
         agentName: zillizSettings.companyBranding?.agentName || 'ExaMark',
         companyName: zillizSettings.companyBranding?.companyName || 'Exabits',
         agentTitle: zillizSettings.companyBranding?.agentTitle || 'AI Assistant',
-        primaryService: zillizSettings.companyBranding?.primaryService || 'AI-powered High-Performance Computing Solutions',
+        primaryService: zillizSettings.companyBranding?.primaryService || 'Professional business solutions',
         coreOffering: zillizSettings.companyBranding?.coreOffering || 'Professional business solutions',
         keyAdvantages: zillizSettings.companyBranding?.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
         expertiseArea: zillizSettings.companyBranding?.expertiseArea || 'Deep understanding of AI/ML compute requirements'
@@ -1687,7 +1687,7 @@ class LeadContactAgent extends EventEmitter {
           'AGENT_NAME': branding.agentName || 'ExaMark',
           'COMPANY_NAME': branding.companyName || 'Exabits',
           'AGENT_TITLE': branding.agentTitle || 'AI Assistant',
-          'PRIMARY_SERVICE': branding.primaryService || 'AI-powered High-Performance Computing (HPC) Solutions',
+          'PRIMARY_SERVICE': branding.primaryService || 'Professional business solutions',
           'CORE_OFFERING': branding.coreOffering || 'Professional business solutions',
           'KEY_ADVANTAGES': branding.keyAdvantages || 'AI-HPC specialization, better performance-per-dollar vs general cloud, expert support',
           'EXPERTISE_AREA': branding.expertiseArea || 'Deep understanding of AI/ML compute requirements',
@@ -1741,7 +1741,7 @@ CRITICAL RULES:
 - DO NOT repeat the subject line in the email body
 - DO NOT use placeholder text like "your full name" or "your position"
 - Sign simply as "ExaMark" - no placeholder names
-- EXPLAIN the logical connection between their business and our GPU clusters
+- EXPLAIN the logical connection between their business and our solutions
 - Reference specific research insights when available
 - Focus on business value, not just features
 - DO NOT mention Exabits founding date, location, or founders unless directly relevant to the prospect's needs
@@ -1828,12 +1828,12 @@ Best regards,`;
       const agentName = branding.agentName || 'ExaMark';
       const companyName = branding.companyName || 'Exabits';
       const agentTitle = branding.agentTitle || 'AI Assistant';
-      const primaryService = branding.primaryService || 'AI-powered high-performance computing solutions';
+      const primaryService = branding.primaryService || 'professional business solutions';
       
       // Fallback to simple template with template variables replaced
       return {
-        subject: `AI Infrastructure Solutions for ${company}`,
-        body: `Hello ${lead.first_name},\n\nI'm ${agentName} from ${companyName}, and I noticed ${company} is working in ${lead.industry || 'technology'}.\n\n${companyName} specializes in ${primaryService} with NVIDIA H100/H200 GPU clusters. We help companies like yours achieve better performance-per-dollar compared to general cloud providers.\n\nI'd love to discuss how our specialized AI infrastructure could benefit ${company}'s computing needs.\n\nBest regards,\n${agentName}\n${companyName} ${agentTitle}`
+        subject: `Business Solutions for ${company}`,
+        body: `Hello ${lead.first_name},\n\nI'm ${agentName} from ${companyName}, and I noticed ${company} is working in ${lead.industry || 'technology'}.\n\n${companyName} specializes in ${primaryService}. We help companies like yours achieve better results and efficiency.\n\nI'd love to discuss how our solutions could benefit ${company}'s business needs.\n\nBest regards,\n${agentName}\n${companyName} ${agentTitle}`
       };
     }
   }
@@ -1888,14 +1888,14 @@ Generate a concise (≤180 words), professional email that shows deep research a
 1. Subject line: Reference specific company context (growth, funding, AI initiatives, etc.)
 2. Greeting: ONE ONLY (Hi [Name], or Hello [Name],)
 3. First line: Reference a company milestone, pain point, or industry trend (NOT generic fluff)
-4. Explain the logical connection between their business and Exabits GPU clusters
+4. Explain the logical connection between their business and our solutions
 5. Emphasize business outcomes (time-to-market, scalability, efficiency, compliance)
 6. Close with a time-bound, professional CTA (e.g., “Would you be open to a 20-minute call next week?”)
 
 CRITICAL RULES:
 - Use ONLY ONE greeting (not "Hello Name, Hi Name,")
 - NO "P.S." sections about founders
-- EXPLAIN the logical connection between their business and our GPU clusters
+- EXPLAIN the logical connection between their business and our solutions
 - Reference specific research insights when available
 - Focus on business value, not just features
 - DO NOT mention Exabits founding date, location, or founders unless directly relevant to the prospect's needs
@@ -1959,12 +1959,12 @@ BODY: [email body]`;
       const agentName = branding.agentName || 'ExaMark';
       const companyName = branding.companyName || 'Exabits';
       const agentTitle = branding.agentTitle || 'AI Assistant';
-      const primaryService = branding.primaryService || 'AI-powered high-performance computing solutions';
+      const primaryService = branding.primaryService || 'professional business solutions';
       
       // Fallback email template with template variables replaced
       return {
-        subject: `AI Infrastructure Solutions for ${lead.company}`,
-        body: `Hello ${lead.first_name},\n\nI hope this message finds you well. I'm ${agentName} from ${companyName}, and I noticed ${lead.company} is working in ${lead.industry || 'technology'}.\n\n${companyName} specializes in ${primaryService} with NVIDIA H100/H200 GPU clusters. We help companies like yours achieve better performance-per-dollar compared to general cloud providers.\n\nI'd love to discuss how our specialized AI infrastructure could benefit ${lead.company}'s computing needs.\n\nBest regards,\n${agentName}\n${companyName} ${agentTitle}`
+        subject: `Business Solutions for ${lead.company}`,
+        body: `Hello ${lead.first_name},\n\nI hope this message finds you well. I'm ${agentName} from ${companyName}, and I noticed ${lead.company} is working in ${lead.industry || 'technology'}.\n\n${companyName} specializes in ${primaryService}. We help companies like yours achieve better results and efficiency.\n\nI'd love to discuss how our solutions could benefit ${lead.company}'s business needs.\n\nBest regards,\n${agentName}\n${companyName} ${agentTitle}`
       };
     }
   }
