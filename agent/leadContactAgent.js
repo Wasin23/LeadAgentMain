@@ -994,12 +994,18 @@ class LeadContactAgent extends EventEmitter {
         return { success: true, stopped: true };
       }
       
-      // Step 2: If we need more leads, research new ones
+      // Step 2: Check if we already have enough leads based on user's lead limit
       const availableLeads = this.getAvailableLeads(leadsData);
+      const userLeadLimit = this.leadContactSettings?.geographicSettings?.leadLimit || 5;
       
-      if (availableLeads.length < 5) {
+      console.log(`[LEAD AGENT] 📊 Available leads: ${availableLeads.length}, User limit: ${userLeadLimit}`);
+      
+      if (availableLeads.length >= userLeadLimit) {
+        console.log(`[LEAD AGENT] ✅ Already have enough leads (${availableLeads.length}/${userLeadLimit}) - skipping research`);
+        this.updateProgress(2, 6, 'Sufficient leads available, skipping research...');
+      } else {
         this.updateProgress(2, 6, 'Researching new leads...');
-        console.log('[LEAD AGENT] 🔍 Need more leads, starting research...');
+        console.log(`[LEAD AGENT] 🔍 Need more leads (${availableLeads.length}/${userLeadLimit}), starting research...`);
         this.currentStatus = 'researching_leads';
         await this.saveState();
         
@@ -1021,8 +1027,6 @@ class LeadContactAgent extends EventEmitter {
             message: 'Agent paused - no leads available. Start agent again to resume research.'
           };
         }
-      } else {
-        this.updateProgress(2, 6, 'Sufficient leads available, skipping research...');
       }
       
       // Step 3: Select top 5 leads for this cycle
@@ -1312,33 +1316,38 @@ class LeadContactAgent extends EventEmitter {
 
   extractLeadInfo(result) {
     // Check if this is a structured Apollo result (new leadResearch.js format)
-    if (result && result.name && result.organization) {
-      console.log(`[LEAD AGENT] Processing structured Apollo lead: ${result.name} at ${result.organization.name}`);
+    if (result && result.name && (result.organization || result.companyName)) {
+      const companyName = result.organization?.name || result.companyName || 'Unknown Company';
+      const contactName = result.name || result.contactName || 'Unknown Contact';
+      
+      console.log(`[LEAD AGENT] Processing structured Apollo lead: ${contactName} at ${companyName}`);
       
       // Check if this lead has been enhanced with intelligence data
       const hasIntelligence = result.intelligence && result.intelligence.analysis;
       const hasPersonalization = result.personalization;
       
       if (hasIntelligence && hasPersonalization) {
-        console.log(`[LEAD AGENT] ✨ Found enhanced lead with intelligence data: ${result.organization.name}`);
+        console.log(`[LEAD AGENT] ✨ Found enhanced lead with intelligence data: ${companyName}`);
       }
       
       return {
-        name: result.name || 'Unknown Contact',
-        first_name: result.first_name || result.name?.split(' ')[0] || 'Unknown',
-        last_name: result.last_name || result.name?.split(' ').slice(1).join(' ') || 'Unknown',
+        name: contactName,
+        first_name: result.first_name || contactName?.split(' ')[0] || 'Unknown',
+        last_name: result.last_name || contactName?.split(' ').slice(1).join(' ') || 'Unknown',
         title: result.title || 'Unknown Title',
-        company: result.organization.name || 'Unknown Company',
+        company: companyName,
         email: result.email || 'email_needed@example.com',
         source: 'Apollo',
         url: result.linkedin_url || '',
-        snippet: `${result.title} at ${result.organization.name}`,
-        score: 10,
-        industry: result.organization.industry || 'Technology',
+        snippet: `${result.title || 'Unknown Title'} at ${companyName}`,
+        score: result.totalScore || 10,
+        industry: result.organization?.industry || 'Technology',
         // Preserve enhanced intelligence and personalization data
         intelligence: result.intelligence || null,
         personalization: result.personalization || null,
-        verification: result.verification || null
+        verification: result.verification || null,
+        totalScore: result.totalScore || 10,
+        leadQuality: result.leadQuality || 'medium'
       };
     }
     
