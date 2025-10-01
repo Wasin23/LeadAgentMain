@@ -1307,7 +1307,26 @@ class LeadContactAgent extends EventEmitter {
     this.updateFluidProgress(`✅ EXPERIMENTAL COMPLETE: ${finalLeads.length} optimized leads ready`, 98);
     console.log(`[LEAD AGENT] 🎉 EXPERIMENTAL SUCCESS: Found ${finalLeads.length} high-quality leads using ${totalBatches} Apollo batches`);
     
-    return finalLeads;
+    // CRITICAL FIX: Transform lead data format for database compatibility
+    const transformedLeads = finalLeads.map(lead => ({
+      id: lead.id || lead.apollo_id || `generated_${Date.now()}_${Math.random()}`,
+      first_name: lead.first_name || lead.contactName?.split(' ')[0] || 'Unknown',
+      last_name: lead.last_name || lead.contactName?.split(' ').slice(1).join(' ') || 'Unknown',
+      name: lead.name || lead.contactName || 'Unknown',
+      email: lead.email,
+      title: lead.title || lead.position || 'Unknown',
+      company: lead.company || lead.companyName || 'Unknown', // CRITICAL: Map companyName to company
+      totalScore: lead.totalScore,
+      intelligence: lead.intelligence,
+      personalization: lead.personalization,
+      personInfo: lead.personInfo,
+      scoringBreakdown: lead.scoringBreakdown,
+      source: lead.source || 'Apollo'
+    }));
+    
+    console.log(`[LEAD AGENT] 🔧 Transformed ${transformedLeads.length} leads for database compatibility`);
+    
+    return transformedLeads;
   }
 
   async processLeadsFromResearch(researchResults) {
@@ -2216,15 +2235,35 @@ BODY: [email body]`;
       leadsData.allLeads = [];
     }
     
-    // Add new leads, avoiding duplicates
-    const existingCompanies = new Set(leadsData.allLeads.map(lead => lead.company));
+    // Enhanced deduplication by email AND company
+    const existingEmails = new Set(leadsData.allLeads.map(lead => lead.email?.toLowerCase()));
+    const existingCompanies = new Set(leadsData.allLeads.map(lead => lead.company?.toLowerCase()));
     
+    let addedCount = 0;
     newLeads.forEach(lead => {
-      if (!existingCompanies.has(lead.company)) {
-        leadsData.allLeads.push(lead);
-        existingCompanies.add(lead.company);
+      const leadEmail = lead.email?.toLowerCase();
+      const leadCompany = (lead.company || lead.companyName)?.toLowerCase();
+      
+      // Skip if email or company already exists
+      if (!existingEmails.has(leadEmail) && !existingCompanies.has(leadCompany)) {
+        // Ensure proper data format
+        const standardizedLead = {
+          ...lead,
+          company: lead.company || lead.companyName, // Ensure company field exists
+          email: lead.email,
+          name: lead.name || lead.contactName
+        };
+        
+        leadsData.allLeads.push(standardizedLead);
+        existingEmails.add(leadEmail);
+        existingCompanies.add(leadCompany);
+        addedCount++;
+      } else {
+        console.log(`[LEAD AGENT] 🔄 Skipped duplicate: ${lead.name} at ${lead.company || lead.companyName}`);
       }
     });
+    
+    console.log(`[LEAD AGENT] 📝 Added ${addedCount} new leads to database (skipped ${newLeads.length - addedCount} duplicates)`);
     
     await this.saveLeadsDatabase(leadsData);
     
