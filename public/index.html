@@ -1527,14 +1527,13 @@
             </div>
             
             <div style="margin-bottom:1rem;">
-              <input type="text" id="deep-research-query" placeholder="Enter research topic or lead search (e.g., 'quantum computing startups', 'CTOs at fintech companies in NYC', 'blockchain development tools')" 
+              <input type="text" id="deep-research-query" placeholder="Enter research topic (e.g., 'quantum computing startups', 'blockchain development tools', 'AI market trends')" 
                 style="width:100%;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);background:rgba(255, 255, 255, 0.9);color:#374151;border-radius:10px;margin-bottom:0.5rem;transition:border-color 0.3s ease;box-sizing:border-box;" 
                 onfocus="this.style.borderColor='#5a67d8'" onblur="this.style.borderColor='rgba(90, 103, 216, 0.2)'">
               
               <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
                 <select id="research-mode" style="flex:1;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);background:rgba(255, 255, 255, 0.9);color:#374151;border-radius:10px;">
                   <option value="fresh">🔥 Fresh Mode</option>
-                  <option value="lead">� Lead Search (Companies & contacts)</option>
                 </select>
                 <select id="research-limit" style="flex:0 0 120px;padding:0.8rem;border:2px solid rgba(90, 103, 216, 0.2);background:rgba(255, 255, 255, 0.9);color:#374151;border-radius:10px;">
                   <option value="15">15 results</option>
@@ -3653,6 +3652,8 @@
                   if (progressData.stage === 'complete' && progressData.result) {
                     console.log('[FRONTEND] Research completed, displaying results');
                     console.log('[FRONTEND] Result data:', progressData.result);
+                    console.log('[FRONTEND] Result summary:', progressData.result.summary);
+                    console.log('[FRONTEND] Result sources:', progressData.result.sources);
                     displayDeepResearchResults(progressData.result);
                     resetDeepResearchUI();
                   } else if (progressData.stage === 'error') {
@@ -3820,8 +3821,28 @@
     function displayDeepResearchResults(data) {
       const resultsEl = document.getElementById('deep-research-results');
       
+      console.log('[FRONTEND] displayDeepResearchResults called with:', data);
+      
+      // Check if data has expected format
+      if (!data) {
+        resultsEl.innerHTML = '<div style="color:#f44336;">No data received</div>';
+        return;
+      }
+      
+      // Show raw data if structure is unexpected
+      if (!data.summary && !data.sources) {
+        console.log('[FRONTEND] Unexpected data format, showing raw data');
+        resultsEl.innerHTML = `
+          <div style="background:rgba(255, 255, 255, 0.9);border-radius:8px;padding:1rem;margin-bottom:1rem;">
+            <h4 style="color:#5a67d8;margin-bottom:0.5rem;">Research Results</h4>
+            <pre style="background:#f8f9fa;padding:1rem;border-radius:4px;overflow-x:auto;font-size:0.85rem;">${JSON.stringify(data, null, 2)}</pre>
+          </div>
+        `;
+        return;
+      }
+      
       if (!data.summary || !data.sources || data.sources.length === 0) {
-        resultsEl.innerHTML = '<div style="color:#f44336;">No results found</div>';
+        resultsEl.innerHTML = '<div style="color:#f44336;">No results found or incomplete data</div>';
         return;
       }
 
