@@ -7645,13 +7645,13 @@ Example usage in prompt:
               const domain = data.settings.domainSettings;
               
               // Update preview elements
-              document.getElementById('modal-tracking-domain-preview').textContent = domain.trackingDomain ? `Current: ${domain.trackingDomain}` : 'Current: localhost:8080';
+              document.getElementById('modal-tracking-domain-preview').textContent = domain.trackingDomain ? `Current: ${domain.trackingDomain}` : 'Current: Auto-detected';
               document.getElementById('modal-server-port-preview').textContent = domain.serverPort ? `Current: ${domain.serverPort}` : 'Current: 8080';
               
               console.log('🌐 Updated domain settings previews:', domain);
             } else {
               // Set defaults if no data
-              document.getElementById('modal-tracking-domain-preview').textContent = 'Current: localhost:8080';
+              document.getElementById('modal-tracking-domain-preview').textContent = 'Current: Auto-detected';
               document.getElementById('modal-server-port-preview').textContent = 'Current: 8080';
             }
           })
