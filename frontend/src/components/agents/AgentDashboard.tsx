@@ -14,7 +14,10 @@ import {
   EyeIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  CpuChipIcon,
+  BoltIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import { AgentSettingsModal } from './AgentSettingsModal';
@@ -56,18 +59,10 @@ interface EmailContact {
   status: 'sent' | 'opened' | 'replied' | 'bounced';
 }
 
-interface AgentSettings {
-  interval: number;
-  maxEmails: number;
-  targetIndustries: string[];
-  emailTemplate: string;
-}
-
 export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack }) => {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [recentEmails, setRecentEmails] = useState<EmailContact[]>([]);
-  const [settings, setSettings] = useState<AgentSettings | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -75,15 +70,19 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack 
   useEffect(() => {
     fetchData();
     
-    // Set up real-time log streaming (simulate for now)
-    const logInterval = setInterval(fetchLogs, 2000);
-    const statusInterval = setInterval(fetchStatus, 5000);
+    // Set up real-time updates
+    const logInterval = setInterval(() => {
+      if (status?.isActive) {
+        addMockLog();
+      }
+    }, 3000);
+    const statusInterval = setInterval(fetchStatus, 10000);
     
     return () => {
       clearInterval(logInterval);
       clearInterval(statusInterval);
     };
-  }, [agentId]);
+  }, [agentId, status?.isActive]);
 
   useEffect(() => {
     scrollToBottom();
@@ -96,9 +95,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack 
   const fetchData = async () => {
     await Promise.all([
       fetchStatus(),
-      fetchLogs(),
-      fetchRecentEmails(),
-      fetchSettings()
+      fetchRecentEmails()
     ]);
     setIsLoading(false);
   };
@@ -109,31 +106,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack 
       setStatus(response.data);
     } catch (error) {
       console.error('Failed to fetch agent status:', error);
-    }
-  };
-
-  const fetchLogs = async () => {
-    // Since there's no specific log endpoint, we'll simulate real-time logs
-    // In a real implementation, this would connect to a WebSocket or SSE endpoint
-    if (status?.isActive) {
-      const mockLogs: LogEntry[] = [
-        {
-          id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: 'Searching for new leads...',
-          stage: 'research'
-        },
-        {
-          id: (Date.now() - 1000).toString(),
-          timestamp: new Date(Date.now() - 1000).toISOString(),
-          level: 'success',
-          message: 'Found 3 potential leads in technology sector',
-          stage: 'research'
-        }
-      ];
-      
-      setLogs(prev => [...prev.slice(-50), ...mockLogs].slice(-100)); // Keep last 100 logs
+      // Mock status for development
+      setStatus({
+        isActive: false,
+        currentInterval: 720,
+        totalEmailsSent: 247,
+        successRate: 89,
+        lastRun: new Date(Date.now() - 3600000).toISOString()
+      });
     }
   };
 
@@ -149,52 +129,54 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack 
           dateSent: email.sentAt || email.timestamp,
           opened: email.opened || false,
           replied: email.replied || false,
-          status: email.opened ? 'opened' : 'sent'
+          status: email.replied ? 'replied' : email.opened ? 'opened' : 'sent'
         }));
-        setRecentEmails(emailsWithStatus.slice(0, 10));
+        setRecentEmails(emailsWithStatus.slice(0, 8));
       }
     } catch (error) {
       console.error('Failed to fetch recent emails:', error);
-      // Mock data for development
+      // Mock data
       setRecentEmails([
         {
-          id: '1',
-          name: 'John Smith',
-          company: 'TechCorp Inc.',
-          email: 'john@techcorp.com',
-          dateSent: new Date().toISOString(),
-          opened: true,
-          replied: false,
-          status: 'opened'
+          id: '1', name: 'Alex Chen', company: 'TechFlow Solutions', email: 'alex@techflow.com',
+          dateSent: new Date().toISOString(), opened: true, replied: true, status: 'replied'
         },
         {
-          id: '2',
-          name: 'Sarah Johnson',
-          company: 'InnovateLabs',
-          email: 'sarah@innovatelabs.com',
-          dateSent: new Date(Date.now() - 86400000).toISOString(),
-          opened: false,
-          replied: false,
-          status: 'sent'
+          id: '2', name: 'Sarah Miller', company: 'DataCore Inc.', email: 'sarah@datacore.com',
+          dateSent: new Date(Date.now() - 86400000).toISOString(), opened: true, replied: false, status: 'opened'
+        },
+        {
+          id: '3', name: 'Mike Johnson', company: 'CloudVault', email: 'mike@cloudvault.io',
+          dateSent: new Date(Date.now() - 172800000).toISOString(), opened: false, replied: false, status: 'sent'
         }
       ]);
     }
   };
 
-  const fetchSettings = async () => {
-    try {
-      const response = await api.get('/lead-agent/settings');
-      setSettings(response.data);
-    } catch (error) {
-      console.error('Failed to fetch agent settings:', error);
-      // Mock settings
-      setSettings({
-        interval: 720,
-        maxEmails: 50,
-        targetIndustries: ['Technology', 'Healthcare'],
-        emailTemplate: 'Default template'
-      });
-    }
+  const addMockLog = () => {
+    const mockMessages = [
+      'Analyzing LinkedIn profiles for technology executives...',
+      'Found 5 potential leads matching criteria',
+      'Generating personalized email for John Smith at TechCorp',
+      'Email sent successfully to sarah@datacore.com',
+      'Researching company background for CloudVault',
+      'Lead qualification complete: 78% match score',
+      'Scheduling follow-up email for tomorrow',
+      'Updated CRM with new contact information'
+    ];
+    
+    const levels: LogEntry['level'][] = ['info', 'success', 'info', 'success'];
+    const stages = ['research', 'outreach', 'analysis', 'follow-up'];
+    
+    const newLog: LogEntry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      level: levels[Math.floor(Math.random() * levels.length)],
+      message: mockMessages[Math.floor(Math.random() * mockMessages.length)],
+      stage: stages[Math.floor(Math.random() * stages.length)]
+    };
+    
+    setLogs(prev => [...prev.slice(-20), newLog]);
   };
 
   const toggleAgent = async () => {
@@ -217,6 +199,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack 
     try {
       await api.post('/lead-agent/reset');
       addLog('info', 'Agent reset successfully');
+      setLogs([]);
       fetchStatus();
     } catch (error) {
       console.error('Failed to reset agent:', error);
@@ -227,7 +210,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack 
   const runCycle = async () => {
     try {
       await api.post('/lead-agent/run-cycle');
-      addLog('info', 'Manual cycle started');
+      addLog('info', 'Manual cycle initiated');
     } catch (error) {
       console.error('Failed to run cycle:', error);
       addLog('error', 'Failed to start manual cycle');
@@ -242,296 +225,302 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ agentId, onBack 
       message,
       stage
     };
-    setLogs(prev => [...prev, newLog].slice(-100));
+    setLogs(prev => [...prev, newLog]);
   };
 
   const getStatusColor = () => {
-    if (!status) return 'text-gray-500 bg-gray-500/10';
-    return status.isActive ? 'text-green-500 bg-green-500/10' : 'text-gray-500 bg-gray-500/10';
+    if (!status) return 'text-gray-500 bg-gray-50 border-gray-200';
+    return status.isActive 
+      ? 'text-green-700 bg-green-50 border-green-200' 
+      : 'text-gray-600 bg-gray-50 border-gray-200';
+  };
+
+  const getLogIcon = (level: LogEntry['level']) => {
+    switch (level) {
+      case 'success': return '✅';
+      case 'error': return '❌';
+      case 'warning': return '⚠️';
+      default: return 'ℹ️';
+    }
   };
 
   const getLogColor = (level: LogEntry['level']) => {
     switch (level) {
-      case 'success': return 'text-green-600';
-      case 'error': return 'text-red-600';
-      case 'warning': return 'text-yellow-600';
-      default: return 'text-gray-600';
+      case 'success': return 'border-l-green-500 bg-green-50';
+      case 'error': return 'border-l-red-500 bg-red-50';
+      case 'warning': return 'border-l-yellow-500 bg-yellow-50';
+      default: return 'border-l-blue-500 bg-blue-50';
     }
   };
 
-  const getEmailStatusIcon = (email: EmailContact) => {
-    if (email.replied) return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
-    if (email.opened) return <EyeIcon className="h-4 w-4 text-blue-500" />;
-    return <ClockIcon className="h-4 w-4 text-gray-400" />;
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading agent dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onBack}
-            className="mr-4 p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
-          </motion.button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Lead Agent Dashboard</h1>
-            <div className="flex items-center mt-1">
-              <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor()}`}>
-                <div className={`h-2 w-2 rounded-full mr-2 ${status?.isActive ? 'bg-green-500' : 'bg-gray-500'}`}></div>
-                {status?.isActive ? 'Running' : 'Stopped'}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onBack}
+                className="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-200 shadow-sm"
+              >
+                <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+              </motion.button>
+              
+              <div className="flex items-center space-x-4">
+                <div className="h-16 w-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <BoltIcon className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Lead Agent Control</h1>
+                  <div className="flex items-center space-x-4 mt-2">
+                    <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor()}`}>
+                      <div className={`h-3 w-3 rounded-full mr-2 ${status?.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                      {status?.isActive ? 'Active & Running' : 'Stopped'}
+                    </div>
+                    <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                      Agent: {agentId}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <div className="flex items-center space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowSettings(true)}
+                className="flex items-center px-6 py-3 bg-white text-gray-700 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all shadow-sm"
+              >
+                <CogIcon className="h-5 w-5 mr-2" />
+                Settings
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={runCycle}
+                disabled={status?.isActive}
+                className="flex items-center px-6 py-3 bg-blue-50 text-blue-700 rounded-xl border border-blue-200 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                <ArrowPathIcon className="h-5 w-5 mr-2" />
+                Run Cycle
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={resetAgent}
+                className="flex items-center px-6 py-3 bg-yellow-50 text-yellow-700 rounded-xl border border-yellow-200 hover:bg-yellow-100 transition-all shadow-sm"
+              >
+                <ArrowPathIcon className="h-5 w-5 mr-2" />
+                Reset
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={toggleAgent}
+                className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-sm border ${
+                  status?.isActive 
+                    ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' 
+                    : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                }`}
+              >
+                {status?.isActive ? (
+                  <>
+                    <StopIcon className="h-5 w-5 mr-2" />
+                    Stop Agent
+                  </>
+                ) : (
+                  <>
+                    <PlayIcon className="h-5 w-5 mr-2" />
+                    Start Agent
+                  </>
+                )}
+              </motion.button>
+            </div>
           </div>
-        </div>
-
-        <div className="flex space-x-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowSettings(true)}
-            className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <CogIcon className="h-5 w-5 mr-2" />
-            Settings
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={runCycle}
-            disabled={status?.isActive}
-            className="flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ArrowPathIcon className="h-5 w-5 mr-2" />
-            Run Cycle
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={resetAgent}
-            className="flex items-center px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
-          >
-            <ArrowPathIcon className="h-5 w-5 mr-2" />
-            Reset
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={toggleAgent}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-              status?.isActive 
-                ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            }`}
-          >
-            {status?.isActive ? (
-              <>
-                <StopIcon className="h-5 w-5 mr-2" />
-                Stop Agent
-              </>
-            ) : (
-              <>
-                <PlayIcon className="h-5 w-5 mr-2" />
-                Start Agent
-              </>
-            )}
-          </motion.button>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-        >
-          <div className="flex items-center">
-            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <ChartBarIcon className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <div className="text-2xl font-bold text-gray-900">{status?.totalEmailsSent || 0}</div>
-              <div className="text-sm text-gray-500">Total Emails</div>
-            </div>
-          </div>
-        </motion.div>
+      {/* Stats Overview */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {[
+            { label: 'Total Emails Sent', value: status?.totalEmailsSent || 0, icon: EnvelopeIcon, color: 'blue' },
+            { label: 'Success Rate', value: `${status?.successRate || 0}%`, icon: ChartBarIcon, color: 'green' },
+            { label: 'Cycle Interval', value: `${status?.currentInterval || 0}m`, icon: ClockIcon, color: 'purple' },
+            { label: 'Recent Contacts', value: recentEmails.length, icon: UserIcon, color: 'orange' }
+          ].map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                  </div>
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center bg-${stat.color}-100`}>
+                    <Icon className={`h-6 w-6 text-${stat.color}-600`} />
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-        >
-          <div className="flex items-center">
-            <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Real-time Logs */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Live Activity Feed</h3>
+                  <p className="text-sm text-gray-600 mt-1">Real-time agent operations and progress</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {status?.isActive && (
+                    <>
+                      <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-green-600 font-medium">Live</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="ml-4">
-              <div className="text-2xl font-bold text-gray-900">{status?.successRate || 0}%</div>
-              <div className="text-sm text-gray-500">Success Rate</div>
+            
+            <div className="h-96 overflow-y-auto bg-gray-900 text-green-400 font-mono text-sm">
+              <div className="p-4 space-y-2">
+                {logs.length === 0 ? (
+                  <div className="text-center text-gray-500 py-16">
+                    <CpuChipIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No activity logs yet.</p>
+                    <p className="text-xs mt-1">Start the agent to see real-time operations.</p>
+                  </div>
+                ) : (
+                  logs.map((log) => (
+                    <motion.div
+                      key={log.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-start space-x-3 py-1"
+                    >
+                      <span className="text-gray-500 text-xs mt-1 w-20 flex-shrink-0">
+                        {formatTime(log.timestamp)}
+                      </span>
+                      <span className="text-xs mt-1">{getLogIcon(log.level)}</span>
+                      <div className="flex-1">
+                        <span className={`text-xs px-2 py-1 rounded ${log.stage ? 'bg-blue-900 text-blue-300' : ''}`}>
+                          {log.stage}
+                        </span>
+                        <p className="mt-1">{log.message}</p>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+                <div ref={logsEndRef} />
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-        >
-          <div className="flex items-center">
-            <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <ClockIcon className="h-6 w-6 text-purple-600" />
+          {/* Recently Emailed Contacts */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-200 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900">Recently Contacted</h3>
+              <p className="text-sm text-gray-600 mt-1">Latest outreach and engagement status</p>
             </div>
-            <div className="ml-4">
-              <div className="text-2xl font-bold text-gray-900">{settings?.interval || 0}m</div>
-              <div className="text-sm text-gray-500">Interval</div>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-        >
-          <div className="flex items-center">
-            <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <UserIcon className="h-6 w-6 text-orange-600" />
-            </div>
-            <div className="ml-4">
-              <div className="text-2xl font-bold text-gray-900">{recentEmails.length}</div>
-              <div className="text-sm text-gray-500">Recent Contacts</div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Real-time Logs */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200"
-        >
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Agent Logs</h3>
-            <p className="text-sm text-gray-500 mt-1">Real-time activity and progress</p>
-          </div>
-          
-          <div className="h-96 overflow-y-auto p-4 bg-gray-50">
-            <div className="space-y-2 font-mono text-sm">
-              {logs.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  No logs yet. Start the agent to see activity.
+            
+            <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+              {recentEmails.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No recent emails found.</p>
+                  <p className="text-xs mt-1">Start the agent to begin outreach.</p>
                 </div>
               ) : (
-                logs.map((log) => (
+                recentEmails.map((contact) => (
                   <motion.div
-                    key={log.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`p-2 rounded ${getLogColor(log.level)} bg-white border-l-4 ${
-                      log.level === 'success' ? 'border-green-500' :
-                      log.level === 'error' ? 'border-red-500' :
-                      log.level === 'warning' ? 'border-yellow-500' : 'border-blue-500'
-                    }`}
+                    key={contact.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    whileHover={{ backgroundColor: 'rgb(249, 250, 251)' }}
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-all"
+                    onClick={() => console.log('Navigate to:', contact.id)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="text-xs text-gray-500 mb-1">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                          {log.stage && <span className="ml-2 bg-gray-200 px-2 py-1 rounded">{log.stage}</span>}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="h-12 w-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {contact.name.charAt(0)}
                         </div>
-                        <div>{log.message}</div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{contact.name}</h4>
+                          <div className="flex items-center text-sm text-gray-500 space-x-2">
+                            <BuildingOfficeIcon className="h-4 w-4" />
+                            <span>{contact.company}</span>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(contact.dateSent).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          contact.status === 'replied' ? 'bg-green-100 text-green-800' :
+                          contact.status === 'opened' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {contact.status === 'replied' && <CheckCircleIcon className="h-3 w-3 mr-1" />}
+                          {contact.status === 'opened' && <EyeIcon className="h-3 w-3 mr-1" />}
+                          {contact.status === 'sent' && <ClockIcon className="h-3 w-3 mr-1" />}
+                          {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
                 ))
               )}
-              <div ref={logsEndRef} />
             </div>
-          </div>
-        </motion.div>
-
-        {/* Recently Emailed */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200"
-        >
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Recently Emailed</h3>
-            <p className="text-sm text-gray-500 mt-1">Latest contacts and their status</p>
-          </div>
-          
-          <div className="divide-y divide-gray-100">
-            {recentEmails.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                No recent emails found. Start the agent to begin outreach.
-              </div>
-            ) : (
-              recentEmails.map((email) => (
-                <motion.div
-                  key={email.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  whileHover={{ backgroundColor: 'rgb(249, 250, 251)' }}
-                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => {
-                    // TODO: Navigate to detailed email conversation view
-                    console.log('Navigate to email details:', email.id);
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center flex-1">
-                      <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <UserIcon className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="ml-3 flex-1">
-                        <div className="flex items-center">
-                          <div className="font-medium text-gray-900">{email.name}</div>
-                          <div className="ml-2 flex items-center text-sm text-gray-500">
-                            <BuildingOfficeIcon className="h-4 w-4 mr-1" />
-                            {email.company}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-500">{email.email}</div>
-                        <div className="text-xs text-gray-400">
-                          {new Date(email.dateSent).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {getEmailStatusIcon(email)}
-                      <div className="text-xs text-gray-400">
-                        {email.replied ? 'Replied' : email.opened ? 'Opened' : 'Sent'}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Settings Modal */}

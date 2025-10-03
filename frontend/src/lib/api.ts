@@ -49,11 +49,11 @@ export const authAPI = {
 };
 
 export const chatAPI = {
-  sendMessage: (message: string, context?: any) =>
-    api.post('/api/chat', { message, context }),
+  sendMessage: (userInput: string, conversationHistory?: any[]) =>
+    api.post('/chat', { userInput, conversationHistory }),
   
   getHistory: () =>
-    api.get('/api/chat/history'),
+    api.get('/chat/history'),
 };
 
 export const leadAPI = {
