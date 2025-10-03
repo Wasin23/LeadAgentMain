@@ -36,7 +36,7 @@ interface AgentSettings {
   };
 }
 
-export const AgentSettingsModal: React.FC<AgentSettingsProps> = ({ isOpen, onClose, agentId }) => {
+export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSettingsProps) {
   const [settings, setSettings] = useState<AgentSettings>({
     interval: 720, // 12 hours in minutes
     maxEmailsPerCycle: 50,
@@ -84,7 +84,7 @@ export const AgentSettingsModal: React.FC<AgentSettingsProps> = ({ isOpen, onClo
   const fetchSettings = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/lead-agent/settings');
+      const response = await api.get('/api/lead-agent/settings');
       if (response.data) {
         setSettings(prev => ({ ...prev, ...response.data }));
       }
@@ -100,7 +100,7 @@ export const AgentSettingsModal: React.FC<AgentSettingsProps> = ({ isOpen, onClo
       setIsSaving(true);
       setSaveStatus('idle');
       
-      await api.post('/lead-agent/settings', settings);
+      await api.post('/api/lead-agent/settings', settings);
       
       setSaveStatus('success');
       setTimeout(() => {

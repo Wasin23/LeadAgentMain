@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ChatBubbleLeftRightIcon,
@@ -14,8 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import Chat from '@/components/Chat';
 import StatsGrid from '@/components/StatsGrid';
 import UserMenu from '@/components/UserMenu';
-import { AgentManager } from '@/components/agents/AgentManager';
-import { AgentDashboard } from '@/components/agents/AgentDashboard';
+import AgentManager from '@/components/agents/AgentManager';
+import AgentDashboard from '@/components/agents/AgentDashboard';
 
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: ChartBarIcon },
@@ -29,6 +29,11 @@ export default function Dashboard() {
   const [activeView, setActiveView] = useState('dashboard');
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Scroll to top when component mounts or view changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeView, selectedAgent]);
 
   return (
     <div className="min-h-screen bg-neutral-50">

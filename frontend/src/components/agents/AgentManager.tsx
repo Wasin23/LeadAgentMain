@@ -1,69 +1,70 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PlusIcon, 
   CogIcon, 
   PlayIcon, 
-  StopIcon,
-  ChartBarIcon,
-  UsersIcon,
+  StopIcon, 
   ClockIcon,
-  ExclamationTriangleIcon
+  UsersIcon,
+  ChartBarIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
-import api from '@/lib/api';
+import api from '../../lib/api';
 
 interface Agent {
   id: string;
   name: string;
   status: 'running' | 'stopped' | 'paused';
-  createdAt: string;
-  lastRun?: string;
   totalEmails: number;
   successRate: number;
+  lastRun?: string;
 }
 
 interface AgentManagerProps {
   onSelectAgent: (agentId: string) => void;
 }
 
-export const AgentManager: React.FC<AgentManagerProps> = ({ onSelectAgent }) => {
+export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
 
   useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     fetchAgents();
   }, []);
 
   const fetchAgents = async () => {
     try {
-      // For now, we'll create a mock agent list since the backend has one main agent
-      // Later this can be expanded to support multiple agents
-      const response = await api.get('/lead-agent/status');
+      setIsLoading(true);
+      
+      // Load agents from localStorage
+      const localAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      
+      // Fetch main agent from backend
+      const response = await api.get('/api/lead-agent/status');
+      const agentData = response.data;
       const mainAgent: Agent = {
-        id: 'main',
-        name: 'Main Lead Agent',
-        status: response.data.isActive ? 'running' : 'stopped',
-        createdAt: '2025-01-01',
-        lastRun: response.data.lastRun,
-        totalEmails: response.data.totalEmailsSent || 0,
-        successRate: response.data.successRate || 85
+        id: 'lead-agent-main',
+        name: agentData.name || 'Main Lead Agent',
+        status: agentData.status === 'active' ? 'running' : 'stopped',
+        totalEmails: agentData.totalEmails || 0,
+        successRate: agentData.successRate || 0,
+        lastRun: agentData.lastRun
       };
-      setAgents([mainAgent]);
+      
+      // Combine main agent with local agents
+      setAgents([mainAgent, ...localAgents]);
     } catch (error) {
       console.error('Failed to fetch agents:', error);
-      // Fallback mock data
-      setAgents([{
-        id: 'main',
-        name: 'Main Lead Agent',
-        status: 'stopped',
-        createdAt: '2025-01-01',
-        totalEmails: 0,
-        successRate: 0
-      }]);
+      // Fallback to just local agents on error
+      const localAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      setAgents(localAgents);
     } finally {
       setIsLoading(false);
     }
@@ -73,17 +74,26 @@ export const AgentManager: React.FC<AgentManagerProps> = ({ onSelectAgent }) => 
     if (!newAgentName.trim()) return;
     
     const newAgent: Agent = {
-      id: Date.now().toString(),
-      name: newAgentName.trim(),
+      id: `agent-${Date.now()}`,
+      name: newAgentName,
       status: 'stopped',
-      createdAt: new Date().toISOString(),
       totalEmails: 0,
-      successRate: 0
+      successRate: 0,
     };
     
-    setAgents(prev => [...prev, newAgent]);
-    setNewAgentName('');
-    setShowCreateModal(false);
+    try {
+      // Store in localStorage for persistence
+      const existingAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const updatedAgents = [...existingAgents, newAgent];
+      localStorage.setItem('examark-agents', JSON.stringify(updatedAgents));
+      
+      // Update local state
+      setAgents(prev => [...prev, newAgent]);
+      setNewAgentName('');
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Failed to create agent:', error);
+    }
   };
 
   const toggleAgent = async (agentId: string) => {
@@ -91,10 +101,13 @@ export const AgentManager: React.FC<AgentManagerProps> = ({ onSelectAgent }) => 
       const agent = agents.find(a => a.id === agentId);
       if (!agent) return;
 
-      if (agent.status === 'running') {
-        await api.post('/lead-agent/stop');
-      } else {
-        await api.post('/lead-agent/start');
+      // Only toggle the main agent through API
+      if (agentId === 'lead-agent-main') {
+        if (agent.status === 'running') {
+          await api.post('/api/lead-agent/stop');
+        } else {
+          await api.post('/api/lead-agent/start');
+        }
       }
       
       setAgents(prev => prev.map(a => 
@@ -107,138 +120,174 @@ export const AgentManager: React.FC<AgentManagerProps> = ({ onSelectAgent }) => 
     }
   };
 
+  const deleteAgent = async (agentId: string) => {
+    if (agentId === 'lead-agent-main') return; // Can't delete main agent
+    
+    try {
+      // Remove from localStorage
+      const existingAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const updatedAgents = existingAgents.filter((a: Agent) => a.id !== agentId);
+      localStorage.setItem('examark-agents', JSON.stringify(updatedAgents));
+      
+      // Update local state
+      setAgents(prev => prev.filter(a => a.id !== agentId));
+    } catch (error) {
+      console.error('Failed to delete agent:', error);
+    }
+  };
+
   const getStatusColor = (status: Agent['status']) => {
     switch (status) {
-      case 'running': return 'text-green-500 bg-green-500/10';
-      case 'stopped': return 'text-gray-500 bg-gray-500/10';
-      case 'paused': return 'text-yellow-500 bg-yellow-500/10';
+      case 'running': return 'text-green-600 bg-green-50 border-green-200';
+      case 'stopped': return 'text-neutral-600 bg-neutral-50 border-neutral-200';
+      case 'paused': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 border-t-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Lead Agent Manager</h1>
-          <p className="text-gray-600 mt-1">Manage and monitor your lead generation agents</p>
+      <div className="bg-white border border-neutral-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-neutral-900">Lead Agent Manager</h1>
+            <p className="text-neutral-600 mt-1">Manage and monitor your lead generation agents</p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add Agent
+          </motion.button>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add Agent
-        </motion.button>
       </div>
 
-      {/* Agent Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AnimatePresence>
-          {agents.map((agent, index) => (
-            <motion.div
-              key={agent.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => onSelectAgent(agent.id)}
-            >
-              <div className="p-6">
+      {/* Agent List */}
+      <div className="bg-white border border-neutral-200">
+        <div className="border-b border-neutral-200 p-4">
+          <h3 className="text-lg font-medium text-neutral-900">Active Agents</h3>
+        </div>
+        
+        <div className="divide-y divide-neutral-200">
+          <AnimatePresence>
+            {agents.map((agent, index) => (
+              <motion.div
+                key={agent.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.1 }}
+                className="p-6 hover:bg-neutral-50 cursor-pointer"
+                onClick={() => onSelectAgent(agent.id)}
+              >
                 {/* Agent Header */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="h-12 w-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <UsersIcon className="h-6 w-6 text-white" />
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-neutral-100 border border-neutral-200 flex items-center justify-center">
+                      <UsersIcon className="h-5 w-5 text-neutral-600" />
                     </div>
-                    <div className="ml-3">
-                      <h3 className="font-semibold text-gray-900">{agent.name}</h3>
-                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(agent.status)}`}>
-                        <div className={`h-2 w-2 rounded-full mr-1 ${agent.status === 'running' ? 'bg-green-500' : agent.status === 'paused' ? 'bg-yellow-500' : 'bg-gray-500'}`}></div>
+                    <div>
+                      <h3 className="font-medium text-neutral-900">{agent.name}</h3>
+                      <div className={`inline-flex items-center px-2 py-1 text-xs font-medium border ${getStatusColor(agent.status)}`}>
+                        <div className={`h-2 w-2 rounded-full mr-1 ${
+                          agent.status === 'running' ? 'bg-green-500' : 
+                          agent.status === 'paused' ? 'bg-yellow-500' : 'bg-neutral-500'
+                        }`}></div>
                         {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
                       </div>
                     </div>
                   </div>
                   
                   <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleAgent(agent.id);
                     }}
-                    className={`p-2 rounded-full ${
+                    className={`p-2 ${
                       agent.status === 'running' 
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                        : 'bg-green-100 text-green-600 hover:bg-green-200'
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' 
+                        : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
                     }`}
                   >
                     {agent.status === 'running' ? (
-                      <StopIcon className="h-5 w-5" />
+                      <StopIcon className="h-4 w-4" />
                     ) : (
-                      <PlayIcon className="h-5 w-5" />
+                      <PlayIcon className="h-4 w-4" />
                     )}
                   </motion.button>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{agent.totalEmails}</div>
-                    <div className="text-sm text-gray-500">Total Emails</div>
+                  <div className="text-center p-3 bg-neutral-50 border border-neutral-200">
+                    <div className="text-lg font-medium text-neutral-900">{agent.totalEmails}</div>
+                    <div className="text-xs text-neutral-600">Total Emails</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{agent.successRate}%</div>
-                    <div className="text-sm text-gray-500">Success Rate</div>
+                  <div className="text-center p-3 bg-neutral-50 border border-neutral-200">
+                    <div className="text-lg font-medium text-green-600">{agent.successRate}%</div>
+                    <div className="text-xs text-neutral-600">Success Rate</div>
                   </div>
                 </div>
 
                 {/* Last Run */}
                 {agent.lastRun && (
-                  <div className="flex items-center text-sm text-gray-500 mb-4">
+                  <div className="flex items-center text-sm text-neutral-500 mb-4">
                     <ClockIcon className="h-4 w-4 mr-1" />
                     Last run: {new Date(agent.lastRun).toLocaleDateString()}
                   </div>
                 )}
 
                 {/* Actions */}
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectAgent(agent.id);
                     }}
-                    className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-neutral-50 text-neutral-600 hover:bg-neutral-100 transition-colors border border-neutral-200"
                   >
-                    <CogIcon className="h-4 w-4 mr-1" />
+                    <CogIcon className="h-4 w-4" />
                     Manage
                   </button>
+                  {agent.id !== 'lead-agent-main' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteAgent(agent.id);
+                      }}
+                      className="flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       // TODO: Show analytics for this agent
                     }}
-                    className="flex-1 flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200"
                   >
-                    <ChartBarIcon className="h-4 w-4 mr-1" />
+                    <ChartBarIcon className="h-4 w-4" />
                     Analytics
                   </button>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Create Agent Modal */}
@@ -256,37 +305,40 @@ export const AgentManager: React.FC<AgentManagerProps> = ({ onSelectAgent }) => 
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+              className="bg-white shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-neutral-200"
             >
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Create New Agent</h3>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Agent Name
-                </label>
-                <input
-                  type="text"
-                  value={newAgentName}
-                  onChange={(e) => setNewAgentName(e.target.value)}
-                  placeholder="Enter agent name..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-neutral-900 mb-4">Create New Agent</h3>
+                
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Agent Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newAgentName}
+                    onChange={(e) => setNewAgentName(e.target.value)}
+                    placeholder="Enter agent name..."
+                    className="w-full px-3 py-2 border border-neutral-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    autoFocus
+                  />
+                </div>
 
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={createAgent}
-                  disabled={!newAgentName.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Create Agent
-                </button>
+                <div className="flex gap-3 pt-4 border-t border-neutral-200">
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 px-4 py-2 text-neutral-700 bg-neutral-50 hover:bg-neutral-100 transition-colors border border-neutral-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createAgent}
+                    disabled={!newAgentName.trim()}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Create Agent
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -294,4 +346,4 @@ export const AgentManager: React.FC<AgentManagerProps> = ({ onSelectAgent }) => 
       </AnimatePresence>
     </div>
   );
-};
+}

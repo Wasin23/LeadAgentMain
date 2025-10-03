@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AgentManager } from '@/components/agents/AgentManager';
-import { AgentDashboard } from '@/components/agents/AgentDashboard';
+import AgentManager from '@/components/agents/AgentManager';
+import AgentDashboard from '@/components/agents/AgentDashboard';
 
 export default function AgentsPage() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);

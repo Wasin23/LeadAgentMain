@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { 
   PaperAirplaneIcon, 
   SparklesIcon, 
@@ -9,7 +11,8 @@ import {
   CpuChipIcon,
   ClockIcon,
   CheckCircleIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 
@@ -20,6 +23,7 @@ interface Message {
   timestamp: Date;
   isLoading?: boolean;
   type?: 'text' | 'system' | 'error';
+  thinking?: string; // AI's reasoning process
 }
 
 export default function Chat() {
@@ -36,13 +40,26 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll within the chat container, not the entire page
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll when AI responds (not when user sends)
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage.isUser) {
+        scrollToBottom();
+      }
+    }
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -64,11 +81,14 @@ export default function Chat() {
     setIsTyping(true);
 
     try {
-      const response = await api.post('/chat', { 
-        userInput: currentInput,
-        conversationHistory: messages.slice(-10) // Send last 10 messages for context
+      console.log('🚀 [CHAT] Sending message to backend:', currentInput);
+      console.log('🚀 [CHAT] API URL:', api.defaults.baseURL);
+      
+      const response = await api.post('/api/chat', { 
+        userInput: currentInput
       });
       
+      console.log('✅ [CHAT] Backend response:', response.data);
       setIsTyping(false);
       
       const aiMessage: Message = {
@@ -76,22 +96,32 @@ export default function Chat() {
         content: response.data.response || response.data.message || 'I apologize, but I encountered an issue processing your request. Please try again.',
         isUser: false,
         timestamp: new Date(),
-        type: 'text'
+        type: 'text',
+        thinking: response.data.thinking // Include AI reasoning if available
       };
       
       setMessages(prev => [...prev, aiMessage]);
+      // Scroll to show AI response
+      setTimeout(scrollToBottom, 100);
     } catch (error: any) {
+      console.error('❌ [CHAT] Error calling backend:', error);
+      console.error('❌ [CHAT] Error response:', error.response?.data);
+      console.error('❌ [CHAT] Error status:', error.response?.status);
+      console.error('❌ [CHAT] Full error:', error.message);
+      
       setIsTyping(false);
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: error.response?.data?.message || 'I encountered an error while processing your request. Please check your connection and try again.',
+        content: `Error: ${error.response?.data?.error || error.message || 'Unknown error'}. Status: ${error.response?.status || 'No status'}`,
         isUser: false,
         timestamp: new Date(),
         type: 'error'
       };
       
       setMessages(prev => [...prev, errorMessage]);
+      // Scroll to show error message
+      setTimeout(scrollToBottom, 100);
     } finally {
       setIsLoading(false);
     }
@@ -105,11 +135,30 @@ export default function Chat() {
     });
   };
 
+  const clearChat = async () => {
+    try {
+      await api.post('/chat/clear', {});
+      
+      // Reset to initial state
+      setMessages([
+        {
+          id: '1',
+          content: "Hi! I'm your AI assistant specialized in lead research, email automation, and business intelligence. I can help you with lead generation strategies, email campaigns, data analysis, and more. What would you like to explore today?",
+          isUser: false,
+          timestamp: new Date(),
+          type: 'text'
+        }
+      ]);
+    } catch (error) {
+      console.error('Failed to clear chat:', error);
+    }
+  };
+
   const quickActions = [
-    { label: "Generate leads for SaaS companies", action: "Find me potential leads in the SaaS industry with 50-500 employees" },
-    { label: "Create email campaign", action: "Help me create a cold email campaign for technology prospects" },
-    { label: "Analyze my email performance", action: "Show me analytics on my recent email campaigns" },
-    { label: "Research specific company", action: "Research leads at a specific company for me" }
+    { label: "Send a cold email", action: "Help me compose and send a cold email to a specific prospect" },
+    { label: "Research company leads", action: "Research potential leads at a company and their contact information" },
+    { label: "Email campaign analysis", action: "Analyze my recent email campaigns and provide insights" },
+    { label: "Lead generation strategy", action: "Help me develop a lead generation strategy for my business" }
   ];
 
   return (
@@ -134,14 +183,23 @@ export default function Chat() {
               </div>
             </div>
           </div>
-          <div className="text-xs text-gray-400 bg-white px-2 py-1 rounded">
-            {messages.length - 1} messages
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-gray-400 bg-white px-2 py-1 rounded">
+              {messages.length - 1} messages
+            </div>
+            <button
+              onClick={clearChat}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded transition-colors"
+              title="Clear chat history"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-gray-50">
         <div className="p-6 space-y-6">
           <AnimatePresence>
             {messages.map((message) => (
@@ -181,9 +239,60 @@ export default function Chat() {
                         </div>
                       </div>
                     ) : (
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.content}
-                      </div>
+                      <>
+                        <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+                          {message.isUser ? (
+                            <div className="whitespace-pre-wrap">{message.content}</div>
+                          ) : (
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                // Custom styling for markdown elements
+                                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                code: ({ children, className }) => {
+                                  const isInline = !className;
+                                  return isInline ? (
+                                    <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                                  ) : (
+                                    <pre className="bg-gray-100 p-3 rounded-lg overflow-x-auto my-2">
+                                      <code className="text-xs font-mono">{children}</code>
+                                    </pre>
+                                  );
+                                },
+                                blockquote: ({ children }) => (
+                                  <blockquote className="border-l-4 border-gray-300 pl-4 my-2 italic">{children}</blockquote>
+                                ),
+                                h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                                a: ({ children, href }) => (
+                                  <a href={href} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          )}
+                        </div>
+                        {message.thinking && (
+                          <details className="mt-3 text-xs">
+                            <summary className="cursor-pointer text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                              <SparklesIcon className="h-3 w-3" />
+                              AI Reasoning
+                            </summary>
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-gray-600 whitespace-pre-wrap">
+                              {message.thinking}
+                            </div>
+                          </details>
+                        )}
+                      </>
                     )}
                   </div>
                   <div className={`text-xs text-gray-400 mt-1 px-1 flex items-center gap-1 ${
