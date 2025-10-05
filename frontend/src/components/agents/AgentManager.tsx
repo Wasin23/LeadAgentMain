@@ -32,6 +32,9 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     // Scroll to top when component mounts
@@ -51,7 +54,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       const agentData = response.data;
       const mainAgent: Agent = {
         id: 'lead-agent-main',
-        name: agentData.name || 'Main Lead Agent',
+        name: agentData.name || 'Reasoning Lead Agent',
         status: agentData.status === 'active' ? 'running' : 'stopped',
         totalEmails: agentData.totalEmails || 0,
         successRate: agentData.successRate || 0,
@@ -148,20 +151,41 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
     }
   };
 
-  const deleteAgent = async (agentId: string) => {
-    if (agentId === 'lead-agent-main') return; // Can't delete main agent
+  const showDeleteConfirmation = (agent: Agent) => {
+    if (agent.id === 'lead-agent-main') return; // Can't delete main agent
+    setAgentToDelete(agent);
+    setDeleteConfirmText('');
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (!agentToDelete) return;
+    
+    const requiredText = `DELETE ${agentToDelete.name}`;
+    if (deleteConfirmText !== requiredText) return;
     
     try {
       // Remove from localStorage
       const existingAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
-      const updatedAgents = existingAgents.filter((a: Agent) => a.id !== agentId);
+      const updatedAgents = existingAgents.filter((a: Agent) => a.id !== agentToDelete.id);
       localStorage.setItem('examark-agents', JSON.stringify(updatedAgents));
       
       // Update local state
-      setAgents(prev => prev.filter(a => a.id !== agentId));
+      setAgents(prev => prev.filter(a => a.id !== agentToDelete.id));
+      
+      // Close modal
+      setShowDeleteModal(false);
+      setAgentToDelete(null);
+      setDeleteConfirmText('');
     } catch (error) {
       console.error('Failed to delete agent:', error);
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setAgentToDelete(null);
+    setDeleteConfirmText('');
   };
 
   const getStatusColor = (status: Agent['status']) => {
@@ -294,7 +318,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteAgent(agent.id);
+                        showDeleteConfirmation(agent);
                       }}
                       className="flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200"
                     >
@@ -362,9 +386,88 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                   <button
                     onClick={createAgent}
                     disabled={!newAgentName.trim()}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    style={{
+                      background: '#3b82f6 !important',
+                      color: '#ffffff !important',
+                      fontWeight: '600 !important'
+                    }}
                   >
                     Create Agent
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Agent Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteModal && agentToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={cancelDelete}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <TrashIcon className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-neutral-900">Delete Agent</h3>
+                    <p className="text-sm text-neutral-500">This action cannot be undone</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-neutral-700">
+                    You are about to permanently delete the agent <strong>"{agentToDelete.name}"</strong>. 
+                    This will remove all associated data and cannot be undone.
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Type <span className="font-bold text-red-600">DELETE {agentToDelete.name}</span> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder={`DELETE ${agentToDelete.name}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-neutral-200 mt-6">
+                  <button
+                    onClick={cancelDelete}
+                    className="flex-1 px-4 py-2 text-neutral-700 bg-neutral-50 hover:bg-neutral-100 transition-colors border border-neutral-200 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteAgent}
+                    disabled={deleteConfirmText !== `DELETE ${agentToDelete.name}`}
+                    className="flex-1 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: deleteConfirmText === `DELETE ${agentToDelete.name}` ? '#dc2626 !important' : '#a3a3a3 !important',
+                      color: '#ffffff !important',
+                      fontWeight: '600 !important'
+                    }}
+                  >
+                    Delete Agent
                   </button>
                 </div>
               </div>

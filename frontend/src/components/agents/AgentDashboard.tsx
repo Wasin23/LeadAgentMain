@@ -67,11 +67,26 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [showSettings, setShowSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agentName, setAgentName] = useState<string>('');
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
 
+  // Get the actual agent name
+  const getAgentDisplayName = () => {
+    if (agentName) return agentName; // Use the actual name if available
+    if (agentId === 'main' || agentId === 'lead-agent-main') return 'Reasoning Lead Agent';
+    // Fallback: Convert camelCase or kebab-case to Title Case
+    return agentId
+      .replace(/^agent-/, '') // Remove agent- prefix
+      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+      .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+      .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize first letter of each word
+      .trim();
+  };
+
   useEffect(() => {
     fetchData();
+    fetchAgentName();
     
     // Set up real-time progress streaming
     if (agentId === 'main') {
@@ -87,6 +102,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       }
     };
   }, [agentId]);
+
+  const fetchAgentName = () => {
+    try {
+      if (agentId === 'main' || agentId === 'lead-agent-main') {
+        setAgentName('Reasoning Lead Agent');
+        return;
+      }
+      
+      // For custom agents, get the name from localStorage
+      const localAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const agent = localAgents.find((a: any) => a.id === agentId);
+      if (agent && agent.name) {
+        setAgentName(agent.name);
+      }
+    } catch (error) {
+      console.error('Failed to fetch agent name:', error);
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -289,19 +322,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <ArrowLeftIcon className="h-5 w-5" />
           </motion.button>
           
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">Lead Agent Dashboard</h1>
-            <div className="flex items-center gap-3 mt-1">
-              <div className={`inline-flex items-center gap-2 text-sm ${getStatusColor()}`}>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-6">
+              <h1 className="text-2xl font-semibold text-neutral-900 flex-1 min-w-0 truncate">{getAgentDisplayName()}</h1>
+              <div className={`inline-flex items-center gap-2 text-sm whitespace-nowrap flex-shrink-0 ${getStatusColor()}`}>
                 <div className={`h-2 w-2 rounded-full ${status?.isActive ? 'bg-green-500' : 'bg-neutral-400'}`}></div>
                 {status?.isActive ? 'Running' : 'Stopped'}
               </div>
-              {status?.lastRun && (
-                <span className="text-sm text-neutral-500">
+            </div>
+            {status?.lastRun && (
+              <div className="flex justify-end mt-1">
+                <span className="text-sm text-neutral-500 whitespace-nowrap">
                   Last run: {new Date(status.lastRun).toLocaleString()}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 

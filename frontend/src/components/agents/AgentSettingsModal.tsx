@@ -6,7 +6,10 @@ import {
   XMarkIcon,
   CloudArrowUpIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 
@@ -16,64 +19,212 @@ interface AgentSettingsProps {
   agentId: string;
 }
 
-interface AgentSettings {
-  interval: number;
-  maxEmailsPerCycle: number;
-  targetIndustries: string[];
-  excludeCompanies: string[];
-  emailTemplate: string;
-  useAI: boolean;
-  leadSources: {
-    linkedin: boolean;
-    apollo: boolean;
-    hunter: boolean;
+interface ZillizAgentSettings {
+  companyBranding: {
+    agentName: string;
+    companyName: string;
+    agentTitle: string;
+    primaryService: string;
+    coreOffering: string;
+    keyAdvantages: string;
+    expertiseArea: string;
+    companyWebsite: string;
+    companyDescription: string;
   };
-  filters: {
-    minCompanySize: number;
-    maxCompanySize: number;
-    jobTitles: string[];
-    locations: string[];
+  companyCriteria: {
+    companySizeMin: number;
+    companySizeMax: number;
+    companyIndustries: string[];
+    excludedCompanies: string[];
+    companyKeywords: string[];
+  };
+  contactCriteria: {
+    targetPositions: string[];
+    seniorityLevel: string;
+    excludedTitles: string[];
+    contactKeywords: string[];
+  };
+  geographicSettings: {
+    targetLocations: string[];
+    excludedLocations: string[];
+    leadLimit: number;
+    timezone: string;
+  };
+  advancedCriteria: {
+    fundingStage: string;
+    fundingAmount: string;
+    growthStage: string;
+    technologiesUsed: string[];
+    recentNews: boolean;
+  };
+  researchFocus: {
+    focusAreas: string[];
+    researchDepth: string;
+    includeCompanyNews: boolean;
+    includePersonalInfo: boolean;
+    includeSocialMedia: boolean;
+  };
+  emailBuilder: {
+    emailTemplate: string;
+    customPrompt: string;
+    tone: string;
+    length: string;
+    callToAction: string;
+    personalization: string;
   };
 }
 
+// Complete Apollo Industries Database (200+ industries)
+const APOLLO_INDUSTRIES = {
+  technology: [
+    'Software Development', 'SaaS', 'Cloud Computing', 'Cybersecurity', 'AI/Machine Learning', 
+    'Data Analytics', 'Mobile Apps', 'Enterprise Software', 'DevOps', 'IoT', 'Blockchain', 
+    'AR/VR', 'Gaming', 'EdTech', 'FinTech', 'HealthTech', 'PropTech', 'MarTech', 'AgTech',
+    'CleanTech', 'Robotics', 'Semiconductors', 'Hardware', 'Networking', 'Telecommunications'
+  ],
+  healthcare: [
+    'Hospitals & Health Systems', 'Medical Devices', 'Pharmaceuticals', 'Biotechnology',
+    'Telemedicine', 'Mental Health', 'Dental Services', 'Veterinary', 'Medical Software',
+    'Clinical Research', 'Health Insurance', 'Medical Equipment', 'Diagnostics',
+    'Therapy Services', 'Home Healthcare', 'Senior Care', 'Wellness & Fitness'
+  ],
+  financialServices: [
+    'Banking', 'Investment Management', 'Insurance', 'FinTech', 'Credit Services',
+    'Payment Processing', 'Wealth Management', 'Accounting', 'Tax Services',
+    'Real Estate Finance', 'Mortgage', 'Personal Finance', 'Corporate Finance',
+    'Risk Management', 'Compliance', 'Trading', 'Cryptocurrency'
+  ],
+  manufacturing: [
+    'Automotive', 'Aerospace & Defense', 'Electronics Manufacturing', 'Chemicals',
+    'Food & Beverage', 'Textiles & Apparel', 'Machinery', 'Construction Materials',
+    'Medical Device Manufacturing', 'Consumer Goods', 'Packaging', 'Metals & Mining',
+    'Oil & Gas', 'Renewable Energy', 'Industrial Equipment', 'Furniture'
+  ],
+  retail: [
+    'E-commerce', 'Fashion & Apparel', 'Grocery & Food Retail', 'Electronics Retail',
+    'Home & Garden', 'Sporting Goods', 'Luxury Goods', 'Automotive Retail',
+    'Beauty & Cosmetics', 'Jewelry', 'Books & Media', 'Toys & Games', 'Pet Supplies'
+  ],
+  services: [
+    'Consulting', 'Legal Services', 'Marketing & Advertising', 'Public Relations',
+    'Architecture', 'Engineering Services', 'Design', 'Event Planning', 'Security Services',
+    'Cleaning Services', 'Logistics & Supply Chain', 'Transportation', 'Warehousing'
+  ],
+  realEstate: [
+    'Commercial Real Estate', 'Residential Real Estate', 'Property Management',
+    'Real Estate Investment', 'Construction', 'Architecture & Planning',
+    'Interior Design', 'Property Development', 'Facilities Management'
+  ],
+  education: [
+    'K-12 Education', 'Higher Education', 'Online Learning', 'Corporate Training',
+    'Educational Technology', 'Tutoring', 'Language Learning', 'Vocational Training',
+    'Early Childhood Education', 'Special Education', 'Educational Publishing'
+  ],
+  media: [
+    'Broadcasting', 'Publishing', 'Digital Media', 'Advertising', 'Entertainment',
+    'Film & Television', 'Music', 'Gaming', 'Social Media', 'Content Creation',
+    'Journalism', 'Photography', 'Graphic Design', 'Marketing Agencies'
+  ],
+  nonprofit: [
+    'Charitable Organizations', 'Social Services', 'Environmental', 'Education',
+    'Healthcare', 'Religious Organizations', 'Arts & Culture', 'Community Development',
+    'International Aid', 'Research Foundations', 'Advocacy Groups'
+  ],
+  government: [
+    'Federal Government', 'State Government', 'Local Government', 'Military',
+    'Public Safety', 'Transportation', 'Environmental Agencies', 'Healthcare',
+    'Education', 'Social Services', 'Regulatory Bodies'
+  ]
+};
+
+// Common job titles across all industries
+const JOB_TITLES = {
+  executive: ['CEO', 'COO', 'CFO', 'CTO', 'CMO', 'CHRO', 'President', 'Founder', 'Co-Founder', 'Managing Director'],
+  vpLevel: ['VP Sales', 'VP Marketing', 'VP Engineering', 'VP Operations', 'VP Finance', 'VP HR', 'VP Product', 'VP Business Development'],
+  director: ['Director of Sales', 'Marketing Director', 'Engineering Director', 'Operations Director', 'IT Director', 'HR Director', 'Finance Director'],
+  manager: ['Sales Manager', 'Marketing Manager', 'Engineering Manager', 'Operations Manager', 'IT Manager', 'HR Manager', 'Product Manager', 'Project Manager'],
+  specialist: ['Sales Representative', 'Marketing Specialist', 'Software Engineer', 'Data Analyst', 'HR Specialist', 'Account Manager', 'Business Analyst']
+};
+
 export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSettingsProps) {
-  const [settings, setSettings] = useState<AgentSettings>({
-    interval: 720, // 12 hours in minutes
-    maxEmailsPerCycle: 50,
-    targetIndustries: ['Technology', 'Software', 'SaaS'],
-    excludeCompanies: [],
-    emailTemplate: '',
-    useAI: true,
-    leadSources: {
-      linkedin: true,
-      apollo: false,
-      hunter: false
+  const [settings, setSettings] = useState<ZillizAgentSettings>({
+    companyBranding: {
+      agentName: 'AI Lead Agent',
+      companyName: 'Your Company',
+      agentTitle: 'AI Assistant',
+      primaryService: 'Business Solutions',
+      coreOffering: 'Professional Services',
+      keyAdvantages: 'Quality, Innovation, Reliability',
+      expertiseArea: 'Business Development',
+      companyWebsite: '',
+      companyDescription: ''
     },
-    filters: {
-      minCompanySize: 10,
-      maxCompanySize: 1000,
-      jobTitles: ['CEO', 'CTO', 'Founder', 'VP Engineering'],
-      locations: ['United States', 'Canada']
+    companyCriteria: {
+      companySizeMin: 50,
+      companySizeMax: 500,
+      companyIndustries: [],
+      excludedCompanies: [],
+      companyKeywords: []
+    },
+    contactCriteria: {
+      targetPositions: [],
+      seniorityLevel: 'senior',
+      excludedTitles: [],
+      contactKeywords: []
+    },
+    geographicSettings: {
+      targetLocations: ['United States'],
+      excludedLocations: [],
+      leadLimit: 50,
+      timezone: 'UTC'
+    },
+    advancedCriteria: {
+      fundingStage: 'any',
+      fundingAmount: '',
+      growthStage: 'any',
+      technologiesUsed: [],
+      recentNews: false
+    },
+    researchFocus: {
+      focusAreas: [],
+      researchDepth: 'standard',
+      includeCompanyNews: true,
+      includePersonalInfo: false,
+      includeSocialMedia: false
+    },
+    emailBuilder: {
+      emailTemplate: 'professional',
+      customPrompt: '',
+      tone: 'professional',
+      length: 'medium',
+      callToAction: 'meeting',
+      personalization: 'high'
     }
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Search states for industries and job titles
+  const [industrySearch, setIndustrySearch] = useState('');
+  const [jobTitleSearch, setJobTitleSearch] = useState('');
+  const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
+  const [showJobTitleDropdown, setShowJobTitleDropdown] = useState(false);
 
-  // Industry options for the multi-select
-  const industryOptions = [
-    'Technology', 'Software', 'SaaS', 'E-commerce', 'Healthcare', 
-    'Finance', 'Marketing', 'Education', 'Manufacturing', 'Retail',
-    'Real Estate', 'Consulting', 'Media', 'Non-profit', 'Government'
-  ];
+  // Get all industries in a flat array for searching
+  const allIndustries = Object.values(APOLLO_INDUSTRIES).flat();
+  const allJobTitles = Object.values(JOB_TITLES).flat();
 
-  const jobTitleOptions = [
-    'CEO', 'CTO', 'CIO', 'Founder', 'Co-Founder', 'VP Engineering',
-    'VP Technology', 'Director of Engineering', 'Head of Engineering',
-    'Technical Lead', 'Engineering Manager', 'Software Architect',
-    'DevOps Manager', 'IT Director', 'Chief Architect'
-  ];
+  // Filter industries based on search
+  const filteredIndustries = allIndustries.filter(industry =>
+    industry.toLowerCase().includes(industrySearch.toLowerCase())
+  ).slice(0, 50); // Limit to 50 for performance
+
+  // Filter job titles based on search
+  const filteredJobTitles = allJobTitles.filter(title =>
+    title.toLowerCase().includes(jobTitleSearch.toLowerCase())
+  ).slice(0, 50); // Limit to 50 for performance
 
   useEffect(() => {
     if (isOpen) {
@@ -85,8 +236,41 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
     try {
       setIsLoading(true);
       const response = await api.get('/api/lead-agent/settings');
-      if (response.data) {
-        setSettings(prev => ({ ...prev, ...response.data }));
+      if (response.data.settings) {
+        // Merge API data with default structure to prevent undefined errors
+        setSettings(prevSettings => {
+          const apiSettings = response.data.settings;
+          return {
+            companyBranding: {
+              ...prevSettings.companyBranding,
+              ...apiSettings.companyBranding
+            },
+            companyCriteria: {
+              ...prevSettings.companyCriteria,
+              ...apiSettings.companyCriteria
+            },
+            contactCriteria: {
+              ...prevSettings.contactCriteria,
+              ...apiSettings.contactCriteria
+            },
+            geographicSettings: {
+              ...prevSettings.geographicSettings,
+              ...apiSettings.geographicSettings
+            },
+            advancedCriteria: {
+              ...prevSettings.advancedCriteria,
+              ...apiSettings.advancedCriteria
+            },
+            researchFocus: {
+              ...prevSettings.researchFocus,
+              ...apiSettings.researchFocus
+            },
+            emailBuilder: {
+              ...prevSettings.emailBuilder,
+              ...apiSettings.emailBuilder
+            }
+          };
+        });
       }
     } catch (error) {
       console.error('Failed to fetch agent settings:', error);
@@ -117,21 +301,35 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
     }
   };
 
-  const handleArrayAdd = (field: keyof AgentSettings, value: string) => {
-    const currentArray = settings[field] as string[];
-    if (!currentArray.includes(value) && value.trim()) {
-      setSettings(prev => ({
-        ...prev,
-        [field]: [...currentArray, value.trim()]
-      }));
-    }
-  };
-
-  const handleArrayRemove = (field: keyof AgentSettings, value: string) => {
-    const currentArray = settings[field] as string[];
+  const addToArray = (section: keyof ZillizAgentSettings, field: string, value: string) => {
+    if (!value.trim()) return;
+    
     setSettings(prev => ({
       ...prev,
-      [field]: currentArray.filter(item => item !== value)
+      [section]: {
+        ...prev[section],
+        [field]: [...(prev[section] as any)[field], value.trim()]
+      }
+    }));
+  };
+
+  const removeFromArray = (section: keyof ZillizAgentSettings, field: string, value: string) => {
+    setSettings(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: (prev[section] as any)[field].filter((item: string) => item !== value)
+      }
+    }));
+  };
+
+  const updateField = (section: keyof ZillizAgentSettings, field: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value
+      }
     }));
   };
 
@@ -151,13 +349,13 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+          className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">Agent Settings</h3>
-              <p className="text-sm text-gray-500 mt-1">Configure your lead generation agent parameters</p>
+              <h3 className="text-xl font-semibold text-gray-900">Lead Agent Settings</h3>
+              <p className="text-sm text-gray-500 mt-1">Configure your AI reasoning lead generation agent</p>
             </div>
             <button
               onClick={onClose}
@@ -168,229 +366,533 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
           </div>
 
           {/* Content */}
-          <div className="p-6 max-h-[calc(90vh-140px)] overflow-y-auto">
+          <div className="flex-1 p-6 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
+            ) : !settings || !settings.companyBranding ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-500">Loading settings...</div>
+              </div>
             ) : (
               <div className="space-y-8">
-                {/* Basic Settings */}
+                
+                {/* Company Branding */}
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Basic Configuration</h4>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Company Branding</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Cycle Interval (minutes)
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Agent Name</label>
+                      <input
+                        type="text"
+                        value={settings.companyBranding?.agentName || ''}
+                        onChange={(e) => updateField('companyBranding', 'agentName', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., ActionBot"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                      <input
+                        type="text"
+                        value={settings.companyBranding?.companyName || ''}
+                        onChange={(e) => updateField('companyBranding', 'companyName', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., ActionTrac"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Agent Title</label>
+                      <input
+                        type="text"
+                        value={settings.companyBranding?.agentTitle || ''}
+                        onChange={(e) => updateField('companyBranding', 'agentTitle', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., AI Assistant"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Company Website</label>
+                      <input
+                        type="url"
+                        value={settings.companyBranding?.companyWebsite || ''}
+                        onChange={(e) => updateField('companyBranding', 'companyWebsite', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="https://yourcompany.com"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Primary Service</label>
+                      <textarea
+                        value={settings.companyBranding?.primaryService || ''}
+                        onChange={(e) => updateField('companyBranding', 'primaryService', e.target.value)}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Describe your primary service offering..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Core Offering</label>
+                      <textarea
+                        value={settings.companyBranding?.coreOffering || ''}
+                        onChange={(e) => updateField('companyBranding', 'coreOffering', e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Detailed description of your core offering..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Key Advantages</label>
+                      <textarea
+                        value={settings.companyBranding?.keyAdvantages || ''}
+                        onChange={(e) => updateField('companyBranding', 'keyAdvantages', e.target.value)}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Your competitive advantages..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Expertise Area</label>
+                      <textarea
+                        value={settings.companyBranding?.expertiseArea || ''}
+                        onChange={(e) => updateField('companyBranding', 'expertiseArea', e.target.value)}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Your areas of expertise..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Company Description</label>
+                      <textarea
+                        value={settings.companyBranding?.companyDescription || ''}
+                        onChange={(e) => updateField('companyBranding', 'companyDescription', e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Overall company description..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Company Criteria */}
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Company Targeting</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Company Size Range</label>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="number"
+                          value={settings.companyCriteria?.companySizeMin || 50}
+                          onChange={(e) => updateField('companyCriteria', 'companySizeMin', parseInt(e.target.value) || 0)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Min"
+                        />
+                        <span className="text-gray-500">to</span>
+                        <input
+                          type="number"
+                          value={settings.companyCriteria?.companySizeMax || 500}
+                          onChange={(e) => updateField('companyCriteria', 'companySizeMax', parseInt(e.target.value) || 0)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Max"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Lead Limit</label>
                       <input
                         type="number"
-                        value={settings.interval}
-                        onChange={(e) => setSettings(prev => ({ ...prev, interval: parseInt(e.target.value) || 720 }))}
+                        value={settings.geographicSettings?.leadLimit || 50}
+                        onChange={(e) => updateField('geographicSettings', 'leadLimit', parseInt(e.target.value) || 50)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="60"
-                        max="10080"
+                        placeholder="e.g., 50"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Time between agent cycles (60-10080 minutes)</p>
+                    </div>
+                  </div>
+
+                  {/* Industries with Search */}
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Industries</label>
+                    <div className="relative">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="relative flex-1">
+                          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={industrySearch}
+                            onChange={(e) => setIndustrySearch(e.target.value)}
+                            onFocus={() => setShowIndustryDropdown(true)}
+                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Search industries... (e.g., Healthcare, Technology, Finance)"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Industry Dropdown */}
+                      {showIndustryDropdown && (
+                        <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {filteredIndustries.map((industry) => (
+                            <button
+                              key={industry}
+                              onClick={() => {
+                                if (!settings.companyCriteria?.companyIndustries?.includes(industry)) {
+                                  addToArray('companyCriteria', 'companyIndustries', industry);
+                                }
+                                setIndustrySearch('');
+                                setShowIndustryDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between"
+                            >
+                              <span>{industry}</span>
+                              {!settings.companyCriteria?.companyIndustries?.includes(industry) && (
+                                <PlusIcon className="h-4 w-4 text-blue-500" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Selected Industries */}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {settings.companyCriteria?.companyIndustries?.map((industry) => (
+                          <span
+                            key={industry}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                          >
+                            {industry}
+                            <button
+                              onClick={() => removeFromArray('companyCriteria', 'companyIndustries', industry)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <XCircleIcon className="h-4 w-4" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Criteria */}
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Contact Targeting</h4>
+                  
+                  {/* Job Titles with Search */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Job Titles</label>
+                    <div className="relative">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="relative flex-1">
+                          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={jobTitleSearch}
+                            onChange={(e) => setJobTitleSearch(e.target.value)}
+                            onFocus={() => setShowJobTitleDropdown(true)}
+                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Search job titles... (e.g., CEO, CTO, Marketing Director)"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Job Title Dropdown */}
+                      {showJobTitleDropdown && (
+                        <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {filteredJobTitles.map((title) => (
+                            <button
+                              key={title}
+                              onClick={() => {
+                                if (!settings.contactCriteria?.targetPositions?.includes(title)) {
+                                  addToArray('contactCriteria', 'targetPositions', title);
+                                }
+                                setJobTitleSearch('');
+                                setShowJobTitleDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between"
+                            >
+                              <span>{title}</span>
+                              {!settings.contactCriteria?.targetPositions?.includes(title) && (
+                                <PlusIcon className="h-4 w-4 text-blue-500" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Selected Job Titles */}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {settings.contactCriteria?.targetPositions?.map((title) => (
+                          <span
+                            key={title}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full"
+                          >
+                            {title}
+                            <button
+                              onClick={() => removeFromArray('contactCriteria', 'targetPositions', title)}
+                              className="text-green-600 hover:text-green-800"
+                            >
+                              <XCircleIcon className="h-4 w-4" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Builder */}
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Email Configuration</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Template</label>
+                      <select
+                        value={settings.emailBuilder?.emailTemplate || 'professional'}
+                        onChange={(e) => updateField('emailBuilder', 'emailTemplate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="professional">Professional</option>
+                        <option value="casual">Casual</option>
+                        <option value="direct">Direct</option>
+                        <option value="consultative">Consultative</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                      <select
+                        value={settings.emailBuilder?.tone || 'professional'}
+                        onChange={(e) => updateField('emailBuilder', 'tone', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="professional">Professional</option>
+                        <option value="friendly">Friendly</option>
+                        <option value="authoritative">Authoritative</option>
+                        <option value="conversational">Conversational</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Advanced Criteria */}
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Advanced Criteria</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Funding Stage</label>
+                      <select
+                        value={settings.advancedCriteria?.fundingStage || 'any'}
+                        onChange={(e) => updateField('advancedCriteria', 'fundingStage', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="any">Any Stage</option>
+                        <option value="pre-seed">Pre-Seed</option>
+                        <option value="seed">Seed</option>
+                        <option value="series-a">Series A</option>
+                        <option value="series-b">Series B</option>
+                        <option value="series-c">Series C+</option>
+                        <option value="established">Established</option>
+                        <option value="ipo">Public (IPO)</option>
+                      </select>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Max Emails per Cycle
-                      </label>
-                      <input
-                        type="number"
-                        value={settings.maxEmailsPerCycle}
-                        onChange={(e) => setSettings(prev => ({ ...prev, maxEmailsPerCycle: parseInt(e.target.value) || 50 }))}
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Growth Stage</label>
+                      <select
+                        value={settings.advancedCriteria?.growthStage || 'any'}
+                        onChange={(e) => updateField('advancedCriteria', 'growthStage', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="1"
-                        max="1000"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Maximum emails to send per cycle</p>
+                      >
+                        <option value="any">Any Stage</option>
+                        <option value="startup">Startup</option>
+                        <option value="scale-up">Scale-up</option>
+                        <option value="enterprise">Enterprise</option>
+                        <option value="fortune-500">Fortune 500</option>
+                      </select>
                     </div>
-                  </div>
-                </div>
 
-                {/* Target Industries */}
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Target Industries</h4>
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      {settings.targetIndustries.map((industry) => (
-                        <span
-                          key={industry}
-                          className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                        >
-                          {industry}
-                          <button
-                            onClick={() => handleArrayRemove('targetIndustries', industry)}
-                            className="ml-2 text-blue-600 hover:text-blue-800"
-                          >
-                            <XMarkIcon className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          handleArrayAdd('targetIndustries', e.target.value);
-                          e.target.value = '';
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Add an industry...</option>
-                      {industryOptions.filter(option => !settings.targetIndustries.includes(option)).map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Job Title Filters */}
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Target Job Titles</h4>
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      {settings.filters.jobTitles.map((title) => (
-                        <span
-                          key={title}
-                          className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full"
-                        >
-                          {title}
-                          <button
-                            onClick={() => {
-                              setSettings(prev => ({
-                                ...prev,
-                                filters: {
-                                  ...prev.filters,
-                                  jobTitles: prev.filters.jobTitles.filter(t => t !== title)
-                                }
-                              }));
-                            }}
-                            className="ml-2 text-green-600 hover:text-green-800"
-                          >
-                            <XMarkIcon className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value && !settings.filters.jobTitles.includes(e.target.value)) {
-                          setSettings(prev => ({
-                            ...prev,
-                            filters: {
-                              ...prev.filters,
-                              jobTitles: [...prev.filters.jobTitles, e.target.value]
-                            }
-                          }));
-                          e.target.value = '';
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Add a job title...</option>
-                      {jobTitleOptions.filter(option => !settings.filters.jobTitles.includes(option)).map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Company Size Filters */}
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Company Size Filter</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Minimum Company Size
-                      </label>
-                      <input
-                        type="number"
-                        value={settings.filters.minCompanySize}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          filters: { ...prev.filters, minCompanySize: parseInt(e.target.value) || 1 }
-                        }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Maximum Company Size
-                      </label>
-                      <input
-                        type="number"
-                        value={settings.filters.maxCompanySize}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          filters: { ...prev.filters, maxCompanySize: parseInt(e.target.value) || 10000 }
-                        }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="1"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Lead Sources */}
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Lead Sources</h4>
-                  <div className="space-y-3">
-                    {Object.entries(settings.leadSources).map(([source, enabled]) => (
-                      <label key={source} className="flex items-center">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Recent News Filter</label>
+                      <div className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={enabled}
-                          onChange={(e) => setSettings(prev => ({
-                            ...prev,
-                            leadSources: { ...prev.leadSources, [source]: e.target.checked }
-                          }))}
+                          checked={settings.advancedCriteria?.recentNews || false}
+                          onChange={(e) => updateField('advancedCriteria', 'recentNews', e.target.checked)}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
-                        <span className="ml-3 text-sm font-medium text-gray-700 capitalize">
-                          {source}
-                        </span>
-                      </label>
-                    ))}
+                        <span className="ml-2 text-sm text-gray-700">Only target companies with recent news/activity</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* AI Settings */}
+                {/* Geographic Settings */}
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">AI Configuration</h4>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={settings.useAI}
-                      onChange={(e) => setSettings(prev => ({ ...prev, useAI: e.target.checked }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-3 text-sm font-medium text-gray-700">
-                      Enable AI-powered personalization
-                    </span>
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">Use AI to personalize email content based on prospect data</p>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Geographic Settings</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                      <select
+                        value={settings.geographicSettings?.timezone || 'UTC'}
+                        onChange={(e) => updateField('geographicSettings', 'timezone', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="UTC">UTC</option>
+                        <option value="America/New_York">Eastern Time</option>
+                        <option value="America/Chicago">Central Time</option>
+                        <option value="America/Denver">Mountain Time</option>
+                        <option value="America/Los_Angeles">Pacific Time</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Research Focus */}
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Research Focus</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Focus Areas</label>
+                      <textarea
+                        value={settings.researchFocus?.focusAreas?.join('\n') || ''}
+                        onChange={(e) => updateField('researchFocus', 'focusAreas', e.target.value.split('\n').filter(line => line.trim()))}
+                        rows={8}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter focus areas, one per line...&#10;- Employee communication challenges&#10;- HR technology adoption&#10;- ADP integration opportunities"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Research Depth</label>
+                        <select
+                          value={settings.researchFocus?.researchDepth || 'standard'}
+                          onChange={(e) => updateField('researchFocus', 'researchDepth', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="basic">Basic</option>
+                          <option value="standard">Standard</option>
+                          <option value="deep">Deep</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={settings.researchFocus?.includeCompanyNews || false}
+                            onChange={(e) => updateField('researchFocus', 'includeCompanyNews', e.target.checked)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Include Company News</span>
+                        </div>
+
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={settings.researchFocus?.includePersonalInfo || false}
+                            onChange={(e) => updateField('researchFocus', 'includePersonalInfo', e.target.checked)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Include Personal Info</span>
+                        </div>
+
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={settings.researchFocus?.includeSocialMedia || false}
+                            onChange={(e) => updateField('researchFocus', 'includeSocialMedia', e.target.checked)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Include Social Media</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Email Builder */}
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Enhanced Email Builder</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Custom Email Prompt</label>
+                      <textarea
+                        value={settings.emailBuilder?.customPrompt || ''}
+                        onChange={(e) => updateField('emailBuilder', 'customPrompt', e.target.value)}
+                        rows={12}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                        placeholder="Enter custom email generation prompt..."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Length</label>
+                        <select
+                          value={settings.emailBuilder?.length || 'medium'}
+                          onChange={(e) => updateField('emailBuilder', 'length', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="short">Short</option>
+                          <option value="medium">Medium</option>
+                          <option value="long">Long</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Call to Action</label>
+                        <select
+                          value={settings.emailBuilder?.callToAction || 'meeting'}
+                          onChange={(e) => updateField('emailBuilder', 'callToAction', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="meeting">Schedule Meeting</option>
+                          <option value="call">Phone Call</option>
+                          <option value="demo">Request Demo</option>
+                          <option value="info">More Information</option>
+                          <option value="trial">Free Trial</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Personalization Level</label>
+                        <select
+                          value={settings.emailBuilder?.personalization || 'high'}
+                          onChange={(e) => updateField('emailBuilder', 'personalization', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-            <div className="flex items-center">
+          <div className="flex items-center justify-between p-6 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
               {saveStatus === 'success' && (
-                <div className="flex items-center text-green-600">
-                  <CheckCircleIcon className="h-5 w-5 mr-2" />
-                  <span className="text-sm">Settings saved successfully</span>
+                <div className="flex items-center space-x-2 text-green-600">
+                  <CheckCircleIcon className="h-5 w-5" />
+                  <span className="text-sm">Settings saved successfully!</span>
                 </div>
               )}
               {saveStatus === 'error' && (
-                <div className="flex items-center text-red-600">
-                  <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
+                <div className="flex items-center space-x-2 text-red-600">
+                  <ExclamationTriangleIcon className="h-5 w-5" />
                   <span className="text-sm">Failed to save settings</span>
                 </div>
               )}
@@ -399,7 +901,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
             <div className="flex space-x-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-semibold border-2 border-gray-300"
               >
                 Cancel
               </button>
@@ -408,24 +910,31 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
                 whileTap={{ scale: 0.98 }}
                 onClick={saveSettings}
                 disabled={isSaving}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-6 py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center space-x-2 shadow-lg"
+                style={{
+                  background: '#3b82f6 !important',
+                  color: '#ffffff !important',
+                  fontWeight: '600 !important',
+                  border: '2px solid #3b82f6 !important'
+                }}
               >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CloudArrowUpIcon className="h-4 w-4 mr-2" />
-                    Save to Zilliz
-                  </>
-                )}
+                Save Settings
               </motion.button>
             </div>
           </div>
+
+          {/* Click outside to close dropdowns */}
+          {(showIndustryDropdown || showJobTitleDropdown) && (
+            <div
+              className="fixed inset-0 z-5"
+              onClick={() => {
+                setShowIndustryDropdown(false);
+                setShowJobTitleDropdown(false);
+              }}
+            />
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
   );
-};
+}

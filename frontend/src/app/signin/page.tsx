@@ -239,7 +239,12 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-blue-600 text-white py-3 px-4 text-sm font-medium transition-colors hover:bg-blue-500 disabled:bg-neutral-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{
+                    background: isLoading ? '#a3a3a3 !important' : '#3b82f6 !important',
+                    color: '#ffffff !important',
+                    fontWeight: '500 !important'
+                  }}
                 >
                   {isLoading && (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -348,7 +353,12 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}
-                  className="w-full bg-blue-600 text-white py-3 px-4 text-sm font-medium transition-colors hover:bg-blue-500 disabled:bg-neutral-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{
+                    background: (isLoading || signUpForm.password !== signUpForm.confirmPassword) ? '#a3a3a3 !important' : '#3b82f6 !important',
+                    color: '#ffffff !important',
+                    fontWeight: '500 !important'
+                  }}
                 >
                   {isLoading && (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
