@@ -1,0 +1,1489 @@
+/*
+ * 🧠 REASONING LEAD AGENT
+ * 
+ * A TRUE AI agent that can:
+ * - Think about problems and adapt strategies
+ * - Learn from successes and failures  
+ * - Make intelligent decisions about search parameters
+ * - Reason about why searches fail and adjust accordingly
+ * 
+ * This is NOT hardcoded logic - it's an LLM-powered reasoning agent
+ * that can dynamically solve lead research problems.
+ */
+
+import 'dotenv/config';
+import OpenAI from 'openai';
+import { getUserSettings } from '../lib/userManager.js';
+import { ZillizSettingsManager } from '../utils/zillizSettingsManager.js';
+import { EmailQueue } from '../lib/emailQueue.js';
+import { internetSearch } from '../tools/internetSearch.js';
+import { companyIntelligence } from '../tools/companyIntelligence.js';
+import { deepResearch } from '../tools/deepResearch.js';
+import fs from 'fs/promises';
+import path from 'path';
+
+class ReasoningLeadAgent {
+  constructor(userId) {
+    this.userId = userId;
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+    
+    // Initialize user-specific file paths and email queue
+    const userCode = this.userId ? this.userId.substring(0, 8) : 'default';
+    this.leadsFile = path.join(process.cwd(), 'agent', `reasoning_leads_${userCode}.json`);
+    this.emailQueue = new EmailQueue(userId);
+    
+    // Zilliz settings manager for lead agent settings
+    this.zillizManager = new ZillizSettingsManager();
+    
+    // Agent memory - learns from experience
+    this.memory = {
+      searchHistory: [],
+      successfulStrategies: [],
+      failedStrategies: [],
+      industryInsights: {},
+      currentGoal: null,
+      currentIndustryIndex: 0 // Track which industry to search next
+    };
+    
+    // Available tools the agent can reason about and use
+    this.tools = [
+      {
+        name: 'get_user_settings',
+        description: 'Get user lead generation settings from Zilliz (company size, industries, target positions, etc.)',
+        parameters: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'get_email_settings', 
+        description: 'Get user email builder settings from Zilliz (templates, tone, personalization rules)',
+        parameters: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'apollo_search',
+        description: 'Search for leads using Apollo API based on user criteria',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Search query for leads' },
+            companySize: { type: 'string', description: 'Employee range like "100,1000"' },
+            location: { type: 'string', description: 'Geographic location' },
+            industries: { type: 'array', items: { type: 'string' }, description: 'Industry keywords' },
+            position: { type: 'string', description: 'Target job title/position' }
+          }
+        }
+      },
+      {
+        name: 'serper_research',
+        description: 'Research a lead/company using Serper to verify Apollo data and gather intelligence',
+        parameters: {
+          type: 'object',
+          properties: {
+            companyName: { type: 'string', description: 'Company name to research' },
+            personName: { type: 'string', description: 'Person name if researching individual' },
+            searchQuery: { type: 'string', description: 'Specific search query for verification' }
+          }
+        }
+      },
+      {
+        name: 'unlock_email',
+        description: 'Unlock email address for a lead using Apollo credits',
+        parameters: {
+          type: 'object',
+          properties: {
+            firstName: { type: 'string', description: 'Lead first name' },
+            lastName: { type: 'string', description: 'Lead last name' },
+            companyName: { type: 'string', description: 'Lead company name' }
+          }
+        }
+      },
+      {
+        name: 'build_personalized_email',
+        description: 'Create personalized email using research data and email builder settings',
+        parameters: {
+          type: 'object',
+          properties: {
+            leadData: { type: 'object', description: 'Lead information from Apollo' },
+            researchData: { type: 'object', description: 'Company research from Serper' },
+            emailSettings: { type: 'object', description: 'Email builder settings from Zilliz' }
+          }
+        }
+      }
+    ];
+
+    console.log('🧠 [REASONING AGENT] Initialized AI reasoning agent for user:', userId);
+  }
+
+  // Core reasoning function - the agent's "brain"
+  async reason(context) {
+    const prompt = `You are an intelligent lead research and email generation agent. Follow this workflow:
+
+WORKFLOW:
+1. Get user settings from Zilliz (if not already done)
+2. Get email builder settings from Zilliz (if not already done) 
+3. Use Apollo to search for leads - VARY your search parameters to find fresh leads:
+   - Use different target positions from the user's list (CEO, Sales Director, HR Manager, etc.)
+   - Try different industry combinations
+   - Vary company size ranges to get different results
+   - Don't just search for "HR Manager" - use ALL target positions!
+4. Research each lead using Serper to verify and gather intelligence
+5. Unlock email addresses using Apollo
+6. Build personalized emails using research data
+
+IMPORTANT: If you keep finding the same companies/duplicates, CHANGE your search strategy:
+- Try different job titles from the target positions list
+- Search in different industries
+- Use broader or narrower company size ranges
+- Be creative with search parameters to find NEW companies
+
+CURRENT STATUS:
+- Has User Settings: ${context.hasUserSettings}  
+- Has Email Settings: ${context.hasEmailSettings}
+- Current Leads Found: ${context.currentLeads}/${context.targetLeads}
+- Attempt: ${context.attemptNumber}/10
+
+MEMORY FROM PREVIOUS ATTEMPTS:
+- Recent Actions: ${JSON.stringify(this.memory.searchHistory.slice(-3), null, 2)}
+- What Worked: ${JSON.stringify(this.memory.successfulStrategies, null, 2)}
+- What Failed: ${JSON.stringify(this.memory.failedStrategies, null, 2)}
+
+USER'S ACTUAL SETTINGS (use these for Apollo search):
+${context.hasUserSettings ? `
+- Company: ${this.memory.userSettings?.companyName}  
+- Service: ${this.memory.userSettings?.primaryService}
+- Target Industries: ${JSON.stringify(this.memory.userSettings?.companyIndustries || [])}
+- Company Size: ${this.memory.userSettings?.companySizeMin}-${this.memory.userSettings?.companySizeMax}  
+- Target Positions: ${JSON.stringify(this.memory.userSettings?.targetPositions || [])}
+- Locations: ${JSON.stringify(this.memory.userSettings?.targetLocations || [])}
+` : 'Settings not loaded yet'}
+
+NEXT STEPS LOGIC:
+1. If hasUserSettings = false → CALL get_user_settings 
+2. If hasUserSettings = true AND hasEmailSettings = false → CALL get_email_settings
+3. If both = true → CALL apollo_search using the ACTUAL user criteria above (not hardcoded tech/software)
+4. Process each Apollo lead with serper_research → unlock_email → build_personalized_email
+
+REASONING INSTRUCTIONS:
+- You MUST call a function - don't just think about it!
+- For apollo_search, use HR/workforce/employee communication terms NOT "ActionTrac" as query
+- Use the user's REAL industries/positions/company size from settings above
+- Use user's actual preferences (industries, company size, positions) for Apollo searches
+- Always research leads with Serper to verify they're real and gather intelligence
+- Unlock emails for qualified leads only
+- Create personalized emails based on research insights
+- If searches fail, reason about why and adjust (broader criteria, different industries, etc.)
+- Learn from your memory - what worked before?
+
+CRITICAL: You MUST call a function. Do not just explain what to do - actually call the appropriate function from the available tools.
+
+Choose your next action and explain your reasoning:`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
+        functions: this.tools,
+        function_call: !context.hasUserSettings ? { name: 'get_user_settings' } : 
+                      !context.hasEmailSettings ? { name: 'get_email_settings' } : 'auto',
+        temperature: 0.7
+      });
+
+      const message = response.choices[0].message;
+      
+      if (message.function_call) {
+        console.log('🧠 [REASONING] Agent decided to use tool:', message.function_call.name);
+        console.log('🧠 [REASONING] Agent reasoning:', message.content);
+        
+        return {
+          reasoning: message.content,
+          action: message.function_call.name,
+          parameters: JSON.parse(message.function_call.arguments)
+        };
+      }
+
+      return {
+        reasoning: message.content,
+        action: 'think',
+        parameters: {}
+      };
+
+    } catch (error) {
+      console.error('❌ [REASONING] Error:', error);
+      return {
+        reasoning: 'Error in reasoning process',
+        action: 'fallback',
+        parameters: {}
+      };
+    }
+  }
+
+  // Get user settings from Zilliz - CORRECT lead_agent_settings collection
+  async getUserSettings() {
+    console.log('⚙️ [ZILLIZ] Getting user lead generation settings from lead_agent_settings collection...');
+    
+    try {
+      // Use the correct method to get lead agent settings from the right collection
+      const leadContactSettings = await this.zillizManager.getLeadAgentSettings(this.userId);
+      
+      console.log('🔍 [DEBUG] Lead agent settings from Zilliz:', JSON.stringify(leadContactSettings, null, 2));
+      
+      if (!leadContactSettings) {
+        console.log('❌ [SETTINGS] No lead agent settings found in lead_agent_settings collection!');
+        return { error: 'No lead agent settings configured for this user' };
+      }
+      
+      const actualSettings = {
+        // Company branding (REAL DATA)
+        companyBranding: leadContactSettings.companyBranding,
+        agentName: leadContactSettings.companyBranding?.agentName,
+        companyName: leadContactSettings.companyBranding?.companyName,
+        primaryService: leadContactSettings.companyBranding?.primaryService,
+        coreOffering: leadContactSettings.companyBranding?.coreOffering,
+        keyAdvantages: leadContactSettings.companyBranding?.keyAdvantages,
+        expertiseArea: leadContactSettings.companyBranding?.expertiseArea,
+        
+        // Company criteria (REAL DATA) 
+        companySizeMin: leadContactSettings.companyCriteria?.companySizeMin,
+        companySizeMax: leadContactSettings.companyCriteria?.companySizeMax,
+        companyIndustries: leadContactSettings.companyCriteria?.companyIndustries,
+        companyKeywords: leadContactSettings.companyCriteria?.companyKeywords,
+        
+        // Contact criteria (REAL DATA)
+        targetPositions: leadContactSettings.contactCriteria?.targetPositions,
+        seniorityLevel: leadContactSettings.contactCriteria?.seniorityLevel,
+        
+        // Geographic settings (REAL DATA)
+        targetLocations: leadContactSettings.geographicSettings?.targetLocations,
+        leadLimit: leadContactSettings.geographicSettings?.leadLimit,
+        
+        // Research focus (REAL DATA)
+        focusAreas: leadContactSettings.researchFocus?.focusAreas,
+        researchDepth: leadContactSettings.researchFocus?.researchDepth,
+        
+        // Raw data for debugging
+        rawLeadContactSettings: leadContactSettings
+      };
+      
+      console.log('✅ [SETTINGS] REAL lead generation settings:', {
+        company: actualSettings.companyName,
+        agent: actualSettings.agentName,
+        service: actualSettings.primaryService,
+        industries: actualSettings.companyIndustries?.length || 0,
+        positions: actualSettings.targetPositions?.length || 0,
+        companySize: `${actualSettings.companySizeMin}-${actualSettings.companySizeMax}`,
+        locations: actualSettings.targetLocations?.length || 0,
+        leadLimit: actualSettings.leadLimit
+      });
+      
+      return actualSettings;
+    } catch (error) {
+      console.error('❌ [SETTINGS] Error getting lead agent settings:', error);
+      return { error: error.message };
+    }
+  }
+
+  // Get email builder settings from Zilliz - CORRECT lead_agent_settings collection
+  async getEmailSettings() {
+    console.log('📧 [ZILLIZ] Getting email builder settings from lead_agent_settings collection...');
+    
+    try {
+      // Use the same method to get lead agent settings (includes email builder)
+      const leadContactSettings = await this.zillizManager.getLeadAgentSettings(this.userId);
+      
+      console.log('🔍 [DEBUG] Lead agent settings for email:', JSON.stringify(leadContactSettings, null, 2));
+      
+      if (!leadContactSettings) {
+        console.log('❌ [EMAIL SETTINGS] No lead agent settings found!');
+        return { error: 'No lead agent settings configured for this user' };
+      }
+      
+      // Extract REAL email builder settings
+      const emailBuilder = leadContactSettings.emailBuilder;
+      
+      if (!emailBuilder) {
+        console.log('❌ [EMAIL SETTINGS] No emailBuilder found in lead agent settings!');
+        return { error: 'No email builder settings configured' };
+      }
+      
+      const actualEmailSettings = {
+        // Email builder settings (REAL DATA)
+        emailTemplate: emailBuilder.emailTemplate,
+        customPrompt: emailBuilder.customPrompt,
+        tone: emailBuilder.tone,
+        length: emailBuilder.length,
+        callToAction: emailBuilder.callToAction,
+        personalization: emailBuilder.personalization,
+        
+        // Company branding for email templates
+        companyBranding: leadContactSettings.companyBranding,
+        
+        // Raw data
+        rawEmailBuilder: emailBuilder,
+        rawLeadContactSettings: leadContactSettings
+      };
+      
+      console.log('✅ [EMAIL SETTINGS] REAL email builder settings:', {
+        template: actualEmailSettings.emailTemplate,
+        tone: actualEmailSettings.tone,
+        personalization: actualEmailSettings.personalization,
+        callToAction: actualEmailSettings.callToAction,
+        hasCustomPrompt: !!actualEmailSettings.customPrompt
+      });
+      
+      return actualEmailSettings;
+    } catch (error) {
+      console.error('❌ [EMAIL SETTINGS] Error getting email settings:', error);
+      return { error: error.message };
+    }
+  }
+
+  // Research company/lead using Serper
+  async serperResearch(parameters) {
+    console.log('🔍 [SERPER] Researching:', parameters.companyName || parameters.searchQuery);
+    
+    try {
+      const searchQuery = parameters.searchQuery || 
+        `${parameters.companyName} company information business model products services`;
+      
+      const results = await internetSearch(searchQuery);
+      
+      console.log('✅ [SERPER] Research complete, found insights');
+      return {
+        success: true,
+        data: results,
+        companyName: parameters.companyName,
+        insights: results.organic?.slice(0, 3) || []
+      };
+    } catch (error) {
+      console.error('❌ [SERPER] Research failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        companyName: parameters.companyName
+      };
+    }
+  }
+
+  // Unlock email using Apollo - WORKING ENRICH METHOD
+  async unlockEmail(parameters) {
+    console.log('🔐 [APOLLO] Unlocking email for:', parameters.firstName, parameters.lastName);
+    
+    try {
+      const apiKey = await this.getApiKey('apollo');
+      console.log('🔍 [DEBUG] API key retrieved:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NULL');
+      if (!apiKey) {
+        throw new Error('Apollo API key not configured');
+      }
+
+      // STEP 1: First search for the person to get their Apollo ID
+      const searchPayload = {
+        per_page: 10,
+        page: 1,
+        person_locations: ["United States"]
+      };
+      
+      // Search by person name first for better accuracy
+      if (parameters.firstName && parameters.lastName) {
+        searchPayload.q_person_name = `${parameters.firstName} ${parameters.lastName}`;
+      }
+      
+      // Add company targeting (try multiple approaches)
+      if (parameters.domain) {
+        searchPayload.q_organization_domains = [parameters.domain];
+      } else if (parameters.companyName) {
+        // Use both keyword tags and organization name for better matching
+        searchPayload.q_organization_keyword_tags = [parameters.companyName.toLowerCase()];
+        searchPayload.q_organization_name = parameters.companyName;
+      }
+
+      console.log('🔍 [STEP 1] Searching for person with:', searchPayload);
+      const searchResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'X-Api-Key': apiKey
+        },
+        body: JSON.stringify(searchPayload)
+      });
+
+      if (!searchResponse.ok) {
+        throw new Error(`Search failed: ${searchResponse.status}`);
+      }
+
+      let searchData = await searchResponse.json();
+      console.log('🔍 [STEP 1] Search results:', searchData.people?.length || 0, 'people found');
+      
+      if (!searchData.people || searchData.people.length === 0) {
+        console.log('⚠️ [STEP 1] No results with current search, trying fallback...');
+        
+        // FALLBACK 1: Try without domain filtering if we used a domain
+        if (parameters.domain) {
+          console.log('🔄 [FALLBACK] Retrying without domain filter...');
+          const fallbackPayload = {
+            per_page: 10,
+            page: 1,
+            person_locations: ["United States"]
+          };
+          
+          if (parameters.firstName && parameters.lastName) {
+            fallbackPayload.q_person_name = `${parameters.firstName} ${parameters.lastName}`;
+          }
+          
+          if (parameters.companyName) {
+            fallbackPayload.q_organization_name = parameters.companyName;
+          }
+          
+          const fallbackResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'X-Api-Key': apiKey
+            },
+            body: JSON.stringify(fallbackPayload)
+          });
+          
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json();
+            if (fallbackData.people && fallbackData.people.length > 0) {
+              console.log('✅ [FALLBACK] Found results without domain filter!');
+              // Continue with fallback data
+              searchData = fallbackData;
+            }
+          }
+        }
+        
+        // If still no results, return error
+        if (!searchData.people || searchData.people.length === 0) {
+          return {
+            success: false,
+            error: 'No people found in search (tried with and without domain)'
+          };
+        }
+      }
+
+      // Find matching person with flexible matching
+      let targetPerson = searchData.people.find(p => 
+        p.first_name?.toLowerCase() === parameters.firstName?.toLowerCase() && 
+        p.last_name?.toLowerCase() === parameters.lastName?.toLowerCase()
+      );
+      
+      // If exact match fails, try partial name matching
+      if (!targetPerson && parameters.firstName && parameters.lastName) {
+        targetPerson = searchData.people.find(p => 
+          p.first_name?.toLowerCase().includes(parameters.firstName.toLowerCase()) ||
+          p.last_name?.toLowerCase().includes(parameters.lastName.toLowerCase())
+        );
+      }
+      
+      // Final fallback to first person if from same company
+      if (!targetPerson && parameters.companyName) {
+        targetPerson = searchData.people.find(p => 
+          p.organization?.name?.toLowerCase().includes(parameters.companyName.toLowerCase())
+        );
+      }
+      
+      // Ultimate fallback
+      if (!targetPerson) {
+        targetPerson = searchData.people[0];
+      }
+
+      console.log(`🔍 [STEP 1] Target person: ${targetPerson.name} (ID: ${targetPerson.id})`);
+
+      // STEP 2: Use enrich endpoint to unlock actual emails
+      console.log('  [STEP 2] Enriching person to unlock emails...');
+      const enrichResponse = await fetch('https://api.apollo.io/api/v1/people/enrich', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': apiKey
+        },
+        body: JSON.stringify({
+          id: targetPerson.id,
+          reveal_personal_emails: true
+        })
+      });
+
+      if (!enrichResponse.ok) {
+        throw new Error(`Enrich failed: ${enrichResponse.status}`);
+      }
+
+      const enrichData = await enrichResponse.json();
+      console.log('🔓 [STEP 2] Enriched person data received');
+      console.log('🔍 [DEBUG] Full Apollo response:', JSON.stringify(enrichData, null, 2));
+      
+      if (enrichData && enrichData.person) {
+        const person = enrichData.person;
+        const workEmail = person.email;
+        const personalEmails = person.personal_emails || [];
+        
+        console.log(`📧 Work email: ${workEmail}`);
+        console.log(`📧 Personal emails: ${personalEmails.join(', ')}`);
+        console.log(`📊 [DEBUG] Email status/confidence:`, person.email_status, person.email_confidence);
+        
+        // Just accept ALL emails that Apollo provides - no filtering
+        const allEmails = [workEmail, ...personalEmails].filter(email => {
+          return email && !email.includes('email_not_unlocked');
+        });
+        
+        if (allEmails.length > 0) {
+          console.log('✅ [APOLLO] Email unlocked successfully!');
+          return {
+            success: true,
+            email: allEmails[0], // Primary email
+            all_emails: allEmails,
+            person: person
+          };
+        } else {
+          console.log('❌ [APOLLO] No emails available');
+        }
+      }
+
+      console.log('❌ [APOLLO] No real emails found - need to find different lead');
+      return {
+        success: false,
+        error: 'No real emails found - only constructed/fallback emails available'
+      };
+
+    } catch (error) {
+      console.error('❌ [APOLLO] Email unlock failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Build personalized email
+  async buildPersonalizedEmail(parameters) {
+    console.log('📝 [EMAIL BUILDER] Creating personalized email...');
+    
+    try {
+      const { leadData, researchData, emailSettings } = parameters;
+      
+      // Extract proper field values from Apollo lead data
+      const contactName = leadData.name || (leadData.first_name && leadData.last_name ? 
+        `${leadData.first_name} ${leadData.last_name}` : 'there');
+      const contactTitle = leadData.title || 'team member';
+      
+      // Get company name from correct Apollo field structure
+      const companyName = leadData.organization?.name || leadData.company || leadData.organization_name;
+      if (!companyName) {
+        throw new Error('No company name found in lead data - cannot generate personalized email');
+      }
+      
+      const industry = leadData.organization?.industry || 'business';
+      const employeeCount = leadData.organization?.estimated_num_employees || 'Unknown';
+      
+      // Extract specific research insights for personalization
+      let researchInsights = 'Company research data available';
+      let keyBusinessFacts = [];
+      
+      if (researchData?.organic && researchData.organic.length > 0) {
+        // Extract key business insights from research
+        keyBusinessFacts = researchData.organic.slice(0, 3).map(r => r.snippet);
+        researchInsights = keyBusinessFacts.join(' ');
+        
+        // Look for specific business indicators to personalize
+        const fullResearchText = researchInsights.toLowerCase();
+        const businessContext = {
+          isFintech: fullResearchText.includes('fintech') || fullResearchText.includes('financial'),
+          hasZelle: fullResearchText.includes('zelle'),
+          preventsFraud: fullResearchText.includes('fraud'),
+          isGrowing: fullResearchText.includes('growing') || fullResearchText.includes('expansion'),
+          hasEmployees: fullResearchText.includes('employee') || fullResearchText.includes('workforce'),
+          usesADP: fullResearchText.includes('adp'),
+          hasCompliance: fullResearchText.includes('compliance') || fullResearchText.includes('regulation')
+        };
+      }
+        
+      // Use custom email prompt from settings or fallback
+      let emailPrompt;
+      if (emailSettings.customPrompt) {
+        // Replace template variables in custom prompt
+        emailPrompt = emailSettings.customPrompt
+          .replace(/\{\{AGENT_NAME\}\}/g, emailSettings.companyBranding?.agentName || 'AI Assistant')
+          .replace(/\{\{COMPANY_NAME\}\}/g, emailSettings.companyBranding?.companyName || 'Our Company')
+          .replace(/\{\{AGENT_TITLE\}\}/g, emailSettings.companyBranding?.agentTitle || 'AI Assistant')
+          .replace(/\{\{PRIMARY_SERVICE\}\}/g, emailSettings.companyBranding?.primaryService || 'business solutions')
+          .replace(/\{\{CORE_OFFERING\}\}/g, emailSettings.companyBranding?.coreOffering || 'our solutions')
+          .replace(/\{\{KEY_ADVANTAGES\}\}/g, emailSettings.companyBranding?.keyAdvantages || 'competitive advantages')
+          .replace(/\{\{EXPERTISE_AREA\}\}/g, emailSettings.companyBranding?.expertiseArea || 'industry expertise')
+          .replace(/\{\{TARGET_COMPANY\}\}/g, companyName)
+          .replace(/\{\{CONTACT_NAME\}\}/g, contactName)
+          .replace(/\{\{CONTACT_TITLE\}\}/g, contactTitle)
+          .replace(/\{\{INDUSTRY\}\}/g, industry)
+          .replace(/\{\{COMPANY_DESCRIPTION\}\}/g, researchInsights)
+          .replace(/\{\{EMPLOYEE_COUNT\}\}/g, employeeCount);
+      } else {
+        // Enhanced personalized email prompt with specific research insights
+        const specificInsights = this.extractSpecificInsights(researchData);
+        
+        // Create a compelling insights summary with the most impressive details
+        let insightsSummary = '';
+        if (specificInsights.length > 0) {
+          const topInsights = specificInsights.slice(0, 4);
+          insightsSummary = topInsights.map((insight, i) => {
+            const priority = ['recent_funding', 'growth', 'product_launch', 'partnership', 'acquisition', 'recognition'].includes(insight.type) ? 'HIGH PRIORITY' : 'Notable';
+            return `• ${insight.insight} (${priority})`;
+          }).join('\n');
+        } else {
+          insightsSummary = keyBusinessFacts.slice(0, 3).map(fact => `• ${fact}`).join('\n');
+        }
+        
+        // Get the most impressive insight and format as congratulations/recognition
+        let leadingInsight = null;
+        if (specificInsights.length > 0) {
+          const topInsight = specificInsights[0];
+          
+          // Format as congratulations based on insight type
+          switch(topInsight.type) {
+            case 'recent_funding':
+            case 'valuation':
+              leadingInsight = `Congratulations on ${topInsight.insight.toLowerCase()}!`;
+              break;
+            case 'product_launch':
+            case 'innovation':
+              leadingInsight = `I noticed you ${topInsight.insight.toLowerCase()}.`;
+              break;
+            case 'growth':
+            case 'expansion':
+              leadingInsight = `Impressive work on ${topInsight.insight.toLowerCase()}!`;
+              break;
+            case 'partnership':
+            case 'acquisition':
+              leadingInsight = `I saw that you ${topInsight.insight.toLowerCase()}.`;
+              break;
+            case 'recognition':
+            case 'ranking':
+              leadingInsight = `Congratulations on being ${topInsight.insight.toLowerCase()}!`;
+              break;
+            default:
+              leadingInsight = `I noticed ${topInsight.insight.toLowerCase()}.`;
+          }
+        }
+          
+        // Build intelligence context from research
+        let intelligenceContext = '';
+        if (researchData && specificInsights.length > 0) {
+          intelligenceContext = `\nSPECIFIC COMPANY RESEARCH FINDINGS:
+${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join('\n')}`;
+        }
+        
+        // Use the leadContactAgent's PROVEN email generation system
+        emailPrompt = `You are ${emailSettings.companyBranding?.agentName || 'AI Assistant'}, the AI assistant for ${emailSettings.companyBranding?.companyName || 'Our Company'}. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
+
+Company: ${companyName}
+Contact: ${leadData.first_name} ${leadData.last_name}
+Title: ${contactTitle}
+Industry: ${industry}
+Company Description: ${researchInsights}
+Employee Count: ${employeeCount} employees${intelligenceContext}
+
+YOUR TASK - BE A SMART SALESPERSON:
+Generate a professional email that demonstrates you've done your homework:
+
+1. Subject line that references specific company context (growth, initiatives, etc.)
+2. Opening with SINGLE greeting only (Hello ${leadData.first_name}, - NOT "Hello ${leadData.first_name} ${leadData.last_name},")
+3. Connect their specific situation to ${emailSettings.companyBranding?.companyName || 'our'} solutions with LOGICAL REASONING
+4. Explain WHY our solution specifically fits their company's needs
+5. Professional call-to-action
+6. Simple signature: "Best regards,\\n${emailSettings.companyBranding?.agentName || 'AI Assistant'}\\n${emailSettings.companyBranding?.companyName || 'Our Company'} ${emailSettings.companyBranding?.agentTitle || 'Representative'}"
+
+CRITICAL RULES:
+- Use ONLY "Hello ${leadData.first_name}," (first name only)
+- NO generic phrases like "prolific standing in the business industry"
+- DO NOT use "becomes paramount" or corporate jargon
+- Reference specific research insights when available
+- Focus on business value connected to their specific situation
+- Keep it concise (under 200 words), professional, and data-driven
+
+SOLUTION DETAILS:
+- Primary Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
+- Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
+
+Show you understand their business and connect it logically to communication challenges.
+
+Format as:
+SUBJECT: [subject line]
+BODY: [email body with proper greeting and signature]`;
+      }
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: emailPrompt }],
+        temperature: 0.7,
+        max_tokens: 600
+      });
+
+      const emailContent = response.choices[0].message.content;
+      
+      // Extract subject and body if formatted properly
+      let subject, body;
+      if (emailContent.includes('SUBJECT:') && emailContent.includes('BODY:')) {
+        const parts = emailContent.split('BODY:');
+        subject = parts[0].replace('SUBJECT:', '').trim();
+        body = parts[1].trim();
+      } else {
+        // Fallback subject generation
+        subject = `Quick question about ${companyName}'s ${industry} strategy`;
+        body = emailContent;
+      }
+      
+      console.log('✅ [EMAIL BUILDER] Personalized email created');
+      return {
+        success: true,
+        email: body,
+        subject: subject
+      };
+    } catch (error) {
+      console.error('❌ [EMAIL BUILDER] Failed to create email:', error);
+      return {
+        success: false,
+        error: error.message,
+        email: 'Email generation failed',
+        subject: 'Follow-up'
+      };
+    }
+  }
+
+  // Execute Apollo search with reasoning
+  async apolloSearch(parameters) {
+    console.log('🔍 [APOLLO] Executing reasoned search:', parameters);
+    
+    try {
+      const apiKey = await this.getApiKey('apollo');
+      if (!apiKey) {
+        throw new Error('Apollo API key not configured');
+      }
+
+      // Use REAL user settings from memory - NO hardcoded fallbacks
+      const userSettings = this.memory.userSettings;
+      
+      // Pick ONE industry per search (rotate through available industries)
+      let selectedIndustry = null;
+      if (userSettings.companyIndustries && userSettings.companyIndustries.length > 0) {
+        const currentIndex = this.memory.currentIndustryIndex % userSettings.companyIndustries.length;
+        selectedIndustry = userSettings.companyIndustries[currentIndex];
+        
+        // Increment for next search
+        this.memory.currentIndustryIndex++;
+        
+        console.log(`🎯 [INDUSTRY ROTATION] Selected industry ${currentIndex + 1}/${userSettings.companyIndustries.length}: "${selectedIndustry}"`);
+      }
+      
+      // Use pagination and vary search parameters intelligently
+      const searchPage = Math.floor(Math.random() * 5) + 1; // Pages 1-5 for more variety
+      
+      // Use ALL target positions from user settings - NO hardcoded fallbacks
+      if (!userSettings.targetPositions || userSettings.targetPositions.length === 0) {
+        throw new Error('No target positions configured in user settings');
+      }
+      
+      const randomPosition = userSettings.targetPositions[Math.floor(Math.random() * userSettings.targetPositions.length)];
+      
+      console.log(`🔍 [SEARCH VARIATION] Using "${randomPosition}" on page ${searchPage} for fresh results`);
+      
+      const searchPayload = {
+        q_keywords: randomPosition,
+        page: searchPage,
+        per_page: 5
+      };
+
+      // Vary company size to get different results (within reasonable bounds of original settings)
+      if (!userSettings.companySizeMin || !userSettings.companySizeMax) {
+        throw new Error('Company size range not configured in user settings');
+      }
+      
+      const sizeMin = userSettings.companySizeMin;
+      const sizeMax = userSettings.companySizeMax;
+      
+      console.log(`🎯 [USER SETTINGS] Using configured company size: ${sizeMin}-${sizeMax} employees (respecting user preferences)`);
+      
+      searchPayload.organization_num_employees_ranges = [`${sizeMin},${sizeMax}`];
+
+      // Use actual locations from user settings
+      if (userSettings.targetLocations && userSettings.targetLocations.length > 0) {
+        searchPayload.person_locations = userSettings.targetLocations;
+      }
+
+      // Add selected industry if available
+      if (selectedIndustry) {
+        searchPayload.q_organization_keyword_tags = [selectedIndustry];
+      }
+
+      console.log('🔍 [APOLLO] Search payload:', JSON.stringify(searchPayload, null, 2));
+
+      const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'X-Api-Key': apiKey
+        },
+        body: JSON.stringify(searchPayload)
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`Apollo API error: ${data.error || response.statusText}`);
+      }
+
+      const results = {
+        found: data.people?.length || 0,
+        leads: data.people || [],
+        query: parameters.query,
+        parameters: parameters
+      };
+
+      // Record this search in memory
+      this.memory.searchHistory.push({
+        timestamp: new Date().toISOString(),
+        parameters: parameters,
+        results: { found: results.found },
+        success: results.found > 0
+      });
+
+      return results;
+
+    } catch (error) {
+      console.error('❌ [APOLLO] Search failed:', error);
+      
+      // Record failed search
+      this.memory.searchHistory.push({
+        timestamp: new Date().toISOString(),
+        parameters: parameters,
+        error: error.message,
+        success: false
+      });
+
+      return {
+        found: 0,
+        leads: [],
+        error: error.message,
+        parameters: parameters
+      };
+    }
+  }
+
+  // Main agent execution loop - keeps reasoning until goal is met
+  async findLeads(targetLeads = 5, userSettings = {}) {
+    console.log('🧠 [REASONING AGENT] Starting intelligent lead search...');
+    console.log('🎯 [GOAL] Find', targetLeads, 'quality leads');
+    
+    // CRITICAL: Load existing leads database to avoid duplicates
+    console.log('📄 [DUPLICATE CHECK] Loading existing leads database...');
+    const existingDatabase = await this.loadLeadsDatabase();
+    
+    // Build comprehensive list of contacted companies from multiple sources
+    const emailedCompanies = new Set();
+    
+    // Add from emailedCompanies array
+    (existingDatabase.emailedCompanies || []).forEach(company => {
+      if (company) emailedCompanies.add(company.toLowerCase());
+    });
+    
+    // Add company names from all existing leads (in case emailedCompanies tracking failed before)
+    (existingDatabase.allLeads || []).forEach(lead => {
+      const companyName = lead.company || lead.organization?.name;
+      if (companyName) emailedCompanies.add(companyName.toLowerCase());
+    });
+    
+    // Build list of processed emails
+    const processedEmails = new Set((existingDatabase.allLeads || []).map(lead => lead.email?.toLowerCase()).filter(Boolean));
+    
+    console.log(`🚫 [DUPLICATE CHECK] Found ${emailedCompanies.size} previously contacted companies`);
+    console.log(`🚫 [DUPLICATE CHECK] Found ${processedEmails.size} previously processed emails`);
+    
+    // Log some example companies to verify
+    if (emailedCompanies.size > 0) {
+      const exampleCompanies = Array.from(emailedCompanies).slice(0, 3);
+      console.log(`🏢 [EXAMPLES] Previously contacted: ${exampleCompanies.join(', ')}`);
+    }
+    
+    // Store in memory for use during processing
+    this.memory.duplicateCheck = {
+      emailedCompanies,
+      processedEmails,
+      existingDatabase
+    };
+
+    this.memory.currentGoal = { targetLeads, userSettings };
+    const foundLeads = [];
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (foundLeads.length < targetLeads && attempts < maxAttempts) {
+      attempts++;
+      console.log(`\n🧠 [REASONING] Attempt ${attempts}/${maxAttempts}`);
+
+      // Agent reasons about current situation
+      const context = {
+        targetLeads: targetLeads,
+        currentLeads: foundLeads.length,
+        userSettings: userSettings,
+        attemptNumber: attempts,
+        hasUserSettings: this.memory.userSettings && !this.memory.userSettings.error && Object.keys(this.memory.userSettings).length > 0,
+        hasEmailSettings: this.memory.emailSettings && !this.memory.emailSettings.error && Object.keys(this.memory.emailSettings).length > 0
+      };
+
+      const decision = await this.reason(context);
+      console.log('🧠 [DECISION]', decision.reasoning);
+
+      // Execute the agent's decision
+      let actionResult = null;
+      
+      switch (decision.action) {
+        case 'get_user_settings':
+          actionResult = await this.getUserSettings();
+          this.memory.userSettings = actionResult;
+          break;
+          
+        case 'get_email_settings':
+          actionResult = await this.getEmailSettings();
+          this.memory.emailSettings = actionResult;
+          break;
+          
+        case 'apollo_search':
+          actionResult = await this.apolloSearch(decision.parameters);
+          if (actionResult.found > 0) {
+            console.log(`✅ [SUCCESS] Found ${actionResult.found} leads! Total: ${foundLeads.length + actionResult.found}/${targetLeads}`);
+            
+            // FILTER OUT DUPLICATES before processing
+            const newLeads = actionResult.leads.filter(lead => {
+              const companyName = lead.organization?.name?.toLowerCase();
+              const existingEmail = lead.email?.toLowerCase();
+              
+              // Check if company already contacted
+              if (companyName && this.memory.duplicateCheck.emailedCompanies.has(companyName)) {
+                console.log(`🚫 [DUPLICATE] Skipping ${lead.name} - company "${companyName}" already contacted`);
+                return false;
+              }
+              
+              // Check if email already processed
+              if (existingEmail && this.memory.duplicateCheck.processedEmails.has(existingEmail)) {
+                console.log(`🚫 [DUPLICATE] Skipping ${lead.name} - email "${existingEmail}" already processed`);
+                return false;
+              }
+              
+              return true;
+            });
+            
+            console.log(`✨ [FILTERED] Processing ${newLeads.length}/${actionResult.leads.length} new leads (${actionResult.leads.length - newLeads.length} duplicates filtered)`);
+            
+            // Process each NEW lead through the full workflow
+            for (const lead of newLeads) {
+              console.log(`\n🔍 [PROCESSING] Lead: ${lead.name} at ${lead.organization?.name}`);
+              
+              // Research the lead's company
+              const research = await this.serperResearch({
+                companyName: lead.organization?.name,
+                searchQuery: `${lead.organization?.name} company business model products services`
+              });
+              
+              // Unlock email if research looks good
+              if (research.success) {
+                const emailUnlock = await this.unlockEmail({
+                  firstName: lead.first_name,
+                  lastName: lead.last_name,
+                  companyName: lead.organization?.name,
+                  domain: lead.organization?.primary_domain
+                });
+                
+                // Track email unlock success and handle both success/failure cases
+                if (emailUnlock.success && this.memory.emailSettings) {
+                  console.log(`✅ [EMAIL SUCCESS] Unlocked ${emailUnlock.all_emails?.length || 1} email(s) for ${lead.organization?.name} (${lead.organization?.estimated_num_employees || 'unknown'} employees)`);
+                  
+                  const personalizedEmail = await this.buildPersonalizedEmail({
+                    leadData: lead,
+                    researchData: research,
+                    emailSettings: this.memory.emailSettings
+                  });
+                  
+                  // Create complete lead data
+                  const completeLead = {
+                    ...lead,
+                    email: emailUnlock.email,
+                    all_emails: emailUnlock.all_emails || [emailUnlock.email],
+                    research: research.data,
+                    personalizedEmail: personalizedEmail.email,
+                    emailSubject: personalizedEmail.subject,
+                    emailUnlockStatus: 'success'
+                  };
+                  
+                  // Add to local results
+                  foundLeads.push(completeLead);
+                  
+                  // Save to database like normal lead agent
+                  await this.addLeadToDatabase(completeLead);
+                  
+                  // Add to email queue for approval/sending
+                  await this.addToEmailQueue(completeLead);
+                  
+                  // Update real-time duplicate tracking to prevent duplicates within same session
+                  const companyName = lead.organization?.name?.toLowerCase();
+                  const emailAddress = emailUnlock.email?.toLowerCase();
+                  
+                  if (companyName) {
+                    this.memory.duplicateCheck.emailedCompanies.add(companyName);
+                  }
+                  if (emailAddress) {
+                    this.memory.duplicateCheck.processedEmails.add(emailAddress);
+                  }
+                  
+                  console.log(`✅ [COMPLETE] Lead processed with email and research`);
+                } else {
+                  console.log(`❌ [EMAIL FAIL] Could not unlock email for ${lead.organization?.name} - ${emailUnlock.error || 'Unknown error'}`);
+                  
+                  // If it's a constructed/fallback email issue, skip this lead and continue searching
+                  if (emailUnlock.error && emailUnlock.error.includes('constructed/fallback')) {
+                    console.log(`🔄 [SKIP] Skipping lead with constructed email - will find different lead`);
+                    continue; // Skip this lead entirely, don't add to results
+                  }
+                  
+                  console.log(`📊 [LEARNING] Company: ${lead.organization?.name}, Size: ${lead.organization?.estimated_num_employees}, Domain: ${lead.organization?.primary_domain}`);
+                  
+                  const partialLead = {
+                    ...lead,
+                    email: 'Email not available - ' + (emailUnlock.error || 'Apollo limitation'),
+                    research: research.data,
+                    emailUnlockStatus: 'failed',
+                    emailUnlockError: emailUnlock.error
+                  };
+                  
+                  foundLeads.push(partialLead);
+                  
+                  // Still save to database even without email
+                  await this.addLeadToDatabase(partialLead);
+                  
+                  // Update duplicate tracking for company (even without email)
+                  const companyName = lead.organization?.name?.toLowerCase();
+                  if (companyName) {
+                    this.memory.duplicateCheck.emailedCompanies.add(companyName);
+                  }
+                }
+              }
+            }
+            
+            // Remember successful strategy
+            this.memory.successfulStrategies.push({
+              parameters: decision.parameters,
+              results: actionResult.found,
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            console.log(`❌ [NO RESULTS] Apollo search returned 0 leads`);
+            
+            // Remember failed strategy
+            this.memory.failedStrategies.push({
+              parameters: decision.parameters,
+              reason: actionResult.error || 'No leads found',
+              timestamp: new Date().toISOString()
+            });
+          }
+          break;
+          
+        default:
+          console.log(`🤔 [THINKING] Agent is reasoning: ${decision.reasoning}`);
+          break;
+      }
+
+      // Small delay between reasoning cycles
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    console.log(`\n🏁 [COMPLETE] Found ${foundLeads.length}/${targetLeads} leads in ${attempts} attempts`);
+    return foundLeads;
+  }
+
+  // Helper to get API keys
+  async getApiKey(service) {
+    try {
+      // Use cached settings if available, otherwise fetch from Zilliz
+      let userSettings = null;
+      if (this.memory.userSettings && !this.memory.userSettings.error) {
+        userSettings = this.memory.userSettings.rawLeadContactSettings || this.memory.userSettings;
+      } else {
+        userSettings = await getUserSettings(this.userId);
+      }
+      
+      const apiKeys = userSettings?.apiKeys || {};
+      if (apiKeys[service]) {
+        return apiKeys[service];
+      }
+      
+      // Fallback to environment variables
+      const envKey = service === 'apollo' ? 'APOLLO_API_KEY' : 
+                    service === 'serper' ? 'SERPER_API_KEY' : null;
+      return envKey ? process.env[envKey] : null;
+    } catch (error) {
+      console.error(`Error getting ${service} API key:`, error.message);
+      return null;
+    }
+  }
+
+  // Extract specific interesting insights from research data
+  extractSpecificInsights(researchData) {
+    const insights = [];
+    
+    if (!researchData) return insights;
+    
+    // Combine ALL available research text for comprehensive analysis
+    const allText = [];
+    const originalText = []; // Keep original case for proper names
+    
+    // Extract from answer box
+    if (researchData.answerBox?.snippet) {
+      allText.push(researchData.answerBox.snippet.toLowerCase());
+      originalText.push(researchData.answerBox.snippet);
+    }
+    
+    // Extract from organic results (more comprehensive)
+    if (researchData.organic) {
+      researchData.organic.slice(0, 8).forEach(result => {
+        if (result.snippet) {
+          allText.push(result.snippet.toLowerCase());
+          originalText.push(result.snippet);
+        }
+        if (result.title) {
+          allText.push(result.title.toLowerCase());
+          originalText.push(result.title);
+        }
+      });
+    }
+    
+    // Also check any company details or key insights
+    if (researchData.companyDetails) {
+      allText.push(researchData.companyDetails.toLowerCase());
+      originalText.push(researchData.companyDetails);
+    }
+    
+    if (researchData.keyInsights && Array.isArray(researchData.keyInsights)) {
+      researchData.keyInsights.forEach(insight => {
+        const insightText = typeof insight === 'string' ? insight : JSON.stringify(insight);
+        allText.push(insightText.toLowerCase());
+        originalText.push(insightText);
+      });
+    }
+    
+    const fullText = allText.join(' ');
+    const fullOriginalText = originalText.join(' ');
+    
+    // Extract highly specific business insights that show deep research
+    const businessPatterns = [
+      // Recent financial achievements (very impressive to mention)
+      { pattern: /raised \$(\d+(?:\.\d+)?)\s*(million|billion|M|B)/i, type: 'recent_funding', extract: (match) => `Recently secured $${match[1]} ${match[2].replace(/[MB]/, match[2].includes('B') ? 'billion' : 'million')} in funding` },
+      { pattern: /(\$\d+(?:\.\d+)?)\s*(million|billion|M|B)\s*(Series [ABC]|seed|funding|round)/i, type: 'recent_funding', extract: (match) => `Completed ${match[3]} funding of ${match[1]} ${match[2]}` },
+      { pattern: /valued at \$(\d+(?:\.\d+)?)\s*(billion|million|B|M)/i, type: 'valuation', extract: (match) => `Current valuation of $${match[1]} ${match[2].replace(/[BM]/, match[2].includes('B') ? 'billion' : 'million')}` },
+      { pattern: /IPO|went public|public offering/i, type: 'ipo', extract: () => `Recently went public` },
+      
+      // Impressive growth metrics (people love seeing their growth recognized)
+      { pattern: /grew (\d+)%|growth of (\d+)%|increased (\d+)%/i, type: 'growth', extract: (match) => `Achieved ${match[1] || match[2] || match[3]}% growth` },
+      { pattern: /(doubled|tripled|quadrupled)\s*(revenue|sales|customers)/i, type: 'growth', extract: (match) => `${match[1].charAt(0).toUpperCase() + match[1].slice(1)} their ${match[2]}` },
+      { pattern: /expanded to (\d+)\s*(new\s*)?(countries|markets|states|cities)/i, type: 'expansion', extract: (match) => `Expanded to ${match[1]} ${match[2] || ''}${match[3]}` },
+      { pattern: /opened (\d+)\s*(new\s*)?(offices?|locations?|stores?)/i, type: 'expansion', extract: (match) => `Opened ${match[1]} new ${match[3]}` },
+      
+      // Product launches and innovations (shows they're forward-thinking)
+      { pattern: /(recently|just|newly)\s*(launched|released|unveiled|introduced)\s*([^.]{10,80})/i, type: 'product_launch', extract: (match) => `Recently ${match[2]} ${match[3].trim()}` },
+      { pattern: /new\s*(product|platform|service|feature)\s*([^.]{5,60})/i, type: 'innovation', extract: (match) => `Launched new ${match[1]} ${match[2].trim()}` },
+      { pattern: /beta\s*(testing|launch|release)|pilot\s*program/i, type: 'innovation', extract: (match) => `Currently in beta testing phase` },
+      
+      // Partnerships and integrations (shows market credibility)
+      { pattern: /partnership with ([A-Z][a-zA-Z\s&®™]{2,40})/i, type: 'partnership', extract: (match) => `Formed strategic partnership with ${match[1].trim()}` },
+      { pattern: /acquired ([A-Z][a-zA-Z\s&]{2,30})/i, type: 'acquisition', extract: (match) => `Recently acquired ${match[1].trim()}` },
+      { pattern: /integration with ([A-Z][a-zA-Z\s&®™]{2,40})/i, type: 'integration', extract: (match) => `Integrated with ${match[1].trim()}` },
+      { pattern: /collaborating with ([A-Z][a-zA-Z\s&]{2,30})/i, type: 'collaboration', extract: (match) => `Collaborating with ${match[1].trim()}` },
+      
+      // Awards and recognition (everyone loves recognition)
+      { pattern: /(award|recognized|named|ranked)\s*([^.]{10,80})/i, type: 'recognition', extract: (match) => `${match[1].charAt(0).toUpperCase() + match[1].slice(1)} ${match[2].trim()}` },
+      { pattern: /top\s*(\d+)\s*([^.]{5,40})/i, type: 'ranking', extract: (match) => `Ranked in top ${match[1]} ${match[2].trim()}` },
+      { pattern: /best\s*([^.]{5,40})\s*(company|platform|service)/i, type: 'recognition', extract: (match) => `Recognized as best ${match[1].trim()} ${match[2]}` },
+      
+      // Market position and scale (impressive numbers)
+      { pattern: /(\d+(?:\.\d+)?)\s*(million|billion|k|thousand)\s*(users|customers|clients|members)/i, type: 'scale', extract: (match) => `Serves ${match[1]} ${match[2].replace('k', 'thousand')} ${match[3]}` },
+      { pattern: /market leader|leading (platform|provider|company)/i, type: 'market_position', extract: (match) => `Market-leading ${match[1] || 'company'}` },
+      { pattern: /(\d+)\s*countries|global presence/i, type: 'global', extract: (match) => match[1] ? `Operating in ${match[1]} countries` : `Global presence` },
+      
+      // Company culture and values (shows you understand their mission)
+      { pattern: /mission\s*(?:is\s*)?to\s*([^.]{10,60})/i, type: 'mission', extract: (match) => `Mission to ${match[1].trim()}` },
+      { pattern: /committed to\s*([^.]{10,50})/i, type: 'values', extract: (match) => `Committed to ${match[1].trim()}` },
+      { pattern: /focuses?\s*on\s*([^.]{10,50})/i, type: 'focus', extract: (match) => `Focuses on ${match[1].trim()}` },
+      
+      // Specific product mentions (shows detailed knowledge)
+      { pattern: /(behind|powers|operates)\s*([A-Z][a-zA-Z®™]{2,20})/i, type: 'key_product', extract: (match) => `Company ${match[1]} ${match[2]}` },
+      { pattern: /developed\s*([A-Z][a-zA-Z\s®™]{5,30})/i, type: 'development', extract: (match) => `Developed ${match[1].trim()}` },
+      
+      // Recent news and developments (very timely and impressive)
+      { pattern: /(this year|2024|2025)\s*([^.]{10,60})/i, type: 'recent_news', extract: (match) => `In ${match[1]}, ${match[2].trim()}` },
+      { pattern: /announced\s*([^.]{10,80})/i, type: 'announcement', extract: (match) => `Announced ${match[1].trim()}` }
+    ];
+    
+    // Extract multiple insights for maximum personalization (up to 8 different insights)
+    const usedTypes = new Set();
+    
+    businessPatterns.forEach(({ pattern, type, extract }) => {
+      // Skip if we already have this type of insight (for diversity)
+      if (usedTypes.has(type) && insights.length >= 4) return;
+      
+      // Check both original text (for proper names) and lowercase text
+      let matches = fullOriginalText.match(pattern);
+      if (!matches) {
+        matches = fullText.match(pattern);
+      }
+      
+      if (matches && insights.length < 8) {
+        try {
+          const insight = extract(matches);
+          if (insight && insight.length > 15 && insight.length < 200) {
+            // Check if this insight is meaningfully different from existing ones
+            const isDuplicate = insights.some(existing => {
+              const similarity = this.calculateSimilarity(existing.insight.toLowerCase(), insight.toLowerCase());
+              return similarity > 0.7;
+            });
+            
+            if (!isDuplicate) {
+              insights.push({
+                type,
+                insight: insight.charAt(0).toUpperCase() + insight.slice(1),
+                confidence: 'high'
+              });
+              usedTypes.add(type);
+            }
+          }
+        } catch (e) {
+          // Skip invalid extractions
+        }
+      }
+    });
+    
+    // Add additional context insights if we have room
+    if (insights.length < 6) {
+      // Look for executive mentions or leadership changes
+      const leadershipPatterns = [
+        /CEO ([A-Z][a-zA-Z\s]{2,25})/i,
+        /founded by ([A-Z][a-zA-Z\s]{2,25})/i,
+        /([A-Z][a-zA-Z\s]{2,25})\s*(joined|appointed|named)\s*(CEO|CTO|CFO)/i,
+        /new\s*(CEO|CTO|CFO|president)\s*([A-Z][a-zA-Z\s]{2,25})/i
+      ];
+      
+      leadershipPatterns.forEach(pattern => {
+        if (insights.length < 8) {
+          const match = fullOriginalText.match(pattern);
+          if (match) {
+            let leadershipInsight = '';
+            if (match[0].toLowerCase().includes('ceo')) {
+              leadershipInsight = `Led by CEO ${match[1] || match[2]}`;
+            } else if (match[0].toLowerCase().includes('founded')) {
+              leadershipInsight = `Founded by ${match[1]}`;
+            } else {
+              leadershipInsight = `Recently appointed ${match[2] || match[1]} as ${match[3] || match[1]}`;
+            }
+            
+            if (leadershipInsight && !insights.some(i => i.insight.toLowerCase().includes('ceo') || i.insight.toLowerCase().includes('founded'))) {
+              insights.push({
+                type: 'leadership',
+                insight: leadershipInsight,
+                confidence: 'high'
+              });
+            }
+          }
+        }
+      });
+      
+      // Look for impressive numbers or statistics
+      const statsPatterns = [
+        /(\d+)%\s*(growth|increase|improvement)/i,
+        /save[sd]?\s*(\$?\d+[kmb]?)\s*(million|billion|dollars|%)/i,
+        /process[es]*\s*(\$?\d+[kmb]?)\s*(million|billion|transactions|payments)/i,
+        /(\d+[kmb]?)\s*(transactions|payments|requests)\s*(per|daily|monthly)/i
+      ];
+      
+      statsPatterns.forEach(pattern => {
+        if (insights.length < 8) {
+          const match = fullText.match(pattern);
+          if (match && !insights.some(i => i.type === 'statistics')) {
+            let stat = match[0];
+            insights.push({
+              type: 'statistics',
+              insight: `Processes ${stat}`,
+              confidence: 'medium'
+            });
+          }
+        }
+      });
+    }
+    
+    // Sort by confidence and return the most impactful insights
+    return insights
+      .sort((a, b) => (b.confidence === 'high' ? 1 : 0) - (a.confidence === 'high' ? 1 : 0))
+      .slice(0, 6); // Return top 6 most interesting insights
+  }
+
+  // Helper method to calculate text similarity (prevent duplicate insights)
+  calculateSimilarity(text1, text2) {
+    const words1 = text1.split(' ').filter(w => w.length > 3);
+    const words2 = text2.split(' ').filter(w => w.length > 3);
+    
+    if (words1.length === 0 || words2.length === 0) return 0;
+    
+    const commonWords = words1.filter(word => words2.includes(word)).length;
+    const totalWords = Math.max(words1.length, words2.length);
+    
+    return commonWords / totalWords;
+  }
+
+  // Database management methods (like normal lead agent)
+  async loadLeadsDatabase() {
+    try {
+      const data = await fs.readFile(this.leadsFile, 'utf8');
+      const leadsData = JSON.parse(data);
+      
+      // Ensure structure exists
+      if (!leadsData.rejectedLeads) leadsData.rejectedLeads = [];
+      if (!leadsData.emailedCompanies) leadsData.emailedCompanies = [];
+      if (!leadsData.allLeads) leadsData.allLeads = [];
+      
+      return leadsData;
+    } catch (error) {
+      // File doesn't exist, start fresh
+      return {
+        allLeads: [],
+        emailedCompanies: [],
+        rejectedLeads: []
+      };
+    }
+  }
+
+  async saveLeadsDatabase(data) {
+    try {
+      await fs.mkdir(path.dirname(this.leadsFile), { recursive: true });
+      await fs.writeFile(this.leadsFile, JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('❌ [DATABASE] Error saving leads database:', error);
+    }
+  }
+
+  async addLeadToDatabase(leadData) {
+    try {
+      const db = await this.loadLeadsDatabase();
+      
+      // Add lead with timestamp and reasoning agent flag
+      const leadRecord = {
+        ...leadData,
+        id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        source: 'reasoning_agent',
+        timestamp: new Date().toISOString(),
+        userId: this.userId
+      };
+      
+      db.allLeads.push(leadRecord);
+      
+      // Track company to avoid duplicates - check both formats
+      const companyName = leadData.company || leadData.organization?.name;
+      if (companyName && !db.emailedCompanies.includes(companyName)) {
+        db.emailedCompanies.push(companyName);
+      }
+      
+      await this.saveLeadsDatabase(db);
+      console.log(`📄 [DATABASE] Added lead: ${leadData.name} at ${companyName || 'Unknown Company'}`);
+      
+      return leadRecord;
+    } catch (error) {
+      console.error('❌ [DATABASE] Error adding lead:', error);
+      throw error;
+    }
+  }
+
+  async addToEmailQueue(leadData) {
+    try {
+      if (!leadData.personalizedEmail || !leadData.emailSubject) {
+        console.log('⚠️ [EMAIL QUEUE] Skipping lead without personalized email');
+        return;
+      }
+
+      const queueData = {
+        id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: this.userId,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        source: 'reasoning_agent',
+        
+        // Email content
+        to: leadData.email,
+        subject: leadData.emailSubject,
+        body: leadData.personalizedEmail,
+        
+        // Lead information
+        leadInfo: {
+          name: leadData.name || leadData.first_name + ' ' + leadData.last_name,
+          title: leadData.title,
+          company: leadData.company,
+          linkedinUrl: leadData.linkedin_url,
+          email: leadData.email
+        },
+        
+        // Research data for context - include detailed research insights
+        researchData: leadData.research ? {
+          summary: 'Comprehensive company research completed with specific insights',
+          hasIntelligence: true,
+          searchQuery: leadData.research.searchParameters?.q || 'Company research',
+          
+          // Extract specific business details that show deep research
+          specificInsights: this.extractSpecificInsights(leadData.research),
+          
+          // Include key insights from organic results  
+          keyInsights: leadData.research.organic ? leadData.research.organic.slice(0, 4).map(result => ({
+            title: result.title,
+            snippet: result.snippet,
+            source: result.link,
+            date: result.date || null
+          })) : [],
+          
+          // Include answer box if available
+          answerBox: leadData.research.answerBox ? {
+            title: leadData.research.answerBox.title,
+            snippet: leadData.research.answerBox.snippet,
+            source: leadData.research.answerBox.link,
+            highlights: leadData.research.answerBox.snippetHighlighted || []
+          } : null,
+          
+          // Company details extracted from research
+          companyDetails: {
+            name: leadData.company || leadData.organization?.name || 'Unknown',
+            industry: leadData.organization?.industry || 'Unknown', 
+            size: leadData.organization?.estimated_num_employees || 'Unknown',
+            domain: leadData.organization?.primary_domain || leadData.email?.split('@')[1] || 'Unknown'
+          },
+          
+          // Full research data for debugging
+          fullResearch: {
+            totalResults: leadData.research.organic?.length || 0,
+            hasAnswerBox: !!leadData.research.answerBox,
+            searchTimestamp: new Date().toISOString()
+          }
+        } : {
+          summary: 'No research data available',
+          hasIntelligence: false
+        }
+      };
+
+      await this.emailQueue.addToQueue(queueData);
+      console.log(`📧 [EMAIL QUEUE] Added email for ${leadData.company} (${leadData.email})`);
+      
+      return queueData.id;
+    } catch (error) {
+      console.error('❌ [EMAIL QUEUE] Error adding to queue:', error);
+      throw error;
+    }
+  }
+}
+
+export { ReasoningLeadAgent };
