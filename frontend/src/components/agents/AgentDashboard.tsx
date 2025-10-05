@@ -182,17 +182,38 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const toggleAgent = async () => {
     try {
+      setError(null); // Clear any previous errors
+      
       if (status?.isActive) {
-        await api.post('/api/lead-agent/stop');
-        addLog('info', 'Agent stopped by user');
+        console.log('🛑 Stopping agent from dashboard...');
+        const response = await api.post('/api/lead-agent/stop');
+        addLog('info', 'Stop command sent to agent');
+        
+        if (response.data?.success) {
+          addLog('success', 'Agent stopped successfully');
+        } else {
+          addLog('warning', 'Stop command sent, verifying status...');
+        }
       } else {
-        await api.post('/api/lead-agent/start');
-        addLog('success', 'Agent started successfully');
+        console.log('▶️ Starting agent from dashboard...');
+        const response = await api.post('/api/lead-agent/start');
+        addLog('info', 'Start command sent to agent');
+        
+        if (response.data?.success) {
+          addLog('success', 'Agent started successfully');
+        } else {
+          addLog('warning', 'Start command sent, verifying status...');
+        }
       }
-      await fetchStatus();
+      
+      // Always fetch fresh status after toggle
+      setTimeout(() => {
+        fetchStatus();
+      }, 1000);
+      
     } catch (error) {
       console.error('Failed to toggle agent:', error);
-      addLog('error', 'Failed to toggle agent status');
+      addLog('error', `Failed to toggle agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setError('Failed to toggle agent. Please try again.');
     }
   };

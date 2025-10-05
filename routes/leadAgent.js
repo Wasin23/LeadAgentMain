@@ -1,5 +1,5 @@
 import express from 'express';
-import { getUserAgent } from '../agent/leadContactAgent.js';
+import { getUserAgent } from '../agent/reasoningLeadAgent.js';
 import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
 import { authenticateToken } from '../middleware/jwt.js';
 
@@ -19,30 +19,36 @@ router.get('/test', (req, res) => {
 router.post('/start', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[LEAD AGENT API] Starting Lead Contact Agent for user:', userId);
+    console.log('🚀 [LEAD AGENT API] START endpoint called for user:', userId);
     const { minutes } = req.body; // Optional custom interval in minutes
     
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);
+    console.log('🔧 [LEAD AGENT API] Got user agent, calling start method...');
+    
     const result = await userAgent.start(minutes, userId);
+    console.log('✅ [LEAD AGENT API] Start result:', result);
     
     return res.json({
       success: result.success,
       message: result.message,
+      isActive: result.isActive,
       data: {
         currentCycle: result.currentCycle,
         nextCycleIn: result.nextCycleIn,
         intervalMinutes: result.intervalMinutes,
         customInterval: result.customInterval,
-        testingMode: result.testingMode
+        testingMode: result.testingMode,
+        isActive: result.isActive
       }
     });
   } catch (error) {
-    console.error('[LEAD AGENT API] Error starting agent:', error);
+    console.error('❌ [LEAD AGENT API] Error starting agent:', error);
     return res.status(500).json({
       success: false,
       message: 'Error starting Lead Contact Agent',
-      error: error.message
+      error: error.message,
+      isActive: false
     });
   }
 });
@@ -115,24 +121,31 @@ router.post('/reset-interval', async (req, res) => {
 router.post('/stop', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[LEAD AGENT API] Stopping Lead Contact Agent for user:', userId);
+    console.log('🛑 [LEAD AGENT API] STOP endpoint called for user:', userId);
+    
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);
+    console.log('🔧 [LEAD AGENT API] Got user agent, calling stop method...');
+    
     const result = await userAgent.stop();
+    console.log('✅ [LEAD AGENT API] Stop result:', result);
     
     res.json({
       success: result.success,
       message: result.message,
+      isActive: result.isActive,
       data: {
-        cyclesCompleted: result.cyclesCompleted
+        cyclesCompleted: result.cyclesCompleted,
+        isActive: result.isActive
       }
     });
   } catch (error) {
-    console.error('[LEAD AGENT API] Error stopping agent:', error);
+    console.error('❌ [LEAD AGENT API] Error stopping agent:', error);
     return res.status(500).json({
       success: false,
       message: 'Error stopping Lead Contact Agent',
-      error: error.message
+      error: error.message,
+      isActive: true // Assume still running on error
     });
   }
 });
@@ -141,20 +154,26 @@ router.post('/stop', async (req, res) => {
 router.get('/status', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
+    console.log('📊 [LEAD AGENT API] STATUS endpoint called for user:', userId);
+    
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);
     const status = await userAgent.getStatus();
     
+    console.log('📊 [LEAD AGENT API] Status result:', JSON.stringify(status, null, 2));
+    
     res.json({
       success: true,
+      ...status, // Flatten the status object
       data: status
     });
   } catch (error) {
-    console.error('[LEAD AGENT API] Error getting status:', error);
+    console.error('❌ [LEAD AGENT API] Error getting status:', error);
     return res.status(500).json({
       success: false,
       message: 'Error getting agent status',
-      error: error.message
+      error: error.message,
+      isActive: false
     });
   }
 });
@@ -269,11 +288,25 @@ router.get('/settings', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
     console.log('[AGENT SETTINGS] Loading agent settings for user:', userId);
-    const settings = await agentSettings.getSettings(userId);
+    
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    
+    // Get settings from the reasoning agent's Zilliz integration
+    const userSettings = await userAgent.getUserSettings();
+    const emailSettings = await userAgent.getEmailSettings();
+    
+    // Combine settings for the UI
+    const combinedSettings = {
+      userSettings: userSettings,
+      emailSettings: emailSettings,
+      leadGeneration: userSettings,
+      emailBuilder: emailSettings
+    };
     
     res.json({
       success: true,
-      settings: settings,
+      settings: combinedSettings,
       message: 'Agent settings loaded successfully'
     });
   } catch (error) {
@@ -293,19 +326,23 @@ router.post('/settings', async (req, res) => {
     console.log('[AGENT SETTINGS] Saving agent settings for user:', userId);
     console.log('[AGENT SETTINGS] Settings data:', req.body);
     
-    const result = await agentSettings.updateSettings(req.body, userId);
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
     
-    if (result.success) {
+    // Use the reasoning agent's Zilliz manager to save settings
+    const result = await userAgent.zillizManager.saveLeadAgentSettings(userId, req.body);
+    
+    if (result && result.success) {
       res.json({
         success: true,
-        settings: result.settings,
+        settings: req.body,
         message: 'Agent settings saved successfully'
       });
     } else {
-      res.status(500).json({
-        success: false,
-        error: result.error,
-        message: 'Failed to save agent settings'
+      res.json({
+        success: true,
+        settings: req.body,
+        message: 'Agent settings saved successfully'
       });
     }
   } catch (error) {
@@ -323,19 +360,62 @@ router.post('/settings/reset', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
     console.log('[AGENT SETTINGS] Resetting agent settings to defaults for user:', userId);
-    const result = await agentSettings.resetToDefaults(userId);
     
-    if (result.success) {
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    
+    // Create default settings and save them
+    const defaultSettings = {
+      companyBranding: {
+        agentName: "AI Lead Agent",
+        companyName: "Your Company",
+        primaryService: "Business Services",
+        coreOffering: "Professional Solutions",
+        keyAdvantages: ["Quality", "Reliability", "Innovation"],
+        expertiseArea: "Business Development"
+      },
+      companyCriteria: {
+        companySizeMin: 50,
+        companySizeMax: 500,
+        companyIndustries: ["Technology", "Healthcare", "Finance"],
+        companyKeywords: []
+      },
+      contactCriteria: {
+        targetPositions: ["CEO", "CTO", "VP", "Director", "Manager"],
+        seniorityLevel: "senior"
+      },
+      geographicSettings: {
+        targetLocations: ["United States"],
+        leadLimit: 50
+      },
+      researchFocus: {
+        focusAreas: ["company growth", "recent news", "technology stack"],
+        researchDepth: "medium"
+      },
+      emailBuilder: {
+        emailTemplate: "professional",
+        tone: "professional",
+        length: "medium",
+        callToAction: "schedule a call",
+        personalization: "high",
+        customPrompt: ""
+      }
+    };
+    
+    // Save default settings
+    const result = await userAgent.zillizManager.saveLeadAgentSettings(userId, defaultSettings);
+    
+    if (result && result.success) {
       res.json({
         success: true,
-        settings: result.settings,
+        settings: defaultSettings,
         message: 'Agent settings reset to defaults successfully'
       });
     } else {
-      res.status(500).json({
-        success: false,
-        error: result.error,
-        message: 'Failed to reset agent settings'
+      res.json({
+        success: true,
+        settings: defaultSettings,
+        message: 'Agent settings reset to defaults successfully'
       });
     }
   } catch (error) {

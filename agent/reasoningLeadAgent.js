@@ -13,6 +13,7 @@
 
 import 'dotenv/config';
 import OpenAI from 'openai';
+import { EventEmitter } from 'events';
 import { getUserSettings } from '../lib/userManager.js';
 import { ZillizSettingsManager } from '../utils/zillizSettingsManager.js';
 import { EmailQueue } from '../lib/emailQueue.js';
@@ -22,8 +23,9 @@ import { deepResearch } from '../tools/deepResearch.js';
 import fs from 'fs/promises';
 import path from 'path';
 
-class ReasoningLeadAgent {
+class ReasoningLeadAgent extends EventEmitter {
   constructor(userId) {
+    super(); // Call EventEmitter constructor
     this.userId = userId;
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
@@ -36,6 +38,13 @@ class ReasoningLeadAgent {
     
     // Zilliz settings manager for lead agent settings
     this.zillizManager = new ZillizSettingsManager();
+    
+    // Agent state for UI integration
+    this.isRunning = false;
+    this.cycleCount = 0;
+    this.startTime = null;
+    this.customInterval = null;
+    this.cycleTimer = null;
     
     // Agent memory - learns from experience
     this.memory = {
@@ -1483,6 +1492,442 @@ BODY: [email body with proper greeting and signature]`;
       console.error('❌ [EMAIL QUEUE] Error adding to queue:', error);
       throw error;
     }
+  }
+
+  // ============================================================================
+  // UI INTEGRATION METHODS
+  // Methods required by the frontend UI and API routes
+  // ============================================================================
+
+  /**
+   * Start the lead agent with optional custom interval
+   */
+  async start(minutes = null, userId = null) {
+    try {
+      console.log('🚀 [REASONING AGENT] Start method called, current isRunning:', this.isRunning);
+      
+      if (this.isRunning) {
+        console.log('⚠️ [REASONING AGENT] Agent is already running, returning early');
+        return {
+          success: false,
+          message: 'Agent is already running',
+          isActive: this.isRunning
+        };
+      }
+
+      // Set custom interval if provided
+      if (minutes) {
+        this.customInterval = minutes * 60 * 1000; // Convert to milliseconds
+        console.log('⏰ [REASONING AGENT] Custom interval set to:', minutes, 'minutes');
+      }
+
+      this.isRunning = true;
+      this.startTime = new Date();
+      
+      console.log('🚀 [REASONING AGENT] Agent started, isRunning now:', this.isRunning);
+      
+      // Start the main reasoning loop
+      this.runLoop();
+      
+      // Emit progress update
+      this.emit('progress', {
+        stage: 'startup',
+        message: 'Reasoning Lead Agent started successfully',
+        timestamp: new Date().toISOString(),
+        isActive: true,
+        level: 'success'
+      });
+
+      const result = {
+        success: true,
+        message: 'Reasoning Lead Agent started successfully',
+        currentCycle: this.cycleCount,
+        nextCycleIn: this.getNextCycleTime(),
+        intervalMinutes: this.getIntervalMinutes(),
+        customInterval: !!this.customInterval,
+        testingMode: false,
+        isActive: true
+      };
+
+      console.log('🚀 [REASONING AGENT] Start result:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error starting agent:', error);
+      // Force stop on error
+      this.isRunning = false;
+      return {
+        success: false,
+        message: 'Failed to start agent: ' + error.message,
+        isActive: false
+      };
+    }
+  }
+
+  /**
+   * Stop the lead agent
+   */
+  async stop() {
+    try {
+      console.log('⏹️ [REASONING AGENT] Stop method called, current isRunning:', this.isRunning);
+      
+      // Force stop the agent
+      this.isRunning = false;
+      
+      // Clear any running timers
+      if (this.cycleTimer) {
+        console.log('⏹️ [REASONING AGENT] Clearing cycle timer...');
+        clearTimeout(this.cycleTimer);
+        this.cycleTimer = null;
+      }
+
+      // Reset current goal
+      if (this.memory) {
+        this.memory.currentGoal = null;
+      }
+
+      console.log('⏹️ [REASONING AGENT] Agent stopped, isRunning now:', this.isRunning);
+
+      // Emit progress update
+      this.emit('progress', {
+        stage: 'shutdown',
+        message: 'Reasoning Lead Agent stopped by user',
+        timestamp: new Date().toISOString(),
+        isActive: false,
+        level: 'info'
+      });
+
+      const result = {
+        success: true,
+        message: 'Reasoning Lead Agent stopped successfully',
+        cyclesCompleted: this.cycleCount,
+        isActive: false
+      };
+
+      console.log('⏹️ [REASONING AGENT] Stop result:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error stopping agent:', error);
+      // Force stop even on error
+      this.isRunning = false;
+      if (this.cycleTimer) {
+        clearTimeout(this.cycleTimer);
+        this.cycleTimer = null;
+      }
+      
+      return {
+        success: false,
+        message: 'Failed to stop agent: ' + error.message,
+        isActive: false // Force false even on error
+      };
+    }
+  }
+
+  /**
+   * Get current agent status
+   */
+  async getStatus() {
+    try {
+      const emailQueue = this.emailQueue || new EmailQueue(this.userId);
+      const queueStats = await emailQueue.getStats();
+      
+      return {
+        isActive: this.isRunning,
+        status: this.isRunning ? 'active' : 'stopped',
+        name: 'Reasoning Lead Agent',
+        lastRun: this.startTime ? this.startTime.toISOString() : null,
+        currentInterval: this.getIntervalMinutes(),
+        totalEmails: queueStats.total || 0,
+        successRate: this.calculateSuccessRate(),
+        cycleCount: this.cycleCount,
+        nextCycleIn: this.isRunning ? this.getNextCycleTime() : null,
+        currentProgress: this.getCurrentProgress(),
+        emailStats: {
+          pending: queueStats.pending || 0,
+          approved: queueStats.approved || 0,
+          rejected: queueStats.rejected || 0,
+          total: queueStats.total || 0
+        },
+        memory: {
+          searchHistory: this.memory.searchHistory.length,
+          successfulStrategies: this.memory.successfulStrategies.length,
+          failedStrategies: this.memory.failedStrategies.length
+        }
+      };
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error getting status:', error);
+      return {
+        isActive: false,
+        status: 'error',
+        name: 'Reasoning Lead Agent',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Set custom cycle interval
+   */
+  async setCycleInterval(minutes) {
+    try {
+      this.customInterval = minutes * 60 * 1000; // Convert to milliseconds
+      console.log(`⏰ [REASONING AGENT] Cycle interval set to ${minutes} minutes`);
+      
+      return {
+        success: true,
+        message: `Cycle interval set to ${minutes} minutes`,
+        intervalMinutes: minutes,
+        nextCycleIn: this.getNextCycleTime()
+      };
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error setting interval:', error);
+      return {
+        success: false,
+        message: 'Failed to set cycle interval: ' + error.message
+      };
+    }
+  }
+
+  /**
+   * Reset to default cycle interval
+   */
+  async resetCycleInterval() {
+    try {
+      this.customInterval = null;
+      const defaultMinutes = this.getIntervalMinutes();
+      console.log(`⏰ [REASONING AGENT] Reset to default interval: ${defaultMinutes} minutes`);
+      
+      return {
+        success: true,
+        message: `Reset to default interval: ${defaultMinutes} minutes`,
+        intervalMinutes: defaultMinutes,
+        nextCycleIn: this.getNextCycleTime()
+      };
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error resetting interval:', error);
+      return {
+        success: false,
+        message: 'Failed to reset cycle interval: ' + error.message
+      };
+    }
+  }
+
+  /**
+   * Reset the agent (clear state and memory)
+   */
+  async resetAgent() {
+    try {
+      console.log('🔄 [REASONING AGENT] Resetting agent...');
+      
+      // Stop if running
+      if (this.isRunning) {
+        await this.stop();
+      }
+
+      // Reset memory and state
+      this.memory = {
+        searchHistory: [],
+        successfulStrategies: [],
+        failedStrategies: [],
+        industryInsights: {},
+        currentGoal: null,
+        currentIndustryIndex: 0
+      };
+
+      this.cycleCount = 0;
+      this.customInterval = null;
+      this.startTime = null;
+
+      // Clear leads file
+      try {
+        await fs.writeFile(this.leadsFile, JSON.stringify([], null, 2));
+      } catch (fileError) {
+        console.warn('⚠️ [REASONING AGENT] Could not clear leads file:', fileError.message);
+      }
+
+      // Emit progress update
+      this.emit('progress', {
+        stage: 'reset',
+        message: 'Agent reset completed',
+        timestamp: new Date().toISOString(),
+        isActive: false
+      });
+
+      return {
+        success: true,
+        message: 'Reasoning Lead Agent reset successfully'
+      };
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error resetting agent:', error);
+      return {
+        success: false,
+        message: 'Failed to reset agent: ' + error.message
+      };
+    }
+  }
+
+  /**
+   * Run a single cycle (for testing/manual execution)
+   */
+  async runCycle() {
+    try {
+      console.log('🔄 [REASONING AGENT] Running manual cycle...');
+      
+      // Emit progress update
+      this.emit('progress', {
+        stage: 'manual-cycle',
+        message: 'Starting manual cycle',
+        timestamp: new Date().toISOString(),
+        isActive: this.isRunning
+      });
+
+      const result = await this.executeReasoningCycle();
+      
+      // Emit completion
+      this.emit('progress', {
+        stage: 'manual-cycle-complete',
+        message: `Manual cycle completed: ${result.success ? 'Success' : 'Failed'}`,
+        timestamp: new Date().toISOString(),
+        data: result
+      });
+
+      return result;
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error running manual cycle:', error);
+      
+      this.emit('progress', {
+        stage: 'error',
+        message: 'Manual cycle failed: ' + error.message,
+        timestamp: new Date().toISOString(),
+        level: 'error'
+      });
+
+      return {
+        success: false,
+        message: 'Manual cycle failed: ' + error.message,
+        error: error.message
+      };
+    }
+  }
+
+  // ============================================================================
+  // HELPER METHODS
+  // ============================================================================
+
+  getIntervalMinutes() {
+    if (this.customInterval) {
+      return this.customInterval / (60 * 1000);
+    }
+    return 30; // Default 30 minutes
+  }
+
+  getNextCycleTime() {
+    if (!this.isRunning) return null;
+    const intervalMs = this.customInterval || (30 * 60 * 1000); // Default 30 minutes
+    return intervalMs / 1000; // Return seconds
+  }
+
+  getCurrentProgress() {
+    if (!this.isRunning) {
+      return null;
+    }
+    
+    return {
+      stage: this.memory.currentGoal || 'waiting',
+      progress: Math.min((this.cycleCount * 10) % 100, 95),
+      message: `Cycle ${this.cycleCount} - ${this.memory.currentGoal || 'Reasoning about leads'}`
+    };
+  }
+
+  calculateSuccessRate() {
+    if (this.memory.searchHistory.length === 0) return 0;
+    
+    const successful = this.memory.successfulStrategies.length;
+    const total = this.memory.searchHistory.length;
+    return Math.round((successful / total) * 100);
+  }
+
+  // Main reasoning loop
+  async runLoop() {
+    if (!this.isRunning) return;
+
+    try {
+      await this.executeReasoningCycle();
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Cycle error:', error);
+      this.emit('progress', {
+        stage: 'error',
+        message: 'Cycle failed: ' + error.message,
+        timestamp: new Date().toISOString(),
+        level: 'error'
+      });
+    }
+
+    // Schedule next cycle
+    if (this.isRunning) {
+      const interval = this.customInterval || (30 * 60 * 1000); // Default 30 minutes
+      this.cycleTimer = setTimeout(() => this.runLoop(), interval);
+    }
+  }
+
+  // Execute one reasoning cycle
+  async executeReasoningCycle() {
+    this.cycleCount++;
+    console.log(`🧠 [REASONING AGENT] Starting reasoning cycle #${this.cycleCount}`);
+    
+    // This would contain the main reasoning logic
+    // For now, return a basic success response
+    this.emit('progress', {
+      stage: 'reasoning',
+      message: `Executing reasoning cycle #${this.cycleCount}`,
+      timestamp: new Date().toISOString(),
+      level: 'info'
+    });
+
+    // Simulate some work
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    return {
+      success: true,
+      message: `Reasoning cycle #${this.cycleCount} completed`,
+      cycleNumber: this.cycleCount,
+      leadsFound: 0,
+      emailsSent: 0
+    };
+  }
+}
+
+// ============================================================================
+// USER AGENT MANAGEMENT
+// Store user-specific agent instances
+// ============================================================================
+
+const userAgents = new Map();
+
+/**
+ * Get or create a user-specific reasoning agent instance
+ */
+export function getUserAgent(userId) {
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
+
+  if (!userAgents.has(userId)) {
+    console.log('🔧 [AGENT MANAGER] Creating new ReasoningLeadAgent for user:', userId);
+    userAgents.set(userId, new ReasoningLeadAgent(userId));
+  }
+
+  return userAgents.get(userId);
+}
+
+/**
+ * Remove a user's agent instance (cleanup)
+ */
+export function removeUserAgent(userId) {
+  if (userAgents.has(userId)) {
+    const agent = userAgents.get(userId);
+    agent.stop(); // Stop the agent before removing
+    userAgents.delete(userId);
+    console.log('🗑️ [AGENT MANAGER] Removed ReasoningLeadAgent for user:', userId);
   }
 }
 

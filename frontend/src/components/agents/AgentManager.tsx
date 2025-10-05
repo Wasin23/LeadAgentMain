@@ -103,20 +103,48 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
 
       // Only toggle the main agent through API
       if (agentId === 'lead-agent-main') {
+        let response;
         if (agent.status === 'running') {
-          await api.post('/api/lead-agent/stop');
+          console.log('🛑 Stopping agent...');
+          response = await api.post('/api/lead-agent/stop');
         } else {
-          await api.post('/api/lead-agent/start');
+          console.log('▶️ Starting agent...');
+          response = await api.post('/api/lead-agent/start');
         }
+        
+        // Wait a moment then fetch updated status
+        setTimeout(async () => {
+          try {
+            const statusResponse = await api.get('/api/lead-agent/status');
+            const isActive = statusResponse.data?.isActive || false;
+            
+            setAgents(prev => prev.map(a => 
+              a.id === agentId 
+                ? { ...a, status: isActive ? 'running' : 'stopped' }
+                : a
+            ));
+          } catch (statusError) {
+            console.error('Failed to fetch updated status:', statusError);
+            // Fallback to optimistic update
+            setAgents(prev => prev.map(a => 
+              a.id === agentId 
+                ? { ...a, status: a.status === 'running' ? 'stopped' : 'running' }
+                : a
+            ));
+          }
+        }, 500);
+      } else {
+        // For non-main agents, just toggle locally
+        setAgents(prev => prev.map(a => 
+          a.id === agentId 
+            ? { ...a, status: a.status === 'running' ? 'stopped' : 'running' }
+            : a
+        ));
       }
-      
-      setAgents(prev => prev.map(a => 
-        a.id === agentId 
-          ? { ...a, status: a.status === 'running' ? 'stopped' : 'running' }
-          : a
-      ));
     } catch (error) {
       console.error('Failed to toggle agent:', error);
+      // Show error to user
+      alert('Failed to toggle agent. Please try again.');
     }
   };
 
