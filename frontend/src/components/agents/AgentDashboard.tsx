@@ -449,7 +449,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-3">
         {[
           { 
             label: 'Total Emails Sent', 

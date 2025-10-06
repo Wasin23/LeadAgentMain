@@ -292,7 +292,7 @@ router.get('/settings', async (req, res) => {
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);
     
-    // Get settings from the reasoning agent's Zilliz integration
+    // Get settings from the reasoning agent's AWS DynamoDB integration
     const userSettings = await userAgent.getUserSettings();
     const emailSettings = await userAgent.getEmailSettings();
     

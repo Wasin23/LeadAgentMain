@@ -15,7 +15,7 @@ import 'dotenv/config';
 import OpenAI from 'openai';
 import { EventEmitter } from 'events';
 import { getUserSettings } from '../lib/userManager.js';
-import { ZillizSettingsManager } from '../utils/zillizSettingsManager.js';
+import AWSManager from '../utils/awsManager.js';
 import { EmailQueue } from '../lib/emailQueue.js';
 import { internetSearch } from '../tools/internetSearch.js';
 import { companyIntelligence } from '../tools/companyIntelligence.js';
@@ -36,8 +36,8 @@ class ReasoningLeadAgent extends EventEmitter {
     this.leadsFile = path.join(process.cwd(), 'agent', `reasoning_leads_${userCode}.json`);
     this.emailQueue = new EmailQueue(userId);
     
-    // Zilliz settings manager for lead agent settings
-    this.zillizManager = new ZillizSettingsManager();
+    // AWS manager for settings and data storage
+    this.awsManager = new AWSManager();
     
     // Agent state for UI integration
     this.isRunning = false;
@@ -60,7 +60,7 @@ class ReasoningLeadAgent extends EventEmitter {
     this.tools = [
       {
         name: 'get_user_settings',
-        description: 'Get user lead generation settings from Zilliz (company size, industries, target positions, etc.)',
+        description: 'Get user lead generation settings from AWS DynamoDB (company size, industries, target positions, etc.)',
         parameters: {
           type: 'object',
           properties: {}
@@ -68,7 +68,7 @@ class ReasoningLeadAgent extends EventEmitter {
       },
       {
         name: 'get_email_settings', 
-        description: 'Get user email builder settings from Zilliz (templates, tone, personalization rules)',
+        description: 'Get user email builder settings from AWS DynamoDB (templates, tone, personalization rules)',
         parameters: {
           type: 'object',
           properties: {}
@@ -120,7 +120,7 @@ class ReasoningLeadAgent extends EventEmitter {
           properties: {
             leadData: { type: 'object', description: 'Lead information from Apollo' },
             researchData: { type: 'object', description: 'Company research from Serper' },
-            emailSettings: { type: 'object', description: 'Email builder settings from Zilliz' }
+            emailSettings: { type: 'object', description: 'Email builder settings from AWS DynamoDB' }
           }
         }
       }
@@ -134,8 +134,8 @@ class ReasoningLeadAgent extends EventEmitter {
     const prompt = `You are an intelligent lead research and email generation agent. Follow this workflow:
 
 WORKFLOW:
-1. Get user settings from Zilliz (if not already done)
-2. Get email builder settings from Zilliz (if not already done) 
+1. Get user settings from AWS DynamoDB (if not already done)
+2. Get email builder settings from AWS DynamoDB (if not already done) 
 3. Use Apollo to search for leads - VARY your search parameters to find fresh leads:
    - Use different target positions from the user's list (CEO, Sales Director, HR Manager, etc.)
    - Try different industry combinations
@@ -232,18 +232,18 @@ Choose your next action and explain your reasoning:`;
     }
   }
 
-  // Get user settings from Zilliz - CORRECT lead_agent_settings collection
+  // Get user settings from AWS DynamoDB - lead agent settings
   async getUserSettings() {
-    console.log('⚙️ [ZILLIZ] Getting user lead generation settings from lead_agent_settings collection...');
+    console.log('⚙️ [AWS] Getting user lead generation settings from DynamoDB...');
     
     try {
-      // Use the correct method to get lead agent settings from the right collection
-      const leadContactSettings = await this.zillizManager.getLeadAgentSettings(this.userId);
+      // Get lead agent settings from AWS DynamoDB
+      const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId);
       
-      console.log('🔍 [DEBUG] Lead agent settings from Zilliz:', JSON.stringify(leadContactSettings, null, 2));
+      console.log('🔍 [DEBUG] Lead agent settings from AWS:', JSON.stringify(leadContactSettings, null, 2));
       
       if (!leadContactSettings) {
-        console.log('❌ [SETTINGS] No lead agent settings found in lead_agent_settings collection!');
+        console.log('❌ [SETTINGS] No lead agent settings found in AWS DynamoDB!');
         return { error: 'No lead agent settings configured for this user' };
       }
       
@@ -297,15 +297,15 @@ Choose your next action and explain your reasoning:`;
     }
   }
 
-  // Get email builder settings from Zilliz - CORRECT lead_agent_settings collection
+  // Get email builder settings from AWS DynamoDB - lead agent settings
   async getEmailSettings() {
-    console.log('📧 [ZILLIZ] Getting email builder settings from lead_agent_settings collection...');
+    console.log('📧 [AWS] Getting email builder settings from DynamoDB...');
     
     try {
       // Use the same method to get lead agent settings (includes email builder)
-      const leadContactSettings = await this.zillizManager.getLeadAgentSettings(this.userId);
+      const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId);
       
-      console.log('🔍 [DEBUG] Lead agent settings for email:', JSON.stringify(leadContactSettings, null, 2));
+      console.log('🔍 [DEBUG] Lead agent settings for email from AWS:', JSON.stringify(leadContactSettings, null, 2));
       
       if (!leadContactSettings) {
         console.log('❌ [EMAIL SETTINGS] No lead agent settings found!');
@@ -1116,7 +1116,7 @@ BODY: [email body with proper greeting and signature]`;
   // Helper to get API keys
   async getApiKey(service) {
     try {
-      // Use cached settings if available, otherwise fetch from Zilliz
+      // Use cached settings if available, otherwise fetch from AWS DynamoDB
       let userSettings = null;
       if (this.memory.userSettings && !this.memory.userSettings.error) {
         userSettings = this.memory.userSettings.rawLeadContactSettings || this.memory.userSettings;
