@@ -20,7 +20,7 @@ router.post('/start', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
     console.log('🚀 [LEAD AGENT API] START endpoint called for user:', userId);
-    const { minutes } = req.body; // Optional custom interval in minutes
+    const { minutes } = req.body || {}; // Optional custom interval in minutes
     
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);

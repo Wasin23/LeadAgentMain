@@ -1809,6 +1809,61 @@ BODY: [email body with proper greeting and signature]`;
     }
   }
 
+  // Execute function by name with parameters
+  async executeFunction(functionName, parameters = {}) {
+    console.log(`🛠️ [EXECUTE] Running function: ${functionName}`, parameters);
+    
+    try {
+      let result;
+      
+      switch (functionName) {
+        case 'get_user_settings':
+          result = await this.getUserSettings();
+          this.memory.userSettings = result;
+          break;
+          
+        case 'get_email_settings':
+          result = await this.getEmailSettings();
+          this.memory.emailSettings = result;
+          break;
+          
+        case 'apollo_search':
+          result = await this.apolloSearch(parameters);
+          break;
+          
+        case 'serper_research':
+          result = await this.serperResearch(parameters);
+          break;
+          
+        case 'unlock_email':
+          result = await this.unlockEmail(parameters);
+          break;
+          
+        case 'build_personalized_email':
+          result = await this.buildPersonalizedEmail(parameters);
+          break;
+          
+        default:
+          console.log(`⚠️ [EXECUTE] Unknown function: ${functionName}`);
+          result = {
+            success: false,
+            message: `Unknown function: ${functionName}`
+          };
+      }
+      
+      console.log(`✅ [EXECUTE] Function ${functionName} completed:`, result?.message || 'success');
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ [EXECUTE] Function ${functionName} failed:`, error);
+      return {
+        success: false,
+        message: `Function ${functionName} failed: ${error.message}`,
+        error: error.message
+      };
+    }
+  }
+
   // ============================================================================
   // HELPER METHODS
   // ============================================================================
@@ -1874,25 +1929,70 @@ BODY: [email body with proper greeting and signature]`;
     this.cycleCount++;
     console.log(`🧠 [REASONING AGENT] Starting reasoning cycle #${this.cycleCount}`);
     
-    // This would contain the main reasoning logic
-    // For now, return a basic success response
     this.emit('progress', {
       stage: 'reasoning',
-      message: `Executing reasoning cycle #${this.cycleCount}`,
+      message: `Starting reasoning cycle #${this.cycleCount}`,
       timestamp: new Date().toISOString(),
       level: 'info'
     });
 
-    // Simulate some work
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      let stepCount = 0;
+      const maxSteps = 100; // Safety limit
+      
+      while (stepCount < maxSteps) {
+        stepCount++;
+        
+        // Execute the full reasoning workflow
+        const context = {
+          hasUserSettings: !!this.memory.userSettings,
+          hasEmailSettings: !!this.memory.emailSettings,
+          memory: this.memory
+        };
 
-    return {
-      success: true,
-      message: `Reasoning cycle #${this.cycleCount} completed`,
-      cycleNumber: this.cycleCount,
-      leadsFound: 0,
-      emailsSent: 0
-    };
+        // Get reasoning decision from OpenAI
+        const reasoningResult = await this.reason(context);
+        
+        if (!reasoningResult.action || reasoningResult.action === 'think' || reasoningResult.action === 'complete') {
+          console.log(`✅ [REASONING] Cycle #${this.cycleCount} completed after ${stepCount} steps`);
+          break;
+        }
+        
+        // Execute the decided action
+        console.log(`🎯 [REASONING] Step ${stepCount}: Executing action: ${reasoningResult.action}`);
+        const actionResult = await this.executeFunction(reasoningResult.action, reasoningResult.parameters);
+        
+        this.emit('progress', {
+          stage: 'action',
+          message: `Step ${stepCount}: Executed ${reasoningResult.action}`,
+          timestamp: new Date().toISOString(),
+          level: 'success'
+        });
+      }
+
+      return {
+        success: true,
+        message: `Reasoning cycle #${this.cycleCount} completed with ${stepCount} steps`,
+        cycleNumber: this.cycleCount,
+        stepsExecuted: stepCount
+      };
+
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Cycle error:', error);
+      this.emit('progress', {
+        stage: 'error',
+        message: `Cycle #${this.cycleCount} failed: ${error.message}`,
+        timestamp: new Date().toISOString(),
+        level: 'error'
+      });
+      
+      return {
+        success: false,
+        message: `Cycle #${this.cycleCount} failed: ${error.message}`,
+        cycleNumber: this.cycleCount,
+        error: error.message
+      };
+    }
   }
 }
 

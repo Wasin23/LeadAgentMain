@@ -64,3 +64,22 @@ button {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* Force visibility for modal buttons */
+.modal-button-visible {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.modal-button-cancel {
+  color: #374151 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.modal-button-primary {
+  color: #ffffff !important;
+  background-color: #2563eb !important;
+  border: 1px solid #2563eb !important;
+}

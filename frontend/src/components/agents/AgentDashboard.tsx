@@ -15,7 +15,8 @@ import {
   CheckCircleIcon,
   ArrowLeftIcon,
   EnvelopeIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import AgentSettingsModal from './AgentSettingsModal';
@@ -68,8 +69,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agentName, setAgentName] = useState<string>('');
+  const [showIntervalModal, setShowIntervalModal] = useState(false);
+  const [newInterval, setNewInterval] = useState<number>(30);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
+  const logCounterRef = useRef<number>(0);
 
   // Get the actual agent name
   const getAgentDisplayName = () => {
@@ -124,6 +128,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   useEffect(() => {
     scrollToBottom();
   }, [logs]);
+
+  // Initialize interval when modal opens
+  useEffect(() => {
+    if (showIntervalModal && status?.currentInterval) {
+      setNewInterval(status.currentInterval);
+    }
+  }, [showIntervalModal, status?.currentInterval]);
 
   const scrollToBottom = () => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -203,8 +214,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   };
 
   const addLog = (level: LogEntry['level'], message: string, stage?: string) => {
+    logCounterRef.current += 1;
     const newLog: LogEntry = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${logCounterRef.current}`,
       timestamp: new Date().toISOString(),
       level,
       message,
@@ -275,6 +287,38 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     }
   };
 
+  const handleIntervalChange = async () => {
+    try {
+      setIsLoading(true);
+      // First update the interval setting
+      await api.post('/api/lead-agent/set-interval', { minutes: newInterval });
+      
+      // If agent is currently running, restart it with new interval
+      if (status?.isActive) {
+        await api.post('/api/lead-agent/stop');
+        addLog('info', `Stopping agent to apply new cycle interval: ${newInterval}m`);
+        
+        // Wait a moment for graceful shutdown
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        await api.post('/api/lead-agent/start');
+        addLog('info', `Agent restarted with ${newInterval}-minute cycle interval`);
+      } else {
+        addLog('info', `Cycle interval updated to ${newInterval} minutes. Start the agent to apply changes.`);
+      }
+      
+      setShowIntervalModal(false);
+      // Refresh status to show new interval
+      await fetchStatus();
+    } catch (error) {
+      console.error('Failed to update cycle interval:', error);
+      addLog('error', 'Failed to update cycle interval');
+      setError('Failed to update cycle interval. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getStatusColor = () => {
     if (!status) return 'text-neutral-500';
     return status.isActive ? 'text-green-600' : 'text-neutral-600';
@@ -325,18 +369,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-6">
               <h1 className="text-2xl font-semibold text-neutral-900 flex-1 min-w-0 truncate">{getAgentDisplayName()}</h1>
-              <div className={`inline-flex items-center gap-2 text-sm whitespace-nowrap flex-shrink-0 ${getStatusColor()}`}>
-                <div className={`h-2 w-2 rounded-full ${status?.isActive ? 'bg-green-500' : 'bg-neutral-400'}`}></div>
-                {status?.isActive ? 'Running' : 'Stopped'}
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <div className={`inline-flex items-center gap-2 text-sm whitespace-nowrap ${getStatusColor()}`}>
+                  <div className={`h-2 w-2 rounded-full ${status?.isActive ? 'bg-green-500' : 'bg-neutral-400'}`}></div>
+                  {status?.isActive ? 'Running' : 'Stopped'}
+                </div>
+                {status?.lastRun && (
+                  <span className="text-sm text-neutral-500 whitespace-nowrap">
+                    Last run: {new Date(status.lastRun).toLocaleString()}
+                  </span>
+                )}
               </div>
             </div>
-            {status?.lastRun && (
-              <div className="flex justify-end mt-1">
-                <span className="text-sm text-neutral-500 whitespace-nowrap">
-                  Last run: {new Date(status.lastRun).toLocaleString()}
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -405,7 +449,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-5">
         {[
           { 
             label: 'Total Emails Sent', 
@@ -416,11 +460,6 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             label: 'Success Rate', 
             value: `${status?.successRate || 0}%`, 
             icon: ChartBarIcon 
-          },
-          { 
-            label: 'Cycle Interval', 
-            value: `${status?.currentInterval || 0}m`, 
-            icon: ClockIcon 
           },
           { 
             label: 'Recent Contacts', 
@@ -447,6 +486,26 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </motion.div>
           );
         })}
+        
+        {/* Clickable Cycle Interval */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          onClick={() => setShowIntervalModal(true)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-neutral-600 flex items-center gap-2">
+                Cycle Interval
+                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to change</span>
+              </p>
+              <p className="text-2xl font-semibold text-neutral-900 mt-1">{status?.currentInterval || 30}m</p>
+            </div>
+            <ClockIcon className="h-8 w-8 text-blue-500" />
+          </div>
+        </motion.div>
       </div>
 
       {/* Main Content */}
@@ -563,6 +622,68 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         onClose={() => setShowSettings(false)}
         agentId={agentId}
       />
+
+      {/* Cycle Interval Modal */}
+      {showIntervalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-neutral-900">Change Cycle Interval</h3>
+              <button
+                onClick={() => setShowIntervalModal(false)}
+                className="text-neutral-400 hover:text-neutral-600"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-neutral-600 mb-4">
+              Select how often the agent should run a new cycle. The agent will restart with the new interval.
+            </p>
+            
+            <div className="space-y-2 mb-6">
+              {[5, 10, 15, 30, 45, 60, 90, 120].map((minutes) => (
+                <button
+                  key={minutes}
+                  onClick={() => setNewInterval(minutes)}
+                  className={`w-full text-left px-4 py-2 rounded border transition-colors ${
+                    newInterval === minutes
+                      ? 'bg-blue-50 border-blue-200 text-blue-700'
+                      : 'border-neutral-200 hover:bg-neutral-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{minutes} minutes</span>
+                    {newInterval === minutes && (
+                      <CheckCircleIcon className="h-5 w-5 text-blue-600" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowIntervalModal(false)}
+                className="flex-1 px-4 py-2 text-neutral-700 border border-neutral-300 rounded hover:bg-neutral-50 transition-colors modal-button-visible modal-button-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleIntervalChange}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-button-visible modal-button-primary"
+              >
+                Apply & Restart
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
       </div>
     </div>
   );
