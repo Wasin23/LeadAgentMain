@@ -329,8 +329,8 @@ router.post('/settings', async (req, res) => {
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);
     
-    // Use the reasoning agent's Zilliz manager to save settings
-    const result = await userAgent.zillizManager.saveLeadAgentSettings(userId, req.body);
+    // Use the reasoning agent's AWS manager to save settings
+    const result = await userAgent.awsManager.saveLeadAgentSettings(userId, req.body);
     
     if (result && result.success) {
       res.json({
@@ -403,7 +403,7 @@ router.post('/settings/reset', async (req, res) => {
     };
     
     // Save default settings
-    const result = await userAgent.zillizManager.saveLeadAgentSettings(userId, defaultSettings);
+    const result = await userAgent.awsManager.saveLeadAgentSettings(userId, defaultSettings);
     
     if (result && result.success) {
       res.json({
@@ -459,6 +459,59 @@ router.post('/calendar/test', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to test calendar integration'
+    });
+  }
+});
+
+// Get agent activity logs
+router.get('/activity-logs', async (req, res) => {
+  try {
+    const userId = req.user.userId; // Get from JWT token
+    console.log('[AGENT LOGS] Loading activity logs for user:', userId);
+    
+    // Get user-specific agent instance
+    const userAgent = getUserAgent(userId);
+    
+    // Get the agent's operation logs and reasoning history
+    const agentLogs = userAgent.getOperationLogs ? userAgent.getOperationLogs() : [];
+    const agentMemory = userAgent.memory || {};
+    
+    // Format logs for the frontend
+    const formattedLogs = agentLogs.map(log => ({
+      id: log.id || Date.now().toString(),
+      timestamp: log.timestamp || new Date().toISOString(),
+      operation: log.operation || 'Unknown Operation',
+      details: log.details || log.message || 'No details available',
+      status: log.status || 'completed',
+      data: log.data || {}
+    }));
+    
+    // Add current agent state as a log entry if agent is active
+    if (userAgent.isActive) {
+      formattedLogs.unshift({
+        id: 'current-state',
+        timestamp: new Date().toISOString(),
+        operation: 'Agent Status',
+        details: `Agent is currently ${userAgent.isActive ? 'active' : 'inactive'}. Current cycle: ${userAgent.currentCycle || 0}`,
+        status: 'active',
+        data: {
+          isActive: userAgent.isActive,
+          currentCycle: userAgent.currentCycle,
+          cycleInterval: userAgent.cycleInterval,
+          lastActivity: userAgent.lastActivity
+        }
+      });
+    }
+    
+    console.log(`[AGENT LOGS] Returning ${formattedLogs.length} log entries`);
+    
+    res.json(formattedLogs);
+  } catch (error) {
+    console.error('[AGENT LOGS] Error loading activity logs:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to load agent activity logs'
     });
   }
 });

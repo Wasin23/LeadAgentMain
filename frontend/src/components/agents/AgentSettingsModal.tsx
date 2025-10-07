@@ -240,34 +240,65 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
         // Merge API data with default structure to prevent undefined errors
         setSettings(prevSettings => {
           const apiSettings = response.data.settings;
+          console.log('🔍 [FRONTEND] Raw API settings:', JSON.stringify(apiSettings, null, 2));
+          
+          // The API returns userSettings and emailSettings, so we need to extract from those
+          const userSettings = apiSettings.userSettings || apiSettings.leadGeneration || {};
+          const emailSettings = apiSettings.emailSettings || apiSettings.emailBuilder || {};
+          
+          console.log('🔍 [FRONTEND] Extracted userSettings:', JSON.stringify(userSettings, null, 2));
+          console.log('🔍 [FRONTEND] Extracted emailSettings:', JSON.stringify(emailSettings, null, 2));
+          
           return {
             companyBranding: {
               ...prevSettings.companyBranding,
-              ...apiSettings.companyBranding
+              ...userSettings.companyBranding,
+              // Map flat properties if they exist
+              agentName: userSettings.agentName || userSettings.companyBranding?.agentName || prevSettings.companyBranding.agentName,
+              companyName: userSettings.companyName || userSettings.companyBranding?.companyName || prevSettings.companyBranding.companyName,
+              primaryService: userSettings.primaryService || userSettings.companyBranding?.primaryService || prevSettings.companyBranding.primaryService,
+              coreOffering: userSettings.coreOffering || userSettings.companyBranding?.coreOffering || prevSettings.companyBranding.coreOffering,
+              keyAdvantages: userSettings.keyAdvantages || userSettings.companyBranding?.keyAdvantages || prevSettings.companyBranding.keyAdvantages,
+              expertiseArea: userSettings.expertiseArea || userSettings.companyBranding?.expertiseArea || prevSettings.companyBranding.expertiseArea
             },
             companyCriteria: {
               ...prevSettings.companyCriteria,
-              ...apiSettings.companyCriteria
+              ...userSettings.companyCriteria,
+              // Map flat properties if they exist
+              companySizeMin: userSettings.companySizeMin || userSettings.companyCriteria?.companySizeMin || prevSettings.companyCriteria.companySizeMin,
+              companySizeMax: userSettings.companySizeMax || userSettings.companyCriteria?.companySizeMax || prevSettings.companyCriteria.companySizeMax,
+              companyIndustries: userSettings.companyIndustries || userSettings.companyCriteria?.companyIndustries || prevSettings.companyCriteria.companyIndustries,
+              companyKeywords: userSettings.companyKeywords || userSettings.companyCriteria?.companyKeywords || prevSettings.companyCriteria.companyKeywords
             },
             contactCriteria: {
               ...prevSettings.contactCriteria,
-              ...apiSettings.contactCriteria
+              ...userSettings.contactCriteria,
+              // Map flat properties if they exist
+              targetPositions: userSettings.targetPositions || userSettings.contactCriteria?.targetPositions || prevSettings.contactCriteria.targetPositions,
+              seniorityLevel: userSettings.seniorityLevel || userSettings.contactCriteria?.seniorityLevel || prevSettings.contactCriteria.seniorityLevel
             },
             geographicSettings: {
               ...prevSettings.geographicSettings,
-              ...apiSettings.geographicSettings
+              ...userSettings.geographicSettings,
+              // Map flat properties if they exist
+              targetLocations: userSettings.targetLocations || userSettings.geographicSettings?.targetLocations || prevSettings.geographicSettings.targetLocations,
+              leadLimit: userSettings.leadLimit || userSettings.geographicSettings?.leadLimit || prevSettings.geographicSettings.leadLimit
             },
             advancedCriteria: {
               ...prevSettings.advancedCriteria,
-              ...apiSettings.advancedCriteria
+              ...userSettings.advancedCriteria
             },
             researchFocus: {
               ...prevSettings.researchFocus,
-              ...apiSettings.researchFocus
+              ...userSettings.researchFocus,
+              // Map flat properties if they exist
+              focusAreas: userSettings.focusAreas || userSettings.researchFocus?.focusAreas || prevSettings.researchFocus.focusAreas,
+              researchDepth: userSettings.researchDepth || userSettings.researchFocus?.researchDepth || prevSettings.researchFocus.researchDepth
             },
             emailBuilder: {
               ...prevSettings.emailBuilder,
-              ...apiSettings.emailBuilder
+              ...emailSettings,
+              ...emailSettings.emailBuilder
             }
           };
         });
@@ -490,16 +521,16 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
                       <div className="flex gap-2 items-center">
                         <input
                           type="number"
-                          value={settings.companyCriteria?.companySizeMin || 50}
-                          onChange={(e) => updateField('companyCriteria', 'companySizeMin', parseInt(e.target.value) || 0)}
+                          value={settings.companyCriteria?.companySizeMin ?? 50}
+                          onChange={(e) => updateField('companyCriteria', 'companySizeMin', e.target.value === '' ? '' : parseInt(e.target.value))}
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Min"
                         />
                         <span className="text-gray-500">to</span>
                         <input
                           type="number"
-                          value={settings.companyCriteria?.companySizeMax || 500}
-                          onChange={(e) => updateField('companyCriteria', 'companySizeMax', parseInt(e.target.value) || 0)}
+                          value={settings.companyCriteria?.companySizeMax ?? 500}
+                          onChange={(e) => updateField('companyCriteria', 'companySizeMax', e.target.value === '' ? '' : parseInt(e.target.value))}
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Max"
                         />
@@ -510,8 +541,8 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
                       <label className="block text-sm font-medium text-gray-700 mb-2">Lead Limit</label>
                       <input
                         type="number"
-                        value={settings.geographicSettings?.leadLimit || 50}
-                        onChange={(e) => updateField('geographicSettings', 'leadLimit', parseInt(e.target.value) || 50)}
+                        value={settings.geographicSettings?.leadLimit ?? 50}
+                        onChange={(e) => updateField('geographicSettings', 'leadLimit', e.target.value === '' ? '' : parseInt(e.target.value))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="e.g., 50"
                       />

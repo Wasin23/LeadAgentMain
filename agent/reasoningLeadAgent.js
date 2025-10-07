@@ -56,6 +56,10 @@ class ReasoningLeadAgent extends EventEmitter {
       currentIndustryIndex: 0 // Track which industry to search next
     };
     
+    // Operation logs for UI activity tracking
+    this.operationLogs = [];
+    this.maxLogs = 100; // Keep last 100 operations
+    
     // Available tools the agent can reason about and use
     this.tools = [
       {
@@ -127,6 +131,36 @@ class ReasoningLeadAgent extends EventEmitter {
     ];
 
     console.log('🧠 [REASONING AGENT] Initialized AI reasoning agent for user:', userId);
+  }
+
+  // === OPERATION LOGGING METHODS ===
+  logOperation(operation, details, status = 'completed', data = {}) {
+    const logEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      operation,
+      details,
+      status,
+      data
+    };
+    
+    this.operationLogs.unshift(logEntry);
+    
+    // Keep only the last maxLogs entries
+    if (this.operationLogs.length > this.maxLogs) {
+      this.operationLogs = this.operationLogs.slice(0, this.maxLogs);
+    }
+    
+    console.log(`📋 [AGENT LOG] ${operation}: ${details}`);
+  }
+
+  getOperationLogs() {
+    return this.operationLogs;
+  }
+
+  clearOperationLogs() {
+    this.operationLogs = [];
+    this.logOperation('System', 'Operation logs cleared', 'completed');
   }
 
   // Core reasoning function - the agent's "brain"
@@ -1526,6 +1560,13 @@ BODY: [email body with proper greeting and signature]`;
       
       console.log('🚀 [REASONING AGENT] Agent started, isRunning now:', this.isRunning);
       
+      // Log the start operation
+      this.logOperation('Agent Started', `Reasoning Lead Agent started with ${minutes ? minutes + ' minute' : 'default'} interval`, 'active', {
+        customInterval: minutes,
+        startTime: this.startTime.toISOString(),
+        userId: this.userId
+      });
+      
       // Start the main reasoning loop
       this.runLoop();
       
@@ -1929,6 +1970,12 @@ BODY: [email body with proper greeting and signature]`;
     this.cycleCount++;
     console.log(`🧠 [REASONING AGENT] Starting reasoning cycle #${this.cycleCount}`);
     
+    // Log cycle start
+    this.logOperation('Cycle Started', `Reasoning cycle #${this.cycleCount} initiated`, 'running', {
+      cycleNumber: this.cycleCount,
+      timestamp: new Date().toISOString()
+    });
+    
     this.emit('progress', {
       stage: 'reasoning',
       message: `Starting reasoning cycle #${this.cycleCount}`,
@@ -1955,11 +2002,22 @@ BODY: [email body with proper greeting and signature]`;
         
         if (!reasoningResult.action || reasoningResult.action === 'think' || reasoningResult.action === 'complete') {
           console.log(`✅ [REASONING] Cycle #${this.cycleCount} completed after ${stepCount} steps`);
+          this.logOperation('Cycle Completed', `Reasoning cycle #${this.cycleCount} completed successfully with ${stepCount} steps`, 'completed', {
+            cycleNumber: this.cycleCount,
+            stepsExecuted: stepCount,
+            completedAt: new Date().toISOString()
+          });
           break;
         }
         
         // Execute the decided action
         console.log(`🎯 [REASONING] Step ${stepCount}: Executing action: ${reasoningResult.action}`);
+        this.logOperation('Action Executed', `Step ${stepCount}: ${reasoningResult.action}`, 'running', {
+          cycleNumber: this.cycleCount,
+          stepNumber: stepCount,
+          action: reasoningResult.action,
+          parameters: reasoningResult.parameters
+        });
         const actionResult = await this.executeFunction(reasoningResult.action, reasoningResult.parameters);
         
         this.emit('progress', {
@@ -1979,6 +2037,11 @@ BODY: [email body with proper greeting and signature]`;
 
     } catch (error) {
       console.error('❌ [REASONING AGENT] Cycle error:', error);
+      this.logOperation('Cycle Failed', `Reasoning cycle #${this.cycleCount} encountered an error: ${error.message}`, 'error', {
+        cycleNumber: this.cycleCount,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
       this.emit('progress', {
         stage: 'error',
         message: `Cycle #${this.cycleCount} failed: ${error.message}`,

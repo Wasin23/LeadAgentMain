@@ -64,8 +64,12 @@ interface EmailContact {
 export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps) {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [agentLogs, setAgentLogs] = useState<string[]>([]);
   const [recentEmails, setRecentEmails] = useState<EmailContact[]>([]);
+  const [emailQueue, setEmailQueue] = useState<any[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showEmailQueue, setShowEmailQueue] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agentName, setAgentName] = useState<string>('');
@@ -169,7 +173,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       setError(null);
       await Promise.all([
         fetchStatus(),
-        fetchRecentEmails()
+        fetchRecentEmails(),
+        fetchEmailQueue(),
+        fetchAgentLogs()
       ]);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -210,6 +216,37 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     } catch (error) {
       console.error('Failed to fetch recent emails:', error);
       setRecentEmails([]);
+    }
+  };
+
+  const fetchEmailQueue = async () => {
+    try {
+      const response = await api.get('/api/email-queue/queue');
+      if (response.data && Array.isArray(response.data)) {
+        setEmailQueue(response.data);
+      } else if (response.data && response.data.data && Array.isArray(response.data.data.pending)) {
+        // Handle the formatted response structure
+        setEmailQueue(response.data.data.pending);
+      } else {
+        setEmailQueue([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch email queue:', error);
+      setEmailQueue([]);
+    }
+  };
+
+  const fetchAgentLogs = async () => {
+    try {
+      const response = await api.get('/api/lead-agent/activity-logs');
+      if (response.data && Array.isArray(response.data)) {
+        setAgentLogs(response.data);
+      } else {
+        setAgentLogs([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch agent logs:', error);
+      setAgentLogs([]);
     }
   };
 
@@ -450,12 +487,26 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-3">
+        {/* Clickable Emails Queued */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          onClick={() => setShowEmailQueue(true)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-neutral-600 flex items-center gap-2">
+                Emails Queued
+                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to view</span>
+              </p>
+              <p className="text-2xl font-semibold text-neutral-900 mt-1">{emailQueue.length}</p>
+            </div>
+            <EnvelopeIcon className="h-8 w-8 text-blue-500" />
+          </div>
+        </motion.div>
+
         {[
-          { 
-            label: 'Total Emails Sent', 
-            value: status?.totalEmailsSent || 0, 
-            icon: EnvelopeIcon 
-          },
           { 
             label: 'Success Rate', 
             value: `${status?.successRate || 0}%`, 
@@ -522,29 +573,29 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </div>
           
           <div className="h-96 overflow-y-auto p-4 bg-neutral-50 font-mono text-sm">
-            {logs.length === 0 ? (
+            {agentLogs.length === 0 ? (
               <div className="text-center text-neutral-500 py-16">
-                <p>No activity logs yet.</p>
-                <p className="text-xs mt-1">Start the agent to see operations.</p>
+                <p>No agent activity logs yet.</p>
+                <p className="text-xs mt-1">Start the agent to see detailed operations.</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {logs.map((log) => (
+              <div className="space-y-1">
+                {agentLogs.map((logMessage, index) => (
                   <motion.div
-                    key={log.id}
+                    key={index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-3 text-xs"
+                    className="text-xs leading-relaxed"
                   >
-                    <span className="text-neutral-400 w-20 flex-shrink-0">
-                      {formatTime(log.timestamp)}
-                    </span>
-                    {log.stage && (
-                      <span className="bg-neutral-100 text-neutral-600 px-2 py-1 text-xs border border-neutral-200">
-                        {log.stage}
-                      </span>
-                    )}
-                    <span className={getLogColor(log.level)}>{log.message}</span>
+                    <span className={`${
+                      logMessage.includes('✅') ? 'text-green-600' :
+                      logMessage.includes('❌') ? 'text-red-600' :
+                      logMessage.includes('🧠') ? 'text-blue-600' :
+                      logMessage.includes('🎯') ? 'text-purple-600' :
+                      logMessage.includes('🔍') ? 'text-orange-600' :
+                      logMessage.includes('📊') ? 'text-indigo-600' :
+                      'text-neutral-700'
+                    }`}>{logMessage}</span>
                   </motion.div>
                 ))}
                 <div ref={logsEndRef} />
@@ -560,8 +611,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           className="bg-white border border-neutral-200"
         >
           <div className="p-6 border-b border-neutral-200">
-            <h3 className="text-lg font-medium text-neutral-900">Recently Contacted</h3>
-            <p className="text-sm text-neutral-600 mt-1">Latest outreach attempts</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-neutral-900">Recently Contacted</h3>
+                <p className="text-sm text-neutral-600 mt-1">Latest outreach attempts</p>
+              </div>
+              <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                {status?.totalEmailsSent || 0} Total Sent
+              </span>
+            </div>
           </div>
           
           <div className="divide-y divide-neutral-100 max-h-96 overflow-y-auto">
@@ -684,6 +742,80 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </motion.div>
         </div>
       )}
+
+      {/* Email Queue Modal */}
+      {showEmailQueue && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] overflow-hidden mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-neutral-900">Email Queue</h2>
+                <button
+                  onClick={() => setShowEmailQueue(false)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              <p className="text-sm text-neutral-600 mt-1">
+                {emailQueue.length} emails queued for sending
+              </p>
+            </div>
+            
+            <div className="h-[80vh] overflow-y-auto">
+              {emailQueue.length === 0 ? (
+                <div className="pt-58 text-center text-neutral-500">
+                  <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
+                  <p>No emails in queue.</p>
+                  <p className="text-xs mt-1">The agent will add emails here when processing leads.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-neutral-100">
+                  {emailQueue.map((email, index) => (
+                    <div
+                      key={index}
+                      className="p-4 hover:bg-neutral-50 cursor-pointer transition-colors"
+                      onClick={() => setSelectedEmail(email)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 bg-neutral-200 rounded-full flex items-center justify-center text-neutral-600 font-medium">
+                            {(email.recipientName || email.to || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-neutral-900">
+                              {email.recipientName || email.to || 'Unknown Recipient'}
+                            </h4>
+                            <p className="text-sm text-neutral-600">{email.subject}</p>
+                            <div className="flex items-center gap-1 text-sm text-neutral-500">
+                              <BuildingOfficeIcon className="h-3 w-3" />
+                              {email.company || 'Unknown Company'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-neutral-400">
+                            {email.scheduledFor ? new Date(email.scheduledFor).toLocaleDateString() : 'Pending'}
+                          </p>
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-50 text-yellow-600 border border-yellow-200 rounded-full">
+                            Queued
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       </div>
     </div>
   );
