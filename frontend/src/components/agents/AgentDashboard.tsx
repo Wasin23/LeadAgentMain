@@ -16,7 +16,9 @@ import {
   ArrowLeftIcon,
   EnvelopeIcon,
   ExclamationTriangleIcon,
-  XMarkIcon
+  XMarkIcon,
+  CheckIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import AgentSettingsModal from './AgentSettingsModal';
@@ -64,7 +66,7 @@ interface EmailContact {
 export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps) {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [agentLogs, setAgentLogs] = useState<string[]>([]);
+  const [agentLogs, setAgentLogs] = useState<any[]>([]);
   const [recentEmails, setRecentEmails] = useState<EmailContact[]>([]);
   const [emailQueue, setEmailQueue] = useState<any[]>([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -75,6 +77,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [agentName, setAgentName] = useState<string>('');
   const [showIntervalModal, setShowIntervalModal] = useState(false);
   const [newInterval, setNewInterval] = useState<number>(30);
+  const [editingEmail, setEditingEmail] = useState<any>(null);
+  const [editedSubject, setEditedSubject] = useState('');
+  const [editedContent, setEditedContent] = useState('');
+  const [editedRecipient, setEditedRecipient] = useState('');
+  const [showAddEmail, setShowAddEmail] = useState(false);
+  const [newEmailRecipient, setNewEmailRecipient] = useState('');
+  const [newEmailSubject, setNewEmailSubject] = useState('');
+  const [newEmailContent, setNewEmailContent] = useState('');
+  const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
+  const [showRecentContacts, setShowRecentContacts] = useState(false);
+  const [selectedRecentEmail, setSelectedRecentEmail] = useState<any>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
@@ -197,7 +210,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchRecentEmails = async () => {
     try {
-      const response = await api.get('/api/logs');
+      const response = await api.get('/api/analytics/emails');
       if (response.data && Array.isArray(response.data)) {
         const emailsWithStatus = response.data.map((email: any) => ({
           id: email.trackingId || email.id || Date.now().toString(),
@@ -205,9 +218,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           company: email.company || 'Unknown Company',
           email: email.to || email.email,
           dateSent: email.sentAt || email.timestamp || new Date().toISOString(),
-          opened: Boolean(email.opened),
-          replied: Boolean(email.replied),
-          status: (email.replied ? 'replied' : email.opened ? 'opened' : 'sent') as 'sent' | 'opened' | 'replied' | 'bounced'
+          opened: Boolean(email.analytics?.opened || email.analyticsStatus?.hasOpened),
+          replied: Boolean(email.analytics?.replied || email.analyticsStatus?.hasReplied),
+          status: (
+            (email.analytics?.replied || email.analyticsStatus?.hasReplied) ? 'replied' : 
+            (email.analytics?.opened || email.analyticsStatus?.hasOpened) ? 'opened' : 
+            'sent'
+          ) as 'sent' | 'opened' | 'replied' | 'bounced'
         }));
         setRecentEmails(emailsWithStatus.slice(0, 10));
       } else {
@@ -238,15 +255,177 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchAgentLogs = async () => {
     try {
+      console.log('🔍 [FRONTEND] Fetching agent logs from /api/lead-agent/activity-logs...');
       const response = await api.get('/api/lead-agent/activity-logs');
+      console.log('🔍 [FRONTEND] Agent logs response:', response);
+      console.log('🔍 [FRONTEND] Agent logs data:', response.data);
+      console.log('🔍 [FRONTEND] Is array?', Array.isArray(response.data));
+      
       if (response.data && Array.isArray(response.data)) {
+        console.log(`🔍 [FRONTEND] Setting ${response.data.length} agent logs`);
         setAgentLogs(response.data);
       } else {
+        console.log('🔍 [FRONTEND] No valid agent logs data, setting empty array');
         setAgentLogs([]);
       }
     } catch (error) {
-      console.error('Failed to fetch agent logs:', error);
+      console.error('❌ [FRONTEND] Failed to fetch agent logs:', error);
       setAgentLogs([]);
+    }
+  };
+
+  const approveEmail = async (emailId: string) => {
+    try {
+      console.log('📤 Approving and sending email ID:', emailId);
+      
+      const response = await api.post(`/api/email-queue/${emailId}/approve`);
+      console.log('✅ Approve response:', response.data);
+      
+      // Show success message
+      showNotification('Email approved and sent successfully!', 'success');
+      
+      // Refresh the queue and close modal
+      await fetchEmailQueue();
+      setSelectedEmail(null);
+      setEditingEmail(null);
+      
+      console.log('✅ Email approved and sent successfully');
+    } catch (error: any) {
+      console.error('❌ Failed to approve email:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      showNotification(`Failed to approve email: ${error.response?.data?.error || error.message}`, 'error');
+    }
+  };
+
+  const rejectEmail = async (emailId: string, reason: string = '') => {
+    try {
+      console.log('🗑️ Rejecting email ID:', emailId, 'with reason:', reason);
+      
+      const response = await api.post(`/api/email-queue/${emailId}/reject`, { reason });
+      console.log('✅ Reject response:', response.data);
+      
+      // Show confirmation message
+      showNotification('Email rejected and removed from queue!', 'success');
+      
+      // Refresh the queue and close modals
+      await fetchEmailQueue();
+      setSelectedEmail(null);
+      setEditingEmail(null);
+      
+      console.log('✅ Email rejected successfully');
+    } catch (error: any) {
+      console.error('❌ Failed to reject email:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      showNotification(`Failed to reject email: ${error.response?.data?.error || error.message}`, 'error');
+    }
+  };
+
+  const updateEmail = async (emailId: string, updates: any) => {
+    try {
+      console.log('🔄 Updating email with ID:', emailId);
+      console.log('📝 Updates:', updates);
+      
+      const response = await api.put(`/api/email-queue/${emailId}`, updates);
+      console.log('✅ Update response:', response.data);
+      
+      // Update the editing email object with the new data so changes are visible immediately
+      setEditingEmail({
+        ...editingEmail,
+        ...updates
+      });
+      
+      // Refresh the queue in the background
+      await fetchEmailQueue();
+      
+      console.log('✅ Email updated successfully');
+      showNotification('Email updated successfully!', 'success');
+      
+    } catch (error: any) {
+      console.error('❌ Failed to update email:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      showNotification(`Failed to update email: ${error.response?.data?.error || error.message}`, 'error');
+    }
+  };
+
+  const startEditingEmail = (email: any) => {
+    console.log('📝 Starting to edit email:', email);
+    setEditingEmail(email);
+    setEditedSubject(email.subject || email.finalSubject || '');
+    setEditedContent(email.personalizedEmail || email.body || email.finalBody || '');
+    setEditedRecipient(email.to || email.finalRecipient || '');
+  };
+
+  const saveEmailEdits = async () => {
+    if (!editingEmail) {
+      console.log('❌ No email being edited');
+      return;
+    }
+    
+    console.log('💾 Saving email edits...');
+    console.log('📧 Editing email:', editingEmail);
+    console.log('📝 New subject:', editedSubject);
+    console.log('📝 New content length:', editedContent.length);
+    console.log('📝 New recipient:', editedRecipient);
+    
+    const updates = {
+      subject: editedSubject,
+      personalizedEmail: editedContent,
+      body: editedContent,
+      to: editedRecipient,
+      finalRecipient: editedRecipient,
+      finalSubject: editedSubject,
+      finalBody: editedContent
+    };
+    
+    await updateEmail(editingEmail.id, updates);
+  };
+
+  const addCustomEmail = async () => {
+    try {
+      console.log('➕ Adding custom email to queue...');
+      
+      const customEmail = {
+        to: newEmailRecipient,
+        subject: newEmailSubject,
+        body: newEmailContent,
+        leadContext: 'Custom email created by user',
+        source: 'custom'
+      };
+      
+      const response = await api.post('/api/email-queue/custom', customEmail);
+      console.log('✅ Custom email added:', response.data);
+      
+      // Reset form
+      setNewEmailRecipient('');
+      setNewEmailSubject('');
+      setNewEmailContent('');
+      setShowAddEmail(false);
+      
+      // Refresh queue
+      await fetchEmailQueue();
+      
+      showNotification('Custom email added to queue successfully!', 'success');
+    } catch (error: any) {
+      console.error('❌ Failed to add custom email:', error);
+      showNotification(`Failed to add email: ${error.response?.data?.error || error.message}`, 'error');
+    }
+  };
+
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000); // Auto-hide after 3 seconds
+  };
+
+  const clearRecentEmails = async () => {
+    try {
+      // Clear the recent emails log and Zilliz tracking data
+      await api.delete('/api/analytics/emails');
+      await fetchRecentEmails(); // Refresh the list
+      await fetchStatus(); // Refresh the status to update total emails counter
+      showNotification('Recent emails and tracking data cleared successfully!', 'success');
+    } catch (error: any) {
+      console.error('Failed to clear recent emails:', error);
+      showNotification('Failed to clear recent emails', 'error');
     }
   };
 
@@ -390,6 +569,33 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   return (
     <div className="p-6 space-y-6">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 max-w-md ${
+              notification.type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${
+              notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`}></div>
+            <span className="text-sm font-medium">{notification.message}</span>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-auto text-neutral-400 hover:text-neutral-600"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="bg-white border border-neutral-200 p-6">
         <div className="flex items-center justify-between">
@@ -506,37 +712,40 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </div>
         </motion.div>
 
-        {[
-          { 
-            label: 'Success Rate', 
-            value: `${status?.successRate || 0}%`, 
-            icon: ChartBarIcon 
-          },
-          { 
-            label: 'Recent Contacts', 
-            value: recentEmails.length, 
-            icon: UserIcon 
-          }
-        ].map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white border border-neutral-200 p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-neutral-600">{stat.label}</p>
-                  <p className="text-2xl font-semibold text-neutral-900 mt-1">{stat.value}</p>
-                </div>
-                <Icon className="h-8 w-8 text-neutral-400" />
-              </div>
-            </motion.div>
-          );
-        })}
+        {/* Success Rate Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-neutral-200 p-6"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-neutral-600">Success Rate</p>
+              <p className="text-2xl font-semibold text-neutral-900 mt-1">{status?.successRate || 0}%</p>
+            </div>
+            <ChartBarIcon className="h-8 w-8 text-neutral-400" />
+          </div>
+        </motion.div>
+
+        {/* Clickable Recent Contacts */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          onClick={() => setShowRecentContacts(true)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-neutral-600 flex items-center gap-2">
+                Recent Contacts
+                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to view</span>
+              </p>
+              <p className="text-2xl font-semibold text-neutral-900 mt-1">{recentEmails.length}</p>
+            </div>
+            <UserIcon className="h-8 w-8 text-blue-500" />
+          </div>
+        </motion.div>
         
         {/* Clickable Cycle Interval */}
         <motion.div
@@ -580,22 +789,43 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
             ) : (
               <div className="space-y-1">
-                {agentLogs.map((logMessage, index) => (
+                {agentLogs.map((log, index) => (
                   <motion.div
-                    key={index}
+                    key={log.id || index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-xs leading-relaxed"
+                    className="text-xs leading-relaxed p-2 border-b border-neutral-100 last:border-b-0"
                   >
-                    <span className={`${
-                      logMessage.includes('✅') ? 'text-green-600' :
-                      logMessage.includes('❌') ? 'text-red-600' :
-                      logMessage.includes('🧠') ? 'text-blue-600' :
-                      logMessage.includes('🎯') ? 'text-purple-600' :
-                      logMessage.includes('🔍') ? 'text-orange-600' :
-                      logMessage.includes('📊') ? 'text-indigo-600' :
-                      'text-neutral-700'
-                    }`}>{logMessage}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`font-medium ${
+                            log.status === 'completed' ? 'text-green-600' :
+                            log.status === 'error' ? 'text-red-600' :
+                            log.status === 'active' ? 'text-blue-600' :
+                            log.status === 'running' ? 'text-purple-600' :
+                            log.status === 'info' ? 'text-orange-600' :
+                            'text-neutral-700'
+                          }`}>
+                            {log.operation}
+                          </span>
+                          <span className={`px-1.5 py-0.5 text-xs rounded-full ${
+                            log.status === 'completed' ? 'bg-green-50 text-green-600' :
+                            log.status === 'error' ? 'bg-red-50 text-red-600' :
+                            log.status === 'active' ? 'bg-blue-50 text-blue-600' :
+                            log.status === 'running' ? 'bg-purple-50 text-purple-600' :
+                            log.status === 'info' ? 'bg-orange-50 text-orange-600' :
+                            'bg-neutral-50 text-neutral-600'
+                          }`}>
+                            {log.status}
+                          </span>
+                        </div>
+                        <p className="text-neutral-600 text-xs">{log.details}</p>
+                      </div>
+                      <span className="text-neutral-400 text-xs whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
                   </motion.div>
                 ))}
                 <div ref={logsEndRef} />
@@ -754,17 +984,32 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-neutral-900">Email Queue</h2>
-                <button
-                  onClick={() => setShowEmailQueue(false)}
-                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Email Queue</h2>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    {emailQueue.length} emails queued for sending
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowAddEmail(true)}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 transition-colors text-black text-sm font-medium"
+                    style={{ color: 'black !important' }}
+                  >
+                    <div className="w-4 h-4 relative">
+                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 transform -translate-y-1/2"></div>
+                      <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-600 transform -translate-x-1/2"></div>
+                    </div>
+                    <span style={{ color: 'black !important' }}>Add Email</span>
+                  </button>
+                  <button
+                    onClick={() => setShowEmailQueue(false)}
+                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
+                </div>
               </div>
-              <p className="text-sm text-neutral-600 mt-1">
-                {emailQueue.length} emails queued for sending
-              </p>
             </div>
             
             <div className="h-[80vh] overflow-y-auto">
@@ -775,42 +1020,576 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <p className="text-xs mt-1">The agent will add emails here when processing leads.</p>
                 </div>
               ) : (
-                <div className="divide-y divide-neutral-100">
+                <div className="space-y-2 p-4">
                   {emailQueue.map((email, index) => (
                     <div
-                      key={index}
-                      className="p-4 hover:bg-neutral-50 cursor-pointer transition-colors"
-                      onClick={() => setSelectedEmail(email)}
+                      key={email.id || index}
+                      className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 bg-neutral-200 rounded-full flex items-center justify-center text-neutral-600 font-medium">
-                            {(email.recipientName || email.to || 'U').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-neutral-900">
-                              {email.recipientName || email.to || 'Unknown Recipient'}
-                            </h4>
-                            <p className="text-sm text-neutral-600">{email.subject}</p>
-                            <div className="flex items-center gap-1 text-sm text-neutral-500">
-                              <BuildingOfficeIcon className="h-3 w-3" />
-                              {email.company || 'Unknown Company'}
+                        {/* Left side - Email info */}
+                        <div 
+                          className="flex-1 cursor-pointer"
+                          onClick={() => setSelectedEmail(email)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium text-sm">
+                              {(email.recipientName || email.to || email.finalRecipient || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-neutral-900 text-sm">
+                                  {email.to || email.finalRecipient || 'Unknown Email'}
+                                </span>
+                                <span className="text-xs text-neutral-500">
+                                  • Queued {email.createdAt ? new Date(email.createdAt).toLocaleDateString() : 'today'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-neutral-600 truncate mt-1">
+                                {email.subject || email.finalSubject || 'No Subject'}
+                              </p>
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs text-neutral-400">
-                            {email.scheduledFor ? new Date(email.scheduledFor).toLocaleDateString() : 'Pending'}
-                          </p>
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-50 text-yellow-600 border border-yellow-200 rounded-full">
-                            Queued
-                          </span>
+                        
+                        {/* Right side - Action buttons */}
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditingEmail(email);
+                            }}
+                            className="p-2 text-neutral-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Edit email"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              approveEmail(email.id);
+                            }}
+                            className="p-2 text-neutral-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                            title="Approve & send"
+                          >
+                            <CheckIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              rejectEmail(email.id, 'Rejected by user');
+                            }}
+                            className="p-2 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Reject email"
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Email Detail Modal */}
+      {selectedEmail && !editingEmail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] overflow-hidden mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Email Preview</h2>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    To: {selectedEmail.to || selectedEmail.finalRecipient || 'Unknown'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedEmail(null)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="h-[70vh] overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Recipient Email</label>
+                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                    {selectedEmail.to || selectedEmail.finalRecipient || 'No recipient'}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
+                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                    {selectedEmail.subject || selectedEmail.finalSubject || 'No Subject'}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Email Content</label>
+                  <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-md min-h-[300px] whitespace-pre-wrap">
+                    {selectedEmail.personalizedEmail || selectedEmail.body || selectedEmail.finalBody || 'No content available'}
+                  </div>
+                </div>
+                
+                {selectedEmail.company && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Company</label>
+                    <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                      {selectedEmail.company}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+              <div className="flex items-center gap-4 justify-end">
+                <button
+                  onClick={() => setSelectedEmail(null)}
+                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => startEditingEmail(selectedEmail)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors shadow-sm text-black font-medium"
+                  style={{ color: 'black !important' }}
+                >
+                  <PencilIcon className="h-4 w-4" style={{ color: 'black !important' }} />
+                  Edit
+                </button>
+                <button
+                  onClick={() => rejectEmail(selectedEmail.id, 'Rejected by user')}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors shadow-sm text-black font-medium"
+                  style={{ color: 'black !important' }}
+                >
+                  <XMarkIcon className="h-4 w-4" style={{ color: 'black !important' }} />
+                  Reject
+                </button>
+                <button
+                  onClick={() => approveEmail(selectedEmail.id)}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 transition-colors shadow-sm text-black font-medium"
+                  style={{ color: 'black !important' }}
+                >
+                  <CheckIcon className="h-4 w-4" style={{ color: 'black !important' }} />
+                  Approve & Send
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Email Editing Modal */}
+      {editingEmail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] overflow-hidden mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Edit Email</h2>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    To: {editingEmail.to || editingEmail.finalRecipient || 'Unknown'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setEditingEmail(null)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="h-[70vh] overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Recipient Email</label>
+                  <input
+                    type="email"
+                    value={editedRecipient}
+                    onChange={(e) => setEditedRecipient(e.target.value)}
+                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="recipient@email.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
+                  <input
+                    type="text"
+                    value={editedSubject}
+                    onChange={(e) => setEditedSubject(e.target.value)}
+                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Email subject..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Email Content</label>
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    rows={15}
+                    className="w-full p-4 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    placeholder="Email content..."
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+              <div className="flex items-center gap-4 justify-between">
+                <div className="text-sm text-neutral-600">
+                  💡 Tip: Changes are saved automatically and you can continue editing
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setEditingEmail(null)}
+                    className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                  >
+                    Close Editor
+                  </button>
+                  <button
+                    onClick={saveEmailEdits}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors shadow-sm text-black font-medium"
+                    style={{ color: 'black !important' }}
+                  >
+                    💾 Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Add Custom Email Modal */}
+      {showAddEmail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-3xl h-[80vh] overflow-hidden mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Add Custom Email</h2>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    Add a custom email to the queue for testing or manual outreach
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAddEmail(false)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="h-[60vh] overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Recipient Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={newEmailRecipient}
+                    onChange={(e) => setNewEmailRecipient(e.target.value)}
+                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="recipient@example.com"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Subject Line *
+                  </label>
+                  <input
+                    type="text"
+                    value={newEmailSubject}
+                    onChange={(e) => setNewEmailSubject(e.target.value)}
+                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Email subject..."
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Email Content *
+                  </label>
+                  <textarea
+                    value={newEmailContent}
+                    onChange={(e) => setNewEmailContent(e.target.value)}
+                    rows={12}
+                    className="w-full p-4 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    placeholder="Email content here..."
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+              <div className="flex items-center gap-4 justify-end">
+                <button
+                  onClick={() => setShowAddEmail(false)}
+                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addCustomEmail}
+                  disabled={!newEmailRecipient || !newEmailSubject || !newEmailContent}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 transition-colors shadow-sm text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ color: 'black !important' }}
+                >
+                  <div className="w-4 h-4 relative">
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 transform -translate-y-1/2"></div>
+                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-600 transform -translate-x-1/2"></div>
+                  </div>
+                  <span style={{ color: 'black !important' }}>Add to Queue</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Recent Contacts Modal */}
+      {showRecentContacts && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] overflow-hidden mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Recent Email Activity</h2>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    {recentEmails.length} emails sent • Track opens, clicks, and replies
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={clearRecentEmails}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors text-black text-sm font-medium"
+                    style={{ color: 'black !important' }}
+                  >
+                    <span style={{ color: 'black !important' }}>Clear All</span>
+                  </button>
+                  <button
+                    onClick={() => setShowRecentContacts(false)}
+                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="h-[75vh] overflow-y-auto">
+              {recentEmails.length === 0 ? (
+                <div className="p-12 text-center text-neutral-500">
+                  <EnvelopeIcon className="h-16 w-16 mx-auto mb-4 text-neutral-300" />
+                  <h3 className="text-lg font-medium text-neutral-900 mb-2">No Recent Activity</h3>
+                  <p>No emails have been sent yet.</p>
+                  <p className="text-xs mt-1">Start the agent to begin outreach.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 p-4">
+                  {recentEmails.map((contact) => (
+                    <div
+                      key={contact.id}
+                      className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 hover:bg-neutral-100 cursor-pointer transition-colors"
+                      onClick={() => setSelectedRecentEmail(contact)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium">
+                            {contact.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <h4 className="font-medium text-neutral-900">{contact.name}</h4>
+                              <span className="text-sm text-neutral-500">•</span>
+                              <span className="text-sm text-neutral-600">{contact.email}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-1 text-sm text-neutral-500">
+                                <BuildingOfficeIcon className="h-3 w-3" />
+                                {contact.company}
+                              </div>
+                              <span className="text-sm text-neutral-400">•</span>
+                              <span className="text-xs text-neutral-400">
+                                Sent {new Date(contact.dateSent).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 text-sm rounded-full font-medium ${
+                            contact.status === 'replied' ? 'bg-green-100 text-green-700 border border-green-300' :
+                            contact.status === 'opened' ? 'bg-blue-100 text-blue-700 border border-blue-300' :
+                            'bg-neutral-100 text-neutral-700 border border-neutral-300'
+                          }`}>
+                            {contact.status === 'replied' && <CheckCircleIcon className="h-4 w-4" />}
+                            {contact.status === 'opened' && <EyeIcon className="h-4 w-4" />}
+                            {contact.status === 'sent' && <ClockIcon className="h-4 w-4" />}
+                            {contact.status === 'replied' ? 'Replied' : 
+                             contact.status === 'opened' ? 'Opened' : 'Sent'}
+                          </div>
+                          <div className="text-sm text-neutral-400">
+                            →
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Recent Email Detail Modal */}
+      {selectedRecentEmail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[85vh] overflow-hidden mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Email Details</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-neutral-600">
+                      To: {selectedRecentEmail.name} ({selectedRecentEmail.email})
+                    </span>
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${
+                      selectedRecentEmail.status === 'replied' ? 'bg-green-100 text-green-700' :
+                      selectedRecentEmail.status === 'opened' ? 'bg-blue-100 text-blue-700' :
+                      'bg-neutral-100 text-neutral-700'
+                    }`}>
+                      {selectedRecentEmail.status === 'replied' && <CheckCircleIcon className="h-3 w-3" />}
+                      {selectedRecentEmail.status === 'opened' && <EyeIcon className="h-3 w-3" />}
+                      {selectedRecentEmail.status === 'sent' && <ClockIcon className="h-3 w-3" />}
+                      {selectedRecentEmail.status.charAt(0).toUpperCase() + selectedRecentEmail.status.slice(1)}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedRecentEmail(null)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="h-[70vh] overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* Email Tracking Info */}
+                <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-neutral-900 mb-3">Tracking Information</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-xs text-neutral-500">Sent</p>
+                      <p className="text-sm font-medium text-neutral-900">
+                        {new Date(selectedRecentEmail.dateSent).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Status</p>
+                      <p className={`text-sm font-medium ${
+                        selectedRecentEmail.status === 'replied' ? 'text-green-600' :
+                        selectedRecentEmail.status === 'opened' ? 'text-blue-600' :
+                        'text-neutral-600'
+                      }`}>
+                        {selectedRecentEmail.status.charAt(0).toUpperCase() + selectedRecentEmail.status.slice(1)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Opened</p>
+                      <p className="text-sm font-medium text-neutral-900">
+                        {selectedRecentEmail.opened ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Replied</p>
+                      <p className="text-sm font-medium text-neutral-900">
+                        {selectedRecentEmail.replied ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Company Info */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Company</label>
+                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                    {selectedRecentEmail.company}
+                  </div>
+                </div>
+
+                {/* Email Subject - we might not have this in the current data structure */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
+                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                    {selectedRecentEmail.subject || 'Email subject not available'}
+                  </div>
+                </div>
+
+                {/* Email Content - we might not have this in the current data structure */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Email Content</label>
+                  <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-md min-h-[200px] whitespace-pre-wrap">
+                    {selectedRecentEmail.content || selectedRecentEmail.body || 'Email content not available'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+              <div className="flex items-center gap-4 justify-end">
+                <button
+                  onClick={() => setSelectedRecentEmail(null)}
+                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>

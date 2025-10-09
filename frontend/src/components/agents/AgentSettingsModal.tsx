@@ -212,9 +212,9 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
   const [showJobTitleDropdown, setShowJobTitleDropdown] = useState(false);
 
-  // Get all industries in a flat array for searching
-  const allIndustries = Object.values(APOLLO_INDUSTRIES).flat();
-  const allJobTitles = Object.values(JOB_TITLES).flat();
+  // Get all industries in a flat array for searching (remove duplicates)
+  const allIndustries = [...new Set(Object.values(APOLLO_INDUSTRIES).flat())];
+  const allJobTitles = [...new Set(Object.values(JOB_TITLES).flat())];
 
   // Filter industries based on search
   const filteredIndustries = allIndustries.filter(industry =>
@@ -570,9 +570,9 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
                       {/* Industry Dropdown */}
                       {showIndustryDropdown && (
                         <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {filteredIndustries.map((industry) => (
+                          {filteredIndustries.map((industry, index) => (
                             <button
-                              key={industry}
+                              key={`${industry}-${index}`}
                               onClick={() => {
                                 if (!settings.companyCriteria?.companyIndustries?.includes(industry)) {
                                   addToArray('companyCriteria', 'companyIndustries', industry);
@@ -637,9 +637,9 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
                       {/* Job Title Dropdown */}
                       {showJobTitleDropdown && (
                         <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {filteredJobTitles.map((title) => (
+                          {filteredJobTitles.map((title, index) => (
                             <button
-                              key={title}
+                              key={`${title}-${index}`}
                               onClick={() => {
                                 if (!settings.contactCriteria?.targetPositions?.includes(title)) {
                                   addToArray('contactCriteria', 'targetPositions', title);

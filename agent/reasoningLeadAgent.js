@@ -53,7 +53,15 @@ class ReasoningLeadAgent extends EventEmitter {
       failedStrategies: [],
       industryInsights: {},
       currentGoal: null,
-      currentIndustryIndex: 0 // Track which industry to search next
+      currentIndustryIndex: 0, // Track which industry to search next
+      
+      // Current cycle lead tracking
+      currentCycle: {
+        leadsProcessed: 0,
+        targetLeads: 0,
+        currentLead: null,
+        processingPhase: 'search' // 'search' | 'research' | 'email' | 'complete'
+      }
     };
     
     // Operation logs for UI activity tracking
@@ -131,6 +139,12 @@ class ReasoningLeadAgent extends EventEmitter {
     ];
 
     console.log('🧠 [REASONING AGENT] Initialized AI reasoning agent for user:', userId);
+    
+    // Add initial log entry
+    this.logOperation('Agent Initialized', `Reasoning Lead Agent initialized for user ${userId}`, 'completed', {
+      userId,
+      timestamp: new Date().toISOString()
+    });
   }
 
   // === OPERATION LOGGING METHODS ===
@@ -152,6 +166,7 @@ class ReasoningLeadAgent extends EventEmitter {
     }
     
     console.log(`📋 [AGENT LOG] ${operation}: ${details}`);
+    console.log(`📋 [AGENT LOG] Total logs now: ${this.operationLogs.length}`);
   }
 
   getOperationLogs() {
@@ -165,52 +180,54 @@ class ReasoningLeadAgent extends EventEmitter {
 
   // Core reasoning function - the agent's "brain"
   async reason(context) {
-    const prompt = `You are an intelligent lead research and email generation agent. Follow this workflow:
+    const prompt = `You are an intelligent lead research and email generation agent working SEQUENTIALLY on one lead at a time.
 
-WORKFLOW:
-1. Get user settings from AWS DynamoDB (if not already done)
-2. Get email builder settings from AWS DynamoDB (if not already done) 
-3. Use Apollo to search for leads - VARY your search parameters to find fresh leads:
-   - Use different target positions from the user's list (CEO, Sales Director, HR Manager, etc.)
-   - Try different industry combinations
-   - Vary company size ranges to get different results
-   - Don't just search for "HR Manager" - use ALL target positions!
-4. Research each lead using Serper to verify and gather intelligence
-5. Unlock email addresses using Apollo
-6. Build personalized emails using research data
+SEQUENTIAL WORKFLOW (Process ONE lead completely before finding the next):
+1. Find Lead → 2. Research Lead → 3. Unlock Email → 4. Build Email → REPEAT until target reached
 
-IMPORTANT: If you keep finding the same companies/duplicates, CHANGE your search strategy:
-- Try different job titles from the target positions list
-- Search in different industries
-- Use broader or narrower company size ranges
-- Be creative with search parameters to find NEW companies
-
-CURRENT STATUS:
+CURRENT CYCLE STATUS:
 - Has User Settings: ${context.hasUserSettings}  
 - Has Email Settings: ${context.hasEmailSettings}
-- Current Leads Found: ${context.currentLeads}/${context.targetLeads}
-- Attempt: ${context.attemptNumber}/10
+- Leads Processed: ${context.leadsProcessed}/${context.targetLeads}
+- Current Processing Phase: ${context.processingPhase}
+- Cycle Complete: ${context.cycleComplete}
 
-MEMORY FROM PREVIOUS ATTEMPTS:
-- Recent Actions: ${JSON.stringify(this.memory.searchHistory.slice(-3), null, 2)}
-- What Worked: ${JSON.stringify(this.memory.successfulStrategies, null, 2)}
-- What Failed: ${JSON.stringify(this.memory.failedStrategies, null, 2)}
+${context.currentLead ? `
+CURRENT LEAD BEING PROCESSED:
+- Name: ${context.currentLead.name || 'Unknown'}
+- Company: ${context.currentLead.company || 'Unknown'}  
+- Title: ${context.currentLead.title || 'Unknown'}
+- Phase: ${context.processingPhase}
+` : 'No current lead'}
 
-USER'S ACTUAL SETTINGS (use these for Apollo search):
+USER SETTINGS:
 ${context.hasUserSettings ? `
-- Company: ${this.memory.userSettings?.companyName}  
-- Service: ${this.memory.userSettings?.primaryService}
-- Target Industries: ${JSON.stringify(this.memory.userSettings?.companyIndustries || [])}
-- Company Size: ${this.memory.userSettings?.companySizeMin}-${this.memory.userSettings?.companySizeMax}  
-- Target Positions: ${JSON.stringify(this.memory.userSettings?.targetPositions || [])}
+- Target: ${context.targetLeads} leads per cycle
+- Industries: ${JSON.stringify(this.memory.userSettings?.companyIndustries || [])}
+- Positions: ${JSON.stringify(this.memory.userSettings?.targetPositions || [])}
+- Company Size: ${this.memory.userSettings?.companySizeMin}-${this.memory.userSettings?.companySizeMax}
 - Locations: ${JSON.stringify(this.memory.userSettings?.targetLocations || [])}
 ` : 'Settings not loaded yet'}
 
-NEXT STEPS LOGIC:
-1. If hasUserSettings = false → CALL get_user_settings 
-2. If hasUserSettings = true AND hasEmailSettings = false → CALL get_email_settings
-3. If both = true → CALL apollo_search using the ACTUAL user criteria above (not hardcoded tech/software)
-4. Process each Apollo lead with serper_research → unlock_email → build_personalized_email
+DECISION LOGIC (choose ONE action):
+
+1. IF hasUserSettings = false → CALL get_user_settings
+
+2. IF hasUserSettings = true AND hasEmailSettings = false → CALL get_email_settings
+
+3. IF cycleComplete = true → CALL complete (cycle finished, wait for next cycle)
+
+4. IF processingPhase = 'search' AND currentLead = null → CALL apollo_search
+   (Find the next lead using user's criteria)
+
+5. IF processingPhase = 'research' AND currentLead exists → CALL serper_research  
+   (Research the current lead to gather intelligence)
+
+6. IF processingPhase = 'email' AND currentLead exists → CALL unlock_email
+   (Unlock email address for researched lead)
+
+7. IF processingPhase = 'build' AND currentLead exists → CALL build_personalized_email
+   (Create personalized email using research data)
 
 REASONING INSTRUCTIONS:
 - You MUST call a function - don't just think about it!
@@ -228,30 +245,55 @@ CRITICAL: You MUST call a function. Do not just explain what to do - actually ca
 Choose your next action and explain your reasoning:`;
 
     try {
+      const functionCall = this.determineFunctionCall(context);
+      console.log('🔧 [OPENAI] Function call parameter:', JSON.stringify(functionCall));
+      
+      // Single OpenAI call with reasoning and function calling
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ 
+          role: 'user', 
+          content: prompt + '\n\nYou MUST call a function. Briefly explain your reasoning, then immediately call the appropriate function to execute the action.'
+        }],
         functions: this.tools,
-        function_call: !context.hasUserSettings ? { name: 'get_user_settings' } : 
-                      !context.hasEmailSettings ? { name: 'get_email_settings' } : 'auto',
+        function_call: functionCall,
         temperature: 0.7
       });
+      
+      console.log('🔧 [OPENAI] Response has function_call:', !!response.choices[0].message.function_call);
 
       const message = response.choices[0].message;
       
       if (message.function_call) {
-        console.log('🧠 [REASONING] Agent decided to use tool:', message.function_call.name);
-        console.log('🧠 [REASONING] Agent reasoning:', message.content);
+        // Extract reasoning from the content (even with function calls, GPT can provide reasoning)
+        const reasoning = message.content || `Decided to call ${message.function_call.name}`;
+        
+        console.log('🧠 [DECISION] Agent decided to use tool:', message.function_call.name);
+        console.log('🤔 [THINKING] Agent reasoning:', reasoning);
+        
+        // Log detailed reasoning to activity logs
+        this.logOperation('Agent Reasoning', `🤔 [THINKING] ${reasoning}`, 'success', {
+          action: message.function_call.name,
+          parameters: message.function_call.arguments
+        });
         
         return {
-          reasoning: message.content,
+          reasoning: reasoning,
           action: message.function_call.name,
           parameters: JSON.parse(message.function_call.arguments)
         };
       }
 
+      const reasoning = message.content || 'Agent is thinking...';
+      console.log('🤔 [THINKING] Agent reasoning:', reasoning);
+      
+      // Log pure reasoning to activity logs
+      this.logOperation('Agent Thinking', `🤔 [THINKING] ${reasoning}`, 'info', {
+        action: 'think'
+      });
+
       return {
-        reasoning: message.content,
+        reasoning: reasoning,
         action: 'think',
         parameters: {}
       };
@@ -264,6 +306,131 @@ Choose your next action and explain your reasoning:`;
         parameters: {}
       };
     }
+  }
+
+  // Determine which function to force based on context
+  determineFunctionCall(context) {
+    // Force specific functions based on sequential workflow
+    if (!context.hasUserSettings) {
+      console.log('🔧 [FUNCTION CALL] Forcing get_user_settings');
+      return { name: 'get_user_settings' };
+    }
+    
+    if (!context.hasEmailSettings) {
+      console.log('🔧 [FUNCTION CALL] Forcing get_email_settings');
+      return { name: 'get_email_settings' };
+    }
+    
+    if (context.cycleComplete) {
+      console.log('🔧 [FUNCTION CALL] Cycle complete, allowing natural completion');
+      return 'none'; // Let agent complete naturally
+    }
+    
+    // Force sequential processing based on phase
+    console.log(`🔧 [FUNCTION CALL] Phase: ${context.processingPhase}, Current Lead: ${context.currentLead ? 'YES' : 'NO'}`);
+    
+    switch (context.processingPhase) {
+      case 'search':
+        if (!context.currentLead) {
+          console.log('🔧 [FUNCTION CALL] Forcing apollo_search');
+          return { name: 'apollo_search' };
+        }
+        break;
+        
+      case 'research':
+        if (context.currentLead) {
+          console.log('🔧 [FUNCTION CALL] Forcing serper_research');
+          return { name: 'serper_research' };
+        }
+        break;
+        
+      case 'email':
+        if (context.currentLead) {
+          console.log('🔧 [FUNCTION CALL] Forcing unlock_email');
+          return { name: 'unlock_email' };
+        }
+        break;
+        
+      case 'build':
+        if (context.currentLead) {
+          console.log('🔧 [FUNCTION CALL] Forcing build_personalized_email');
+          return { name: 'build_personalized_email' };
+        }
+        break;
+    }
+    
+    console.log('🔧 [FUNCTION CALL] Defaulting to auto');
+    return 'auto'; // Fallback to auto
+  }
+
+  // Update cycle state after each action
+  async updateCycleState(action, actionResult) {
+    console.log(`📊 [CYCLE] Updating state after action: ${action}`);
+    
+    switch (action) {
+      case 'apollo_search':
+        if (actionResult?.leads?.length > 0) {
+          // Found a lead, normalize structure and move to research phase
+          const lead = actionResult.leads[0];
+          this.memory.currentCycle.currentLead = {
+            ...lead,
+            company: lead.organization?.name || lead.company || 'Unknown Company'
+          };
+          this.memory.currentCycle.processingPhase = 'research';
+          console.log(`🔍 [CYCLE] Found lead: ${lead.name} at ${lead.organization?.name || lead.company}`);
+        }
+        break;
+        
+      case 'serper_research':
+        if (actionResult?.success) {
+          // Research complete, move to email unlock
+          this.memory.currentCycle.processingPhase = 'email';
+          console.log(`📚 [CYCLE] Research completed for ${this.memory.currentCycle.currentLead?.name}`);
+        }
+        break;
+        
+      case 'unlock_email':
+        if (actionResult?.success && actionResult?.email) {
+          // Email unlocked successfully, move to build email
+          this.memory.currentCycle.processingPhase = 'build';
+          console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
+        } else {
+          // Email unlock failed, skip this lead and search for new one
+          this.memory.currentCycle.currentLead = null;
+          this.memory.currentCycle.processingPhase = 'search';
+          console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead and searching for new one`);
+        }
+        break;
+        
+      case 'build_personalized_email':
+        if (actionResult?.success) {
+          // Add email to queue with correct field names
+          const leadData = {
+            ...this.memory.currentCycle.currentLead,
+            email: this.memory.currentCycle.currentLead.email,
+            personalizedEmail: actionResult.email,
+            emailSubject: actionResult.subject,
+            generatedEmail: actionResult.email
+          };
+          await this.addToEmailQueue(leadData);
+          console.log(`📧 [QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}`);
+          
+          // Email built, lead complete - move to next lead
+          this.memory.currentCycle.leadsProcessed++;
+          this.memory.currentCycle.currentLead = null;
+          this.memory.currentCycle.processingPhase = 'search';
+          console.log(`✉️ [CYCLE] Email built! Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}`);
+          
+          // Check if cycle is complete
+          if (this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads) {
+            this.memory.currentCycle.processingPhase = 'complete';
+            console.log(`🏁 [CYCLE] Cycle complete! Processed ${this.memory.currentCycle.leadsProcessed} leads`);
+          }
+        }
+        break;
+    }
+    
+    console.log(`📊 [CYCLE] Current state: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads} leads, phase: ${this.memory.currentCycle.processingPhase}`);
   }
 
   // Get user settings from AWS DynamoDB - lead agent settings
@@ -307,10 +474,7 @@ Choose your next action and explain your reasoning:`;
         
         // Research focus (REAL DATA)
         focusAreas: leadContactSettings.researchFocus?.focusAreas,
-        researchDepth: leadContactSettings.researchFocus?.researchDepth,
-        
-        // Raw data for debugging
-        rawLeadContactSettings: leadContactSettings
+        researchDepth: leadContactSettings.researchFocus?.researchDepth
       };
       
       console.log('✅ [SETTINGS] REAL lead generation settings:', {
@@ -364,11 +528,7 @@ Choose your next action and explain your reasoning:`;
         personalization: emailBuilder.personalization,
         
         // Company branding for email templates
-        companyBranding: leadContactSettings.companyBranding,
-        
-        // Raw data
-        rawEmailBuilder: emailBuilder,
-        rawLeadContactSettings: leadContactSettings
+        companyBranding: leadContactSettings.companyBranding
       };
       
       console.log('✅ [EMAIL SETTINGS] REAL email builder settings:', {
@@ -569,9 +729,26 @@ Choose your next action and explain your reasoning:`;
         
         console.log(`📧 Work email: ${workEmail}`);
         console.log(`📧 Personal emails: ${personalEmails.join(', ')}`);
-        console.log(`📊 [DEBUG] Email status/confidence:`, person.email_status, person.email_confidence);
+        console.log(`📊 [DEBUG] Email status/confidence:`, person.email_status, person.extrapolated_email_confidence);
         
-        // Just accept ALL emails that Apollo provides - no filtering
+        // Validate email with ZeroBounce before accepting
+        const emailToValidate = workEmail;
+        if (emailToValidate) {
+          console.log(`🔍 [ZEROBOUNCE] Validating email: ${emailToValidate}`);
+          const zeroBounceResult = await this.validateEmailWithZeroBounce(emailToValidate);
+          
+          if (!zeroBounceResult.isValid) {
+            console.log(`❌ [ZEROBOUNCE] Email validation failed: ${zeroBounceResult.status} - ${zeroBounceResult.reason}`);
+            return {
+              success: false,
+              error: `Email validation failed: ${zeroBounceResult.status}`
+            };
+          }
+          
+          console.log(`✅ [ZEROBOUNCE] Email validation passed: ${zeroBounceResult.status}`);
+        }
+        
+        // Accept emails with actual confidence scores
         const allEmails = [workEmail, ...personalEmails].filter(email => {
           return email && !email.includes('email_not_unlocked');
         });
@@ -604,12 +781,60 @@ Choose your next action and explain your reasoning:`;
     }
   }
 
+  // Validate email using ZeroBounce API
+  async validateEmailWithZeroBounce(email) {
+    try {
+      const apiKey = process.env.ZEROBOUNCE_API_KEY;
+      if (!apiKey) {
+        console.log('⚠️ [ZEROBOUNCE] API key not found, skipping validation');
+        return { isValid: true, status: 'skipped', reason: 'No API key' };
+      }
+
+      const response = await fetch(`https://api.zerobounce.net/v2/validate?api_key=${apiKey}&email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`ZeroBounce API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // ZeroBounce status values: valid, invalid, catch-all, unknown, spamtrap, abuse, do_not_mail
+      const validStatuses = ['valid', 'catch-all'];
+      const isValid = validStatuses.includes(data.status.toLowerCase());
+      
+      return {
+        isValid: isValid,
+        status: data.status,
+        subStatus: data.sub_status,
+        account: data.account,
+        domain: data.domain,
+        reason: data.sub_status || data.status
+      };
+    } catch (error) {
+      console.error('❌ [ZEROBOUNCE] Validation error:', error);
+      // If ZeroBounce fails, default to accepting the email
+      return { isValid: true, status: 'validation_error', reason: error.message };
+    }
+  }
+
   // Build personalized email
   async buildPersonalizedEmail(parameters) {
     console.log('📝 [EMAIL BUILDER] Creating personalized email...');
     
     try {
-      const { leadData, researchData, emailSettings } = parameters;
+      // Get data from current cycle state instead of parameters
+      const leadData = this.memory.currentCycle.currentLead;
+      const researchData = this.memory.lastResearch;
+      const emailSettings = this.memory.emailSettings;
+      
+      if (!leadData) {
+        throw new Error('No current lead data available for email building');
+      }
       
       // Extract proper field values from Apollo lead data
       const contactName = leadData.name || (leadData.first_name && leadData.last_name ? 
@@ -825,41 +1050,62 @@ BODY: [email body with proper greeting and signature]`;
       // Use pagination and vary search parameters intelligently
       const searchPage = Math.floor(Math.random() * 5) + 1; // Pages 1-5 for more variety
       
-      // Use ALL target positions from user settings - NO hardcoded fallbacks
-      if (!userSettings.targetPositions || userSettings.targetPositions.length === 0) {
-        throw new Error('No target positions configured in user settings');
+      // Use the position the agent reasoned about, or fall back to user settings
+      let targetPosition;
+      if (parameters.position) {
+        targetPosition = parameters.position;
+        console.log(`🎯 [AGENT DECISION] Using agent-reasoned position: "${targetPosition}"`);
+      } else {
+        // Fallback to user settings if agent didn't specify
+        if (!userSettings.targetPositions || userSettings.targetPositions.length === 0) {
+          throw new Error('No target positions configured in user settings');
+        }
+        targetPosition = userSettings.targetPositions[Math.floor(Math.random() * userSettings.targetPositions.length)];
+        console.log(`🔍 [FALLBACK] Using random position from settings: "${targetPosition}"`);
       }
       
-      const randomPosition = userSettings.targetPositions[Math.floor(Math.random() * userSettings.targetPositions.length)];
-      
-      console.log(`🔍 [SEARCH VARIATION] Using "${randomPosition}" on page ${searchPage} for fresh results`);
-      
       const searchPayload = {
-        q_keywords: randomPosition,
+        q_keywords: targetPosition,
         page: searchPage,
         per_page: 5
       };
 
-      // Vary company size to get different results (within reasonable bounds of original settings)
-      if (!userSettings.companySizeMin || !userSettings.companySizeMax) {
-        throw new Error('Company size range not configured in user settings');
+      // Use agent-reasoned company size or fall back to user settings
+      let sizeMin, sizeMax;
+      if (parameters.companySize) {
+        // Parse agent's company size parameter (e.g. "300-5000" or "300,5000")
+        const sizeRange = parameters.companySize.toString().split(/[-,]/);
+        sizeMin = parseInt(sizeRange[0]);
+        sizeMax = parseInt(sizeRange[1]) || sizeMin;
+        console.log(`🎯 [AGENT DECISION] Using agent-reasoned company size: ${sizeMin}-${sizeMax} employees`);
+      } else {
+        // Fallback to user settings
+        if (!userSettings.companySizeMin || !userSettings.companySizeMax) {
+          throw new Error('Company size range not configured in user settings');
+        }
+        sizeMin = userSettings.companySizeMin;
+        sizeMax = userSettings.companySizeMax;
+        console.log(`🔍 [FALLBACK] Using user settings company size: ${sizeMin}-${sizeMax} employees`);
       }
-      
-      const sizeMin = userSettings.companySizeMin;
-      const sizeMax = userSettings.companySizeMax;
-      
-      console.log(`🎯 [USER SETTINGS] Using configured company size: ${sizeMin}-${sizeMax} employees (respecting user preferences)`);
       
       searchPayload.organization_num_employees_ranges = [`${sizeMin},${sizeMax}`];
 
-      // Use actual locations from user settings
-      if (userSettings.targetLocations && userSettings.targetLocations.length > 0) {
+      // Use agent-reasoned location or fall back to user settings
+      if (parameters.location) {
+        searchPayload.person_locations = [parameters.location];
+        console.log(`🎯 [AGENT DECISION] Using agent-reasoned location: "${parameters.location}"`);
+      } else if (userSettings.targetLocations && userSettings.targetLocations.length > 0) {
         searchPayload.person_locations = userSettings.targetLocations;
+        console.log(`🔍 [FALLBACK] Using user settings locations: ${userSettings.targetLocations.join(', ')}`);
       }
 
-      // Add selected industry if available
-      if (selectedIndustry) {
+      // Use agent-reasoned industries or fall back to rotating through user settings
+      if (parameters.industries && parameters.industries.length > 0) {
+        searchPayload.q_organization_keyword_tags = parameters.industries;
+        console.log(`🎯 [AGENT DECISION] Using agent-reasoned industries: ${parameters.industries.join(', ')}`);
+      } else if (selectedIndustry) {
         searchPayload.q_organization_keyword_tags = [selectedIndustry];
+        console.log(`🔍 [FALLBACK] Using rotated industry from settings: "${selectedIndustry}"`);
       }
 
       console.log('🔍 [APOLLO] Search payload:', JSON.stringify(searchPayload, null, 2));
@@ -980,25 +1226,42 @@ BODY: [email body with proper greeting and signature]`;
 
       const decision = await this.reason(context);
       console.log('🧠 [DECISION]', decision.reasoning);
+      
+      // Log the decision to activity logs
+      this.logOperation('Agent Decision', `🧠 [DECISION] ${decision.reasoning}`, 'info', {
+        action: decision.action,
+        attempt: attempts,
+        context: context
+      });
 
       // Execute the agent's decision
       let actionResult = null;
       
       switch (decision.action) {
         case 'get_user_settings':
+          this.logOperation('Action Execution', '🔧 [ACTION] Retrieving user settings from AWS', 'in-progress');
           actionResult = await this.getUserSettings();
           this.memory.userSettings = actionResult;
+          this.logOperation('Action Execution', '✅ [COMPLETE] User settings retrieved successfully', 'success', { hasSettings: !!actionResult });
           break;
           
         case 'get_email_settings':
+          this.logOperation('Action Execution', '🔧 [ACTION] Retrieving email settings from AWS', 'in-progress');
           actionResult = await this.getEmailSettings();
           this.memory.emailSettings = actionResult;
+          this.logOperation('Action Execution', '✅ [COMPLETE] Email settings retrieved successfully', 'success', { hasSettings: !!actionResult });
           break;
           
         case 'apollo_search':
+          this.logOperation('Lead Search', `🔍 [SEARCH] Searching Apollo for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
           actionResult = await this.apolloSearch(decision.parameters);
           if (actionResult.found > 0) {
             console.log(`✅ [SUCCESS] Found ${actionResult.found} leads! Total: ${foundLeads.length + actionResult.found}/${targetLeads}`);
+            this.logOperation('Lead Search', `✅ [SEARCH SUCCESS] Found ${actionResult.found} leads! Total progress: ${foundLeads.length + actionResult.found}/${targetLeads}`, 'success', { 
+              found: actionResult.found, 
+              total: foundLeads.length + actionResult.found,
+              target: targetLeads 
+            });
             
             // FILTER OUT DUPLICATES before processing
             const newLeads = actionResult.leads.filter(lead => {
@@ -1025,6 +1288,10 @@ BODY: [email body with proper greeting and signature]`;
             // Process each NEW lead through the full workflow
             for (const lead of newLeads) {
               console.log(`\n🔍 [PROCESSING] Lead: ${lead.name} at ${lead.organization?.name}`);
+              this.logOperation('Lead Processing', `🔍 [PROCESSING] Researching lead: ${lead.name} at ${lead.organization?.name}`, 'in-progress', { 
+                lead: lead.name, 
+                company: lead.organization?.name 
+              });
               
               // Research the lead's company
               const research = await this.serperResearch({
@@ -1044,6 +1311,11 @@ BODY: [email body with proper greeting and signature]`;
                 // Track email unlock success and handle both success/failure cases
                 if (emailUnlock.success && this.memory.emailSettings) {
                   console.log(`✅ [EMAIL SUCCESS] Unlocked ${emailUnlock.all_emails?.length || 1} email(s) for ${lead.organization?.name} (${lead.organization?.estimated_num_employees || 'unknown'} employees)`);
+                  this.logOperation('Email Processing', `📧 [EMAIL SUCCESS] Unlocked ${emailUnlock.all_emails?.length || 1} email(s) for ${lead.name} at ${lead.organization?.name}`, 'success', { 
+                    emails: emailUnlock.all_emails?.length || 1,
+                    company: lead.organization?.name,
+                    employees: lead.organization?.estimated_num_employees || 'unknown'
+                  });
                   
                   const personalizedEmail = await this.buildPersonalizedEmail({
                     leadData: lead,
@@ -1067,6 +1339,14 @@ BODY: [email body with proper greeting and signature]`;
                   
                   // Save to database like normal lead agent
                   await this.addLeadToDatabase(completeLead);
+                  
+                  this.logOperation('Lead Complete', `✅ [LEAD COMPLETE] Successfully processed and saved ${lead.name} at ${lead.organization?.name}`, 'success', { 
+                    leadName: lead.name,
+                    company: lead.organization?.name,
+                    email: emailUnlock.email,
+                    totalFound: foundLeads.length,
+                    target: targetLeads
+                  });
                   
                   // Add to email queue for approval/sending
                   await this.addToEmailQueue(completeLead);
@@ -1124,6 +1404,10 @@ BODY: [email body with proper greeting and signature]`;
             });
           } else {
             console.log(`❌ [NO RESULTS] Apollo search returned 0 leads`);
+            this.logOperation('Lead Search', `❌ [SEARCH FAILED] Apollo search returned 0 leads for ${decision.parameters.title || 'specified criteria'}`, 'warning', { 
+              parameters: decision.parameters,
+              reason: actionResult.error || 'No leads found'
+            });
             
             // Remember failed strategy
             this.memory.failedStrategies.push({
@@ -1970,6 +2254,15 @@ BODY: [email body with proper greeting and signature]`;
     this.cycleCount++;
     console.log(`🧠 [REASONING AGENT] Starting reasoning cycle #${this.cycleCount}`);
     
+    // Reset cycle tracking for new cycle
+    this.memory.currentCycle = {
+      leadsProcessed: 0,
+      targetLeads: 0,
+      currentLead: null,
+      processingPhase: 'search'
+    };
+    console.log(`🔄 [CYCLE] Reset cycle tracking for cycle #${this.cycleCount}`);
+    
     // Log cycle start
     this.logOperation('Cycle Started', `Reasoning cycle #${this.cycleCount} initiated`, 'running', {
       cycleNumber: this.cycleCount,
@@ -1990,11 +2283,26 @@ BODY: [email body with proper greeting and signature]`;
       while (stepCount < maxSteps) {
         stepCount++;
         
+        // Initialize cycle tracking if needed
+        if (!this.memory.currentCycle.targetLeads && this.memory.userSettings?.leadLimit) {
+          this.memory.currentCycle.targetLeads = this.memory.userSettings.leadLimit;
+          this.memory.currentCycle.leadsProcessed = 0;
+          this.memory.currentCycle.processingPhase = 'search';
+          console.log(`🎯 [CYCLE] Starting new cycle - Target: ${this.memory.currentCycle.targetLeads} leads`);
+        }
+
         // Execute the full reasoning workflow
         const context = {
           hasUserSettings: !!this.memory.userSettings,
           hasEmailSettings: !!this.memory.emailSettings,
-          memory: this.memory
+          memory: this.memory,
+          
+          // Sequential processing context
+          leadsProcessed: this.memory.currentCycle.leadsProcessed,
+          targetLeads: this.memory.currentCycle.targetLeads,
+          currentLead: this.memory.currentCycle.currentLead,
+          processingPhase: this.memory.currentCycle.processingPhase,
+          cycleComplete: this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads
         };
 
         // Get reasoning decision from OpenAI
@@ -2019,6 +2327,9 @@ BODY: [email body with proper greeting and signature]`;
           parameters: reasoningResult.parameters
         });
         const actionResult = await this.executeFunction(reasoningResult.action, reasoningResult.parameters);
+        
+        // Update cycle state based on action results
+        await this.updateCycleState(reasoningResult.action, actionResult);
         
         this.emit('progress', {
           stage: 'action',

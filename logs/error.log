@@ -1,1 +1,2 @@
 {"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-03T01:12:29.337Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"examark-api","timestamp":"2025-10-07T15:11:52.731Z"}

@@ -463,18 +463,33 @@ router.post('/calendar/test', async (req, res) => {
   }
 });
 
+// Test route for debugging
+router.get('/activity-logs-test', (req, res) => {
+  console.log('🔍 [TEST] Activity logs test endpoint hit!');
+  res.json({ message: 'Test endpoint working', timestamp: new Date().toISOString() });
+});
+
 // Get agent activity logs
 router.get('/activity-logs', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[AGENT LOGS] Loading activity logs for user:', userId);
+    console.log('🔍 [AGENT LOGS] ===== ACTIVITY LOGS ENDPOINT HIT =====');
+    console.log('🔍 [AGENT LOGS] Loading activity logs for user:', userId);
     
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);
+    console.log('🔍 [AGENT LOGS] User agent found:', !!userAgent);
+    console.log('🔍 [AGENT LOGS] User agent type:', typeof userAgent);
     
     // Get the agent's operation logs and reasoning history
     const agentLogs = userAgent.getOperationLogs ? userAgent.getOperationLogs() : [];
     const agentMemory = userAgent.memory || {};
+    
+    console.log(`🔍 [AGENT LOGS] Found ${agentLogs.length} operation logs for user ${userId}`);
+    console.log(`🔍 [AGENT LOGS] Raw agent logs:`, JSON.stringify(agentLogs, null, 2));
+    console.log(`🔍 [AGENT LOGS] Agent status: isRunning=${userAgent.isRunning}, isActive=${userAgent.isActive}`);
+    console.log(`🔍 [AGENT LOGS] Agent has getOperationLogs method:`, typeof userAgent.getOperationLogs);
+    console.log(`🔍 [AGENT LOGS] Direct operationLogs array length:`, userAgent.operationLogs?.length || 'undefined');
     
     // Format logs for the frontend
     const formattedLogs = agentLogs.map(log => ({
@@ -486,24 +501,38 @@ router.get('/activity-logs', async (req, res) => {
       data: log.data || {}
     }));
     
-    // Add current agent state as a log entry if agent is active
-    if (userAgent.isActive) {
-      formattedLogs.unshift({
-        id: 'current-state',
+    // Always add current agent state as a log entry
+    formattedLogs.unshift({
+      id: 'agent-status',
+      timestamp: new Date().toISOString(),
+      operation: 'Agent Status', 
+      details: `Agent is currently ${userAgent.isRunning ? 'running' : 'stopped'}. Cycle count: ${userAgent.cycleCount || 0}. Logs: ${agentLogs.length}`,
+      status: userAgent.isRunning ? 'active' : 'inactive',
+      data: {
+        isRunning: userAgent.isRunning,
+        isActive: userAgent.isActive,
+        cycleCount: userAgent.cycleCount,
+        startTime: userAgent.startTime,
+        totalLogs: agentLogs.length
+      }
+    });
+    
+    // If no operation logs exist, add a helpful message
+    if (agentLogs.length === 0) {
+      formattedLogs.push({
+        id: 'no-activity',
         timestamp: new Date().toISOString(),
-        operation: 'Agent Status',
-        details: `Agent is currently ${userAgent.isActive ? 'active' : 'inactive'}. Current cycle: ${userAgent.currentCycle || 0}`,
-        status: 'active',
+        operation: 'System Message',
+        details: 'No agent activity recorded yet. Start the agent to see reasoning operations and cycles here.',
+        status: 'info',
         data: {
-          isActive: userAgent.isActive,
-          currentCycle: userAgent.currentCycle,
-          cycleInterval: userAgent.cycleInterval,
-          lastActivity: userAgent.lastActivity
+          message: 'Click the Start button to begin agent operations'
         }
       });
     }
     
-    console.log(`[AGENT LOGS] Returning ${formattedLogs.length} log entries`);
+    console.log(`🔍 [AGENT LOGS] Returning ${formattedLogs.length} log entries`);
+    console.log('🔍 [AGENT LOGS] Formatted logs:', JSON.stringify(formattedLogs, null, 2));
     
     res.json(formattedLogs);
   } catch (error) {

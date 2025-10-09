@@ -1,0 +1,28 @@
+[
+  {
+    "id": "1760032869076",
+    "timestamp": "2025-10-09T18:01:09.076Z",
+    "status": "pending",
+    "source": "custom",
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "leadData": {
+      "email": "COLTON.FIDD@GMAIL.COM",
+      "company": "Custom Email",
+      "name": "COLTON.FIDD",
+      "title": "Custom Contact",
+      "context": "Custom email created by user"
+    },
+    "emailData": {
+      "subject": "test email for cole",
+      "body": "hello this is a test email hello",
+      "finalRecipient": "COLTON.FIDD@GMAIL.COM",
+      "finalSubject": "test email for cole",
+      "finalBody": "hello this is a test email hello"
+    },
+    "metadata": {
+      "customEmail": true,
+      "createdAt": "2025-10-09T18:01:09.072Z",
+      "createdBy": "user"
+    }
+  }
+]

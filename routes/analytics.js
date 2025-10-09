@@ -319,4 +319,67 @@ router.post('/api/analytics/track-response', authenticateToken, async (req, res)
   }
 });
 
+// Clear all email logs for a user
+router.delete('/api/analytics/emails', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Delete user-specific email logs file
+    const logPath = path.join(process.cwd(), `email_logs_${userId}.json`);
+    
+    try {
+      await fs.unlink(logPath);
+      console.log(`[ANALYTICS] 🗑️ Cleared email logs for user ${userId}`);
+    } catch (error) {
+      // File might not exist, which is fine
+      console.log(`[ANALYTICS] 📝 No email logs file found for user ${userId}, nothing to clear`);
+    }
+
+    // Delete approved emails file (this affects the total count)
+    const approvedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
+    
+    try {
+      await fs.unlink(approvedPath);
+      console.log(`[ANALYTICS] 🗑️ Cleared approved emails for user ${userId}`);
+    } catch (error) {
+      // File might not exist, which is fine
+      console.log(`[ANALYTICS] 📝 No approved emails file found for user ${userId}, nothing to clear`);
+    }
+
+    // Delete email queue file too
+    const queuePath = path.join(process.cwd(), `email_queue_${userId}.json`);
+    
+    try {
+      await fs.unlink(queuePath);
+      console.log(`[ANALYTICS] 🗑️ Cleared email queue for user ${userId}`);
+    } catch (error) {
+      // File might not exist, which is fine
+      console.log(`[ANALYTICS] 📝 No email queue file found for user ${userId}, nothing to clear`);
+    }
+    
+    // Clear Zilliz tracking data - try to import and use zilliz functions
+    try {
+      const { ZillizEmailTracker } = await import('../utils/zillizEmailTracker.js');
+      const tracker = new ZillizEmailTracker();
+      await tracker.initialize();
+      await tracker.clearUserTrackingEvents(userId);
+      console.log(`[ANALYTICS] 🗑️ Cleared Zilliz tracking data for user ${userId}`);
+    } catch (error) {
+      console.log(`[ANALYTICS] ⚠️ Could not clear Zilliz tracking data:`, error.message);
+      // Don't fail the whole request if Zilliz clearing fails
+    }
+    
+    res.json({
+      success: true,
+      message: 'All email data and tracking cleared successfully'
+    });
+  } catch (error) {
+    console.error('[ANALYTICS] Error clearing email logs:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;
