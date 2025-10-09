@@ -1739,6 +1739,7 @@ BODY: [email body with proper greeting and signature]`;
       const queueData = {
         id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: this.userId,
+        agentId: 'lead-agent-main', // Add agentId for proper data isolation
         timestamp: new Date().toISOString(),
         status: 'pending',
         source: 'reasoning_agent',

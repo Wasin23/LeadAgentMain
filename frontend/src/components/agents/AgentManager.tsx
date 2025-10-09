@@ -165,6 +165,15 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
     if (deleteConfirmText !== requiredText) return;
     
     try {
+      // Call backend API to clean up agent logs and data
+      try {
+        await api.delete(`/api/agents/${agentToDelete.id}`);
+        console.log(`✅ Cleaned up backend data for agent ${agentToDelete.id}`);
+      } catch (apiError) {
+        console.warn('⚠️ Failed to clean up backend data:', apiError);
+        // Continue with frontend deletion even if backend cleanup fails
+      }
+
       // Remove from localStorage
       const existingAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
       const updatedAgents = existingAgents.filter((a: Agent) => a.id !== agentToDelete.id);

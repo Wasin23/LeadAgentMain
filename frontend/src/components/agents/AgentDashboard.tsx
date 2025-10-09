@@ -18,6 +18,7 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon,
   CheckIcon,
+  MagnifyingGlassIcon,
   PencilIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
@@ -88,6 +89,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
   const [showRecentContacts, setShowRecentContacts] = useState(false);
   const [selectedRecentEmail, setSelectedRecentEmail] = useState<any>(null);
+  const [recentEmailsSearch, setRecentEmailsSearch] = useState('');
+  const [recentEmailsFilter, setRecentEmailsFilter] = useState<'all' | 'sent' | 'opened' | 'replied'>('all');
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
@@ -210,12 +213,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchRecentEmails = async () => {
     try {
-      const response = await api.get('/api/analytics/emails');
-      if (response.data && Array.isArray(response.data)) {
-        const emailsWithStatus = response.data.map((email: any) => ({
+      const response = await api.get(`/api/analytics/emails?agentId=${agentId}`);
+      const emailsData = response.data?.data || response.data || [];
+      if (Array.isArray(emailsData)) {
+        const emailsWithStatus = emailsData.map((email: any) => ({
           id: email.trackingId || email.id || Date.now().toString(),
-          name: email.recipientName || email.recipient || 'Unknown Contact',
-          company: email.company || 'Unknown Company',
+          name: email.personInfo?.fullName || email.recipientName || email.recipient || email.to?.split('@')[0] || 'Unknown Contact',
+          company: email.personInfo?.company || email.company || 'Unknown Company',
           email: email.to || email.email,
           dateSent: email.sentAt || email.timestamp || new Date().toISOString(),
           opened: Boolean(email.analytics?.opened || email.analyticsStatus?.hasOpened),
@@ -278,14 +282,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     try {
       console.log('📤 Approving and sending email ID:', emailId);
       
-      const response = await api.post(`/api/email-queue/${emailId}/approve`);
+      const response = await api.post(`/api/email-queue/${emailId}/approve`, { agentId });
       console.log('✅ Approve response:', response.data);
       
       // Show success message
       showNotification('Email approved and sent successfully!', 'success');
       
-      // Refresh the queue and close modal
+      // Refresh the queue, recent emails, and close modal
       await fetchEmailQueue();
+      await fetchRecentEmails(); // Add this to refresh the recent emails list
+      await fetchStatus(); // Refresh status to update counters
       setSelectedEmail(null);
       setEditingEmail(null);
       
@@ -416,10 +422,30 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     setTimeout(() => setNotification(null), 3000); // Auto-hide after 3 seconds
   };
 
+  // Filter and search recent emails
+  const filteredRecentEmails = recentEmails.filter(email => {
+    // Apply status filter
+    if (recentEmailsFilter !== 'all' && email.status !== recentEmailsFilter) {
+      return false;
+    }
+    
+    // Apply search filter
+    if (recentEmailsSearch.trim()) {
+      const search = recentEmailsSearch.toLowerCase();
+      return (
+        email.name.toLowerCase().includes(search) ||
+        email.email.toLowerCase().includes(search) ||
+        email.company.toLowerCase().includes(search)
+      );
+    }
+    
+    return true;
+  });
+
   const clearRecentEmails = async () => {
     try {
-      // Clear the recent emails log and Zilliz tracking data
-      await api.delete('/api/analytics/emails');
+      // Clear the recent emails log and Zilliz tracking data for this specific agent
+      await api.delete(`/api/analytics/emails?agentId=${agentId}`);
       await fetchRecentEmails(); // Refresh the list
       await fetchStatus(); // Refresh the status to update total emails counter
       showNotification('Recent emails and tracking data cleared successfully!', 'success');
@@ -846,9 +872,53 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <h3 className="text-lg font-medium text-neutral-900">Recently Contacted</h3>
                 <p className="text-sm text-neutral-600 mt-1">Latest outreach attempts</p>
               </div>
-              <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                {status?.totalEmailsSent || 0} Total Sent
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => fetchRecentEmails()}
+                  className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors"
+                  title="Reload recent emails"
+                >
+                  <ArrowPathIcon className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-500">
+                    Showing {filteredRecentEmails.length} of {recentEmails.length}
+                  </span>
+                  <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                    {status?.totalEmailsSent || 0} Total Sent
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Search and Filter Controls */}
+            <div className="mt-4 space-y-3">
+              <div className="relative">
+                <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+                <input
+                  type="text"
+                  placeholder="Search contacts..."
+                  value={recentEmailsSearch}
+                  onChange={(e) => setRecentEmailsSearch(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                {(['all', 'sent', 'opened', 'replied'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setRecentEmailsFilter(filter)}
+                    className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                      recentEmailsFilter === filter
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 border border-neutral-200'
+                    }`}
+                  >
+                    {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           
@@ -859,8 +929,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <p>No recent emails found.</p>
                 <p className="text-xs mt-1">Start the agent to begin outreach.</p>
               </div>
+            ) : filteredRecentEmails.length === 0 ? (
+              <div className="p-8 text-center text-neutral-500">
+                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
+                <p>No contacts match your search or filter.</p>
+                <p className="text-xs mt-1">Try adjusting your search terms or filters.</p>
+              </div>
             ) : (
-              recentEmails.map((contact) => (
+              filteredRecentEmails.map((contact) => (
                 <motion.div
                   key={contact.id}
                   initial={{ opacity: 0 }}

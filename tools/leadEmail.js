@@ -5,7 +5,7 @@ import { sendEmailMailgun } from './emailMailgun.js';
  * Handles email sending specifically for automated lead outreach
  * Separated from general email functionality to prevent interference
  */
-export async function leadEmail(to, subject, body, personInfo = null, userId = null) {
+export async function leadEmail(to, subject, body, personInfo = null, userId = null, agentId = null) {
   console.log('[LEAD EMAIL] Sending email via dedicated lead email tool');
   console.log('[LEAD EMAIL] To:', to);
   console.log('[LEAD EMAIL] Subject:', subject);
@@ -19,8 +19,8 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
   }
   
   try {
-    // Use the tracking-enabled email function with person info and userId
-    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId);
+    // Use the tracking-enabled email function with person info, userId, and agentId
+    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId);
     console.log('[LEAD EMAIL] Mailgun result:', result);
     
     if (result.success) {

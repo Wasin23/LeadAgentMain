@@ -46,7 +46,8 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
       return emailLog;
     }
     
-    const logFileName = `email_logs_${userId}.json`;
+    // Create agent-specific log file if agentId is provided
+    const logFileName = agentId ? `email_logs_${userId}_${agentId}.json` : `email_logs_${userId}.json`;
     const logPath = path.join(process.cwd(), logFileName);
     console.log('[EMAIL LOG] Log path:', logPath);
     
@@ -184,7 +185,7 @@ function addTrackingToEmail(body, trackingId) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId) {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null) {
   try {
     // Ensure we always have HTML content for tracking
     let htmlBody = body;

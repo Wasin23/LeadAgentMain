@@ -1,0 +1,43 @@
+[
+  {
+    "id": "tracking-76e84c79_1760036342826_d1bbd244",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "test email for cole again",
+    "body": "hello this is aother test for cole whats up",
+    "status": "sent",
+    "timestamp": "2025-10-09T18:59:03.154Z",
+    "personInfo": {
+      "fullName": "COLTON.FIDD",
+      "currentPosition": "Custom Contact",
+      "company": "Custom Email",
+      "email": "COLTON.FIDD@GMAIL.COM"
+    },
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "analytics": {
+      "opened": true,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 1,
+      "lastActivity": "2025-10-09T18:59:23.992Z",
+      "mailgunId": "<tracking-tracking-76e84c79_1760036342826_d1bbd244@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": {
+        "fullName": "COLTON.FIDD",
+        "currentPosition": "Custom Contact",
+        "company": "Custom Email",
+        "email": "COLTON.FIDD@GMAIL.COM"
+      },
+      "replyCount": 0,
+      "aiReplies": [],
+      "leadMessages": []
+    },
+    "replies": [],
+    "opened": true,
+    "openCount": 1,
+    "clickCount": 0
+  }
+]

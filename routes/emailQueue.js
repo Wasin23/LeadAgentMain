@@ -105,6 +105,14 @@ router.post('/custom', async (req, res) => {
         title: 'Custom Contact',
         context: leadContext || 'Custom email created by user'
       },
+      leadDetails: {
+        personInfo: {
+          fullName: to.split('@')[0], // Use email prefix as name
+          currentPosition: 'Custom Contact',
+          company: 'Custom Email',
+          email: to
+        }
+      },
       emailData: {
         subject: subject,
         body: body,
@@ -202,12 +210,23 @@ router.post('/:id/approve', async (req, res) => {
     // Send the actual email with person information
     const personInfo = approvedEmail.leadDetails?.personInfo || null;
     const userId = approvedEmail.userId || null; // Get userId from queue data
+    
+    console.log('[EMAIL QUEUE] Sending email with data:', {
+      finalRecipient,
+      finalSubject,
+      bodyLength: finalBody?.length,
+      personInfo,
+      userId,
+      emailType: approvedEmail.metadata?.customEmail ? 'custom' : 'regular'
+    });
+    
     const sendResult = await leadEmail(
       finalRecipient,
       finalSubject,
       finalBody,
       personInfo,
-      userId
+      userId,
+      approvedEmail.agentId || req.body.agentId || null // Get agentId from email metadata or request body
     );
     
     if (sendResult.success) {
