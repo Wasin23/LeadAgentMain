@@ -391,7 +391,8 @@ Choose your next action and explain your reasoning:`;
         
       case 'unlock_email':
         if (actionResult?.success && actionResult?.email) {
-          // Email unlocked successfully, move to build email
+          // Email unlocked successfully, UPDATE the lead email and move to build email
+          this.memory.currentCycle.currentLead.email = actionResult.email;
           this.memory.currentCycle.processingPhase = 'build';
           console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
         } else {
@@ -731,13 +732,14 @@ Choose your next action and explain your reasoning:`;
         console.log(`📧 Personal emails: ${personalEmails.join(', ')}`);
         console.log(`📊 [DEBUG] Email status/confidence:`, person.email_status, person.extrapolated_email_confidence);
         
-        // Validate email with ZeroBounce before accepting
+        // Validate email with ZeroBounce before accepting (non-blocking)
         const emailToValidate = workEmail;
         if (emailToValidate) {
           console.log(`🔍 [ZEROBOUNCE] Validating email: ${emailToValidate}`);
           const zeroBounceResult = await this.validateEmailWithZeroBounce(emailToValidate);
           
-          if (!zeroBounceResult.isValid) {
+          // Only reject if ZeroBounce specifically says it's invalid or spamtrap
+          if (!zeroBounceResult.isValid && ['invalid', 'spamtrap', 'abuse', 'do_not_mail'].includes(zeroBounceResult.status?.toLowerCase())) {
             console.log(`❌ [ZEROBOUNCE] Email validation failed: ${zeroBounceResult.status} - ${zeroBounceResult.reason}`);
             return {
               success: false,
@@ -745,7 +747,7 @@ Choose your next action and explain your reasoning:`;
             };
           }
           
-          console.log(`✅ [ZEROBOUNCE] Email validation passed: ${zeroBounceResult.status}`);
+          console.log(`✅ [ZEROBOUNCE] Email validation: ${zeroBounceResult.status} (accepted)`);
         }
         
         // Accept emails with actual confidence scores

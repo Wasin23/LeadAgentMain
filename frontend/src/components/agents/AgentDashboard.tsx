@@ -1115,7 +1115,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-neutral-900 text-sm">
-                                  {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}
+                                  {email.leadInfo?.company || email.leadData?.company || 'Unknown Company'}
+                                </span>
+                                <span className="text-xs text-neutral-500">
+                                  • {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}
                                 </span>
                                 <span className="text-xs text-neutral-500">
                                   • Queued {email.createdAt ? new Date(email.createdAt).toLocaleDateString() : 'today'}

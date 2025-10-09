@@ -209,18 +209,23 @@ router.post('/run-cycle', async (req, res) => {
     
     // Get user-specific agent instance
     const userAgent = getUserAgent(userId);
-    const result = await userAgent.runCycle();
     
+    // Start the cycle asynchronously (don't wait for completion)
+    userAgent.runCycle().catch(error => {
+      console.error('[LEAD AGENT API] Cycle error (async):', error);
+    });
+    
+    // Respond immediately
     res.json({
-      success: result.success,
-      message: result.success ? 'Cycle completed successfully' : 'Cycle failed',
-      data: result
+      success: true,
+      message: 'Cycle started successfully',
+      data: { status: 'running' }
     });
   } catch (error) {
-    console.error('[LEAD AGENT API] Error running cycle:', error);
+    console.error('[LEAD AGENT API] Error starting cycle:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error running cycle',
+      message: 'Error starting cycle',
       error: error.message
     });
   }
