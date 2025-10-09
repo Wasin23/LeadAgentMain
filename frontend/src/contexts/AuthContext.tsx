@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '@/lib/api';
+import Cookies from 'js-cookie';
 
 interface User {
   userId: string;
@@ -62,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Store auth data
         localStorage.setItem('currentUser', JSON.stringify(user));
         localStorage.setItem('authToken', token);
+        Cookies.set('authToken', token, { expires: 7 }); // Set cookie for SSE
         
         setUser(user);
         return true;
@@ -83,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Store auth data
         localStorage.setItem('currentUser', JSON.stringify(user));
         localStorage.setItem('authToken', token);
+        Cookies.set('authToken', token, { expires: 7 }); // Set cookie for SSE
         
         setUser(user);
         return true;
@@ -97,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('authToken');
+    Cookies.remove('authToken'); // Clear cookie for SSE
     localStorage.setItem('justLoggedOut', 'true');
     setUser(null);
   };

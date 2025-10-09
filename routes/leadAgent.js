@@ -233,7 +233,7 @@ router.post('/run-cycle', async (req, res) => {
 
 // Real-time progress streaming via Server-Sent Events
 router.get('/progress-stream', (req, res) => {
-  console.log('[LEAD AGENT API] Starting progress stream...');
+  console.log('[LEAD AGENT API] Starting progress stream for user:', req.user.userId);
   
   // Set up SSE headers
   res.writeHead(200, {
@@ -246,11 +246,22 @@ router.get('/progress-stream', (req, res) => {
 
   // Send initial status
   const sendProgress = (data) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    try {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    } catch (err) {
+      console.error('[LEAD AGENT API] Error sending progress:', err);
+    }
   };
 
+  // Send test message to verify connection
+  sendProgress({
+    type: 'test',
+    message: 'Progress stream connected successfully',
+    timestamp: new Date().toISOString()
+  });
+
   // Get user-specific agent instance
-  const userId = req.user.userId; // Get from JWT token
+  const userId = req.user.userId;
   const userAgent = getUserAgent(userId);
 
   // Send current status immediately

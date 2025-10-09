@@ -14,6 +14,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import winston from 'winston';
 import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import { getConfig } from './utils/config.js';
 import { memoryMonitor, performanceMiddleware } from './utils/memoryMonitor.js';
 import chatRoutes from './routes/chat.js';
@@ -264,6 +265,7 @@ app.use(session({
 // Request parsing with limits
 app.use(express.json({ limit: config.performance.requestSizeLimit }));
 app.use(express.urlencoded({ extended: true, limit: config.performance.requestSizeLimit }));
+app.use(cookieParser()); // Parse cookies for JWT auth in SSE
 
 // Performance monitoring middleware - DISABLED FOR RENDER
 // app.use(performanceMiddleware());

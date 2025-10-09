@@ -167,6 +167,16 @@ class ReasoningLeadAgent extends EventEmitter {
     
     console.log(`📋 [AGENT LOG] ${operation}: ${details}`);
     console.log(`📋 [AGENT LOG] Total logs now: ${this.operationLogs.length}`);
+    
+    // Emit progress event for real-time updates
+    this.emit('progress', {
+      id: logEntry.id,
+      timestamp: logEntry.timestamp,
+      operation: operation,
+      details: details,
+      status: status,
+      data: data
+    });
   }
 
   getOperationLogs() {
@@ -1807,6 +1817,13 @@ BODY: [email body with proper greeting and signature]`;
 
       await this.emailQueue.addToQueue(queueData);
       console.log(`📧 [EMAIL QUEUE] Added email for ${leadData.company} (${leadData.email})`);
+
+      // Emit progress event for email queue update
+      this.emit('progress', {
+        type: 'email_queue',
+        message: `Email queued for ${leadData.company}`,
+        data: queueData
+      });
       
       return queueData.id;
     } catch (error) {

@@ -168,10 +168,28 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       
       eventSource.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          addLog(data.level || 'info', data.message, data.stage);
+          const progressData = JSON.parse(event.data);
+          console.log('Progress stream received:', progressData);
+          
+          if (progressData.type === 'progress' && progressData.data) {
+            // Agent log event - add directly to Activity Logs
+            const logData = progressData.data;
+            setAgentLogs(prev => [logData, ...prev.slice(0, 49)]);
+          } else if (progressData.type === 'test') {
+            // Test message
+            console.log('SSE Test:', progressData.message);
+            const testLog = {
+              id: `test-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              operation: 'Connection Test',
+              details: progressData.message,
+              status: 'info',
+              data: {}
+            };
+            setAgentLogs(prev => [testLog, ...prev.slice(0, 49)]);
+          }
         } catch (e) {
-          console.error('Failed to parse progress stream data:', e);
+          console.error('Failed to parse SSE data:', e);
         }
       };
 
@@ -510,6 +528,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       await api.post('/api/lead-agent/reset');
       addLog('info', 'Agent reset successfully');
       setLogs([]);
+      setAgentLogs([]); // Clear Activity Logs
       await fetchStatus();
     } catch (error) {
       console.error('Failed to reset agent:', error);
