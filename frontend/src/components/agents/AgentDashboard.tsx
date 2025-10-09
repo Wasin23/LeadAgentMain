@@ -350,9 +350,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const startEditingEmail = (email: any) => {
     console.log('📝 Starting to edit email:', email);
     setEditingEmail(email);
-    setEditedSubject(email.subject || email.finalSubject || '');
-    setEditedContent(email.personalizedEmail || email.body || email.finalBody || '');
-    setEditedRecipient(email.to || email.finalRecipient || '');
+    setEditedSubject(email.emailData?.subject || email.subject || email.finalSubject || '');
+    setEditedContent(email.emailData?.body || email.personalizedEmail || email.body || email.finalBody || '');
+    setEditedRecipient(email.leadData?.email || email.to || email.finalRecipient || '');
   };
 
   const saveEmailEdits = async () => {
@@ -1034,19 +1034,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         >
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium text-sm">
-                              {(email.recipientName || email.to || email.finalRecipient || 'U').charAt(0).toUpperCase()}
+                              {(email.leadData?.name || email.recipientName || email.leadData?.email || email.to || email.finalRecipient || 'U').charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-neutral-900 text-sm">
-                                  {email.to || email.finalRecipient || 'Unknown Email'}
+                                  {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}
                                 </span>
                                 <span className="text-xs text-neutral-500">
                                   • Queued {email.createdAt ? new Date(email.createdAt).toLocaleDateString() : 'today'}
                                 </span>
                               </div>
                               <p className="text-xs text-neutral-600 truncate mt-1">
-                                {email.subject || email.finalSubject || 'No Subject'}
+                                {email.emailData?.subject || email.subject || email.finalSubject || 'No Subject'}
                               </p>
                             </div>
                           </div>
@@ -1109,7 +1109,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <div>
                   <h2 className="text-xl font-semibold text-neutral-900">Email Preview</h2>
                   <p className="text-sm text-neutral-600 mt-1">
-                    To: {selectedEmail.to || selectedEmail.finalRecipient || 'Unknown'}
+                    To: {selectedEmail.leadData?.email || selectedEmail.to || selectedEmail.finalRecipient || 'Unknown'}
                   </p>
                 </div>
                 <button
@@ -1126,29 +1126,29 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">Recipient Email</label>
                   <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
-                    {selectedEmail.to || selectedEmail.finalRecipient || 'No recipient'}
+                    {selectedEmail.leadData?.email || selectedEmail.to || selectedEmail.finalRecipient || 'No recipient'}
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
                   <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
-                    {selectedEmail.subject || selectedEmail.finalSubject || 'No Subject'}
+                    {selectedEmail.emailData?.subject || selectedEmail.subject || selectedEmail.finalSubject || 'No Subject'}
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">Email Content</label>
                   <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-md min-h-[300px] whitespace-pre-wrap">
-                    {selectedEmail.personalizedEmail || selectedEmail.body || selectedEmail.finalBody || 'No content available'}
+                    {selectedEmail.emailData?.body || selectedEmail.personalizedEmail || selectedEmail.body || selectedEmail.finalBody || 'No content available'}
                   </div>
                 </div>
                 
-                {selectedEmail.company && (
+                {(selectedEmail.leadData?.company || selectedEmail.company) && (
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Company</label>
                     <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
-                      {selectedEmail.company}
+                      {selectedEmail.leadData?.company || selectedEmail.company}
                     </div>
                   </div>
                 )}
@@ -1207,7 +1207,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <div>
                   <h2 className="text-xl font-semibold text-neutral-900">Edit Email</h2>
                   <p className="text-sm text-neutral-600 mt-1">
-                    To: {editingEmail.to || editingEmail.finalRecipient || 'Unknown'}
+                    To: {editingEmail.leadData?.email || editingEmail.to || editingEmail.finalRecipient || 'Unknown'}
                   </p>
                 </div>
                 <button
