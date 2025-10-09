@@ -249,6 +249,34 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       logs = [];
     }
     
+    // Always load approved emails (regardless of agentId since they're saved without agent ID)
+    const approvedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
+    let approvedEmails = [];
+    
+    try {
+      const existingApproved = await fs.readFile(approvedPath, 'utf8');
+      approvedEmails = JSON.parse(existingApproved);
+    } catch (error) {
+      approvedEmails = [];
+    }
+    
+    // Normalize approved emails to match expected structure
+    const normalizedApproved = approvedEmails.map(email => ({
+      ...email,
+      sentAt: email.approvedAt || email.timestamp,
+      subject: email.finalSubject || email.subject,
+      body: email.finalBody || email.body || email.personalizedEmail,
+      content: email.finalBody || email.body || email.personalizedEmail,
+      personInfo: {
+        fullName: email.leadInfo?.name || 'Unknown',
+        company: email.leadInfo?.company || 'Unknown Company'
+      },
+      company: email.leadInfo?.company || 'Unknown Company'
+    }));
+    
+    // Combine logs and normalized approved emails
+    logs = [...logs, ...normalizedApproved];
+    
     // Add analytics status to each email
     const emailsWithAnalytics = logs.map(log => ({
       ...log,

@@ -9,13 +9,18 @@ import { trackUserActivity } from './activityTracker.js';
  * @param {NextFunction} next - Express next function
  */
 export function authenticateToken(req, res, next) {
-  // Get token from Authorization header: "Bearer <token>" or cookies (for SSE)
+  // Get token from Authorization header: "Bearer <token>", cookies, or query params (for SSE)
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
   
   // If no header token, try cookies (for EventSource/SSE requests)
   if (!token && req.cookies && req.cookies.authToken) {
     token = req.cookies.authToken;
+  }
+  
+  // If no cookie token, try query parameter (for EventSource with URL params)
+  if (!token && req.query && req.query.token) {
+    token = req.query.token;
   }
   
   console.log(`[JWT] Auth check for ${req.method} ${req.path} - Token present: ${!!token}`);

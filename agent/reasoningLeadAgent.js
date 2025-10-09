@@ -39,7 +39,7 @@ class ReasoningLeadAgent extends EventEmitter {
     // AWS manager for settings and data storage
     this.awsManager = new AWSManager();
     
-    // Agent state for UI integration
+      // Agent state for UI integration
     this.isRunning = false;
     this.cycleCount = 0;
     this.startTime = null;
@@ -55,16 +55,15 @@ class ReasoningLeadAgent extends EventEmitter {
       currentGoal: null,
       currentIndustryIndex: 0, // Track which industry to search next
       
-      // Current cycle lead tracking
+      // Current cycle lead tracking with queue system
       currentCycle: {
         leadsProcessed: 0,
         targetLeads: 0,
         currentLead: null,
+        leadQueue: [], // Queue of leads from Apollo search
         processingPhase: 'search' // 'search' | 'research' | 'email' | 'complete'
       }
-    };
-    
-    // Operation logs for UI activity tracking
+    };    // Operation logs for UI activity tracking
     this.operationLogs = [];
     this.maxLogs = 100; // Keep last 100 operations
     
@@ -199,6 +198,7 @@ CURRENT CYCLE STATUS:
 - Has User Settings: ${context.hasUserSettings}  
 - Has Email Settings: ${context.hasEmailSettings}
 - Leads Processed: ${context.leadsProcessed}/${context.targetLeads}
+- Lead Queue: ${context.leadQueue?.length || 0} leads waiting
 - Current Processing Phase: ${context.processingPhase}
 - Cycle Complete: ${context.cycleComplete}
 
@@ -227,8 +227,8 @@ DECISION LOGIC (choose ONE action):
 
 3. IF cycleComplete = true → CALL complete (cycle finished, wait for next cycle)
 
-4. IF processingPhase = 'search' AND currentLead = null → CALL apollo_search
-   (Find the next lead using user's criteria)
+4. IF processingPhase = 'search' AND currentLead = null AND leadQueue = empty → CALL apollo_search
+   (Search for leads only when queue is empty and no current lead being processed)
 
 5. IF processingPhase = 'research' AND currentLead exists → CALL serper_research  
    (Research the current lead to gather intelligence)
@@ -341,8 +341,8 @@ Choose your next action and explain your reasoning:`;
     
     switch (context.processingPhase) {
       case 'search':
-        if (!context.currentLead) {
-          console.log('🔧 [FUNCTION CALL] Forcing apollo_search');
+        if (!context.currentLead && (context.leadQueue.length === 0)) {
+          console.log('🔧 [FUNCTION CALL] Forcing apollo_search - no current lead and queue is empty');
           return { name: 'apollo_search' };
         }
         break;
@@ -380,14 +380,23 @@ Choose your next action and explain your reasoning:`;
     switch (action) {
       case 'apollo_search':
         if (actionResult?.leads?.length > 0) {
-          // Found a lead, normalize structure and move to research phase
-          const lead = actionResult.leads[0];
-          this.memory.currentCycle.currentLead = {
-            ...lead,
-            company: lead.organization?.name || lead.company || 'Unknown Company'
-          };
-          this.memory.currentCycle.processingPhase = 'research';
-          console.log(`🔍 [CYCLE] Found lead: ${lead.name} at ${lead.organization?.name || lead.company}`);
+          // Add all leads to the queue for sequential processing
+          actionResult.leads.forEach(lead => {
+            const normalizedLead = {
+              ...lead,
+              company: lead.organization?.name || lead.company || 'Unknown Company'
+            };
+            this.memory.currentCycle.leadQueue.push(normalizedLead);
+          });
+          
+          console.log(`🔍 [CYCLE] Added ${actionResult.leads.length} leads to queue. Queue size: ${this.memory.currentCycle.leadQueue.length}`);
+          
+          // Start processing the first lead from queue
+          if (this.memory.currentCycle.leadQueue.length > 0 && !this.memory.currentCycle.currentLead) {
+            this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+            this.memory.currentCycle.processingPhase = 'research';
+            console.log(`� [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+          }
         }
         break;
         
@@ -406,10 +415,20 @@ Choose your next action and explain your reasoning:`;
           this.memory.currentCycle.processingPhase = 'build';
           console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
         } else {
-          // Email unlock failed, skip this lead and search for new one
+          // Email unlock failed, skip this lead and get next from queue or search
+          console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead`);
           this.memory.currentCycle.currentLead = null;
-          this.memory.currentCycle.processingPhase = 'search';
-          console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead and searching for new one`);
+          
+          if (this.memory.currentCycle.leadQueue.length > 0) {
+            // Get next lead from queue
+            this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+            this.memory.currentCycle.processingPhase = 'research';
+            console.log(`📋 [QUEUE] Processing next lead after failure: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+          } else {
+            // Queue empty, need to search for more leads
+            this.memory.currentCycle.processingPhase = 'search';
+            console.log(`🔍 [CYCLE] Queue empty after failure, searching for more leads`);
+          }
         }
         break;
         
@@ -429,14 +448,24 @@ Choose your next action and explain your reasoning:`;
           // Email built, lead complete - move to next lead
           this.memory.currentCycle.leadsProcessed++;
           this.memory.currentCycle.currentLead = null;
-          this.memory.currentCycle.processingPhase = 'search';
-          console.log(`✉️ [CYCLE] Email built! Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}`);
           
-          // Check if cycle is complete
-          if (this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads) {
+          // Get next lead from queue or search for more
+          if (this.memory.currentCycle.leadQueue.length > 0) {
+            // Process next lead from queue
+            this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+            this.memory.currentCycle.processingPhase = 'research';
+            console.log(`📋 [QUEUE] Processing next lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+          } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
+            // Need more leads - search again
+            this.memory.currentCycle.processingPhase = 'search';
+            console.log(`🔍 [CYCLE] Queue empty, need ${this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed} more leads`);
+          } else {
+            // Cycle complete
             this.memory.currentCycle.processingPhase = 'complete';
             console.log(`🏁 [CYCLE] Cycle complete! Processed ${this.memory.currentCycle.leadsProcessed} leads`);
           }
+          
+          console.log(`✉️ [CYCLE] Email built! Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue: ${this.memory.currentCycle.leadQueue.length}`);
         }
         break;
     }
@@ -1076,10 +1105,17 @@ BODY: [email body with proper greeting and signature]`;
         console.log(`🔍 [FALLBACK] Using random position from settings: "${targetPosition}"`);
       }
       
+      // Calculate how many leads we still need
+      const leadsNeeded = this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed;
+      const remainingInQueue = this.memory.currentCycle.leadQueue.length;
+      const leadsToRequest = Math.max(1, leadsNeeded - remainingInQueue);
+      
+      console.log(`📊 [APOLLO] Leads status: Processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue: ${remainingInQueue}, Requesting: ${leadsToRequest}`);
+      
       const searchPayload = {
         q_keywords: targetPosition,
         page: searchPage,
-        per_page: 5
+        per_page: leadsToRequest
       };
 
       // Use agent-reasoned company size or fall back to user settings
@@ -2307,6 +2343,7 @@ BODY: [email body with proper greeting and signature]`;
         if (!this.memory.currentCycle.targetLeads && this.memory.userSettings?.leadLimit) {
           this.memory.currentCycle.targetLeads = this.memory.userSettings.leadLimit;
           this.memory.currentCycle.leadsProcessed = 0;
+          this.memory.currentCycle.leadQueue = [];
           this.memory.currentCycle.processingPhase = 'search';
           console.log(`🎯 [CYCLE] Starting new cycle - Target: ${this.memory.currentCycle.targetLeads} leads`);
         }
@@ -2321,6 +2358,7 @@ BODY: [email body with proper greeting and signature]`;
           leadsProcessed: this.memory.currentCycle.leadsProcessed,
           targetLeads: this.memory.currentCycle.targetLeads,
           currentLead: this.memory.currentCycle.currentLead,
+          leadQueue: this.memory.currentCycle.leadQueue,
           processingPhase: this.memory.currentCycle.processingPhase,
           cycleComplete: this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads
         };

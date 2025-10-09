@@ -70,6 +70,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [agentLogs, setAgentLogs] = useState<any[]>([]);
   const [recentEmails, setRecentEmails] = useState<EmailContact[]>([]);
   const [emailQueue, setEmailQueue] = useState<any[]>([]);
+  const [emailQueueSearch, setEmailQueueSearch] = useState('');
+  const [emailQueueSort, setEmailQueueSort] = useState<'newest' | 'oldest'>('newest');
   const [showSettings, setShowSettings] = useState(false);
   const [showEmailQueue, setShowEmailQueue] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
@@ -95,6 +97,32 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
 
+  // Filter and sort email queue
+  const filteredAndSortedEmailQueue = React.useMemo(() => {
+    let filtered = emailQueue;
+    
+    // Search filter
+    if (emailQueueSearch.trim()) {
+      filtered = filtered.filter(email => {
+        const company = email.leadInfo?.company || email.leadData?.company || '';
+        const recipient = email.leadData?.email || email.to || '';
+        const subject = email.emailData?.subject || email.subject || email.finalSubject || '';
+        
+        return company.toLowerCase().includes(emailQueueSearch.toLowerCase()) ||
+               recipient.toLowerCase().includes(emailQueueSearch.toLowerCase()) ||
+               subject.toLowerCase().includes(emailQueueSearch.toLowerCase());
+      });
+    }
+    
+    // Sort by date
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.timestamp || a.createdAt || 0).getTime();
+      const dateB = new Date(b.timestamp || b.createdAt || 0).getTime();
+      
+      return emailQueueSort === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [emailQueue, emailQueueSearch, emailQueueSort]);
+
   // Get the actual agent name
   const getAgentDisplayName = () => {
     if (agentName) return agentName; // Use the actual name if available
@@ -113,8 +141,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     fetchAgentName();
     
     // Set up real-time progress streaming
-    if (agentId === 'main') {
+    console.log('🔍 [DEBUG] Current agentId:', agentId);
+    if (agentId === 'main' || agentId === 'lead-agent-main') {
+      console.log('✅ [DEBUG] Setting up progress stream for agent:', agentId);
       setupProgressStream();
+    } else {
+      console.log('❌ [DEBUG] Skipping progress stream - agentId not supported:', agentId);
     }
     
     const statusInterval = setInterval(fetchStatus, 10000);
@@ -162,9 +194,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const setupProgressStream = () => {
     try {
-      // Connect to the progress stream endpoint
-      const eventSource = new EventSource('/api/lead-agent/progress-stream');
+      // Connect to the progress stream endpoint directly with auth token
+      console.log('🔗 [SSE] Establishing EventSource connection to progress-stream...');
+      const authToken = localStorage.getItem('authToken');
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const eventSource = new EventSource(`${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}`);
       wsRef.current = eventSource;
+      
+      eventSource.onopen = () => {
+        console.log('✅ [SSE] EventSource connection opened successfully');
+      };
       
       eventSource.onmessage = (event) => {
         try {
@@ -172,14 +211,31 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           console.log('Progress stream received:', progressData);
           
           if (progressData.type === 'progress' && progressData.data) {
-            // Agent log event - add directly to Activity Logs
-            const logData = progressData.data;
-            setAgentLogs(prev => [logData, ...prev.slice(0, 49)]);
+            // Check if this is an email queue update
+            if (progressData.data.type === 'email_queue') {
+              // Email added to queue - refresh queue display
+              console.log('📧 [SSE] Email queue updated:', progressData.data.message);
+              fetchEmailQueue(); // Refresh the email queue display
+              
+              // Also add to Activity Logs
+              const queueLog = {
+                id: `email-queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                timestamp: new Date().toISOString(),
+                operation: 'Email Queued',
+                details: progressData.data.message,
+                status: 'success',
+                data: progressData.data.data || {}
+              };
+              setAgentLogs(prev => [queueLog, ...prev.slice(0, 49)]);
+            } else {
+              // Regular agent log event - add directly to Activity Logs
+              setAgentLogs(prev => [progressData.data, ...prev.slice(0, 49)]);
+            }
           } else if (progressData.type === 'test') {
             // Test message
             console.log('SSE Test:', progressData.message);
             const testLog = {
-              id: `test-${Date.now()}`,
+              id: `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               timestamp: new Date().toISOString(),
               operation: 'Connection Test',
               details: progressData.message,
@@ -195,6 +251,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       eventSource.onerror = (error) => {
         console.error('Progress stream error:', error);
+        console.error('EventSource readyState:', eventSource.readyState);
+        console.error('EventSource URL:', eventSource.url);
+        
+        // Check if it's a connection error (readyState 2 = CLOSED)
+        if (eventSource.readyState === EventSource.CLOSED) {
+          console.error('❌ [SSE] Connection closed by server - likely authentication failure');
+        }
+        
         eventSource.close();
       };
     } catch (error) {
@@ -308,8 +372,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       
       // Refresh the queue, recent emails, and close modal
       await fetchEmailQueue();
-      await fetchRecentEmails(); // Add this to refresh the recent emails list
-      await fetchStatus(); // Refresh status to update counters
+      
+      // Wait a moment for the backend to process the approval, then refresh recently contacted
+      setTimeout(async () => {
+        await fetchRecentEmails();
+        await fetchStatus(); // Refresh status to update counters
+      }, 1000);
       setSelectedEmail(null);
       setEditingEmail(null);
       
@@ -352,14 +420,51 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       const response = await api.put(`/api/email-queue/${emailId}`, updates);
       console.log('✅ Update response:', response.data);
       
-      // Update the editing email object with the new data so changes are visible immediately
-      setEditingEmail({
+      // Update the editing email object with the new data so changes are visible immediately in the modal
+      const updatedEditingEmail = {
         ...editingEmail,
-        ...updates
-      });
+        ...updates,
+        // Update nested structures as well
+        emailData: {
+          ...editingEmail?.emailData,
+          subject: updates.subject || updates.finalSubject,
+          body: updates.body || updates.personalizedEmail || updates.finalBody
+        },
+        leadData: {
+          ...editingEmail?.leadData,
+          email: updates.to || updates.finalRecipient
+        }
+      };
       
-      // Refresh the queue in the background
-      await fetchEmailQueue();
+      setEditingEmail(updatedEditingEmail);
+      
+      // Update the email in the queue state immediately for instant UI update
+      setEmailQueue(prevQueue => 
+        prevQueue.map(email => {
+          if (email.id === emailId) {
+            return {
+              ...email,
+              ...updates,
+              // Update nested structures that the table displays
+              emailData: {
+                ...email.emailData,
+                subject: updates.subject || updates.finalSubject,
+                body: updates.body || updates.personalizedEmail || updates.finalBody
+              },
+              leadData: {
+                ...email.leadData,
+                email: updates.to || updates.finalRecipient
+              }
+            };
+          }
+          return email;
+        })
+      );
+      
+      // Refresh from backend to ensure consistency
+      setTimeout(async () => {
+        await fetchEmailQueue();
+      }, 500);
       
       console.log('✅ Email updated successfully');
       showNotification('Email updated successfully!', 'success');
@@ -385,23 +490,54 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       return;
     }
     
-    console.log('💾 Saving email edits...');
-    console.log('📧 Editing email:', editingEmail);
-    console.log('📝 New subject:', editedSubject);
-    console.log('📝 New content length:', editedContent.length);
-    console.log('📝 New recipient:', editedRecipient);
-    
-    const updates = {
-      subject: editedSubject,
-      personalizedEmail: editedContent,
-      body: editedContent,
-      to: editedRecipient,
-      finalRecipient: editedRecipient,
-      finalSubject: editedSubject,
-      finalBody: editedContent
-    };
-    
-    await updateEmail(editingEmail.id, updates);
+    try {
+      console.log('💾 Saving email edits...');
+      console.log('📧 Editing email:', editingEmail);
+      console.log('📝 New subject:', editedSubject);
+      console.log('📝 New content length:', editedContent.length);
+      console.log('📝 New recipient:', editedRecipient);
+      
+      const updates = {
+        subject: editedSubject,
+        personalizedEmail: editedContent,
+        body: editedContent,
+        to: editedRecipient,
+        finalRecipient: editedRecipient,
+        finalSubject: editedSubject,
+        finalBody: editedContent
+      };
+      
+      await updateEmail(editingEmail.id, updates);
+      
+      // Update the form fields to show the saved values (for instant visual feedback)
+      setEditedSubject(updates.subject || updates.finalSubject || editedSubject);
+      setEditedContent(updates.body || updates.personalizedEmail || updates.finalBody || editedContent);
+      setEditedRecipient(updates.to || updates.finalRecipient || editedRecipient);
+      
+      // CRITICAL: Update selectedEmail if it's the same email being edited
+      if (selectedEmail && selectedEmail.id === editingEmail.id) {
+        const updatedSelectedEmail = {
+          ...selectedEmail,
+          ...updates,
+          emailData: {
+            ...selectedEmail.emailData,
+            subject: updates.subject || updates.finalSubject,
+            body: updates.body || updates.personalizedEmail || updates.finalBody
+          },
+          leadData: {
+            ...selectedEmail.leadData,
+            email: updates.to || updates.finalRecipient
+          }
+        };
+        setSelectedEmail(updatedSelectedEmail);
+      }
+      
+      // Don't auto-close so user can see the changes took effect
+      // User can manually click "Close Editor" when satisfied
+      
+    } catch (error) {
+      console.error('❌ Failed to save email edits:', error);
+    }
   };
 
   const addCustomEmail = async () => {
@@ -833,13 +969,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <p className="text-xs mt-1">Start the agent to see detailed operations.</p>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0">
                 {agentLogs.map((log, index) => (
                   <motion.div
                     key={log.id || index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-xs leading-relaxed p-2 border-b border-neutral-100 last:border-b-0"
+                    className="text-xs leading-relaxed p-2 border-b border-neutral-200"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
@@ -1107,16 +1243,64 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
             </div>
             
+            {/* Filter Controls */}
+            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by company, email, or subject..."
+                      value={emailQueueSearch}
+                      onChange={(e) => setEmailQueueSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-neutral-600">Sort:</label>
+                  <select
+                    value={emailQueueSort}
+                    onChange={(e) => setEmailQueueSort(e.target.value as 'newest' | 'oldest')}
+                    className="text-sm border border-neutral-300 rounded-md py-2 pl-3 pr-6 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    style={{
+                      backgroundPosition: 'calc(100% - 4px) center',
+                      backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3c/svg%3e")',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: '1.25em 1.25em',
+                      appearance: 'none'
+                    }}
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                  </select>
+                </div>
+                <div className="text-sm text-neutral-500">
+                  {filteredAndSortedEmailQueue.length} of {emailQueue.length} emails
+                </div>
+              </div>
+            </div>
+            
             <div className="h-[80vh] overflow-y-auto">
-              {emailQueue.length === 0 ? (
+              {filteredAndSortedEmailQueue.length === 0 ? (
                 <div className="pt-58 text-center text-neutral-500">
                   <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
-                  <p>No emails in queue.</p>
-                  <p className="text-xs mt-1">The agent will add emails here when processing leads.</p>
+                  {emailQueue.length === 0 ? (
+                    <>
+                      <p>No emails in queue.</p>
+                      <p className="text-xs mt-1">The agent will add emails here when processing leads.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>No emails match your search.</p>
+                      <p className="text-xs mt-1">Try adjusting your search terms or filters.</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2 p-4">
-                  {emailQueue.map((email, index) => (
+                  {filteredAndSortedEmailQueue.map((email, index) => (
                     <div
                       key={email.id || index}
                       className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
@@ -1355,25 +1539,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
             
             <div className="p-6 border-t border-neutral-200 bg-neutral-50">
-              <div className="flex items-center gap-4 justify-between">
-                <div className="text-sm text-neutral-600">
-                  💡 Tip: Changes are saved automatically and you can continue editing
-                </div>
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setEditingEmail(null)}
-                    className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
-                  >
-                    Close Editor
-                  </button>
-                  <button
-                    onClick={saveEmailEdits}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors shadow-sm text-black font-medium"
-                    style={{ color: 'black !important' }}
-                  >
-                    💾 Save Changes
-                  </button>
-                </div>
+              <div className="flex items-center gap-4 justify-end">
+                <button
+                  onClick={() => setEditingEmail(null)}
+                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                >
+                  Close Editor
+                </button>
+                <button
+                  onClick={saveEmailEdits}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors shadow-sm text-black font-medium"
+                  style={{ color: 'black !important' }}
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
           </motion.div>

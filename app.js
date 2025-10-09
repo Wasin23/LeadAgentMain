@@ -274,7 +274,9 @@ app.use(cookieParser()); // Parse cookies for JWT auth in SSE
 app.use((req, res, next) => {
   res.setTimeout(config.performance.requestTimeout, () => {
     logger.error('Request timeout:', req.path);
-    res.status(408).json({ error: 'Request timeout' });
+    if (!res.headersSent) {
+      res.status(408).json({ error: 'Request timeout' });
+    }
   });
   next();
 });
