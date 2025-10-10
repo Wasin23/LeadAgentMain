@@ -165,7 +165,7 @@ async function searchGithub(query, limit = 4) {
     const response = await fetch(searchUrl, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'ExaMark-Research-Tool'
+        'User-Agent': 'Meridian-Research-Tool'
       }
     });
     

@@ -7,10 +7,10 @@ import ScrollRestoration from "@/components/ScrollRestoration";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "ExaMark - AI-Powered Lead Research & Automation",
-  description: "Advanced lead generation and email automation platform powered by AI",
-};
+const metadata: Metadata = {
+  title: "Meridian - AI-Powered Lead Research & Automation",
+  description: "AI-powered lead research and email automation platform",
+}
 
 export default function RootLayout({
   children,

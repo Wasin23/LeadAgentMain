@@ -138,7 +138,7 @@ router.post('/init', async (req, res) => {
     if (chatHistory.length === 0) {
       console.log('[BACKEND] New session, sending greeting');
       // Use a concise, predefined welcome message
-      const greetingResponse = "👋 Hello! I'm ExaMark, the official AI assistant for Exabits. I'm here to help you with questions about Exabits' AI-powered HPC solutions, our H100/H200 GPU infrastructure, and assist with research, analysis, and outreach. What can I help you with today?";
+      const greetingResponse = "👋 Hello! I'm Meridian, the official AI assistant for Exabits. I'm here to help you with questions about Exabits' AI-powered HPC solutions, our H100/H200 GPU infrastructure, and assist with research, analysis, and outreach. What can I help you with today?";
       
       // Add the greeting to chat history
       chatHistory.push({ input: '[System Init]', output: greetingResponse });

@@ -100,7 +100,7 @@ export class ZillizSettingsManager {
   getDefaultUserSettings() {
     return {
       aiPersonality: {
-        systemPrompt: `You are an expert AI sales and research assistant for ExaMark. You help users research leads, analyze companies, and generate personalized sales outreach.
+        systemPrompt: `You are an expert AI sales and research assistant for Meridian. You help users research leads, analyze companies, and generate personalized sales outreach.
 
 Your personality:
 - Professional but friendly

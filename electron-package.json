@@ -8,8 +8,8 @@
     "build-linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "com.examark.app",
-    "productName": "ExaMark",
+    "appId": "com.meridian.app",
+    "productName": "Meridian",
     "directories": {
       "output": "dist"
     },

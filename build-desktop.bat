@@ -1,5 +1,5 @@
 @echo off
-echo 🚀 Building ExaMark Desktop App...
+echo 🚀 Building Meridian Desktop App...
 
 REM Clean previous builds
 echo 🧹 Cleaning previous builds...
@@ -19,7 +19,7 @@ echo 📁 Generated files:
 dir dist
 
 echo.
-echo 🎯 Key features of ExaMark Desktop:
+echo 🎯 Key features of Meridian Desktop:
 echo    • No memory limits (uses full system RAM)
 echo    • Email tracking works even when minimized to tray
 echo    • Offline database storage

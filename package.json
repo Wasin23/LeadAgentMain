@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "name": "examark",
+  "name": "meridian",
   "version": "1.0.0",
   "main": "main.cjs",
   "homepage": "./",
@@ -32,9 +32,9 @@
     "leads",
     "automation"
   ],
-  "author": "ExaMark Team",
+  "author": "Meridian Team",
   "license": "ISC",
-  "description": "ExaMark - AI-Powered Lead Research & Email Automation Desktop App",
+  "description": "Meridian - AI-Powered Lead Research & Email Automation Desktop App",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.902.0",
     "@aws-sdk/client-ses": "^3.901.0",
@@ -76,8 +76,8 @@
     "electron-builder": "^26.0.12"
   },
   "build": {
-    "appId": "com.examark.desktop",
-    "productName": "ExaMark",
+    "appId": "com.meridian.desktop",
+    "productName": "Meridian",
     "directories": {
       "output": "dist",
       "app": ".",
@@ -141,15 +141,15 @@
       "createStartMenuShortcut": true,
       "installerIcon": "public/icons/icon-256x256.png",
       "uninstallerIcon": "public/icons/icon-256x256.png",
-      "artifactName": "ExaMark-Setup-${version}.${ext}",
-      "shortcutName": "ExaMark"
+      "artifactName": "Meridian-Setup-${version}.${ext}",
+      "shortcutName": "Meridian"
     },
     "dmg": {
-      "title": "ExaMark ${version}",
-      "artifactName": "ExaMark-${version}.${ext}"
+      "title": "Meridian ${version}",
+      "artifactName": "Meridian-${version}.${ext}"
     },
     "appImage": {
-      "artifactName": "ExaMark-${version}.${ext}"
+      "artifactName": "Meridian-${version}.${ext}"
     }
   }
 }

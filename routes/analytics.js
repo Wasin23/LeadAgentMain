@@ -12,7 +12,7 @@ router.get('/debug/email-html/:trackingId', async (req, res) => {
     const { trackingId } = req.params;
     const { addTrackingToEmail } = await import('../tools/emailMailgun.js');
     
-    const testBody = "Hello! This is a test email.\n\nBest regards,\nExaMark Team";
+    const testBody = "Hello! This is a test email.\n\nBest regards,\nMeridian Team";
     const htmlWithTracking = addTrackingToEmail(testBody.replace(/\n/g, '<br>'), trackingId);
     
     res.set('Content-Type', 'text/html');

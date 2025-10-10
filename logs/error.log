@@ -1,28 +1,30 @@
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-03T01:12:29.337Z"}
-{"level":"error","message":"Unhandled Rejection at:","service":"examark-api","timestamp":"2025-10-07T15:11:52.731Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-09T18:52:05.346Z"}
-{"error":"Expected property name or '}' in JSON at position 1 (line 1 column 2)","ip":"::1","level":"error","message":"Unhandled error:","method":"POST","path":"/api/auth/login","service":"examark-api","stack":"SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)\n    at JSON.parse (<anonymous>)\n    at parse (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\body-parser\\lib\\types\\json.js:77:19)\n    at C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\body-parser\\lib\\read.js:123:18\n    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)\n    at invokeCallback (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\raw-body\\index.js:238:16)\n    at done (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\raw-body\\index.js:227:7)\n    at IncomingMessage.onEnd (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\raw-body\\index.js:287:7)\n    at IncomingMessage.emit (node:events:508:28)\n    at endReadableNT (node:internal/streams/readable:1701:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","timestamp":"2025-10-09T21:00:59.896Z"}
-{"error":"Expected property name or '}' in JSON at position 1 (line 1 column 2)","ip":"::1","level":"error","message":"Unhandled error:","method":"POST","path":"/api/auth/login","service":"examark-api","stack":"SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)\n    at JSON.parse (<anonymous>)\n    at parse (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\body-parser\\lib\\types\\json.js:77:19)\n    at C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\body-parser\\lib\\read.js:123:18\n    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)\n    at invokeCallback (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\raw-body\\index.js:238:16)\n    at done (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\raw-body\\index.js:227:7)\n    at IncomingMessage.onEnd (C:\\Users\\colto\\OneDrive\\ExaMark\\node_modules\\raw-body\\index.js:287:7)\n    at IncomingMessage.emit (node:events:508:28)\n    at endReadableNT (node:internal/streams/readable:1701:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","timestamp":"2025-10-09T21:01:04.413Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T22:13:13.107Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T22:41:56.940Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T22:51:09.862Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T22:58:37.798Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-09T23:04:41.392Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-09T23:14:27.727Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-09T23:20:05.031Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:30:39.630Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:48:06.786Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:57:42.285Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T00:01:44.577Z"}
-{"level":"error","message":"Unhandled Rejection at:","service":"examark-api","timestamp":"2025-10-10T16:04:43.752Z"}
-{"level":"error","message":"Unhandled Rejection at:","service":"examark-api","timestamp":"2025-10-10T16:05:38.469Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T16:11:05.860Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T16:17:26.970Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T16:38:15.913Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T16:48:38.423Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T17:05:54.440Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T17:32:49.455Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T17:38:19.278Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T17:56:29.609Z"}
-{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T18:03:26.947Z"}
-{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T18:09:22.560Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-03T01:12:29.337Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-10-07T15:11:52.731Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-09T18:52:05.346Z"}
+{"error":"Expected property name or '}' in JSON at position 1 (line 1 column 2)","ip":"::1","level":"error","message":"Unhandled error:","method":"POST","path":"/api/auth/login","service":"meridian-api","stack":"SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)\n    at JSON.parse (<anonymous>)\n    at parse (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\body-parser\\lib\\types\\json.js:77:19)\n    at C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\body-parser\\lib\\read.js:123:18\n    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)\n    at invokeCallback (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\raw-body\\index.js:238:16)\n    at done (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\raw-body\\index.js:227:7)\n    at IncomingMessage.onEnd (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\raw-body\\index.js:287:7)\n    at IncomingMessage.emit (node:events:508:28)\n    at endReadableNT (node:internal/streams/readable:1701:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","timestamp":"2025-10-09T21:00:59.896Z"}
+{"error":"Expected property name or '}' in JSON at position 1 (line 1 column 2)","ip":"::1","level":"error","message":"Unhandled error:","method":"POST","path":"/api/auth/login","service":"meridian-api","stack":"SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)\n    at JSON.parse (<anonymous>)\n    at parse (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\body-parser\\lib\\types\\json.js:77:19)\n    at C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\body-parser\\lib\\read.js:123:18\n    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)\n    at invokeCallback (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\raw-body\\index.js:238:16)\n    at done (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\raw-body\\index.js:227:7)\n    at IncomingMessage.onEnd (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\raw-body\\index.js:287:7)\n    at IncomingMessage.emit (node:events:508:28)\n    at endReadableNT (node:internal/streams/readable:1701:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","timestamp":"2025-10-09T21:01:04.413Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-09T22:13:13.107Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-09T22:41:56.940Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-09T22:51:09.862Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-09T22:58:37.798Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-09T23:04:41.392Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-09T23:14:27.727Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-09T23:20:05.031Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-09T23:30:39.630Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-09T23:48:06.786Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-09T23:57:42.285Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T00:01:44.577Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-10-10T16:04:43.752Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-10-10T16:05:38.469Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T16:11:05.860Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T16:17:26.970Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T16:38:15.913Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T16:48:38.423Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T17:05:54.440Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T17:32:49.455Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T17:38:19.278Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T17:56:29.609Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T18:03:26.947Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T18:09:22.560Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T18:25:03.736Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T19:04:03.694Z"}

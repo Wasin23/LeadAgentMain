@@ -24,7 +24,7 @@ class PostGeneratorAgent extends EventEmitter {
     try {
       console.log(`[POST GENERATOR] Generating ${tone} post about: ${topic || 'AI/Tech industry'}`);
       
-      const prompt = `You are ExaMark, the AI assistant for Exabits (AI-powered High-Performance Computing company). 
+      const prompt = `You are Meridian, the AI assistant for Exabits (AI-powered High-Performance Computing company). 
 
 Generate a compelling LinkedIn post about: ${topic || 'AI, machine learning, or high-performance computing trends'}
 

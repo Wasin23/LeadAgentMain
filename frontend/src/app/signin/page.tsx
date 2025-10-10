@@ -128,7 +128,7 @@ export default function SignInPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            ExaMark
+            Meridian
           </motion.h1>
           <p className="text-neutral-500 text-sm">AI-Powered Lead Research & Automation</p>
         </div>

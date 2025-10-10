@@ -1,4 +1,4 @@
-// Desktop notification system for ExaMark
+// Desktop notification system for Meridian
 import { EventEmitter } from 'events';
 
 class DesktopNotificationManager extends EventEmitter {
@@ -61,7 +61,7 @@ class DesktopNotificationManager extends EventEmitter {
 
       case 'error':
         this.showNotification({
-          title: '❌ ExaMark Error',
+          title: '❌ Meridian Error',
           body: data.message || 'An error occurred',
           icon: 'error',
           urgent: true

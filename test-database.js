@@ -24,7 +24,7 @@ async function checkDatabase() {
     
     // Scan the contacted leads table
     const command = new ScanCommand({
-      TableName: 'examark-contacted-leads',
+      TableName: 'meridian-contacted-leads',
       FilterExpression: 'userId = :userId',
       ExpressionAttributeValues: {
         ':userId': userId
@@ -53,7 +53,7 @@ async function checkDatabase() {
     console.error('❌ Failed to check database:', error.message);
     
     if (error.name === 'ResourceNotFoundException') {
-      console.error('💡 The table "examark-contacted-leads" does not exist!');
+      console.error('💡 The table "meridian-contacted-leads" does not exist!');
     } else if (error.name === 'UnrecognizedClientException') {
       console.error('💡 AWS credentials are invalid!');
     }

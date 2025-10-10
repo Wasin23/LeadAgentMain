@@ -678,7 +678,7 @@ const createCalendarEventTool = new DynamicStructuredTool({
         summary: title,
         start: { dateTime: start_time, timeZone: timezone },
         end: { dateTime: end_time, timeZone: timezone },
-        description: `Meeting scheduled through ExaMark AI Assistant\n\nContact: ${attendees.join(', ')}`
+        description: `Meeting scheduled through Meridian AI Assistant\n\nContact: ${attendees.join(', ')}`
       };
       
       console.log(`[TOOL] Event object being sent to Google Calendar:`, JSON.stringify(eventToCreate, null, 2));
@@ -855,7 +855,7 @@ const sendEmailTool = new DynamicStructuredTool({
       const messageId = `ai-response-${tracking_id}-${timestamp}-${hash}@mg.examarkchat.com`;
       
       const formData = new URLSearchParams({
-        from: 'ExaMark <replies@mg.examarkchat.com>',
+        from: 'Meridian <replies@mg.examarkchat.com>',
         to: to,
         subject: subject,
         text: body,
@@ -1000,7 +1000,7 @@ function createSystemPrompt(userSettings) {
   if (!userSettings || userSettings.error) {
     return `You are an AI assistant that cannot properly function because user settings are not configured. 
 
-Please inform the user: "I need you to configure your Email Response Settings first before I can assist you properly. Please set up your settings in the ExaMark interface."
+Please inform the user: "I need you to configure your Email Response Settings first before I can assist you properly. Please set up your settings in the Meridian interface."
 
 Do not attempt to create calendar events or send detailed responses without proper configuration.`;
   }

@@ -47,7 +47,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       setIsLoading(true);
       
       // Load agents from localStorage
-      const localAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const localAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
       
       // Fetch main agent from backend
       const response = await api.get('/api/lead-agent/status');
@@ -66,7 +66,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
     } catch (error) {
       console.error('Failed to fetch agents:', error);
       // Fallback to just local agents on error
-      const localAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const localAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
       setAgents(localAgents);
     } finally {
       setIsLoading(false);
@@ -86,9 +86,9 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
     
     try {
       // Store in localStorage for persistence
-      const existingAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const existingAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
       const updatedAgents = [...existingAgents, newAgent];
-      localStorage.setItem('examark-agents', JSON.stringify(updatedAgents));
+      localStorage.setItem('meridian-agents', JSON.stringify(updatedAgents));
       
       // Update local state
       setAgents(prev => [...prev, newAgent]);
@@ -175,9 +175,9 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       }
 
       // Remove from localStorage
-      const existingAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const existingAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
       const updatedAgents = existingAgents.filter((a: Agent) => a.id !== agentToDelete.id);
-      localStorage.setItem('examark-agents', JSON.stringify(updatedAgents));
+      localStorage.setItem('meridian-agents', JSON.stringify(updatedAgents));
       
       // Update local state
       setAgents(prev => prev.filter(a => a.id !== agentToDelete.id));

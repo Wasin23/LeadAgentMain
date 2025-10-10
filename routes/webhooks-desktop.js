@@ -107,7 +107,7 @@ router.post('/track-click', async (req, res) => {
 router.get('/health', (req, res) => {
   res.json({ 
     success: true, 
-    message: 'ExaMark desktop tracking webhooks active',
+    message: 'Meridian desktop tracking webhooks active',
     timestamp: new Date().toISOString()
   });
 });

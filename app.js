@@ -39,7 +39,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  defaultMeta: { service: 'examark-api' },
+  defaultMeta: { service: 'meridian-api' },
   transports: [
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
     new winston.transports.File({ filename: 'logs/combined.log' }),
@@ -62,7 +62,7 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-console.log('=== ExaMark app.js is running! ===');
+console.log('=== Meridian app.js is running! ===');
 console.log('PORT from env:', process.env.PORT);
 
 // Import email routes
@@ -496,7 +496,7 @@ validateDeploymentMode();
 const PORT = process.env.PORT || process.env.API_PORT || 8080;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server is live on port ${PORT} (${DEPLOYMENT_MODE.toUpperCase()} mode)`);
-  logger.info(`ExaMark server started on port ${PORT}`, {
+  logger.info(`Meridian server started on port ${PORT}`, {
     environment: process.env.NODE_ENV || 'development',
     deploymentMode: DEPLOYMENT_MODE,
     sessionId: SERVER_SESSION_ID

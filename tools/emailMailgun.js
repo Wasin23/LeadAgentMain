@@ -211,7 +211,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     
     // Prepare email data
     const emailData = {
-      from: `ExaMark <noreply@${process.env.MAILGUN_DOMAIN}>`,
+      from: `Meridian <noreply@${process.env.MAILGUN_DOMAIN}>`,
       'h:Reply-To': 'replies@mg.examarkchat.com',
       to,
       subject: subject,
@@ -311,7 +311,7 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
     
     // Prepare email data
     const emailData = {
-      from: `ExaMark Support <noreply@${process.env.MAILGUN_DOMAIN}>`,
+      from: `Meridian Support <noreply@${process.env.MAILGUN_DOMAIN}>`,
       'h:Reply-To': 'replies@mg.examarkchat.com',
       to,
       subject: subject,
@@ -374,14 +374,14 @@ export async function sendPasswordResetEmail(email, resetToken, username) {
   try {
     console.log(`[PASSWORD RESET] Sending reset email to ${email} with token ${resetToken}`);
     
-    const subject = 'ExaMark - Password Reset Code';
+    const subject = 'Meridian - Password Reset Code';
     
     // Plain text version
-    const textBody = `ExaMark - Password Reset Code
+    const textBody = `Meridian - Password Reset Code
 
 Hello ${username || 'there'},
 
-We received a request to reset your password for your ExaMark account.
+We received a request to reset your password for your Meridian account.
 
 Enter this code in the app to reset your password: ${resetToken}
 
@@ -393,7 +393,7 @@ If you didn't request this password reset, you can safely ignore this email.`;
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #5a67d8; margin: 0;">ExaMark</h1>
+          <h1 style="color: #5a67d8; margin: 0;">Meridian</h1>
           <p style="color: #64748b; margin: 5px 0;">AI-Powered Lead Research & Automation</p>
         </div>
         
@@ -404,7 +404,7 @@ If you didn't request this password reset, you can safely ignore this email.`;
         </p>
         
         <p style="color: #4b5563; line-height: 1.6;">
-          We received a request to reset your password for your ExaMark account.
+          We received a request to reset your password for your Meridian account.
         </p>
         
         <p style="color: #4b5563; line-height: 1.6;">

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# ExaMark Desktop Build Script
-echo "🚀 Building ExaMark Desktop App..."
+# Meridian Desktop Build Script
+echo "🚀 Building Meridian Desktop App..."
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
@@ -34,7 +34,7 @@ echo "📁 Generated files:"
 ls -la dist/
 
 echo ""
-echo "🎯 Key features of ExaMark Desktop:"
+echo "🎯 Key features of Meridian Desktop:"
 echo "   • No memory limits (uses full system RAM)"
 echo "   • Email tracking works even when minimized to tray"
 echo "   • Offline database storage"

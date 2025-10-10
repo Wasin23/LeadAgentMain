@@ -1,4 +1,4 @@
-// Automated backup utility for ExaMark data files
+// Automated backup utility for Meridian data files
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -53,7 +53,7 @@ class BackupManager {
   // Create a full backup of all data files
   async createFullBackup() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupName = `examark-backup-${timestamp}`;
+    const backupName = `meridian-backup-${timestamp}`;
     const backupPath = path.join(this.backupDir, backupName);
 
     try {
@@ -254,7 +254,7 @@ class BackupManager {
         const filePath = path.join(this.backupDir, file);
         const stats = await fs.stat(filePath);
 
-        if (file.startsWith('examark-backup-')) {
+        if (file.startsWith('meridian-backup-')) {
           backups.push({
             name: file,
             created: stats.mtime.toISOString(),

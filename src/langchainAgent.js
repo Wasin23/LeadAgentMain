@@ -174,11 +174,11 @@ export async function getLangchainAgentWithMemory(userId = null) {
   const currentYear = new Date().getFullYear();
   
   // Build system prompt with user personality if available
-  let systemPrompt = `You are ExaMark, the expert AI assistant for Exabits - a comprehensive AI-powered business automation and lead generation platform. Your primary role is to provide expert guidance on automated B2B outreach, research intelligence, and sales optimization while representing Exabits professionally.
+  let systemPrompt = `You are Meridian, the expert AI assistant for Exabits - a comprehensive AI-powered business automation and lead generation platform. Your primary role is to provide expert guidance on automated B2B outreach, research intelligence, and sales optimization while representing Exabits professionally.
 
-**CRITICAL INSTRUCTION: NEVER give generic or vague responses about Exabits or the ExaMark platform. ALWAYS use the specific information provided below. Provide concrete details about capabilities, not marketing fluff.**
+**CRITICAL INSTRUCTION: NEVER give generic or vague responses about Exabits or the Meridian platform. ALWAYS use the specific information provided below. Provide concrete details about capabilities, not marketing fluff.**
 
-**EXAMARK PLATFORM EXPERTISE:**
+**MERIDIAN PLATFORM EXPERTISE:**
 You are the master of a sophisticated AI-powered business automation platform with these core capabilities:
 
 🤖 **AUTOMATED LEAD CONTACT AGENT:**
@@ -192,7 +192,7 @@ You are the master of a sophisticated AI-powered business automation platform wi
 
 📧 **EMAIL QUEUE & CAMPAIGN MANAGEMENT:**
 - Professional email approval and delivery infrastructure with manual review workflow
-- Mailgun integration for reliable delivery (exa.mark@mg.examarkchat.com)
+- Mailgun integration for reliable delivery (meridian@mg.examarkchat.com)
 - Real-time email editing before approval (modify subject, body, recipient)
 - Batch operations for efficient email management (approve/reject multiple emails)
 - Complete audit trail with delivery status tracking (sent/delivered/failed/error)
@@ -241,7 +241,7 @@ When asked about specific people (public figures, celebrities, etc.):
 For casual conversation, jokes, greetings, or general questions NOT requiring current information:
 1. Respond naturally and helpfully without needing to use tools
 2. Be friendly, engaging, and represent Exabits professionally
-3. Always maintain your identity as ExaMark while being conversational
+3. Always maintain your identity as Meridian while being conversational
 4. Guide conversations toward how you can help with automated lead generation or business needs
 
 **🔧 DEVELOPER MODE EASTER EGG:**
@@ -390,8 +390,8 @@ The H200's expanded HBM3e memory (141GB vs 80GB) and increased bandwidth (4.8 TB
 - Use internet_search for simple factual lookups or quick searches
 - The deep_research tool automatically expands queries, searches multiple sources, deduplicates results, and provides structured briefs with citations
 
-**EXAMARK PLATFORM GUIDANCE EXPERTISE:**
-As the ExaMark platform expert, you excel at:
+**MERIDIAN PLATFORM GUIDANCE EXPERTISE:**
+As the Meridian platform expert, you excel at:
 
 **Automated Lead Generation Guidance:**
 - Configuring Apollo API integration for optimal prospect discovery
@@ -475,13 +475,13 @@ As the ExaMark platform expert, you excel at:
     systemPrompt += `\n\n**USER-CUSTOMIZED AI PERSONALITY:**
 ${userPersonality.systemPrompt}
 
-**NOTE:** The above custom personality settings should modify your tone, style, and approach while maintaining your core identity as ExaMark and your expertise about Exabits. Always prioritize accurate Exabits information and professional representation.`;
+**NOTE:** The above custom personality settings should modify your tone, style, and approach while maintaining your core identity as Meridian and your expertise about Exabits. Always prioritize accurate Exabits information and professional representation.`;
   } else if (userPersonality && typeof userPersonality === 'string' && userPersonality.trim()) {
     console.log(`[DEBUG] Using string-based userPersonality`);
     systemPrompt += `\n\n**USER-CUSTOMIZED AI PERSONALITY:**
 ${userPersonality}
 
-**NOTE:** The above custom personality settings should modify your tone, style, and approach while maintaining your core identity as ExaMark and your expertise about Exabits. Always prioritize accurate Exabits information and professional representation.`;
+**NOTE:** The above custom personality settings should modify your tone, style, and approach while maintaining your core identity as Meridian and your expertise about Exabits. Always prioritize accurate Exabits information and professional representation.`;
   } else {
     console.log(`[DEBUG] No valid userPersonality found, using default`);
   }
@@ -554,7 +554,7 @@ export async function chatWithAgent(userInput, chatHistory = [], userId = null) 
     console.log('[EASTER EGG] Developer mode activated!');
     return `🔧 **DEVELOPER MODE ACTIVATED** 🔧
 
-Hey there, programmer! ExaMark here, switching to technical consultation mode.
+Hey there, programmer! Meridian here, switching to technical consultation mode.
 
 **Current System Status:**
 - LangChain Agent: ✅ Operational
@@ -616,8 +616,8 @@ Ready to collaborate on making me better! 🚀`;
     console.log('[chatWithAgent] Detected email send request to:', email);
     
     // Look for email content in the most recent AI responses
-    let subject = 'Message from ExaMark';
-    let body = 'Hello,\n\nThis is a message from ExaMark, the AI assistant for Exabits.\n\nBest regards,\nExaMark';
+    let subject = 'Message from Meridian';
+    let body = 'Hello,\n\nThis is a message from Meridian, the AI assistant for Exabits.\n\nBest regards,\nMeridian';
     
     // Check the last few AI responses for email drafts
     for (let i = chatHistory.length - 1; i >= Math.max(0, chatHistory.length - 5); i--) {
@@ -652,9 +652,9 @@ Ready to collaborate on making me better! 🚀`;
         
         if (bodyMatch) {
           body = bodyMatch[1].trim();
-          // Add signature if it was ExaMark
-          if (aiResponse.includes('ExaMark') && !body.includes('ExaMark')) {
-            body += '\n\nWarm regards,\nExaMark';
+          // Add signature if it was Meridian
+          if (aiResponse.includes('Meridian') && !body.includes('Meridian')) {
+            body += '\n\nWarm regards,\nMeridian';
           }
           console.log('[chatWithAgent] Extracted body:', body.substring(0, 100) + '...');
         }
@@ -771,7 +771,7 @@ Ready to collaborate on making me better! 🚀`;
       } else if (input.includes('joke') || input.includes('funny') || input.includes('humor')) {
         output = "Here's a tech joke for you: Why do programmers prefer dark mode? Because light attracts bugs! 😄 Is there anything else I can help you with regarding Exabits or general questions?";
       } else if (input.includes('hello') || input.includes('hi ') || input.includes('hey')) {
-        output = "Hello! I'm ExaMark, the AI assistant for Exabits. I'm here to help you learn about Exabits' AI-powered HPC solutions, assist with business inquiries, or chat about general topics. What can I help you with today?";
+        output = "Hello! I'm Meridian, the AI assistant for Exabits. I'm here to help you learn about Exabits' AI-powered HPC solutions, assist with business inquiries, or chat about general topics. What can I help you with today?";
       } else if (input.includes('help') || input.includes('what can you do')) {
         output = "I can help you with: \n• Information about Exabits and our AI-HPC solutions\n• Business development and lead research\n• General questions and conversations\n• Internet searches for current information\n\nWhat would you like to know more about?";
       } else {

@@ -171,7 +171,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       }
       
       // For custom agents, get the name from localStorage
-      const localAgents = JSON.parse(localStorage.getItem('examark-agents') || '[]');
+      const localAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
       const agent = localAgents.find((a: any) => a.id === agentId);
       if (agent && agent.name) {
         setAgentName(agent.name);

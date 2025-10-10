@@ -120,7 +120,7 @@ router.get('/callback', async (req, res) => {
       <html>
         <body style="font-family: Arial, sans-serif; text-align: center; padding: 2rem;">
           <h2 style="color: #0077b5;">✅ LinkedIn Connected Successfully!</h2>
-          <p>You can now close this window and return to ExaMark.</p>
+          <p>You can now close this window and return to Meridian.</p>
           <p><strong>Connected as:</strong> ${profile.name}</p>
           <script>
             // Try to notify parent window

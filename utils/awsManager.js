@@ -23,12 +23,12 @@ class AWSManager {
     
     // Table names
     this.tables = {
-      userSettings: process.env.AWS_DYNAMODB_USER_SETTINGS_TABLE || 'examark-user-settings',
-      agentSettings: process.env.AWS_DYNAMODB_AGENT_SETTINGS_TABLE || 'examark-agent-settings',
-      leadData: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'examark-lead-data',
-      emailTracking: process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'examark-email-tracking',
-      agentState: process.env.AWS_DYNAMODB_AGENT_STATE_TABLE || 'examark-agent-state',
-      contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'examark-contacted-leads'
+      userSettings: process.env.AWS_DYNAMODB_USER_SETTINGS_TABLE || 'meridian-user-settings',
+      agentSettings: process.env.AWS_DYNAMODB_AGENT_SETTINGS_TABLE || 'meridian-agent-settings',
+      leadData: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'meridian-lead-data',
+      emailTracking: process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'meridian-email-tracking',
+      agentState: process.env.AWS_DYNAMODB_AGENT_STATE_TABLE || 'meridian-agent-state',
+      contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'meridian-contacted-leads'
     };
     
     console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
@@ -94,11 +94,13 @@ class AWSManager {
     try {
       console.log('⚙️ [AWS] Getting lead agent settings for userId:', userId);
       
+      const agentId = 'lead-agent'; // Default agentId for lead agent settings
+      
       const command = new GetCommand({
         TableName: this.tables.agentSettings,
         Key: { 
           userId,
-          settingsType: 'lead-agent' 
+          agentId
         }
       });
       
@@ -121,10 +123,13 @@ class AWSManager {
     try {
       console.log('💾 [AWS] Saving lead agent settings for userId:', userId);
       
+      const agentId = settings.agentId || 'lead-agent'; // Use provided agentId or default
+      
       const command = new PutCommand({
         TableName: this.tables.agentSettings,
         Item: {
           userId,
+          agentId,
           settingsType: 'lead-agent',
           settings: {
             ...settings,
@@ -404,7 +409,7 @@ class AWSManager {
       const contactId = `${leadInfo.name.toLowerCase().replace(/\s+/g, '_')}_${leadInfo.company.toLowerCase().replace(/\s+/g, '_')}`;
       
       const contactData = {
-        contactId: contactId,
+        contactKey: contactId, // Use contactKey as the primary key
         userId: userId,
         name: leadInfo.name,
         email: leadInfo.email.toLowerCase(),
@@ -417,7 +422,7 @@ class AWSManager {
       const command = new PutCommand({
         TableName: this.tables.contactedLeads,
         Item: contactData,
-        ConditionExpression: 'attribute_not_exists(contactId) AND attribute_not_exists(userId)' // Prevent overwriting existing contacts for this user
+        ConditionExpression: 'attribute_not_exists(contactKey)' // Prevent overwriting existing contacts
       });
 
       await this.dynamodb.send(command);
@@ -448,8 +453,7 @@ class AWSManager {
       const command = new DeleteCommand({
         TableName: this.tables.contactedLeads,
         Key: {
-          contactId: contactId,
-          userId: userId
+          contactKey: contactId  // Use contactKey as the primary key (single key, not composite)
         }
       });
 
@@ -493,8 +497,7 @@ class AWSManager {
         const command = new GetCommand({
           TableName: this.tables.contactedLeads,
           Key: { 
-            contactId: contactId,
-            userId: userId 
+            contactKey: contactId  // Use contactKey as the primary key
           }
         });
 
@@ -618,8 +621,7 @@ class AWSManager {
           const deleteCommand = new DeleteCommand({
             TableName: this.tables.contactedLeads,
             Key: {
-              contactId: contact.contactId,
-              userId: contact.userId
+              contactKey: contact.contactKey  // Use contactKey as the primary key
             }
           });
 

@@ -41,15 +41,13 @@ export default function Dashboard() {
       <header className="border-b border-neutral-200 bg-white/95 backdrop-blur-md sticky top-0 z-50">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <motion.h1 
+            <motion.h1
               className="text-xl font-semibold text-neutral-900"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
             >
-              ExaMark
-            </motion.h1>
-            
-            <nav className="hidden md:flex items-center gap-6">
+              Meridian
+            </motion.h1>            <nav className="hidden md:flex items-center gap-6">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 return (

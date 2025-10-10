@@ -11,7 +11,7 @@ let isQuitting = false;
 
 // Desktop app configuration
 const APP_CONFIG = {
-  name: 'ExaMark',
+  name: 'Meridian',
   version: require('./package.json').version,
   port: process.env.PORT || 8080,
   serverStartDelay: 3000,
@@ -20,7 +20,7 @@ const APP_CONFIG = {
 
 // Start the Express server
 function startServer() {
-  console.log('Starting ExaMark server...');
+  console.log('Starting Meridian server...');
   
   // Enhanced server startup with better error handling
   serverProcess = spawn('node', ['app.js'], {
@@ -36,7 +36,7 @@ function startServer() {
 
   serverProcess.on('error', (err) => {
     console.error('Failed to start server:', err);
-    showErrorDialog('Server Error', `Failed to start ExaMark server: ${err.message}`);
+    showErrorDialog('Server Error', `Failed to start Meridian server: ${err.message}`);
   });
   
   serverProcess.on('close', (code) => {
@@ -108,7 +108,7 @@ function createWindow() {
     if (ready) {
       mainWindow.loadURL(`http://localhost:${APP_CONFIG.port}`);
     } else {
-      showErrorDialog('Startup Error', 'Failed to start ExaMark server. Please check the logs.');
+      showErrorDialog('Startup Error', 'Failed to start Meridian server. Please check the logs.');
     }
   });
 
@@ -122,7 +122,7 @@ function createWindow() {
       app.dock.show();
     }
     
-    console.log(`ExaMark desktop app ready! Version ${APP_CONFIG.version}`);
+    console.log(`Meridian desktop app ready! Version ${APP_CONFIG.version}`);
   });
 
   // Fix focus issues - ensure window regains focus when clicked
@@ -176,8 +176,8 @@ function createWindow() {
       if (tray && process.platform === 'win32') {
         tray.displayBalloon({
           iconType: 'info',
-          title: 'ExaMark',
-          content: 'ExaMark is still running in the background. Email tracking continues!'
+          title: 'Meridian',
+          content: 'Meridian is still running in the background. Email tracking continues!'
         });
       }
     }
@@ -209,7 +209,7 @@ function createTray() {
   // Create tray context menu
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show ExaMark',
+      label: 'Show Meridian',
       click: () => {
         if (mainWindow) {
           if (mainWindow.isMinimized()) mainWindow.restore();
@@ -219,7 +219,7 @@ function createTray() {
       }
     },
     {
-      label: 'Hide ExaMark',
+      label: 'Hide Meridian',
       click: () => {
         if (mainWindow) mainWindow.hide();
       }
@@ -236,7 +236,7 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: 'Quit ExaMark',
+      label: 'Quit Meridian',
       click: () => {
         isQuitting = true;
         app.quit();
@@ -358,8 +358,8 @@ function createMenu() {
           label: 'Export Settings',
           click: async () => {
             const result = await dialog.showSaveDialog(mainWindow, {
-              title: 'Export ExaMark Settings',
-              defaultPath: `examark-settings-${new Date().toISOString().split('T')[0]}.json`,
+              title: 'Export Meridian Settings',
+              defaultPath: `meridian-settings-${new Date().toISOString().split('T')[0]}.json`,
               filters: [
                 { name: 'JSON Files', extensions: ['json'] }
               ]
