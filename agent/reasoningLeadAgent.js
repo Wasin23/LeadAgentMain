@@ -346,6 +346,7 @@ Choose your next action and explain your reasoning:`;
     
     // Force sequential processing based on phase
     console.log(`🔧 [FUNCTION CALL] Phase: ${context.processingPhase}, Current Lead: ${context.currentLead ? 'YES' : 'NO'}`);
+    console.log(`🔧 [DEBUG] Full context processingPhase: '${context.processingPhase}'`);
     
     switch (context.processingPhase) {
       case 'search':
@@ -437,6 +438,7 @@ Choose your next action and explain your reasoning:`;
           this.memory.currentCycle.currentLead.email = actionResult.email;
           this.memory.currentCycle.processingPhase = 'build';
           console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
+          console.log(`🔧 [DEBUG] Set processingPhase to 'build' after unlock`);
     
         } else {
           // Email unlock failed, skip this lead and get next from queue or search
