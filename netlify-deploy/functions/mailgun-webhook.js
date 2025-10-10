@@ -7,6 +7,9 @@ import { z } from "zod";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import crypto from 'crypto';
 
+// Import calendar manager for event tracking (using dynamic import since it's CommonJS)
+let calendarManager = null;
+
 // === UTILITY FUNCTIONS ===
 
 function parseMailgunPayload(event) {
@@ -778,6 +781,32 @@ const createCalendarEventTool = new DynamicStructuredTool({
       }
       
       console.log(`[TOOL] Calendar event created successfully: ${eventData.id}`);
+      
+      // Track the scheduled event to Zilliz
+      try {
+        console.log('[ZILLIZ] Loading calendar manager for event tracking...');
+        const { calendarManager } = require('./calendarIntegrationManager');
+        
+        const eventTrackingData = {
+          eventId: eventData.id,
+          eventTitle: title,
+          attendeeEmail: attendees[0]?.email || 'unknown@example.com',
+          attendeeName: attendees[0]?.displayName || attendees[0]?.email?.split('@')[0] || 'Unknown',
+          company: 'Unknown Company', // Could be extracted from email domain
+          scheduledTime: start_time,
+          calendarLink: eventData.htmlLink,
+          meetingUrl: eventData.hangoutLink || eventData.conferenceData?.entryPoints?.[0]?.uri,
+          description: `Meeting scheduled through Meridian AI Assistant - ${title}`,
+          userId: 'webhook_user' // Could extract from tracking ID if available
+        };
+        
+        console.log('[ZILLIZ] Attempting to track calendar event:', eventTrackingData);
+        await calendarManager.trackScheduledEvent(eventTrackingData);
+        console.log('✅ [ZILLIZ] Calendar event tracked to database successfully');
+      } catch (trackingError) {
+        console.error('❌ [ZILLIZ] Failed to track calendar event:', trackingError);
+        // Don't fail the whole operation if tracking fails
+      }
       
       return JSON.stringify({
         success: true,

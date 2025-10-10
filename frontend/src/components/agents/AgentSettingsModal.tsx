@@ -213,8 +213,8 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
   const [showJobTitleDropdown, setShowJobTitleDropdown] = useState(false);
 
   // Get all industries in a flat array for searching (remove duplicates)
-  const allIndustries = [...new Set(Object.values(APOLLO_INDUSTRIES).flat())];
-  const allJobTitles = [...new Set(Object.values(JOB_TITLES).flat())];
+  const allIndustries = Array.from(new Set(Object.values(APOLLO_INDUSTRIES).flat()));
+  const allJobTitles = Array.from(new Set(Object.values(JOB_TITLES).flat()));
 
   // Filter industries based on search
   const filteredIndustries = allIndustries.filter(industry =>

@@ -13,3 +13,4 @@
 {"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:30:39.630Z"}
 {"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:48:06.786Z"}
 {"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:57:42.285Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T00:01:44.577Z"}

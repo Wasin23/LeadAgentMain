@@ -38,28 +38,28 @@ class CalendarIntegrationManager {
      */
     async trackScheduledEvent(eventData) {
         try {
+            // Initialize if not already done
+            if (!this.initialized) {
+                await this.initialize();
+            }
+            
             console.log('📊 [ZILLIZ] Tracking scheduled event:', eventData.eventTitle);
             
             const eventRecord = {
-                id: eventData.eventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                tracking_id: `calendar-${eventData.userId || 'unknown'}_${Date.now()}`,
                 event_type: 'calendar_event_scheduled',
                 timestamp: new Date().toISOString(),
-                event_title: eventData.eventTitle || 'Meeting',
-                attendee_email: eventData.attendeeEmail,
-                attendee_name: eventData.attendeeName,
-                company: eventData.company,
-                scheduled_time: eventData.scheduledTime,
-                calendar_link: eventData.calendarLink,
-                meeting_url: eventData.meetingUrl,
-                description: eventData.description,
-                status: 'scheduled',
-                created_by: 'ai_agent',
-                user_id: eventData.userId || 'unknown'
+                user_agent: `calendar_integration_${eventData.eventTitle || 'Meeting'}`,
+                ip_address: '127.0.0.1',
+                email_address: eventData.attendeeEmail || 'unknown@example.com',
+                recipient: `${eventData.attendeeName || 'Unknown'} - ${eventData.company || 'Unknown Company'}`,
+                processed: false,
+                dummy_vector: [0.0, 0.0]
             };
 
-            // Insert into Zilliz conversation collection
+            // Insert into Zilliz email tracking events collection
             await this.milvusClient.insert({
-                collection_name: 'conversation',
+                collection_name: 'email_tracking_events',
                 data: [eventRecord]
             });
 

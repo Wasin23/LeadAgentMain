@@ -415,16 +415,19 @@ export class ZillizEmailTracker {
                 await this.initialize();
             }
 
-            // Load conversation collection into memory for querying
+            // Load email tracking events collection into memory for querying
             await this.client.loadCollection({
-                collection_name: 'conversation'
+                collection_name: this.collectionName
             });
 
-            // Query scheduled events filtered by user_id
+            // Extract 8-character user code from full userId (same as tracking events)
+            const userCode = userId.substring(0, 8);
+
+            // Query scheduled events filtered by tracking_id pattern and event_type
             const results = await this.client.query({
-                collection_name: 'conversation',
-                expr: `user_id == "${userId}" && event_type == "calendar_event_scheduled"`,
-                output_fields: ['id', 'event_type', 'timestamp', 'event_title', 'attendee_email', 'attendee_name', 'company', 'scheduled_time', 'calendar_link', 'meeting_url', 'description', 'status', 'created_by', 'user_id'],
+                collection_name: this.collectionName,
+                expr: `tracking_id like "calendar-${userCode}%" && event_type == "calendar_event_scheduled"`,
+                output_fields: ['id', 'tracking_id', 'event_type', 'timestamp', 'user_agent', 'email_address', 'recipient', 'processed'],
                 limit: 1000
             });
 
