@@ -1,8 +1,9 @@
 const crypto = require('crypto');
+const { MilvusClient } = require("@zilliz/milvus2-sdk-node");
 
 /**
  * Calendar Integration Manager - Handles automatic meeting scheduling
- * Simplified version for Netlify Functions
+ * Simplified version for Netlify Functions with Zilliz event tracking
  */
 class CalendarIntegrationManager {
     constructor() {
@@ -12,6 +13,13 @@ class CalendarIntegrationManager {
         this.calendlyApiKey = process.env.CALENDLY_API_KEY;
         this.calendlyUserId = process.env.CALENDLY_USER_ID;
         this.initialized = false;
+        
+        // Zilliz client for event tracking
+        this.milvusClient = new MilvusClient({
+            address: process.env.ZILLIZ_ENDPOINT?.trim(),
+            ssl: true,
+            token: process.env.ZILLIZ_TOKEN?.trim(),
+        });
     }
 
     async initialize() {
@@ -23,6 +31,45 @@ class CalendarIntegrationManager {
         
         this.initialized = true;
         console.log('✅ [CALENDAR] Calendar Integration Manager initialized');
+    }
+
+    /**
+     * Track scheduled events to Zilliz for analytics
+     */
+    async trackScheduledEvent(eventData) {
+        try {
+            console.log('📊 [ZILLIZ] Tracking scheduled event:', eventData.eventTitle);
+            
+            const eventRecord = {
+                id: eventData.eventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                event_type: 'calendar_event_scheduled',
+                timestamp: new Date().toISOString(),
+                event_title: eventData.eventTitle || 'Meeting',
+                attendee_email: eventData.attendeeEmail,
+                attendee_name: eventData.attendeeName,
+                company: eventData.company,
+                scheduled_time: eventData.scheduledTime,
+                calendar_link: eventData.calendarLink,
+                meeting_url: eventData.meetingUrl,
+                description: eventData.description,
+                status: 'scheduled',
+                created_by: 'ai_agent',
+                user_id: eventData.userId || 'unknown'
+            };
+
+            // Insert into Zilliz conversation collection
+            await this.milvusClient.insert({
+                collection_name: 'conversation',
+                data: [eventRecord]
+            });
+
+            console.log('✅ [ZILLIZ] Scheduled event tracked successfully');
+            return { success: true, eventId: eventRecord.id };
+            
+        } catch (error) {
+            console.error('❌ [ZILLIZ] Failed to track scheduled event:', error);
+            return { success: false, error: error.message };
+        }
     }
 
     /**
@@ -202,6 +249,22 @@ Looking forward to our conversation!`;
             if (response.ok) {
                 const createdEvent = await response.json();
                 console.log('✅ [CALENDAR] Google Calendar event created successfully');
+                
+                // Track the scheduled event to Zilliz
+                const eventTrackingData = {
+                    eventId: createdEvent.id,
+                    eventTitle: createdEvent.summary,
+                    attendeeEmail: eventDetails.attendees?.[0]?.email,
+                    attendeeName: eventDetails.attendees?.[0]?.displayName,
+                    company: eventDetails.company || 'Unknown',
+                    scheduledTime: createdEvent.start?.dateTime || createdEvent.start?.date,
+                    calendarLink: createdEvent.htmlLink,
+                    meetingUrl: createdEvent.conferenceData?.entryPoints?.[0]?.uri,
+                    description: createdEvent.description,
+                    userId: eventDetails.userId || 'ai_agent'
+                };
+                
+                await this.trackScheduledEvent(eventTrackingData);
                 
                 return {
                     success: true,

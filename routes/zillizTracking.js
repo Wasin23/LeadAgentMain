@@ -27,13 +27,24 @@ router.get('/internal/events', async (req, res) => {
         
         if (userId) {
             console.log(`📊 [ZILLIZ INTERNAL] Getting events for user ${userId}`);
-            // Get events filtered by userId
-            const events = await tracker.getTrackingEventsByUserId(userId);
+            
+            // Get both email tracking events and scheduled events
+            const [trackingEvents, scheduledEvents] = await Promise.all([
+                tracker.getTrackingEventsByUserId(userId),
+                tracker.getScheduledEventsByUserId(userId)
+            ]);
+            
+            // Combine both types of events
+            const allEvents = {
+                trackingEvents: trackingEvents,
+                scheduledEvents: scheduledEvents,
+                totalCount: trackingEvents.length + scheduledEvents.length
+            };
             
             res.status(200).json({
                 success: true,
-                count: events.length,
-                events: events
+                count: allEvents.totalCount,
+                events: allEvents
             });
         } else {
             console.log('📊 [ZILLIZ INTERNAL] Getting all events for server polling');

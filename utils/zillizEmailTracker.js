@@ -407,6 +407,35 @@ export class ZillizEmailTracker {
             return false;
         }
     }
+
+    // Get scheduled calendar events for a specific user
+    async getScheduledEventsByUserId(userId) {
+        try {
+            if (!this.initialized) {
+                await this.initialize();
+            }
+
+            // Load conversation collection into memory for querying
+            await this.client.loadCollection({
+                collection_name: 'conversation'
+            });
+
+            // Query scheduled events filtered by user_id
+            const results = await this.client.query({
+                collection_name: 'conversation',
+                expr: `user_id == "${userId}" && event_type == "calendar_event_scheduled"`,
+                output_fields: ['id', 'event_type', 'timestamp', 'event_title', 'attendee_email', 'attendee_name', 'company', 'scheduled_time', 'calendar_link', 'meeting_url', 'description', 'status', 'created_by', 'user_id'],
+                limit: 1000
+            });
+
+            console.log(`📅 [ZILLIZ] Retrieved ${results.data?.length || 0} scheduled events for user ${userId}`);
+            return results.data || [];
+
+        } catch (error) {
+            console.error(`❌ [ZILLIZ] Failed to get scheduled events for user ${userId}:`, error);
+            return [];
+        }
+    }
 }
 
 // Export is already handled at the class declaration

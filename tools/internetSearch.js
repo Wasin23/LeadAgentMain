@@ -115,7 +115,31 @@ export async function internetSearchWithKey(query, apiKey) {
       }
     );
     
-    console.log('[SERPER] Response received, caching...');
+    console.log('[SERPER] Response received, analyzing results...');
+    
+    // Log detailed API response analysis
+    const data = response.data;
+    console.log('[SERPER] API Response Analysis:');
+    console.log(`  🔢 Results Count: ${data.organic?.length || 0} organic results`);
+    console.log(`  📊 Search Info: ${data.searchInformation?.totalResults || 0} total results found`);
+    console.log(`  ⏱️  Search Time: ${data.searchInformation?.searchTime || 'unknown'} seconds`);
+    
+    if (data.knowledgeGraph) {
+      console.log(`  🧠 Knowledge Graph: "${data.knowledgeGraph.title}" found`);
+    }
+    
+    if (data.answerBox) {
+      console.log(`  💡 Answer Box: Found direct answer`);
+    }
+    
+    if (data.organic && data.organic.length > 0) {
+      console.log(`  🎯 Top 3 Results:`);
+      data.organic.slice(0, 3).forEach((result, i) => {
+        console.log(`    ${i+1}. ${result.title} (${result.link})`);
+      });
+    }
+    
+    console.log('[SERPER] Caching results...');
     
     // Cache the result
     await cacheResult(query, response.data);

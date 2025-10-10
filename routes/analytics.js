@@ -647,4 +647,41 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
   }
 });
 
+// Get scheduled events from polling data
+router.get('/scheduled-events', authenticateToken, async (req, res) => {
+  try {
+    console.log('📅 [SCHEDULED EVENTS] Fetching scheduled events for user:', req.user.userId);
+    
+    // Import the desktop email tracker to get scheduled events from polling
+    const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
+    
+    // Get scheduled events from the polling data
+    const rawEvents = desktopEmailTracker.getUserScheduledEvents(req.user.userId);
+    
+    // Transform Zilliz event data to frontend format
+    const scheduledEvents = rawEvents.map(event => ({
+      id: event.id,
+      title: event.event_title || 'Meeting',
+      contactName: event.attendee_name || 'Contact',
+      company: event.company || 'Unknown Company',
+      scheduledTime: event.scheduled_time || event.timestamp,
+      status: event.status || 'scheduled',
+      calendarLink: event.calendar_link || '',
+      description: event.description || '',
+      meetingUrl: event.meeting_url || '',
+      attendeeEmail: event.attendee_email || ''
+    }));
+    
+    console.log(`📅 [SCHEDULED EVENTS] Found ${scheduledEvents.length} scheduled events`);
+    res.json(scheduledEvents);
+    
+  } catch (error) {
+    console.error('❌ [SCHEDULED EVENTS] Error fetching scheduled events:', error);
+    res.status(500).json({
+      error: 'Failed to fetch scheduled events',
+      details: error.message
+    });
+  }
+});
+
 export default router;

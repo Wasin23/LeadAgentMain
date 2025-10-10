@@ -19,7 +19,8 @@ import {
   XMarkIcon,
   CheckIcon,
   MagnifyingGlassIcon,
-  PencilIcon
+  PencilIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import AgentSettingsModal from './AgentSettingsModal';
@@ -93,6 +94,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [selectedRecentEmail, setSelectedRecentEmail] = useState<any>(null);
   const [recentEmailsSearch, setRecentEmailsSearch] = useState('');
   const [recentEmailsFilter, setRecentEmailsFilter] = useState<'all' | 'sent' | 'opened' | 'replied'>('all');
+  const [showScheduledEvents, setShowScheduledEvents] = useState(false);
+  const [selectedScheduledEvent, setSelectedScheduledEvent] = useState<any>(null);
+  const [scheduledEvents, setScheduledEvents] = useState<any[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
@@ -210,6 +214,86 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           const progressData = JSON.parse(event.data);
           console.log('Progress stream received:', progressData);
           
+          // 🔍 SERPER RESEARCH LOGGING - Detect and log detailed research findings
+          if (progressData.data && progressData.data.message && progressData.data.message.includes('Research Results:')) {
+            console.group('🔍 SERPER RESEARCH FINDINGS');
+            console.log('📊 Research Event:', progressData.data);
+            
+            if (progressData.data.details) {
+              const details = progressData.data.details;
+              console.log('🏢 Company:', details.company);
+              console.log('🔎 Search Query:', details.query);
+              console.log('📈 Results Found:', details.resultsCount);
+              console.log('🧠 Knowledge Graph Available:', details.hasKnowledgeGraph ? '✅ YES' : '❌ NO');
+              console.log('💡 Answer Box Available:', details.hasAnswerBox ? '✅ YES' : '❌ NO');
+              
+              if (details.hasKnowledgeGraph) {
+                console.log('🎯 Rich company data found via Knowledge Graph!');
+              }
+              if (details.hasAnswerBox) {
+                console.log('🎯 Direct answer found for company research!');
+              }
+            }
+            console.groupEnd();
+          }
+
+          // 🧠 AI RESEARCH ANALYSIS LOGGING - Show AI insights about research findings
+          if (progressData.data && (
+            (progressData.data.message && progressData.data.message.includes('Research Analysis:')) ||
+            (progressData.data.details && progressData.data.details.contentType === 'ai_research_analysis')
+          )) {
+            console.group('🧠 AI STRATEGIC ANALYSIS');
+            console.log('🏢 Company:', progressData.data.details?.company);
+            
+            if (progressData.data.details?.aiInsights) {
+              const insights = progressData.data.details.aiInsights;
+              console.log('🎯 Business Type:', insights.businessType);
+              console.log('💡 Key Insights:', insights.keyInsights);
+              console.log('💰 Lead Value:', insights.leadValue);
+              console.log('📞 Approach Strategy:', insights.approach);
+              console.log('📄 Full Analysis:');
+              console.log(insights.fullAnalysis);
+            }
+            
+            console.log('📊 Sources Analyzed:', progressData.data.details?.sourcesAnalyzed);
+            console.groupEnd();
+          }
+
+          // 📖 RESEARCH CONTENT LOGGING - Show actual extracted content (fallback)
+          if (progressData.data && progressData.data.message && progressData.data.message.includes('Research Content Extracted')) {
+            console.group('📖 EXTRACTED RESEARCH CONTENT');
+            console.log('🏢 Company:', progressData.data.details?.company);
+            
+            if (progressData.data.details?.findings) {
+              progressData.data.details.findings.forEach((finding: any, index: number) => {
+                console.group(`${index + 1}. ${finding.type}`);
+                console.log('📝 Title:', finding.title);
+                console.log('📄 Content:', finding.content);
+                console.log('🔗 Source:', finding.source);
+                if (finding.attributes) {
+                  console.log('📊 Attributes:', finding.attributes);
+                }
+                console.groupEnd();
+              });
+            }
+            console.groupEnd();
+          }
+          
+          // Additional logging for any research-related events
+          if (progressData.data && (
+            progressData.data.operation === 'Agent Reasoning' || 
+            progressData.data.operation === 'Action Executed' ||
+            (typeof progressData.data.details === 'string' && progressData.data.details.includes('serper_research')) ||
+            (typeof progressData.data.details === 'string' && progressData.data.details.includes('Research'))
+          )) {
+            console.log('🧠 [RESEARCH EVENT]', {
+              operation: progressData.data.operation,
+              details: progressData.data.details,
+              status: progressData.data.status,
+              timestamp: progressData.data.timestamp
+            });
+          }
+          
           if (progressData.type === 'progress' && progressData.data) {
             // Check if this is an email queue update
             if (progressData.data.type === 'email_queue') {
@@ -230,6 +314,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             } else {
               // Regular agent log event - add directly to Activity Logs
               setAgentLogs(prev => [progressData.data, ...prev.slice(0, 49)]);
+              
+              // 🔍 Additional specific logging for Serper research steps
+              if (progressData.data.operation === 'Action Executed' && 
+                  progressData.data.details && 
+                  typeof progressData.data.details === 'string' && 
+                  progressData.data.details.includes('serper_research')) {
+                console.log('🔬 [SERPER ACTION] Research step detected:', {
+                  step: progressData.data.details,
+                  status: progressData.data.status,
+                  timestamp: progressData.data.timestamp,
+                  agentData: progressData.data.data || {}
+                });
+              }
             }
           } else if (progressData.type === 'test') {
             // Test message
@@ -273,7 +370,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         fetchStatus(),
         fetchRecentEmails(),
         fetchEmailQueue(),
-        fetchAgentLogs()
+        fetchAgentLogs(),
+        fetchScheduledEvents()
       ]);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -336,6 +434,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     } catch (error) {
       console.error('Failed to fetch email queue:', error);
       setEmailQueue([]);
+    }
+  };
+
+  const fetchScheduledEvents = async () => {
+    try {
+      const response = await api.get('/api/analytics/scheduled-events');
+      if (response.data && Array.isArray(response.data)) {
+        setScheduledEvents(response.data);
+      } else {
+        setScheduledEvents([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch scheduled events:', error);
+      setScheduledEvents([]);
     }
   };
 
@@ -893,18 +1005,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </div>
         </motion.div>
 
-        {/* Success Rate Card */}
+        {/* Clickable Scheduled Events */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-neutral-200 p-6"
+          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          onClick={() => setShowScheduledEvents(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-600">Success Rate</p>
-              <p className="text-2xl font-semibold text-neutral-900 mt-1">{status?.successRate || 0}%</p>
+              <p className="text-sm text-neutral-600 flex items-center gap-2">
+                Scheduled Events
+                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to view</span>
+              </p>
+              <p className="text-2xl font-semibold text-neutral-900 mt-1">{scheduledEvents.length}</p>
             </div>
-            <ChartBarIcon className="h-8 w-8 text-neutral-400" />
+            <CalendarIcon className="h-8 w-8 text-blue-500" />
           </div>
         </motion.div>
 
@@ -1001,7 +1117,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             {log.status}
                           </span>
                         </div>
-                        <p className="text-neutral-600 text-xs">{log.details}</p>
+                        <div className="text-neutral-600 text-xs">
+                          {(() => {
+                            // Special formatting for AI research analysis
+                            if (log.details && typeof log.details === 'object' && log.details.contentType === 'ai_research_analysis') {
+                              const insights = log.details.aiInsights;
+                              return (
+                                <div className="space-y-1">
+                                  <div><strong>Business:</strong> {insights?.businessType || 'Analysis completed'}</div>
+                                  <div><strong>Key Insights:</strong> {insights?.keyInsights || 'Strategic insights generated'}</div>
+                                  <div><strong>Lead Value:</strong> {insights?.leadValue || 'High-value prospect identified'}</div>
+                                  <div><strong>Approach:</strong> {insights?.approach || 'Outreach strategy developed'}</div>
+                                </div>
+                              );
+                            }
+                            // Regular display logic
+                            return typeof log.details === 'string' ? log.details : JSON.stringify(log.details);
+                          })()}
+                        </div>
                       </div>
                       <span className="text-neutral-400 text-xs whitespace-nowrap">
                         {new Date(log.timestamp).toLocaleTimeString()}
@@ -1862,6 +1995,197 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               <div className="flex items-center gap-4 justify-end">
                 <button
                   onClick={() => setSelectedRecentEmail(null)}
+                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Scheduled Events Modal */}
+      {showScheduledEvents && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] overflow-hidden mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Scheduled Events</h2>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    {scheduledEvents.length} events scheduled • Meetings and calls
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowScheduledEvents(false)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              {scheduledEvents.length === 0 ? (
+                <div className="text-center py-16">
+                  <p className="text-neutral-500">No scheduled events yet.</p>
+                  <p className="text-xs text-neutral-400 mt-1">Events will appear here when meetings are scheduled.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {scheduledEvents.map((event, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-blue-300 cursor-pointer transition-colors"
+                      onClick={() => setSelectedScheduledEvent(event)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold text-neutral-900">
+                            {event.title || `Meeting with ${event.contactName || event.company || 'Unknown'}`}
+                          </h3>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-neutral-600">
+                            <div className="flex items-center gap-1">
+                              <CalendarIcon className="h-3 w-3" />
+                              {new Date(event.scheduledTime).toLocaleDateString()}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <ClockIcon className="h-3 w-3" />
+                              {new Date(event.scheduledTime).toLocaleTimeString()}
+                            </div>
+                            {event.company && (
+                              <div className="flex items-center gap-1">
+                                <BuildingOfficeIcon className="h-3 w-3" />
+                                {event.company}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            event.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                            event.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-neutral-100 text-neutral-800'
+                          }`}>
+                            {event.status || 'scheduled'}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Scheduled Event Details Modal */}
+      {selectedScheduledEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4"
+          >
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-neutral-900">Event Details</h2>
+                <button
+                  onClick={() => setSelectedScheduledEvent(null)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Event Information */}
+              <div>
+                <h3 className="text-lg font-medium text-neutral-900 mb-4">
+                  {selectedScheduledEvent.title || `Meeting with ${selectedScheduledEvent.contactName || selectedScheduledEvent.company || 'Unknown'}`}
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-1">Date & Time</p>
+                    <p className="text-sm font-medium text-neutral-900">
+                      {new Date(selectedScheduledEvent.scheduledTime).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-1">Status</p>
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                      selectedScheduledEvent.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                      selectedScheduledEvent.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-neutral-100 text-neutral-800'
+                    }`}>
+                      {selectedScheduledEvent.status || 'scheduled'}
+                    </span>
+                  </div>
+                  {selectedScheduledEvent.company && (
+                    <div>
+                      <p className="text-xs text-neutral-500 mb-1">Company</p>
+                      <p className="text-sm font-medium text-neutral-900">{selectedScheduledEvent.company}</p>
+                    </div>
+                  )}
+                  {selectedScheduledEvent.contactName && (
+                    <div>
+                      <p className="text-xs text-neutral-500 mb-1">Contact</p>
+                      <p className="text-sm font-medium text-neutral-900">{selectedScheduledEvent.contactName}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Calendar Link */}
+              {selectedScheduledEvent.calendarLink && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Calendar Link</h4>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={selectedScheduledEvent.calendarLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                      Open in Calendar
+                    </a>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(selectedScheduledEvent.calendarLink)}
+                      className="px-3 py-2 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm"
+                    >
+                      Copy Link
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Meeting Details */}
+              {selectedScheduledEvent.description && (
+                <div>
+                  <h4 className="text-sm font-medium text-neutral-900 mb-2">Description</h4>
+                  <p className="text-sm text-neutral-600">{selectedScheduledEvent.description}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+              <div className="flex items-center gap-4 justify-end">
+                <button
+                  onClick={() => setSelectedScheduledEvent(null)}
                   className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
                 >
                   Close

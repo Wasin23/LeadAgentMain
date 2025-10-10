@@ -473,6 +473,192 @@ Choose your next action and explain your reasoning:`;
     console.log(`📊 [CYCLE] Current state: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads} leads, phase: ${this.memory.currentCycle.processingPhase}`);
   }
 
+  // Extract business type from research content
+  extractBusinessType(content) {
+    const text = content.toLowerCase();
+    
+    // SaaS/Software patterns
+    if (text.includes('saas') || text.includes('software-as-a-service')) {
+      return 'SaaS Platform';
+    }
+    if (text.includes('software') && (text.includes('platform') || text.includes('solutions'))) {
+      return 'Software Solutions';
+    }
+    if (text.includes('cloud') && text.includes('platform')) {
+      return 'Cloud Platform';
+    }
+    
+    // Service patterns
+    if (text.includes('management platform')) {
+      return 'Management Platform';
+    }
+    if (text.includes('automation') && text.includes('platform')) {
+      return 'Automation Platform';
+    }
+    
+    // Industry patterns
+    if (text.includes('fintech') || text.includes('financial technology')) {
+      return 'FinTech Company';
+    }
+    if (text.includes('healthcare') || text.includes('medical')) {
+      return 'Healthcare Technology';
+    }
+    if (text.includes('e-commerce') || text.includes('ecommerce')) {
+      return 'E-commerce Platform';
+    }
+    
+    // Generic fallback
+    if (text.includes('platform')) {
+      return 'Technology Platform';
+    }
+    if (text.includes('solutions')) {
+      return 'Solutions Provider';
+    }
+    if (text.includes('services')) {
+      return 'Service Provider';
+    }
+    
+    return 'Technology Company';
+  }
+  
+  // Extract key services/products from research content
+  extractKeyServices(content) {
+    const text = content.toLowerCase();
+    const services = [];
+    
+    // Common service patterns
+    if (text.includes('automation')) services.push('Automation');
+    if (text.includes('analytics')) services.push('Analytics');
+    if (text.includes('security')) services.push('Security');
+    if (text.includes('management')) services.push('Management');
+    if (text.includes('integration')) services.push('Integration');
+    if (text.includes('compliance')) services.push('Compliance');
+    if (text.includes('reporting')) services.push('Reporting');
+    if (text.includes('monitoring')) services.push('Monitoring');
+    if (text.includes('optimization')) services.push('Optimization');
+    if (text.includes('onboarding')) services.push('User Onboarding');
+    
+    // Industry-specific services
+    if (text.includes('crm') || text.includes('customer relationship')) services.push('CRM');
+    if (text.includes('erp') || text.includes('enterprise resource')) services.push('ERP');
+    if (text.includes('hr') || text.includes('human resources')) services.push('HR Solutions');
+    if (text.includes('payroll')) services.push('Payroll');
+    if (text.includes('marketing')) services.push('Marketing Tools');
+    
+    return services.slice(0, 3).join(' & '); // Limit to top 3 services
+  }
+
+  // AI analyzes research findings to explain strategic importance
+  async analyzeResearchFindings(companyName, findings) {
+    try {
+      // Compile research content for AI analysis
+      const researchContent = findings.map(f => 
+        `${f.type}: ${f.title}\n${f.content}`
+      ).join('\n\n');
+
+      // Get user settings for personalized analysis
+      const userSettings = this.memory.userSettings;
+      const emailSettings = this.memory.emailSettings;
+      
+      // Build context from settings
+      const yourProduct = userSettings?.productName || emailSettings?.productName || '[YOUR PRODUCT]';
+      const yourCompany = userSettings?.companyName || emailSettings?.companyName || '[YOUR COMPANY]';
+      const valueProps = userSettings?.valuePropositions || emailSettings?.valuePropositions || [];
+      const targetIndustries = userSettings?.companyIndustries || [];
+
+      const settingsContext = `
+OUTREACH CONTEXT:
+- Your Product/Service: ${yourProduct}
+- Your Company: ${yourCompany}
+${valueProps.length > 0 ? `- Your Value Propositions: ${valueProps.join(', ')}` : ''}
+${targetIndustries.length > 0 ? `- Target Industries: ${targetIndustries.join(', ')}` : ''}`;
+
+      const analysisPrompt = `
+You are a lead generation AI analyzing research findings about a potential business prospect. 
+
+COMPANY: ${companyName}
+
+RESEARCH FINDINGS:
+${researchContent}
+
+${settingsContext}
+
+Analyze this research and explain:
+1. What type of business this is and why it's strategically important
+2. Key pain points or operational challenges they likely face
+3. What makes them a high-value prospect (consider your target industries and value props if provided)
+4. Specific conversation starters or engagement angles based on their business needs
+
+Provide a concise but insightful analysis focused on business intelligence and lead qualification.
+
+Format your response as:
+BUSINESS TYPE: [one-liner description]
+KEY INSIGHTS: [2-3 strategic insights about their business model/challenges]
+LEAD VALUE: [why they're a high-value prospect for your outreach]
+APPROACH: [specific outreach angles or conversation starters based on their business needs]
+`;
+
+      console.log('🧠 [AI ANALYSIS] Analyzing research findings for:', companyName);
+      
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system', 
+            content: 'You are an expert business intelligence analyst and lead qualification specialist. Provide actionable insights about prospects without referencing specific products or services.'
+          },
+          {
+            role: 'user',
+            content: analysisPrompt
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      });
+
+      const analysis = response.choices[0]?.message?.content || 'Analysis completed';
+      console.log('✅ [AI ANALYSIS] Strategic analysis generated for:', companyName);
+
+      // Parse the structured response
+      const lines = analysis.split('\n').filter(line => line.trim());
+      const parsed = {};
+      let currentSection = '';
+      
+      lines.forEach(line => {
+        if (line.includes('BUSINESS TYPE:')) {
+          parsed.businessType = line.replace('BUSINESS TYPE:', '').trim();
+        } else if (line.includes('KEY INSIGHTS:')) {
+          parsed.keyInsights = line.replace('KEY INSIGHTS:', '').trim();
+        } else if (line.includes('LEAD VALUE:')) {
+          parsed.leadValue = line.replace('LEAD VALUE:', '').trim();
+        } else if (line.includes('APPROACH:')) {
+          parsed.approach = line.replace('APPROACH:', '').trim();
+        }
+      });
+
+      // Create summary for SSE display
+      const summary = `${parsed.businessType || 'Analysis completed'} • ${parsed.keyInsights?.substring(0, 80) || 'Strategic insights generated'}...`;
+
+      return {
+        summary,
+        fullAnalysis: analysis,
+        businessType: parsed.businessType,
+        keyInsights: parsed.keyInsights,
+        leadValue: parsed.leadValue,
+        approach: parsed.approach,
+        analysisTimestamp: new Date().toISOString()
+      };
+
+    } catch (error) {
+      console.error('❌ [AI ANALYSIS] Failed to analyze research findings:', error);
+      return {
+        summary: `Research findings collected for ${companyName}`,
+        fullAnalysis: 'Analysis temporarily unavailable',
+        error: error.message
+      };
+    }
+  }
+
   // Get user settings from AWS DynamoDB - lead agent settings
   async getUserSettings() {
     console.log('⚙️ [AWS] Getting user lead generation settings from DynamoDB...');
@@ -588,20 +774,151 @@ Choose your next action and explain your reasoning:`;
 
   // Research company/lead using Serper
   async serperResearch(parameters) {
-    console.log('🔍 [SERPER] Researching:', parameters.companyName || parameters.searchQuery);
+    const companyName = parameters.companyName || 'Unknown Company';
+    console.log('🔍 [SERPER] Starting research for:', companyName);
     
     try {
       const searchQuery = parameters.searchQuery || 
         `${parameters.companyName} company information business model products services`;
       
+      console.log('🔎 [SERPER] Search Query:', searchQuery);
+      
       const results = await internetSearch(searchQuery);
       
-      console.log('✅ [SERPER] Research complete, found insights');
+      // Log detailed findings
+      console.log('📊 [SERPER] Raw Results Summary:');
+      console.log(`   • Total organic results: ${results.organic?.length || 0}`);
+      console.log(`   • Knowledge graph: ${results.knowledgeGraph ? 'YES' : 'NO'}`);
+      console.log(`   • Answer box: ${results.answerBox ? 'YES' : 'NO'}`);
+      console.log(`   • Related searches: ${results.relatedSearches?.length || 0}`);
+      
+      // Log top organic results
+      if (results.organic && results.organic.length > 0) {
+        console.log('🎯 [SERPER] Top Search Results Found:');
+        results.organic.slice(0, 5).forEach((result, index) => {
+          console.log(`   ${index + 1}. ${result.title}`);
+          console.log(`      URL: ${result.link}`);
+          console.log(`      Snippet: ${result.snippet?.substring(0, 100)}...`);
+        });
+      }
+      
+      // Log knowledge graph data if available
+      if (results.knowledgeGraph) {
+        console.log('🧠 [SERPER] Knowledge Graph Found:');
+        console.log(`   • Title: ${results.knowledgeGraph.title}`);
+        console.log(`   • Type: ${results.knowledgeGraph.type}`);
+        console.log(`   • Description: ${results.knowledgeGraph.description?.substring(0, 150)}...`);
+        if (results.knowledgeGraph.attributes) {
+          console.log('   • Key Attributes:');
+          Object.entries(results.knowledgeGraph.attributes).slice(0, 3).forEach(([key, value]) => {
+            console.log(`     - ${key}: ${value}`);
+          });
+        }
+      }
+      
+      // Log answer box if available
+      if (results.answerBox) {
+        console.log('💡 [SERPER] Answer Box Found:');
+        console.log(`   • Answer: ${results.answerBox.answer?.substring(0, 200)}...`);
+        console.log(`   • Source: ${results.answerBox.link}`);
+      }
+      
+      console.log('✅ [SERPER] Research complete - Data logged above');
+      
+      // Emit detailed research findings to Activity Logs
+      const researchSummary = [];
+      
+      if (results.knowledgeGraph) {
+        researchSummary.push(`🧠 Knowledge Graph: ${results.knowledgeGraph.title} (${results.knowledgeGraph.type})`);
+      }
+      
+      if (results.answerBox) {
+        researchSummary.push(`💡 Answer: ${results.answerBox.answer?.substring(0, 100)}...`);
+      }
+      
+      if (results.organic && results.organic.length > 0) {
+        researchSummary.push(`🎯 Found ${results.organic.length} search results`);
+        researchSummary.push(`📖 Top result: ${results.organic[0].title}`);
+      }
+      
+      const summaryText = researchSummary.length > 0 
+        ? researchSummary.join(' • ')
+        : 'Basic search results found';
+      
+      this.emit('progress', {
+        type: 'info',
+        message: `🔍 Research Results: ${summaryText}`,
+        timestamp: new Date().toISOString(),
+        details: {
+          company: companyName,
+          query: searchQuery,
+          resultsCount: results.organic?.length || 0,
+          hasKnowledgeGraph: !!results.knowledgeGraph,
+          hasAnswerBox: !!results.answerBox
+        }
+      });
+
+      // Emit detailed content findings in a separate event
+      const contentFindings = [];
+      
+      // Add answer box content if available
+      if (results.answerBox) {
+        contentFindings.push({
+          type: 'Answer Box',
+          content: results.answerBox.answer || results.answerBox.snippet,
+          source: results.answerBox.link,
+          title: results.answerBox.title
+        });
+      }
+      
+      // Add knowledge graph info if available
+      if (results.knowledgeGraph) {
+        contentFindings.push({
+          type: 'Knowledge Graph',
+          content: results.knowledgeGraph.description,
+          title: results.knowledgeGraph.title,
+          attributes: results.knowledgeGraph.attributes
+        });
+      }
+      
+      // Add top 3 search results
+      if (results.organic && results.organic.length > 0) {
+        results.organic.slice(0, 3).forEach((result, index) => {
+          contentFindings.push({
+            type: `Search Result #${index + 1}`,
+            content: result.snippet,
+            title: result.title,
+            source: result.link
+          });
+        });
+      }
+      
+      // Emit the actual content findings with AI analysis
+      if (contentFindings.length > 0) {
+        // Have AI analyze the research findings for strategic insights
+        const aiInsights = await this.analyzeResearchFindings(companyName, contentFindings);
+        
+        this.emit('progress', {
+          type: 'info',
+          message: `🧠 Research Analysis: ${aiInsights.summary}`,
+          timestamp: new Date().toISOString(),
+          details: {
+            company: companyName,
+            contentType: 'ai_research_analysis',
+            aiInsights: aiInsights,
+            sourcesAnalyzed: contentFindings.length,
+            rawFindings: contentFindings
+          }
+        });
+      }
+      
       return {
         success: true,
         data: results,
         companyName: parameters.companyName,
-        insights: results.organic?.slice(0, 3) || []
+        insights: results.organic?.slice(0, 3) || [],
+        knowledgeGraph: results.knowledgeGraph,
+        answerBox: results.answerBox
       };
     } catch (error) {
       console.error('❌ [SERPER] Research failed:', error);

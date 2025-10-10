@@ -14,6 +14,7 @@ class DesktopEmailTracker {
     // User session polling management
     this.userPollingIntervals = new Map(); // userId -> polling interval reference
     this.userLastPolledTimestamp = new Map(); // userId -> last poll timestamp
+    this.userScheduledEvents = new Map(); // userId -> scheduled events from polling
     
     this.loadTrackingData();
     
@@ -726,10 +727,26 @@ class DesktopEmailTracker {
 
       const data = await response.json();
 
-      if (data.success && data.events && data.events.length > 0) {
-        // Events are already filtered by userId on the server side
-        console.log(`📧 [USER POLLING] User ${userId}: Syncing ${data.events.length} events`);
-        await this.syncWithZillizData(data.events, userId);
+      if (data.success && data.events) {
+        // Handle the new structure with both tracking and scheduled events
+        const { trackingEvents, scheduledEvents, totalCount } = data.events;
+        
+        if (totalCount > 0) {
+          console.log(`📧 [USER POLLING] User ${userId}: Syncing ${trackingEvents?.length || 0} tracking events and ${scheduledEvents?.length || 0} scheduled events`);
+          
+          // Sync tracking events if they exist
+          if (trackingEvents && trackingEvents.length > 0) {
+            await this.syncWithZillizData(trackingEvents, userId);
+          }
+          
+          // Handle scheduled events separately - we'll just log them for now
+          if (scheduledEvents && scheduledEvents.length > 0) {
+            console.log(`� [USER POLLING] User ${userId}: Found ${scheduledEvents.length} scheduled events`);
+            // Store scheduled events in memory for the frontend to access
+            this.userScheduledEvents = this.userScheduledEvents || new Map();
+            this.userScheduledEvents.set(userId, scheduledEvents);
+          }
+        }
       }
       
     } catch (error) {
@@ -748,6 +765,14 @@ class DesktopEmailTracker {
     for (const userId of this.userPollingIntervals.keys()) {
       this.stopUserPolling(userId);
     }
+  }
+
+  // Get scheduled events for a specific user
+  getUserScheduledEvents(userId) {
+    if (!this.userScheduledEvents) {
+      return [];
+    }
+    return this.userScheduledEvents.get(userId) || [];
   }
 }
 
