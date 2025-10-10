@@ -39,10 +39,13 @@ class ReasoningLeadAgent extends EventEmitter {
     // AWS manager for settings and data storage
     this.awsManager = new AWSManager();
     
-      // Agent state for UI integration
+    // Agent state for UI integration
     this.isRunning = false;
     this.cycleCount = 0;
     this.startTime = null;
+    
+    // ID counter for unique progress events
+    this.progressIdCounter = 0;
     this.customInterval = null;
     this.cycleTimer = null;
     
@@ -187,6 +190,11 @@ class ReasoningLeadAgent extends EventEmitter {
     this.logOperation('System', 'Operation logs cleared', 'completed');
   }
 
+  // Generate unique ID for progress events
+  generateUniqueId() {
+    return `${Date.now()}-${++this.progressIdCounter}-${Math.random().toString(36).substr(2, 4)}`;
+  }
+
   // Core reasoning function - the agent's "brain"
   async reason(context) {
     const prompt = `You are an intelligent lead research and email generation agent working SEQUENTIALLY on one lead at a time.
@@ -241,7 +249,7 @@ DECISION LOGIC (choose ONE action):
 
 REASONING INSTRUCTIONS:
 - You MUST call a function - don't just think about it!
-- For apollo_search, use HR/workforce/employee communication terms NOT "ActionTrac" as query
+- For apollo_search, use terms related to "${this.memory.userSettings?.primaryService || 'business solutions'}" and "${this.memory.userSettings?.coreOffering || 'services'}" - NOT generic HR terms
 - Use the user's REAL industries/positions/company size from settings above
 - Use user's actual preferences (industries, company size, positions) for Apollo searches
 - Always research leads with Serper to verify they're real and gather intelligence
@@ -397,6 +405,21 @@ Choose your next action and explain your reasoning:`;
             this.memory.currentCycle.processingPhase = 'research';
             console.log(`� [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
           }
+        } else {
+          // No new leads found - check if we still need more leads for our target
+          const totalLeadsNeeded = this.memory.currentCycle.targetLeads;
+          const currentLeadCount = this.memory.currentCycle.leadQueue.length + this.memory.currentCycle.leadsProcessed;
+          
+          if (currentLeadCount < totalLeadsNeeded) {
+            console.log(`🔄 [CYCLE] Need ${totalLeadsNeeded - currentLeadCount} more NEW leads - continuing search (current: ${currentLeadCount}/${totalLeadsNeeded})`);
+            
+            // Stay in search phase to keep looking for more NEW leads
+            this.memory.currentCycle.processingPhase = 'search';
+          } else {
+            console.log(`✅ [CYCLE] Have enough leads (${currentLeadCount}/${totalLeadsNeeded}) - completing cycle`);
+            this.memory.currentCycle.cycleComplete = true;
+            this.memory.currentCycle.processingPhase = 'complete';
+          }
         }
         break;
         
@@ -410,10 +433,11 @@ Choose your next action and explain your reasoning:`;
         
       case 'unlock_email':
         if (actionResult?.success && actionResult?.email) {
-          // Email unlocked successfully, UPDATE the lead email and move to build email
+          // Email unlocked successfully, UPDATE the lead email and move to build
           this.memory.currentCycle.currentLead.email = actionResult.email;
           this.memory.currentCycle.processingPhase = 'build';
           console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
+    
         } else {
           // Email unlock failed, skip this lead and get next from queue or search
           console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead`);
@@ -1364,6 +1388,102 @@ BODY: [email body with proper greeting and signature]`;
       }
       
       console.log('✅ [EMAIL BUILDER] Personalized email created');
+      
+      // Track this contact in the database to prevent future duplicates
+      try {
+        const leadInfo = {
+          name: contactName,
+          email: leadData.email,
+          company: companyName,
+          title: contactTitle
+        };
+        
+        // Emit SSE progress for contact tracking
+        this.emit('progress', {
+          id: this.generateUniqueId(),
+          timestamp: new Date().toISOString(),
+          operation: 'Contact Tracking',
+          details: `Adding ${leadInfo.name} (${leadInfo.email}) to contacted database...`,
+          status: 'processing',
+          data: { 
+            phase: 'tracking_contact',
+            contactName: leadInfo.name,
+            contactEmail: leadInfo.email,
+            company: leadInfo.company
+          }
+        });
+        
+        const trackingResult = await this.awsManager.addContactedLead(this.userId, leadInfo);
+        
+        if (trackingResult.success) {
+          console.log('📝 [CONTACT TRACKING] Lead added to contacted database:', leadInfo.email);
+          
+          // Emit SSE success for contact tracking
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: 'Contact Tracking',
+            details: `✅ Contact saved - ${leadInfo.name} at ${leadInfo.company} added to database`,
+            status: 'completed',
+            data: { 
+              phase: 'tracking_complete',
+              contactId: trackingResult.contactId,
+              contactName: leadInfo.name,
+              company: leadInfo.company
+            }
+          });
+        } else if (trackingResult.reason === 'already_contacted') {
+          console.log('⚠️ [CONTACT TRACKING] Lead was already in database (race condition?):', leadInfo.email);
+          
+          // Emit SSE warning for already contacted
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: 'Contact Tracking',
+            details: `⚠️ Contact already exists - ${leadInfo.name} was previously contacted`,
+            status: 'warning',
+            data: { 
+              phase: 'already_contacted',
+              contactName: leadInfo.name,
+              company: leadInfo.company,
+              reason: 'duplicate_contact'
+            }
+          });
+        } else {
+          console.error('❌ [CONTACT TRACKING] Failed to add to database:', trackingResult.error);
+          
+          // Emit SSE error for tracking failure
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: 'Contact Tracking',
+            details: `❌ Failed to save contact - ${trackingResult.error}`,
+            status: 'error',
+            data: { 
+              phase: 'tracking_failed',
+              error: trackingResult.error,
+              contactName: leadInfo.name
+            }
+          });
+        }
+      } catch (trackingError) {
+        console.error('❌ [CONTACT TRACKING] Error tracking contact:', trackingError.message);
+        
+        // Emit SSE error for tracking exception
+        this.emit('progress', {
+          id: this.generateUniqueId(),
+          timestamp: new Date().toISOString(),
+          operation: 'Contact Tracking',
+          details: `❌ Contact tracking error - ${trackingError.message}`,
+          status: 'error',
+          data: { 
+            phase: 'tracking_exception',
+            error: trackingError.message
+          }
+        });
+        // Don't fail the email creation if tracking fails
+      }
+      
       return {
         success: true,
         email: body,
@@ -1491,9 +1611,83 @@ BODY: [email body with proper greeting and signature]`;
         throw new Error(`Apollo API error: ${data.error || response.statusText}`);
       }
 
+      const rawLeads = data.people || [];
+      console.log(`🔍 [APOLLO] Found ${rawLeads.length} raw leads, checking for duplicates...`);
+
+      // Check for duplicates immediately after Apollo search
+      if (rawLeads.length > 0) {
+        // Emit SSE progress for deduplication check start
+        this.emit('progress', {
+          id: this.generateUniqueId(),
+          timestamp: new Date().toISOString(),
+          operation: 'Deduplication Check',
+          details: `🔍 Checking ${rawLeads.length} leads for duplicates...`,
+          status: 'processing',
+          data: { 
+            phase: 'deduplication_start',
+            totalLeads: rawLeads.length
+          }
+        });
+        
+        const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, rawLeads);
+        
+        if (deduplicationResult.success) {
+          const { newLeads, duplicateLeads, summary } = deduplicationResult;
+          
+          console.log(`📊 [DEDUPLICATION] Found ${summary.newCount} NEW leads, ${summary.duplicateCount} duplicates filtered out`);
+          
+          // Emit SSE progress for deduplication results
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: 'Deduplication Check',
+            details: `✅ Found ${summary.newCount} new leads, filtered ${summary.duplicateCount} duplicates`,
+            status: 'completed',
+            data: { 
+              phase: 'deduplication_complete',
+              newLeads: summary.newCount,
+              duplicatesFiltered: summary.duplicateCount,
+              totalChecked: summary.totalChecked
+            }
+          });
+          
+          // Log duplicates for visibility
+          if (duplicateLeads.length > 0) {
+            console.log('🔄 [DUPLICATES] Previously contacted:');
+            duplicateLeads.forEach(lead => {
+              console.log(`   • ${lead.name} at ${lead.organization?.name || lead.company}`);
+            });
+          }
+          
+          const results = {
+            found: newLeads.length,
+            totalFound: rawLeads.length,
+            leads: newLeads,
+            duplicatesFiltered: duplicateLeads,
+            query: parameters.query,
+            parameters: parameters
+          };
+
+          // Record this search in memory
+          this.memory.searchHistory.push({
+            timestamp: new Date().toISOString(),
+            parameters: parameters,
+            results: { found: results.found, totalFound: results.totalFound, duplicatesFiltered: duplicateLeads.length },
+            success: results.found > 0
+          });
+
+          return results;
+        } else {
+          console.error('⚠️ [DEDUPLICATION] Check failed, proceeding with all leads:', deduplicationResult.error);
+        }
+      }
+
+      console.log(`� [APOLLO] Found ${rawLeads.length} leads from search`);
+
+      // Return all leads from Apollo (deduplication will happen after email unlock)
       const results = {
-        found: data.people?.length || 0,
-        leads: data.people || [],
+        found: rawLeads.length,
+        leads: rawLeads,
         query: parameters.query,
         parameters: parameters
       };

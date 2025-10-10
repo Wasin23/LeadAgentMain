@@ -14,3 +14,14 @@
 {"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:48:06.786Z"}
 {"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-09T23:57:42.285Z"}
 {"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T00:01:44.577Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"examark-api","timestamp":"2025-10-10T16:04:43.752Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"examark-api","timestamp":"2025-10-10T16:05:38.469Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T16:11:05.860Z"}
+{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T16:17:26.970Z"}
+{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T16:38:15.913Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T16:48:38.423Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"examark-api","timestamp":"2025-10-10T17:05:54.440Z"}
+{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T17:32:49.455Z"}
+{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T17:38:19.278Z"}
+{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T17:56:29.609Z"}
+{"level":"error","message":"Request timeout:","service":"examark-api","timestamp":"2025-10-10T18:03:26.947Z"}

@@ -648,7 +648,7 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
 });
 
 // Get scheduled events from polling data
-router.get('/scheduled-events', authenticateToken, async (req, res) => {
+router.get('/api/analytics/scheduled-events', authenticateToken, async (req, res) => {
   try {
     console.log('📅 [SCHEDULED EVENTS] Fetching scheduled events for user:', req.user.userId);
     

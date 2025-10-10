@@ -27,7 +27,8 @@ class AWSManager {
       agentSettings: process.env.AWS_DYNAMODB_AGENT_SETTINGS_TABLE || 'examark-agent-settings',
       leadData: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'examark-lead-data',
       emailTracking: process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'examark-email-tracking',
-      agentState: process.env.AWS_DYNAMODB_AGENT_STATE_TABLE || 'examark-agent-state'
+      agentState: process.env.AWS_DYNAMODB_AGENT_STATE_TABLE || 'examark-agent-state',
+      contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'examark-contacted-leads'
     };
     
     console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
@@ -378,6 +379,274 @@ class AWSManager {
         status: 'unhealthy',
         error: error.message,
         timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // ===================================
+  // CONTACTED LEADS DEDUPLICATION METHODS
+  // ===================================
+
+  /**
+   * Add a contacted lead to the deduplication database
+   * @param {string} userId - User ID who contacted the lead
+   * @param {object} leadInfo - Lead information
+   * @param {string} leadInfo.name - Lead's full name
+   * @param {string} leadInfo.email - Lead's email address
+   * @param {string} leadInfo.company - Lead's company name
+   * @param {string} leadInfo.title - Lead's job title (optional)
+   */
+  async addContactedLead(userId, leadInfo) {
+    try {
+      console.log('📝 [AWS] Adding contacted lead:', leadInfo.name, 'at', leadInfo.company);
+
+      // Create a unique contact ID combining name and company (to match deduplication logic)
+      const contactId = `${leadInfo.name.toLowerCase().replace(/\s+/g, '_')}_${leadInfo.company.toLowerCase().replace(/\s+/g, '_')}`;
+      
+      const contactData = {
+        contactId: contactId,
+        userId: userId,
+        name: leadInfo.name,
+        email: leadInfo.email.toLowerCase(),
+        company: leadInfo.company,
+        title: leadInfo.title || 'Unknown',
+        contactedAt: new Date().toISOString(),
+        ttl: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60) // Expire after 1 year
+      };
+
+      const command = new PutCommand({
+        TableName: this.tables.contactedLeads,
+        Item: contactData,
+        ConditionExpression: 'attribute_not_exists(contactId) AND attribute_not_exists(userId)' // Prevent overwriting existing contacts for this user
+      });
+
+      await this.dynamodb.send(command);
+      
+      console.log('✅ [AWS] Successfully added contacted lead:', contactId);
+      return { success: true, contactId };
+
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        console.log('⚠️ [AWS] Lead already exists in contacted database:', leadInfo.email);
+        return { success: false, reason: 'already_contacted', contactId: null };
+      }
+      
+      console.error('❌ [AWS] Failed to add contacted lead:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Remove a contacted lead from the deduplication database
+   * @param {string} userId - User ID who contacted the lead
+   * @param {string} contactId - Contact ID to remove
+   */
+  async removeContactedLead(userId, contactId) {
+    try {
+      console.log('🗑️ [AWS] Removing contacted lead:', contactId);
+
+      const command = new DeleteCommand({
+        TableName: this.tables.contactedLeads,
+        Key: {
+          contactId: contactId,
+          userId: userId
+        }
+      });
+
+      await this.dynamodb.send(command);
+      
+      console.log('✅ [AWS] Successfully removed contacted lead:', contactId);
+      return { success: true };
+
+    } catch (error) {
+      console.error('❌ [AWS] Failed to remove contacted lead:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Check if leads have already been contacted
+   * @param {string} userId - User ID to check contacts for
+   * @param {array} leads - Array of lead objects to check
+   * @returns {object} - Object with newLeads and duplicateLeads arrays
+   */
+  async checkForDuplicateContacts(userId, leads) {
+    try {
+      console.log('🔍 [AWS] Checking', leads.length, 'leads for duplicates...');
+
+      const newLeads = [];
+      const duplicateLeads = [];
+
+      // Check each lead individually
+      for (const lead of leads) {
+        // Apollo returns organization.name, normalize to company field
+        const companyName = lead.company || lead.organization?.name;
+        
+        if (!lead.name || !companyName) {
+          console.log('⚠️ [AWS] Skipping lead with missing data:', lead.name || 'MISSING', '| Company:', companyName || 'MISSING');
+          continue;
+        }
+
+        // Use name + company as unique identifier (not email since Apollo doesn't provide emails)
+        const contactId = `${lead.name.toLowerCase().replace(/\s+/g, '_')}_${companyName.toLowerCase().replace(/\s+/g, '_')}`;
+        
+        const command = new GetCommand({
+          TableName: this.tables.contactedLeads,
+          Key: { 
+            contactId: contactId,
+            userId: userId 
+          }
+        });
+
+        try {
+          const result = await this.dynamodb.send(command);
+          
+          if (result.Item) {
+            console.log('🔄 [AWS] Duplicate found:', lead.name, 'at', companyName, '(contacted:', result.Item.contactedAt, ')');
+            duplicateLeads.push({
+              ...lead,
+              contactedAt: result.Item.contactedAt,
+              reason: 'previously_contacted'
+            });
+          } else {
+            console.log('✅ [AWS] New lead:', lead.name, 'at', companyName);
+            newLeads.push(lead);
+          }
+        } catch (getError) {
+          console.error('❌ [AWS] Error checking lead:', contactId, getError.message);
+          // If there's an error checking, assume it's a new lead to be safe
+          newLeads.push(lead);
+        }
+      }
+
+      console.log(`📊 [AWS] Deduplication results: ${newLeads.length} new leads, ${duplicateLeads.length} duplicates filtered out`);
+      
+      return {
+        success: true,
+        newLeads,
+        duplicateLeads,
+        summary: {
+          totalChecked: leads.length,
+          newCount: newLeads.length,
+          duplicateCount: duplicateLeads.length
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ [AWS] Failed to check for duplicate contacts:', error);
+      return {
+        success: false,
+        error: error.message,
+        newLeads: leads, // Return all leads as "new" if check fails
+        duplicateLeads: []
+      };
+    }
+  }
+
+  /**
+   * Get contacted leads history for a user
+   * @param {string} userId - User ID
+   * @param {number} limit - Maximum number of records to return (optional)
+   */
+  async getContactedLeadsHistory(userId, limit = 100) {
+    try {
+      console.log('📊 [AWS] Getting contacted leads history for user:', userId);
+
+      const command = new QueryCommand({
+        TableName: this.tables.contactedLeads,
+        IndexName: 'UserIdIndex', // Assumes GSI on userId
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        },
+        ScanIndexForward: false, // Most recent first
+        Limit: limit
+      });
+
+      const result = await this.dynamodb.send(command);
+      
+      console.log('✅ [AWS] Retrieved', result.Items?.length || 0, 'contacted leads');
+      return {
+        success: true,
+        contacts: result.Items || [],
+        count: result.Items?.length || 0
+      };
+
+    } catch (error) {
+      console.error('❌ [AWS] Failed to get contacted leads history:', error);
+      return {
+        success: false,
+        error: error.message,
+        contacts: []
+      };
+    }
+  }
+
+  /**
+   * Clear all contacted leads for a specific user (for testing purposes)
+   * @param {string} userId - User ID whose contacts to clear
+   */
+  async clearContactedLeads(userId) {
+    try {
+      console.log('🗑️ [AWS] Clearing all contacted leads for user:', userId);
+
+      // First, get all contacts for this user
+      const getCommand = new ScanCommand({
+        TableName: this.tables.contactedLeads,
+        FilterExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        }
+      });
+
+      const result = await this.dynamodb.send(getCommand);
+      const contacts = result.Items || [];
+
+      if (contacts.length === 0) {
+        console.log('✅ [AWS] No contacts found to clear for user:', userId);
+        return {
+          success: true,
+          deletedCount: 0,
+          message: 'No contacts found to clear'
+        };
+      }
+
+      // Delete each contact individually
+      let deletedCount = 0;
+      const deletePromises = contacts.map(async (contact) => {
+        try {
+          const deleteCommand = new DeleteCommand({
+            TableName: this.tables.contactedLeads,
+            Key: {
+              contactId: contact.contactId,
+              userId: contact.userId
+            }
+          });
+
+          await this.dynamodb.send(deleteCommand);
+          deletedCount++;
+          console.log(`🗑️ [AWS] Deleted contact: ${contact.name} (${contact.email}) at ${contact.company}`);
+        } catch (deleteError) {
+          console.error('❌ [AWS] Failed to delete contact:', contact.contactId, deleteError.message);
+        }
+      });
+
+      await Promise.all(deletePromises);
+
+      console.log(`✅ [AWS] Successfully cleared ${deletedCount} contacted leads for user: ${userId}`);
+      return {
+        success: true,
+        deletedCount: deletedCount,
+        totalFound: contacts.length,
+        message: `Cleared ${deletedCount} out of ${contacts.length} contacts`
+      };
+
+    } catch (error) {
+      console.error('❌ [AWS] Failed to clear contacted leads:', error);
+      return {
+        success: false,
+        error: error.message,
+        deletedCount: 0
       };
     }
   }

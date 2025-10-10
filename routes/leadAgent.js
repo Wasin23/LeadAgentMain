@@ -160,8 +160,6 @@ router.get('/status', async (req, res) => {
     const userAgent = getUserAgent(userId);
     const status = await userAgent.getStatus();
     
-    console.log('📊 [LEAD AGENT API] Status result:', JSON.stringify(status, null, 2));
-    
     res.json({
       success: true,
       ...status, // Flatten the status object
@@ -557,6 +555,96 @@ router.get('/activity-logs', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to load agent activity logs'
+    });
+  }
+});
+
+// Get contacted leads history
+router.get('/contacted-leads', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const limit = parseInt(req.query.limit) || 50;
+    console.log('📊 [CONTACTED LEADS] Getting history for user:', userId, 'limit:', limit);
+    
+    // Get user-specific agent instance to access AWS manager
+    const userAgent = getUserAgent(userId);
+    
+    if (!userAgent.awsManager) {
+      return res.status(500).json({
+        success: false,
+        error: 'AWS manager not available'
+      });
+    }
+    
+    const result = await userAgent.awsManager.getContactedLeadsHistory(userId, limit);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        contacts: result.contacts,
+        count: result.count,
+        message: `Found ${result.count} contacted leads`
+      });
+    } else {
+      console.error('❌ [CONTACTED LEADS] Failed to get history:', result.error);
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: 'Failed to get contacted leads history'
+      });
+    }
+    
+  } catch (error) {
+    console.error('[CONTACTED LEADS] Error getting history:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get contacted leads history'
+    });
+  }
+});
+
+// Clear contacted leads database for testing
+router.delete('/clear-contacts', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('🗑️ [CLEAR CONTACTS] Clearing contacted leads for user:', userId);
+    
+    // Get user-specific agent instance to access AWS manager
+    const userAgent = getUserAgent(userId);
+    
+    if (!userAgent.awsManager) {
+      return res.status(500).json({
+        success: false,
+        error: 'AWS manager not available'
+      });
+    }
+    
+    const result = await userAgent.awsManager.clearContactedLeads(userId);
+    
+    if (result.success) {
+      console.log('✅ [CLEAR CONTACTS] Successfully cleared contacts:', result);
+      res.json({
+        success: true,
+        message: `Successfully cleared ${result.deletedCount} contacted leads`,
+        deletedCount: result.deletedCount,
+        totalFound: result.totalFound
+      });
+    } else {
+      console.error('❌ [CLEAR CONTACTS] Failed to clear contacts:', result.error);
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: 'Failed to clear contacted leads'
+      });
+    }
+    
+  } catch (error) {
+    console.error('[CLEAR CONTACTS] Error clearing contacted leads:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to clear contacted leads database'
     });
   }
 });
