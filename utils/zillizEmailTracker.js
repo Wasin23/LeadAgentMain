@@ -186,7 +186,7 @@ export class ZillizEmailTracker {
         }
     }
 
-    async getTrackingEventsByUserId(userId) {
+    async getTrackingEventsByUserId(userId, agentId = null) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -200,15 +200,27 @@ export class ZillizEmailTracker {
             // Extract 8-character user code from full userId (tracking IDs use first 8 chars)
             const userCode = userId.substring(0, 8);
             
-            // Query events filtered by userCode pattern in tracking_id (tracking-{userCode}_...)
+            let expr;
+            let context;
+            
+            if (!agentId) {
+                console.log(`⚠️ [ZILLIZ] Warning: getTrackingEventsByUserId called without agentId for user ${userId}`);
+                return [];
+            }
+            
+            // Filter by both user code and agent ID in tracking_id pattern
+            expr = `tracking_id like "tracking-${userCode}_${agentId}_%"`;
+            context = `user ${userId} (${userCode}), agent ${agentId}`;
+            
+            // Query events filtered by userCode and optionally agentId pattern in tracking_id
             const results = await this.client.query({
                 collection_name: this.collectionName,
-                expr: `tracking_id like "tracking-${userCode}_%"`,
+                expr: expr,
                 output_fields: ['tracking_id', 'event_type', 'timestamp', 'user_agent', 'ip_address', 'email_address', 'recipient', 'processed'],
                 limit: 1000
             });
 
-            console.log(`📊 [ZILLIZ] Retrieved ${results.data?.length || 0} tracking events for user ${userId} (code: ${userCode})`);
+            console.log(`📊 [ZILLIZ] Retrieved ${results.data?.length || 0} tracking events for ${context}`);
             return results.data || [];
 
         } catch (error) {
@@ -408,8 +420,8 @@ export class ZillizEmailTracker {
         }
     }
 
-    // Get scheduled calendar events for a specific user
-    async getScheduledEventsByUserId(userId) {
+    // Get scheduled calendar events for a specific user and optionally agent
+    async getScheduledEventsByUserId(userId, agentId = null) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -423,15 +435,27 @@ export class ZillizEmailTracker {
             // Extract 8-character user code from full userId (same as tracking events)
             const userCode = userId.substring(0, 8);
 
+            let expr;
+            let context;
+            
+            if (!agentId) {
+                console.log(`⚠️ [ZILLIZ] Warning: getScheduledEventsByUserId called without agentId for user ${userId}`);
+                return [];
+            }
+            
+            // Filter by both user code and agent ID for calendar events
+            expr = `tracking_id like "calendar-${userCode}_${agentId}%" && event_type == "calendar_event_scheduled"`;
+            context = `user ${userId} (${userCode}), agent ${agentId}`;
+
             // Query scheduled events filtered by tracking_id pattern and event_type
             const results = await this.client.query({
                 collection_name: this.collectionName,
-                expr: `tracking_id like "calendar-${userCode}%" && event_type == "calendar_event_scheduled"`,
-                output_fields: ['id', 'tracking_id', 'event_type', 'timestamp', 'user_agent', 'email_address', 'recipient', 'processed'],
+                expr: expr,
+                output_fields: ['id', 'tracking_id', 'event_type', 'timestamp', 'user_agent', 'email_address', 'recipient', 'processed', 'agent_id'],
                 limit: 1000
             });
 
-            console.log(`📅 [ZILLIZ] Retrieved ${results.data?.length || 0} scheduled events for user ${userId}`);
+            console.log(`📅 [ZILLIZ] Retrieved ${results.data?.length || 0} scheduled events for ${context}`);
             return results.data || [];
 
         } catch (error) {

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "1760296964152",
+    "timestamp": "2025-10-12T19:22:44.152Z",
+    "status": "approved",
+    "source": "custom",
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "leadData": {
+      "email": "COLTON.FIDD@GMAIL.COM",
+      "company": "Custom Email",
+      "name": "COLTON.FIDD",
+      "title": "Custom Contact",
+      "context": "Custom email created by user"
+    },
+    "leadDetails": {
+      "personInfo": {
+        "fullName": "COLTON.FIDD",
+        "currentPosition": "Custom Contact",
+        "company": "Custom Email",
+        "email": "COLTON.FIDD@GMAIL.COM"
+      }
+    },
+    "emailData": {
+      "subject": "test email for gdjddjdnhelao",
+      "body": "hello im cole hehehedslldms",
+      "finalRecipient": "COLTON.FIDD@GMAIL.COM",
+      "finalSubject": "test email for gdjddjdnhelao",
+      "finalBody": "hello im cole hehehedslldms"
+    },
+    "metadata": {
+      "customEmail": true,
+      "createdAt": "2025-10-12T19:22:44.147Z",
+      "createdBy": "user"
+    },
+    "approvedAt": "2025-10-12T19:22:45.357Z",
+    "trackingId": "tracking-76e84c79_160199_1760296965360_1eb8ba7b",
+    "mailgunId": null,
+    "sentAt": "2025-10-12T19:22:45.755Z"
+  }
+]

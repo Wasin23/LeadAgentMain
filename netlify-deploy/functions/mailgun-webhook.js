@@ -47,9 +47,17 @@ function extractMessageId(headers, field) {
 
 function extractUserIdFromTrackingId(trackingId) {
   if (!trackingId) return null;
-  // Extract user code from tracking-76e84c79_timestamp_hash format
+  // Extract user code from tracking-76e84c79_agentId_timestamp_hash format
   const match = trackingId.match(/tracking-([a-f0-9]{8})/);
   return match ? match[1] : null;
+}
+
+function extractAgentIdFromTrackingId(trackingId) {
+  if (!trackingId) return null;
+  // Extract agentId from tracking-userCode_agentId_timestamp_hash format
+  // If no underscore after userCode, it's the main agent (no agentId)
+  const match = trackingId.match(/tracking-[a-f0-9]{8}_([^_]+)_/);
+  return match ? match[1] : 'reasoning-lead-agent'; // Default to main agent
 }
 
 function getTimezoneOffset(timezone) {

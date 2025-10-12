@@ -379,10 +379,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 
                 console.log('🏁 [CYCLE COMPLETED] Detected cycle completion via SSE');
                 console.log('🏁 [DEBUG] Full SSE data:', progressData.data);
-                console.log('🕒 Starting countdown timer at:', new Date());
-                setCycleTriggered(true); // Prevent duplicate triggers
-                setLastCycleTime(new Date());
-                setCountdownTime(null);
+                
+                // Only start countdown if agent is actively running (not for manual cycles)
+                if (status?.isActive && status?.currentInterval) {
+                  console.log('🕒 Starting countdown timer at:', new Date());
+                  setCycleTriggered(true); // Prevent duplicate triggers
+                  setLastCycleTime(new Date());
+                  setCountdownTime(null);
+                } else {
+                  console.log('📝 [MANUAL CYCLE] Cycle completed but agent not running - no countdown');
+                }
               }
               
               // 🔍 Additional specific logging for Serper research steps
@@ -616,7 +622,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchScheduledEvents = async () => {
     try {
-      const response = await api.get('/api/analytics/scheduled-events');
+      const response = await api.get(`/api/analytics/scheduled-events?agentId=${agentId}`);
       if (response.data && Array.isArray(response.data)) {
         setScheduledEvents(response.data);
       } else {
@@ -631,7 +637,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const fetchAgentLogs = async () => {
     try {
       console.log('🔍 [FRONTEND] Fetching agent logs from /api/lead-agent/activity-logs...');
-      const response = await api.get('/api/lead-agent/activity-logs');
+      const response = await api.get(`/api/lead-agent/activity-logs?agentId=${agentId}`);
       console.log('🔍 [FRONTEND] Agent logs response:', response);
       console.log('🔍 [FRONTEND] Agent logs data:', response.data);
       console.log('🔍 [FRONTEND] Is array?', Array.isArray(response.data));

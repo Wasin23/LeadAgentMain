@@ -64,7 +64,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       // Fetch scheduled events/meetings count
       let meetingsScheduled = 0;
       try {
-        const eventsResponse = await api.get('/api/analytics/scheduled-events');
+        const eventsResponse = await api.get(`/api/analytics/scheduled-events?agentId=${agentId}`);
         if (eventsResponse.data && Array.isArray(eventsResponse.data)) {
           meetingsScheduled = eventsResponse.data.length;
         }

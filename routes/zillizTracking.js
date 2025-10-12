@@ -30,12 +30,10 @@ router.get('/internal/events', async (req, res) => {
             const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
             console.log(`📊 [ZILLIZ INTERNAL] Getting events for ${context}`);
             
-            // Get both email tracking events and scheduled events
-            // For now, we get all events for the user since tracking isn't agent-specific yet
-            // TODO: When tracking becomes agent-specific, filter by agentId here
+            // Get both email tracking events and scheduled events with agent-specific filtering
             const [trackingEvents, scheduledEvents] = await Promise.all([
-                tracker.getTrackingEventsByUserId(userId),
-                tracker.getScheduledEventsByUserId(userId)
+                tracker.getTrackingEventsByUserId(userId, agentId),
+                tracker.getScheduledEventsByUserId(userId, agentId)
             ]);
             
             // Combine both types of events

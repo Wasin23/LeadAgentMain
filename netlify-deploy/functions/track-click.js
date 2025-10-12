@@ -30,6 +30,13 @@ exports.handler = async (event, context) => {
           token: process.env.ZILLIZ_TOKEN
         });
 
+        // Extract agent ID from tracking ID for proper attribution
+        const extractAgentIdFromTrackingId = (trackingId) => {
+          if (!trackingId) return null;
+          const match = trackingId.match(/tracking-[a-f0-9]{8}_([^_]+)_/);
+          return match ? match[1] : 'reasoning-lead-agent';
+        };
+        
         const data = [{
           tracking_id: trackingId,
           event_type: 'link_click',

@@ -701,16 +701,23 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
 // Get scheduled events from polling data
 router.get('/api/analytics/scheduled-events', authenticateToken, async (req, res) => {
   try {
-    console.log('📅 [SCHEDULED EVENTS] Fetching scheduled events for user:', req.user.userId);
+    const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
+    console.log('📅 [SCHEDULED EVENTS] Fetching scheduled events for user:', req.user.userId, 'agentId:', agentId);
     
     // Import the desktop email tracker to get scheduled events from polling
     const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
     
-    // Get scheduled events from the polling data
+    // Get scheduled events from the polling data (filtered by agentId if supported)
     const rawEvents = desktopEmailTracker.getUserScheduledEvents(req.user.userId);
     
+    // Filter by agentId if the events have agent information
+    const filteredEvents = rawEvents.filter(event => {
+      // If event has agentId, match it; if no agentId in event, include for main agent
+      return !event.agentId || event.agentId === agentId || (agentId === 'reasoning-lead-agent' && !event.agentId);
+    });
+    
     // Transform Zilliz event data to frontend format
-    const scheduledEvents = rawEvents.map(event => ({
+    const scheduledEvents = filteredEvents.map(event => ({
       id: event.id,
       title: event.event_title || 'Meeting',
       contactName: event.attendee_name || 'Contact',

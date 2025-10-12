@@ -811,9 +811,6 @@ class DesktopEmailTracker {
         await this.pollZillizEventsForUserAgent(userId, agentInfo.agentId);
       }
       
-      // Also poll for user-level tracking (for backward compatibility)
-      await this.pollZillizEventsForUserAgent(userId, null);
-      
     } catch (error) {
       console.error(`📧 [USER POLLING] Error polling for user ${userId}:`, error);
     }

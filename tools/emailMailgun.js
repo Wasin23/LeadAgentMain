@@ -14,7 +14,7 @@ const mg = mailgun.client({
 });
 
 // Function to log email with enhanced analytics data
-async function logEmailToFile(to, subject, body, status, trackingId = null, metadata = {}, userId = null) {
+async function logEmailToFile(to, subject, body, status, trackingId = null, metadata = {}, userId = null, agentId = null) {
   try {
     console.log('[EMAIL LOG] Attempting to log email:', { to, subject, body, status, trackingId, userId });
     
@@ -269,7 +269,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       trackingEnabled: enableTracking,
       desktopTracking: true, // Flag to indicate this uses desktop tracking
       personInfo: personInfo // Include person information in the log
-    }, userId);
+    }, userId, agentId);
     
     return {
       success: true,
@@ -282,7 +282,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     // Log failed email
     await logEmailToFile(to, subject, body, 'failed', null, {
       error: err.message || err.toString()
-    }, userId);
+    }, userId, agentId);
     
     return {
       success: false,
@@ -343,7 +343,7 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
         trackingEnabled: enableTracking,
         desktopTracking: enableTracking,
         personInfo: personInfo
-      }, userId);
+      }, userId, agentId);
     }
     
     return {
@@ -358,7 +358,7 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
     if (!skipLogging) {
       await logEmailToFile(to, subject, textBody, 'failed', null, {
         error: err.message || err.toString()
-      }, userId);
+      }, userId, agentId);
     }
     
     return {

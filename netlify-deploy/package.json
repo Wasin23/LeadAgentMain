@@ -8,7 +8,7 @@
     "@langchain/openai": "^0.0.26",
     "@zilliz/milvus2-sdk-node": "^2.4.9",
     "langchain": "^0.1.25",
-    "netlify-cli": "^23.8.0",
+    "netlify-cli": "^23.9.1",
     "zod": "^3.22.4"
   },
   "scripts": {

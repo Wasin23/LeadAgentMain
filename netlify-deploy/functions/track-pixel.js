@@ -70,6 +70,13 @@ exports.handler = async (event, context) => {
             console.log('Search error (proceeding with insert):', searchError);
           }
           
+          // Extract agent ID from tracking ID for proper attribution
+          const extractAgentIdFromTrackingId = (trackingId) => {
+            if (!trackingId) return null;
+            const match = trackingId.match(/tracking-[a-f0-9]{8}_([^_]+)_/);
+            return match ? match[1] : 'reasoning-lead-agent';
+          };
+          
           // Only insert if not an image proxy and not already opened
           if (!isImageProxy && !alreadyOpened) {
             const data = [{

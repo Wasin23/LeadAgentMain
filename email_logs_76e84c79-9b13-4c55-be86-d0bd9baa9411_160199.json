@@ -1,0 +1,36 @@
+[
+  {
+    "id": "tracking-76e84c79_160199_1760296965360_1eb8ba7b",
+    "to": "COLTON.FIDD@GMAIL.COM",
+    "subject": "test email for gdjddjdnhelao",
+    "body": "hello im cole hehehedslldms",
+    "status": "sent",
+    "timestamp": "2025-10-12T19:22:45.750Z",
+    "personInfo": {
+      "fullName": "COLTON.FIDD",
+      "currentPosition": "Custom Contact",
+      "company": "Custom Email",
+      "email": "COLTON.FIDD@GMAIL.COM"
+    },
+    "userId": "76e84c79-9b13-4c55-be86-d0bd9baa9411",
+    "analytics": {
+      "opened": false,
+      "clicked": false,
+      "replied": false,
+      "bounced": false,
+      "unsubscribed": false,
+      "clickCount": 0,
+      "openCount": 0,
+      "lastActivity": null,
+      "mailgunId": "<tracking-tracking-76e84c79_160199_1760296965360_1eb8ba7b@mg.examarkchat.com>",
+      "trackingEnabled": true,
+      "desktopTracking": true,
+      "personInfo": {
+        "fullName": "COLTON.FIDD",
+        "currentPosition": "Custom Contact",
+        "company": "Custom Email",
+        "email": "COLTON.FIDD@GMAIL.COM"
+      }
+    }
+  }
+]

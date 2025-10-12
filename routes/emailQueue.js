@@ -2,6 +2,7 @@ import express from 'express';
 import { EmailQueue } from '../lib/emailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
+import fs from 'fs/promises';
 
 const router = express.Router();
 
@@ -238,6 +239,26 @@ router.post('/:id/approve', async (req, res) => {
     
     if (sendResult.success) {
       console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);
+      
+      // Save tracking ID to the approved email record for sync purposes
+      if (sendResult.result && sendResult.result.trackingId) {
+        try {
+          const approved = await userEmailQueue.getApproved();
+          const emailIndex = approved.findIndex(e => e.id === id);
+          if (emailIndex !== -1) {
+            approved[emailIndex].trackingId = sendResult.result.trackingId;
+            approved[emailIndex].mailgunId = sendResult.result.mailgunId || null;
+            approved[emailIndex].sentAt = new Date().toISOString();
+            
+            // Write back to approved file
+            await fs.writeFile(userEmailQueue.approvedFile, JSON.stringify(approved, null, 2));
+            console.log(`[EMAIL QUEUE] 💾 Saved tracking ID ${sendResult.result.trackingId} to approved email ${id}`);
+          }
+        } catch (trackingError) {
+          console.error('[EMAIL QUEUE] ⚠️ Failed to save tracking ID:', trackingError);
+        }
+      }
+      
       res.json({ 
         success: true, 
         email: approvedEmail,
