@@ -1163,10 +1163,6 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
 
     const data = await response.json();
     console.log(`🔍 [Apollo] Raw API response: Found ${data.people?.length || 0} people in response`);
-    
-    if (data.people?.[0]) {
-      console.log(`🔍 [Apollo] Sample person data:`, JSON.stringify(data.people[0], null, 2));
-    }
 
     if (data.people && data.people.length > 0) {
       // HARDCODED DEDUPLICATION - CANNOT BE EDITED OUT

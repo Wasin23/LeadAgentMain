@@ -24,10 +24,10 @@ import fs from 'fs/promises';
 import path from 'path';
 
 class ReasoningLeadAgent extends EventEmitter {
-  constructor(userId) {
+  constructor(userId, agentId = 'reasoning-lead-agent') {
     super(); // Call EventEmitter constructor
     this.userId = userId;
-    this.agentId = 'reasoning-lead-agent'; // Define unique agent identifier
+    this.agentId = agentId; // Use provided agentId for agent-specific behavior
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
@@ -554,7 +554,6 @@ Choose your next action and explain your reasoning:`;
         break;
         
       case 'unlock_email':
-        console.log(`🔧 [DEBUG] unlock_email actionResult:`, JSON.stringify(actionResult, null, 2));
         console.log(`🔧 [DEBUG] unlock_email success check: success=${actionResult?.success}, email=${!!actionResult?.email}`);
         
         if (actionResult?.success && actionResult?.email) {
@@ -829,8 +828,8 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
     console.log('⚙️ [AWS] Getting user lead generation settings from DynamoDB...');
     
     try {
-      // Get lead agent settings from AWS DynamoDB
-      const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId);
+      // Get lead agent settings from AWS DynamoDB with agentId
+      const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
       
       console.log('🔍 [DEBUG] Lead agent settings from AWS:', JSON.stringify(leadContactSettings, null, 2));
       
@@ -891,8 +890,8 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
     console.log('📧 [AWS] Getting email builder settings from DynamoDB...');
     
     try {
-      // Use the same method to get lead agent settings (includes email builder)
-      const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId);
+      // Use the same method to get lead agent settings (includes email builder) with agentId
+      const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
       
       console.log('🔍 [DEBUG] Lead agent settings for email from AWS:', JSON.stringify(leadContactSettings, null, 2));
       
@@ -1248,7 +1247,6 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
       const enrichData = await enrichResponse.json();
       console.log('🔓 [STEP 2] Enriched person data received');
-      console.log('🔍 [DEBUG] Full Apollo response:', JSON.stringify(enrichData, null, 2));
       
       if (enrichData && enrichData.person) {
         const person = enrichData.person;
@@ -3478,30 +3476,34 @@ BODY: [email body with proper greeting and signature]`;
 const userAgents = new Map();
 
 /**
- * Get or create a user-specific reasoning agent instance
+ * Get or create an agent-specific reasoning agent instance
  */
-export function getUserAgent(userId) {
+export function getUserAgent(userId, agentId = 'reasoning-lead-agent') {
   if (!userId) {
     throw new Error('User ID is required');
   }
 
-  if (!userAgents.has(userId)) {
-    console.log('🔧 [AGENT MANAGER] Creating new ReasoningLeadAgent for user:', userId);
-    userAgents.set(userId, new ReasoningLeadAgent(userId));
+  // Create unique key for user+agent combination
+  const agentKey = `${userId}_${agentId}`;
+
+  if (!userAgents.has(agentKey)) {
+    console.log('🔧 [AGENT MANAGER] Creating new ReasoningLeadAgent for user:', userId, 'agentId:', agentId);
+    userAgents.set(agentKey, new ReasoningLeadAgent(userId, agentId));
   }
 
-  return userAgents.get(userId);
+  return userAgents.get(agentKey);
 }
 
 /**
  * Remove a user's agent instance (cleanup)
  */
-export function removeUserAgent(userId) {
-  if (userAgents.has(userId)) {
-    const agent = userAgents.get(userId);
+export function removeUserAgent(userId, agentId = 'reasoning-lead-agent') {
+  const agentKey = `${userId}_${agentId}`;
+  if (userAgents.has(agentKey)) {
+    const agent = userAgents.get(agentKey);
     agent.stop(); // Stop the agent before removing
-    userAgents.delete(userId);
-    console.log('🗑️ [AGENT MANAGER] Removed ReasoningLeadAgent for user:', userId);
+    userAgents.delete(agentKey);
+    console.log('🗑️ [AGENT MANAGER] Removed ReasoningLeadAgent for user:', userId, 'agentId:', agentId);
   }
 }
 
@@ -3510,13 +3512,15 @@ export function removeUserAgent(userId) {
  */
 export function getUserActiveAgents(userId) {
   const agents = [];
-  if (userAgents.has(userId)) {
-    const agent = userAgents.get(userId);
-    agents.push({
-      agentId: agent.agentId,
-      isRunning: agent.isRunning,
-      userId: userId
-    });
+  // Check for all agent instances for this user (userId_*)
+  for (const [agentKey, agent] of userAgents.entries()) {
+    if (agentKey.startsWith(`${userId}_`)) {
+      agents.push({
+        agentId: agent.agentId,
+        isRunning: agent.isRunning,
+        userId: userId
+      });
+    }
   }
   return agents;
 }
@@ -3526,11 +3530,14 @@ export function getUserActiveAgents(userId) {
  */
 export function getAllActiveAgents() {
   const allAgents = [];
-  for (const [userId, agent] of userAgents.entries()) {
+  for (const [agentKey, agent] of userAgents.entries()) {
+    // Extract userId from the agentKey (format: userId_agentId)
+    const userId = agentKey.split('_')[0];
     allAgents.push({
       agentId: agent.agentId,
       isRunning: agent.isRunning,
-      userId: userId
+      userId: userId,
+      agentKey: agentKey
     });
   }
   return allAgents;

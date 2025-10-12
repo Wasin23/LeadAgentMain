@@ -200,9 +200,9 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     
     let trackingId = null;
     
-    // Use desktop email tracker for safe, self-contained tracking
+    // Use desktop email tracker for safe, self-contained tracking with agent-specific tracking
     if (enableTracking) {
-      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject, userId);
+      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject, userId, agentId);
       htmlBody = trackingResult.html;
       trackingId = trackingResult.trackingId;
       
@@ -293,7 +293,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
 }
 
 // Send email with custom HTML (for password reset emails)
-async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null, skipLogging = false, userId = null) {
+async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null, skipLogging = false, userId = null, agentId = null) {
   try {
     console.log(`[MAILGUN CUSTOM] Sending to: ${to}, Subject: ${subject}`);
     
@@ -301,8 +301,8 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
     let finalHtmlBody = htmlBody;
     
     // Use desktop email tracker for safe, self-contained tracking
-    if (enableTracking) {
-      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject);
+    if (enableTracking && userId) {
+      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject, userId, agentId);
       finalHtmlBody = trackingResult.html;
       trackingId = trackingResult.trackingId;
       

@@ -235,7 +235,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
   const fetchSettings = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/api/lead-agent/settings');
+      const response = await api.get(`/api/lead-agent/settings?agentId=${agentId}`);
       if (response.data.settings) {
         // Merge API data with default structure to prevent undefined errors
         setSettings(prevSettings => {
@@ -315,7 +315,10 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
       setIsSaving(true);
       setSaveStatus('idle');
       
-      await api.post('/api/lead-agent/settings', settings);
+      await api.post('/api/lead-agent/settings', {
+        ...settings,
+        agentId: agentId
+      });
       
       setSaveStatus('success');
       setTimeout(() => {

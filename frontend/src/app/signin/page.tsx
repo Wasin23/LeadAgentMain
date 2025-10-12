@@ -15,6 +15,11 @@ export default function SignInPage() {
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [codeValidation, setCodeValidation] = useState<{ isValid: boolean; message: string; isChecking: boolean }>({
+    isValid: false,
+    message: '',
+    isChecking: false
+  });
   
   // Form states
   const [signInForm, setSignInForm] = useState({ username: '', password: '' });
@@ -110,8 +115,8 @@ export default function SignInPage() {
           // For development - show reset token
           setSuccess(data.message + ' Reset token: ' + data.resetToken);
         }
-        setShowForgotModal(false);
-        setForgotForm({ email: '' });
+        // Keep modal open so user can enter reset code
+        // Don't clear the form yet - they might need the email for reference
       } else {
         setError(data.error || 'Failed to send reset email');
       }
@@ -151,6 +156,8 @@ export default function SignInPage() {
         setSuccess('Password reset successful! You can now sign in.');
         setActiveTab('signin');
         setResetForm({ code: '', newPassword: '', confirmPassword: '' });
+        setForgotForm({ email: '' });
+        setShowForgotModal(false);
       } else {
         setError(data.error || 'Failed to reset password');
       }
@@ -179,6 +186,47 @@ export default function SignInPage() {
     if (score <= 2) return { strength: 'weak', score: 33 };
     if (score <= 3) return { strength: 'medium', score: 66 };
     return { strength: 'strong', score: 100 };
+  };
+
+  const validateResetCode = async (code: string) => {
+    if (!code || code.length < 6) {
+      setCodeValidation({ isValid: false, message: '', isChecking: false });
+      return;
+    }
+
+    setCodeValidation({ isValid: false, message: 'Checking code...', isChecking: true });
+
+    try {
+      const response = await fetch('/api/auth/verify-reset-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: code }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCodeValidation({ 
+          isValid: true, 
+          message: 'Valid reset code ✓', 
+          isChecking: false 
+        });
+      } else {
+        setCodeValidation({ 
+          isValid: false, 
+          message: data.error || 'Invalid reset code', 
+          isChecking: false 
+        });
+      }
+    } catch (err) {
+      setCodeValidation({ 
+        isValid: false, 
+        message: 'Error validating code', 
+        isChecking: false 
+      });
+    }
   };
 
   const tabVariants = {
@@ -466,7 +514,6 @@ export default function SignInPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50"
-            onClick={() => setShowForgotModal(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -474,6 +521,8 @@ export default function SignInPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white border border-neutral-200 w-full max-w-md p-8"
               onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseUp={(e) => e.stopPropagation()}
             >
               <h2 className="text-xl font-semibold text-neutral-900 mb-2">
                 Reset Your Password
@@ -543,10 +592,34 @@ export default function SignInPage() {
                         type="text"
                         required
                         value={resetForm.code}
-                        onChange={(e) => setResetForm({ ...resetForm, code: e.target.value })}
-                        className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                        onChange={(e) => {
+                          const newCode = e.target.value;
+                          setResetForm({ ...resetForm, code: newCode });
+                          validateResetCode(newCode);
+                        }}
+                        className={`w-full px-4 py-3 border bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:ring-4 ${
+                          codeValidation.isValid 
+                            ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10' 
+                            : resetForm.code && !codeValidation.isChecking && codeValidation.message && !codeValidation.isValid
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                            : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-500/10'
+                        }`}
                         placeholder="Enter the code from your email"
                       />
+                      {resetForm.code && codeValidation.message && (
+                        <div className={`text-xs mt-1 ${
+                          codeValidation.isValid ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {codeValidation.isChecking ? (
+                            <span className="flex items-center gap-1">
+                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                              {codeValidation.message}
+                            </span>
+                          ) : (
+                            codeValidation.message
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -561,6 +634,30 @@ export default function SignInPage() {
                         onChange={(e) => setResetForm({ ...resetForm, newPassword: e.target.value })}
                         className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                       />
+                      {resetForm.newPassword && (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-neutral-600">Password strength</span>
+                            <span className={`capitalize ${
+                              getPasswordStrength(resetForm.newPassword).strength === 'weak' ? 'text-red-600' :
+                              getPasswordStrength(resetForm.newPassword).strength === 'medium' ? 'text-yellow-600' :
+                              'text-green-600'
+                            }`}>
+                              {getPasswordStrength(resetForm.newPassword).strength}
+                            </span>
+                          </div>
+                          <div className="w-full bg-neutral-200 rounded-full h-1">
+                            <div 
+                              className={`h-1 rounded-full transition-all duration-300 ${
+                                getPasswordStrength(resetForm.newPassword).strength === 'weak' ? 'bg-red-500' :
+                                getPasswordStrength(resetForm.newPassword).strength === 'medium' ? 'bg-yellow-500' :
+                                'bg-green-500'
+                              }`}
+                              style={{ width: `${getPasswordStrength(resetForm.newPassword).score}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -587,10 +684,10 @@ export default function SignInPage() {
 
                     <button
                       type="submit"
-                      disabled={isLoading || resetForm.newPassword !== resetForm.confirmPassword}
+                      disabled={isLoading || !codeValidation.isValid || !resetForm.code || !resetForm.newPassword || !resetForm.confirmPassword}
                       className="w-full py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{
-                        background: (isLoading || resetForm.newPassword !== resetForm.confirmPassword) ? '#a3a3a3 !important' : '#3b82f6 !important',
+                        background: (isLoading || !codeValidation.isValid || !resetForm.code || !resetForm.newPassword || !resetForm.confirmPassword) ? '#a3a3a3 !important' : '#3b82f6 !important',
                         color: '#ffffff !important',
                         fontWeight: '500 !important'
                       }}

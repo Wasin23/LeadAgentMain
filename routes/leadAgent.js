@@ -19,11 +19,11 @@ router.get('/test', (req, res) => {
 router.post('/start', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('🚀 [LEAD AGENT API] START endpoint called for user:', userId);
-    const { minutes } = req.body || {}; // Optional custom interval in minutes
+    const { minutes, agentId = 'reasoning-lead-agent' } = req.body || {}; // Get agentId from request body
+    console.log('🚀 [LEAD AGENT API] START endpoint called for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     console.log('🔧 [LEAD AGENT API] Got user agent, calling start method...');
     
     const result = await userAgent.start(minutes, userId);
@@ -57,7 +57,7 @@ router.post('/start', async (req, res) => {
 router.post('/set-interval', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    const { minutes } = req.body;
+    const { minutes, agentId = 'reasoning-lead-agent' } = req.body;
     
     if (!minutes || typeof minutes !== 'number') {
       return res.status(400).json({
@@ -67,9 +67,9 @@ router.post('/set-interval', async (req, res) => {
       });
     }
     
-    console.log(`[LEAD AGENT API] Setting custom cycle interval to ${minutes} minutes for user:`, userId);
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    console.log(`[LEAD AGENT API] Setting custom cycle interval to ${minutes} minutes for user:`, userId, 'agentId:', agentId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     const result = await userAgent.setCycleInterval(minutes);
     
     return res.json({
@@ -94,9 +94,10 @@ router.post('/set-interval', async (req, res) => {
 router.post('/reset-interval', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[LEAD AGENT API] Resetting to default cycle interval for user:', userId);
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    const { agentId = 'reasoning-lead-agent' } = req.body || {};
+    console.log('[LEAD AGENT API] Resetting to default cycle interval for user:', userId, 'agentId:', agentId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     const result = await userAgent.resetCycleInterval();
     
     res.json({
@@ -121,10 +122,11 @@ router.post('/reset-interval', async (req, res) => {
 router.post('/stop', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('🛑 [LEAD AGENT API] STOP endpoint called for user:', userId);
+    const { agentId = 'reasoning-lead-agent' } = req.body || {};
+    console.log('🛑 [LEAD AGENT API] STOP endpoint called for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     console.log('🔧 [LEAD AGENT API] Got user agent, calling stop method...');
     
     const result = await userAgent.stop();
@@ -154,10 +156,11 @@ router.post('/stop', async (req, res) => {
 router.get('/status', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('📊 [LEAD AGENT API] STATUS endpoint called for user:', userId);
+    const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
+    console.log('📊 [LEAD AGENT API] STATUS endpoint called for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     const status = await userAgent.getStatus();
     
     res.json({
@@ -180,9 +183,10 @@ router.get('/status', async (req, res) => {
 router.post('/reset', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[LEAD AGENT API] Resetting Lead Contact Agent for user:', userId);
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    const { agentId = 'reasoning-lead-agent' } = req.body || {};
+    console.log('[LEAD AGENT API] Resetting Lead Contact Agent for user:', userId, 'agentId:', agentId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     const result = await userAgent.resetAgent();
     
     res.json({
@@ -203,10 +207,11 @@ router.post('/reset', async (req, res) => {
 router.post('/run-cycle', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[LEAD AGENT API] Force running cycle for user:', userId);
+    const { agentId = 'reasoning-lead-agent' } = req.body || {};
+    console.log('[LEAD AGENT API] Force running cycle for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     
     // Start the cycle asynchronously (don't wait for completion)
     userAgent.runCycle().catch(error => {
@@ -258,9 +263,10 @@ router.get('/progress-stream', (req, res) => {
     timestamp: new Date().toISOString()
   });
 
-  // Get user-specific agent instance
+  // Get agent-specific instance
   const userId = req.user.userId;
-  const userAgent = getUserAgent(userId);
+  const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
+  const userAgent = getUserAgent(userId, agentId);
 
   // Send current status immediately
   userAgent.getStatus().then(status => {
@@ -301,26 +307,50 @@ router.get('/progress-stream', (req, res) => {
 router.get('/settings', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[AGENT SETTINGS] Loading agent settings for user:', userId);
+    const agentId = req.query.agentId || 'lead-agent'; // Get agentId from query parameter
+    console.log('[AGENT SETTINGS] Loading agent settings for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     
-    // Get settings from the reasoning agent's AWS DynamoDB integration
-    const userSettings = await userAgent.getUserSettings();
-    const emailSettings = await userAgent.getEmailSettings();
+    // Get settings from the reasoning agent's AWS DynamoDB integration with agentId
+    const agentSettings = await userAgent.awsManager.getLeadAgentSettings(userId, agentId);
     
-    // Combine settings for the UI
-    const combinedSettings = {
-      userSettings: userSettings,
-      emailSettings: emailSettings,
-      leadGeneration: userSettings,
-      emailBuilder: emailSettings
-    };
+
     
+    // If no agent-specific settings found, get default settings
+    if (!agentSettings) {
+      const userSettings = await userAgent.getUserSettings();
+      const emailSettings = await userAgent.getEmailSettings();
+      
+      // Combine default settings for the UI
+      const combinedSettings = {
+        agentId,
+        userSettings: userSettings,
+        emailSettings: emailSettings,
+        leadGeneration: userSettings,
+        emailBuilder: emailSettings
+      };
+      
+      res.json({
+        success: true,
+        settings: combinedSettings,
+        message: 'Default agent settings loaded (no custom settings found)'
+      });
+      return;
+    }
+    
+    // Return the agent-specific settings in the format the frontend expects
     res.json({
       success: true,
-      settings: combinedSettings,
+      settings: {
+        agentId,
+        userSettings: agentSettings,
+        emailSettings: agentSettings.emailBuilder || agentSettings,
+        leadGeneration: agentSettings,
+        emailBuilder: agentSettings.emailBuilder || agentSettings,
+        ...agentSettings
+      },
       message: 'Agent settings loaded successfully'
     });
   } catch (error) {
@@ -337,14 +367,15 @@ router.get('/settings', async (req, res) => {
 router.post('/settings', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[AGENT SETTINGS] Saving agent settings for user:', userId);
+    const agentId = req.body.agentId || req.query.agentId || 'lead-agent'; // Get agentId from body or query
+    console.log('[AGENT SETTINGS] Saving agent settings for user:', userId, 'agentId:', agentId);
     console.log('[AGENT SETTINGS] Settings data:', req.body);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     
-    // Use the reasoning agent's AWS manager to save settings
-    const result = await userAgent.awsManager.saveLeadAgentSettings(userId, req.body);
+    // Use the reasoning agent's AWS manager to save settings with agentId
+    const result = await userAgent.awsManager.saveLeadAgentSettings(userId, agentId, req.body);
     
     if (result && result.success) {
       res.json({
@@ -373,10 +404,11 @@ router.post('/settings', async (req, res) => {
 router.post('/settings/reset', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log('[AGENT SETTINGS] Resetting agent settings to defaults for user:', userId);
+    const { agentId = 'reasoning-lead-agent' } = req.body || {};
+    console.log('[AGENT SETTINGS] Resetting agent settings to defaults for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     
     // Create default settings and save them
     const defaultSettings = {
@@ -417,7 +449,7 @@ router.post('/settings/reset', async (req, res) => {
     };
     
     // Save default settings
-    const result = await userAgent.awsManager.saveLeadAgentSettings(userId, defaultSettings);
+    const result = await userAgent.awsManager.saveLeadAgentSettings(userId, agentId, defaultSettings);
     
     if (result && result.success) {
       res.json({
@@ -487,11 +519,12 @@ router.get('/activity-logs-test', (req, res) => {
 router.get('/activity-logs', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
+    const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
     console.log('🔍 [AGENT LOGS] ===== ACTIVITY LOGS ENDPOINT HIT =====');
-    console.log('🔍 [AGENT LOGS] Loading activity logs for user:', userId);
+    console.log('🔍 [AGENT LOGS] Loading activity logs for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
     console.log('🔍 [AGENT LOGS] User agent found:', !!userAgent);
     console.log('🔍 [AGENT LOGS] User agent type:', typeof userAgent);
     
@@ -563,11 +596,12 @@ router.get('/activity-logs', async (req, res) => {
 router.get('/contacted-leads', async (req, res) => {
   try {
     const userId = req.user.userId;
+    const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
     const limit = parseInt(req.query.limit) || 50;
-    console.log('📊 [CONTACTED LEADS] Getting history for user:', userId, 'limit:', limit);
+    console.log('📊 [CONTACTED LEADS] Getting history for user:', userId, 'agentId:', agentId, 'limit:', limit);
     
-    // Get user-specific agent instance to access AWS manager
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance to access AWS manager
+    const userAgent = getUserAgent(userId, agentId);
     
     if (!userAgent.awsManager) {
       return res.status(500).json({
@@ -608,10 +642,11 @@ router.get('/contacted-leads', async (req, res) => {
 router.delete('/clear-contacts', async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🗑️ [CLEAR CONTACTS] Clearing contacted leads for user:', userId);
+    const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
+    console.log('🗑️ [CLEAR CONTACTS] Clearing contacted leads for user:', userId, 'agentId:', agentId);
     
-    // Get user-specific agent instance to access AWS manager
-    const userAgent = getUserAgent(userId);
+    // Get agent-specific instance to access AWS manager
+    const userAgent = getUserAgent(userId, agentId);
     
     if (!userAgent.awsManager) {
       return res.status(500).json({

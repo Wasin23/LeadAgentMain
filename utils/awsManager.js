@@ -222,33 +222,42 @@ class AWSManager {
   
   async updateUser(userId, updates) {
     try {
-      console.log('👤 [AWS] Updating user:', userId);
+      console.log('👤 [AWS] Updating user:', userId, 'with updates:', updates);
       
-      const command = new UpdateCommand({
+      // Build update expression and attribute values
+      const updateExpressions = [];
+      const expressionAttributeValues = {};
+      const expressionAttributeNames = {};
+      
+      // Always update the updatedAt field
+      updateExpressions.push('#updatedAt = :updatedAt');
+      expressionAttributeValues[':updatedAt'] = new Date().toISOString();
+      expressionAttributeNames['#updatedAt'] = 'updatedAt';
+      
+      // Add the provided updates
+      Object.entries(updates).forEach(([key, value], index) => {
+        const valueKey = `:val${index}`;
+        const nameKey = `#${key}`;
+        updateExpressions.push(`${nameKey} = ${valueKey}`);
+        expressionAttributeValues[valueKey] = value;
+        expressionAttributeNames[nameKey] = key;
+      });
+      
+      const params = {
         TableName: this.tables.users,
         Key: { userId },
-        UpdateExpression: 'SET updatedAt = :updatedAt',
-        ExpressionAttributeValues: {
-          ':updatedAt': new Date().toISOString()
-        }
-      });
+        UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+        ExpressionAttributeValues: expressionAttributeValues,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ReturnValues: 'ALL_NEW'
+      };
       
-      // Build dynamic update expression
-      const updateExpressions = ['updatedAt = :updatedAt'];
-      const attributeValues = { ':updatedAt': new Date().toISOString() };
+      console.log('🔄 [AWS] Update params:', JSON.stringify(params, null, 2));
       
-      Object.keys(updates).forEach((key, index) => {
-        const placeholder = `:val${index}`;
-        updateExpressions.push(`${key} = ${placeholder}`);
-        attributeValues[placeholder] = updates[key];
-      });
+      const result = await this.dynamodb.send(new UpdateCommand(params));
+      console.log('✅ [AWS] Update result:', result.Attributes);
       
-      command.UpdateExpression = `SET ${updateExpressions.join(', ')}`;
-      command.ExpressionAttributeValues = attributeValues;
-      
-      await this.dynamodb.send(command);
-      console.log('✅ [AWS] User updated successfully');
-      return true;
+      return result.Attributes;
     } catch (error) {
       console.error('❌ [AWS] Error updating user:', error);
       throw error;
@@ -281,7 +290,7 @@ class AWSManager {
   
   async getUserByResetToken(resetToken) {
     try {
-      console.log('👤 [AWS] Getting user by reset token');
+      console.log('👤 [AWS] Getting user by reset token:', resetToken);
       
       const command = new ScanCommand({
         TableName: this.tables.users,
@@ -492,28 +501,32 @@ class AWSManager {
   // AGENT SETTINGS METHODS
   // =======================
   
-  async getLeadAgentSettings(userId) {
+  async getLeadAgentSettings(userId, agentId = 'lead-agent') {
     try {
-      console.log('⚙️ [AWS] Getting lead agent settings for userId:', userId);
+      console.log('⚙️ [AWS] Getting lead agent settings for userId:', userId, 'agentId:', agentId);
       
-      const agentId = 'lead-agent'; // Default agentId for lead agent settings
+      // Ensure agentId is string for consistency with save
+      const agentIdToUse = String(agentId);
       
       const command = new GetCommand({
         TableName: this.tables.agentSettings,
         Key: { 
           userId,
-          agentId
+          agentId: agentIdToUse
         }
       });
       
       const result = await this.dynamodb.send(command);
       
+      console.log('🔍 [AWS] DynamoDB query result:', JSON.stringify(result, null, 2));
+      
       if (!result.Item) {
-        console.log('❌ [AWS] No lead agent settings found for userId:', userId);
+        console.log('❌ [AWS] No lead agent settings found for userId:', userId, 'agentId:', agentId);
         return null;
       }
       
       console.log('✅ [AWS] Lead agent settings retrieved successfully');
+      console.log('🔍 [AWS] Retrieved settings:', JSON.stringify(result.Item.settings, null, 2));
       return result.Item.settings;
     } catch (error) {
       console.error('❌ [AWS] Error getting lead agent settings:', error);
@@ -521,17 +534,18 @@ class AWSManager {
     }
   }
   
-  async saveLeadAgentSettings(userId, settings) {
+  async saveLeadAgentSettings(userId, agentId, settings) {
     try {
-      console.log('💾 [AWS] Saving lead agent settings for userId:', userId);
+      console.log('💾 [AWS] Saving lead agent settings for userId:', userId, 'agentId:', agentId);
       
-      const agentId = settings.agentId || 'lead-agent'; // Use provided agentId or default
+      // Ensure agentId is included in the settings and convert to string for consistency
+      const agentIdToUse = String(agentId || settings.agentId || 'lead-agent');
       
       const command = new PutCommand({
         TableName: this.tables.agentSettings,
         Item: {
           userId,
-          agentId,
+          agentId: agentIdToUse,
           settingsType: 'lead-agent',
           settings: {
             ...settings,
@@ -546,6 +560,27 @@ class AWSManager {
       return true;
     } catch (error) {
       console.error('❌ [AWS] Error saving lead agent settings:', error);
+      throw error;
+    }
+  }
+  
+  async deleteAgentSettings(userId, agentId) {
+    try {
+      console.log('🗑️ [AWS] Deleting agent settings for userId:', userId, 'agentId:', agentId);
+      
+      const command = new DeleteCommand({
+        TableName: this.tables.agentSettings,
+        Key: { 
+          userId,
+          agentId: String(agentId)
+        }
+      });
+      
+      await this.dynamodb.send(command);
+      console.log('✅ [AWS] Agent settings deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error deleting agent settings:', error);
       throw error;
     }
   }

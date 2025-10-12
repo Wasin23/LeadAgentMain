@@ -18,8 +18,9 @@ interface Agent {
   id: string;
   name: string;
   status: 'running' | 'stopped' | 'paused';
-  totalEmails: number;
-  successRate: number;
+  emailsQueued: number;
+  emailsSent: number;
+  meetingsScheduled: number;
   lastRun?: string;
 }
 
@@ -42,32 +43,76 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
     fetchAgents();
   }, []);
 
+  const fetchEmailStats = async (agentId: string) => {
+    try {
+      // Fetch queue count
+      const queueResponse = await api.get(`/api/email-queue/queue?agentId=${agentId}`);
+      let emailsQueued = 0;
+      if (queueResponse.data && Array.isArray(queueResponse.data)) {
+        emailsQueued = queueResponse.data.length;
+      } else if (queueResponse.data?.data?.pending && Array.isArray(queueResponse.data.data.pending)) {
+        emailsQueued = queueResponse.data.data.pending.length;
+      }
+
+      // Fetch sent emails count
+      const sentResponse = await api.get(`/api/email-queue/approved?agentId=${agentId}`);
+      let emailsSent = 0;
+      if (sentResponse.data && Array.isArray(sentResponse.data)) {
+        emailsSent = sentResponse.data.length;
+      }
+
+      // Fetch scheduled events/meetings count
+      let meetingsScheduled = 0;
+      try {
+        const eventsResponse = await api.get('/api/analytics/scheduled-events');
+        if (eventsResponse.data && Array.isArray(eventsResponse.data)) {
+          meetingsScheduled = eventsResponse.data.length;
+        }
+      } catch (eventsError) {
+        // If scheduled events endpoint not available, just use 0
+        meetingsScheduled = 0;
+      }
+
+      return { emailsQueued, emailsSent, meetingsScheduled };
+    } catch (error) {
+      console.error(`Failed to fetch email stats for agent ${agentId}:`, error);
+      return { emailsQueued: 0, emailsSent: 0, meetingsScheduled: 0 };
+    }
+  };
+
   const fetchAgents = async () => {
     try {
       setIsLoading(true);
       
-      // Load agents from localStorage
-      const localAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
+      // Fetch user's agents from AWS via backend API
+      const response = await api.get('/api/auth/agents');
       
-      // Fetch main agent from backend
-      const response = await api.get('/api/lead-agent/status');
-      const agentData = response.data;
-      const mainAgent: Agent = {
-        id: 'reasoning-lead-agent',
-        name: agentData.name || 'Reasoning Lead Agent',
-        status: agentData.status === 'active' ? 'running' : 'stopped',
-        totalEmails: agentData.totalEmails || 0,
-        successRate: agentData.successRate || 0,
-        lastRun: agentData.lastRun
-      };
-      
-      // Combine main agent with local agents
-      setAgents([mainAgent, ...localAgents]);
+      if (response.data.success && response.data.agents) {
+        // Convert AWS agents to frontend Agent format and fetch email stats
+        const awsAgents = await Promise.all(
+          response.data.agents.map(async (agent: any) => {
+            const emailStats = await fetchEmailStats(agent.agentId);
+            return {
+              id: agent.agentId,
+              name: agent.name,
+              status: agent.status === 'active' ? 'stopped' : 'stopped', // All start as stopped
+              emailsQueued: emailStats.emailsQueued,
+              emailsSent: emailStats.emailsSent,
+              meetingsScheduled: emailStats.meetingsScheduled,
+              lastRun: agent.lastRun
+            };
+          })
+        );
+        
+        setAgents(awsAgents);
+      } else {
+        // No agents found
+        setAgents([]);
+      }
     } catch (error) {
-      console.error('Failed to fetch agents:', error);
-      // Fallback to just local agents on error
-      const localAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
-      setAgents(localAgents);
+      console.error('Failed to fetch agents from AWS:', error);
+      // Fallback to empty array - no hardcoded agents
+      setAgents([]);
     } finally {
       setIsLoading(false);
     }
@@ -76,26 +121,38 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
   const createAgent = async () => {
     if (!newAgentName.trim()) return;
     
-    const newAgent: Agent = {
-      id: `agent-${Date.now()}`,
-      name: newAgentName,
-      status: 'stopped',
-      totalEmails: 0,
-      successRate: 0,
-    };
-    
     try {
-      // Store in localStorage for persistence
-      const existingAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
-      const updatedAgents = [...existingAgents, newAgent];
-      localStorage.setItem('meridian-agents', JSON.stringify(updatedAgents));
+      // Call backend API to create agent in AWS
+      const response = await api.post('/api/auth/create-agent', {
+        name: newAgentName.trim(),
+        type: 'reasoning-lead-agent'
+      });
       
-      // Update local state
-      setAgents(prev => [...prev, newAgent]);
-      setNewAgentName('');
-      setShowCreateModal(false);
+      if (response.data.success) {
+        const agentData = response.data.agent;
+        
+        // Create agent object for frontend
+        const newAgent: Agent = {
+          id: agentData.agentId,
+          name: agentData.name,
+          status: 'stopped',
+          emailsQueued: 0,
+          emailsSent: 0,
+          meetingsScheduled: 0,
+        };
+        
+        // Update local state
+        setAgents(prev => [...prev, newAgent]);
+        setNewAgentName('');
+        setShowCreateModal(false);
+        
+        console.log('✅ Agent created successfully:', agentData);
+      } else {
+        throw new Error(response.data.error || 'Failed to create agent');
+      }
     } catch (error) {
       console.error('Failed to create agent:', error);
+      alert('Failed to create agent. Please try again.');
     }
   };
 
@@ -109,16 +166,16 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
         let response;
         if (agent.status === 'running') {
           console.log('🛑 Stopping agent...');
-          response = await api.post('/api/lead-agent/stop');
+          response = await api.post('/api/lead-agent/stop', { agentId });
         } else {
           console.log('▶️ Starting agent...');
-          response = await api.post('/api/lead-agent/start');
+          response = await api.post('/api/lead-agent/start', { agentId });
         }
         
         // Wait a moment then fetch updated status
         setTimeout(async () => {
           try {
-            const statusResponse = await api.get('/api/lead-agent/status');
+            const statusResponse = await api.get(`/api/lead-agent/status?agentId=${agentId}`);
             const isActive = statusResponse.data?.isActive || false;
             
             setAgents(prev => prev.map(a => 
@@ -292,14 +349,18 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="text-center p-3 bg-neutral-50 border border-neutral-200">
-                    <div className="text-lg font-medium text-neutral-900">{agent.totalEmails}</div>
-                    <div className="text-xs text-neutral-600">Total Emails</div>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="text-center p-2 bg-neutral-50 border border-neutral-200 rounded">
+                    <div className="text-sm font-medium text-neutral-700">{agent.emailsQueued}</div>
+                    <div className="text-xs text-neutral-600">Queued</div>
                   </div>
-                  <div className="text-center p-3 bg-neutral-50 border border-neutral-200">
-                    <div className="text-lg font-medium text-green-600">{agent.successRate}%</div>
-                    <div className="text-xs text-neutral-600">Success Rate</div>
+                  <div className="text-center p-2 bg-neutral-50 border border-neutral-200 rounded">
+                    <div className="text-sm font-medium text-neutral-700">{agent.emailsSent}</div>
+                    <div className="text-xs text-neutral-600">Sent</div>
+                  </div>
+                  <div className="text-center p-2 bg-neutral-50 border border-neutral-200 rounded">
+                    <div className="text-sm font-medium text-neutral-700">{agent.meetingsScheduled}</div>
+                    <div className="text-xs text-neutral-600">Meetings</div>
                   </div>
                 </div>
 

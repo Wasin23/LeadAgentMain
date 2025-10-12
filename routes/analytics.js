@@ -626,7 +626,7 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
       console.log(`[AGENT CLEANUP] 📝 No email logs found for agent ${agentId}, skipping`);
     }
     
-    // Clean up any other agent-specific files (email queue, etc.)
+    // Clean up agent-specific email queue file
     const emailQueuePath = path.join(process.cwd(), `email_queue_${userId}_${agentId}.json`);
     try {
       await fs.unlink(emailQueuePath);
@@ -635,13 +635,56 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
       console.log(`[AGENT CLEANUP] 📝 No email queue found for agent ${agentId}, skipping`);
     }
     
-    // TODO: Add cleanup for other agent-specific data (training data, settings, etc.)
+    // Clean up agent-specific approved emails file
+    const approvedEmailsPath = path.join(process.cwd(), `email_approved_${userId}_${agentId}.json`);
+    try {
+      await fs.unlink(approvedEmailsPath);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted approved emails: email_approved_${userId}_${agentId}.json`);
+    } catch (error) {
+      console.log(`[AGENT CLEANUP] 📝 No approved emails found for agent ${agentId}, skipping`);
+    }
+    
+    // Clean up agent-specific AWS settings
+    try {
+      const AWSManager = (await import('../utils/awsManager.js')).default;
+      const awsManager = new AWSManager();
+      await awsManager.deleteAgentSettings(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted agent settings from AWS for ${agentId}`);
+    } catch (error) {
+      console.log(`[AGENT CLEANUP] ⚠️ Error deleting agent settings: ${error.message}`);
+    }
+    
+    // Remove agent instance from memory
+    try {
+      const { ReasoningLeadAgent } = require('../agent/reasoningLeadAgent');
+      const agentKey = `${userId}_${agentId}`;
+      if (ReasoningLeadAgent.activeAgents.has(agentKey)) {
+        const agent = ReasoningLeadAgent.activeAgents.get(agentKey);
+        if (agent && typeof agent.stop === 'function') {
+          await agent.stop();
+        }
+        ReasoningLeadAgent.activeAgents.delete(agentKey);
+        console.log(`[AGENT CLEANUP] 🗑️ Removed agent instance from memory: ${agentKey}`);
+      }
+    } catch (error) {
+      console.log(`[AGENT CLEANUP] ⚠️ Error removing agent from memory: ${error.message}`);
+    }
+    
+    // Remove agent from AWS DynamoDB
+    try {
+      const { removeAgentFromUser } = await import('../lib/userManager.js');
+      await removeAgentFromUser(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Removed agent ${agentId} from AWS for user ${userId}`);
+    } catch (error) {
+      console.error(`[AGENT CLEANUP] ❌ Failed to remove agent from AWS:`, error.message);
+      throw error;
+    }
     
     console.log(`[AGENT CLEANUP] ✅ Completed cleanup for agent ${agentId}`);
     
     res.json({
       success: true,
-      message: `Agent ${agentId} data cleaned up successfully`,
+      message: `Agent ${agentId} deleted successfully`,
       cleanedFiles: [logFileName, `email_queue_${userId}_${agentId}.json`]
     });
     

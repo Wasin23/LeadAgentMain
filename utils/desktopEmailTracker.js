@@ -44,12 +44,14 @@ class DesktopEmailTracker {
     }
   }
 
-  // Generate unique tracking ID for each email with user code (first 8 chars of user ID)
-  generateTrackingId(recipient, subject, userCode) {
-    const unique = `${userCode}-${recipient}-${subject}-${Date.now()}`;
+  // Generate unique tracking ID for each email with user code (first 8 chars of user ID) and optional agentId
+  generateTrackingId(recipient, subject, userCode, agentId = null) {
+    const agentPart = agentId ? `-${agentId}` : '';
+    const unique = `${userCode}${agentPart}-${recipient}-${subject}-${Date.now()}`;
     const hash = crypto.createHash('md5').update(unique).digest('hex');
-    // Format: tracking-userCode_timestamp_hash for proper webhook processing
-    return `tracking-${userCode}_${Date.now()}_${hash.substring(0, 8)}`;
+    // Format: tracking-userCode_agentId_timestamp_hash for proper webhook processing
+    const agentSuffix = agentId ? `_${agentId}` : '';
+    return `tracking-${userCode}${agentSuffix}_${Date.now()}_${hash.substring(0, 8)}`;
   }
 
   // Create trackable link - ALWAYS use domain for external recipients  
@@ -58,19 +60,20 @@ class DesktopEmailTracker {
     return `${this.baseUrl}/track/click/${trackingId}?url=${encodedUrl}&type=${linkType}`;
   }
 
-  // Inject tracking into email HTML
-  injectTracking(emailHtml, recipient, subject, userId) {
+  // Inject tracking into email HTML with optional agentId for agent-specific tracking
+  injectTracking(emailHtml, recipient, subject, userId, agentId = null) {
     // Extract user code from full user ID - REQUIRE userId for proper multi-user support
     if (!userId || typeof userId !== 'string') {
       throw new Error('userId is required for email tracking - ensure user is authenticated');
     }
     
     const userCode = userId.substring(0, 8);
-    const trackingId = this.generateTrackingId(recipient, subject, userCode);
+    const trackingId = this.generateTrackingId(recipient, subject, userCode, agentId);
     
-    // Store tracking info with user ID
+    // Store tracking info with user ID and optional agentId
     this.trackingData.set(trackingId, {
       userId,
+      agentId,
       recipient,
       subject,
       sentAt: new Date().toISOString(),

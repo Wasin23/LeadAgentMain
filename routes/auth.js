@@ -700,4 +700,77 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
+// Create new agent for authenticated user
+router.post('/create-agent', authenticateToken, async (req, res) => {
+  try {
+    const { name, type = 'reasoning-lead-agent' } = req.body;
+    const userId = req.user.userId;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Agent name is required' });
+    }
+    
+    // Generate new 6-digit agent ID
+    const agentId = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    const agentData = {
+      agentId,
+      name: name.trim(),
+      type,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      lastRun: null,
+      settings: {
+        maxEmails: 50,
+        dailyLimit: 25,
+        responseDelay: 5,
+        smartFiltering: true
+      }
+    };
+    
+    // Add agent to user's activeAgents array in AWS
+    const { addAgentToUser } = await import('../lib/userManager.js');
+    await addAgentToUser(userId, agentData);
+    
+    console.log(`[AUTH] New agent created: ${agentId} (${name}) for user ${userId}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Agent created successfully',
+      agent: agentData
+    });
+  } catch (error) {
+    console.error('[AUTH] Create agent error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user's agents
+router.get('/agents', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    console.log(`[AUTH] Getting agents for user: ${userId}`);
+    
+    // Get user from AWS to fetch their active agents
+    const { getUserById } = await import('../lib/userManager.js');
+    const user = await getUserById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const agents = user.activeAgents || [];
+    
+    res.json({ 
+      success: true, 
+      agents: agents,
+      message: `Found ${agents.length} agents`
+    });
+  } catch (error) {
+    console.error('[AUTH] Get agents error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

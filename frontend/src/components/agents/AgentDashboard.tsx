@@ -97,6 +97,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [showScheduledEvents, setShowScheduledEvents] = useState(false);
   const [selectedScheduledEvent, setSelectedScheduledEvent] = useState<any>(null);
   const [scheduledEvents, setScheduledEvents] = useState<any[]>([]);
+  const [countdownTime, setCountdownTime] = useState<number | null>(null);
+  const [lastCycleTime, setLastCycleTime] = useState<Date | null>(null);
+  const [cycleTriggered, setCycleTriggered] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
@@ -146,12 +149,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     
     // Set up real-time progress streaming
     console.log('🔍 [DEBUG] Current agentId:', agentId);
-    if (agentId === 'main' || agentId === 'lead-agent-main' || agentId === 'reasoning-lead-agent') {
-      console.log('✅ [DEBUG] Setting up progress stream for agent:', agentId);
-      setupProgressStream();
-    } else {
-      console.log('❌ [DEBUG] Skipping progress stream - agentId not supported:', agentId);
-    }
+    console.log('✅ [DEBUG] Setting up progress stream for agent:', agentId);
+    setupProgressStream();
     
     const statusInterval = setInterval(fetchStatus, 10000);
     
@@ -188,9 +187,66 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   // Initialize interval when modal opens
   useEffect(() => {
     if (showIntervalModal && status?.currentInterval) {
+      console.log('🔧 [INTERVAL DEBUG] Setting modal interval to:', status.currentInterval);
       setNewInterval(status.currentInterval);
     }
   }, [showIntervalModal, status?.currentInterval]);
+
+
+
+  // Countdown timer effect - only starts AFTER first cycle is completed
+  useEffect(() => {
+    // Only start countdown if interval is set AND at least one cycle has been completed
+    if (!status?.currentInterval || !lastCycleTime) {
+      setCountdownTime(null);
+      return;
+    }
+
+    const now = new Date();
+    const nextCycleTime = new Date(lastCycleTime.getTime() + (status.currentInterval * 60 * 1000));
+    const timeUntilNext = Math.max(0, nextCycleTime.getTime() - now.getTime());
+    
+    console.log('⏰ [COUNTDOWN START] Next cycle in:', Math.floor(timeUntilNext / 1000), 'seconds');
+
+    // Display countdown with setInterval (for visual updates)
+    const displayInterval = setInterval(() => {
+      const currentTime = new Date();
+      const remaining = Math.max(0, nextCycleTime.getTime() - currentTime.getTime());
+      
+      if (remaining > 0) {
+        setCountdownTime(Math.floor(remaining / 1000));
+      } else {
+        setCountdownTime(0);
+      }
+    }, 1000);
+
+    // Reset countdown when timer expires (display only - no cycle triggering)
+    const cycleTimeout = setTimeout(() => {
+      console.log('⏰ [COUNTDOWN RESET] Countdown expired, waiting for next cycle completion');
+      setLastCycleTime(null); // Clear countdown
+      setCountdownTime(null);
+      setCycleTriggered(false); // Reset flag for next cycle detection
+      // NOTE: Not calling runCycle() - agent handles its own scheduling
+    }, timeUntilNext);
+
+    return () => {
+      clearInterval(displayInterval);
+      clearTimeout(cycleTimeout);
+    };
+  }, [status?.currentInterval, lastCycleTime]);
+
+  // Format countdown time
+  const formatCountdown = (seconds: number | null) => {
+    if (seconds === null || seconds <= 0) return null;
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    }
+    return `${remainingSeconds}s`;
+  };
 
   const scrollToBottom = () => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -202,7 +258,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       console.log('🔗 [SSE] Establishing EventSource connection to progress-stream...');
       const authToken = localStorage.getItem('authToken');
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      const eventSource = new EventSource(`${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}`);
+      const eventSource = new EventSource(`${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}&agentId=${encodeURIComponent(agentId)}`);
       wsRef.current = eventSource;
       
       eventSource.onopen = () => {
@@ -315,6 +371,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               // Regular agent log event - add directly to Activity Logs
               setAgentLogs(prev => [progressData.data, ...prev.slice(0, 49)]);
               
+              // 🎯 Detect cycle completion from SSE agent log messages
+              if (progressData.data && !cycleTriggered &&
+                  (progressData.data.operation === 'Cycle Completed' || 
+                   (progressData.data.message && progressData.data.message.includes('Cycle Completed')) ||
+                   (progressData.data.details && typeof progressData.data.details === 'string' && progressData.data.details.includes('Cycle Completed')))) {
+                
+                console.log('🏁 [CYCLE COMPLETED] Detected cycle completion via SSE');
+                console.log('🏁 [DEBUG] Full SSE data:', progressData.data);
+                console.log('🕒 Starting countdown timer at:', new Date());
+                setCycleTriggered(true); // Prevent duplicate triggers
+                setLastCycleTime(new Date());
+                setCountdownTime(null);
+              }
+              
               // 🔍 Additional specific logging for Serper research steps
               if (progressData.data.operation === 'Action Executed' && 
                   progressData.data.details && 
@@ -383,8 +453,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchStatus = async () => {
     try {
-      const response = await api.get('/api/lead-agent/status');
-      setStatus(response.data);
+      const response = await api.get(`/api/lead-agent/status?agentId=${agentId}`);
+      const newStatus = response.data;
+      
+
+      
+      // 🛑 Clear countdown when agent stops
+      if (status?.isActive && !newStatus.isActive) {
+        console.log('🛑 [AGENT STOPPED] Clearing countdown timer');
+        setLastCycleTime(null);
+        setCountdownTime(null);
+        setCycleTriggered(false); // Reset flag when agent stops
+      }
+      
+      setStatus(newStatus);
+      console.log('🔧 [STATUS DEBUG] Loaded agent status with interval:', newStatus.currentInterval);
     } catch (error) {
       console.error('Failed to fetch agent status:', error);
       throw error;
@@ -844,7 +927,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       
       if (status?.isActive) {
         console.log('🛑 Stopping agent from dashboard...');
-        const response = await api.post('/api/lead-agent/stop');
+        const response = await api.post('/api/lead-agent/stop', { agentId });
         addLog('info', 'Stop command sent to agent');
         
         if (response.data?.success) {
@@ -854,7 +937,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         }
       } else {
         console.log('▶️ Starting agent from dashboard...');
-        const response = await api.post('/api/lead-agent/start');
+        const response = await api.post('/api/lead-agent/start', { agentId });
         addLog('info', 'Start command sent to agent');
         
         if (response.data?.success) {
@@ -878,7 +961,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const resetAgent = async () => {
     try {
-      await api.post('/api/lead-agent/reset');
+      await api.post('/api/lead-agent/reset', { agentId });
       addLog('info', 'Agent reset successfully');
       setLogs([]);
       setAgentLogs([]); // Clear Activity Logs
@@ -892,7 +975,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const runCycle = async () => {
     try {
-      await api.post('/api/lead-agent/run-cycle');
+      await api.post('/api/lead-agent/run-cycle', { agentId });
       addLog('info', 'Manual cycle initiated');
     } catch (error) {
       console.error('Failed to run cycle:', error);
@@ -905,17 +988,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     try {
       setIsLoading(true);
       // First update the interval setting
-      await api.post('/api/lead-agent/set-interval', { minutes: newInterval });
+      await api.post('/api/lead-agent/set-interval', { minutes: newInterval, agentId });
       
       // If agent is currently running, restart it with new interval
       if (status?.isActive) {
-        await api.post('/api/lead-agent/stop');
+        await api.post('/api/lead-agent/stop', { agentId });
         addLog('info', `Stopping agent to apply new cycle interval: ${newInterval}m`);
         
         // Wait a moment for graceful shutdown
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        await api.post('/api/lead-agent/start');
+        await api.post('/api/lead-agent/start', { agentId });
         addLog('info', `Agent restarted with ${newInterval}-minute cycle interval`);
       } else {
         addLog('info', `Cycle interval updated to ${newInterval} minutes. Start the agent to apply changes.`);
@@ -1179,8 +1262,63 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           className="bg-white border border-neutral-200"
         >
           <div className="p-6 border-b border-neutral-200">
-            <h3 className="text-lg font-medium text-neutral-900">Activity Logs</h3>
-            <p className="text-sm text-neutral-600 mt-1">Real-time agent operations</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-neutral-900">Activity Logs</h3>
+                <p className="text-sm text-neutral-600 mt-1">Real-time agent operations</p>
+              </div>
+              
+              {/* Countdown Timer */}
+              {countdownTime !== null && (
+                <motion.div 
+                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg ${
+                    countdownTime <= 30 
+                      ? 'bg-orange-50 border-orange-200' 
+                      : countdownTime <= 0 
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-blue-50 border-blue-200'
+                  }`}
+                  animate={countdownTime <= 10 && countdownTime > 0 ? { scale: [1, 1.05, 1] } : {}}
+                  transition={{ duration: 0.5, repeat: countdownTime <= 10 && countdownTime > 0 ? Infinity : 0 }}
+                >
+                  <ClockIcon className={`h-4 w-4 ${
+                    countdownTime <= 30 
+                      ? 'text-orange-600' 
+                      : countdownTime <= 0 
+                        ? 'text-green-600'
+                        : 'text-blue-600'
+                  }`} />
+                  <div className="text-sm">
+                    <div className={`font-medium ${
+                      countdownTime <= 30 
+                        ? 'text-orange-700' 
+                        : countdownTime <= 0 
+                          ? 'text-green-700'
+                          : 'text-blue-700'
+                    }`}>Next Cycle</div>
+                    <div className={`font-mono ${
+                      countdownTime <= 30 
+                        ? 'text-orange-600' 
+                        : countdownTime <= 0 
+                          ? 'text-green-600'
+                          : 'text-blue-600'
+                    }`}>
+                      {countdownTime <= 0 ? 'Starting now...' : formatCountdown(countdownTime)}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              
+              {status?.isActive && countdownTime === null && lastCycleTime === null && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                  <ClockIcon className="h-4 w-4 text-green-600" />
+                  <div className="text-sm">
+                    <div className="font-medium text-green-700">Agent Running</div>
+                    <div className="text-green-600">Waiting for first cycle...</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="h-96 overflow-y-auto p-4 bg-neutral-50 font-mono text-sm">
@@ -1404,7 +1542,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </p>
             
             <div className="space-y-2 mb-6">
-              {[5, 10, 15, 30, 45, 60, 90, 120].map((minutes) => (
+              {[1, 5, 10, 15, 30, 45, 60, 90, 120].map((minutes) => (
                 <button
                   key={minutes}
                   onClick={() => setNewInterval(minutes)}
@@ -1415,7 +1553,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{minutes} minutes</span>
+                    <span>{minutes} {minutes === 1 ? 'minute' : 'minutes'}</span>
                     {newInterval === minutes && (
                       <CheckCircleIcon className="h-5 w-5 text-blue-600" />
                     )}
