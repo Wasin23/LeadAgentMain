@@ -6,8 +6,6 @@ import {
   ChatBubbleLeftRightIcon,
   ChartBarIcon,
   UserGroupIcon,
-  EnvelopeIcon,
-  MagnifyingGlassIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,8 +18,6 @@ import AgentDashboard from '@/components/agents/AgentDashboard';
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: ChartBarIcon },
   { id: 'agents', name: 'Lead Agents', icon: UserGroupIcon },
-  { id: 'research', name: 'Lead Research', icon: MagnifyingGlassIcon },
-  { id: 'emails', name: 'Email Campaigns', icon: EnvelopeIcon },
   { id: 'settings', name: 'Settings', icon: Cog6ToothIcon },
 ];
 
@@ -115,35 +111,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {activeView === 'research' && (
-          <div className="p-6">
-            <motion.div 
-              className="bg-white border border-neutral-200 p-8 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <MagnifyingGlassIcon className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-neutral-900 mb-2">Lead Research</h3>
-              <p className="text-neutral-600">Advanced lead research tools coming soon...</p>
-            </motion.div>
-          </div>
-        )}
 
-
-
-        {activeView === 'emails' && (
-          <div className="p-6">
-            <motion.div 
-              className="bg-white border border-neutral-200 p-8 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <EnvelopeIcon className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-neutral-900 mb-2">Email Campaigns</h3>
-              <p className="text-neutral-600">Email automation tools coming soon...</p>
-            </motion.div>
-          </div>
-        )}
 
         {activeView === 'settings' && (
           <div className="p-6">

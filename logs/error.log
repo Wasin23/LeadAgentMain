@@ -28,3 +28,6 @@
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T18:09:22.560Z"}
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-10T18:25:03.736Z"}
 {"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T19:04:03.694Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-10T19:16:16.731Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-11T20:13:13.811Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-11T20:29:25.553Z"}

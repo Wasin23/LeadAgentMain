@@ -146,7 +146,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     
     // Set up real-time progress streaming
     console.log('🔍 [DEBUG] Current agentId:', agentId);
-    if (agentId === 'main' || agentId === 'lead-agent-main') {
+    if (agentId === 'main' || agentId === 'lead-agent-main' || agentId === 'reasoning-lead-agent') {
       console.log('✅ [DEBUG] Setting up progress stream for agent:', agentId);
       setupProgressStream();
     } else {
@@ -393,15 +393,29 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchRecentEmails = async () => {
     try {
-      const response = await api.get(`/api/analytics/emails?agentId=${agentId}`);
-      const emailsData = response.data?.data || response.data || [];
-      if (Array.isArray(emailsData)) {
-        const emailsWithStatus = emailsData.map((email: any) => ({
+      // First try to get approved emails from agent-specific email queue
+      const approvedResponse = await api.get(`/api/email-queue/approved?agentId=${agentId}`);
+      const approvedEmails = approvedResponse.data || [];
+      
+      // Also fetch from analytics endpoint for additional data (like tracking stats)
+      let analyticsEmails = [];
+      try {
+        const analyticsResponse = await api.get(`/api/analytics/emails?agentId=${agentId}`);
+        analyticsEmails = analyticsResponse.data?.data || analyticsResponse.data || [];
+      } catch (analyticsError) {
+        console.log('Analytics endpoint not available, using approved emails only');
+      }
+
+      // Combine and prioritize approved emails from email queue (more reliable for agent-specific data)
+      const combinedEmails = [...approvedEmails, ...analyticsEmails];
+      
+      if (combinedEmails.length > 0) {
+        const emailsWithStatus = combinedEmails.map((email: any) => ({
           id: email.trackingId || email.id || Date.now().toString(),
-          name: email.personInfo?.fullName || email.recipientName || email.recipient || email.to?.split('@')[0] || 'Unknown Contact',
-          company: email.personInfo?.company || email.company || 'Unknown Company',
+          name: email.leadInfo?.name || email.personInfo?.fullName || email.recipientName || email.recipient || email.to?.split('@')[0] || 'Unknown Contact',
+          company: email.leadInfo?.company || email.personInfo?.company || email.company || 'Unknown Company',
           email: email.to || email.email,
-          dateSent: email.sentAt || email.timestamp || new Date().toISOString(),
+          dateSent: email.approvedAt || email.sentAt || email.timestamp || new Date().toISOString(),
           opened: Boolean(email.analytics?.opened || email.analyticsStatus?.hasOpened),
           replied: Boolean(email.analytics?.replied || email.analyticsStatus?.hasReplied),
           status: (
@@ -410,7 +424,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             'sent'
           ) as 'sent' | 'opened' | 'replied' | 'bounced'
         }));
-        setRecentEmails(emailsWithStatus.slice(0, 10));
+        
+        // Remove duplicates based on email address and sort by date
+        const uniqueEmails = emailsWithStatus.filter((email, index, self) => 
+          index === self.findIndex(e => e.email === email.email)
+        ).sort((a, b) => new Date(b.dateSent).getTime() - new Date(a.dateSent).getTime());
+        
+        setRecentEmails(uniqueEmails.slice(0, 10));
       } else {
         setRecentEmails([]);
       }
@@ -422,7 +442,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchEmailQueue = async () => {
     try {
-      const response = await api.get('/api/email-queue/queue');
+      // Include agentId in query to get agent-specific email queue
+      const response = await api.get(`/api/email-queue/queue?agentId=${agentId}`);
       if (response.data && Array.isArray(response.data)) {
         setEmailQueue(response.data);
       } else if (response.data && response.data.data && Array.isArray(response.data.data.pending)) {
@@ -505,7 +526,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     try {
       console.log('🗑️ Rejecting email ID:', emailId, 'with reason:', reason);
       
-      const response = await api.post(`/api/email-queue/${emailId}/reject`, { reason });
+      const response = await api.post(`/api/email-queue/${emailId}/reject`, { reason, agentId });
       console.log('✅ Reject response:', response.data);
       
       // Show confirmation message
@@ -529,7 +550,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       console.log('🔄 Updating email with ID:', emailId);
       console.log('📝 Updates:', updates);
       
-      const response = await api.put(`/api/email-queue/${emailId}`, updates);
+      const response = await api.put(`/api/email-queue/${emailId}?agentId=${agentId}`, updates);
       console.log('✅ Update response:', response.data);
       
       // Update the editing email object with the new data so changes are visible immediately in the modal
@@ -661,7 +682,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         subject: newEmailSubject,
         body: newEmailContent,
         leadContext: 'Custom email created by user',
-        source: 'custom'
+        source: 'custom',
+        agentId: agentId // Include agentId for agent-specific queue
       };
       
       const response = await api.post('/api/email-queue/custom', customEmail);
@@ -1344,7 +1366,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] overflow-hidden mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] overflow-hidden mx-4 flex flex-col"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -1415,7 +1437,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
             </div>
             
-            <div className="h-[80vh] overflow-y-auto">
+            <div className="flex-1 overflow-y-auto scroll-smooth">
               {filteredAndSortedEmailQueue.length === 0 ? (
                 <div className="pt-58 text-center text-neutral-500">
                   <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-neutral-300" />

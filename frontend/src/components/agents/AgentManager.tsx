@@ -53,7 +53,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       const response = await api.get('/api/lead-agent/status');
       const agentData = response.data;
       const mainAgent: Agent = {
-        id: 'lead-agent-main',
+        id: 'reasoning-lead-agent',
         name: agentData.name || 'Reasoning Lead Agent',
         status: agentData.status === 'active' ? 'running' : 'stopped',
         totalEmails: agentData.totalEmails || 0,

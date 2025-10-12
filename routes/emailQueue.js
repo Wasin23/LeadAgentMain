@@ -8,15 +8,16 @@ const router = express.Router();
 // Apply JWT authentication middleware to all routes
 router.use(authenticateToken);
 
-// Helper function to get user-specific email queue
-function getUserEmailQueue(userId) {
-  return new EmailQueue(userId);
+// Helper function to get user-specific and agent-specific email queue
+function getUserEmailQueue(userId, agentId = null) {
+  return new EmailQueue(userId, agentId);
 }
 
 // Get email queue with formatted data (root route)
 router.get('/', async (req, res) => {
   try {
-    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const agentId = req.query.agentId || null; // Optional agent-specific filtering
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const queue = await userEmailQueue.getQueue();
     const approved = await userEmailQueue.getApproved();
     
@@ -46,7 +47,8 @@ router.get('/', async (req, res) => {
 // Get all emails in queue
 router.get('/queue', async (req, res) => {
   try {
-    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const agentId = req.query.agentId || null; // Optional agent-specific filtering
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const queue = await userEmailQueue.getQueue();
     res.json(queue);
   } catch (error) {
@@ -58,7 +60,9 @@ router.get('/queue', async (req, res) => {
 // Get queue statistics
 router.get('/stats', async (req, res) => {
   try {
-    const stats = await emailQueue.getStats();
+    const agentId = req.query.agentId || null; // Optional agent-specific filtering
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
+    const stats = await userEmailQueue.getStats();
     res.json(stats);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting stats:', error);
@@ -131,8 +135,9 @@ router.post('/custom', async (req, res) => {
     console.log(`[EMAIL QUEUE] req.user object:`, req.user);
     console.log(`[EMAIL QUEUE] req.user.userId:`, req.user?.userId);
     console.log(`[EMAIL QUEUE] Creating user queue for userId: ${req.user?.userId}`);
-    const userEmailQueue = getUserEmailQueue(req.user?.userId);
-    console.log(`[EMAIL QUEUE] Adding email to queue...`);
+    const agentId = req.body.agentId || null; // Optional agent-specific queue
+    const userEmailQueue = getUserEmailQueue(req.user?.userId, agentId);
+    console.log(`[EMAIL QUEUE] Adding email to queue (agentId: ${agentId})...`);
     const addedEmail = await userEmailQueue.addToQueue(customEmail);
     console.log(`[EMAIL QUEUE] Email added successfully:`, addedEmail);
     
@@ -166,7 +171,8 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const agentId = req.query.agentId || req.body.agentId || null; // Support agentId from query or body
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const updatedEmail = await userEmailQueue.updateEmail(id, updates);
     res.json(updatedEmail);
   } catch (error) {
@@ -181,7 +187,8 @@ router.post('/:id/approve', async (req, res) => {
     const { id } = req.params;
     
     // Get the email from queue first
-    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const agentId = req.query.agentId || req.body.agentId || null; // Support agentId from query or body
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const queue = await userEmailQueue.getQueue();
     const email = queue.find(e => e.id === id);
     
@@ -256,7 +263,8 @@ router.post('/:id/reject', async (req, res) => {
     const { id } = req.params;
     const reason = req.body?.reason || ''; // Handle undefined body
     
-    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const agentId = req.query.agentId || req.body.agentId || null; // Support agentId from query or body
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const rejectedEmail = await userEmailQueue.rejectEmail(id, reason);
     res.json({ success: true, email: rejectedEmail });
   } catch (error) {
@@ -268,7 +276,8 @@ router.post('/:id/reject', async (req, res) => {
 // Get approved emails history
 router.get('/approved', async (req, res) => {
   try {
-    const userEmailQueue = getUserEmailQueue(req.user.userId);
+    const agentId = req.query.agentId || null; // Optional agent-specific filtering
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const approved = await userEmailQueue.getApproved();
     res.json(approved);
   } catch (error) {
@@ -280,7 +289,9 @@ router.get('/approved', async (req, res) => {
 // Clear rejected emails
 router.post('/clear-rejected', async (req, res) => {
   try {
-    const result = await emailQueue.clearRejected();
+    const agentId = req.query.agentId || req.body.agentId || null; // Support agentId from query or body
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
+    const result = await userEmailQueue.clearRejected();
     res.json({ 
       success: true, 
       message: 'Rejected emails cleared',

@@ -27,14 +27,15 @@ class ReasoningLeadAgent extends EventEmitter {
   constructor(userId) {
     super(); // Call EventEmitter constructor
     this.userId = userId;
+    this.agentId = 'reasoning-lead-agent'; // Define unique agent identifier
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
     
-    // Initialize user-specific file paths and email queue
+    // Initialize user-specific file paths and agent-specific email queue
     const userCode = this.userId ? this.userId.substring(0, 8) : 'default';
     this.leadsFile = path.join(process.cwd(), 'agent', `reasoning_leads_${userCode}.json`);
-    this.emailQueue = new EmailQueue(userId);
+    this.emailQueue = new EmailQueue(userId, this.agentId);
     
     // AWS manager for settings and data storage
     this.awsManager = new AWSManager();
@@ -265,10 +266,11 @@ Choose your next action and explain your reasoning:`;
     try {
       const functionCall = this.determineFunctionCall(context);
       console.log('🔧 [OPENAI] Function call parameter:', JSON.stringify(functionCall));
+      console.log('💰 [COST OPTIMIZATION] Using GPT-3.5-Turbo for routine decision making');
       
-      // Single OpenAI call with reasoning and function calling
+      // Single OpenAI call with reasoning and function calling - USE GPT-3.5 FOR ROUTINE DECISIONS
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-3.5-turbo',
         messages: [{ 
           role: 'user', 
           content: prompt + '\n\nYou MUST call a function. Briefly explain your reasoning, then immediately call the appropriate function to execute the action.'
@@ -289,16 +291,40 @@ Choose your next action and explain your reasoning:`;
         console.log('🧠 [DECISION] Agent decided to use tool:', message.function_call.name);
         console.log('🤔 [THINKING] Agent reasoning:', reasoning);
         
+        // Safely parse function call arguments with error handling
+        let parameters = {};
+        try {
+          if (message.function_call.arguments) {
+            parameters = JSON.parse(message.function_call.arguments);
+          }
+        } catch (parseError) {
+          console.error('❌ [JSON PARSE] Invalid function arguments:', message.function_call.arguments);
+          console.error('❌ [JSON PARSE] Parse error:', parseError.message);
+          
+          // For build_personalized_email, we don't need parameters anyway
+          if (message.function_call.name === 'build_personalized_email') {
+            console.log('✅ [FALLBACK] Using empty parameters for build_personalized_email');
+            parameters = {};
+          } else {
+            // For other functions, return an error
+            return {
+              reasoning: `JSON parse error in function arguments: ${parseError.message}`,
+              action: 'pause',
+              parameters: { error: `Invalid JSON in ${message.function_call.name}: ${parseError.message}` }
+            };
+          }
+        }
+        
         // Log detailed reasoning to activity logs
         this.logOperation('Agent Reasoning', `🤔 [THINKING] ${reasoning}`, 'success', {
           action: message.function_call.name,
-          parameters: message.function_call.arguments
+          parameters: parameters
         });
         
         return {
           reasoning: reasoning,
           action: message.function_call.name,
-          parameters: JSON.parse(message.function_call.arguments)
+          parameters: parameters
         };
       }
 
@@ -318,10 +344,97 @@ Choose your next action and explain your reasoning:`;
 
     } catch (error) {
       console.error('❌ [REASONING] Error:', error);
+      
+      // Handle specific OpenAI rate limit errors
+      if (error.status === 429) {
+        console.log('⚠️ [REASONING] OpenAI rate limit hit, using deterministic fallback logic');
+        
+        // Use deterministic logic when OpenAI is unavailable
+        if (!context.hasUserSettings) {
+          return {
+            reasoning: 'OpenAI unavailable, using fallback: need user settings',
+            action: 'get_user_settings',
+            parameters: {}
+          };
+        }
+        
+        if (!context.hasEmailSettings) {
+          return {
+            reasoning: 'OpenAI unavailable, using fallback: need email settings', 
+            action: 'get_email_settings',
+            parameters: {}
+          };
+        }
+        
+        if (context.cycleComplete) {
+          return {
+            reasoning: 'OpenAI unavailable, cycle complete',
+            action: 'complete',
+            parameters: {}
+          };
+        }
+        
+        // Deterministic phase-based logic
+        switch (context.processingPhase) {
+          case 'search':
+            if (!context.currentLead && (context.leadQueue?.length || 0) === 0) {
+              return {
+                reasoning: 'OpenAI unavailable, using fallback: need to search for leads',
+                action: 'apollo_search',
+                parameters: {
+                  query: 'CEO',
+                  companySize: '300-5000',
+                  location: 'United States',
+                  industries: ['SaaS'],
+                  position: 'CEO'
+                }
+              };
+            }
+            break;
+            
+          case 'research':
+            if (context.currentLead) {
+              return {
+                reasoning: 'OpenAI unavailable, using fallback: research current lead',
+                action: 'serper_research',
+                parameters: {
+                  companyName: context.currentLead.company || context.currentLead.organization?.name,
+                  personName: context.currentLead.name
+                }
+              };
+            }
+            break;
+            
+          case 'email':
+            if (context.currentLead) {
+              return {
+                reasoning: 'OpenAI unavailable, using fallback: unlock email',
+                action: 'unlock_email',
+                parameters: {
+                  firstName: context.currentLead.first_name,
+                  lastName: context.currentLead.last_name,
+                  companyName: context.currentLead.company || context.currentLead.organization?.name
+                }
+              };
+            }
+            break;
+            
+          case 'build':
+            if (context.currentLead) {
+              return {
+                reasoning: 'OpenAI unavailable, using fallback: build email',
+                action: 'build_personalized_email',
+                parameters: {}
+              };
+            }
+            break;
+        }
+      }
+      
       return {
-        reasoning: 'Error in reasoning process',
-        action: 'fallback',
-        parameters: {}
+        reasoning: 'Error in reasoning process - pausing cycle',
+        action: 'pause',
+        parameters: { error: error.message }
       };
     }
   }
@@ -342,6 +455,11 @@ Choose your next action and explain your reasoning:`;
     if (context.cycleComplete) {
       console.log('🔧 [FUNCTION CALL] Cycle complete, allowing natural completion');
       return 'none'; // Let agent complete naturally
+    }
+    
+    if (context.processingPhase === 'paused') {
+      console.log('🔧 [FUNCTION CALL] Agent is paused, stopping execution');
+      return 'none'; // Don't execute any functions when paused
     }
     
     // Force sequential processing based on phase
@@ -494,6 +612,17 @@ Choose your next action and explain your reasoning:`;
           console.log(`✉️ [CYCLE] Email built! Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue: ${this.memory.currentCycle.leadQueue.length}`);
         }
         break;
+        
+      case 'pause':
+        console.log('⏸️ [CYCLE] Agent paused due to error');
+        this.memory.currentCycle.processingPhase = 'paused';
+        break;
+        
+      case 'complete':
+        console.log('🏁 [CYCLE] Cycle marked complete');
+        this.memory.currentCycle.processingPhase = 'complete';
+        this.memory.currentCycle.cycleComplete = true;
+        break;
     }
     
     console.log(`📊 [CYCLE] Current state: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads} leads, phase: ${this.memory.currentCycle.processingPhase}`);
@@ -625,9 +754,10 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 `;
 
       console.log('🧠 [AI ANALYSIS] Analyzing research findings for:', companyName);
+      console.log('� [PREMIUM MODEL] Using GPT-4 for high-quality research analysis');
       
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system', 
@@ -1368,6 +1498,7 @@ SUBJECT: [subject line]
 BODY: [email body with proper greeting and signature]`;
       }
 
+      console.log('💎 [PREMIUM MODEL] Using GPT-4 for high-quality email generation');
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: emailPrompt }],
@@ -1390,101 +1521,6 @@ BODY: [email body with proper greeting and signature]`;
       }
       
       console.log('✅ [EMAIL BUILDER] Personalized email created');
-      
-      // Track this contact in the database to prevent future duplicates
-      try {
-        const leadInfo = {
-          name: contactName,
-          email: leadData.email,
-          company: companyName,
-          title: contactTitle
-        };
-        
-        // Emit SSE progress for contact tracking
-        this.emit('progress', {
-          id: this.generateUniqueId(),
-          timestamp: new Date().toISOString(),
-          operation: 'Contact Tracking',
-          details: `Adding ${leadInfo.name} (${leadInfo.email}) to contacted database...`,
-          status: 'processing',
-          data: { 
-            phase: 'tracking_contact',
-            contactName: leadInfo.name,
-            contactEmail: leadInfo.email,
-            company: leadInfo.company
-          }
-        });
-        
-        const trackingResult = await this.awsManager.addContactedLead(this.userId, leadInfo);
-        
-        if (trackingResult.success) {
-          console.log('📝 [CONTACT TRACKING] Lead added to contacted database:', leadInfo.email);
-          
-          // Emit SSE success for contact tracking
-          this.emit('progress', {
-            id: this.generateUniqueId(),
-            timestamp: new Date().toISOString(),
-            operation: 'Contact Tracking',
-            details: `✅ Contact saved - ${leadInfo.name} at ${leadInfo.company} added to database`,
-            status: 'completed',
-            data: { 
-              phase: 'tracking_complete',
-              contactId: trackingResult.contactId,
-              contactName: leadInfo.name,
-              company: leadInfo.company
-            }
-          });
-        } else if (trackingResult.reason === 'already_contacted') {
-          console.log('⚠️ [CONTACT TRACKING] Lead was already in database (race condition?):', leadInfo.email);
-          
-          // Emit SSE warning for already contacted
-          this.emit('progress', {
-            id: this.generateUniqueId(),
-            timestamp: new Date().toISOString(),
-            operation: 'Contact Tracking',
-            details: `⚠️ Contact already exists - ${leadInfo.name} was previously contacted`,
-            status: 'warning',
-            data: { 
-              phase: 'already_contacted',
-              contactName: leadInfo.name,
-              company: leadInfo.company,
-              reason: 'duplicate_contact'
-            }
-          });
-        } else {
-          console.error('❌ [CONTACT TRACKING] Failed to add to database:', trackingResult.error);
-          
-          // Emit SSE error for tracking failure
-          this.emit('progress', {
-            id: this.generateUniqueId(),
-            timestamp: new Date().toISOString(),
-            operation: 'Contact Tracking',
-            details: `❌ Failed to save contact - ${trackingResult.error}`,
-            status: 'error',
-            data: { 
-              phase: 'tracking_failed',
-              error: trackingResult.error,
-              contactName: leadInfo.name
-            }
-          });
-        }
-      } catch (trackingError) {
-        console.error('❌ [CONTACT TRACKING] Error tracking contact:', trackingError.message);
-        
-        // Emit SSE error for tracking exception
-        this.emit('progress', {
-          id: this.generateUniqueId(),
-          timestamp: new Date().toISOString(),
-          operation: 'Contact Tracking',
-          details: `❌ Contact tracking error - ${trackingError.message}`,
-          status: 'error',
-          data: { 
-            phase: 'tracking_exception',
-            error: trackingError.message
-          }
-        });
-        // Don't fail the email creation if tracking fails
-      }
       
       return {
         success: true,
@@ -2300,7 +2336,7 @@ BODY: [email body with proper greeting and signature]`;
       const queueData = {
         id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: this.userId,
-        agentId: 'lead-agent-main', // Add agentId for proper data isolation
+        agentId: this.agentId, // Add agentId for proper data isolation
         timestamp: new Date().toISOString(),
         status: 'pending',
         source: 'reasoning_agent',
@@ -2366,6 +2402,101 @@ BODY: [email body with proper greeting and signature]`;
 
       await this.emailQueue.addToQueue(queueData);
       console.log(`📧 [EMAIL QUEUE] Added email for ${leadData.company} (${leadData.email})`);
+
+      // NOW track this contact in the database since email was successfully queued
+      try {
+        const leadInfo = {
+          name: leadData.name || leadData.first_name + ' ' + leadData.last_name,
+          email: leadData.email,
+          company: leadData.company,
+          title: leadData.title
+        };
+        
+        // Emit SSE progress for contact tracking
+        this.emit('progress', {
+          id: this.generateUniqueId(),
+          timestamp: new Date().toISOString(),
+          operation: 'Contact Tracking',
+          details: `Adding ${leadInfo.name} (${leadInfo.email}) to contacted database...`,
+          status: 'processing',
+          data: { 
+            phase: 'tracking_contact',
+            contactName: leadInfo.name,
+            contactEmail: leadInfo.email,
+            company: leadInfo.company
+          }
+        });
+        
+        const trackingResult = await this.awsManager.addContactedLead(this.userId, leadInfo);
+        
+        if (trackingResult.success) {
+          console.log('📝 [CONTACT TRACKING] Lead added to contacted database:', leadInfo.email);
+          
+          // Emit SSE success for contact tracking
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: 'Contact Tracking',
+            details: `✅ Contact saved - ${leadInfo.name} at ${leadInfo.company} added to database`,
+            status: 'completed',
+            data: { 
+              phase: 'tracking_complete',
+              contactId: trackingResult.contactId,
+              contactName: leadInfo.name,
+              company: leadInfo.company
+            }
+          });
+        } else if (trackingResult.reason === 'already_contacted') {
+          console.log('⚠️ [CONTACT TRACKING] Lead was already in database (race condition?):', leadInfo.email);
+          
+          // Emit SSE warning for already contacted
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: 'Contact Tracking',
+            details: `⚠️ Contact already exists - ${leadInfo.name} was previously contacted`,
+            status: 'warning',
+            data: { 
+              phase: 'already_contacted',
+              contactName: leadInfo.name,
+              company: leadInfo.company,
+              reason: 'duplicate_contact'
+            }
+          });
+        } else {
+          console.error('❌ [CONTACT TRACKING] Failed to add to database:', trackingResult.error);
+          
+          // Emit SSE error for tracking failure
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: 'Contact Tracking',
+            details: `❌ Failed to save contact - ${trackingResult.error}`,
+            status: 'error',
+            data: { 
+              phase: 'tracking_failed',
+              error: trackingResult.error,
+              contactName: leadInfo.name
+            }
+          });
+        }
+      } catch (trackingError) {
+        console.error('❌ [CONTACT TRACKING] Error tracking contact:', trackingError.message);
+        
+        // Emit SSE error for tracking exception
+        this.emit('progress', {
+          id: this.generateUniqueId(),
+          timestamp: new Date().toISOString(),
+          operation: 'Contact Tracking',
+          details: `❌ Contact tracking error - ${trackingError.message}`,
+          status: 'error',
+          data: { 
+            phase: 'tracking_exception',
+            error: trackingError.message
+          }
+        });
+        // Don't fail the queue addition if tracking fails
+      }
 
       // Emit progress event for email queue update
       this.emit('progress', {
@@ -2521,7 +2652,7 @@ BODY: [email body with proper greeting and signature]`;
    */
   async getStatus() {
     try {
-      const emailQueue = this.emailQueue || new EmailQueue(this.userId);
+      const emailQueue = this.emailQueue || new EmailQueue(this.userId, this.agentId);
       const queueStats = await emailQueue.getStats();
       
       return {
@@ -2737,6 +2868,25 @@ BODY: [email body with proper greeting and signature]`;
           result = await this.buildPersonalizedEmail(parameters);
           break;
           
+        case 'pause':
+          console.log('⏸️ [EXECUTE] Pausing agent due to error:', parameters.error);
+          result = {
+            success: true,
+            message: 'Agent paused due to error',
+            error: parameters.error,
+            shouldStop: true
+          };
+          break;
+          
+        case 'complete':
+          console.log('🏁 [EXECUTE] Cycle complete');
+          result = {
+            success: true,
+            message: 'Cycle completed',
+            cycleComplete: true
+          };
+          break;
+          
         default:
           console.log(`⚠️ [EXECUTE] Unknown function: ${functionName}`);
           result = {
@@ -2898,6 +3048,18 @@ BODY: [email body with proper greeting and signature]`;
           parameters: reasoningResult.parameters
         });
         const actionResult = await this.executeFunction(reasoningResult.action, reasoningResult.parameters);
+        
+        // Check if action requested to stop the cycle (e.g., due to errors)
+        if (actionResult?.shouldStop) {
+          console.log(`⏸️ [REASONING] Action requested cycle stop: ${actionResult.message}`);
+          this.logOperation('Cycle Stopped', `Cycle #${this.cycleCount} stopped due to action result: ${actionResult.message}`, 'paused', {
+            cycleNumber: this.cycleCount,
+            stepNumber: stepCount,
+            reason: actionResult.message,
+            error: actionResult.error
+          });
+          break;
+        }
         
         // Update cycle state based on action results
         await this.updateCycleState(reasoningResult.action, actionResult);
