@@ -1595,9 +1595,15 @@ BODY: [email body with proper greeting and signature]`;
         targetPosition = parameters.position;
         console.log(`🎯 [AGENT DECISION] Using agent-reasoned position: "${targetPosition}"`);
       } else {
-        // Fallback to user settings if agent didn't specify
+        // Check user settings for target positions
         if (!userSettings.targetPositions || userSettings.targetPositions.length === 0) {
-          throw new Error('No target positions configured in user settings');
+          console.log(`❌ [CONFIG ERROR] Target positions not set - stopping cycle`);
+          return {
+            success: false,
+            error: 'Target positions not configured. Please set target positions in agent settings.',
+            found: 0,
+            leads: []
+          };
         }
         targetPosition = userSettings.targetPositions[Math.floor(Math.random() * userSettings.targetPositions.length)];
         console.log(`🔍 [FALLBACK] Using random position from settings: "${targetPosition}"`);

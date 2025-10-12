@@ -371,24 +371,45 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               // Regular agent log event - add directly to Activity Logs
               setAgentLogs(prev => [progressData.data, ...prev.slice(0, 49)]);
               
-              // 🎯 Detect cycle completion from SSE agent log messages
+              // 🎯 Detect cycle completion from SSE agent log messages (including stopped cycles)
               if (progressData.data && !cycleTriggered &&
                   (progressData.data.operation === 'Cycle Completed' || 
-                   (progressData.data.message && progressData.data.message.includes('Cycle Completed')) ||
-                   (progressData.data.details && typeof progressData.data.details === 'string' && progressData.data.details.includes('Cycle Completed')))) {
+                   progressData.data.operation === 'Cycle Stopped' ||
+                   (progressData.data.message && (progressData.data.message.includes('Cycle Completed') || progressData.data.message.includes('Cycle Stopped'))) ||
+                   (progressData.data.details && typeof progressData.data.details === 'string' && (progressData.data.details.includes('Cycle Completed') || progressData.data.details.includes('Cycle Stopped'))))) {
                 
-                console.log('🏁 [CYCLE COMPLETED] Detected cycle completion via SSE');
+                console.log('🏁 [CYCLE END] Detected cycle completion/stop via SSE');
                 console.log('🏁 [DEBUG] Full SSE data:', progressData.data);
                 
-                // Only start countdown if agent is actively running (not for manual cycles)
-                if (status?.isActive && status?.currentInterval) {
-                  console.log('🕒 Starting countdown timer at:', new Date());
-                  setCycleTriggered(true); // Prevent duplicate triggers
-                  setLastCycleTime(new Date());
-                  setCountdownTime(null);
-                } else {
-                  console.log('📝 [MANUAL CYCLE] Cycle completed but agent not running - no countdown');
-                }
+                // Fetch fresh status to check if agent is still running (don't rely on potentially stale status state)
+                const checkAgentStatus = async () => {
+                  try {
+                    const response = await api.get(`/api/lead-agent/status?agentId=${agentId}`);
+                    const freshStatus = response.data;
+                    
+                    console.log('🔍 [DEBUG] Fresh status check:', { 
+                      isActive: freshStatus?.isActive, 
+                      currentInterval: freshStatus?.currentInterval,
+                      freshStatus
+                    });
+                    
+                    // Only start countdown if agent is actively running (not for manual cycles)
+                    if (freshStatus?.isActive && freshStatus?.currentInterval) {
+                      console.log('🕒 Starting countdown timer at:', new Date());
+                      setCycleTriggered(true); // Prevent duplicate triggers
+                      setLastCycleTime(new Date());
+                      setCountdownTime(null);
+                    } else {
+                      console.log('📝 [MANUAL CYCLE] Cycle completed but agent not running - no countdown');
+                      console.log('📝 [MANUAL CYCLE] Debug: isActive =', freshStatus?.isActive, 'currentInterval =', freshStatus?.currentInterval);
+                    }
+                  } catch (error) {
+                    console.error('❌ Failed to fetch fresh status for countdown check:', error);
+                  }
+                };
+                
+                // Check status asynchronously
+                checkAgentStatus();
               }
               
               // 🔍 Additional specific logging for Serper research steps
