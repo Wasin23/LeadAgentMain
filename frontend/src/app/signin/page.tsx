@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
-type TabType = 'signin' | 'signup' | 'forgot' | 'reset';
+type TabType = 'signin' | 'signup';
 
 export default function SignInPage() {
   const [activeTab, setActiveTab] = useState<TabType>('signin');
@@ -14,6 +14,7 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
   
   // Form states
   const [signInForm, setSignInForm] = useState({ username: '', password: '' });
@@ -87,6 +88,79 @@ export default function SignInPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    clearMessages();
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: forgotForm.email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(data.message);
+        if (data.resetToken) {
+          // For development - show reset token
+          setSuccess(data.message + ' Reset token: ' + data.resetToken);
+        }
+        setShowForgotModal(false);
+        setForgotForm({ email: '' });
+      } else {
+        setError(data.error || 'Failed to send reset email');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    clearMessages();
+
+    if (resetForm.newPassword !== resetForm.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          token: resetForm.code,
+          newPassword: resetForm.newPassword 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Password reset successful! You can now sign in.');
+        setActiveTab('signin');
+        setResetForm({ code: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setError(data.error || 'Failed to reset password');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGuestMode = () => {
     continueAsGuest();
     router.push('/');
@@ -148,7 +222,7 @@ export default function SignInPage() {
                   : 'text-neutral-500 hover:text-neutral-700'
               }`}
             >
-              {tab === 'signin' ? 'Log In' : 'Sign Up'}
+              {tab === 'signin' ? 'Sign In' : 'Sign Up'}
             </button>
           ))}
         </div>
@@ -228,7 +302,7 @@ export default function SignInPage() {
                   <div className="text-center mt-3">
                     <button
                       type="button"
-                      onClick={() => setActiveTab('forgot')}
+                      onClick={() => setShowForgotModal(true)}
                       className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
                     >
                       Forgot Password?
@@ -367,6 +441,8 @@ export default function SignInPage() {
                 </button>
               </motion.form>
             )}
+
+
           </AnimatePresence>
         </div>
 
@@ -381,6 +457,156 @@ export default function SignInPage() {
           </button>
         </div>
       </motion.div>
+
+      {/* Forgot Password Modal */}
+      <AnimatePresence>
+        {showForgotModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50"
+            onClick={() => setShowForgotModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white border border-neutral-200 w-full max-w-md p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-semibold text-neutral-900 mb-2">
+                Reset Your Password
+              </h2>
+              <p className="text-neutral-500 text-sm mb-6">
+                Enter your email address and we'll send you a reset code.
+              </p>
+
+              <form onSubmit={handleForgotPassword} className="space-y-6">
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={forgotForm.email}
+                    onChange={(e) => setForgotForm({ ...forgotForm, email: e.target.value })}
+                    className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Enter your email address"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="flex-1 py-3 px-4 text-sm font-medium text-neutral-600 border border-neutral-200 transition-colors hover:bg-neutral-50"
+                  >
+                    Back to Sign In
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    style={{
+                      background: isLoading ? '#a3a3a3 !important' : '#3b82f6 !important',
+                      color: '#ffffff !important',
+                      fontWeight: '500 !important'
+                    }}
+                  >
+                    {isLoading && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {isLoading ? 'Sending...' : 'Send Code'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Reset Code Form (shows after email is sent) */}
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 pt-6 border-t border-neutral-200"
+                >
+                  <h3 className="text-lg font-medium text-neutral-900 mb-4">
+                    Enter Reset Code
+                  </h3>
+                  
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                        Reset Code
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={resetForm.code}
+                        onChange={(e) => setResetForm({ ...resetForm, code: e.target.value })}
+                        className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                        placeholder="Enter the code from your email"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        value={resetForm.newPassword}
+                        onChange={(e) => setResetForm({ ...resetForm, newPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={resetForm.confirmPassword}
+                        onChange={(e) => setResetForm({ ...resetForm, confirmPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      />
+                      {resetForm.confirmPassword && (
+                        <p className={`text-xs mt-1 ${
+                          resetForm.newPassword === resetForm.confirmPassword 
+                            ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {resetForm.newPassword === resetForm.confirmPassword 
+                            ? 'Passwords match' : 'Passwords do not match'}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading || resetForm.newPassword !== resetForm.confirmPassword}
+                      className="w-full py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={{
+                        background: (isLoading || resetForm.newPassword !== resetForm.confirmPassword) ? '#a3a3a3 !important' : '#3b82f6 !important',
+                        color: '#ffffff !important',
+                        fontWeight: '500 !important'
+                      }}
+                    >
+                      {isLoading && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      )}
+                      {isLoading ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

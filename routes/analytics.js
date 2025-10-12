@@ -249,13 +249,21 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       logs = [];
     }
     
-    // Always load approved emails (regardless of agentId since they're saved without agent ID)
+    // Load approved emails and filter by agentId if provided
     const approvedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
     let approvedEmails = [];
     
     try {
       const existingApproved = await fs.readFile(approvedPath, 'utf8');
-      approvedEmails = JSON.parse(existingApproved);
+      const allApprovedEmails = JSON.parse(existingApproved);
+      
+      // Filter by agentId if provided (for agent-specific requests)
+      if (agentId) {
+        approvedEmails = allApprovedEmails.filter(email => email.agentId === agentId);
+        console.log(`📧 [ANALYTICS] Filtered ${approvedEmails.length} approved emails for agent ${agentId} (from ${allApprovedEmails.length} total)`);
+      } else {
+        approvedEmails = allApprovedEmails;
+      }
     } catch (error) {
       approvedEmails = [];
     }
@@ -281,9 +289,9 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
     const emailsWithAnalytics = logs.map(log => ({
       ...log,
       analyticsStatus: {
-        hasOpened: log.analytics?.opened || false,
-        hasClicked: log.analytics?.clicked || false,
-        hasReplied: log.analytics?.replied || false,
+        opened: log.analytics?.opened || false,
+        clicked: log.analytics?.clicked || false,
+        replied: log.analytics?.replied || false,
         openCount: log.analytics?.openCount || 0,
         clickCount: log.analytics?.clickCount || 0,
         lastActivity: log.analytics?.lastActivity || null,

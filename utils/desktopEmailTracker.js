@@ -258,7 +258,7 @@ class DesktopEmailTracker {
   // REMOVED: Old global polling method - replaced with user-specific polling
 
   // Sync email logs with actual Zilliz data (don't increment, just set correct counts)
-  async syncWithZillizData(zillizEvents, userId = null) {
+  async syncWithZillizData(zillizEvents, userId = null, agentId = null) {
     try {
       // Load current email logs for specific user
       const emailLogs = await this.loadEmailLogs(userId);
@@ -433,6 +433,11 @@ class DesktopEmailTracker {
         console.log(`📧 [SYNC] Email logs synchronized with Zilliz data for user ${userId || 'all users'}`);
       }
 
+      // IMPORTANT: Also sync tracking data to approved emails file
+      if (userId) {
+        await this.syncTrackingDataToApprovedEmails(eventsByTrackingId, userId, agentId);
+      }
+
       // Also fetch and sync reply data for emails that have tracking IDs
       await this.syncReplyData(emailLogs);
 
@@ -498,6 +503,89 @@ class DesktopEmailTracker {
 
     } catch (error) {
       console.error('📧 [REPLY SYNC] Error syncing reply data:', error);
+    }
+  }
+
+  // Sync tracking data to approved emails file (this is where the UI gets the data!)
+  async syncTrackingDataToApprovedEmails(eventsByTrackingId, userId, agentId = null) {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      // Load approved emails
+      const approvedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
+      let approvedEmails = [];
+      
+      try {
+        const existingApproved = await fs.readFile(approvedPath, 'utf8');
+        approvedEmails = JSON.parse(existingApproved);
+      } catch (error) {
+        console.log(`📧 [APPROVED SYNC] No approved emails file found for user ${userId}`);
+        return;
+      }
+      
+      if (approvedEmails.length === 0) {
+        console.log(`📧 [APPROVED SYNC] No approved emails to sync for user ${userId}`);
+        return;
+      }
+      
+      console.log(`📧 [APPROVED SYNC] Syncing tracking data to ${approvedEmails.length} approved emails`);
+      
+      let updatedCount = 0;
+      
+      // Update approved emails with tracking data
+      for (let i = 0; i < approvedEmails.length; i++) {
+        const email = approvedEmails[i];
+        
+        // Try to match by tracking ID (email ID or similar)
+        const emailTrackingId = email.id || email.trackingId;
+        if (!emailTrackingId) continue;
+        
+        // Look for matching tracking data
+        const trackingData = eventsByTrackingId[emailTrackingId];
+        if (!trackingData) continue;
+        
+        // Update the approved email with tracking info
+        const shouldBeOpened = trackingData.opens > 0;
+        const shouldBeClicked = trackingData.clicks > 0;
+        const shouldBeReplied = trackingData.replies > 0;
+        
+        // Initialize analytics if not present
+        if (!email.analytics) email.analytics = {};
+        
+        // Update tracking status
+        email.analytics.opened = shouldBeOpened;
+        email.analytics.clicked = shouldBeClicked; 
+        email.analytics.replied = shouldBeReplied;
+        email.analytics.openCount = trackingData.opens;
+        email.analytics.clickCount = trackingData.clicks;
+        email.analytics.replyCount = trackingData.replies;
+        email.analytics.lastActivity = shouldBeOpened || shouldBeClicked || shouldBeReplied ? new Date().toISOString() : email.analytics.lastActivity;
+        
+        // Also add top-level fields for compatibility
+        email.opened = shouldBeOpened;
+        email.clicked = shouldBeClicked;
+        email.replied = shouldBeReplied;
+        
+        // Add agent context if provided
+        if (agentId && !email.agentId) {
+          email.agentId = agentId;
+        }
+        
+        updatedCount++;
+        console.log(`📧 [APPROVED SYNC] Updated email ${email.to || 'unknown'}: opened=${shouldBeOpened}, clicked=${shouldBeClicked}, replied=${shouldBeReplied}`);
+      }
+      
+      // Save the updated approved emails
+      if (updatedCount > 0) {
+        await fs.writeFile(approvedPath, JSON.stringify(approvedEmails, null, 2));
+        console.log(`📧 [APPROVED SYNC] Updated ${updatedCount} approved emails with tracking data`);
+      } else {
+        console.log(`📧 [APPROVED SYNC] No approved emails matched tracking IDs`);
+      }
+      
+    } catch (error) {
+      console.error('📧 [APPROVED SYNC] Error syncing to approved emails:', error);
     }
   }
 
@@ -706,12 +794,39 @@ class DesktopEmailTracker {
     }
   }
 
-  // Poll Zilliz for events specific to a user
+  // Poll Zilliz for events specific to a user and their active agents
   async pollZillizEventsForUser(userId) {
     try {
-      // Use the internal events endpoint with server secret for polling, filtered by userId
+      // Get active agents for this user
+      const { getUserActiveAgents } = await import('../agent/reasoningLeadAgent.js');
+      const activeAgents = getUserActiveAgents(userId);
+      
+      console.log(`📧 [USER POLLING] User ${userId}: Found ${activeAgents.length} active agents`);
+      
+      // Poll for each active agent (future-proofed for multiple agents)
+      for (const agentInfo of activeAgents) {
+        await this.pollZillizEventsForUserAgent(userId, agentInfo.agentId);
+      }
+      
+      // Also poll for user-level tracking (for backward compatibility)
+      await this.pollZillizEventsForUserAgent(userId, null);
+      
+    } catch (error) {
+      console.error(`📧 [USER POLLING] Error polling for user ${userId}:`, error);
+    }
+  }
+
+  // Poll Zilliz for events specific to a user and optionally an agent
+  async pollZillizEventsForUserAgent(userId, agentId = null) {
+    try {
+      // Use the internal events endpoint with server secret for polling, filtered by userId and agentId
       const serverSecret = process.env.SERVER_SECRET || 'internal-polling-secret-2024';
-      const zillizApiUrl = `${this.apiBaseUrl}/api/zilliz-tracking/internal/events?userId=${encodeURIComponent(userId)}`;
+      let zillizApiUrl = `${this.apiBaseUrl}/api/zilliz-tracking/internal/events?userId=${encodeURIComponent(userId)}`;
+      
+      if (agentId) {
+        zillizApiUrl += `&agentId=${encodeURIComponent(agentId)}`;
+        console.log(`📧 [AGENT POLLING] Polling for user ${userId}, agent ${agentId}`);
+      }
       
       const response = await fetch(zillizApiUrl, {
         headers: {
@@ -721,7 +836,8 @@ class DesktopEmailTracker {
       });
 
       if (!response.ok) {
-        console.error(`📧 [USER POLLING] Failed to fetch events for user ${userId}: ${response.status}`);
+        const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
+        console.error(`📧 [AGENT POLLING] Failed to fetch events for ${context}: ${response.status}`);
         return;
       }
 
@@ -732,11 +848,12 @@ class DesktopEmailTracker {
         const { trackingEvents, scheduledEvents, totalCount } = data.events;
         
         if (totalCount > 0) {
-          console.log(`📧 [USER POLLING] User ${userId}: Syncing ${trackingEvents?.length || 0} tracking events and ${scheduledEvents?.length || 0} scheduled events`);
+          const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
+          console.log(`📧 [AGENT POLLING] ${context}: Syncing ${trackingEvents?.length || 0} tracking events and ${scheduledEvents?.length || 0} scheduled events`);
           
-          // Sync tracking events if they exist
+          // Sync tracking events if they exist, including agent context
           if (trackingEvents && trackingEvents.length > 0) {
-            await this.syncWithZillizData(trackingEvents, userId);
+            await this.syncWithZillizData(trackingEvents, userId, agentId);
           }
           
           // Handle scheduled events separately - we'll just log them for now
@@ -744,13 +861,15 @@ class DesktopEmailTracker {
             console.log(`� [USER POLLING] User ${userId}: Found ${scheduledEvents.length} scheduled events`);
             // Store scheduled events in memory for the frontend to access
             this.userScheduledEvents = this.userScheduledEvents || new Map();
-            this.userScheduledEvents.set(userId, scheduledEvents);
+            const eventKey = agentId ? `${userId}_${agentId}` : userId;
+            this.userScheduledEvents.set(eventKey, scheduledEvents);
           }
         }
       }
       
     } catch (error) {
-      console.error(`📧 [USER POLLING] Error polling for user ${userId}:`, error);
+      const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
+      console.error(`📧 [AGENT POLLING] Error polling for ${context}:`, error);
     }
   }
 

@@ -491,7 +491,10 @@ Choose your next action and explain your reasoning:`;
       case 'build':
         if (context.currentLead) {
           console.log('🔧 [FUNCTION CALL] Forcing build_personalized_email');
+          console.log(`🔧 [DEBUG] Build phase - lead has email: ${!!context.currentLead.email}`);
           return { name: 'build_personalized_email' };
+        } else {
+          console.log('🔧 [DEBUG] Build phase but no current lead!');
         }
         break;
     }
@@ -551,16 +554,21 @@ Choose your next action and explain your reasoning:`;
         break;
         
       case 'unlock_email':
+        console.log(`🔧 [DEBUG] unlock_email actionResult:`, JSON.stringify(actionResult, null, 2));
+        console.log(`🔧 [DEBUG] unlock_email success check: success=${actionResult?.success}, email=${!!actionResult?.email}`);
+        
         if (actionResult?.success && actionResult?.email) {
           // Email unlocked successfully, UPDATE the lead email and move to build
           this.memory.currentCycle.currentLead.email = actionResult.email;
           this.memory.currentCycle.processingPhase = 'build';
           console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
-          console.log(`🔧 [DEBUG] Set processingPhase to 'build' after unlock`);
+          console.log(`🔧 [DEBUG] Set processingPhase to 'build' after unlock - NEW PHASE: ${this.memory.currentCycle.processingPhase}`);
+          console.log(`🔧 [DEBUG] Current lead after unlock:`, this.memory.currentCycle.currentLead?.name, 'has email:', !!this.memory.currentCycle.currentLead?.email);
     
         } else {
           // Email unlock failed, skip this lead and get next from queue or search
           console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead`);
+          console.log(`🔧 [DEBUG] Failure reason: success=${actionResult?.success}, email=${actionResult?.email}, error=${actionResult?.error}`);
           this.memory.currentCycle.currentLead = null;
           
           if (this.memory.currentCycle.leadQueue.length > 0) {
@@ -584,7 +592,8 @@ Choose your next action and explain your reasoning:`;
             email: this.memory.currentCycle.currentLead.email,
             personalizedEmail: actionResult.email,
             emailSubject: actionResult.subject,
-            generatedEmail: actionResult.email
+            generatedEmail: actionResult.email,
+            research: this.memory.lastResearch // Include the research data from memory
           };
           await this.addToEmailQueue(leadData);
           console.log(`📧 [QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}`);
@@ -1068,14 +1077,20 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         });
       }
       
-      return {
+      // Store research results in memory for email building
+      const researchResults = {
         success: true,
         data: results,
         companyName: parameters.companyName,
         insights: results.organic?.slice(0, 3) || [],
         knowledgeGraph: results.knowledgeGraph,
-        answerBox: results.answerBox
+        answerBox: results.answerBox,
+        contentFindings: contentFindings
       };
+      
+      this.memory.lastResearch = researchResults;
+      
+      return researchResults;
     } catch (error) {
       console.error('❌ [SERPER] Research failed:', error);
       return {
@@ -1269,6 +1284,16 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         
         if (allEmails.length > 0) {
           console.log('✅ [APOLLO] Email unlocked successfully!');
+          
+          // Add activity log for SSE stream
+          this.logOperation('Email Unlocked', `🔓 Email unlocked: ${allEmails[0]} for ${person.first_name} ${person.last_name} at ${person.organization?.name}`, 'success', {
+            type: 'email_unlocked',
+            email: allEmails[0],
+            personName: `${person.first_name} ${person.last_name}`,
+            company: person.organization?.name,
+            totalEmails: allEmails.length
+          });
+          
           return {
             success: true,
             email: allEmails[0], // Primary email
@@ -1368,9 +1393,9 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       let researchInsights = 'Company research data available';
       let keyBusinessFacts = [];
       
-      if (researchData?.organic && researchData.organic.length > 0) {
+      if (researchData?.data?.organic && researchData.data.organic.length > 0) {
         // Extract key business insights from research
-        keyBusinessFacts = researchData.organic.slice(0, 3).map(r => r.snippet);
+        keyBusinessFacts = researchData.data.organic.slice(0, 3).map(r => r.snippet);
         researchInsights = keyBusinessFacts.join(' ');
         
         // Look for specific business indicators to personalize
@@ -2064,25 +2089,30 @@ BODY: [email body with proper greeting and signature]`;
     const allText = [];
     const originalText = []; // Keep original case for proper names
     
-    // Extract from answer box
-    if (researchData.answerBox?.snippet) {
-      allText.push(researchData.answerBox.snippet.toLowerCase());
-      originalText.push(researchData.answerBox.snippet);
+    // Extract from answer box (check both locations)
+    if (researchData.answerBox?.snippet || researchData.answerBox?.answer) {
+      const answerText = researchData.answerBox.snippet || researchData.answerBox.answer;
+      allText.push(answerText.toLowerCase());
+      originalText.push(answerText);
+    }
+    if (researchData.data?.answerBox?.snippet || researchData.data?.answerBox?.answer) {
+      const answerText = researchData.data.answerBox.snippet || researchData.data.answerBox.answer;
+      allText.push(answerText.toLowerCase());
+      originalText.push(answerText);
     }
     
-    // Extract from organic results (more comprehensive)
-    if (researchData.organic) {
-      researchData.organic.slice(0, 8).forEach(result => {
-        if (result.snippet) {
-          allText.push(result.snippet.toLowerCase());
-          originalText.push(result.snippet);
-        }
-        if (result.title) {
-          allText.push(result.title.toLowerCase());
-          originalText.push(result.title);
-        }
-      });
-    }
+    // Extract from organic results (check nested structure)
+    const organicResults = researchData.data?.organic || researchData.organic || [];
+    organicResults.slice(0, 8).forEach(result => {
+      if (result.snippet) {
+        allText.push(result.snippet.toLowerCase());
+        originalText.push(result.snippet);
+      }
+      if (result.title) {
+        allText.push(result.title.toLowerCase());
+        originalText.push(result.title);
+      }
+    });
     
     // Also check any company details or key insights
     if (researchData.companyDetails) {
@@ -2264,6 +2294,321 @@ BODY: [email body with proper greeting and signature]`;
     return commonWords / totalWords;
   }
 
+  // Extract comprehensive company details from Serper research data
+  extractCompanyDetailsFromResearch(researchData, leadData) {
+    if (!researchData) {
+      return {
+        name: leadData.company || leadData.organization?.name || 'Unknown',
+        industry: leadData.organization?.industry || 'Unknown',
+        size: leadData.organization?.estimated_num_employees || 'Unknown',
+        domain: leadData.organization?.primary_domain || leadData.email?.split('@')[1] || 'Unknown'
+      };
+    }
+
+    // Combine all research text for analysis - check both nested and top-level structure
+    const allText = [];
+    
+    // Extract from answer box (check both locations)
+    if (researchData.answerBox?.snippet || researchData.answerBox?.answer) {
+      allText.push(researchData.answerBox.snippet || researchData.answerBox.answer);
+    }
+    if (researchData.data?.answerBox?.snippet || researchData.data?.answerBox?.answer) {
+      allText.push(researchData.data.answerBox.snippet || researchData.data.answerBox.answer);
+    }
+    
+    // Extract from organic results (check nested structure)
+    const organicResults = researchData.data?.organic || researchData.organic || [];
+    organicResults.forEach(result => {
+      if (result.snippet) allText.push(result.snippet);
+      if (result.title) allText.push(result.title);
+    });
+    
+    const fullText = allText.join(' ').toLowerCase();
+    const originalText = allText.join(' '); // Keep original case for extraction
+
+    // Extract industry from research content
+    const industryPatterns = [
+      // Specific SaaS/Tech patterns
+      { pattern: /saas\s*(platform|company|provider|solution)/i, industry: 'SaaS Platform' },
+      { pattern: /software.as.a.service/i, industry: 'SaaS Platform' },
+      { pattern: /(cloud|web).*(platform|software|service)/i, industry: 'Cloud Software' },
+      { pattern: /(business|workflow|project)\s*management\s*(software|platform|tool)/i, industry: 'Business Management Software' },
+      { pattern: /customer.*relationship.*management|crm\s*(platform|software)/i, industry: 'CRM Software' },
+      { pattern: /marketing\s*(automation|technology|platform|software)/i, industry: 'Marketing Technology' },
+      { pattern: /enterprise\s*(software|resource|planning)/i, industry: 'Enterprise Software' },
+      { pattern: /analytics\s*(platform|software|tool)/i, industry: 'Analytics & Data' },
+      { pattern: /security\s*(software|platform|solution)/i, industry: 'Cybersecurity' },
+      
+      // Financial/Fintech
+      { pattern: /fintech|financial.*technology/i, industry: 'FinTech' },
+      { pattern: /payment\s*(processing|platform|solution)/i, industry: 'Payment Processing' },
+      { pattern: /banking\s*(software|platform|technology)/i, industry: 'Banking Technology' },
+      { pattern: /accounting\s*(software|platform)/i, industry: 'Accounting Software' },
+      
+      // Healthcare/Medical
+      { pattern: /healthcare\s*(technology|software|platform)/i, industry: 'Healthcare Technology' },
+      { pattern: /medical\s*(software|platform|device)/i, industry: 'Medical Technology' },
+      { pattern: /telemedicine|telehealth/i, industry: 'Telemedicine' },
+      { pattern: /pharmaceutical|pharma/i, industry: 'Pharmaceuticals' },
+      
+      // E-commerce/Retail
+      { pattern: /e.commerce|ecommerce/i, industry: 'E-commerce' },
+      { pattern: /retail\s*(technology|software)/i, industry: 'Retail Technology' },
+      { pattern: /point.of.sale|pos\s*system/i, industry: 'Point of Sale' },
+      
+      // Other industries
+      { pattern: /real.*estate\s*(technology|software)/i, industry: 'Real Estate Technology' },
+      { pattern: /education.*technology|edtech/i, industry: 'Education Technology' },
+      { pattern: /hr\s*(technology|software|platform)/i, industry: 'HR Technology' },
+      { pattern: /logistics\s*(software|platform)/i, industry: 'Logistics Technology' },
+      { pattern: /construction\s*(software|technology)/i, industry: 'Construction Technology' },
+      { pattern: /manufacturing|industrial/i, industry: 'Manufacturing' },
+      
+      // Generic tech fallbacks
+      { pattern: /software\s*(company|developer|provider)/i, industry: 'Software Development' },
+      { pattern: /technology\s*(company|provider|solution)/i, industry: 'Technology Services' },
+      { pattern: /digital\s*(platform|solution|transformation)/i, industry: 'Digital Solutions' }
+    ];
+
+    let detectedIndustry = leadData.organization?.industry || 'Technology';
+    for (const { pattern, industry } of industryPatterns) {
+      if (pattern.test(fullText)) {
+        detectedIndustry = industry;
+        break; // Use first match for most specific categorization
+      }
+    }
+
+    // Extract company size from research content
+    const sizePatterns = [
+      { pattern: /(\d+(?:,\d+)?)\s*employees?/i, extract: (match) => `${match[1]} employees` },
+      { pattern: /team\s*of\s*(\d+(?:,\d+)?)/i, extract: (match) => `${match[1]} employees` },
+      { pattern: /(\d+)\+\s*people/i, extract: (match) => `${match[1]}+ employees` },
+      { pattern: /workforce\s*of\s*(\d+(?:,\d+)?)/i, extract: (match) => `${match[1]} employees` },
+      { pattern: /staff\s*of\s*(\d+(?:,\d+)?)/i, extract: (match) => `${match[1]} employees` },
+      // Size indicators
+      { pattern: /startup|early.stage/i, extract: () => 'Startup (1-50 employees)' },
+      { pattern: /small.*business|SMB/i, extract: () => 'Small Business (10-100 employees)' },
+      { pattern: /enterprise|large.*company/i, extract: () => 'Enterprise (1000+ employees)' },
+      { pattern: /fortune\s*500|f500/i, extract: () => 'Fortune 500 (10,000+ employees)' },
+      { pattern: /mid.size|medium.*company/i, extract: () => 'Mid-size (100-1000 employees)' }
+    ];
+
+    let detectedSize = leadData.organization?.estimated_num_employees || 'Unknown';
+    for (const { pattern, extract } of sizePatterns) {
+      const match = originalText.match(pattern);
+      if (match) {
+        detectedSize = extract(match);
+        break;
+      }
+    }
+
+    // Extract revenue/funding information (adds credibility)
+    const revenuePatterns = [
+      { pattern: /revenue\s*of\s*\$?(\d+(?:\.\d+)?)\s*(billion|million|B|M)/i, extract: (match) => `$${match[1]}${match[2].charAt(0).toUpperCase()} revenue` },
+      { pattern: /\$(\d+(?:\.\d+)?)\s*(billion|million|B|M)\s*valuation/i, extract: (match) => `$${match[1]}${match[2].charAt(0).toUpperCase()} valuation` },
+      { pattern: /raised\s*\$(\d+(?:\.\d+)?)\s*(million|billion|M|B)/i, extract: (match) => `Raised $${match[1]}${match[2].charAt(0).toUpperCase()}` },
+      { pattern: /publicly.*traded|nasdaq|nyse/i, extract: () => 'Publicly traded' }
+    ];
+
+    let financialInfo = null;
+    for (const { pattern, extract } of revenuePatterns) {
+      const match = originalText.match(pattern);
+      if (match) {
+        financialInfo = extract(match);
+        break;
+      }
+    }
+
+    // Extract founding information
+    const foundingPatterns = [
+      { pattern: /founded\s*in\s*(\d{4})/i, extract: (match) => `Founded in ${match[1]}` },
+      { pattern: /established\s*(\d{4})/i, extract: (match) => `Established ${match[1]}` },
+      { pattern: /since\s*(\d{4})/i, extract: (match) => `Operating since ${match[1]}` }
+    ];
+
+    let foundingInfo = null;
+    for (const { pattern, extract } of foundingPatterns) {
+      const match = originalText.match(pattern);
+      if (match) {
+        foundingInfo = extract(match);
+        break;
+      }
+    }
+
+    // Extract location information
+    const locationPatterns = [
+      { pattern: /headquartered\s*in\s*([A-Z][a-zA-Z\s,]+(?:USA?|United States)?)/i, extract: (match) => `HQ: ${match[1].trim()}` },
+      { pattern: /based\s*in\s*([A-Z][a-zA-Z\s,]+(?:USA?|United States)?)/i, extract: (match) => `Based in ${match[1].trim()}` },
+      { pattern: /offices?\s*in\s*([A-Z][a-zA-Z\s,&]+)/i, extract: (match) => `Offices in ${match[1].trim()}` }
+    ];
+
+    let locationInfo = null;
+    for (const { pattern, extract } of locationPatterns) {
+      const match = originalText.match(pattern);
+      if (match && match[1].length < 50) { // Avoid overly long matches
+        locationInfo = extract(match);
+        break;
+      }
+    }
+
+    return {
+      name: leadData.company || leadData.organization?.name || 'Unknown',
+      industry: detectedIndustry,
+      size: detectedSize,
+      domain: leadData.organization?.primary_domain || leadData.email?.split('@')[1] || 'Unknown',
+      // Additional enriched details from research
+      financialInfo,
+      foundingInfo,
+      locationInfo,
+      businessModel: this.extractBusinessType(fullText), // Use existing method
+      keyServices: this.extractKeyServices(fullText) // Use existing method
+    };
+  }
+
+  // Calculate relevance score for search results
+  calculateRelevanceScore(result, companyName) {
+    if (!result || !companyName) return 0;
+    
+    let score = 0;
+    const title = (result.title || '').toLowerCase();
+    const snippet = (result.snippet || '').toLowerCase();
+    const company = companyName.toLowerCase();
+    
+    // Company name mentions (highest weight)
+    if (title.includes(company)) score += 10;
+    if (snippet.includes(company)) score += 5;
+    
+    // Business-relevant keywords
+    const businessKeywords = ['company', 'business', 'platform', 'software', 'service', 'solution', 'technology'];
+    businessKeywords.forEach(keyword => {
+      if (title.includes(keyword)) score += 2;
+      if (snippet.includes(keyword)) score += 1;
+    });
+    
+    // Recency indicators
+    const recentKeywords = ['2024', '2025', 'recent', 'new', 'latest', 'announced'];
+    recentKeywords.forEach(keyword => {
+      if (title.includes(keyword)) score += 3;
+      if (snippet.includes(keyword)) score += 1;
+    });
+    
+    return score;
+  }
+
+  // Extract competitive positioning from research
+  extractCompetitivePosition(researchData) {
+    const organicResults = researchData?.data?.organic || researchData?.organic || [];
+    if (organicResults.length === 0) return 'Competitive Player';
+    
+    const allText = organicResults.map(r => r.snippet || '').join(' ').toLowerCase();
+    
+    const positionKeywords = [
+      { pattern: /market leader|leading (platform|provider|company)/i, position: 'Market Leader' },
+      { pattern: /number one|#1|top (platform|provider|company)/i, position: 'Top Provider' },
+      { pattern: /fastest.growing|rapid.growth|emerging leader/i, position: 'Fast Growing' },
+      { pattern: /innovative|cutting.edge|pioneering/i, position: 'Innovation Leader' },
+      { pattern: /enterprise.grade|enterprise.ready|enterprise.leader/i, position: 'Enterprise Leader' },
+      { pattern: /startup|early.stage|emerging/i, position: 'Emerging Player' },
+      { pattern: /established|trusted|proven/i, position: 'Established Provider' }
+    ];
+    
+    for (const { pattern, position } of positionKeywords) {
+      if (pattern.test(allText)) {
+        return position;
+      }
+    }
+    
+    return 'Competitive Player';
+  }
+
+  // Extract technology stack mentions from research
+  extractTechnologyStack(researchData) {
+    const organicResults = researchData?.data?.organic || researchData?.organic || [];
+    if (organicResults.length === 0) return [];
+    
+    const allText = organicResults.map(r => r.snippet || '').join(' ');
+    const technologies = [];
+    
+    const techPatterns = [
+      // Cloud platforms
+      /AWS|Amazon Web Services/i,
+      /Google Cloud|GCP/i,
+      /Microsoft Azure|Azure/i,
+      /Kubernetes|Docker/i,
+      
+      // Databases
+      /PostgreSQL|MySQL|MongoDB|Redis/i,
+      /Elasticsearch|Snowflake/i,
+      
+      // Programming languages/frameworks
+      /React|Angular|Vue\.js/i,
+      /Node\.js|Python|Java|Ruby/i,
+      /Django|Flask|Express/i,
+      
+      // SaaS tools
+      /Salesforce|HubSpot|Slack/i,
+      /Stripe|PayPal|Shopify/i,
+      /Zendesk|Intercom|Twilio/i,
+      
+      // Analytics/Marketing
+      /Google Analytics|Mixpanel|Amplitude/i,
+      /Marketo|Mailchimp|SendGrid/i
+    ];
+    
+    techPatterns.forEach(pattern => {
+      const match = allText.match(pattern);
+      if (match && !technologies.includes(match[0])) {
+        technologies.push(match[0]);
+      }
+    });
+    
+    return technologies.slice(0, 8); // Return top 8 technologies
+  }
+
+  // Assess overall quality of research data
+  assessResearchQuality(researchData) {
+    if (!researchData) return 'poor';
+    
+    let score = 0;
+    
+    // Number of results
+    if (researchData.organic?.length >= 8) score += 3;
+    else if (researchData.organic?.length >= 5) score += 2;
+    else if (researchData.organic?.length >= 3) score += 1;
+    
+    // Has answer box (direct company info)
+    if (researchData.answerBox) score += 2;
+    
+    // Has knowledge graph
+    if (researchData.knowledgeGraph) score += 2;
+    
+    // Quality of content (length and variety)
+    const organicResults = researchData?.data?.organic || researchData?.organic || [];
+    if (organicResults.length > 0) {
+      const totalContentLength = organicResults.reduce((sum, r) => sum + (r.snippet?.length || 0), 0);
+      if (totalContentLength > 2000) score += 2;
+      else if (totalContentLength > 1000) score += 1;
+    }
+    
+    // Variety of sources
+    if (organicResults.length > 0) {
+      const uniqueDomains = new Set(organicResults.map(r => {
+        try {
+          return new URL(r.link).hostname;
+        } catch {
+          return r.link;
+        }
+      }));
+      if (uniqueDomains.size >= 5) score += 2;
+      else if (uniqueDomains.size >= 3) score += 1;
+    }
+    
+    if (score >= 8) return 'excellent';
+    if (score >= 6) return 'good';
+    if (score >= 4) return 'fair';
+    return 'poor';
+  }
+
   // Database management methods (like normal lead agent)
   async loadLeadsDatabase() {
     try {
@@ -2355,44 +2700,52 @@ BODY: [email body with proper greeting and signature]`;
           email: leadData.email
         },
         
-        // Research data for context - include detailed research insights
+        // Research data for context - include comprehensive research intelligence
         researchData: leadData.research ? {
-          summary: 'Comprehensive company research completed with specific insights',
+          summary: `Comprehensive research completed: ${(leadData.research.data?.organic || leadData.research.organic || []).length} sources analyzed with ${this.extractSpecificInsights(leadData.research).length} key insights extracted`,
           hasIntelligence: true,
-          searchQuery: leadData.research.searchParameters?.q || 'Company research',
+          searchQuery: leadData.research.searchParameters?.q || `${leadData.company || leadData.organization?.name} company research`,
           
           // Extract specific business details that show deep research
           specificInsights: this.extractSpecificInsights(leadData.research),
           
-          // Include key insights from organic results  
-          keyInsights: leadData.research.organic ? leadData.research.organic.slice(0, 4).map(result => ({
+          // Include key insights from organic results with enhanced data (check nested structure)
+          keyInsights: (leadData.research.data?.organic || leadData.research.organic || []).slice(0, 5).map(result => ({
             title: result.title,
-            snippet: result.snippet,
+            snippet: result.snippet?.substring(0, 200) + (result.snippet?.length > 200 ? '...' : ''),
             source: result.link,
-            date: result.date || null
-          })) : [],
+            domain: result.link ? new URL(result.link).hostname : null,
+            date: result.date || null,
+            relevanceScore: this.calculateRelevanceScore(result, leadData.company || leadData.organization?.name)
+          })).sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0)),
           
-          // Include answer box if available
-          answerBox: leadData.research.answerBox ? {
-            title: leadData.research.answerBox.title,
-            snippet: leadData.research.answerBox.snippet,
-            source: leadData.research.answerBox.link,
-            highlights: leadData.research.answerBox.snippetHighlighted || []
+          // Include answer box if available with enhanced processing (check both locations)
+          answerBox: (leadData.research.answerBox || leadData.research.data?.answerBox) ? {
+            title: (leadData.research.answerBox || leadData.research.data?.answerBox).title,
+            snippet: (leadData.research.answerBox || leadData.research.data?.answerBox).snippet || (leadData.research.answerBox || leadData.research.data?.answerBox).answer,
+            source: (leadData.research.answerBox || leadData.research.data?.answerBox).link,
+            highlights: (leadData.research.answerBox || leadData.research.data?.answerBox).snippetHighlighted || [],
+            isDirectAnswer: true
           } : null,
           
-          // Company details extracted from research
-          companyDetails: {
-            name: leadData.company || leadData.organization?.name || 'Unknown',
-            industry: leadData.organization?.industry || 'Unknown', 
-            size: leadData.organization?.estimated_num_employees || 'Unknown',
-            domain: leadData.organization?.primary_domain || leadData.email?.split('@')[1] || 'Unknown'
+          // Company details extracted from comprehensive research analysis
+          companyDetails: this.extractCompanyDetailsFromResearch(leadData.research, leadData),
+          
+          // Business intelligence extracted from research
+          businessIntelligence: {
+            businessModel: this.extractBusinessType((leadData.research.data?.organic || leadData.research.organic || []).map(r => r.snippet).join(' ')),
+            keyServices: this.extractKeyServices((leadData.research.data?.organic || leadData.research.organic || []).map(r => r.snippet).join(' ')),
+            competitivePosition: this.extractCompetitivePosition(leadData.research),
+            technologyStack: this.extractTechnologyStack(leadData.research)
           },
           
-          // Full research data for debugging
+          // Full research data for debugging and advanced processing
           fullResearch: {
-            totalResults: leadData.research.organic?.length || 0,
-            hasAnswerBox: !!leadData.research.answerBox,
-            searchTimestamp: new Date().toISOString()
+            totalResults: (leadData.research.data?.organic || leadData.research.organic || []).length,
+            hasAnswerBox: !!(leadData.research.answerBox || leadData.research.data?.answerBox),
+            hasKnowledgeGraph: !!(leadData.research.knowledgeGraph || leadData.research.data?.knowledgeGraph),
+            searchTimestamp: new Date().toISOString(),
+            researchQuality: this.assessResearchQuality(leadData.research)
           }
         } : {
           summary: 'No research data available',
@@ -3026,6 +3379,17 @@ BODY: [email body with proper greeting and signature]`;
           cycleComplete: this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads
         };
 
+        // Debug logging for context
+        console.log(`🔧 [DEBUG] Step ${stepCount} Context:`, {
+          processingPhase: context.processingPhase,
+          hasCurrentLead: !!context.currentLead,
+          currentLeadName: context.currentLead?.name,
+          currentLeadEmail: context.currentLead?.email,
+          leadsProcessed: context.leadsProcessed,
+          targetLeads: context.targetLeads,
+          queueLength: context.leadQueue?.length || 0
+        });
+
         // Get reasoning decision from OpenAI
         const reasoningResult = await this.reason(context);
         
@@ -3063,6 +3427,9 @@ BODY: [email body with proper greeting and signature]`;
         
         // Update cycle state based on action results
         await this.updateCycleState(reasoningResult.action, actionResult);
+        
+        // Debug logging after state update
+        console.log(`🔧 [DEBUG] After state update - Phase: ${this.memory.currentCycle.processingPhase}, Current lead: ${this.memory.currentCycle.currentLead?.name}, Has email: ${!!this.memory.currentCycle.currentLead?.email}`);
         
         this.emit('progress', {
           stage: 'action',
@@ -3136,6 +3503,37 @@ export function removeUserAgent(userId) {
     userAgents.delete(userId);
     console.log('🗑️ [AGENT MANAGER] Removed ReasoningLeadAgent for user:', userId);
   }
+}
+
+/**
+ * Get all active agent IDs for a user (for future multi-agent support)
+ */
+export function getUserActiveAgents(userId) {
+  const agents = [];
+  if (userAgents.has(userId)) {
+    const agent = userAgents.get(userId);
+    agents.push({
+      agentId: agent.agentId,
+      isRunning: agent.isRunning,
+      userId: userId
+    });
+  }
+  return agents;
+}
+
+/**
+ * Get all active agents across all users (for system-wide polling)
+ */
+export function getAllActiveAgents() {
+  const allAgents = [];
+  for (const [userId, agent] of userAgents.entries()) {
+    allAgents.push({
+      agentId: agent.agentId,
+      isRunning: agent.isRunning,
+      userId: userId
+    });
+  }
+  return allAgents;
 }
 
 export { ReasoningLeadAgent };

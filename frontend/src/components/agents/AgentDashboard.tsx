@@ -402,12 +402,64 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       try {
         const analyticsResponse = await api.get(`/api/analytics/emails?agentId=${agentId}`);
         analyticsEmails = analyticsResponse.data?.data || analyticsResponse.data || [];
+        console.log('📊 [ANALYTICS] Fetched analytics data:', analyticsEmails.length, 'emails');
+        if (analyticsEmails.length > 0) {
+          console.log('📊 [ANALYTICS] Sample analytics email:', analyticsEmails[0]);
+        }
       } catch (analyticsError) {
         console.log('Analytics endpoint not available, using approved emails only');
       }
 
-      // Combine and prioritize approved emails from email queue (more reliable for agent-specific data)
-      const combinedEmails = [...approvedEmails, ...analyticsEmails];
+      // Merge tracking data from analytics with approved emails based on multiple matching criteria
+      const emailsWithTracking = approvedEmails.map((approvedEmail: any) => {
+        // Try multiple matching strategies
+        const trackingData = analyticsEmails.find((analyticsEmail: any) => 
+          // Match by email address
+          (analyticsEmail.to || analyticsEmail.email) === approvedEmail.to ||
+          // Match by tracking ID patterns
+          (analyticsEmail.trackingId && approvedEmail.id && analyticsEmail.trackingId.includes(approvedEmail.id.split('_')[1])) ||
+          // Match by recipient name or company
+          (analyticsEmail.recipientName === approvedEmail.leadInfo?.name) ||
+          (analyticsEmail.company === approvedEmail.leadInfo?.company)
+        );
+        
+        console.log('🔍 [TRACKING MERGE] Approved email:', approvedEmail.to, 'Found tracking:', !!trackingData);
+        if (trackingData) {
+          console.log('📊 [TRACKING DATA] Analytics:', trackingData.analytics, 'Status:', trackingData.analyticsStatus);
+        }
+        
+        return {
+          ...approvedEmail,
+          // Merge tracking information from analytics with extensive fallbacks
+          analytics: trackingData?.analytics || {},
+          analyticsStatus: trackingData?.analyticsStatus || {},
+          tracking: trackingData?.tracking || {},
+          zillizData: trackingData?.zillizData || {},
+          // Enhanced tracking status detection
+          opened: Boolean(
+            trackingData?.opened || 
+            trackingData?.analytics?.opened || 
+            trackingData?.analyticsStatus?.opened ||
+            trackingData?.zillizData?.opened ||
+            (trackingData?.zillizData?.events && trackingData.zillizData.events.some((event: any) => event.event_type === 'email_open'))
+          ),
+          replied: Boolean(
+            trackingData?.replied || 
+            trackingData?.analytics?.replied || 
+            trackingData?.analyticsStatus?.replied ||
+            trackingData?.zillizData?.replied ||
+            (trackingData?.zillizData?.events && trackingData.zillizData.events.some((event: any) => event.event_type === 'email_reply'))
+          ),
+          trackingId: trackingData?.trackingId || approvedEmail.id
+        };
+      });
+      
+      // Add any analytics emails that don't have corresponding approved emails (fallback)
+      const orphanAnalyticsEmails = analyticsEmails.filter((analyticsEmail: any) => 
+        !approvedEmails.some((approvedEmail: any) => approvedEmail.to === (analyticsEmail.to || analyticsEmail.email))
+      );
+      
+      const combinedEmails = [...emailsWithTracking, ...orphanAnalyticsEmails];
       
       if (combinedEmails.length > 0) {
         const emailsWithStatus = combinedEmails.map((email: any) => ({
@@ -416,13 +468,34 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           company: email.leadInfo?.company || email.personInfo?.company || email.company || 'Unknown Company',
           email: email.to || email.email,
           dateSent: email.approvedAt || email.sentAt || email.timestamp || new Date().toISOString(),
-          opened: Boolean(email.analytics?.opened || email.analyticsStatus?.hasOpened),
-          replied: Boolean(email.analytics?.replied || email.analyticsStatus?.hasReplied),
+          // Add the missing fields for email content display
+          subject: email.subject || email.emailSubject || 'Email subject not available',
+          content: email.body || email.content || email.personalizedEmail || 'Email content not available',
+          body: email.body || email.content || email.personalizedEmail || 'Email content not available',
+          // Enhanced tracking status - check all possible tracking sources including Zilliz
+          opened: Boolean(
+            email.analytics?.opened || 
+            email.analyticsStatus?.opened || 
+            email.tracking?.opened || 
+            email.opened ||
+            email.zillizData?.opened ||
+            (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_open'))
+          ),
+          replied: Boolean(
+            email.analytics?.replied || 
+            email.analyticsStatus?.replied || 
+            email.tracking?.replied || 
+            email.replied ||
+            email.zillizData?.replied ||
+            (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_reply'))
+          ),
           status: (
-            (email.analytics?.replied || email.analyticsStatus?.hasReplied) ? 'replied' : 
-            (email.analytics?.opened || email.analyticsStatus?.hasOpened) ? 'opened' : 
+            (email.analytics?.replied || email.analyticsStatus?.replied || email.tracking?.replied || email.replied || email.zillizData?.replied || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_reply'))) ? 'replied' : 
+            (email.analytics?.opened || email.analyticsStatus?.opened || email.tracking?.opened || email.opened || email.zillizData?.opened || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_open'))) ? 'opened' : 
             'sent'
-          ) as 'sent' | 'opened' | 'replied' | 'bounced'
+          ) as 'sent' | 'opened' | 'replied' | 'bounced',
+          // Include full email object for detailed view
+          ...email
         }));
         
         // Remove duplicates based on email address and sort by date
@@ -732,13 +805,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const clearRecentEmails = async () => {
     try {
-      // Clear the recent emails log and Zilliz tracking data for this specific agent
+      // Clear both tracking data AND approved emails for this specific agent
+      console.log('🗑️ [CLEAR] Clearing tracking data and approved emails for agent:', agentId);
+      
+      // Clear analytics/tracking data
       await api.delete(`/api/analytics/emails?agentId=${agentId}`);
+      
+      // Clear approved emails from the agent-specific email queue
+      await api.delete(`/api/email-queue/approved?agentId=${agentId}`);
+      
+      // Refresh the lists
       await fetchRecentEmails(); // Refresh the list
       await fetchStatus(); // Refresh the status to update total emails counter
+      
       showNotification('Recent emails and tracking data cleared successfully!', 'success');
     } catch (error: any) {
       console.error('Failed to clear recent emails:', error);
+      console.error('Error details:', error.response?.data || error.message);
       showNotification('Failed to clear recent emails', 'error');
     }
   };

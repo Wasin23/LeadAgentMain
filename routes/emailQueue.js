@@ -303,4 +303,28 @@ router.post('/clear-rejected', async (req, res) => {
   }
 });
 
+// Delete all approved emails for an agent
+router.delete('/approved', async (req, res) => {
+  try {
+    const agentId = req.query.agentId || null; // Support agent-specific clearing
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
+    
+    // Clear approved emails by setting to empty array
+    const result = await userEmailQueue.clearApproved();
+    
+    res.json({ 
+      success: true, 
+      message: 'Approved emails cleared successfully',
+      clearedCount: result?.clearedCount || 0
+    });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error clearing approved emails:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to clear approved emails',
+      details: error.message 
+    });
+  }
+});
+
 export default router;

@@ -23,6 +23,7 @@ class AWSManager {
     
     // Table names
     this.tables = {
+      users: process.env.AWS_DYNAMODB_USERS_TABLE || 'meridian-users',
       userSettings: process.env.AWS_DYNAMODB_USER_SETTINGS_TABLE || 'meridian-user-settings',
       agentSettings: process.env.AWS_DYNAMODB_AGENT_SETTINGS_TABLE || 'meridian-agent-settings',
       leadData: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'meridian-lead-data',
@@ -82,6 +83,407 @@ class AWSManager {
       return true;
     } catch (error) {
       console.error('❌ [AWS] Error saving user settings:', error);
+      throw error;
+    }
+  }
+
+  // ==================
+  // USER MANAGEMENT METHODS
+  // ==================
+  
+  async getUserById(userId) {
+    try {
+      console.log('👤 [AWS] Getting user by ID:', userId);
+      
+      const command = new GetCommand({
+        TableName: this.tables.users,
+        Key: { userId }
+      });
+      
+      const result = await this.dynamodb.send(command);
+      
+      if (!result.Item) {
+        console.log('❌ [AWS] No user found with ID:', userId);
+        return null;
+      }
+      
+      console.log('✅ [AWS] User retrieved successfully');
+      return result.Item;
+    } catch (error) {
+      console.error('❌ [AWS] Error getting user by ID:', error);
+      throw error;
+    }
+  }
+  
+  async getUserByUsername(username) {
+    try {
+      console.log('👤 [AWS] Getting user by username:', username);
+      
+      const command = new ScanCommand({
+        TableName: this.tables.users,
+        FilterExpression: 'username = :username',
+        ExpressionAttributeValues: {
+          ':username': username
+        }
+      });
+      
+      const result = await this.dynamodb.send(command);
+      
+      if (!result.Items || result.Items.length === 0) {
+        console.log('❌ [AWS] No user found with username:', username);
+        return null;
+      }
+      
+      console.log('✅ [AWS] User retrieved by username successfully');
+      return result.Items[0];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting user by username:', error);
+      throw error;
+    }
+  }
+  
+  async getUserByEmail(email) {
+    try {
+      console.log('👤 [AWS] Getting user by email:', email);
+      
+      // Make email search case-insensitive by searching both formats
+      const command = new ScanCommand({
+        TableName: this.tables.users,
+        FilterExpression: 'email = :email OR email = :emailUpper OR email = :emailLower',
+        ExpressionAttributeValues: {
+          ':email': email,
+          ':emailUpper': email.toUpperCase(),
+          ':emailLower': email.toLowerCase()
+        }
+      });
+      
+      const result = await this.dynamodb.send(command);
+      
+      if (!result.Items || result.Items.length === 0) {
+        console.log('❌ [AWS] No user found with email:', email);
+        return null;
+      }
+      
+      console.log('✅ [AWS] User retrieved by email successfully');
+      return result.Items[0];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting user by email:', error);
+      throw error;
+    }
+  }
+  
+  async getAllUsers() {
+    try {
+      console.log('📋 [AWS] Getting all users from database');
+      const params = {
+        TableName: this.tables.users
+      };
+      
+      const result = await this.dynamodb.send(new ScanCommand(params));
+      console.log(`✅ [AWS] Retrieved ${result.Items ? result.Items.length : 0} users`);
+      return result.Items || [];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting all users:', error);
+      throw error;
+    }
+  }
+  
+  async createUser(userData) {
+    try {
+      console.log('👤 [AWS] Creating new user:', userData.username);
+      
+      const command = new PutCommand({
+        TableName: this.tables.users,
+        Item: {
+          userId: userData.userId,
+          username: userData.username,
+          email: userData.email,
+          passwordHash: userData.passwordHash,
+          createdAt: new Date().toISOString(),
+          lastLogin: null,
+          lastPasswordReset: null,
+          activeAgents: [], // Initialize empty agents array
+          ...userData
+        },
+        ConditionExpression: 'attribute_not_exists(userId)' // Prevent overwrites
+      });
+      
+      await this.dynamodb.send(command);
+      console.log('✅ [AWS] User created successfully');
+      return true;
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        throw new Error('User already exists');
+      }
+      console.error('❌ [AWS] Error creating user:', error);
+      throw error;
+    }
+  }
+  
+  async updateUser(userId, updates) {
+    try {
+      console.log('👤 [AWS] Updating user:', userId);
+      
+      const command = new UpdateCommand({
+        TableName: this.tables.users,
+        Key: { userId },
+        UpdateExpression: 'SET updatedAt = :updatedAt',
+        ExpressionAttributeValues: {
+          ':updatedAt': new Date().toISOString()
+        }
+      });
+      
+      // Build dynamic update expression
+      const updateExpressions = ['updatedAt = :updatedAt'];
+      const attributeValues = { ':updatedAt': new Date().toISOString() };
+      
+      Object.keys(updates).forEach((key, index) => {
+        const placeholder = `:val${index}`;
+        updateExpressions.push(`${key} = ${placeholder}`);
+        attributeValues[placeholder] = updates[key];
+      });
+      
+      command.UpdateExpression = `SET ${updateExpressions.join(', ')}`;
+      command.ExpressionAttributeValues = attributeValues;
+      
+      await this.dynamodb.send(command);
+      console.log('✅ [AWS] User updated successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error updating user:', error);
+      throw error;
+    }
+  }
+  
+  async addAgentToUser(userId, agentData) {
+    try {
+      console.log('🤖 [AWS] Adding agent to user:', userId, agentData.agentId);
+      
+      const command = new UpdateCommand({
+        TableName: this.tables.users,
+        Key: { userId },
+        UpdateExpression: 'SET activeAgents = list_append(if_not_exists(activeAgents, :empty_list), :new_agent), updatedAt = :updatedAt',
+        ExpressionAttributeValues: {
+          ':new_agent': [agentData],
+          ':empty_list': [],
+          ':updatedAt': new Date().toISOString()
+        }
+      });
+      
+      await this.dynamodb.send(command);
+      console.log('✅ [AWS] Agent added to user successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error adding agent to user:', error);
+      throw error;
+    }
+  }
+  
+  async getUserByResetToken(resetToken) {
+    try {
+      console.log('👤 [AWS] Getting user by reset token');
+      
+      const command = new ScanCommand({
+        TableName: this.tables.users,
+        FilterExpression: 'resetToken = :resetToken',
+        ExpressionAttributeValues: {
+          ':resetToken': resetToken
+        }
+      });
+      
+      const result = await this.dynamodb.send(command);
+      
+      if (!result.Items || result.Items.length === 0) {
+        console.log('❌ [AWS] No user found with reset token');
+        return null;
+      }
+      
+      console.log('✅ [AWS] User retrieved by reset token successfully');
+      return result.Items[0];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting user by reset token:', error);
+      throw error;
+    }
+  }
+  
+  async removeAgentFromUser(userId, agentId) {
+    try {
+      console.log('🤖 [AWS] Removing agent from user:', userId, agentId);
+      
+      // First get the user to find the agent index
+      const user = await this.getUserById(userId);
+      if (!user || !user.activeAgents) {
+        throw new Error('User not found or has no agents');
+      }
+      
+      const agentIndex = user.activeAgents.findIndex(agent => agent.agentId === agentId);
+      if (agentIndex === -1) {
+        throw new Error('Agent not found in user\'s active agents');
+      }
+      
+      const command = new UpdateCommand({
+        TableName: this.tables.users,
+        Key: { userId },
+        UpdateExpression: `REMOVE activeAgents[${agentIndex}] SET updatedAt = :updatedAt`,
+        ExpressionAttributeValues: {
+          ':updatedAt': new Date().toISOString()
+        }
+      });
+      
+      await this.dynamodb.send(command);
+      console.log('✅ [AWS] Agent removed from user successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error removing agent from user:', error);
+      throw error;
+    }
+  }
+  
+  // =======================
+  // AGENT MANAGEMENT METHODS  
+  // =======================
+  
+  generateAgentId() {
+    // Generate 6-digit agent ID (100000-999999)
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+  
+  async createDefaultAgent(userId, agentName = 'Lead Agent') {
+    try {
+      console.log('🤖 [AWS] Creating default agent for user:', userId);
+      
+      const agentId = this.generateAgentId();
+      
+      // Ensure unique agent ID by checking existing agents
+      const user = await this.getUserById(userId);
+      if (user && user.activeAgents) {
+        const existingIds = user.activeAgents.map(agent => agent.agentId);
+        let attempts = 0;
+        let newAgentId = agentId;
+        
+        while (existingIds.includes(newAgentId) && attempts < 10) {
+          newAgentId = this.generateAgentId();
+          attempts++;
+        }
+        
+        if (attempts >= 10) {
+          throw new Error('Failed to generate unique agent ID after 10 attempts');
+        }
+      }
+      
+      const agentData = {
+        agentId: agentId,
+        name: agentName,
+        type: 'reasoning-lead-agent',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastRun: null,
+        settings: {
+          enabled: true,
+          intervalMinutes: 30,
+          maxLeadsPerCycle: 5
+        }
+      };
+      
+      await this.addAgentToUser(userId, agentData);
+      
+      console.log(`✅ [AWS] Default agent created: ${agentId} for user ${userId}`);
+      return agentData;
+      
+    } catch (error) {
+      console.error('❌ [AWS] Error creating default agent:', error);
+      throw error;
+    }
+  }
+  
+  async createAgent(userId, agentName, agentType = 'reasoning-lead-agent') {
+    try {
+      console.log('🤖 [AWS] Creating new agent for user:', userId);
+      
+      const agentId = this.generateAgentId();
+      
+      // Ensure unique agent ID
+      const user = await this.getUserById(userId);
+      if (user && user.activeAgents) {
+        const existingIds = user.activeAgents.map(agent => agent.agentId);
+        let attempts = 0;
+        let newAgentId = agentId;
+        
+        while (existingIds.includes(newAgentId) && attempts < 10) {
+          newAgentId = this.generateAgentId();
+          attempts++;
+        }
+        
+        if (attempts >= 10) {
+          throw new Error('Failed to generate unique agent ID after 10 attempts');
+        }
+      }
+      
+      const agentData = {
+        agentId: agentId,
+        name: agentName,
+        type: agentType,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastRun: null,
+        settings: {
+          enabled: true,
+          intervalMinutes: 30,
+          maxLeadsPerCycle: 5
+        }
+      };
+      
+      await this.addAgentToUser(userId, agentData);
+      
+      console.log(`✅ [AWS] Agent created: ${agentId} (${agentName}) for user ${userId}`);
+      return agentData;
+      
+    } catch (error) {
+      console.error('❌ [AWS] Error creating agent:', error);
+      throw error;
+    }
+  }
+  
+  async getUserAgents(userId) {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user || !user.activeAgents) {
+        return [];
+      }
+      return user.activeAgents;
+    } catch (error) {
+      console.error('❌ [AWS] Error getting user agents:', error);
+      throw error;
+    }
+  }
+  
+  async updateAgentStatus(userId, agentId, status) {
+    try {
+      console.log('🤖 [AWS] Updating agent status:', userId, agentId, status);
+      
+      const user = await this.getUserById(userId);
+      if (!user || !user.activeAgents) {
+        throw new Error('User not found or has no agents');
+      }
+      
+      const agentIndex = user.activeAgents.findIndex(agent => agent.agentId === agentId);
+      if (agentIndex === -1) {
+        throw new Error('Agent not found');
+      }
+      
+      // Update the agent status
+      user.activeAgents[agentIndex].status = status;
+      user.activeAgents[agentIndex].updatedAt = new Date().toISOString();
+      
+      // Save back to AWS
+      await this.updateUser(userId, {
+        activeAgents: user.activeAgents
+      });
+      
+      console.log('✅ [AWS] Agent status updated successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error updating agent status:', error);
       throw error;
     }
   }
