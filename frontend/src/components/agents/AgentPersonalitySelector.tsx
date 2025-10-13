@@ -134,7 +134,7 @@ export default function AgentPersonalitySelector({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden"
         >
           {/* Header */}
           <div className="p-6 border-b border-neutral-200">
@@ -153,11 +153,11 @@ export default function AgentPersonalitySelector({
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <div className="p-8 overflow-y-auto max-h-[calc(95vh-200px)]">
             {!selectedPersonality ? (
               <>
                 {/* Personality Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" style={{ gridAutoRows: '1fr' }}>
                   {PERSONALITY_TYPES.map((personality) => {
                     const IconComponent = personality.icon;
                     return (
@@ -166,17 +166,17 @@ export default function AgentPersonalitySelector({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handlePersonalitySelect(personality)}
-                        className={`p-4 border-2 rounded-xl cursor-pointer transition-all hover:shadow-lg
-                          ${personality.color === 'red' ? 'border-red-200 hover:border-red-300 hover:bg-red-50' :
-                            personality.color === 'blue' ? 'border-blue-200 hover:border-blue-300 hover:bg-blue-50' :
-                            personality.color === 'purple' ? 'border-purple-200 hover:border-purple-300 hover:bg-purple-50' :
-                            personality.color === 'green' ? 'border-green-200 hover:border-green-300 hover:bg-green-50' :
-                            'border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50'
+                        className={`p-6 border rounded-xl cursor-pointer transition-all hover:shadow-lg min-h-[240px] flex
+                          ${personality.color === 'red' ? 'border-red-300 hover:border-red-400 hover:bg-red-50' :
+                            personality.color === 'blue' ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50' :
+                            personality.color === 'purple' ? 'border-purple-300 hover:border-purple-400 hover:bg-purple-50' :
+                            personality.color === 'green' ? 'border-green-300 hover:border-green-400 hover:bg-green-50' :
+                            'border-indigo-300 hover:border-indigo-400 hover:bg-indigo-50'
                           }`}
                       >
                         {/* Avatar */}
-                        <div className="text-center mb-3">
-                          <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-2 font-bold
+                        <div className="flex-shrink-0 mr-4">
+                          <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold relative
                             ${personality.color === 'red' ? 'bg-red-100' :
                               personality.color === 'blue' ? 'bg-blue-100' :
                               personality.color === 'purple' ? 'bg-purple-100' :
@@ -184,38 +184,50 @@ export default function AgentPersonalitySelector({
                               'bg-indigo-100'
                             }`}
                           >
+                            {(personality.id === 'analyst' || personality.id === 'networker') && (
+                              <div className="w-19 h-19 rounded-full bg-white absolute z-0"></div>
+                            )}
                             {(personality.avatar.startsWith('http') || personality.avatar.startsWith('/avatars/')) ? (
                               <img 
                                 src={personality.avatar} 
                                 alt={personality.name}
-                                className="w-12 h-12 rounded-full object-cover"
+                                className={`rounded-full relative z-10 ${
+                                  personality.id === 'networker'
+                                    ? 'w-19 h-19 object-contain'
+                                    : 'w-19 h-19 object-cover'
+                                }`}
+                                style={personality.id === 'analyst' ? { objectPosition: '50% 40%' } : undefined}
                               />
                             ) : (
-                              <span style={{ fontSize: '28px', lineHeight: '1' }}>{personality.avatar}</span>
+                              <span style={{ fontSize: '36px', lineHeight: '1' }}>{personality.avatar}</span>
                             )}
                           </div>
-                          <h3 className="font-semibold text-neutral-900">{personality.name}</h3>
                         </div>
 
-                        {/* Description */}
-                        <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
-                          {personality.description}
-                        </p>
+                        {/* Content */}
+                        <div className="flex-1 flex flex-col">
+                          <h3 className="font-semibold text-neutral-900 mb-2">{personality.name}</h3>
+                          
+                          {/* Description */}
+                          <p className="text-sm text-neutral-600 mb-3 flex-grow line-clamp-3">
+                            {personality.description}
+                          </p>
 
-                        {/* Traits */}
-                        <div className="space-y-1">
-                          {personality.traits.slice(0, 2).map((trait, index) => (
-                            <div key={`${personality.id}-trait-${index}`} className={`text-xs px-2 py-1 rounded-full inline-block mr-1
-                              ${personality.color === 'red' ? 'bg-red-100 text-red-700' :
-                                personality.color === 'blue' ? 'bg-blue-100 text-blue-700' :
-                                personality.color === 'purple' ? 'bg-purple-100 text-purple-700' :
-                                personality.color === 'green' ? 'bg-green-100 text-green-700' :
-                                'bg-indigo-100 text-indigo-700'
-                              }`}
-                            >
-                              {trait}
-                            </div>
-                          ))}
+                          {/* Traits */}
+                          <div className="space-y-1">
+                            {personality.traits.slice(0, 2).map((trait, index) => (
+                              <div key={`${personality.id}-trait-${index}`} className={`text-xs px-2 py-1 rounded-full inline-block mr-1
+                                ${personality.color === 'red' ? 'bg-red-100 text-red-700' :
+                                  personality.color === 'blue' ? 'bg-blue-100 text-blue-700' :
+                                  personality.color === 'purple' ? 'bg-purple-100 text-purple-700' :
+                                  personality.color === 'green' ? 'bg-green-100 text-green-700' :
+                                  'bg-indigo-100 text-indigo-700'
+                                }`}
+                              >
+                                {trait}
+                              </div>
+                            ))}
+                          </div>
                         </div>
 
                         {/* Icon */}
@@ -232,22 +244,21 @@ export default function AgentPersonalitySelector({
                       </motion.div>
                     );
                   })}
-                </div>
-
-                {/* Custom Builder Option */}
-                <div className="border-t border-neutral-200 pt-6">
+                  
+                  {/* Create Your Own Card */}
                   <motion.div
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
+                    key="create-your-own"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleCustomBuilder}
-                    className="p-4 border-2 border-dashed border-neutral-300 rounded-xl cursor-pointer hover:border-neutral-400 hover:bg-neutral-50 transition-all"
+                    className="p-6 border border-dashed border-neutral-300 rounded-xl cursor-pointer transition-all hover:shadow-lg min-h-[280px] flex flex-col hover:border-neutral-400 hover:bg-neutral-50"
                   >
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto rounded-full bg-neutral-100 flex items-center justify-center mb-2">
+                    <div className="text-center flex-grow flex flex-col justify-center">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-neutral-100 flex items-center justify-center mb-3">
                         <UserPlusIcon className="h-8 w-8 text-neutral-600" />
                       </div>
-                      <h3 className="font-semibold text-neutral-900 mb-1">Create Your Own</h3>
-                      <p className="text-sm text-neutral-600">Build a custom personality with guided prompts</p>
+                      <h3 className="font-semibold text-neutral-900 mb-2">Create Your Own</h3>
+                      <p className="text-sm text-neutral-600">Build a custom personality with guided prompts and unique traits</p>
                     </div>
                   </motion.div>
                 </div>
@@ -257,7 +268,7 @@ export default function AgentPersonalitySelector({
               <div className="space-y-6">
                 {/* Selected Personality Info */}
                 <div className="text-center p-6 bg-neutral-50 rounded-xl">
-                  <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-3 font-bold
+                  <div className={`w-17 h-17 mx-auto rounded-full flex items-center justify-center text-4xl mb-3 font-bold
                     ${selectedPersonality.color === 'red' ? 'bg-red-100' :
                       selectedPersonality.color === 'blue' ? 'bg-blue-100' :
                       selectedPersonality.color === 'purple' ? 'bg-purple-100' :

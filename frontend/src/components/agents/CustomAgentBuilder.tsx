@@ -26,7 +26,7 @@ interface CustomAgentBuilderProps {
 
 const AVATAR_OPTIONS = [
   '🎯', '🤝', '📊', '💼', '🌐', '⚡', '🔥', '💎', '🚀', '🎨', 
-  '🧠', '💡', '🎪', '🎭', '🎨', '🔮', '🌟', '⭐', '✨', '💫'
+  '🧠', '💡', '🎪', '🎭', '🔮', '🌟', '⭐', '✨', '💫', '🏆'
 ];
 
 const COLOR_OPTIONS = [
@@ -200,7 +200,7 @@ ${agentData.description ? `Remember: ${agentData.description}` : ''}`;
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-220px)]">
             <AnimatePresence mode="wait">
               {/* Step 1: Basic Info */}
               {step === 1 && (
@@ -304,8 +304,8 @@ ${agentData.description ? `Remember: ${agentData.description}` : ''}`;
                             onClick={() => setAgentData(prev => ({ ...prev, avatar }))}
                             className={`p-3 text-2xl rounded-lg border-2 transition-colors ${
                               agentData.avatar === avatar 
-                                ? 'border-blue-500 bg-blue-50' 
-                                : 'border-neutral-200 hover:border-neutral-300'
+                                ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-200' 
+                                : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
                             }`}
                           >
                             {avatar}
@@ -324,8 +324,8 @@ ${agentData.description ? `Remember: ${agentData.description}` : ''}`;
                             onClick={() => setAgentData(prev => ({ ...prev, color: color.value }))}
                             className={`p-3 rounded-lg border-2 transition-colors flex items-center gap-2 ${
                               agentData.color === color.value 
-                                ? 'border-neutral-400 bg-neutral-50' 
-                                : 'border-neutral-200 hover:border-neutral-300'
+                                ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-200' 
+                                : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
                             }`}
                           >
                             <div className={`w-4 h-4 rounded-full ${color.class}`} />
@@ -505,7 +505,8 @@ ${agentData.description ? `Remember: ${agentData.description}` : ''}`;
             <div className="flex items-center justify-between">
               <button
                 onClick={step === 1 ? onClose : handleBack}
-                className="flex items-center gap-2 px-4 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-neutral-200 rounded-lg transition-colors font-medium"
+                style={{ color: 'black !important' }}
               >
                 {step === 1 ? (
                   <>
@@ -523,7 +524,8 @@ ${agentData.description ? `Remember: ${agentData.description}` : ''}`;
               <button
                 onClick={step === 6 ? handleComplete : handleNext}
                 disabled={!isStepValid()}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg font-medium text-white"
+                style={{ color: '#ffffff', backgroundColor: '#2563eb', border: 'none' }}
               >
                 {step === 6 ? 'Create Agent' : 'Next'}
                 {step < 6 && <ArrowRightIcon className="h-4 w-4" />}

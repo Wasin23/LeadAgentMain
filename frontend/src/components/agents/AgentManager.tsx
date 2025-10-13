@@ -329,8 +329,16 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                 {/* Agent Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-neutral-100 border border-neutral-200 rounded-full flex items-center justify-center text-lg">
-                      {agent.personality?.avatar || '👤'}
+                    <div className="h-10 w-10 bg-neutral-100 border border-neutral-300 rounded-full flex items-center justify-center text-lg overflow-hidden" style={{ borderWidth: '1px' }}>
+                      {(agent.personality?.avatar && (agent.personality.avatar.startsWith('http') || agent.personality.avatar.startsWith('/avatars/'))) ? (
+                        <img 
+                          src={agent.personality.avatar} 
+                          alt={agent.name}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg">{agent.personality?.avatar || '👤'}</span>
+                      )}
                     </div>
                     <div>
                       <h3 className="font-medium text-neutral-900">{agent.name}</h3>
