@@ -196,6 +196,34 @@ class ReasoningLeadAgent extends EventEmitter {
     return `${Date.now()}-${++this.progressIdCounter}-${Math.random().toString(36).substr(2, 4)}`;
   }
 
+  // Get agent personality data from AWS
+  async getAgentPersonality() {
+    try {
+      const userData = await this.awsManager.getUser(this.userId);
+      if (userData && userData.activeAgents) {
+        const agent = userData.activeAgents.find(a => a.agentId === this.agentId);
+        if (agent && agent.personality) {
+          return agent.personality;
+        }
+      }
+      
+      // Default personality if none found
+      return {
+        type: 'hunter',
+        name: 'The Hunter',
+        description: 'Default personality',
+        avatar: '🎯',
+        emailPrompt: 'Write professional, direct sales emails that create urgency and drive action. Use confident language and clear value propositions.',
+        emailStyle: 'Professional and direct',
+        traits: ['Professional', 'Direct'],
+        color: 'blue'
+      };
+    } catch (error) {
+      console.error('❌ [PERSONALITY] Error getting agent personality:', error);
+      return null;
+    }
+  }
+
   // Core reasoning function - the agent's "brain"
   async reason(context) {
     const prompt = `You are an intelligent lead research and email generation agent working SEQUENTIALLY on one lead at a time.
@@ -1482,8 +1510,13 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 ${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join('\n')}`;
         }
         
-        // Use the leadContactAgent's PROVEN email generation system
-        emailPrompt = `You are ${emailSettings.companyBranding?.agentName || 'AI Assistant'}, the AI assistant for ${emailSettings.companyBranding?.companyName || 'Our Company'}. Generate a HIGHLY INTELLIGENT, research-based marketing email for the following prospect:
+        // Get agent personality for email style
+        const personality = await this.getAgentPersonality();
+        
+        // Use personality-based email generation with research intelligence
+        emailPrompt = `${personality?.emailPrompt || 'Write professional sales emails'}
+
+You are ${emailSettings.companyBranding?.agentName || 'AI Assistant'}, the AI assistant for ${emailSettings.companyBranding?.companyName || 'Our Company'}. Generate an email for the following prospect using your ${personality?.name || 'professional'} communication style:
 
 Company: ${companyName}
 Contact: ${leadData.first_name} ${leadData.last_name}

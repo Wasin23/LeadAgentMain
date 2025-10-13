@@ -60,6 +60,63 @@ function extractAgentIdFromTrackingId(trackingId) {
   return match ? match[1] : 'reasoning-lead-agent'; // Default to main agent
 }
 
+async function getAgentPersonality(userId, agentId) {
+  try {
+    if (!userId || !agentId) {
+      return {
+        emailPrompt: 'Write professional, helpful email responses that address the sender\'s needs directly.',
+        name: 'AI Assistant',
+        style: 'Professional and helpful'
+      };
+    }
+
+    // Connect to Zilliz
+    const client = new MilvusClient({
+      address: process.env.ZILLIZ_URL,
+      token: process.env.ZILLIZ_TOKEN,
+      timeout: 30000
+    });
+
+    // Query user data to get agent personality
+    const searchResults = await client.query({
+      collection_name: 'Meridian_Settings',
+      expr: `setting_key == "user_data" && user_id == "${userId.replace(/["\\]/g, '\\$&')}"`,
+      output_fields: ['user_id', 'setting_key', 'setting_value'],
+      limit: 10
+    });
+
+    if (searchResults?.data && searchResults.data.length > 0) {
+      const userData = JSON.parse(searchResults.data[0].setting_value);
+      if (userData.activeAgents) {
+        const agent = userData.activeAgents.find(a => a.agentId === agentId);
+        if (agent && agent.personality) {
+          return {
+            emailPrompt: agent.personality.emailPrompt || 'Write professional email responses.',
+            name: agent.personality.name || 'AI Assistant',
+            style: agent.personality.emailStyle || 'Professional',
+            avatar: agent.personality.avatar || '🤖',
+            traits: agent.personality.traits || []
+          };
+        }
+      }
+    }
+
+    // Default personality if not found
+    return {
+      emailPrompt: 'Write professional, helpful email responses that address the sender\'s needs directly.',
+      name: 'AI Assistant',
+      style: 'Professional and helpful'
+    };
+  } catch (error) {
+    console.error('[PERSONALITY] Error fetching agent personality:', error);
+    return {
+      emailPrompt: 'Write professional, helpful email responses that address the sender\'s needs directly.',
+      name: 'AI Assistant',
+      style: 'Professional and helpful'
+    };
+  }
+}
+
 function getTimezoneOffset(timezone) {
   // Get current timezone offset based on timezone name
   const now = new Date();
@@ -1004,7 +1061,7 @@ const model = new ChatOpenAI({
 });
 
 // Dynamic system prompt that uses user settings
-function createSystemPrompt(userSettings) {
+function createSystemPrompt(userSettings, agentPersonality = null) {
   if (!userSettings || userSettings.error) {
     return `You are an AI assistant that cannot properly function because user settings are not configured. 
 
@@ -1110,6 +1167,12 @@ COMMUNICATION STYLE:
 - Write the email content as if you ARE ${userSettings.ai_assistant_name} from ${userSettings.company_name}
 - Be conversational and helpful, speaking directly to the person who sent the email
 - Example: "Hi Sarah, unfortunately Colton is unavailable at 9pm. Could we schedule for 2pm tomorrow instead?"
+
+${agentPersonality ? `AGENT PERSONALITY STYLE:
+- You have the personality of "${agentPersonality.name}" with these traits: ${agentPersonality.traits ? agentPersonality.traits.join(', ') : 'Professional'}
+- Your communication style is: ${agentPersonality.style}
+- ${agentPersonality.emailPrompt}
+- Ensure your responses reflect this personality while maintaining professionalism` : ''}
 
 FOLLOW-UP RESPONSE PROTOCOL:
 - AFTER THE FIRST RESPONSE: Always include available meeting times in every subsequent response
@@ -1296,9 +1359,24 @@ export async function handler(event) {
       userSettings = null;
     }
 
-    // Create personalized system prompt based on user settings
-    const systemPrompt = createSystemPrompt(userSettings);
-    console.log('[WEBHOOK] Generated personalized system prompt');
+    // Get agent personality for this specific agent
+    let agentPersonality = null;
+    try {
+      const userId = extractUserIdFromTrackingId(trackingId);
+      const agentId = extractAgentIdFromTrackingId(trackingId);
+      console.log('[WEBHOOK] Getting personality for agent:', agentId, 'user:', userId);
+      
+      if (userId && agentId) {
+        agentPersonality = await getAgentPersonality(userId, agentId);
+        console.log('[WEBHOOK] Agent personality:', agentPersonality);
+      }
+    } catch (error) {
+      console.error('[WEBHOOK] Failed to get agent personality:', error);
+    }
+
+    // Create personalized system prompt based on user settings and agent personality
+    const systemPrompt = createSystemPrompt(userSettings, agentPersonality);
+    console.log('[WEBHOOK] Generated personalized system prompt with agent personality');
 
     // Create the prompt template for the agent
     const prompt = ChatPromptTemplate.fromMessages([

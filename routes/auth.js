@@ -703,7 +703,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // Create new agent for authenticated user
 router.post('/create-agent', authenticateToken, async (req, res) => {
   try {
-    const { name, type = 'reasoning-lead-agent' } = req.body;
+    const { name, type = 'reasoning-lead-agent', personality } = req.body;
     const userId = req.user.userId;
     
     if (!name) {
@@ -720,6 +720,16 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       status: 'active',
       createdAt: new Date().toISOString(),
       lastRun: null,
+      personality: personality || {
+        type: 'hunter',
+        name: 'The Hunter',
+        description: 'Default personality',
+        avatar: '🎯',
+        emailPrompt: 'Write professional sales emails',
+        emailStyle: 'Professional and direct',
+        traits: ['Professional', 'Direct'],
+        color: 'blue'
+      },
       settings: {
         maxEmails: 50,
         dailyLimit: 25,

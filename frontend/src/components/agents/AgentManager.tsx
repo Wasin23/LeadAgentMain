@@ -13,6 +13,7 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import api from '../../lib/api';
+import AgentPersonalitySelector, { PersonalityType } from './AgentPersonalitySelector';
 
 interface Agent {
   id: string;
@@ -22,6 +23,16 @@ interface Agent {
   emailsSent: number;
   meetingsScheduled: number;
   lastRun?: string;
+  personality?: {
+    type: string;
+    name: string;
+    description: string;
+    avatar: string;
+    emailPrompt: string;
+    emailStyle: string;
+    traits: string[];
+    color: string;
+  };
 }
 
 interface AgentManagerProps {
@@ -31,8 +42,7 @@ interface AgentManagerProps {
 export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newAgentName, setNewAgentName] = useState('');
+  const [showPersonalitySelector, setShowPersonalitySelector] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -118,14 +128,22 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
     }
   };
 
-  const createAgent = async () => {
-    if (!newAgentName.trim()) return;
-    
+  const createAgent = async (personality: PersonalityType, customName: string) => {
     try {
       // Call backend API to create agent in AWS
       const response = await api.post('/api/auth/create-agent', {
-        name: newAgentName.trim(),
-        type: 'reasoning-lead-agent'
+        name: customName,
+        type: 'reasoning-lead-agent',
+        personality: {
+          type: personality.id,
+          name: personality.name,
+          description: personality.description,
+          avatar: personality.avatar,
+          emailPrompt: personality.prompt,
+          emailStyle: personality.emailStyle,
+          traits: personality.traits,
+          color: personality.color
+        }
       });
       
       if (response.data.success) {
@@ -134,7 +152,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
         // Create agent object for frontend
         const newAgent: Agent = {
           id: agentData.agentId,
-          name: agentData.name,
+          name: customName,
           status: 'stopped',
           emailsQueued: 0,
           emailsSent: 0,
@@ -143,8 +161,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
         
         // Update local state
         setAgents(prev => [...prev, newAgent]);
-        setNewAgentName('');
-        setShowCreateModal(false);
+        setShowPersonalitySelector(false);
         
         console.log('✅ Agent created successfully:', agentData);
       } else {
@@ -282,7 +299,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowPersonalitySelector(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200"
           >
             <PlusIcon className="h-4 w-4" />
@@ -312,8 +329,8 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                 {/* Agent Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-neutral-100 border border-neutral-200 flex items-center justify-center">
-                      <UsersIcon className="h-5 w-5 text-neutral-600" />
+                    <div className="h-10 w-10 bg-neutral-100 border border-neutral-200 rounded-full flex items-center justify-center text-lg">
+                      {agent.personality?.avatar || '👤'}
                     </div>
                     <div>
                       <h3 className="font-medium text-neutral-900">{agent.name}</h3>
@@ -412,65 +429,12 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
         </div>
       </div>
 
-      {/* Create Agent Modal */}
-      <AnimatePresence>
-        {showCreateModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={() => setShowCreateModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-neutral-200"
-            >
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-neutral-900 mb-4">Create New Agent</h3>
-                
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Agent Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newAgentName}
-                    onChange={(e) => setNewAgentName(e.target.value)}
-                    placeholder="Enter agent name..."
-                    className="w-full px-3 py-2 border border-neutral-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4 border-t border-neutral-200">
-                  <button
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 text-neutral-700 bg-neutral-50 hover:bg-neutral-100 transition-colors border border-neutral-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={createAgent}
-                    disabled={!newAgentName.trim()}
-                    className="flex-1 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    style={{
-                      background: '#3b82f6 !important',
-                      color: '#ffffff !important',
-                      fontWeight: '600 !important'
-                    }}
-                  >
-                    Create Agent
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Agent Personality Selector */}
+      <AgentPersonalitySelector 
+        isOpen={showPersonalitySelector}
+        onClose={() => setShowPersonalitySelector(false)}
+        onSelectPersonality={createAgent}
+      />
 
       {/* Delete Agent Confirmation Modal */}
       <AnimatePresence>
