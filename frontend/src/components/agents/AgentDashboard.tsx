@@ -65,6 +65,120 @@ interface EmailContact {
   status: 'sent' | 'opened' | 'replied' | 'bounced';
 }
 
+// Helper function to get color classes based on personality color
+const getPersonalityColors = (color?: string) => {
+  switch (color) {
+    case 'red':
+      return {
+        primary: 'text-red-700',
+        accent: 'bg-red-500',
+        button: 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100',
+        background: 'bg-red-50/30',
+        border: 'border-red-200',
+        text: 'text-red-600',
+        bgLight: 'bg-red-50',
+        bgHover: 'bg-red-50',
+        borderHover: 'border-red-300'
+      };
+    case 'blue':
+      return {
+        primary: 'text-blue-700',
+        accent: 'bg-blue-500',
+        button: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100',
+        background: 'bg-blue-50/30',
+        border: 'border-blue-200',
+        text: 'text-blue-600',
+        bgLight: 'bg-blue-50',
+        bgHover: 'bg-blue-50',
+        borderHover: 'border-blue-300'
+      };
+    case 'purple':
+      return {
+        primary: 'text-purple-700',
+        accent: 'bg-purple-500',
+        button: 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100',
+        background: 'bg-purple-50/30',
+        border: 'border-purple-200',
+        text: 'text-purple-600',
+        bgLight: 'bg-purple-50',
+        bgHover: 'bg-purple-50',
+        borderHover: 'border-purple-300'
+      };
+    case 'green':
+      return {
+        primary: 'text-green-700',
+        accent: 'bg-green-500',
+        button: 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100',
+        background: 'bg-green-50/30',
+        border: 'border-green-200',
+        text: 'text-green-600',
+        bgLight: 'bg-green-50',
+        bgHover: 'bg-green-50',
+        borderHover: 'border-green-300'
+      };
+    case 'indigo':
+      return {
+        primary: 'text-indigo-700',
+        accent: 'bg-indigo-500',
+        button: 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100',
+        background: 'bg-indigo-50/30',
+        border: 'border-indigo-200',
+        text: 'text-indigo-600',
+        bgLight: 'bg-indigo-50',
+        bgHover: 'bg-indigo-50',
+        borderHover: 'border-indigo-300'
+      };
+    case 'pink':
+      return {
+        primary: 'text-pink-700',
+        accent: 'bg-pink-500',
+        button: 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100',
+        background: 'bg-pink-50/30',
+        border: 'border-pink-200',
+        text: 'text-pink-600',
+        bgLight: 'bg-pink-50',
+        bgHover: 'bg-pink-50',
+        borderHover: 'border-pink-300'
+      };
+    case 'orange':
+      return {
+        primary: 'text-orange-700',
+        accent: 'bg-orange-500',
+        button: 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100',
+        background: 'bg-orange-50/30',
+        border: 'border-orange-200',
+        text: 'text-orange-600',
+        bgLight: 'bg-orange-50',
+        bgHover: 'bg-orange-50',
+        borderHover: 'border-orange-300'
+      };
+    case 'teal':
+      return {
+        primary: 'text-teal-700',
+        accent: 'bg-teal-500',
+        button: 'bg-teal-50 text-teal-600 border-teal-200 hover:bg-teal-100',
+        background: 'bg-teal-50/30',
+        border: 'border-teal-200',
+        text: 'text-teal-600',
+        bgLight: 'bg-teal-50',
+        bgHover: 'bg-teal-50',
+        borderHover: 'border-teal-300'
+      };
+    default:
+      return {
+        primary: 'text-neutral-700',
+        accent: 'bg-neutral-500',
+        button: 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100',
+        background: 'bg-neutral-50/30',
+        border: 'border-neutral-200',
+        text: 'text-neutral-600',
+        bgLight: 'bg-neutral-50',
+        bgHover: 'bg-neutral-50',
+        borderHover: 'border-neutral-300'
+      };
+  }
+};
+
 export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps) {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -79,6 +193,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agentName, setAgentName] = useState<string>('');
+  const [agentPersonality, setAgentPersonality] = useState<any>(null);
   const [showIntervalModal, setShowIntervalModal] = useState(false);
   const [newInterval, setNewInterval] = useState<number>(30);
   const [editingEmail, setEditingEmail] = useState<any>(null);
@@ -162,21 +277,33 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     };
   }, [agentId]);
 
-  const fetchAgentName = () => {
+  const fetchAgentName = async () => {
     try {
       if (agentId === 'main' || agentId === 'lead-agent-main') {
         setAgentName('Reasoning Lead Agent');
         return;
       }
       
-      // For custom agents, get the name from localStorage
+      // Fetch agent data from backend API (same as AgentManager)
+      const response = await api.get('/api/auth/agents');
+      if (response.data.success && response.data.agents) {
+        const agent = response.data.agents.find((a: any) => a.agentId === agentId);
+        if (agent) {
+          setAgentName(agent.name);
+          setAgentPersonality(agent.personality);
+          return;
+        }
+      }
+      
+      // Fallback to localStorage for older agents
       const localAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
-      const agent = localAgents.find((a: any) => a.id === agentId);
-      if (agent && agent.name) {
-        setAgentName(agent.name);
+      const localAgent = localAgents.find((a: any) => a.id === agentId);
+      if (localAgent && localAgent.name) {
+        setAgentName(localAgent.name);
+        setAgentPersonality(localAgent.personality);
       }
     } catch (error) {
-      console.error('Failed to fetch agent name:', error);
+      console.error('Failed to fetch agent data:', error);
     }
   };
 
@@ -1075,6 +1202,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     );
   }
 
+  const colors = getPersonalityColors(agentPersonality?.color);
+
   return (
     <div className="p-6 space-y-6">
       {/* Toast Notification */}
@@ -1119,7 +1248,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-6">
-              <h1 className="text-2xl font-semibold text-neutral-900 flex-1 min-w-0 truncate">{getAgentDisplayName()}</h1>
+              <h1 className={`text-2xl font-semibold flex-1 min-w-0 truncate ${colors.primary}`}>{getAgentDisplayName()}</h1>
               <div className="flex items-center gap-4 flex-shrink-0">
                 <div className={`inline-flex items-center gap-2 text-sm whitespace-nowrap ${getStatusColor()}`}>
                   <div className={`h-2 w-2 rounded-full ${status?.isActive ? 'bg-green-500' : 'bg-neutral-400'}`}></div>
@@ -1147,7 +1276,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-4 py-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+            className={`flex items-center gap-2 px-4 py-2 text-neutral-600 hover:text-neutral-900 transition-colors ${colors.bgLight} border ${colors.border}`}
           >
             <CogIcon className="h-4 w-4" />
             Settings
@@ -1158,7 +1287,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileTap={{ scale: 0.95 }}
             onClick={runCycle}
             disabled={status?.isActive}
-            className="flex items-center gap-2 px-4 py-2 bg-neutral-50 text-neutral-600 hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-neutral-200"
+            className={`flex items-center gap-2 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border ${colors.button}`}
           >
             <ArrowPathIcon className="h-4 w-4" />
             Run Cycle
@@ -1168,7 +1297,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={resetAgent}
-            className="flex items-center gap-2 px-4 py-2 text-neutral-600 hover:bg-neutral-50 transition-colors border border-neutral-200"
+            className={`flex items-center gap-2 px-4 py-2 text-neutral-600 transition-colors border ${colors.border} ${colors.bgLight}`}
           >
             <ArrowPathIcon className="h-4 w-4" />
             Reset
@@ -1205,18 +1334,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
           onClick={() => setShowEmailQueue(true)}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-neutral-600 flex items-center gap-2">
                 Emails Queued
-                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to view</span>
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to view</span>
               </p>
               <p className="text-2xl font-semibold text-neutral-900 mt-1">{emailQueue.length}</p>
             </div>
-            <EnvelopeIcon className="h-8 w-8 text-blue-500" />
+            <EnvelopeIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
         </motion.div>
 
@@ -1224,18 +1353,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
           onClick={() => setShowScheduledEvents(true)}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-neutral-600 flex items-center gap-2">
                 Scheduled Events
-                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to view</span>
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to view</span>
               </p>
               <p className="text-2xl font-semibold text-neutral-900 mt-1">{scheduledEvents.length}</p>
             </div>
-            <CalendarIcon className="h-8 w-8 text-blue-500" />
+            <CalendarIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
         </motion.div>
 
@@ -1244,18 +1373,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
           onClick={() => setShowRecentContacts(true)}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-neutral-600 flex items-center gap-2">
                 Recent Contacts
-                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to view</span>
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to view</span>
               </p>
               <p className="text-2xl font-semibold text-neutral-900 mt-1">{recentEmails.length}</p>
             </div>
-            <UserIcon className="h-8 w-8 text-blue-500" />
+            <UserIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
         </motion.div>
         
@@ -1264,18 +1393,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white border border-neutral-200 p-6 cursor-pointer hover:bg-neutral-50 hover:border-blue-300 transition-all duration-200"
+          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
           onClick={() => setShowIntervalModal(true)}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-neutral-600 flex items-center gap-2">
                 Cycle Interval
-                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">click to change</span>
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to change</span>
               </p>
               <p className="text-2xl font-semibold text-neutral-900 mt-1">{status?.currentInterval || 30}m</p>
             </div>
-            <ClockIcon className="h-8 w-8 text-blue-500" />
+            <ClockIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
         </motion.div>
       </div>
@@ -1286,12 +1415,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white border border-neutral-200"
+          className={`bg-white border ${colors.border}`}
         >
-          <div className="p-6 border-b border-neutral-200">
+          <div className={`p-6 border-b ${colors.border}`}>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-medium text-neutral-900">Activity Logs</h3>
+                <h3 className={`text-lg font-medium ${colors.primary}`}>Activity Logs</h3>
                 <p className="text-sm text-neutral-600 mt-1">Real-time agent operations</p>
               </div>
               
@@ -1422,12 +1551,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white border border-neutral-200"
+          className={`bg-white border ${colors.border}`}
         >
-          <div className="p-6 border-b border-neutral-200">
+          <div className={`p-6 border-b ${colors.border}`}>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-medium text-neutral-900">Recently Contacted</h3>
+                <h3 className={`text-lg font-medium ${colors.primary}`}>Recently Contacted</h3>
                 <p className="text-sm text-neutral-600 mt-1">Latest outreach attempts</p>
               </div>
               <div className="flex items-center gap-2">
@@ -1467,10 +1596,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <button
                     key={filter}
                     onClick={() => setRecentEmailsFilter(filter)}
-                    className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                    className={`px-3 py-1 text-xs font-medium rounded-full transition-colors border ${
                       recentEmailsFilter === filter
-                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 border border-neutral-200'
+                        ? `${colors.bgLight} ${colors.text} ${colors.border}`
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 border-neutral-200'
                     }`}
                   >
                     {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}

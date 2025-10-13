@@ -352,18 +352,14 @@ export default function AgentPersonalitySelector({
                 <button
                   onClick={() => setSelectedPersonality(null)}
                   className="px-6 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors"
+                  style={{ color: 'black' }}
                 >
                   Back
                 </button>
                 <button
                   onClick={handleConfirmSelection}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  style={{
-                    backgroundColor: '#2563eb !important',
-                    color: 'white !important',
-                    opacity: '1 !important',
-                    cursor: 'pointer !important'
-                  }}
+                  style={{ color: '#ffffff', backgroundColor: '#2563eb', border: 'none' }}
                 >
                   Create Agent
                 </button>

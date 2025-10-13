@@ -39,6 +39,84 @@ interface AgentManagerProps {
   onSelectAgent: (agentId: string) => void;
 }
 
+// Helper function to get color classes based on personality color
+const getPersonalityColors = (color?: string) => {
+  switch (color) {
+    case 'red':
+      return {
+        card: 'border-red-200 bg-red-50/30 hover:bg-red-50/50',
+        avatar: 'border-red-300',
+        accent: 'bg-red-500',
+        text: 'text-red-700',
+        button: 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+      };
+    case 'blue':
+      return {
+        card: 'border-blue-200 bg-blue-50/30 hover:bg-blue-50/50',
+        avatar: 'border-blue-300',
+        accent: 'bg-blue-500',
+        text: 'text-blue-700',
+        button: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
+      };
+    case 'purple':
+      return {
+        card: 'border-purple-200 bg-purple-50/30 hover:bg-purple-50/50',
+        avatar: 'border-purple-300',
+        accent: 'bg-purple-500',
+        text: 'text-purple-700',
+        button: 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
+      };
+    case 'green':
+      return {
+        card: 'border-green-200 bg-green-50/30 hover:bg-green-50/50',
+        avatar: 'border-green-300',
+        accent: 'bg-green-500',
+        text: 'text-green-700',
+        button: 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
+      };
+    case 'indigo':
+      return {
+        card: 'border-indigo-200 bg-indigo-50/30 hover:bg-indigo-50/50',
+        avatar: 'border-indigo-300',
+        accent: 'bg-indigo-500',
+        text: 'text-indigo-700',
+        button: 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+      };
+    case 'pink':
+      return {
+        card: 'border-pink-200 bg-pink-50/30 hover:bg-pink-50/50',
+        avatar: 'border-pink-300',
+        accent: 'bg-pink-500',
+        text: 'text-pink-700',
+        button: 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'
+      };
+    case 'orange':
+      return {
+        card: 'border-orange-200 bg-orange-50/30 hover:bg-orange-50/50',
+        avatar: 'border-orange-300',
+        accent: 'bg-orange-500',
+        text: 'text-orange-700',
+        button: 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
+      };
+    case 'teal':
+      return {
+        card: 'border-teal-200 bg-teal-50/30 hover:bg-teal-50/50',
+        avatar: 'border-teal-300',
+        accent: 'bg-teal-500',
+        text: 'text-teal-700',
+        button: 'bg-teal-50 text-teal-600 border-teal-200 hover:bg-teal-100'
+      };
+    default:
+      return {
+        card: 'border-neutral-200 bg-neutral-50/30 hover:bg-neutral-50/50',
+        avatar: 'border-neutral-300',
+        accent: 'bg-neutral-500',
+        text: 'text-neutral-700',
+        button: 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+      };
+  }
+};
+
 export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,7 +187,8 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
               emailsQueued: emailStats.emailsQueued,
               emailsSent: emailStats.emailsSent,
               meetingsScheduled: emailStats.meetingsScheduled,
-              lastRun: agent.lastRun
+              lastRun: agent.lastRun,
+              personality: agent.personality
             };
           })
         );
@@ -157,6 +236,16 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
           emailsQueued: 0,
           emailsSent: 0,
           meetingsScheduled: 0,
+          personality: {
+            type: personality.id,
+            name: personality.name,
+            description: personality.description,
+            avatar: personality.avatar,
+            emailPrompt: personality.prompt,
+            emailStyle: personality.emailStyle,
+            traits: personality.traits,
+            color: personality.color
+          }
         };
         
         // Update local state
@@ -316,20 +405,22 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
         
         <div className="divide-y divide-neutral-200">
           <AnimatePresence>
-            {agents.map((agent, index) => (
-              <motion.div
-                key={agent.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-6 hover:bg-neutral-50 cursor-pointer"
-                onClick={() => onSelectAgent(agent.id)}
-              >
+            {agents.map((agent, index) => {
+              const colors = getPersonalityColors(agent.personality?.color);
+              return (
+                <motion.div
+                  key={agent.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`p-6 cursor-pointer border-l-4 ${colors.card} ${colors.accent.replace('bg-', 'border-l-')}`}
+                  onClick={() => onSelectAgent(agent.id)}
+                >
                 {/* Agent Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-neutral-100 border border-neutral-300 rounded-full flex items-center justify-center text-lg overflow-hidden" style={{ borderWidth: '1px' }}>
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-lg overflow-hidden border-2 ${colors.avatar} ${colors.card.split(' ')[1]}`} style={{ borderWidth: '2px' }}>
                       {(agent.personality?.avatar && (agent.personality.avatar.startsWith('http') || agent.personality.avatar.startsWith('/avatars/'))) ? (
                         <img 
                           src={agent.personality.avatar} 
@@ -341,11 +432,16 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                       )}
                     </div>
                     <div>
-                      <h3 className="font-medium text-neutral-900">{agent.name}</h3>
-                      <div className={`inline-flex items-center px-2 py-1 text-xs font-medium border ${getStatusColor(agent.status)}`}>
+                      <h3 className={`font-medium ${colors.text}`}>{agent.name}</h3>
+                      <div className={`inline-flex items-center px-2 py-1 text-xs font-medium border rounded ${
+                        agent.status === 'running' ? 'bg-green-50 text-green-600 border-green-200' :
+                        agent.status === 'paused' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
+                        'bg-neutral-50 text-neutral-600 border-neutral-200'
+                      }`}>
                         <div className={`h-2 w-2 rounded-full mr-1 ${
                           agent.status === 'running' ? 'bg-green-500' : 
-                          agent.status === 'paused' ? 'bg-yellow-500' : 'bg-neutral-500'
+                          agent.status === 'paused' ? 'bg-yellow-500' : 
+                          'bg-neutral-400'
                         }`}></div>
                         {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
                       </div>
@@ -359,10 +455,10 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                       e.stopPropagation();
                       toggleAgent(agent.id);
                     }}
-                    className={`p-2 ${
+                    className={`p-2 rounded ${
                       agent.status === 'running' 
                         ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' 
-                        : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
+                        : `border ${colors.button}`
                     }`}
                   >
                     {agent.status === 'running' ? (
@@ -375,24 +471,24 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="text-center p-2 bg-neutral-50 border border-neutral-200 rounded">
-                    <div className="text-sm font-medium text-neutral-700">{agent.emailsQueued}</div>
-                    <div className="text-xs text-neutral-600">Queued</div>
+                  <div className={`text-center p-2 rounded border ${colors.button}`}>
+                    <div className={`text-sm font-medium ${colors.text}`}>{agent.emailsQueued}</div>
+                    <div className="text-xs text-neutral-500">Queued</div>
                   </div>
-                  <div className="text-center p-2 bg-neutral-50 border border-neutral-200 rounded">
-                    <div className="text-sm font-medium text-neutral-700">{agent.emailsSent}</div>
+                  <div className={`text-center p-2 rounded border ${colors.button}`}>
+                    <div className={`text-sm font-medium ${colors.text}`}>{agent.emailsSent}</div>
                     <div className="text-xs text-neutral-600">Sent</div>
                   </div>
-                  <div className="text-center p-2 bg-neutral-50 border border-neutral-200 rounded">
-                    <div className="text-sm font-medium text-neutral-700">{agent.meetingsScheduled}</div>
-                    <div className="text-xs text-neutral-600">Meetings</div>
+                  <div className={`text-center p-2 rounded border ${colors.button}`}>
+                    <div className={`text-sm font-medium ${colors.text}`}>{agent.meetingsScheduled}</div>
+                    <div className="text-xs text-neutral-500">Meetings</div>
                   </div>
                 </div>
 
                 {/* Last Run */}
                 {agent.lastRun && (
-                  <div className="flex items-center text-sm text-neutral-500 mb-4">
-                    <ClockIcon className="h-4 w-4 mr-1" />
+                  <div className={`flex items-center text-sm mb-4 ${colors.text.replace('700', '600')}`}>
+                    <ClockIcon className={`h-4 w-4 mr-1 ${colors.text.replace('700', '500')}`} />
                     Last run: {new Date(agent.lastRun).toLocaleDateString()}
                   </div>
                 )}
@@ -404,9 +500,9 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                       e.stopPropagation();
                       onSelectAgent(agent.id);
                     }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-neutral-50 text-neutral-600 hover:bg-neutral-100 transition-colors border border-neutral-200"
+                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 transition-colors border ${colors.button}`}
                   >
-                    <CogIcon className="h-4 w-4" />
+                    <CogIcon className={`h-4 w-4 ${colors.text.replace('700', '600')}`} />
                     Manage
                   </button>
                   {agent.id !== 'lead-agent-main' && (
@@ -425,14 +521,15 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                       e.stopPropagation();
                       // TODO: Show analytics for this agent
                     }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200"
+                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 transition-colors border ${colors.button}`}
                   >
-                    <ChartBarIcon className="h-4 w-4" />
+                    <ChartBarIcon className={`h-4 w-4 ${colors.text.replace('700', '600')}`} />
                     Analytics
                   </button>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </div>
       </div>
