@@ -7,6 +7,7 @@ import {
   ChartBarIcon,
   UserGroupIcon,
   Cog6ToothIcon,
+  CommandLineIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 import Chat from '@/components/Chat';
@@ -14,10 +15,12 @@ import StatsGrid from '@/components/StatsGrid';
 import UserMenu from '@/components/UserMenu';
 import AgentManager from '@/components/agents/AgentManager';
 import AgentDashboard from '@/components/agents/AgentDashboard';
+import AgentDirectorDashboard from '@/components/agents/AgentDirectorDashboard';
 
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: ChartBarIcon },
   { id: 'agents', name: 'Lead Agents', icon: UserGroupIcon },
+  { id: 'director', name: 'Agent Director', icon: CommandLineIcon },
   { id: 'settings', name: 'Settings', icon: Cog6ToothIcon },
 ];
 
@@ -111,7 +114,11 @@ export default function Dashboard() {
           </div>
         )}
 
-
+        {activeView === 'director' && (
+          <div className="p-0">
+            <AgentDirectorDashboard />
+          </div>
+        )}
 
         {activeView === 'settings' && (
           <div className="p-6">
