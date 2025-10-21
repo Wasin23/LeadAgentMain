@@ -13,6 +13,13 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { getUserAiPersonality } from "../lib/userManager.js";
+import AWSManager from "../utils/awsManager.js";
+import { EmailQueue } from "../lib/emailQueue.js";
+import fs from 'fs/promises';
+import path from 'path';
+
+// Initialize AWS Manager for database operations
+const awsManager = new AWSManager();
 
 // Wrap internet search as a LangChain tool
 const serperTool = new DynamicTool({
@@ -163,7 +170,339 @@ export async function getLangchainAgentWithMemory(userId = null) {
     },
   });
 
-  const tools = [serperTool, deepResearchTool];
+  // AWS Database Query Tool
+  const awsDatabaseQueryTool = new DynamicTool({
+    name: "aws_database_query",
+    description: "Query AWS DynamoDB tables to read data. Available tables: users, user-settings, agent-settings, lead-data, email-tracking, agent-state, contacted-leads. Use this to fetch user info, agent configurations, lead data, email stats, or agent status.",
+    schema: {
+      type: "object",
+      properties: {
+        table: {
+          type: "string",
+          enum: ["users", "user-settings", "agent-settings", "lead-data", "email-tracking", "agent-state", "contacted-leads"],
+          description: "Table name to query"
+        },
+        operation: {
+          type: "string",
+          enum: ["get", "scan", "query"],
+          description: "Operation: 'get' for single item by key, 'scan' for all items, 'query' for filtered search"
+        },
+        key: {
+          type: "object",
+          description: "Primary key for 'get' operation (e.g., {userId: 'user123'} or {agentId: 'agent456'})"
+        },
+        limit: {
+          type: "number",
+          description: "Maximum items to return for scan/query operations"
+        }
+      },
+      required: ["table", "operation"]
+    },
+    func: async (input) => {
+      try {
+        const params = typeof input === 'string' ? JSON.parse(input) : input;
+        const { table, operation, key, limit } = params;
+
+        const tableMap = {
+          'users': awsManager.tables.users,
+          'user-settings': awsManager.tables.userSettings,
+          'agent-settings': awsManager.tables.agentSettings,
+          'lead-data': awsManager.tables.leadData,
+          'email-tracking': awsManager.tables.emailTracking,
+          'agent-state': awsManager.tables.agentState,
+          'contacted-leads': awsManager.tables.contactedLeads
+        };
+
+        const tableName = tableMap[table];
+        if (!tableName) {
+          return JSON.stringify({ error: `Invalid table: ${table}` });
+        }
+
+        let result;
+        if (operation === 'get' && key) {
+          const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
+          const command = new GetCommand({ TableName: tableName, Key: key });
+          result = await awsManager.dynamodb.send(command);
+          return JSON.stringify(result.Item || { message: 'No item found' });
+        } else if (operation === 'scan') {
+          const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+          const command = new ScanCommand({ 
+            TableName: tableName,
+            ...(limit && { Limit: limit })
+          });
+          result = await awsManager.dynamodb.send(command);
+          return JSON.stringify({ items: result.Items || [], count: result.Count || 0 });
+        }
+
+        return JSON.stringify({ error: 'Unsupported operation or missing parameters' });
+      } catch (error) {
+        console.error('[AWS DB QUERY TOOL] Error:', error);
+        return JSON.stringify({ error: error.message });
+      }
+    }
+  });
+
+  // AWS Database Update Tool
+  const awsDatabaseUpdateTool = new DynamicTool({
+    name: "aws_database_update",
+    description: "Update or insert records in AWS DynamoDB tables. Use this to modify agent settings, update user preferences, or write data. CAUTION: This modifies live data.",
+    schema: {
+      type: "object",
+      properties: {
+        table: {
+          type: "string",
+          enum: ["users", "user-settings", "agent-settings", "lead-data", "email-tracking", "agent-state", "contacted-leads"],
+          description: "Table to update"
+        },
+        operation: {
+          type: "string",
+          enum: ["put", "update"],
+          description: "'put' to insert/replace item, 'update' to modify specific attributes"
+        },
+        item: {
+          type: "object",
+          description: "Complete item for 'put' operation"
+        },
+        key: {
+          type: "object",
+          description: "Primary key for 'update' operation"
+        },
+        updates: {
+          type: "object",
+          description: "Attributes to update for 'update' operation"
+        }
+      },
+      required: ["table", "operation"]
+    },
+    func: async (input) => {
+      try {
+        const params = typeof input === 'string' ? JSON.parse(input) : input;
+        const { table, operation, item, key, updates } = params;
+
+        const tableMap = {
+          'users': awsManager.tables.users,
+          'user-settings': awsManager.tables.userSettings,
+          'agent-settings': awsManager.tables.agentSettings,
+          'lead-data': awsManager.tables.leadData,
+          'email-tracking': awsManager.tables.emailTracking,
+          'agent-state': awsManager.tables.agentState,
+          'contacted-leads': awsManager.tables.contactedLeads
+        };
+
+        const tableName = tableMap[table];
+        if (!tableName) {
+          return JSON.stringify({ error: `Invalid table: ${table}` });
+        }
+
+        if (operation === 'put' && item) {
+          const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
+          const command = new PutCommand({ 
+            TableName: tableName, 
+            Item: { ...item, updatedAt: new Date().toISOString() }
+          });
+          await awsManager.dynamodb.send(command);
+          return JSON.stringify({ success: true, message: 'Item saved successfully' });
+        } else if (operation === 'update' && key && updates) {
+          const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+          const updateExpressions = Object.keys(updates).map((k, i) => `#attr${i} = :val${i}`);
+          const expressionAttributeNames = Object.keys(updates).reduce((acc, k, i) => {
+            acc[`#attr${i}`] = k;
+            return acc;
+          }, {});
+          const expressionAttributeValues = Object.keys(updates).reduce((acc, k, i) => {
+            acc[`:val${i}`] = updates[k];
+            return acc;
+          }, {});
+
+          const command = new UpdateCommand({
+            TableName: tableName,
+            Key: key,
+            UpdateExpression: `SET ${updateExpressions.join(', ')}, updatedAt = :updatedAt`,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: { ...expressionAttributeValues, ':updatedAt': new Date().toISOString() }
+          });
+          await awsManager.dynamodb.send(command);
+          return JSON.stringify({ success: true, message: 'Item updated successfully' });
+        }
+
+        return JSON.stringify({ error: 'Invalid operation or missing parameters' });
+      } catch (error) {
+        console.error('[AWS DB UPDATE TOOL] Error:', error);
+        return JSON.stringify({ error: error.message });
+      }
+    }
+  });
+
+  // Agent Control Tool
+  const agentControlTool = new DynamicTool({
+    name: "agent_control",
+    description: "Control Reasoning Lead Agents: start, stop, get status, or view progress. Use this to manage running agents, check their current cycle, or monitor lead generation.",
+    schema: {
+      type: "object",
+      properties: {
+        agentId: {
+          type: "string",
+          description: "Agent ID to control"
+        },
+        action: {
+          type: "string",
+          enum: ["start", "stop", "status", "list"],
+          description: "Action: 'start' agent, 'stop' agent, get 'status', or 'list' all agents"
+        },
+        userId: {
+          type: "string",
+          description: "User ID (required for 'start' and 'list')"
+        }
+      },
+      required: ["action"]
+    },
+    func: async (input) => {
+      try {
+        const params = typeof input === 'string' ? JSON.parse(input) : input;
+        const { agentId, action, userId: paramUserId } = params;
+        const effectiveUserId = paramUserId || userId;
+
+        // Read agent state files
+        const stateDir = path.join(process.cwd(), 'agent');
+        
+        if (action === 'list') {
+          if (!effectiveUserId) {
+            return JSON.stringify({ error: 'userId required for list operation' });
+          }
+          const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+          const command = new ScanCommand({ 
+            TableName: awsManager.tables.agentSettings,
+            FilterExpression: 'userId = :userId',
+            ExpressionAttributeValues: { ':userId': effectiveUserId }
+          });
+          const result = await awsManager.dynamodb.send(command);
+          return JSON.stringify({ agents: result.Items || [] });
+        }
+
+        if (action === 'status' && agentId) {
+          // Try to read state file
+          try {
+            const stateFile = path.join(stateDir, `reasoning_leads_${agentId}.json`);
+            const stateData = await fs.readFile(stateFile, 'utf-8');
+            const state = JSON.parse(stateData);
+            
+            // Also get agent settings from DB
+            const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
+            const command = new GetCommand({ 
+              TableName: awsManager.tables.agentSettings, 
+              Key: { agentId }
+            });
+            const settingsResult = await awsManager.dynamodb.send(command);
+            
+            return JSON.stringify({
+              agentId,
+              isRunning: state.isRunning || false,
+              currentCycle: state.currentCycle || 0,
+              leadsInCycle: state.leads?.length || 0,
+              settings: settingsResult.Item || null,
+              lastUpdate: state.lastUpdate || 'unknown'
+            });
+          } catch (fileError) {
+            // Fallback to DB only
+            const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
+            const command = new GetCommand({ 
+              TableName: awsManager.tables.agentSettings, 
+              Key: { agentId }
+            });
+            const result = await awsManager.dynamodb.send(command);
+            return JSON.stringify({ 
+              agentId, 
+              isRunning: false,
+              message: 'No active state file found',
+              settings: result.Item || null
+            });
+          }
+        }
+
+        if (action === 'start' || action === 'stop') {
+          return JSON.stringify({ 
+            error: 'Direct agent start/stop not implemented in this tool. Use the /api/lead-agent/start or /api/lead-agent/stop endpoints instead.' 
+          });
+        }
+
+        return JSON.stringify({ error: 'Invalid action or missing agentId' });
+      } catch (error) {
+        console.error('[AGENT CONTROL TOOL] Error:', error);
+        return JSON.stringify({ error: error.message });
+      }
+    }
+  });
+
+  // Email Queue Operations Tool
+  const emailQueueTool = new DynamicTool({
+    name: "email_queue_operations",
+    description: "Manage email queue: view pending emails, approve/reject drafts, get stats. Use this to check what emails are queued, approve them for sending, or get email campaign statistics.",
+    schema: {
+      type: "object",
+      properties: {
+        agentId: {
+          type: "string",
+          description: "Agent ID whose queue to access"
+        },
+        action: {
+          type: "string",
+          enum: ["list", "approve", "reject", "stats"],
+          description: "Action: 'list' pending emails, 'approve' email, 'reject' email, or get 'stats'"
+        },
+        emailId: {
+          type: "string",
+          description: "Email ID for approve/reject actions"
+        }
+      },
+      required: ["agentId", "action"]
+    },
+    func: async (input) => {
+      try {
+        const params = typeof input === 'string' ? JSON.parse(input) : input;
+        const { agentId, action, emailId } = params;
+
+        const queue = new EmailQueue(agentId);
+
+        if (action === 'list') {
+          const pending = await queue.getPendingEmails();
+          return JSON.stringify({ 
+            agentId, 
+            pendingCount: pending.length,
+            emails: pending.slice(0, 10) // Limit to 10 for readability
+          });
+        }
+
+        if (action === 'stats') {
+          const stats = await queue.getStats();
+          return JSON.stringify({ agentId, stats });
+        }
+
+        if (action === 'approve' && emailId) {
+          const result = await queue.approveEmail(emailId);
+          return JSON.stringify({ success: result, action: 'approved', emailId });
+        }
+
+        if (action === 'reject' && emailId) {
+          const result = await queue.rejectEmail(emailId);
+          return JSON.stringify({ success: result, action: 'rejected', emailId });
+        }
+
+        return JSON.stringify({ error: 'Invalid action or missing parameters' });
+      } catch (error) {
+        console.error('[EMAIL QUEUE TOOL] Error:', error);
+        return JSON.stringify({ error: error.message });
+      }
+    }
+  });
+
+  const tools = [
+    serperTool, 
+    deepResearchTool,
+    awsDatabaseQueryTool,
+    awsDatabaseUpdateTool,
+    agentControlTool,
+    emailQueueTool
+  ];
   console.log('[LANGCHAIN AGENT] Tools registered:', tools.map(t => t.name));
   
   const currentDate = new Date().toLocaleDateString('en-US', { 
@@ -177,6 +516,22 @@ export async function getLangchainAgentWithMemory(userId = null) {
   let systemPrompt = `You are Meridian, the expert AI assistant for Exabits - a comprehensive AI-powered business automation and lead generation platform. Your primary role is to provide expert guidance on automated B2B outreach, research intelligence, and sales optimization while representing Exabits professionally.
 
 **CRITICAL INSTRUCTION: NEVER give generic or vague responses about Exabits or the Meridian platform. ALWAYS use the specific information provided below. Provide concrete details about capabilities, not marketing fluff.**
+
+**ADMIN DATABASE ACCESS:**
+You now have FULL ACCESS to all AWS DynamoDB tables and can read/write data, control agents, and manage the email queue. Available tools:
+
+1. **aws_database_query**: Query any table (users, user-settings, agent-settings, lead-data, email-tracking, agent-state, contacted-leads)
+2. **aws_database_update**: Update or insert records in any table (USE WITH CAUTION - modifies live data)
+3. **agent_control**: Start/stop agents, check status, list all agents for a user
+4. **email_queue_operations**: View pending emails, approve/reject drafts, get campaign stats
+
+Use these tools to answer questions about:
+- Current users and their settings
+- Agent configurations and targeting criteria
+- Lead data and research findings
+- Email campaign performance
+- Agent status and progress
+- System-wide analytics
 
 **MERIDIAN PLATFORM EXPERTISE:**
 You are the master of a sophisticated AI-powered business automation platform with these core capabilities:

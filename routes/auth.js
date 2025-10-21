@@ -742,7 +742,37 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     const { addAgentToUser } = await import('../lib/userManager.js');
     await addAgentToUser(userId, agentData);
     
-    console.log(`[AUTH] New agent created: ${agentId} (${name}) for user ${userId}`);
+    // Also create agent settings entry with personality data
+    const awsManager = (await import('../utils/awsManager.js')).default;
+    const awsManagerInstance = new awsManager();
+    
+    const agentSettings = {
+      agentId,
+      userId,
+      name: name.trim(),
+      type,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      personality: agentData.personality, // Copy personality to agent-settings
+      companyBranding: {
+        agentName: name.trim(),
+        companyName: 'Your Company',
+        agentTitle: 'AI Sales Agent',
+        primaryService: 'Business solutions',
+        coreOffering: 'AI-powered outreach',
+        keyAdvantages: 'Automated, personalized, scalable',
+        expertiseArea: 'Sales automation'
+      },
+      emailBuilder: {
+        enableAutoResponse: true,
+        rebumpIntervalDays: 7,
+        ccEmails: ''
+      }
+    };
+    
+    await awsManagerInstance.saveLeadAgentSettings(userId, agentId, agentSettings);
+    
+    console.log(`[AUTH] New agent created: ${agentId} (${name}) for user ${userId} with personality: ${personality?.type || 'default'}`);
     
     res.json({ 
       success: true, 

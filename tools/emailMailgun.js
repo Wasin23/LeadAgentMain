@@ -185,7 +185,7 @@ function addTrackingToEmail(body, trackingId) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null) {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null) {
   try {
     // Ensure we always have HTML content for tracking
     let htmlBody = body;
@@ -222,6 +222,12 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       'o:tag': 'transactional', // Force classification as transactional email
       'o:require-tls': 'yes' // Require TLS for better deliverability
     };
+    
+    // Add CC if provided
+    if (ccEmails) {
+      emailData.cc = ccEmails;
+      console.log(`[MAILGUN] Adding CC: ${ccEmails}`);
+    }
     
     // Disable Mailgun's tracking to avoid conflicts
     if (enableTracking) {

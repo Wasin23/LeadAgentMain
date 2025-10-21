@@ -79,7 +79,7 @@ router.post('/custom', async (req, res) => {
   console.log('[EMAIL QUEUE] Headers:', req.headers);
   console.log('[EMAIL QUEUE] User from JWT:', req.user);
   try {
-    const { to, subject, body, leadContext, source = 'custom' } = req.body;
+    const { to, subject, body, cc, leadContext, source = 'custom' } = req.body;
     
     // Validation
     if (!to || !subject || !body) {
@@ -103,6 +103,7 @@ router.post('/custom', async (req, res) => {
       status: 'pending',
       source: source,
       userId: req.user.userId, // Add userId from JWT token for proper tracking
+      cc: cc || '', // Add CC field
       leadData: {
         email: to,
         company: 'Custom Email',
@@ -121,6 +122,7 @@ router.post('/custom', async (req, res) => {
       emailData: {
         subject: subject,
         body: body,
+        cc: cc || '', // Add CC to emailData as well
         finalRecipient: to,
         finalSubject: subject,
         finalBody: body
@@ -218,6 +220,30 @@ router.post('/:id/approve', async (req, res) => {
     // Send the actual email with person information
     const personInfo = approvedEmail.leadDetails?.personInfo || null;
     const userId = approvedEmail.userId || null; // Get userId from queue data
+    const effectiveAgentId = approvedEmail.agentId || req.body.agentId || null;
+    
+    // Get CC emails - prioritize email-specific CC over agent settings CC
+    let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
+    
+    // If no email-specific CC, fall back to agent settings
+    if (!ccEmails && userId && effectiveAgentId) {
+      try {
+        const awsManager = getUserEmailQueue(userId, effectiveAgentId).awsManager;
+        if (awsManager) {
+          const agentSettings = await awsManager.getLeadAgentSettings(userId, effectiveAgentId);
+          if (agentSettings && agentSettings.emailBuilder && agentSettings.emailBuilder.ccEmails) {
+            ccEmails = agentSettings.emailBuilder.ccEmails;
+            console.log('[EMAIL QUEUE] Found CC emails in agent settings:', ccEmails);
+          }
+        }
+      } catch (settingsError) {
+        console.warn('[EMAIL QUEUE] Could not fetch agent settings for CC:', settingsError.message);
+      }
+    }
+    
+    if (ccEmails) {
+      console.log('[EMAIL QUEUE] Using CC emails:', ccEmails);
+    }
     
     console.log('[EMAIL QUEUE] Sending email with data:', {
       finalRecipient,
@@ -225,6 +251,7 @@ router.post('/:id/approve', async (req, res) => {
       bodyLength: finalBody?.length,
       personInfo,
       userId,
+      ccEmails,
       emailType: approvedEmail.metadata?.customEmail ? 'custom' : 'regular'
     });
     
@@ -234,7 +261,8 @@ router.post('/:id/approve', async (req, res) => {
       finalBody,
       personInfo,
       userId,
-      approvedEmail.agentId || req.body.agentId || null // Get agentId from email metadata or request body
+      effectiveAgentId,
+      ccEmails // Pass CC emails to leadEmail
     );
     
     if (sendResult.success) {

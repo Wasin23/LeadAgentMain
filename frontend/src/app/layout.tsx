@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import QueryProvider from "@/components/QueryProvider";
 import ScrollRestoration from "@/components/ScrollRestoration";
+import AdminChatbot from "@/components/AdminChatbot";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
           <AuthProvider>
             <ScrollRestoration />
             {children}
+            <AdminChatbot />
           </AuthProvider>
         </QueryProvider>
       </body>

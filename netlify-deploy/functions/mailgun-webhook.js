@@ -6,9 +6,17 @@ import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts
 import { z } from "zod";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import crypto from 'crypto';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 // Import calendar manager for event tracking (using dynamic import since it's CommonJS)
 let calendarManager = null;
+
+// Initialize AWS DynamoDB client
+const ddbClient = new DynamoDBClient({
+  region: process.env.AWS_REGION || 'us-east-1'
+});
+const dynamodb = DynamoDBDocumentClient.from(ddbClient);
 
 // === UTILITY FUNCTIONS ===
 
@@ -58,6 +66,34 @@ function extractAgentIdFromTrackingId(trackingId) {
   // If no underscore after userCode, it's the main agent (no agentId)
   const match = trackingId.match(/tracking-[a-f0-9]{8}_([^_]+)_/);
   return match ? match[1] : 'reasoning-lead-agent'; // Default to main agent
+}
+
+async function getAgentSettingsFromAWS(userId, agentId) {
+  try {
+    if (!userId || !agentId) {
+      return null;
+    }
+
+    const tableName = process.env.AWS_DYNAMODB_AGENT_SETTINGS_TABLE || 'meridian-agent-settings';
+    
+    const command = new GetCommand({
+      TableName: tableName,
+      Key: { agentId: agentId }
+    });
+
+    const result = await dynamodb.send(command);
+    
+    if (result.Item && result.Item.userId === userId) {
+      console.log('[AWS] Found agent settings:', { agentId, enableAutoResponse: result.Item.emailBuilder?.enableAutoResponse });
+      return result.Item;
+    }
+
+    console.log('[AWS] No agent settings found for:', { userId, agentId });
+    return null;
+  } catch (error) {
+    console.error('[AWS] Error getting agent settings:', error);
+    return null;
+  }
 }
 
 async function getAgentPersonality(userId, agentId) {
@@ -1361,18 +1397,54 @@ export async function handler(event) {
 
     // Get agent personality for this specific agent
     let agentPersonality = null;
+    let agentSettings = null;
     try {
       const userId = extractUserIdFromTrackingId(trackingId);
       const agentId = extractAgentIdFromTrackingId(trackingId);
-      console.log('[WEBHOOK] Getting personality for agent:', agentId, 'user:', userId);
+      console.log('[WEBHOOK] Getting settings for agent:', agentId, 'user:', userId);
       
       if (userId && agentId) {
+        // Fetch agent settings from AWS DynamoDB
+        agentSettings = await getAgentSettingsFromAWS(userId, agentId);
+        
+        // Also get personality from Zilliz (legacy)
         agentPersonality = await getAgentPersonality(userId, agentId);
         console.log('[WEBHOOK] Agent personality:', agentPersonality);
       }
     } catch (error) {
-      console.error('[WEBHOOK] Failed to get agent personality:', error);
+      console.error('[WEBHOOK] Failed to get agent settings/personality:', error);
     }
+
+    // Check if auto-response is disabled for this agent
+    if (agentSettings?.emailBuilder?.enableAutoResponse === false) {
+      console.log('[WEBHOOK] Auto-response is DISABLED for this agent, skipping AI response');
+      
+      // Still log the incoming message but don't respond
+      try {
+        await storeEventTool.func({
+          tracking_id: trackingId,
+          event_type: 'lead_message',
+          event_content: `Subject: ${emailData.subject}\n\nFrom: ${emailData.from}\n\n${emailData.body}`,
+          email_address: emailData.from,
+          recipient: emailData.to
+        });
+        console.log('[WEBHOOK] Logged incoming lead message (auto-response disabled)');
+      } catch (error) {
+        console.error('[WEBHOOK] Failed to log lead message:', error);
+      }
+      
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ 
+          success: true, 
+          message: 'Email logged but auto-response is disabled for this agent',
+          autoResponseDisabled: true,
+          agentId: extractAgentIdFromTrackingId(trackingId)
+        })
+      };
+    }
+
+    console.log('[WEBHOOK] Auto-response is ENABLED, proceeding with AI response');
 
     // Create personalized system prompt based on user settings and agent personality
     const systemPrompt = createSystemPrompt(userSettings, agentPersonality);

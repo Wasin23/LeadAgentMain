@@ -144,7 +144,7 @@ class ReasoningLeadAgent extends EventEmitter {
     console.log('🧠 [REASONING AGENT] Initialized AI reasoning agent for user:', userId);
     
     // Add initial log entry
-    this.logOperation('Agent Initialized', `Reasoning Lead Agent initialized for user ${userId}`, 'completed', {
+    this.logOperation('🤖 Agent Ready', `Ready to find and contact leads`, 'completed', {
       userId,
       timestamp: new Date().toISOString()
     });
@@ -196,15 +196,29 @@ class ReasoningLeadAgent extends EventEmitter {
     return `${Date.now()}-${++this.progressIdCounter}-${Math.random().toString(36).substr(2, 4)}`;
   }
 
+  // Translate technical actions into user-friendly messages
+  translateThinkingToFriendly(action, context) {
+    const messages = {
+      'get_user_settings': '📋 Loading your search preferences and targeting criteria',
+      'get_email_settings': '✉️ Loading email templates and branding settings',
+      'apollo_search': `🔍 Searching for ${context.targetLeads || 'new'} qualified leads in your target industries`,
+      'serper_research': `🔬 Researching ${context.currentLead?.company || 'company'} to personalize outreach`,
+      'unlock_email': `🔓 Finding email address for ${context.currentLead?.name || 'contact'}`,
+      'build_personalized_email': `✍️ Writing personalized email for ${context.currentLead?.name || 'lead'} at ${context.currentLead?.company || 'company'}`,
+      'queue_email': `📤 Scheduling email to ${context.currentLead?.name || 'contact'}`,
+      'think': '💭 Analyzing next steps...',
+      'complete': '✅ Finished processing leads'
+    };
+    
+    return messages[action] || `⚙️ ${action}`;
+  }
+
   // Get agent personality data from AWS
   async getAgentPersonality() {
     try {
-      const userData = await this.awsManager.getUser(this.userId);
-      if (userData && userData.activeAgents) {
-        const agent = userData.activeAgents.find(a => a.agentId === this.agentId);
-        if (agent && agent.personality) {
-          return agent.personality;
-        }
+      const agentSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
+      if (agentSettings && agentSettings.personality) {
+        return agentSettings.personality;
       }
       
       // Default personality if none found
@@ -343,11 +357,7 @@ Choose your next action and explain your reasoning:`;
           }
         }
         
-        // Log detailed reasoning to activity logs
-        this.logOperation('Agent Reasoning', `🤔 [THINKING] ${reasoning}`, 'success', {
-          action: message.function_call.name,
-          parameters: parameters
-        });
+        // Don't log the technical reasoning, just the action
         
         return {
           reasoning: reasoning,
@@ -359,10 +369,7 @@ Choose your next action and explain your reasoning:`;
       const reasoning = message.content || 'Agent is thinking...';
       console.log('🤔 [THINKING] Agent reasoning:', reasoning);
       
-      // Log pure reasoning to activity logs
-      this.logOperation('Agent Thinking', `🤔 [THINKING] ${reasoning}`, 'info', {
-        action: 'think'
-      });
+      // Don't log pure thinking states to keep logs clean
 
       return {
         reasoning: reasoning,
@@ -945,6 +952,9 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         callToAction: emailBuilder.callToAction,
         personalization: emailBuilder.personalization,
         
+        // Include the full emailBuilder object so CC and other settings are accessible
+        emailBuilder: emailBuilder,
+        
         // Company branding for email templates
         companyBranding: leadContactSettings.companyBranding
       };
@@ -954,7 +964,9 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         tone: actualEmailSettings.tone,
         personalization: actualEmailSettings.personalization,
         callToAction: actualEmailSettings.callToAction,
-        hasCustomPrompt: !!actualEmailSettings.customPrompt
+        hasCustomPrompt: !!actualEmailSettings.customPrompt,
+        hasCcEmails: !!emailBuilder.ccEmails,
+        ccEmails: emailBuilder.ccEmails
       });
       
       return actualEmailSettings;
@@ -1312,7 +1324,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
           console.log('✅ [APOLLO] Email unlocked successfully!');
           
           // Add activity log for SSE stream
-          this.logOperation('Email Unlocked', `🔓 Email unlocked: ${allEmails[0]} for ${person.first_name} ${person.last_name} at ${person.organization?.name}`, 'success', {
+          this.logOperation('🔓 Email Found', `${allEmails[0]} for ${person.first_name} ${person.last_name} at ${person.organization?.name}`, 'success', {
             type: 'email_unlocked',
             email: allEmails[0],
             personName: `${person.first_name} ${person.last_name}`,
@@ -1437,87 +1449,27 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         };
       }
         
-      // Use custom email prompt from settings or fallback
-      let emailPrompt;
-      if (emailSettings.customPrompt) {
-        // Replace template variables in custom prompt
-        emailPrompt = emailSettings.customPrompt
-          .replace(/\{\{AGENT_NAME\}\}/g, emailSettings.companyBranding?.agentName || 'AI Assistant')
-          .replace(/\{\{COMPANY_NAME\}\}/g, emailSettings.companyBranding?.companyName || 'Our Company')
-          .replace(/\{\{AGENT_TITLE\}\}/g, emailSettings.companyBranding?.agentTitle || 'AI Assistant')
-          .replace(/\{\{PRIMARY_SERVICE\}\}/g, emailSettings.companyBranding?.primaryService || 'business solutions')
-          .replace(/\{\{CORE_OFFERING\}\}/g, emailSettings.companyBranding?.coreOffering || 'our solutions')
-          .replace(/\{\{KEY_ADVANTAGES\}\}/g, emailSettings.companyBranding?.keyAdvantages || 'competitive advantages')
-          .replace(/\{\{EXPERTISE_AREA\}\}/g, emailSettings.companyBranding?.expertiseArea || 'industry expertise')
-          .replace(/\{\{TARGET_COMPANY\}\}/g, companyName)
-          .replace(/\{\{CONTACT_NAME\}\}/g, contactName)
-          .replace(/\{\{CONTACT_TITLE\}\}/g, contactTitle)
-          .replace(/\{\{INDUSTRY\}\}/g, industry)
-          .replace(/\{\{COMPANY_DESCRIPTION\}\}/g, researchInsights)
-          .replace(/\{\{EMPLOYEE_COUNT\}\}/g, employeeCount);
-      } else {
-        // Enhanced personalized email prompt with specific research insights
-        const specificInsights = this.extractSpecificInsights(researchData);
-        
-        // Create a compelling insights summary with the most impressive details
-        let insightsSummary = '';
-        if (specificInsights.length > 0) {
-          const topInsights = specificInsights.slice(0, 4);
-          insightsSummary = topInsights.map((insight, i) => {
-            const priority = ['recent_funding', 'growth', 'product_launch', 'partnership', 'acquisition', 'recognition'].includes(insight.type) ? 'HIGH PRIORITY' : 'Notable';
-            return `• ${insight.insight} (${priority})`;
-          }).join('\n');
-        } else {
-          insightsSummary = keyBusinessFacts.slice(0, 3).map(fact => `• ${fact}`).join('\n');
-        }
-        
-        // Get the most impressive insight and format as congratulations/recognition
-        let leadingInsight = null;
-        if (specificInsights.length > 0) {
-          const topInsight = specificInsights[0];
-          
-          // Format as congratulations based on insight type
-          switch(topInsight.type) {
-            case 'recent_funding':
-            case 'valuation':
-              leadingInsight = `Congratulations on ${topInsight.insight.toLowerCase()}!`;
-              break;
-            case 'product_launch':
-            case 'innovation':
-              leadingInsight = `I noticed you ${topInsight.insight.toLowerCase()}.`;
-              break;
-            case 'growth':
-            case 'expansion':
-              leadingInsight = `Impressive work on ${topInsight.insight.toLowerCase()}!`;
-              break;
-            case 'partnership':
-            case 'acquisition':
-              leadingInsight = `I saw that you ${topInsight.insight.toLowerCase()}.`;
-              break;
-            case 'recognition':
-            case 'ranking':
-              leadingInsight = `Congratulations on being ${topInsight.insight.toLowerCase()}!`;
-              break;
-            default:
-              leadingInsight = `I noticed ${topInsight.insight.toLowerCase()}.`;
-          }
-        }
-          
-        // Build intelligence context from research
-        let intelligenceContext = '';
-        if (researchData && specificInsights.length > 0) {
-          intelligenceContext = `\nSPECIFIC COMPANY RESEARCH FINDINGS:
+      // Enhanced personalized email prompt with specific research insights
+      const specificInsights = this.extractSpecificInsights(researchData);
+      
+      // Build intelligence context from research
+      let intelligenceContext = '';
+      if (researchData && specificInsights.length > 0) {
+        intelligenceContext = `\nSPECIFIC COMPANY RESEARCH FINDINGS:
 ${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join('\n')}`;
-        }
-        
-        // Get agent personality for email style
-        const personality = await this.getAgentPersonality();
-        
-        // Use personality-based email generation with research intelligence
-        emailPrompt = `${personality?.emailPrompt || 'Write professional sales emails'}
+      }
+      
+      // Get agent personality for email style
+      const personality = await this.getAgentPersonality();
+      
+      // Get custom prompt from email builder settings (editable in UI) - this is the personality/style
+      const customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write professional sales emails';
+      
+      // Common ruleset for email structure - ALWAYS include lead details and context
+      const commonRuleset = `
+You are ${emailSettings.companyBranding?.agentName || 'AI Assistant'}, the AI assistant for ${emailSettings.companyBranding?.companyName || 'Our Company'}.
 
-You are ${emailSettings.companyBranding?.agentName || 'AI Assistant'}, the AI assistant for ${emailSettings.companyBranding?.companyName || 'Our Company'}. Generate an email for the following prospect using your ${personality?.name || 'professional'} communication style:
-
+PROSPECT INFORMATION:
 Company: ${companyName}
 Contact: ${leadData.first_name} ${leadData.last_name}
 Title: ${contactTitle}
@@ -1552,9 +1504,16 @@ Show you understand their business and connect it logically to communication cha
 Format as:
 SUBJECT: [subject line]
 BODY: [email body with proper greeting and signature]`;
-      }
+
+      // ALWAYS combine personality prompt with common ruleset containing lead details
+      const emailPrompt = `${customPrompt}\n${commonRuleset}`;
 
       console.log('💎 [PREMIUM MODEL] Using GPT-4 for high-quality email generation');
+      console.log('📝 [EMAIL PROMPT] Full prompt being sent to GPT-4:');
+      console.log('---START PROMPT---');
+      console.log(emailPrompt);
+      console.log('---END PROMPT---');
+      
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: emailPrompt }],
@@ -1563,6 +1522,11 @@ BODY: [email body with proper greeting and signature]`;
       });
 
       const emailContent = response.choices[0].message.content;
+      
+      console.log('📧 [GPT-4 RESPONSE] Email content received:');
+      console.log('---START EMAIL---');
+      console.log(emailContent);
+      console.log('---END EMAIL---');
       
       // Extract subject and body if formatted properly
       let subject, body;
@@ -2727,6 +2691,7 @@ BODY: [email body with proper greeting and signature]`;
         to: leadData.email,
         subject: leadData.emailSubject,
         body: leadData.personalizedEmail,
+        cc: this.memory.emailSettings?.emailBuilder?.ccEmails || '', // Add CC from settings
         
         // Lead information
         leadInfo: {
@@ -2806,8 +2771,8 @@ BODY: [email body with proper greeting and signature]`;
         this.emit('progress', {
           id: this.generateUniqueId(),
           timestamp: new Date().toISOString(),
-          operation: 'Contact Tracking',
-          details: `Adding ${leadInfo.name} (${leadInfo.email}) to contacted database...`,
+          operation: '📝 Saving Contact',
+          details: `Saving ${leadInfo.name} from ${leadInfo.company} to database...`,
           status: 'processing',
           data: { 
             phase: 'tracking_contact',
@@ -2826,8 +2791,8 @@ BODY: [email body with proper greeting and signature]`;
           this.emit('progress', {
             id: this.generateUniqueId(),
             timestamp: new Date().toISOString(),
-            operation: 'Contact Tracking',
-            details: `✅ Contact saved - ${leadInfo.name} at ${leadInfo.company} added to database`,
+            operation: '✅ Contact Saved',
+            details: `${leadInfo.name} at ${leadInfo.company} saved successfully`,
             status: 'completed',
             data: { 
               phase: 'tracking_complete',
@@ -3373,7 +3338,7 @@ BODY: [email body with proper greeting and signature]`;
     console.log(`🔄 [CYCLE] Reset cycle tracking for cycle #${this.cycleCount}`);
     
     // Log cycle start
-    this.logOperation('Cycle Started', `Reasoning cycle #${this.cycleCount} initiated`, 'running', {
+    this.logOperation('🔄 Starting Search', `Looking for new leads to contact`, 'running', {
       cycleNumber: this.cycleCount,
       timestamp: new Date().toISOString()
     });
@@ -3430,9 +3395,18 @@ BODY: [email body with proper greeting and signature]`;
         // Get reasoning decision from OpenAI
         const reasoningResult = await this.reason(context);
         
+        // Log what the agent is thinking in user-friendly terms
+        if (reasoningResult.reasoning) {
+          const friendlyThinking = this.translateThinkingToFriendly(reasoningResult.action, context);
+          this.logOperation('💭 Agent Activity', friendlyThinking, 'info', {
+            action: reasoningResult.action,
+            step: stepCount
+          });
+        }
+        
         if (!reasoningResult.action || reasoningResult.action === 'think' || reasoningResult.action === 'complete') {
           console.log(`✅ [REASONING] Cycle #${this.cycleCount} completed after ${stepCount} steps`);
-          this.logOperation('Cycle Completed', `Reasoning cycle #${this.cycleCount} completed successfully with ${stepCount} steps`, 'completed', {
+          this.logOperation('✅ Process Complete', `Successfully completed lead outreach`, 'completed', {
             cycleNumber: this.cycleCount,
             stepsExecuted: stepCount,
             completedAt: new Date().toISOString()
@@ -3440,14 +3414,8 @@ BODY: [email body with proper greeting and signature]`;
           break;
         }
         
-        // Execute the decided action
+        // Execute the decided action (don't log it here, log in the specific function handlers)
         console.log(`🎯 [REASONING] Step ${stepCount}: Executing action: ${reasoningResult.action}`);
-        this.logOperation('Action Executed', `Step ${stepCount}: ${reasoningResult.action}`, 'running', {
-          cycleNumber: this.cycleCount,
-          stepNumber: stepCount,
-          action: reasoningResult.action,
-          parameters: reasoningResult.parameters
-        });
         const actionResult = await this.executeFunction(reasoningResult.action, reasoningResult.parameters);
         
         // Check if action requested to stop the cycle (e.g., due to errors)

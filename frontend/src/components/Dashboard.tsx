@@ -116,7 +116,14 @@ export default function Dashboard() {
 
         {activeView === 'director' && (
           <div className="p-0">
-            <AgentDirectorDashboard />
+            {selectedAgent ? (
+              <AgentDashboard 
+                agentId={selectedAgent} 
+                onBack={() => setSelectedAgent(null)}
+              />
+            ) : (
+              <AgentDirectorDashboard onSelectAgent={setSelectedAgent} />
+            )}
           </div>
         )}
 

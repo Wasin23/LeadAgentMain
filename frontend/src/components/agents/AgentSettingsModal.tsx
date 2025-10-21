@@ -71,6 +71,9 @@ interface ZillizAgentSettings {
     length: string;
     callToAction: string;
     personalization: string;
+    ccEmails?: string; // Comma-separated email addresses
+    enableAutoResponse?: boolean; // Toggle for AI auto-response
+    rebumpIntervalDays?: number; // Days to wait before follow-up
   };
 }
 
@@ -298,7 +301,12 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
             emailBuilder: {
               ...prevSettings.emailBuilder,
               ...emailSettings,
-              ...emailSettings.emailBuilder
+              ...emailSettings.emailBuilder,
+              // If there's a personality emailPrompt and no customPrompt yet, use the personality's prompt
+              customPrompt: emailSettings.customPrompt || 
+                            emailSettings.emailBuilder?.customPrompt || 
+                            apiSettings.personality?.emailPrompt || 
+                            prevSettings.emailBuilder.customPrompt
             }
           };
         });
@@ -908,6 +916,55 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
                           <option value="high">High</option>
                         </select>
                       </div>
+                    </div>
+
+                    {/* New Fields: CC, Auto-Response, Rebump */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          CC Email Addresses
+                        </label>
+                        <input
+                          type="text"
+                          value={settings.emailBuilder?.ccEmails || ''}
+                          onChange={(e) => updateField('emailBuilder', 'ccEmails', e.target.value)}
+                          placeholder="email1@example.com, email2@example.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Comma-separated email addresses to CC on all emails</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Follow-up Interval (Days)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={settings.emailBuilder?.rebumpIntervalDays || 3}
+                          onChange={(e) => updateField('emailBuilder', 'rebumpIntervalDays', parseInt(e.target.value) || 3)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Days to wait before sending follow-up email</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.emailBuilder?.enableAutoResponse !== false}
+                          onChange={(e) => updateField('emailBuilder', 'enableAutoResponse', e.target.checked)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          Enable AI Auto-Response to Emails
+                        </span>
+                      </label>
+                      <p className="text-xs text-gray-500 ml-6 mt-1">
+                        When enabled, AI will automatically respond to incoming emails from leads
+                      </p>
                     </div>
                   </div>
                 </div>
