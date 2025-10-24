@@ -2,7 +2,6 @@ import express from 'express';
 import { EmailQueue } from '../lib/emailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
-import fs from 'fs/promises';
 
 const router = express.Router();
 
@@ -48,8 +47,18 @@ router.get('/', async (req, res) => {
 // Get all emails in queue
 router.get('/queue', async (req, res) => {
   try {
-    const agentId = req.query.agentId || null; // Optional agent-specific filtering
-    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
+    const agentId = req.query.agentId;
+    
+    // If agentId is 'all', fetch from all agents using AWS
+    if (agentId === 'all') {
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      const emails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
+      return res.json(emails);
+    }
+    
+    // Otherwise, fetch for specific agent (or null for legacy)
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
     const queue = await userEmailQueue.getQueue();
     res.json(queue);
   } catch (error) {
@@ -268,22 +277,17 @@ router.post('/:id/approve', async (req, res) => {
     if (sendResult.success) {
       console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);
       
-      // Save tracking ID to the approved email record for sync purposes
+      // Mark email as sent in AWS DynamoDB
       if (sendResult.result && sendResult.result.trackingId) {
         try {
-          const approved = await userEmailQueue.getApproved();
-          const emailIndex = approved.findIndex(e => e.id === id);
-          if (emailIndex !== -1) {
-            approved[emailIndex].trackingId = sendResult.result.trackingId;
-            approved[emailIndex].mailgunId = sendResult.result.mailgunId || null;
-            approved[emailIndex].sentAt = new Date().toISOString();
-            
-            // Write back to approved file
-            await fs.writeFile(userEmailQueue.approvedFile, JSON.stringify(approved, null, 2));
-            console.log(`[EMAIL QUEUE] 💾 Saved tracking ID ${sendResult.result.trackingId} to approved email ${id}`);
-          }
+          await userEmailQueue.markEmailAsSent(id, {
+            id: sendResult.result.mailgunId || null,
+            message: sendResult.result.trackingId,
+            trackingId: sendResult.result.trackingId
+          });
+          console.log(`[EMAIL QUEUE] 💾 Marked email ${id} as sent in AWS with tracking ID ${sendResult.result.trackingId}`);
         } catch (trackingError) {
-          console.error('[EMAIL QUEUE] ⚠️ Failed to save tracking ID:', trackingError);
+          console.error('[EMAIL QUEUE] ⚠️ Failed to mark email as sent in AWS:', trackingError);
         }
       }
       
@@ -335,6 +339,52 @@ router.get('/approved', async (req, res) => {
   }
 });
 
+// Get sent emails only (emails that have been approved and actually sent)
+router.get('/sent', async (req, res) => {
+  try {
+    const agentId = req.query.agentId;
+    
+    // If agentId is 'all', fetch from all agents using AWS
+    if (agentId === 'all') {
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      const emails = await awsQueue.getAllSentEmailsForUser(req.user.userId);
+      return res.json(emails);
+    }
+    
+    // Otherwise, fetch for specific agent (or null for legacy)
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
+    const sent = await userEmailQueue.getSent();
+    res.json(sent);
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error getting sent emails:', error);
+    res.status(500).json({ error: 'Failed to get sent emails' });
+  }
+});
+
+// Get replied emails
+router.get('/replied', async (req, res) => {
+  try {
+    const agentId = req.query.agentId;
+    
+    // If agentId is 'all', fetch from all agents using AWS
+    if (agentId === 'all') {
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      const emails = await awsQueue.getAllRepliedEmailsForUser(req.user.userId);
+      return res.json(emails);
+    }
+    
+    // Otherwise, fetch for specific agent (or null for legacy)
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
+    const replied = await userEmailQueue.getReplied();
+    res.json(replied);
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error getting replied emails:', error);
+    res.status(500).json({ error: 'Failed to get replied emails' });
+  }
+});
+
 // Clear rejected emails
 router.post('/clear-rejected', async (req, res) => {
   try {
@@ -371,6 +421,29 @@ router.delete('/approved', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to clear approved emails',
+      details: error.message 
+    });
+  }
+});
+
+// Reject/delete a single email from queue
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const agentId = req.query.agentId || req.body.agentId || null;
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
+    
+    await userEmailQueue.rejectEmail(id);
+    
+    res.json({ 
+      success: true, 
+      message: 'Email rejected successfully'
+    });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error rejecting email:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to reject email',
       details: error.message 
     });
   }

@@ -176,6 +176,16 @@ try {
   trainingRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Monitoring routes
+let monitoringRoutes;
+try {
+  monitoringRoutes = (await import('./routes/monitoring.js')).default;
+  console.log('Monitoring routes imported successfully');
+} catch (e) {
+  console.log('Monitoring routes not available:', e.message);
+  monitoringRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import Zilliz Email Tracking routes
 let zillizTrackingRoutes;
 try {
@@ -440,6 +450,7 @@ app.use('/api/linkedin', linkedinRoutes); // LinkedIn profile builder routes
 app.use('/api/linkedin-api', linkedinApiRoutes); // LinkedIn API integration routes
 app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
+app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 
 // Import manual sync routes
 let manualSyncRoutes;

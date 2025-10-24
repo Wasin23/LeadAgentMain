@@ -391,7 +391,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+          className="bg-white rounded-xl shadow-xl max-w-7xl w-full max-h-[98vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">

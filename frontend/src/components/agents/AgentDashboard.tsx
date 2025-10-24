@@ -1750,7 +1750,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] overflow-hidden mx-4 flex flex-col"
+            className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[98vh] overflow-hidden mx-4 flex flex-col"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -1923,7 +1923,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] overflow-hidden mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -2030,7 +2030,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] overflow-hidden mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -2128,7 +2128,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-3xl h-[80vh] overflow-hidden mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[95vh] overflow-hidden mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -2240,7 +2240,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] overflow-hidden mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[98vh] overflow-hidden mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -2340,7 +2340,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[85vh] overflow-hidden mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -2455,7 +2455,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] overflow-hidden mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] overflow-hidden mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -2539,7 +2539,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">

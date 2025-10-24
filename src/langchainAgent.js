@@ -21,6 +21,61 @@ import path from 'path';
 // Initialize AWS Manager for database operations
 const awsManager = new AWSManager();
 
+// ======================
+// MONITORING INTEGRATION
+// ======================
+let monitoringStore = null;
+
+/**
+ * Initialize monitoring integration
+ * Lazy loads the monitoring routes module to avoid circular dependencies
+ */
+async function getMonitoringStore() {
+  if (!monitoringStore) {
+    try {
+      const monitoringModule = await import('../routes/monitoring.js');
+      monitoringStore = monitoringModule.metricStore;
+      console.log('📊 [LANGCHAIN AGENT] Monitoring integration initialized');
+    } catch (error) {
+      console.warn('📊 [LANGCHAIN AGENT] Monitoring not available:', error.message);
+    }
+  }
+  return monitoringStore;
+}
+
+/**
+ * Emit monitoring event
+ */
+function emitMetricEvent(category, key, value, operation = 'set') {
+  if (monitoringStore) {
+    try {
+      if (operation === 'increment') {
+        monitoringStore.incrementMetric(category, key, value || 1);
+      } else {
+        monitoringStore.updateMetric(category, key, value);
+      }
+    } catch (error) {
+      console.error('📊 [LANGCHAIN AGENT] Failed to emit metric:', error.message);
+    }
+  }
+}
+
+/**
+ * Log an issue to the monitoring system
+ */
+function logMonitoringIssue(severity, message, agentId, details = {}) {
+  if (monitoringStore) {
+    try {
+      monitoringStore.addIssue(severity, message, agentId, details);
+    } catch (error) {
+      console.error('📊 [LANGCHAIN AGENT] Failed to log issue:', error.message);
+    }
+  }
+}
+
+// Initialize monitoring on module load
+getMonitoringStore();
+
 // Wrap internet search as a LangChain tool
 const serperTool = new DynamicTool({
   name: "internet_search",

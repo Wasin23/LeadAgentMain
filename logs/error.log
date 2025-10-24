@@ -23,3 +23,5 @@
 {"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-10-20T20:15:47.040Z"}
 {"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-10-20T20:16:12.771Z"}
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-20T21:13:10.487Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-10-21T19:44:06.591Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-10-21T20:59:52.775Z"}

@@ -173,7 +173,7 @@ ${agentData.description ? `Remember: ${agentData.description}` : ''}`;
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[98vh] overflow-hidden"
         >
           {/* Header */}
           <div className="p-6 border-b border-neutral-200">

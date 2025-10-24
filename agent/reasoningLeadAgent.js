@@ -23,6 +23,27 @@ import { deepResearch } from '../tools/deepResearch.js';
 import fs from 'fs/promises';
 import path from 'path';
 
+// ======================
+// MONITORING INTEGRATION
+// ======================
+let monitoringStore = null;
+
+async function getMonitoringStore() {
+  if (!monitoringStore) {
+    try {
+      const monitoringModule = await import('../routes/monitoring.js');
+      monitoringStore = monitoringModule.metricStore;
+      console.log('📊 [REASONING LEAD AGENT] Monitoring integration initialized');
+    } catch (error) {
+      console.warn('📊 [REASONING LEAD AGENT] Monitoring not available:', error.message);
+    }
+  }
+  return monitoringStore;
+}
+
+// Initialize monitoring on module load
+getMonitoringStore();
+
 class ReasoningLeadAgent extends EventEmitter {
   constructor(userId, agentId = 'reasoning-lead-agent') {
     super(); // Call EventEmitter constructor
@@ -39,6 +60,9 @@ class ReasoningLeadAgent extends EventEmitter {
     
     // AWS manager for settings and data storage
     this.awsManager = new AWSManager();
+    
+    // Report agent initialization to monitoring
+    this.emitAgentStatus('initialized');
     
     // Agent state for UI integration
     this.isRunning = false;
@@ -148,6 +172,77 @@ class ReasoningLeadAgent extends EventEmitter {
       userId,
       timestamp: new Date().toISOString()
     });
+  }
+
+  // === MONITORING INTEGRATION METHODS ===
+  
+  /**
+   * Emit agent status change to monitoring system
+   */
+  emitAgentStatus(status, metrics = {}) {
+    if (monitoringStore) {
+      try {
+        monitoringStore.updateAgentStatus(
+          this.agentId,
+          'ReasoningLeadAgent',
+          status,
+          {
+            userId: this.userId,
+            cycleCount: this.cycleCount,
+            isRunning: this.isRunning,
+            ...metrics
+          }
+        );
+      } catch (error) {
+        console.error('📊 [MONITORING] Failed to emit agent status:', error.message);
+      }
+    }
+  }
+
+  /**
+   * Emit metric event to monitoring system
+   */
+  emitMetric(category, key, value, operation = 'increment') {
+    if (monitoringStore) {
+      try {
+        if (operation === 'increment') {
+          monitoringStore.incrementMetric(category, key, value || 1);
+        } else {
+          monitoringStore.updateMetric(category, key, value);
+        }
+      } catch (error) {
+        console.error('📊 [MONITORING] Failed to emit metric:', error.message);
+      }
+    }
+  }
+
+  /**
+   * Log issue to monitoring system
+   */
+  logIssue(severity, message, details = {}) {
+    if (monitoringStore) {
+      try {
+        monitoringStore.addIssue(severity, message, this.agentId, {
+          userId: this.userId,
+          ...details
+        });
+      } catch (error) {
+        console.error('📊 [MONITORING] Failed to log issue:', error.message);
+      }
+    }
+  }
+
+  /**
+   * Update integration status
+   */
+  updateIntegrationStatus(service, data) {
+    if (monitoringStore) {
+      try {
+        monitoringStore.updateIntegration(service, data);
+      } catch (error) {
+        console.error('📊 [MONITORING] Failed to update integration:', error.message);
+      }
+    }
   }
 
   // === OPERATION LOGGING METHODS ===
@@ -1173,6 +1268,10 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       }
 
       console.log('🔍 [STEP 1] Searching for person with:', searchPayload);
+      
+      // Emit API call metric
+      this.updateIntegrationStatus('apollo', { status: 'active' });
+      
       const searchResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
         method: 'POST',
         headers: {
@@ -1184,11 +1283,20 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       });
 
       if (!searchResponse.ok) {
+        this.updateIntegrationStatus('apollo', { status: 'error' });
+        this.logIssue('error', `Apollo search failed: ${searchResponse.status}`, { searchPayload });
         throw new Error(`Search failed: ${searchResponse.status}`);
       }
 
       let searchData = await searchResponse.json();
       console.log('🔍 [STEP 1] Search results:', searchData.people?.length || 0, 'people found');
+      
+      // Emit metric: leads found
+      if (searchData.people && searchData.people.length > 0) {
+        this.emitMetric('leads', 'searched', 1, 'increment');
+        this.emitMetric('leads', 'found', searchData.people.length, 'increment');
+        this.updateIntegrationStatus('apollo', { status: 'healthy', usage: searchData.people.length });
+      }
       
       if (!searchData.people || searchData.people.length === 0) {
         console.log('⚠️ [STEP 1] No results with current search, trying fallback...');
@@ -2676,8 +2784,12 @@ BODY: [email body with proper greeting and signature]`;
     try {
       if (!leadData.personalizedEmail || !leadData.emailSubject) {
         console.log('⚠️ [EMAIL QUEUE] Skipping lead without personalized email');
+        this.logIssue('warning', 'Lead queued without email content', { leadData });
         return;
       }
+
+      // Emit metric: email queued
+      this.emitMetric('emails', 'queued', 1, 'increment');
 
       const queueData = {
         id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
