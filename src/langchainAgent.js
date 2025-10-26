@@ -159,6 +159,27 @@ export async function getLangchainAgentWithMemory(userId = null) {
         console.log('[SERPER TOOL] Using API key from environment variable');
         const result = await internetSearchWithKey(query, apiKey);
         console.log('[SERPER TOOL] Search completed, result length:', JSON.stringify(result).length);
+        
+        // Log API usage
+        if (userId) {
+          try {
+            await awsManager.logApiUsage({
+              userId: userId,
+              agentId: 'langchain-agent',
+              service: 'serper',
+              operation: 'search',
+              usage: 1,
+              metadata: {
+                queryLength: query?.length || 0,
+                timestamp: new Date().toISOString()
+              }
+            });
+            console.log('[SERPER TOOL] API usage logged');
+          } catch (logError) {
+            console.error('[SERPER TOOL] Failed to log API usage:', logError);
+          }
+        }
+        
         return JSON.stringify(result);
       } catch (error) {
         console.error('[SERPER TOOL] Search failed:', error);

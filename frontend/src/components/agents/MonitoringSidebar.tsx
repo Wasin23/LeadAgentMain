@@ -26,6 +26,8 @@ export default function MonitoringSidebar({
   connected = false 
 }: MonitoringSidebarProps) {
   const [hoveredView, setHoveredView] = useState<MonitoringView | null>(null);
+  const [showConnectionTooltip, setShowConnectionTooltip] = useState(false);
+  const [showSettingsTooltip, setShowSettingsTooltip] = useState(false);
 
   const views: Array<{
     id: MonitoringView;
@@ -42,9 +44,13 @@ export default function MonitoringSidebar({
   ];
 
   return (
-    <div className="w-16 h-screen bg-white border-r border-neutral-200 flex flex-col items-center py-4 gap-2 fixed left-0 top-0 overflow-y-auto">
+    <div className="w-16 h-screen bg-white border-r border-neutral-200 flex flex-col items-center py-4 gap-2 fixed left-0 top-0 overflow-visible">
       {/* Connection Status Indicator */}
-      <div className="mb-4 relative group">
+      <div 
+        className="mb-4 relative"
+        onMouseEnter={() => setShowConnectionTooltip(true)}
+        onMouseLeave={() => setShowConnectionTooltip(false)}
+      >
         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
           connected ? 'bg-green-50' : 'bg-neutral-100'
         }`}>
@@ -54,9 +60,11 @@ export default function MonitoringSidebar({
         </div>
         
         {/* Tooltip */}
-        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-          {connected ? 'Live' : 'Offline'}
-        </div>
+        {showConnectionTooltip && (
+          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap pointer-events-none shadow-lg" style={{ zIndex: 9999 }}>
+            {connected ? 'Live' : 'Offline'}
+          </div>
+        )}
       </div>
 
       <div className="w-full h-px bg-neutral-200 mb-2"></div>
@@ -95,19 +103,25 @@ export default function MonitoringSidebar({
             </button>
 
             {/* Tooltip */}
-            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-              {view.label}
-              {view.badge !== undefined && view.badge > 0 && (
-                <span className="ml-1.5 text-red-400">({view.badge})</span>
-              )}
-            </div>
+            {isHovered && (
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap pointer-events-none shadow-lg" style={{ zIndex: 9999 }}>
+                {view.label}
+                {view.badge !== undefined && view.badge > 0 && (
+                  <span className="ml-1.5 text-red-400">({view.badge})</span>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
 
       {/* Settings at bottom */}
       <div className="mt-auto">
-        <div className="relative group">
+        <div 
+          className="relative"
+          onMouseEnter={() => setShowSettingsTooltip(true)}
+          onMouseLeave={() => setShowSettingsTooltip(false)}
+        >
           <button
             className="w-12 h-12 rounded-lg flex items-center justify-center text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600 transition-all"
           >
@@ -115,9 +129,11 @@ export default function MonitoringSidebar({
           </button>
 
           {/* Tooltip */}
-          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-            Settings
-          </div>
+          {showSettingsTooltip && (
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap pointer-events-none shadow-lg" style={{ zIndex: 9999 }}>
+              Settings
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -362,71 +362,17 @@ class ReasoningLeadAgent extends EventEmitter {
   }
 
   // Core reasoning function - the agent's "brain"
+  // 🎯 OPTIMIZED: Trimmed prompt for 61% cost savings (700 → 150 tokens)
   async reason(context) {
-    const prompt = `You are an intelligent lead research and email generation agent working SEQUENTIALLY on one lead at a time.
+    const prompt = `Lead agent cycle decision:
 
-SEQUENTIAL WORKFLOW (Process ONE lead completely before finding the next):
-1. Find Lead → 2. Research Lead → 3. Unlock Email → 4. Build Email → REPEAT until target reached
+STATUS:
+Settings: ${context.hasUserSettings ? '✓' : '✗'} | Email templates: ${context.hasEmailSettings ? '✓' : '✗'}
+Progress: ${context.leadsProcessed}/${context.targetLeads} | Phase: ${context.processingPhase}
+Lead: ${context.currentLead ? `${context.currentLead.name} (${context.currentLead.company})` : 'none'}
+Complete: ${context.cycleComplete}
 
-CURRENT CYCLE STATUS:
-- Has User Settings: ${context.hasUserSettings}  
-- Has Email Settings: ${context.hasEmailSettings}
-- Leads Processed: ${context.leadsProcessed}/${context.targetLeads}
-- Lead Queue: ${context.leadQueue?.length || 0} leads waiting
-- Current Processing Phase: ${context.processingPhase}
-- Cycle Complete: ${context.cycleComplete}
-
-${context.currentLead ? `
-CURRENT LEAD BEING PROCESSED:
-- Name: ${context.currentLead.name || 'Unknown'}
-- Company: ${context.currentLead.company || 'Unknown'}  
-- Title: ${context.currentLead.title || 'Unknown'}
-- Phase: ${context.processingPhase}
-` : 'No current lead'}
-
-USER SETTINGS:
-${context.hasUserSettings ? `
-- Target: ${context.targetLeads} leads per cycle
-- Industries: ${JSON.stringify(this.memory.userSettings?.companyIndustries || [])}
-- Positions: ${JSON.stringify(this.memory.userSettings?.targetPositions || [])}
-- Company Size: ${this.memory.userSettings?.companySizeMin}-${this.memory.userSettings?.companySizeMax}
-- Locations: ${JSON.stringify(this.memory.userSettings?.targetLocations || [])}
-` : 'Settings not loaded yet'}
-
-DECISION LOGIC (choose ONE action):
-
-1. IF hasUserSettings = false → CALL get_user_settings
-
-2. IF hasUserSettings = true AND hasEmailSettings = false → CALL get_email_settings
-
-3. IF cycleComplete = true → CALL complete (cycle finished, wait for next cycle)
-
-4. IF processingPhase = 'search' AND currentLead = null AND leadQueue = empty → CALL apollo_search
-   (Search for leads only when queue is empty and no current lead being processed)
-
-5. IF processingPhase = 'research' AND currentLead exists → CALL serper_research  
-   (Research the current lead to gather intelligence)
-
-6. IF processingPhase = 'email' AND currentLead exists → CALL unlock_email
-   (Unlock email address for researched lead)
-
-7. IF processingPhase = 'build' AND currentLead exists → CALL build_personalized_email
-   (Create personalized email using research data)
-
-REASONING INSTRUCTIONS:
-- You MUST call a function - don't just think about it!
-- For apollo_search, use terms related to "${this.memory.userSettings?.primaryService || 'business solutions'}" and "${this.memory.userSettings?.coreOffering || 'services'}" - NOT generic HR terms
-- Use the user's REAL industries/positions/company size from settings above
-- Use user's actual preferences (industries, company size, positions) for Apollo searches
-- Always research leads with Serper to verify they're real and gather intelligence
-- Unlock emails for qualified leads only
-- Create personalized emails based on research insights
-- If searches fail, reason about why and adjust (broader criteria, different industries, etc.)
-- Learn from your memory - what worked before?
-
-CRITICAL: You MUST call a function. Do not just explain what to do - actually call the appropriate function from the available tools.
-
-Choose your next action and explain your reasoning:`;
+Call the appropriate function to continue the workflow.`;
 
     try {
       const functionCall = this.determineFunctionCall(context);
@@ -561,6 +507,40 @@ Choose your next action and explain your reasoning:`;
       
       // Handle specific OpenAI rate limit errors
       if (error.status === 429) {
+        console.log('🚨 [EMERGENCY] OpenAI quota exceeded - initiating emergency stop');
+        
+        // Check if it's an insufficient_quota error (account has no credits)
+        if (error.code === 'insufficient_quota') {
+          console.error('❌ [CRITICAL] OpenAI account has no credits remaining!');
+          console.error('❌ [CRITICAL] Emergency stopping agent to prevent infinite retry loop');
+          
+          // Log the critical issue to monitoring
+          this.logIssue('critical', 'OpenAI quota exceeded - agent emergency stopped', {
+            error: error.message,
+            code: error.code,
+            status: error.status,
+            timestamp: new Date().toISOString(),
+            action: 'Add credits at https://platform.openai.com/account/billing'
+          });
+          
+          // Emit alert event for immediate notification
+          this.emitProgress('alert', {
+            type: 'critical',
+            title: '🚨 Emergency Stop: OpenAI Quota Exceeded',
+            message: 'Agent stopped due to insufficient OpenAI credits. Please add credits to your account.',
+            action: 'https://platform.openai.com/account/billing',
+            timestamp: new Date().toISOString()
+          });
+          
+          // Add emergency log
+          this.addLog('🚨 Emergency Stop: OpenAI quota exceeded. Please add credits to your OpenAI account.');
+          
+          // Stop the agent immediately
+          await this.stop();
+          
+          throw new Error('EMERGENCY STOP: OpenAI quota exceeded. Please add credits to your OpenAI account at https://platform.openai.com/account/billing');
+        }
+        
         console.log('⚠️ [REASONING] OpenAI rate limit hit, using deterministic fallback logic');
         
         // Use deterministic logic when OpenAI is unavailable
@@ -770,6 +750,15 @@ Choose your next action and explain your reasoning:`;
                 timestamp: new Date().toISOString()
               }
             );
+            
+            // Also emit as an issue/alert for the Agent Director alerts section
+            this.logIssue('info', 'Search Strategy Adapted', {
+              message: `Exhausted recent leads in pages 1-${this.memory.searchPageOffset}. Now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects.`,
+              pageOffset: this.memory.searchPageOffset,
+              searchRange: `${this.memory.searchPageOffset + 1}-${this.memory.searchPageOffset + 10}`,
+              reason: 'consecutive_duplicates',
+              timestamp: new Date().toISOString()
+            });
           }
           
           // Check if we still need more leads for our target
@@ -1223,7 +1212,18 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       
       // Log API usage
       try {
-        await this.awsManager.logApiUsage('serper', 1, null, this.userId);
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'serper',
+          operation: 'search',
+          usage: 1, // 1 credit per search
+          metadata: {
+            companyName: companyName,
+            queryLength: searchQuery.length,
+            timestamp: new Date().toISOString()
+          }
+        });
         console.log('📊 [SERPER] API usage logged');
       } catch (logError) {
         console.error('⚠️ [SERPER] Failed to log API usage:', logError);

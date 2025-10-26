@@ -36,11 +36,11 @@ class AWSManager {
     
     // API Cost rates (estimated)
     this.apiCosts = {
-      apollo: 0.01, // $0.01 per credit
-      openai: 0.002 / 1000, // $0.002 per 1K tokens for GPT-3.5
-      mailgun: 0.0008, // $0.0008 per email
-      zerobounce: 0.005, // $0.005 per validation
-      serper: 0.005 // $0.005 per search query
+      apollo: 0.017, // $0.017 per credit (1.7x)
+      openai: 0.0034 / 1000, // $0.0034 per 1K tokens for GPT-3.5 (1.7x)
+      mailgun: 0.00136, // $0.00136 per email (1.7x)
+      zerobounce: 0.0085, // $0.0085 per validation (1.7x)
+      serper: 0.0085 // $0.0085 per search query (1.7x)
     };
     
     console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
@@ -1246,7 +1246,8 @@ class AWSManager {
         apollo: { usage: 0, calls: 0, cost: 0 },
         openai: { usage: 0, calls: 0, cost: 0 },
         mailgun: { usage: 0, calls: 0, cost: 0 },
-        zerobounce: { usage: 0, calls: 0, cost: 0 }
+        zerobounce: { usage: 0, calls: 0, cost: 0 },
+        serper: { usage: 0, calls: 0, cost: 0 }
       };
 
       result.Items.forEach(item => {
@@ -1293,7 +1294,8 @@ class AWSManager {
         apollo: { usage: 0, calls: 0, cost: 0 },
         openai: { usage: 0, calls: 0, cost: 0 },
         mailgun: { usage: 0, calls: 0, cost: 0 },
-        zerobounce: { usage: 0, calls: 0, cost: 0 }
+        zerobounce: { usage: 0, calls: 0, cost: 0 },
+        serper: { usage: 0, calls: 0, cost: 0 }
       };
 
       result.Items.forEach(item => {
@@ -1342,19 +1344,43 @@ class AWSManager {
         if (!timeSeriesData[date]) {
           timeSeriesData[date] = {
             date,
-            apollo: { usage: 0, cost: 0 },
-            openai: { usage: 0, cost: 0 },
-            mailgun: { usage: 0, cost: 0 },
-            zerobounce: { usage: 0, cost: 0 },
-            total: { usage: 0, cost: 0 }
+            // Flattened structure for API calls chart
+            apolloCalls: 0,
+            openaiCalls: 0,
+            mailgunCalls: 0,
+            zerbounceCalls: 0,
+            serperCalls: 0,
+            totalCalls: 0,
+            // Nested structure for cost chart (you liked this format)
+            apollo: { cost: 0 },
+            openai: { cost: 0 },
+            mailgun: { cost: 0 },
+            zerobounce: { cost: 0 },
+            serper: { cost: 0 },
+            total: { cost: 0 }
           };
         }
 
-        if (timeSeriesData[date][item.service]) {
-          timeSeriesData[date][item.service].usage += item.usage || 0;
-          timeSeriesData[date][item.service].cost += item.cost || 0;
-          timeSeriesData[date].total.usage += item.usage || 0;
-          timeSeriesData[date].total.cost += item.cost || 0;
+        // Map service names to property names
+        const serviceMap = {
+          'apollo': 'apollo',
+          'openai': 'openai',
+          'mailgun': 'mailgun',
+          'zerobounce': 'zerbounce',
+          'serper': 'serper'
+        };
+
+        const serviceName = serviceMap[item.service];
+        if (serviceName) {
+          // Update flat calls properties
+          timeSeriesData[date][`${serviceName}Calls`] += item.usage || 0;
+          timeSeriesData[date].totalCalls += item.usage || 0;
+          
+          // Update nested cost objects
+          if (timeSeriesData[date][item.service]) {
+            timeSeriesData[date][item.service].cost += item.cost || 0;
+            timeSeriesData[date].total.cost += item.cost || 0;
+          }
         }
       });
 

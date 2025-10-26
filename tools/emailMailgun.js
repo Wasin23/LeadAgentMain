@@ -5,6 +5,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { desktopEmailTracker } from '../utils/desktopEmailTracker.js';
+import AWSManager from '../utils/awsManager.js';
+
+// Initialize AWS Manager for API usage tracking
+const awsManager = new AWSManager();
 
 console.log('MAILGUN_API_KEY:', process.env.MAILGUN_API_KEY);
 const mailgun = new Mailgun(FormData);
@@ -279,6 +283,27 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       desktopTracking: true, // Flag to indicate this uses desktop tracking
       personInfo: personInfo // Include person information in the log
     }, userId, agentId);
+    
+    // Log Mailgun API usage
+    if (userId && agentId) {
+      try {
+        await awsManager.logApiUsage({
+          userId: userId,
+          agentId: agentId,
+          service: 'mailgun',
+          operation: 'send_email',
+          usage: 1,
+          metadata: {
+            to: to,
+            trackingId: trackingId,
+            timestamp: new Date().toISOString()
+          }
+        });
+        console.log('[MAILGUN] API usage logged');
+      } catch (logError) {
+        console.error('[MAILGUN] Failed to log API usage:', logError);
+      }
+    }
     
     return {
       success: true,
