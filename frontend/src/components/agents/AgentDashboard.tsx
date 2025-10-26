@@ -504,8 +504,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               if (progressData.data && !cycleTriggered &&
                   (progressData.data.operation === 'Cycle Completed' || 
                    progressData.data.operation === 'Cycle Stopped' ||
-                   (progressData.data.message && (progressData.data.message.includes('Cycle Completed') || progressData.data.message.includes('Cycle Stopped'))) ||
-                   (progressData.data.details && typeof progressData.data.details === 'string' && (progressData.data.details.includes('Cycle Completed') || progressData.data.details.includes('Cycle Stopped'))))) {
+                   progressData.data.operation === '✅ Process Complete' ||
+                   (progressData.data.message && (progressData.data.message.includes('Cycle Completed') || progressData.data.message.includes('Cycle Stopped') || progressData.data.message.includes('Process Complete'))) ||
+                   (progressData.data.details && typeof progressData.data.details === 'string' && (progressData.data.details.includes('Cycle Completed') || progressData.data.details.includes('Cycle Stopped') || progressData.data.details.includes('Successfully completed lead outreach'))))) {
                 
                 console.log('🏁 [CYCLE END] Detected cycle completion/stop via SSE');
                 console.log('🏁 [DEBUG] Full SSE data:', progressData.data);

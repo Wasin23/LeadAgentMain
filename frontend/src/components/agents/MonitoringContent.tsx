@@ -1103,6 +1103,35 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                               </div>
                             </div>
                           </div>
+
+                          {/* Serper API */}
+                          <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 bg-orange-100 rounded flex items-center justify-center">
+                                  <span className="text-orange-600 text-xs font-bold">S</span>
+                                </div>
+                                <span className="text-sm font-medium text-neutral-900">Serper</span>
+                              </div>
+                              <span className="text-xs text-green-600 font-medium">● Connected</span>
+                            </div>
+                            <div className="ml-9 mt-2">
+                              <div className="flex justify-between items-center text-xs mb-1">
+                                <span className="text-neutral-600">Searches</span>
+                                <span className="font-medium text-neutral-900">
+                                  {apiUsage[agent.id]?.serper?.usage || 0} queries
+                                </span>
+                              </div>
+                              <div className="w-full bg-neutral-200 rounded-full h-1">
+                                <div className="bg-orange-500 h-1 rounded-full" style={{ 
+                                  width: `${Math.min((apiUsage[agent.id]?.serper?.usage || 0) / 1000 * 100, 100)}%` 
+                                }}></div>
+                              </div>
+                              <div className="text-xs text-neutral-500 mt-1">
+                                {apiUsage[agent.id]?.serper?.calls || 0} API calls
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -1285,23 +1314,16 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                 ● Active
               </span>
             </div>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between items-center text-sm mb-1">
-                  <span className="text-neutral-600">Credits Used</span>
-                  <span className="font-semibold text-neutral-900">
-                    {totalApiUsage.apollo?.usage || 0} / 1,000
-                  </span>
-                </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ 
-                    width: `${Math.min((totalApiUsage.apollo?.usage || 0) / 1000 * 100, 100)}%` 
-                  }}></div>
-                </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Credits Used</span>
+                <span className="text-2xl font-bold text-neutral-900">
+                  {totalApiUsage.apollo?.usage || 0}
+                </span>
               </div>
-              <div className="flex justify-between text-xs text-neutral-500">
+              <div className="flex justify-between items-center text-xs text-neutral-500">
                 <span>{totalApiUsage.apollo?.calls || 0} API calls</span>
-                <span>{totalApiUsage.apollo?.cost ? `$${totalApiUsage.apollo.cost.toFixed(2)}` : '$0.00'}</span>
+                <span className="text-lg font-semibold text-blue-600">{totalApiUsage.apollo?.cost ? `$${totalApiUsage.apollo.cost.toFixed(2)}` : '$0.00'}</span>
               </div>
             </div>
           </div>
@@ -1322,23 +1344,16 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                 ● Active
               </span>
             </div>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between items-center text-sm mb-1">
-                  <span className="text-neutral-600">Tokens Used</span>
-                  <span className="font-semibold text-neutral-900">
-                    {(totalApiUsage.openai?.usage || 0).toLocaleString()} / 100,000
-                  </span>
-                </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div className="bg-emerald-500 h-2 rounded-full" style={{ 
-                    width: `${Math.min((totalApiUsage.openai?.usage || 0) / 100000 * 100, 100)}%` 
-                  }}></div>
-                </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Tokens Used</span>
+                <span className="text-2xl font-bold text-neutral-900">
+                  {(totalApiUsage.openai?.usage || 0).toLocaleString()}
+                </span>
               </div>
-              <div className="flex justify-between text-xs text-neutral-500">
+              <div className="flex justify-between items-center text-xs text-neutral-500">
                 <span>{totalApiUsage.openai?.calls || 0} API calls</span>
-                <span>{totalApiUsage.openai?.cost ? `$${totalApiUsage.openai.cost.toFixed(2)}` : '$0.00'}</span>
+                <span className="text-lg font-semibold text-emerald-600">{totalApiUsage.openai?.cost ? `$${totalApiUsage.openai.cost.toFixed(2)}` : '$0.00'}</span>
               </div>
             </div>
           </div>
@@ -1359,23 +1374,16 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                 ● Active
               </span>
             </div>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between items-center text-sm mb-1">
-                  <span className="text-neutral-600">Emails Sent</span>
-                  <span className="font-semibold text-neutral-900">
-                    {totalApiUsage.mailgun?.usage || 0} / 10,000
-                  </span>
-                </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div className="bg-orange-500 h-2 rounded-full" style={{ 
-                    width: `${Math.min((totalApiUsage.mailgun?.usage || 0) / 10000 * 100, 100)}%` 
-                  }}></div>
-                </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Emails Sent</span>
+                <span className="text-2xl font-bold text-neutral-900">
+                  {totalApiUsage.mailgun?.usage || 0}
+                </span>
               </div>
-              <div className="flex justify-between text-xs text-neutral-500">
+              <div className="flex justify-between items-center text-xs text-neutral-500">
                 <span>{totalApiUsage.mailgun?.calls || 0} emails delivered</span>
-                <span>{totalApiUsage.mailgun?.cost ? `$${totalApiUsage.mailgun.cost.toFixed(2)}` : '$0.00'}</span>
+                <span className="text-lg font-semibold text-orange-600">{totalApiUsage.mailgun?.cost ? `$${totalApiUsage.mailgun.cost.toFixed(2)}` : '$0.00'}</span>
               </div>
             </div>
           </div>
@@ -1396,23 +1404,46 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                 ● Active
               </span>
             </div>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between items-center text-sm mb-1">
-                  <span className="text-neutral-600">Validations</span>
-                  <span className="font-semibold text-neutral-900">
-                    {totalApiUsage.zerobounce?.usage || 0} / 1,000
-                  </span>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Validations</span>
+                <span className="text-2xl font-bold text-neutral-900">
+                  {totalApiUsage.zerobounce?.usage || 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-neutral-500">
+                <span>{totalApiUsage.zerobounce?.calls || 0} API calls</span>
+                <span className="text-lg font-semibold text-purple-600">{totalApiUsage.zerobounce?.cost ? `$${totalApiUsage.zerobounce.cost.toFixed(2)}` : '$0.00'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Serper API */}
+          <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <span className="text-orange-600 text-sm font-bold">S</span>
                 </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div className="bg-purple-500 h-2 rounded-full" style={{ 
-                    width: `${Math.min((totalApiUsage.zerobounce?.usage || 0) / 1000 * 100, 100)}%` 
-                  }}></div>
+                <div>
+                  <h3 className="font-semibold text-neutral-900">Serper</h3>
+                  <p className="text-xs text-neutral-500">Web search</p>
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-neutral-500">
-                <span>{totalApiUsage.zerobounce?.calls || 0} API calls</span>
-                <span>{totalApiUsage.zerobounce?.cost ? `$${totalApiUsage.zerobounce.cost.toFixed(2)}` : '$0.00'}</span>
+              <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">
+                ● Active
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Searches</span>
+                <span className="text-2xl font-bold text-neutral-900">
+                  {totalApiUsage.serper?.usage || 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-neutral-500">
+                <span>{totalApiUsage.serper?.calls || 0} API calls</span>
+                <span className="text-lg font-semibold text-orange-600">{totalApiUsage.serper?.cost ? `$${totalApiUsage.serper.cost.toFixed(2)}` : '$0.00'}</span>
               </div>
             </div>
           </div>
@@ -1422,7 +1453,7 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* API Usage Over Time Graph */}
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">API Usage Over Time (Last 7 Days)</h3>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">API Calls Over Time (Last 7 Days)</h3>
             {apiUsageTimeSeries.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={apiUsageTimeSeries}>
@@ -1441,10 +1472,11 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                     }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="apollo.usage" name="Apollo" stroke="#3b82f6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="openai.usage" name="OpenAI" stroke="#10b981" strokeWidth={2} />
-                  <Line type="monotone" dataKey="mailgun.usage" name="Mailgun" stroke="#f97316" strokeWidth={2} />
-                  <Line type="monotone" dataKey="zerobounce.usage" name="ZeroBounce" stroke="#a855f7" strokeWidth={2} />
+                  <Line type="monotone" dataKey="apollo.calls" name="Apollo" stroke="#3b82f6" strokeWidth={2} />
+                  <Line type="monotone" dataKey="openai.calls" name="OpenAI" stroke="#10b981" strokeWidth={2} />
+                  <Line type="monotone" dataKey="mailgun.calls" name="Mailgun" stroke="#f97316" strokeWidth={2} />
+                  <Line type="monotone" dataKey="zerobounce.calls" name="ZeroBounce" stroke="#a855f7" strokeWidth={2} />
+                  <Line type="monotone" dataKey="serper.calls" name="Serper" stroke="#f59e0b" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -1480,6 +1512,7 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                   <Bar dataKey="openai.cost" name="OpenAI" fill="#10b981" stackId="a" />
                   <Bar dataKey="mailgun.cost" name="Mailgun" fill="#f97316" stackId="a" />
                   <Bar dataKey="zerobounce.cost" name="ZeroBounce" fill="#a855f7" stackId="a" />
+                  <Bar dataKey="serper.cost" name="Serper" fill="#f59e0b" stackId="a" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

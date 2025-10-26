@@ -2,12 +2,14 @@ import express from 'express';
 import { getUserAgent } from '../agent/reasoningLeadAgent.js';
 import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
 import { authenticateToken } from '../middleware/jwt.js';
+import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
 
 // Apply JWT authentication to ALL routes in this router
 router.use(authenticateToken);
 const agentSettings = new AgentSettingsManager();
+const awsManager = new AWSManager();
 
 // DEBUG: Test route to verify routes are loading
 router.get('/test', (req, res) => {
@@ -791,9 +793,8 @@ router.get('/api-usage/timeseries', async (req, res) => {
 router.get('/rate-limits', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
     
-    const settings = await userAgent.awsManager.getUserSettings(userId);
+    const settings = await awsManager.getUserSettings(userId);
     
     res.json({
       success: true,
@@ -814,16 +815,15 @@ router.post('/rate-limits', async (req, res) => {
   try {
     const userId = req.user.userId;
     const { rateLimits } = req.body;
-    const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
     
     // Get existing settings
-    const settings = await userAgent.awsManager.getUserSettings(userId) || {};
+    const settings = await awsManager.getUserSettings(userId) || {};
     
     // Update rate limits
     settings.apiRateLimits = rateLimits;
     
     // Save settings
-    const result = await userAgent.awsManager.saveUserSettings(userId, settings);
+    const result = await awsManager.saveUserSettings(userId, settings);
     
     if (result.success) {
       res.json({

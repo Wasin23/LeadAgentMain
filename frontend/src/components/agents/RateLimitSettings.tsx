@@ -21,18 +21,26 @@ const RateLimitSettings: React.FC = () => {
     try {
       // Fetch saved budget
       const budgetResponse = await api.get('/api/lead-agent/rate-limits');
+      console.log('💰 Budget response:', budgetResponse.data);
       if (budgetResponse.data.success) {
-        setMonthlyBudget(budgetResponse.data.rateLimits?.monthlyBudget || 100);
+        const savedBudget = budgetResponse.data.rateLimits?.monthlyBudget;
+        console.log('💰 Saved budget value:', savedBudget);
+        if (savedBudget !== undefined && savedBudget !== null) {
+          setMonthlyBudget(savedBudget);
+        } else {
+          setMonthlyBudget(100); // Default
+        }
       }
 
       // Fetch total spending
       const spendingResponse = await api.get('/api/lead-agent/api-usage/total');
       if (spendingResponse.data.success) {
         const totalCost = 
-          (spendingResponse.data.apollo?.cost || 0) +
-          (spendingResponse.data.openai?.cost || 0) +
-          (spendingResponse.data.mailgun?.cost || 0) +
-          (spendingResponse.data.zerobounce?.cost || 0);
+          (spendingResponse.data.stats?.apollo?.cost || 0) +
+          (spendingResponse.data.stats?.openai?.cost || 0) +
+          (spendingResponse.data.stats?.mailgun?.cost || 0) +
+          (spendingResponse.data.stats?.zerobounce?.cost || 0) +
+          (spendingResponse.data.stats?.serper?.cost || 0);
         setTotalSpent(totalCost);
       }
     } catch (error: any) {
@@ -48,13 +56,19 @@ const RateLimitSettings: React.FC = () => {
     setMessage(null);
 
     try {
+      console.log('💾 Saving budget:', monthlyBudget);
       const response = await api.post('/api/lead-agent/rate-limits', { 
         rateLimits: { monthlyBudget } 
       });
 
+      console.log('💾 Save response:', response.data);
+
       if (response.data.success) {
         setMessage({ type: 'success', text: 'Budget saved successfully!' });
         setTimeout(() => setMessage(null), 3000);
+        
+        // Refresh to confirm it was saved
+        await fetchBudgetAndSpending();
       } else {
         throw new Error(response.data.message || 'Failed to save budget');
       }
@@ -157,16 +171,20 @@ const RateLimitSettings: React.FC = () => {
                 type="number"
                 min="0"
                 step="10"
-                value={monthlyBudget}
+                value={monthlyBudget === 0 ? '' : monthlyBudget}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
                     setMonthlyBudget(0);
                   } else {
-                    setMonthlyBudget(parseFloat(value));
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      setMonthlyBudget(numValue);
+                    }
                   }
                 }}
                 onFocus={(e) => e.target.select()}
+                placeholder="0"
                 className="w-full pl-8 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

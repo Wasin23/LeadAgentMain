@@ -39,7 +39,8 @@ class AWSManager {
       apollo: 0.01, // $0.01 per credit
       openai: 0.002 / 1000, // $0.002 per 1K tokens for GPT-3.5
       mailgun: 0.0008, // $0.0008 per email
-      zerobounce: 0.005 // $0.005 per validation
+      zerobounce: 0.005, // $0.005 per validation
+      serper: 0.005 // $0.005 per search query
     };
     
     console.log('🔧 [AWS] AWSManager initialized with region:', this.region);

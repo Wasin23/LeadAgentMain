@@ -86,6 +86,8 @@ class ReasoningLeadAgent extends EventEmitter {
       industryInsights: {},
       currentGoal: null,
       currentIndustryIndex: 0, // Track which industry to search next
+      consecutiveDuplicateSearches: 0, // Track consecutive failed searches
+      searchPageOffset: 0, // Increase page numbers when exhausting early pages
       
       // Current cycle lead tracking with queue system
       currentCycle: {
@@ -542,6 +544,21 @@ Choose your next action and explain your reasoning:`;
     } catch (error) {
       console.error('❌ [REASONING] Error:', error);
       
+      // Log OpenAI API errors as issues
+      if (error.status || error.code) {
+        const errorMsg = error.status === 401 ? 'OpenAI API authentication failed - check API key' :
+                        error.status === 429 ? 'OpenAI API rate limit exceeded' :
+                        error.status === 500 ? 'OpenAI API server error' :
+                        error.code === 'ENOTFOUND' ? 'OpenAI API connection failed - check internet connection' :
+                        `OpenAI API error: ${error.message}`;
+        this.logIssue('error', errorMsg, {
+          status: error.status,
+          code: error.code,
+          message: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       // Handle specific OpenAI rate limit errors
       if (error.status === 429) {
         console.log('⚠️ [REASONING] OpenAI rate limit hit, using deterministic fallback logic');
@@ -707,6 +724,9 @@ Choose your next action and explain your reasoning:`;
     switch (action) {
       case 'apollo_search':
         if (actionResult?.leads?.length > 0) {
+          // Reset duplicate counter when we find new leads
+          this.memory.consecutiveDuplicateSearches = 0;
+          
           // Add all leads to the queue for sequential processing
           actionResult.leads.forEach(lead => {
             const normalizedLead = {
@@ -722,10 +742,37 @@ Choose your next action and explain your reasoning:`;
           if (this.memory.currentCycle.leadQueue.length > 0 && !this.memory.currentCycle.currentLead) {
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
-            console.log(`� [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+            console.log(`📋 [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
           }
         } else {
-          // No new leads found - check if we still need more leads for our target
+          // No new leads found - increment duplicate counter
+          this.memory.consecutiveDuplicateSearches++;
+          console.log(`🔄 [DUPLICATE TRACKING] Consecutive duplicate searches: ${this.memory.consecutiveDuplicateSearches}`);
+          
+          // After 3 consecutive duplicate searches, broaden criteria
+          if (this.memory.consecutiveDuplicateSearches >= 3) {
+            console.log(`⚠️ [SEARCH ADAPTATION] Too many duplicates (${this.memory.consecutiveDuplicateSearches}), broadening search criteria...`);
+            
+            // Increase page offset to search deeper pages
+            this.memory.searchPageOffset += 5;
+            console.log(`📄 [SEARCH ADAPTATION] Increasing page offset to ${this.memory.searchPageOffset} (will search pages ${this.memory.searchPageOffset + 1}-${this.memory.searchPageOffset + 10})`);
+            
+            // Reset duplicate counter after adaptation
+            this.memory.consecutiveDuplicateSearches = 0;
+            
+            // Log to user
+            this.logOperation(
+              '🔍 Search Strategy Adapted',
+              `Exhausted recent leads - now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects`,
+              'info',
+              {
+                pageOffset: this.memory.searchPageOffset,
+                timestamp: new Date().toISOString()
+              }
+            );
+          }
+          
+          // Check if we still need more leads for our target
           const totalLeadsNeeded = this.memory.currentCycle.targetLeads;
           const currentLeadCount = this.memory.currentCycle.leadQueue.length + this.memory.currentCycle.leadsProcessed;
           
@@ -1174,6 +1221,14 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       
       const results = await internetSearch(searchQuery);
       
+      // Log API usage
+      try {
+        await this.awsManager.logApiUsage('serper', 1, null, this.userId);
+        console.log('📊 [SERPER] API usage logged');
+      } catch (logError) {
+        console.error('⚠️ [SERPER] Failed to log API usage:', logError);
+      }
+      
       // Log detailed findings
       console.log('📊 [SERPER] Raw Results Summary:');
       console.log(`   • Total organic results: ${results.organic?.length || 0}`);
@@ -1374,7 +1429,14 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
       if (!searchResponse.ok) {
         this.updateIntegrationStatus('apollo', { status: 'error' });
-        this.logIssue('error', `Apollo search failed: ${searchResponse.status}`, { searchPayload });
+        const errorMsg = searchResponse.status === 401 ? 'Apollo API authentication failed - check API key' : 
+                        searchResponse.status === 429 ? 'Apollo API rate limit exceeded' :
+                        `Apollo search failed with status ${searchResponse.status}`;
+        this.logIssue('error', errorMsg, { 
+          status: searchResponse.status,
+          searchPayload,
+          timestamp: new Date().toISOString()
+        });
         throw new Error(`Search failed: ${searchResponse.status}`);
       }
 
@@ -1500,6 +1562,16 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       });
 
       if (!enrichResponse.ok) {
+        const errorMsg = enrichResponse.status === 401 ? 'Apollo API authentication failed during enrichment' :
+                        enrichResponse.status === 429 ? 'Apollo enrichment rate limit exceeded' :
+                        enrichResponse.status === 404 ? 'Apollo person not found for enrichment' :
+                        `Apollo enrichment failed with status ${enrichResponse.status}`;
+        this.logIssue('error', errorMsg, {
+          status: enrichResponse.status,
+          personId: targetPerson.id,
+          personName: targetPerson.name,
+          timestamp: new Date().toISOString()
+        });
         throw new Error(`Enrich failed: ${enrichResponse.status}`);
       }
 
@@ -1537,6 +1609,13 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
           // Only reject if ZeroBounce specifically says it's invalid or spamtrap
           if (!zeroBounceResult.isValid && ['invalid', 'spamtrap', 'abuse', 'do_not_mail'].includes(zeroBounceResult.status?.toLowerCase())) {
             console.log(`❌ [ZEROBOUNCE] Email validation failed: ${zeroBounceResult.status} - ${zeroBounceResult.reason}`);
+            this.logIssue('warning', `Email validation failed for ${emailToValidate}`, {
+              email: emailToValidate,
+              status: zeroBounceResult.status,
+              reason: zeroBounceResult.reason,
+              person: `${person.first_name} ${person.last_name}`,
+              company: person.organization?.name
+            });
             return {
               success: false,
               error: `Email validation failed: ${zeroBounceResult.status}`
@@ -1606,6 +1685,14 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       });
 
       if (!response.ok) {
+        const errorMsg = response.status === 401 ? 'ZeroBounce API authentication failed - check API key' :
+                        response.status === 429 ? 'ZeroBounce rate limit exceeded' :
+                        `ZeroBounce API error: ${response.status}`;
+        this.logIssue('error', errorMsg, {
+          status: response.status,
+          email: email,
+          timestamp: new Date().toISOString()
+        });
         throw new Error(`ZeroBounce API error: ${response.status}`);
       }
 
@@ -1829,7 +1916,10 @@ BODY: [email body with proper greeting and signature]`;
       }
       
       // Use pagination and vary search parameters intelligently
-      const searchPage = Math.floor(Math.random() * 5) + 1; // Pages 1-5 for more variety
+      // Apply page offset from search adaptation strategy
+      const basePageRange = this.memory.searchPageOffset || 0;
+      const searchPage = basePageRange + Math.floor(Math.random() * 10) + 1; // Offset + random 1-10
+      console.log(`📄 [PAGINATION] Searching page ${searchPage} (offset: ${basePageRange})`);
       
       // Use the position the agent reasoned about, or fall back to user settings
       let targetPosition;
@@ -3352,14 +3442,21 @@ BODY: [email body with proper greeting and signature]`;
       this.customInterval = minutes * 60 * 1000; // Convert to milliseconds
       console.log(`⏰ [REASONING AGENT] Cycle interval set to ${minutes} minutes`);
       
-      // Save to DynamoDB agent-settings table
+      // Save to DynamoDB - MERGE with existing settings to preserve configuration
       try {
-        await this.awsManager.saveAgentSettings({
-          userId: this.userId,
-          agentId: this.agentId,
-          customInterval: minutes
-        });
-        console.log(`✅ [REASONING AGENT] Saved cycle interval to DynamoDB`);
+        // Get existing lead agent settings first
+        const existingSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId) || {};
+        
+        // Merge with new interval
+        const updatedSettings = {
+          ...existingSettings,
+          customInterval: minutes,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Save merged settings to preserve all configuration
+        await this.awsManager.saveLeadAgentSettings(this.userId, this.agentId, updatedSettings);
+        console.log(`✅ [REASONING AGENT] Saved cycle interval to DynamoDB (preserved existing settings)`);
       } catch (dbError) {
         console.error('❌ [REASONING AGENT] Failed to save interval to DB:', dbError);
       }
@@ -3439,7 +3536,17 @@ BODY: [email body with proper greeting and signature]`;
         failedStrategies: [],
         industryInsights: {},
         currentGoal: null,
-        currentIndustryIndex: 0
+        currentIndustryIndex: 0,
+        consecutiveDuplicateSearches: 0,
+        searchPageOffset: 0,
+        
+        currentCycle: {
+          leadsProcessed: 0,
+          targetLeads: 0,
+          currentLead: null,
+          leadQueue: [],
+          processingPhase: 'search'
+        }
       };
 
       this.cycleCount = 0;
@@ -3502,6 +3609,13 @@ BODY: [email body with proper greeting and signature]`;
       return result;
     } catch (error) {
       console.error('❌ [REASONING AGENT] Error running manual cycle:', error);
+      
+      // Log cycle error as issue
+      this.logIssue('error', `Agent cycle failed unexpectedly: ${error.message}`, {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
       
       this.emit('progress', {
         stage: 'error',
@@ -3645,11 +3759,21 @@ BODY: [email body with proper greeting and signature]`;
       });
     }
 
-    // Schedule next cycle
+    // Schedule next cycle AFTER current cycle completes (so countdown shows immediately)
     if (this.isRunning) {
       const interval = this.customInterval || (30 * 60 * 1000); // Default 30 minutes
       this.nextRunTime = new Date(Date.now() + interval);
       console.log(`⏰ [REASONING AGENT] Next cycle scheduled for: ${this.nextRunTime.toISOString()}`);
+      
+      // Emit progress so frontend updates immediately with countdown
+      this.emit('progress', {
+        stage: 'cycle-complete',
+        message: `Cycle completed. Next cycle in ${Math.round(interval / 60000)} minutes`,
+        timestamp: new Date().toISOString(),
+        nextRunTime: this.nextRunTime.toISOString(),
+        level: 'success'
+      });
+      
       this.cycleTimer = setTimeout(() => this.runLoop(), interval);
     }
   }

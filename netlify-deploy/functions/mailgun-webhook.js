@@ -11,6 +11,7 @@ import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 // Import calendar manager for event tracking (using dynamic import since it's CommonJS)
 let calendarManager = null;
+let bounceHandler = null;
 
 // Initialize AWS DynamoDB client
 const ddbClient = new DynamoDBClient({
@@ -1273,11 +1274,43 @@ Provide excellent sales support using the user's personalized settings!`;
 // === MAIN HANDLER ===
 
 export async function handler(event) {
-  console.log('[WEBHOOK] LangChain agent processing incoming email...');
+  console.log('[WEBHOOK] LangChain agent processing incoming event...');
   
   try {
     // Parse Mailgun payload
     const formData = parseMailgunPayload(event);
+    
+    // Check if this is a bounce/failure event (not an incoming email)
+    if (formData.event && formData.event !== 'stored') {
+      console.log(`[WEBHOOK] Handling Mailgun event: ${formData.event}`);
+      
+      // Load bounce handler if not already loaded
+      if (!bounceHandler) {
+        const { handleMailgunEvent, parseMailgunEvent } = await import('../../utils/bounceHandler.js');
+        bounceHandler = { handleMailgunEvent, parseMailgunEvent };
+      }
+      
+      // Extract user and agent IDs from tracking
+      const trackingId = formData['X-Mailgun-Variables']?.split('tracking_id=')[1]?.split(',')[0];
+      const userId = extractUserIdFromTrackingId(trackingId);
+      const agentId = extractAgentIdFromTrackingId(trackingId);
+      
+      // Parse and handle the event
+      const eventData = bounceHandler.parseMailgunEvent(formData);
+      await bounceHandler.handleMailgunEvent(eventData, userId, agentId);
+      
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: true,
+          message: `Processed ${formData.event} event`,
+          event_type: formData.event
+        })
+      };
+    }
+    
+    // Continue with normal email processing
     const headers = parseMessageHeaders(formData);
     
     // Extract email data
