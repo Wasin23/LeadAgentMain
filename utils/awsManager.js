@@ -29,7 +29,17 @@ class AWSManager {
       leadData: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'meridian-lead-data',
       emailTracking: process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'meridian-email-tracking',
       agentState: process.env.AWS_DYNAMODB_AGENT_STATE_TABLE || 'meridian-agent-state',
-      contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'meridian-contacted-leads'
+      contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'meridian-contacted-leads',
+      cycleLogs: process.env.AWS_DYNAMODB_CYCLE_LOGS_TABLE || 'meridian-cycle-logs',
+      apiUsage: process.env.AWS_DYNAMODB_API_USAGE_TABLE || 'meridian-api-usage'
+    };
+    
+    // API Cost rates (estimated)
+    this.apiCosts = {
+      apollo: 0.01, // $0.01 per credit
+      openai: 0.002 / 1000, // $0.002 per 1K tokens for GPT-3.5
+      mailgun: 0.0008, // $0.0008 per email
+      zerobounce: 0.005 // $0.005 per validation
     };
     
     console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
@@ -518,15 +528,13 @@ class AWSManager {
       
       const result = await this.dynamodb.send(command);
       
-      console.log('🔍 [AWS] DynamoDB query result:', JSON.stringify(result, null, 2));
-      
       if (!result.Item) {
+        // Only log when no settings found (reduced verbosity)
         console.log('❌ [AWS] No lead agent settings found for userId:', userId, 'agentId:', agentId);
         return null;
       }
       
       console.log('✅ [AWS] Lead agent settings retrieved successfully');
-      console.log('🔍 [AWS] Retrieved settings:', JSON.stringify(result.Item.settings, null, 2));
       return result.Item.settings;
     } catch (error) {
       console.error('❌ [AWS] Error getting lead agent settings:', error);
@@ -583,6 +591,15 @@ class AWSManager {
       console.error('❌ [AWS] Error deleting agent settings:', error);
       throw error;
     }
+  }
+
+  // Aliases for simpler method names
+  async getAgentSettings(userId, agentId) {
+    return this.getLeadAgentSettings(userId, agentId);
+  }
+
+  async saveAgentSettings(settings) {
+    return this.saveLeadAgentSettings(settings.userId, settings.agentId, settings);
   }
 
   // ==================
@@ -740,6 +757,73 @@ class AWSManager {
       return result.Item;
     } catch (error) {
       console.error('❌ [AWS] Error getting agent state:', error);
+      throw error;
+    }
+  }
+
+  // ====================
+  // CYCLE LOGS METHODS
+  // ====================
+  
+  async saveCycleLog(userId, agentId, cycleData) {
+    try {
+      const timestamp = cycleData.timestamp || new Date().toISOString();
+      const cycleId = `${timestamp}#cycle${cycleData.cycleNumber}`;
+      
+      console.log('📊 [AWS] Saving cycle log for userId:', userId, 'agentId:', agentId, 'cycle:', cycleData.cycleNumber);
+      
+      const command = new PutCommand({
+        TableName: this.tables.cycleLogs,
+        Item: {
+          userId,
+          cycleId, // Sort key: timestamp#cycleNumber for time-series queries
+          agentId,
+          cycleNumber: cycleData.cycleNumber,
+          completedAt: timestamp,
+          leadsProcessed: cycleData.leadsProcessed || 0,
+          emailsSent: cycleData.emailsSent || 0,
+          stepsExecuted: cycleData.stepsExecuted || 0,
+          success: cycleData.success !== false,
+          ...cycleData
+        }
+      });
+      
+      await this.dynamodb.send(command);
+      console.log('✅ [AWS] Cycle log saved successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error saving cycle log:', error);
+      throw error;
+    }
+  }
+  
+  async getCycleLogs(userId, agentId = null, limit = 100) {
+    try {
+      console.log('📊 [AWS] Getting cycle logs for userId:', userId, agentId ? `agentId: ${agentId}` : '(all agents)');
+      
+      const params = {
+        TableName: this.tables.cycleLogs,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        },
+        ScanIndexForward: false, // Sort descending (newest first)
+        Limit: limit
+      };
+      
+      // Filter by agent if specified
+      if (agentId) {
+        params.FilterExpression = 'agentId = :agentId';
+        params.ExpressionAttributeValues[':agentId'] = agentId;
+      }
+      
+      const command = new QueryCommand(params);
+      const result = await this.dynamodb.send(command);
+      
+      console.log(`✅ [AWS] Retrieved ${result.Items?.length || 0} cycle logs`);
+      return result.Items || [];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting cycle logs:', error);
       throw error;
     }
   }
@@ -1087,6 +1171,306 @@ class AWSManager {
         error: error.message,
         deletedCount: 0
       };
+    }
+  }
+
+  // =====================
+  // API USAGE TRACKING METHODS
+  // =====================
+
+  /**
+   * Log API usage (Apollo, OpenAI, Mailgun, etc.)
+   */
+  async logApiUsage({ userId, agentId, service, operation, usage, cost = null, metadata = {} }) {
+    try {
+      const timestamp = new Date().toISOString();
+      
+      // Calculate cost if not provided
+      if (cost === null && this.apiCosts[service]) {
+        cost = usage * this.apiCosts[service];
+      }
+      
+      const command = new PutCommand({
+        TableName: this.tables.apiUsage,
+        Item: {
+          userId,
+          timestamp,
+          agentId,
+          service, // 'apollo', 'openai', 'mailgun', 'zerobounce'
+          operation, // e.g., 'search', 'completion', 'send_email', 'email_validation'
+          usage, // credits/tokens/emails used
+          cost: cost || 0, // Cost in dollars
+          metadata, // Additional data (model name, search query, etc.)
+          createdAt: timestamp
+        }
+      });
+
+      await this.dynamodb.send(command);
+      console.log(`📊 [AWS] Logged ${service} usage: ${usage} (${operation}) - $${(cost || 0).toFixed(4)}`);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [AWS] Failed to log API usage:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get API usage stats for a specific agent
+   */
+  async getAgentApiUsage(agentId, startDate = null, endDate = null) {
+    try {
+      const params = {
+        TableName: this.tables.apiUsage,
+        IndexName: 'agentId-timestamp-index',
+        KeyConditionExpression: 'agentId = :agentId',
+        ExpressionAttributeValues: {
+          ':agentId': agentId
+        }
+      };
+
+      // Add date range if provided
+      if (startDate && endDate) {
+        params.KeyConditionExpression += ' AND #ts BETWEEN :start AND :end';
+        params.ExpressionAttributeNames = { '#ts': 'timestamp' };
+        params.ExpressionAttributeValues[':start'] = startDate;
+        params.ExpressionAttributeValues[':end'] = endDate;
+      }
+
+      const command = new QueryCommand(params);
+      const result = await this.dynamodb.send(command);
+
+      // Aggregate by service
+      const stats = {
+        apollo: { usage: 0, calls: 0, cost: 0 },
+        openai: { usage: 0, calls: 0, cost: 0 },
+        mailgun: { usage: 0, calls: 0, cost: 0 },
+        zerobounce: { usage: 0, calls: 0, cost: 0 }
+      };
+
+      result.Items.forEach(item => {
+        if (stats[item.service]) {
+          stats[item.service].usage += item.usage || 0;
+          stats[item.service].calls += 1;
+          stats[item.service].cost += item.cost || 0;
+        }
+      });
+
+      return { success: true, stats, total: result.Items.length };
+    } catch (error) {
+      console.error('❌ [AWS] Failed to get agent API usage:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get total API usage across all agents for a user
+   */
+  async getUserApiUsage(userId, startDate = null, endDate = null) {
+    try {
+      const params = {
+        TableName: this.tables.apiUsage,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        }
+      };
+
+      // Add date range if provided
+      if (startDate && endDate) {
+        params.KeyConditionExpression += ' AND #ts BETWEEN :start AND :end';
+        params.ExpressionAttributeNames = { '#ts': 'timestamp' };
+        params.ExpressionAttributeValues[':start'] = startDate;
+        params.ExpressionAttributeValues[':end'] = endDate;
+      }
+
+      const command = new QueryCommand(params);
+      const result = await this.dynamodb.send(command);
+
+      // Aggregate by service
+      const stats = {
+        apollo: { usage: 0, calls: 0, cost: 0 },
+        openai: { usage: 0, calls: 0, cost: 0 },
+        mailgun: { usage: 0, calls: 0, cost: 0 },
+        zerobounce: { usage: 0, calls: 0, cost: 0 }
+      };
+
+      result.Items.forEach(item => {
+        if (stats[item.service]) {
+          stats[item.service].usage += item.usage || 0;
+          stats[item.service].calls += 1;
+          stats[item.service].cost += item.cost || 0;
+        }
+      });
+
+      return { success: true, stats, total: result.Items.length };
+    } catch (error) {
+      console.error('❌ [AWS] Failed to get user API usage:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get API usage over time for graphing (last 7 days by default)
+   */
+  async getApiUsageTimeSeries(userId, days = 7) {
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      const params = {
+        TableName: this.tables.apiUsage,
+        KeyConditionExpression: 'userId = :userId AND #ts >= :start',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':start': startDate.toISOString()
+        }
+      };
+
+      const command = new QueryCommand(params);
+      const result = await this.dynamodb.send(command);
+
+      // Group by day and service
+      const timeSeriesData = {};
+      
+      result.Items.forEach(item => {
+        const date = item.timestamp.split('T')[0]; // Get YYYY-MM-DD
+        
+        if (!timeSeriesData[date]) {
+          timeSeriesData[date] = {
+            date,
+            apollo: { usage: 0, cost: 0 },
+            openai: { usage: 0, cost: 0 },
+            mailgun: { usage: 0, cost: 0 },
+            zerobounce: { usage: 0, cost: 0 },
+            total: { usage: 0, cost: 0 }
+          };
+        }
+
+        if (timeSeriesData[date][item.service]) {
+          timeSeriesData[date][item.service].usage += item.usage || 0;
+          timeSeriesData[date][item.service].cost += item.cost || 0;
+          timeSeriesData[date].total.usage += item.usage || 0;
+          timeSeriesData[date].total.cost += item.cost || 0;
+        }
+      });
+
+      // Convert to array and sort by date
+      const series = Object.values(timeSeriesData).sort((a, b) => 
+        new Date(a.date) - new Date(b.date)
+      );
+
+      return { success: true, series, days };
+    } catch (error) {
+      console.error('❌ [AWS] Failed to get API usage time series:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Check if user has exceeded API rate limits
+   */
+  async checkApiRateLimit(userId, service, requestedUsage = 1) {
+    try {
+      // Get user's configured rate limits
+      const userSettings = await this.getUserSettings(userId);
+      const rateLimits = userSettings?.apiRateLimits?.[service];
+
+      if (!rateLimits) {
+        // No limits configured, allow request
+        return { 
+          allowed: true, 
+          reason: 'No rate limits configured',
+          remaining: null 
+        };
+      }
+
+      const now = new Date();
+      const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
+      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      // Query usage for different time periods
+      const [hourlyUsage, dailyUsage, monthlyUsage] = await Promise.all([
+        rateLimits.hourly ? this.getApiUsageForPeriod(userId, service, hourStart) : { usage: 0 },
+        rateLimits.daily ? this.getApiUsageForPeriod(userId, service, dayStart) : { usage: 0 },
+        rateLimits.monthly ? this.getApiUsageForPeriod(userId, service, monthStart) : { usage: 0 }
+      ]);
+
+      // Check each limit
+      if (rateLimits.hourly && hourlyUsage.usage + requestedUsage > rateLimits.hourly) {
+        return {
+          allowed: false,
+          reason: 'hourly',
+          limit: rateLimits.hourly,
+          current: hourlyUsage.usage,
+          resetTime: new Date(hourStart.getTime() + 3600000) // +1 hour
+        };
+      }
+
+      if (rateLimits.daily && dailyUsage.usage + requestedUsage > rateLimits.daily) {
+        return {
+          allowed: false,
+          reason: 'daily',
+          limit: rateLimits.daily,
+          current: dailyUsage.usage,
+          resetTime: new Date(dayStart.getTime() + 86400000) // +1 day
+        };
+      }
+
+      if (rateLimits.monthly && monthlyUsage.usage + requestedUsage > rateLimits.monthly) {
+        return {
+          allowed: false,
+          reason: 'monthly',
+          limit: rateLimits.monthly,
+          current: monthlyUsage.usage,
+          resetTime: new Date(now.getFullYear(), now.getMonth() + 1, 1) // Next month
+        };
+      }
+
+      return {
+        allowed: true,
+        remaining: {
+          hourly: rateLimits.hourly ? rateLimits.hourly - hourlyUsage.usage : null,
+          daily: rateLimits.daily ? rateLimits.daily - dailyUsage.usage : null,
+          monthly: rateLimits.monthly ? rateLimits.monthly - monthlyUsage.usage : null
+        }
+      };
+    } catch (error) {
+      console.error('❌ [AWS] Error checking rate limit:', error);
+      // On error, allow the request (fail open)
+      return { allowed: true, reason: 'Error checking limits', error: error.message };
+    }
+  }
+
+  /**
+   * Get API usage for a specific time period
+   */
+  async getApiUsageForPeriod(userId, service, startDate) {
+    try {
+      const params = {
+        TableName: this.tables.apiUsage,
+        KeyConditionExpression: 'userId = :userId AND #ts >= :start',
+        FilterExpression: 'service = :service',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':start': startDate.toISOString(),
+          ':service': service
+        }
+      };
+
+      const command = new QueryCommand(params);
+      const result = await this.dynamodb.send(command);
+
+      const totalUsage = result.Items.reduce((sum, item) => sum + (item.usage || 0), 0);
+
+      return { usage: totalUsage, calls: result.Items.length };
+    } catch (error) {
+      console.error('❌ [AWS] Error getting usage for period:', error);
+      return { usage: 0, calls: 0 };
     }
   }
 }

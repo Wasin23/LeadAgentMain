@@ -99,6 +99,7 @@ class AWSEmailQueue {
         agentId,
         status,
         to: emailData.to,
+        cc: emailData.cc || '', // Add CC email addresses
         from: emailData.from,
         subject: emailData.subject,
         body: emailData.body || emailData.text,
@@ -255,6 +256,57 @@ class AWSEmailQueue {
       return response.Items || [];
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting all replied emails for user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update email content (subject, body, etc.) without changing status
+   */
+  async updateEmail(userId, agentId, emailId, updates) {
+    try {
+      // Find the email with any status
+      const statuses = ['QUEUED', 'APPROVED', 'SENT', 'REPLIED'];
+      let foundItem = null;
+      
+      for (const status of statuses) {
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+          FilterExpression: 'id = :emailId',
+          ExpressionAttributeValues: {
+            ':pk': this._getPK(userId, agentId),
+            ':status': `${status}#`,
+            ':emailId': emailId
+          }
+        }));
+        
+        if (response.Items && response.Items.length > 0) {
+          foundItem = response.Items[0];
+          break;
+        }
+      }
+      
+      if (!foundItem) {
+        throw new Error(`Email ${emailId} not found`);
+      }
+      
+      // Update the item in place (keeping same PK and SK)
+      const updatedItem = {
+        ...foundItem,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tableName,
+        Item: updatedItem
+      }));
+      
+      console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} updated successfully`);
+      return updatedItem;
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error updating email:', error);
       throw error;
     }
   }

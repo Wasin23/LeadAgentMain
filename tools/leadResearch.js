@@ -5,6 +5,9 @@ import 'dotenv/config';
 import { internetSearch } from './internetSearch.js';
 import { companyIntelligence } from './companyIntelligence.js';
 import { getUserSettings } from '../lib/userManager.js';
+import AWSManager from '../utils/awsManager.js';
+
+const awsManager = new AWSManager();
 
 // EXPERIMENTAL: Universal lead scoring weights - works for ANY industry/domain
 const SCORING_WEIGHTS = {
@@ -1164,6 +1167,18 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
     const data = await response.json();
     console.log(`🔍 [Apollo] Raw API response: Found ${data.people?.length || 0} people in response`);
 
+    // Log API usage to DynamoDB
+    if (userId && agentId) {
+      await awsManager.logApiUsage({
+        userId,
+        agentId,
+        service: 'apollo',
+        operation: 'search',
+        usage: data.people?.length || 0, // Number of results returned
+        metadata: { query: apolloQuery, limit }
+      }).catch(err => console.error('Failed to log Apollo usage:', err));
+    }
+
     if (data.people && data.people.length > 0) {
       // HARDCODED DEDUPLICATION - CANNOT BE EDITED OUT
       // Remove duplicates based on company name and person name to prevent 37signals repetition
@@ -1193,7 +1208,7 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
             break;
           }
           
-          const enrichedEmail = await enrichPersonEmail(person, apiKey);
+          const enrichedEmail = await enrichPersonEmail(person, apiKey, userId, agentId);
           if (enrichedEmail && enrichedEmail !== 'email_not_unlocked@domain.com') {
             console.log(`✅ [Apollo] Got real email for ${person.name}: ${enrichedEmail}`);
             enrichedPeople.push({
@@ -1225,7 +1240,7 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
 }
 
 // Email enrichment using Apollo /people/match endpoint
-async function enrichPersonEmail(person, apiKey) {
+async function enrichPersonEmail(person, apiKey, userId = null, agentId = null) {
   try {
     const enrichResponse = await fetch('https://api.apollo.io/v1/people/match', {
       method: 'POST',
@@ -1244,6 +1259,22 @@ async function enrichPersonEmail(person, apiKey) {
 
     if (enrichResponse.ok) {
       const enrichData = await enrichResponse.json();
+      
+      // Log API usage (1 credit per email enrichment)
+      if (userId && agentId) {
+        await awsManager.logApiUsage({
+          userId,
+          agentId,
+          service: 'apollo',
+          operation: 'enrich_email',
+          usage: 1,
+          metadata: { 
+            person: `${person.first_name} ${person.last_name}`,
+            company: person.organization?.name 
+          }
+        }).catch(err => console.error('Failed to log Apollo enrichment:', err));
+      }
+      
       if (enrichData.person && enrichData.person.email) {
         const email = enrichData.person.email;
         if (email && email !== 'email_not_unlocked@domain.com') {

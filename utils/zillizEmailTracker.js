@@ -24,7 +24,11 @@ export class ZillizEmailTracker {
             }
 
             this.initialized = true;
-            console.log('📊 [ZILLIZ] Email tracking initialized successfully');
+            // Reduced logging - only log once per process startup
+            if (!global.zillizInitLogged) {
+                console.log('📊 [ZILLIZ] Email tracking initialized successfully');
+                global.zillizInitLogged = true;
+            }
         } catch (error) {
             console.error('❌ [ZILLIZ] Initialization failed:', error);
             throw error;
@@ -220,7 +224,10 @@ export class ZillizEmailTracker {
                 limit: 1000
             });
 
-            console.log(`📊 [ZILLIZ] Retrieved ${results.data?.length || 0} tracking events for ${context}`);
+            // Only log if there are events (reduce polling noise)
+            if (results.data?.length > 0) {
+                console.log(`📊 [ZILLIZ] Retrieved ${results.data.length} tracking events for ${context}`);
+            }
             return results.data || [];
 
         } catch (error) {
@@ -455,7 +462,10 @@ export class ZillizEmailTracker {
                 limit: 1000
             });
 
-            console.log(`📅 [ZILLIZ] Retrieved ${results.data?.length || 0} scheduled events for ${context}`);
+            // Only log if there are events (reduce polling noise)
+            if (results.data?.length > 0) {
+                console.log(`📅 [ZILLIZ] Retrieved ${results.data.length} scheduled events for ${context}`);
+            }
             return results.data || [];
 
         } catch (error) {

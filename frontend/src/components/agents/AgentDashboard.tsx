@@ -704,7 +704,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         const emailsWithStatus = combinedEmails.map((email: any) => ({
           id: email.trackingId || email.id || Date.now().toString(),
           name: email.leadInfo?.name || email.personInfo?.fullName || email.recipientName || email.recipient || email.to?.split('@')[0] || 'Unknown Contact',
-          company: email.leadInfo?.company || email.personInfo?.company || email.company || 'Unknown Company',
+          company: email.lead?.company || email.leadInfo?.company || email.personInfo?.company || email.company || 'Unknown Company',
           email: email.to || email.email,
           dateSent: email.approvedAt || email.sentAt || email.timestamp || new Date().toISOString(),
           // Add the missing fields for email content display
@@ -756,10 +756,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     try {
       // Include agentId in query to get agent-specific email queue
       const response = await api.get(`/api/email-queue/queue?agentId=${agentId}`);
+      console.log('📧 [EMAIL QUEUE] Raw API response:', response.data);
+      
       if (response.data && Array.isArray(response.data)) {
+        console.log('📧 [EMAIL QUEUE] First email structure:', response.data[0]);
+        console.log('📧 [EMAIL QUEUE] Company locations in first email:');
+        console.log('  - email.company:', response.data[0]?.company);
+        console.log('  - email.lead?.company:', response.data[0]?.lead?.company);
+        console.log('  - email.leadInfo?.company:', response.data[0]?.leadInfo?.company);
+        console.log('  - email.leadData?.company:', response.data[0]?.leadData?.company);
         setEmailQueue(response.data);
       } else if (response.data && response.data.data && Array.isArray(response.data.data.pending)) {
         // Handle the formatted response structure
+        console.log('📧 [EMAIL QUEUE] First email structure (nested):', response.data.data.pending[0]);
         setEmailQueue(response.data.data.pending);
       } else {
         setEmailQueue([]);
@@ -1857,7 +1866,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-neutral-900 text-sm">
-                                  {email.leadInfo?.company || email.leadData?.company || 'Unknown Company'}
+                                  {email.lead?.company || email.leadInfo?.company || email.leadData?.company || email.company || 'Unknown Company'}
                                 </span>
                                 <span className="text-xs text-neutral-500">
                                   • {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}

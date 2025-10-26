@@ -804,7 +804,10 @@ class DesktopEmailTracker {
       const { getUserActiveAgents } = await import('../agent/reasoningLeadAgent.js');
       const activeAgents = getUserActiveAgents(userId);
       
-      console.log(`📧 [USER POLLING] User ${userId}: Found ${activeAgents.length} active agents`);
+      // Only log if agents exist (reduce polling noise)
+      if (activeAgents.length > 0) {
+        console.log(`📧 [USER POLLING] User ${userId}: Found ${activeAgents.length} active agents`);
+      }
       
       // Poll for each active agent (future-proofed for multiple agents)
       for (const agentInfo of activeAgents) {
@@ -825,7 +828,7 @@ class DesktopEmailTracker {
       
       if (agentId) {
         zillizApiUrl += `&agentId=${encodeURIComponent(agentId)}`;
-        console.log(`📧 [AGENT POLLING] Polling for user ${userId}, agent ${agentId}`);
+        // Reduced logging for polling endpoint
       }
       
       const response = await fetch(zillizApiUrl, {
@@ -858,7 +861,7 @@ class DesktopEmailTracker {
           
           // Handle scheduled events separately - we'll just log them for now
           if (scheduledEvents && scheduledEvents.length > 0) {
-            console.log(`� [USER POLLING] User ${userId}: Found ${scheduledEvents.length} scheduled events`);
+            // Reduced logging - only if events exist
             // Store scheduled events in memory for the frontend to access
             this.userScheduledEvents = this.userScheduledEvents || new Map();
             const eventKey = agentId ? `${userId}_${agentId}` : userId;

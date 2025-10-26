@@ -68,11 +68,15 @@ class ReasoningLeadAgent extends EventEmitter {
     this.isRunning = false;
     this.cycleCount = 0;
     this.startTime = null;
+    this.nextRunTime = null; // Track when next cycle is scheduled
     
     // ID counter for unique progress events
     this.progressIdCounter = 0;
     this.customInterval = null;
     this.cycleTimer = null;
+    
+    // Load saved settings from DynamoDB
+    this.loadSavedSettings();
     
     // Agent memory - learns from experience
     this.memory = {
@@ -286,6 +290,28 @@ class ReasoningLeadAgent extends EventEmitter {
     this.logOperation('System', 'Operation logs cleared', 'completed');
   }
 
+  // Log cycle completion to DynamoDB for analytics
+  async logCycleCompletion(cycleData = {}) {
+    try {
+      const timestamp = new Date().toISOString();
+      const cycleLog = {
+        userId: this.userId,
+        agentId: this.agentId,
+        cycleNumber: this.cycleCount,
+        timestamp,
+        completedAt: timestamp,
+        ...cycleData
+      };
+
+      // Save to DynamoDB
+      await this.awsManager.saveCycleLog(this.userId, this.agentId, cycleLog);
+      
+      console.log(`📊 [CYCLE LOG] Logged cycle #${this.cycleCount} completion to DynamoDB`);
+    } catch (error) {
+      console.error('❌ [CYCLE LOG] Failed to log cycle completion:', error);
+    }
+  }
+
   // Generate unique ID for progress events
   generateUniqueId() {
     return `${Date.now()}-${++this.progressIdCounter}-${Math.random().toString(36).substr(2, 4)}`;
@@ -416,6 +442,47 @@ Choose your next action and explain your reasoning:`;
         function_call: functionCall,
         temperature: 0.7
       });
+      
+      // Log OpenAI API usage
+      if (response.usage) {
+        // Check rate limit before logging (for tracking purposes)
+        const rateCheck = await this.awsManager.checkApiRateLimit(
+          this.userId, 
+          'openai', 
+          response.usage.total_tokens
+        ).catch(err => {
+          console.error('⚠️ Rate limit check failed, allowing request:', err);
+          return { allowed: true };
+        });
+
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'openai',
+          operation: 'chat_completion',
+          usage: response.usage.total_tokens,
+          metadata: {
+            model: 'gpt-3.5-turbo',
+            prompt_tokens: response.usage.prompt_tokens,
+            completion_tokens: response.usage.completion_tokens,
+            rateLimitStatus: rateCheck.allowed ? 'within_limits' : 'exceeded'
+          }
+        }).catch(err => console.error('Failed to log OpenAI usage:', err));
+
+        // Warn if approaching or exceeding limits
+        if (!rateCheck.allowed) {
+          console.warn(`⚠️ OpenAI ${rateCheck.reason} rate limit exceeded: ${rateCheck.current}/${rateCheck.limit} tokens`);
+        } else if (rateCheck.remaining) {
+          const checkRemaining = (limit, type) => {
+            if (limit !== null && limit < 1000) {
+              console.warn(`⚠️ OpenAI ${type} limit approaching: ${limit} tokens remaining`);
+            }
+          };
+          checkRemaining(rateCheck.remaining.hourly, 'hourly');
+          checkRemaining(rateCheck.remaining.daily, 'daily');
+          checkRemaining(rateCheck.remaining.monthly, 'monthly');
+        }
+      }
       
       console.log('🔧 [OPENAI] Response has function_call:', !!response.choices[0].message.function_call);
 
@@ -687,8 +754,16 @@ Choose your next action and explain your reasoning:`;
         console.log(`🔧 [DEBUG] unlock_email success check: success=${actionResult?.success}, email=${!!actionResult?.email}`);
         
         if (actionResult?.success && actionResult?.email) {
-          // Email unlocked successfully, UPDATE the lead email and move to build
+          // Email unlocked successfully, UPDATE the lead email and company name from enriched data
           this.memory.currentCycle.currentLead.email = actionResult.email;
+          
+          // Update company name from enriched Apollo data (person.organization.name)
+          if (actionResult.person?.organization?.name) {
+            this.memory.currentCycle.currentLead.company = actionResult.person.organization.name;
+            this.memory.currentCycle.currentLead.organization = actionResult.person.organization;
+            console.log(`🏢 [CYCLE] Updated company name from enriched data: ${actionResult.person.organization.name}`);
+          }
+          
           this.memory.currentCycle.processingPhase = 'build';
           console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
           console.log(`🔧 [DEBUG] Set processingPhase to 'build' after unlock - NEW PHASE: ${this.memory.currentCycle.processingPhase}`);
@@ -698,6 +773,20 @@ Choose your next action and explain your reasoning:`;
           // Email unlock failed, skip this lead and get next from queue or search
           console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead`);
           console.log(`🔧 [DEBUG] Failure reason: success=${actionResult?.success}, email=${actionResult?.email}, error=${actionResult?.error}`);
+          
+          // Emit SSE log for email unlock failure so user can see it
+          this.logOperation(
+            '❌ Email Unlock Failed', 
+            `Could not unlock email for ${this.memory.currentCycle.currentLead?.name} at ${this.memory.currentCycle.currentLead?.company || 'Unknown Company'}. Reason: ${actionResult?.error || 'No valid email found'}. Skipping to next lead.`,
+            'warning',
+            {
+              leadName: this.memory.currentCycle.currentLead?.name,
+              company: this.memory.currentCycle.currentLead?.company,
+              reason: actionResult?.error,
+              timestamp: new Date().toISOString()
+            }
+          );
+          
           this.memory.currentCycle.currentLead = null;
           
           if (this.memory.currentCycle.leadQueue.length > 0) {
@@ -719,6 +808,7 @@ Choose your next action and explain your reasoning:`;
           const leadData = {
             ...this.memory.currentCycle.currentLead,
             email: this.memory.currentCycle.currentLead.email,
+            company: this.memory.currentCycle.currentLead.company || this.memory.currentCycle.currentLead.organization?.name,
             personalizedEmail: actionResult.email,
             emailSubject: actionResult.subject,
             generatedEmail: actionResult.email,
@@ -1377,6 +1467,26 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
       // STEP 2: Use enrich endpoint to unlock actual emails
       console.log('  [STEP 2] Enriching person to unlock emails...');
+      
+      // Check rate limit BEFORE enrichment
+      const rateCheck = await this.awsManager.checkApiRateLimit(
+        this.userId,
+        'apollo',
+        1 // 1 credit per enrichment
+      ).catch(err => {
+        console.error('⚠️ Rate limit check failed, allowing request:', err);
+        return { allowed: true };
+      });
+
+      if (!rateCheck.allowed) {
+        const resetTime = new Date(rateCheck.resetTime).toLocaleString();
+        throw new Error(
+          `Apollo ${rateCheck.reason} rate limit exceeded. ` +
+          `Current usage: ${rateCheck.current}/${rateCheck.limit} credits. ` +
+          `Resets at: ${resetTime}`
+        );
+      }
+
       const enrichResponse = await fetch('https://api.apollo.io/api/v1/people/enrich', {
         method: 'POST',
         headers: {
@@ -1395,6 +1505,19 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
       const enrichData = await enrichResponse.json();
       console.log('🔓 [STEP 2] Enriched person data received');
+      
+      // Log Apollo email enrichment usage
+      await this.awsManager.logApiUsage({
+        userId: this.userId,
+        agentId: this.agentId,
+        service: 'apollo',
+        operation: 'email_enrichment',
+        usage: 1, // 1 credit per enrichment
+        metadata: {
+          personName: `${parameters.firstName} ${parameters.lastName}`,
+          company: parameters.organization
+        }
+      }).catch(err => console.error('Failed to log Apollo enrichment usage:', err));
       
       if (enrichData && enrichData.person) {
         const person = enrichData.person;
@@ -1487,6 +1610,20 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       }
 
       const data = await response.json();
+      
+      // Log ZeroBounce usage (1 credit per validation)
+      await this.awsManager.logApiUsage({
+        userId: this.userId,
+        agentId: this.agentId,
+        service: 'zerobounce',
+        operation: 'email_validation',
+        usage: 1,
+        metadata: {
+          email: email,
+          status: data.status,
+          sub_status: data.sub_status
+        }
+      });
       
       // ZeroBounce status values: valid, invalid, catch-all, unknown, spamtrap, abuse, do_not_mail
       const validStatuses = ['valid', 'catch-all'];
@@ -1767,6 +1904,25 @@ BODY: [email body with proper greeting and signature]`;
 
       console.log('🔍 [APOLLO] Search payload:', JSON.stringify(searchPayload, null, 2));
 
+      // Check rate limit BEFORE making Apollo API call
+      const rateCheck = await this.awsManager.checkApiRateLimit(
+        this.userId,
+        'apollo',
+        1 // 1 credit per search
+      ).catch(err => {
+        console.error('⚠️ Rate limit check failed, allowing request:', err);
+        return { allowed: true };
+      });
+
+      if (!rateCheck.allowed) {
+        const resetTime = new Date(rateCheck.resetTime).toLocaleString();
+        throw new Error(
+          `Apollo ${rateCheck.reason} rate limit exceeded. ` +
+          `Current usage: ${rateCheck.current}/${rateCheck.limit} credits. ` +
+          `Resets at: ${resetTime}`
+        );
+      }
+
       const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
         method: 'POST',
         headers: {
@@ -1785,6 +1941,33 @@ BODY: [email body with proper greeting and signature]`;
 
       const rawLeads = data.people || [];
       console.log(`🔍 [APOLLO] Found ${rawLeads.length} raw leads, checking for duplicates...`);
+
+      // Log Apollo search usage
+      await this.awsManager.logApiUsage({
+        userId: this.userId,
+        agentId: this.agentId,
+        service: 'apollo',
+        operation: 'search',
+        usage: rawLeads.length, // Number of results returned
+        metadata: {
+          industries: parameters.industries || userSettings.targetIndustries,
+          location: parameters.location || userSettings.targetLocations?.[0],
+          positions: parameters.positions || userSettings.targetPositions,
+          rateLimitStatus: 'within_limits'
+        }
+      }).catch(err => console.error('Failed to log Apollo search usage:', err));
+
+      // Warn if approaching limits
+      if (rateCheck.remaining) {
+        const checkRemaining = (limit, type) => {
+          if (limit !== null && limit < 10) {
+            console.warn(`⚠️ Apollo ${type} limit approaching: ${limit} credits remaining`);
+          }
+        };
+        checkRemaining(rateCheck.remaining.hourly, 'hourly');
+        checkRemaining(rateCheck.remaining.daily, 'daily');
+        checkRemaining(rateCheck.remaining.monthly, 'monthly');
+      }
 
       // Check for duplicates immediately after Apollo search
       if (rawLeads.length > 0) {
@@ -2791,6 +2974,11 @@ BODY: [email body with proper greeting and signature]`;
       // Emit metric: email queued
       this.emitMetric('emails', 'queued', 1, 'increment');
 
+      // Log CC email settings for debugging
+      const ccEmails = this.memory.emailSettings?.emailBuilder?.ccEmails || '';
+      console.log('📧 [EMAIL QUEUE] CC Emails from settings:', ccEmails);
+      console.log('📧 [EMAIL QUEUE] Full emailSettings:', JSON.stringify(this.memory.emailSettings, null, 2));
+
       const queueData = {
         id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: this.userId,
@@ -2803,7 +2991,7 @@ BODY: [email body with proper greeting and signature]`;
         to: leadData.email,
         subject: leadData.emailSubject,
         body: leadData.personalizedEmail,
-        cc: this.memory.emailSettings?.emailBuilder?.ccEmails || '', // Add CC from settings
+        cc: ccEmails, // Add CC from settings
         
         // Lead information
         leadInfo: {
@@ -3164,6 +3352,18 @@ BODY: [email body with proper greeting and signature]`;
       this.customInterval = minutes * 60 * 1000; // Convert to milliseconds
       console.log(`⏰ [REASONING AGENT] Cycle interval set to ${minutes} minutes`);
       
+      // Save to DynamoDB agent-settings table
+      try {
+        await this.awsManager.saveAgentSettings({
+          userId: this.userId,
+          agentId: this.agentId,
+          customInterval: minutes
+        });
+        console.log(`✅ [REASONING AGENT] Saved cycle interval to DynamoDB`);
+      } catch (dbError) {
+        console.error('❌ [REASONING AGENT] Failed to save interval to DB:', dbError);
+      }
+      
       return {
         success: true,
         message: `Cycle interval set to ${minutes} minutes`,
@@ -3202,6 +3402,23 @@ BODY: [email body with proper greeting and signature]`;
       };
     }
   }
+
+  /**
+   * Load saved settings from DynamoDB
+   */
+  async loadSavedSettings() {
+    try {
+      const settings = await this.awsManager.getAgentSettings(this.userId, this.agentId);
+      if (settings && settings.customInterval) {
+        this.customInterval = settings.customInterval * 60 * 1000; // Convert to milliseconds
+        console.log(`✅ [REASONING AGENT] Loaded saved cycle interval: ${settings.customInterval} minutes`);
+      }
+    } catch (error) {
+      console.error('❌ [REASONING AGENT] Error loading saved settings:', error);
+      // Continue with default settings if load fails
+    }
+  }
+
 
   /**
    * Reset the agent (clear state and memory)
@@ -3387,9 +3604,9 @@ BODY: [email body with proper greeting and signature]`;
   }
 
   getNextCycleTime() {
-    if (!this.isRunning) return null;
-    const intervalMs = this.customInterval || (30 * 60 * 1000); // Default 30 minutes
-    return intervalMs / 1000; // Return seconds
+    if (!this.isRunning || !this.nextRunTime) return null;
+    // Return timestamp of next run
+    return this.nextRunTime.toISOString();
   }
 
   getCurrentProgress() {
@@ -3431,6 +3648,8 @@ BODY: [email body with proper greeting and signature]`;
     // Schedule next cycle
     if (this.isRunning) {
       const interval = this.customInterval || (30 * 60 * 1000); // Default 30 minutes
+      this.nextRunTime = new Date(Date.now() + interval);
+      console.log(`⏰ [REASONING AGENT] Next cycle scheduled for: ${this.nextRunTime.toISOString()}`);
       this.cycleTimer = setTimeout(() => this.runLoop(), interval);
     }
   }
@@ -3556,6 +3775,14 @@ BODY: [email body with proper greeting and signature]`;
         });
       }
 
+      // Log successful cycle completion to DynamoDB
+      await this.logCycleCompletion({
+        success: true,
+        stepsExecuted: stepCount,
+        leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0,
+        targetLeads: this.memory.currentCycle?.targetLeads || 0
+      });
+
       return {
         success: true,
         message: `Reasoning cycle #${this.cycleCount} completed with ${stepCount} steps`,
@@ -3565,6 +3792,15 @@ BODY: [email body with proper greeting and signature]`;
 
     } catch (error) {
       console.error('❌ [REASONING AGENT] Cycle error:', error);
+      
+      // Log failed cycle to DynamoDB
+      await this.logCycleCompletion({
+        success: false,
+        error: error.message,
+        stepsExecuted: stepCount || 0,
+        leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0
+      });
+      
       this.logOperation('Cycle Failed', `Reasoning cycle #${this.cycleCount} encountered an error: ${error.message}`, 'error', {
         cycleNumber: this.cycleCount,
         error: error.message,

@@ -29,6 +29,11 @@ export default function Dashboard() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const { user } = useAuth();
 
+  // Reset to main overview when switching tabs
+  useEffect(() => {
+    setSelectedAgent(null);
+  }, [activeView]);
+
   // Scroll to top when component mounts or view changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

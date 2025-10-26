@@ -54,6 +54,14 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   useEffect(() => {
     fetchAgents();
     
+    // Initial metrics fetch
+    refreshMonitoringMetrics();
+    
+    // Poll metrics every 10 seconds as fallback
+    const pollInterval = setInterval(() => {
+      refreshMonitoringMetrics();
+    }, 10000);
+    
     // Connect to monitoring SSE stream
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const authToken = localStorage.getItem('authToken');
@@ -80,14 +88,18 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     
     return () => {
       eventSource.close();
+      clearInterval(pollInterval);
     };
   }, []);
   
   const handleMonitoringEvent = useCallback((message: any) => {
     const { type, data } = message;
     
+    console.log('📊 [MONITORING EVENT]', type, data);
+    
     switch (type) {
       case 'initial_metrics':
+        console.log('📊 [MONITORING] Setting initial metrics:', data);
         setMonitoringMetrics(data);
         break;
       case 'metric_update':
@@ -112,8 +124,9 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   const refreshMonitoringMetrics = async () => {
     try {
       const response = await api.get('/api/monitoring/metrics');
-      if (response.data) {
-        setMonitoringMetrics(response.data);
+      console.log('📊 [MONITORING] API response:', response.data);
+      if (response.data && response.data.metrics) {
+        setMonitoringMetrics(response.data.metrics);
       }
     } catch (error) {
       console.error('Error refreshing monitoring metrics:', error);
@@ -389,7 +402,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       </div>
 
       {/* Monitoring Sidebar */}
-      <div className="relative z-10">
+      <div className="relative z-20">
         <MonitoringSidebar 
           activeView={monitoringView}
           onViewChange={setMonitoringView}
@@ -399,7 +412,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 flex-1">
+      <div className="relative z-0 flex-1 ml-16">
         {/* Left-aligned Header with White Background */}
         <div className="bg-white border-b border-neutral-200 px-6 py-5">
           <div className="flex items-center justify-between">
@@ -773,8 +786,8 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             <div className="flex items-center justify-between p-6 border-b">
               <div>
                 <h2 className="text-xl font-bold text-neutral-900">Email Details</h2>
-                {selectedEmailDetail._agentInfo && (
-                  <p className="text-sm text-neutral-600 mt-1">{selectedEmailDetail._agentInfo.name}</p>
+                {(selectedEmailDetail.lead?.company || selectedEmailDetail.company) && (
+                  <p className="text-sm text-neutral-600 mt-1">{selectedEmailDetail.lead?.company || selectedEmailDetail.company}</p>
                 )}
               </div>
               <button
@@ -808,10 +821,10 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                         <p className="text-sm text-neutral-900 mt-1">{selectedEmailDetail.lead.name}</p>
                       </div>
                     )}
-                    {selectedEmailDetail.lead.company && (
+                    {(selectedEmailDetail.lead?.company || selectedEmailDetail.company) && (
                       <div>
                         <label className="text-xs font-medium text-neutral-600 uppercase">Company</label>
-                        <p className="text-sm text-neutral-900 mt-1">{selectedEmailDetail.lead.company}</p>
+                        <p className="text-sm text-neutral-900 mt-1">{selectedEmailDetail.lead?.company || selectedEmailDetail.company || 'Unknown Company'}</p>
                       </div>
                     )}
                     {selectedEmailDetail.lead.title && (

@@ -17,7 +17,11 @@ export async function trackUserActivity(req, res, next) {
   const userId = req.user.userId;
   const now = Date.now();
   
-  console.log(`[ACTIVITY] User ${userId} active - ${req.method} ${req.path}`);
+  // Don't log for polling/status routes
+  const isPollingRoute = req.path.includes('/status') || 
+                         req.path.includes('/api-usage') || 
+                         req.path.includes('/metrics') ||
+                         req.path.includes('/internal/events');
   
   // Update last activity time
   const lastActivity = userLastActivity.get(userId);
@@ -25,7 +29,9 @@ export async function trackUserActivity(req, res, next) {
   
   // If this is the user's first activity (or they were inactive), start polling
   if (!lastActivity || (now - lastActivity) > INACTIVITY_TIMEOUT) {
-    console.log(`[ACTIVITY] Starting polling for newly active user ${userId}`);
+    if (!isPollingRoute) {
+      console.log(`[ACTIVITY] Starting polling for newly active user ${userId}`);
+    }
     
     try {
       const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');

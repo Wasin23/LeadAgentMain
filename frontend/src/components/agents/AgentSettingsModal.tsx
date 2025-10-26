@@ -17,6 +17,7 @@ interface AgentSettingsProps {
   isOpen: boolean;
   onClose: () => void;
   agentId: string;
+  compact?: boolean; // Optional compact mode for monitoring page
 }
 
 interface ZillizAgentSettings {
@@ -149,7 +150,7 @@ const JOB_TITLES = {
   specialist: ['Sales Representative', 'Marketing Specialist', 'Software Engineer', 'Data Analyst', 'HR Specialist', 'Account Manager', 'Business Analyst']
 };
 
-export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSettingsProps) {
+export default function AgentSettingsModal({ isOpen, onClose, agentId, compact = false }: AgentSettingsProps) {
   const [settings, setSettings] = useState<ZillizAgentSettings>({
     companyBranding: {
       agentName: 'AI Lead Agent',
@@ -391,7 +392,9 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId }: AgentSe
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-xl shadow-xl max-w-7xl w-full max-h-[98vh] overflow-hidden flex flex-col"
+          className={`bg-white rounded-xl shadow-xl w-full overflow-hidden flex flex-col ${
+            compact ? 'max-w-7xl max-h-[75vh]' : 'max-w-7xl max-h-[98vh]'
+          }`}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">

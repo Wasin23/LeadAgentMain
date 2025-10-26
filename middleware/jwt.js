@@ -23,10 +23,16 @@ export function authenticateToken(req, res, next) {
     token = req.query.token;
   }
   
-  console.log(`[JWT] Auth check for ${req.method} ${req.path} - Token present: ${!!token}`);
+  // Only log for non-polling routes
+  const isPollingRoute = req.path.includes('/status') || 
+                         req.path.includes('/api-usage') || 
+                         req.path.includes('/metrics') ||
+                         req.path.includes('/internal/events');
 
   if (!token) {
-    console.log(`[JWT] No token provided for ${req.method} ${req.path}`);
+    if (!isPollingRoute) {
+      console.log(`[JWT] No token provided for ${req.method} ${req.path}`);
+    }
     return res.status(401).json({ 
       error: 'Access denied. No token provided.',
       requiresAuth: true 
@@ -37,9 +43,6 @@ export function authenticateToken(req, res, next) {
     // Verify token and extract payload
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    console.log(`[JWT] Decoded token:`, decoded);
-    console.log(`[JWT] Setting req.user.userId to:`, decoded.userId);
-    
     // Add user info to request object
     req.user = decoded;
     
@@ -49,7 +52,6 @@ export function authenticateToken(req, res, next) {
     });
     
     // Continue to next middleware/route handler
-    console.log(`[JWT] Calling next() for ${req.method} ${req.path}`);
     next();
   } catch (error) {
     console.error('[AUTH] JWT verification failed:', error.message);

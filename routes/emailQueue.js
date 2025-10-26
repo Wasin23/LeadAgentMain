@@ -231,22 +231,34 @@ router.post('/:id/approve', async (req, res) => {
     const userId = approvedEmail.userId || null; // Get userId from queue data
     const effectiveAgentId = approvedEmail.agentId || req.body.agentId || null;
     
-    // Get CC emails - prioritize email-specific CC over agent settings CC
+    // Get CC emails and sender name from settings
     let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
+    let senderName = null;
     
-    // If no email-specific CC, fall back to agent settings
-    if (!ccEmails && userId && effectiveAgentId) {
+    // Fetch agent settings for CC and sender name
+    if (userId && effectiveAgentId) {
       try {
         const awsManager = getUserEmailQueue(userId, effectiveAgentId).awsManager;
         if (awsManager) {
           const agentSettings = await awsManager.getLeadAgentSettings(userId, effectiveAgentId);
-          if (agentSettings && agentSettings.emailBuilder && agentSettings.emailBuilder.ccEmails) {
-            ccEmails = agentSettings.emailBuilder.ccEmails;
-            console.log('[EMAIL QUEUE] Found CC emails in agent settings:', ccEmails);
+          if (agentSettings) {
+            // Get CC emails if not already set
+            if (!ccEmails && agentSettings.emailBuilder && agentSettings.emailBuilder.ccEmails) {
+              ccEmails = agentSettings.emailBuilder.ccEmails;
+              console.log('[EMAIL QUEUE] Found CC emails in agent settings:', ccEmails);
+            }
+            // Get sender name for branding
+            if (agentSettings.companyName) {
+              senderName = agentSettings.companyName;
+              console.log('[EMAIL QUEUE] Found sender name in agent settings:', senderName);
+            } else if (agentSettings.emailBuilder && agentSettings.emailBuilder.companyName) {
+              senderName = agentSettings.emailBuilder.companyName;
+              console.log('[EMAIL QUEUE] Found sender name in emailBuilder settings:', senderName);
+            }
           }
         }
       } catch (settingsError) {
-        console.warn('[EMAIL QUEUE] Could not fetch agent settings for CC:', settingsError.message);
+        console.warn('[EMAIL QUEUE] Could not fetch agent settings:', settingsError.message);
       }
     }
     
@@ -261,6 +273,7 @@ router.post('/:id/approve', async (req, res) => {
       personInfo,
       userId,
       ccEmails,
+      senderName: senderName || 'Default (Meridian)',
       emailType: approvedEmail.metadata?.customEmail ? 'custom' : 'regular'
     });
     
@@ -271,7 +284,8 @@ router.post('/:id/approve', async (req, res) => {
       personInfo,
       userId,
       effectiveAgentId,
-      ccEmails // Pass CC emails to leadEmail
+      ccEmails, // Pass CC emails to leadEmail
+      senderName // Pass sender name for branding
     );
     
     if (sendResult.success) {

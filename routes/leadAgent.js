@@ -157,7 +157,7 @@ router.get('/status', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
     const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
-    console.log('📊 [LEAD AGENT API] STATUS endpoint called for user:', userId, 'agentId:', agentId);
+    // Reduced logging for polling endpoint
     
     // Get agent-specific instance
     const userAgent = getUserAgent(userId, agentId);
@@ -680,6 +680,166 @@ router.delete('/clear-contacts', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to clear contacted leads database'
+    });
+  }
+});
+
+// Get cycle logs for analytics
+router.get('/cycle-logs', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const agentId = req.query.agentId || null; // Optional: filter by specific agent
+    const limit = parseInt(req.query.limit) || 100;
+    
+    console.log('📊 [LEAD AGENT API] Getting cycle logs for user:', userId, agentId ? `agentId: ${agentId}` : '(all agents)');
+    
+    // Get agent instance to access AWS manager
+    const userAgent = getUserAgent(userId, agentId || 'reasoning-lead-agent');
+    const cycleLogs = await userAgent.awsManager.getCycleLogs(userId, agentId, limit);
+    
+    res.json({
+      success: true,
+      cycleLogs,
+      count: cycleLogs.length
+    });
+  } catch (error) {
+    console.error('❌ [LEAD AGENT API] Error getting cycle logs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get cycle logs',
+      error: error.message
+    });
+  }
+});
+
+// Get API usage stats for a specific agent
+router.get('/api-usage', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId } = req.query;
+    
+    if (!agentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'agentId is required'
+      });
+    }
+    
+    const userAgent = getUserAgent(userId, agentId);
+    const result = await userAgent.awsManager.getAgentApiUsage(agentId);
+    
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting API usage:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting API usage',
+      error: error.message
+    });
+  }
+});
+
+// Get total API usage for user (all agents)
+router.get('/api-usage/total', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
+    const result = await userAgent.awsManager.getUserApiUsage(userId);
+    
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting total API usage:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting total API usage',
+      error: error.message
+    });
+  }
+});
+
+// Get API usage time series for graphing
+router.get('/api-usage/timeseries', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const days = parseInt(req.query.days) || 7;
+    
+    const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
+    const result = await userAgent.awsManager.getApiUsageTimeSeries(userId, days);
+    
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting API usage time series:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting API usage time series',
+      error: error.message
+    });
+  }
+});
+
+// Get user's API rate limit settings
+router.get('/rate-limits', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
+    
+    const settings = await userAgent.awsManager.getUserSettings(userId);
+    
+    res.json({
+      success: true,
+      rateLimits: settings?.apiRateLimits || {}
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting rate limits:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting rate limits',
+      error: error.message
+    });
+  }
+});
+
+// Update user's API rate limit settings
+router.post('/rate-limits', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { rateLimits } = req.body;
+    const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
+    
+    // Get existing settings
+    const settings = await userAgent.awsManager.getUserSettings(userId) || {};
+    
+    // Update rate limits
+    settings.apiRateLimits = rateLimits;
+    
+    // Save settings
+    const result = await userAgent.awsManager.saveUserSettings(userId, settings);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Rate limits updated successfully',
+        rateLimits: settings.apiRateLimits
+      });
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error updating rate limits:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating rate limits',
+      error: error.message
     });
   }
 });

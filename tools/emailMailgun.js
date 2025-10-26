@@ -185,7 +185,7 @@ function addTrackingToEmail(body, trackingId) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null) {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null, senderName = null) {
   try {
     // Ensure we always have HTML content for tracking
     let htmlBody = body;
@@ -209,9 +209,12 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       console.log(`[DESKTOP TRACKER] Email tracking injected for ${to} with ID: ${trackingId} (User: ${userId})`);
     }
     
+    // Use custom sender name if provided, otherwise default to "Meridian"
+    const fromName = senderName || 'Meridian';
+    
     // Prepare email data
     const emailData = {
-      from: `Meridian <noreply@${process.env.MAILGUN_DOMAIN}>`,
+      from: `${fromName} <noreply@${process.env.MAILGUN_DOMAIN}>`,
       'h:Reply-To': 'replies@mg.examarkchat.com',
       to,
       subject: subject,
@@ -299,7 +302,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
 }
 
 // Send email with custom HTML (for password reset emails)
-async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null, skipLogging = false, userId = null, agentId = null) {
+async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, enableTracking = false, personInfo = null, skipLogging = false, userId = null, agentId = null, senderName = null) {
   try {
     console.log(`[MAILGUN CUSTOM] Sending to: ${to}, Subject: ${subject}`);
     
@@ -315,9 +318,12 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
       console.log(`[DESKTOP TRACKER] Email tracking injected for ${to} with ID: ${trackingId}`);
     }
     
+    // Use custom sender name if provided, otherwise default to "Meridian Support"
+    const fromName = senderName || 'Meridian Support';
+    
     // Prepare email data
     const emailData = {
-      from: `Meridian Support <noreply@${process.env.MAILGUN_DOMAIN}>`,
+      from: `${fromName} <noreply@${process.env.MAILGUN_DOMAIN}>`,
       'h:Reply-To': 'replies@mg.examarkchat.com',
       to,
       subject: subject,

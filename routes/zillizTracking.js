@@ -27,8 +27,7 @@ router.get('/internal/events', async (req, res) => {
         const agentId = req.query.agentId;
         
         if (userId) {
-            const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
-            console.log(`📊 [ZILLIZ INTERNAL] Getting events for ${context}`);
+            // Reduced logging for internal polling endpoint
             
             // Get both email tracking events and scheduled events with agent-specific filtering
             const [trackingEvents, scheduledEvents] = await Promise.all([
@@ -49,7 +48,7 @@ router.get('/internal/events', async (req, res) => {
                 events: allEvents
             });
         } else {
-            console.log('📊 [ZILLIZ INTERNAL] Getting all events for server polling');
+            // Reduced logging for polling endpoint
             
             // Get all events for server-side polling (legacy support)
             const events = await tracker.getTrackingEvents();

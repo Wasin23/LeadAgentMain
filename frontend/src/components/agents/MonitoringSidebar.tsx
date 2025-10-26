@@ -6,11 +6,11 @@ import {
   BellIcon, 
   Cog6ToothIcon,
   BoltIcon,
-  SignalIcon,
+  CurrencyDollarIcon,
   DocumentTextIcon
 } from '@heroicons/react/24/outline';
 
-type MonitoringView = 'overview' | 'analytics' | 'issues' | 'agents' | 'integrations' | 'logs';
+export type MonitoringView = 'overview' | 'analytics' | 'issues' | 'agents' | 'integrations' | 'logs';
 
 interface MonitoringSidebarProps {
   activeView: MonitoringView;
@@ -37,12 +37,12 @@ export default function MonitoringSidebar({
     { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
     { id: 'issues', icon: BellIcon, label: 'Issues', badge: issueCount },
     { id: 'agents', icon: BoltIcon, label: 'Agents' },
-    { id: 'integrations', icon: SignalIcon, label: 'Integrations' },
+    { id: 'integrations', icon: CurrencyDollarIcon, label: 'Billing' },
     { id: 'logs', icon: DocumentTextIcon, label: 'Activity Logs' },
   ];
 
   return (
-    <div className="w-16 bg-white border-r border-neutral-200 flex flex-col items-center py-4 gap-2">
+    <div className="w-16 h-screen bg-white border-r border-neutral-200 flex flex-col items-center py-4 gap-2 fixed left-0 top-0 overflow-y-auto">
       {/* Connection Status Indicator */}
       <div className="mb-4 relative group">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -95,9 +95,7 @@ export default function MonitoringSidebar({
             </button>
 
             {/* Tooltip */}
-            <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap transition-opacity z-50 ${
-              isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}>
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
               {view.label}
               {view.badge !== undefined && view.badge > 0 && (
                 <span className="ml-1.5 text-red-400">({view.badge})</span>
@@ -125,5 +123,3 @@ export default function MonitoringSidebar({
     </div>
   );
 }
-
-export type { MonitoringView };
