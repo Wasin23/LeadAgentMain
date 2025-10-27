@@ -654,6 +654,26 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
       console.log(`[AGENT CLEANUP] ⚠️ Error deleting agent settings: ${error.message}`);
     }
     
+    // Clean up agent's sent/replied emails from AWS DynamoDB
+    try {
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      
+      // Clear sent emails
+      const sentResult = await awsQueue.clearSentEmails(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted ${sentResult.clearedCount} sent emails from AWS for agent ${agentId}`);
+      
+      // Clear replied emails
+      const repliedResult = await awsQueue.clearRepliedEmails(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted ${repliedResult.clearedCount} replied emails from AWS for agent ${agentId}`);
+      
+      // Clear queued emails
+      const queuedResult = await awsQueue.clearQueuedEmails(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted ${queuedResult.clearedCount} queued emails from AWS for agent ${agentId}`);
+    } catch (error) {
+      console.log(`[AGENT CLEANUP] ⚠️ Error deleting agent emails from AWS: ${error.message}`);
+    }
+    
     // Remove agent instance from memory
     try {
       const { ReasoningLeadAgent } = require('../agent/reasoningLeadAgent');

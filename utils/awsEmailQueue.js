@@ -500,7 +500,10 @@ class AWSEmailQueue {
    */
   async clearSentEmails(userId, agentId) {
     try {
-      const emails = await this.getSentEmails(userId, agentId);
+      // If agentId is null, clear ALL sent emails for the user
+      const emails = agentId === null 
+        ? await this.getAllSentEmailsForUser(userId)
+        : await this.getSentEmails(userId, agentId);
       
       if (emails.length === 0) {
         return { clearedCount: 0 };
@@ -533,6 +536,94 @@ class AWSEmailQueue {
       return { clearedCount: emails.length };
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error clearing sent emails:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all replied emails for a specific agent
+   */
+  async clearRepliedEmails(userId, agentId) {
+    try {
+      // If agentId is null, clear ALL replied emails for the user
+      const emails = agentId === null
+        ? await this.getAllRepliedEmailsForUser(userId)
+        : await this.getRepliedEmails(userId, agentId);
+      
+      if (emails.length === 0) {
+        return { clearedCount: 0 };
+      }
+
+      const batches = [];
+      for (let i = 0; i < emails.length; i += 25) {
+        batches.push(emails.slice(i, i + 25));
+      }
+
+      for (const batch of batches) {
+        const deleteRequests = batch.map(email => ({
+          DeleteRequest: {
+            Key: {
+              PK: email.PK,
+              SK: email.SK
+            }
+          }
+        }));
+
+        await this.dynamodb.send(new BatchWriteCommand({
+          RequestItems: {
+            [this.tableName]: deleteRequests
+          }
+        }));
+      }
+
+      console.log(`✅ [AWS EMAIL QUEUE] Cleared ${emails.length} replied emails for agent ${agentId}`);
+      return { clearedCount: emails.length };
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error clearing replied emails:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all queued emails for a specific agent
+   */
+  async clearQueuedEmails(userId, agentId) {
+    try {
+      // If agentId is null, clear ALL queued emails for the user
+      const emails = agentId === null
+        ? await this.getAllQueuedEmailsForUser(userId)
+        : await this.getQueuedEmails(userId, agentId);
+      
+      if (emails.length === 0) {
+        return { clearedCount: 0 };
+      }
+
+      const batches = [];
+      for (let i = 0; i < emails.length; i += 25) {
+        batches.push(emails.slice(i, i + 25));
+      }
+
+      for (const batch of batches) {
+        const deleteRequests = batch.map(email => ({
+          DeleteRequest: {
+            Key: {
+              PK: email.PK,
+              SK: email.SK
+            }
+          }
+        }));
+
+        await this.dynamodb.send(new BatchWriteCommand({
+          RequestItems: {
+            [this.tableName]: deleteRequests
+          }
+        }));
+      }
+
+      console.log(`✅ [AWS EMAIL QUEUE] Cleared ${emails.length} queued emails for agent ${agentId}`);
+      return { clearedCount: emails.length };
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error clearing queued emails:', error);
       throw error;
     }
   }

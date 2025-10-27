@@ -556,8 +556,26 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                       <label className="block text-sm font-medium text-gray-700 mb-2">Lead Limit</label>
                       <input
                         type="number"
+                        min="0"
                         value={settings.geographicSettings?.leadLimit ?? 50}
-                        onChange={(e) => updateField('geographicSettings', 'leadLimit', e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            updateField('geographicSettings', 'leadLimit', '');
+                          } else {
+                            const numValue = parseInt(value);
+                            if (!isNaN(numValue) && numValue >= 0) {
+                              updateField('geographicSettings', 'leadLimit', numValue);
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent minus key and mouse wheel scrolling
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                            e.preventDefault();
+                          }
+                        }}
+                        onWheel={(e) => e.currentTarget.blur()} // Blur to prevent scroll changing value
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="e.g., 50"
                       />

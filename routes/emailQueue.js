@@ -370,19 +370,22 @@ router.get('/approved', async (req, res) => {
 router.get('/sent', async (req, res) => {
   try {
     const agentId = req.query.agentId;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    
+    console.log(`[EMAIL QUEUE API] Getting sent emails for agentId: ${agentId}, userId: ${req.user.userId}`);
     
     // If agentId is 'all', fetch from all agents using AWS
     if (agentId === 'all') {
-      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
-      const awsQueue = getAWSEmailQueue();
       const emails = await awsQueue.getAllSentEmailsForUser(req.user.userId);
+      console.log(`[EMAIL QUEUE API] Found ${emails.length} sent emails for all agents`);
       return res.json(emails);
     }
     
-    // Otherwise, fetch for specific agent (or null for legacy)
-    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
-    const sent = await userEmailQueue.getSent();
-    res.json(sent);
+    // For specific agent, use AWS method (includes orphaned emails from deleted agents)
+    const emails = await awsQueue.getSentEmails(req.user.userId, agentId);
+    console.log(`[EMAIL QUEUE API] Found ${emails.length} sent emails for agent ${agentId}`);
+    res.json(emails);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting sent emails:', error);
     res.status(500).json({ error: 'Failed to get sent emails' });
@@ -471,6 +474,30 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to reject email',
+      details: error.message 
+    });
+  }
+});
+
+// Clear all sent emails
+router.delete('/sent/clear', async (req, res) => {
+  try {
+    const agentId = req.query.agentId || null;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    
+    const result = await awsQueue.clearSentEmails(req.user.userId, agentId);
+    
+    res.json({ 
+      success: true, 
+      message: 'Sent emails cleared successfully',
+      clearedCount: result.clearedCount
+    });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error clearing sent emails:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to clear sent emails',
       details: error.message 
     });
   }

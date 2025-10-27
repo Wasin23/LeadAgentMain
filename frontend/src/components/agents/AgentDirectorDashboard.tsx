@@ -1,10 +1,64 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PlusIcon, ChatBubbleLeftRightIcon, ChartBarIcon, BellIcon, BoltIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import AgentPersonalitySelector, { PersonalityType } from './AgentPersonalitySelector';
 import api from '../../lib/api';
+
+// Live counter component - fetches count on mount
+const LiveCounter = ({ agentId, type, onClick }: { agentId: string; type: 'queued' | 'sent'; onClick: (e: React.MouseEvent) => void }) => {
+  const [count, setCount] = useState<number>(0);
+  
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const endpoint = type === 'queued' 
+          ? `/api/email-queue/queue?agentId=${agentId}`
+          : `/api/email-queue/sent?agentId=${agentId}`;
+        const response = await api.get(endpoint);
+        setCount(Array.isArray(response.data) ? response.data.length : 0);
+      } catch {
+        setCount(0);
+      }
+    };
+    fetchCount();
+  }, [agentId, type]);
+  
+  return (
+    <div 
+      className="text-center cursor-pointer hover:bg-neutral-50 rounded p-1 transition-colors"
+      onClick={onClick}
+    >
+      <div className="text-base font-semibold text-neutral-900">{count}</div>
+      <div className="text-xs text-neutral-600">{type === 'queued' ? 'Queued' : 'Sent'}</div>
+    </div>
+  );
+};
+
+// Basic counter for monitoring panel - fetches from all agents
+const BasicCounter = ({ type }: { type: 'queued' | 'sent' | 'replied' }) => {
+  const [count, setCount] = useState<number>(0);
+  
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        let endpoint = '';
+        if (type === 'queued') endpoint = '/api/email-queue/queue?agentId=all';
+        else if (type === 'sent') endpoint = '/api/email-queue/sent?agentId=all';
+        else if (type === 'replied') endpoint = '/api/email-queue/replied?agentId=all';
+        
+        const response = await api.get(endpoint);
+        setCount(Array.isArray(response.data) ? response.data.length : 0);
+      } catch {
+        setCount(0);
+      }
+    };
+    fetchCount();
+  }, [type]);
+  
+  return <>{count}</>;
+};
 
 interface Agent {
   id: string;
@@ -50,6 +104,9 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   const [queueEmails, setQueueEmails] = useState<any[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [selectedEmailDetail, setSelectedEmailDetail] = useState<any | null>(null);
+  
+  // Prevent concurrent fetches
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     fetchAgents();
@@ -181,18 +238,22 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
         
         // Add agent info for single agent view
         const agent = agents.find(a => a.id === agentId);
-        if (agent) {
-          allEmails = allEmails.map((email: any) => ({
-            ...email,
-            _agentInfo: {
-              id: agent.id,
-              name: agent.personality?.name || agent.name,
-              customName: agent.name,
-              avatar: agent.personality?.avatar,
-              color: agent.personality?.color
-            }
-          }));
-        }
+        allEmails = allEmails.map((email: any) => ({
+          ...email,
+          _agentInfo: agent ? {
+            id: agent.id,
+            name: agent.personality?.name || agent.name,
+            customName: agent.name,
+            avatar: agent.personality?.avatar,
+            color: agent.personality?.color
+          } : {
+            id: agentId,
+            name: 'Deleted Agent',
+            customName: 'Deleted Agent',
+            avatar: null,
+            color: 'neutral'
+          }
+        }));
       }
       
       setQueueEmails(allEmails);
@@ -249,12 +310,48 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     }
   };
 
-  const fetchAgents = async () => {
+  const handleClearAllSentEmails = async () => {
+    if (!selectedQueue || selectedQueue.type !== 'sent') return;
+    
+    if (!confirm('Are you sure you want to clear all sent emails? This action cannot be undone.')) {
+      return;
+    }
+    
     try {
+      const targetAgentId = selectedQueue.agentId !== 'all' ? selectedQueue.agentId : null;
+      
+      console.log('Clearing sent emails for agentId:', targetAgentId);
+      const response = await api.delete('/api/email-queue/sent/clear', {
+        params: { agentId: targetAgentId }
+      });
+      console.log('Clear response:', response.data);
+      
+      // Refresh the queue
+      fetchQueueEmails(selectedQueue.agentId, selectedQueue.type);
+      fetchAgents(); // Refresh agent stats
+      refreshMonitoringMetrics(); // Refresh monitoring metrics
+    } catch (error: any) {
+      console.error('Error clearing sent emails:', error);
+      console.error('Error response:', error.response?.data);
+      alert(`Failed to clear sent emails: ${error.response?.data?.details || error.message}`);
+    }
+  };
+
+  const fetchAgents = async () => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      console.log('⏭️ [AGENTS] Skipping fetch - already in progress');
+      return;
+    }
+    
+    try {
+      console.log('🔄 [AGENTS] Starting agent fetch...');
+      isFetchingRef.current = true;
       setIsLoading(true);
       const response = await api.get('/api/auth/agents');
       
       if (response.data.success && response.data.agents) {
+        console.log(`🔄 [AGENTS] Found ${response.data.agents.length} agents`);
         const awsAgents = await Promise.all(
           response.data.agents.map(async (agent: any) => {
             const emailStats = await fetchEmailStats(agent.agentId);
@@ -270,34 +367,38 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             };
           })
         );
+        console.log('✅ [AGENTS] Agent fetch complete:', awsAgents);
         setAgents(awsAgents);
       } else {
+        console.warn('⚠️ [AGENTS] No agents in response');
         setAgents([]);
       }
     } catch (error) {
-      console.error('Failed to fetch agents:', error);
+      console.error('❌ [AGENTS] Failed to fetch agents:', error);
       setAgents([]);
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   };
 
   const fetchEmailStats = async (agentId: string) => {
     try {
-      const queueResponse = await api.get(`/api/email-queue/queue?agentId=${agentId}`);
-      let emailsQueued = 0;
-      if (queueResponse.data && Array.isArray(queueResponse.data)) {
-        emailsQueued = queueResponse.data.length;
-      } else if (queueResponse.data?.data?.pending && Array.isArray(queueResponse.data.data.pending)) {
-        emailsQueued = queueResponse.data.data.pending.length;
-      }
+      console.log(`📊 [STATS] Fetching stats for agent ${agentId}`);
+      // Use the EXACT same endpoints that populate the modals
+      // This ensures counters always match what's displayed
+      
+      // Queued emails - same call as modal
+      const queuedEmails = await fetchQueueEmailsForCount(agentId, 'queued');
+      const emailsQueued = queuedEmails.length;
+      console.log(`📊 [STATS] Agent ${agentId} - Queued: ${emailsQueued}`);
 
-      const sentResponse = await api.get(`/api/email-queue/approved?agentId=${agentId}`);
-      let emailsSent = 0;
-      if (sentResponse.data && Array.isArray(sentResponse.data)) {
-        emailsSent = sentResponse.data.length;
-      }
+      // Sent emails - same call as modal  
+      const sentEmails = await fetchQueueEmailsForCount(agentId, 'sent');
+      const emailsSent = sentEmails.length;
+      console.log(`📊 [STATS] Agent ${agentId} - Sent: ${emailsSent}`);
 
+      // Meetings
       let meetingsScheduled = 0;
       try {
         const eventsResponse = await api.get(`/api/analytics/scheduled-events?agentId=${agentId}`);
@@ -308,10 +409,37 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
         meetingsScheduled = 0;
       }
 
-      return { emailsQueued, emailsSent, meetingsScheduled };
+      const finalStats = { emailsQueued, emailsSent, meetingsScheduled };
+      console.log(`📊 [STATS] Agent ${agentId} - Final:`, finalStats);
+      return finalStats;
     } catch (error) {
-      console.error(`Failed to fetch email stats for agent ${agentId}:`, error);
+      console.error(`❌ [STATS] Failed to fetch email stats for agent ${agentId}:`, error);
       return { emailsQueued: 0, emailsSent: 0, meetingsScheduled: 0 };
+    }
+  };
+
+  // Helper function to fetch emails for counting - uses same logic as modal
+  const fetchQueueEmailsForCount = async (agentId: string | 'all', type: 'queued' | 'sent' | 'replied') => {
+    try {
+      let endpoint = '';
+      
+      if (agentId === 'all') {
+        if (type === 'queued') endpoint = '/api/email-queue/queue?agentId=all';
+        else if (type === 'sent') endpoint = '/api/email-queue/sent?agentId=all';
+        else if (type === 'replied') endpoint = '/api/email-queue/replied?agentId=all';
+      } else {
+        if (type === 'queued') endpoint = '/api/email-queue/queue';
+        else if (type === 'sent') endpoint = '/api/email-queue/sent';
+        else if (type === 'replied') endpoint = '/api/email-queue/replied';
+        
+        endpoint += `?agentId=${agentId}`;
+      }
+
+      const response = await api.get(endpoint);
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error(`Failed to fetch ${type} emails for counting:`, error);
+      return [];
     }
   };
 
@@ -461,7 +589,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   >
                     <div className="text-center">
                       <div className="text-lg font-bold text-neutral-900">
-                        {monitoringMetrics.emails?.queued || 0}
+                        <BasicCounter type="queued" />
                       </div>
                       <div className="text-[10px] text-neutral-600 uppercase">
                         Queued
@@ -476,7 +604,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   >
                     <div className="text-center">
                       <div className="text-lg font-bold text-neutral-900">
-                        {monitoringMetrics.emails?.sent || 0}
+                        <BasicCounter type="sent" />
                       </div>
                       <div className="text-[10px] text-neutral-600 uppercase">
                         Sent
@@ -491,7 +619,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   >
                     <div className="text-center">
                       <div className="text-lg font-bold text-neutral-900">
-                        {monitoringMetrics.emails?.replied || 0}
+                        <BasicCounter type="replied" />
                       </div>
                       <div className="text-[10px] text-neutral-600 uppercase">
                         Replied
@@ -628,26 +756,14 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div 
-                      className="text-center cursor-pointer hover:bg-neutral-50 rounded p-1 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleQueueClick(agent.id, agent.personality?.name || agent.name, 'queued');
-                      }}
-                    >
-                      <div className="text-base font-semibold text-neutral-900">{agent.emailsQueued}</div>
-                      <div className="text-xs text-neutral-600">Queued</div>
-                    </div>
-                    <div 
-                      className="text-center cursor-pointer hover:bg-neutral-50 rounded p-1 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleQueueClick(agent.id, agent.personality?.name || agent.name, 'sent');
-                      }}
-                    >
-                      <div className="text-base font-semibold text-neutral-900">{agent.emailsSent}</div>
-                      <div className="text-xs text-neutral-600">Sent</div>
-                    </div>
+                    <LiveCounter agentId={agent.id} type="queued" onClick={(e) => {
+                      e.stopPropagation();
+                      handleQueueClick(agent.id, agent.personality?.name || agent.name, 'queued');
+                    }} />
+                    <LiveCounter agentId={agent.id} type="sent" onClick={(e) => {
+                      e.stopPropagation();
+                      handleQueueClick(agent.id, agent.personality?.name || agent.name, 'sent');
+                    }} />
                     <div className="text-center">
                       <div className="text-base font-semibold text-neutral-900">{agent.meetingsScheduled}</div>
                       <div className="text-xs text-neutral-600">Meetings</div>
@@ -682,14 +798,28 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   {selectedQueue.agentName} {selectedQueue.agentId === 'all' && `(${queueEmails.length} total)`}
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedQueue(null)}
-                className="text-neutral-400 hover:text-neutral-600 transition-colors p-2 hover:bg-neutral-200 rounded-full"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                {selectedQueue.type === 'sent' && (
+                  <button
+                    onClick={handleClearAllSentEmails}
+                    disabled={queueEmails.length === 0}
+                    className="px-4 py-2 bg-white text-neutral-900 text-sm font-medium rounded-lg hover:bg-neutral-100 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-300"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Clear All
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedQueue(null)}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors p-2 hover:bg-neutral-200 rounded-full"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Modal Body */}

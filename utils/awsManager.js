@@ -31,7 +31,8 @@ class AWSManager {
       agentState: process.env.AWS_DYNAMODB_AGENT_STATE_TABLE || 'meridian-agent-state',
       contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'meridian-contacted-leads',
       cycleLogs: process.env.AWS_DYNAMODB_CYCLE_LOGS_TABLE || 'meridian-cycle-logs',
-      apiUsage: process.env.AWS_DYNAMODB_API_USAGE_TABLE || 'meridian-api-usage'
+      apiUsage: process.env.AWS_DYNAMODB_API_USAGE_TABLE || 'meridian-api-usage',
+      issuesAlerts: process.env.AWS_DYNAMODB_ISSUES_ALERTS_TABLE || 'meridian-issues-alerts'
     };
     
     // API Cost rates (estimated)
@@ -1607,6 +1608,170 @@ class AWSManager {
     } catch (error) {
       console.error('❌ [AWS] Error getting usage for period:', error);
       return { usage: 0, calls: 0 };
+    }
+  }
+
+  // =====================
+  // Issues & Alerts Methods
+  // =====================
+
+  /**
+   * Add an issue or alert
+   * @param {string} userId - User ID
+   * @param {string} type - Type: 'error', 'warning', 'info'
+   * @param {string} title - Issue title
+   * @param {string} message - Issue message
+   * @param {object} metadata - Additional metadata
+   */
+  async addIssue(userId, type, title, message, metadata = {}) {
+    try {
+      const timestamp = new Date().toISOString();
+      const issueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const issue = {
+        PK: `USER#${userId}`,
+        SK: `ISSUE#${timestamp}#${issueId}`,
+        issueId,
+        userId,
+        type, // error, warning, info
+        title,
+        message,
+        metadata,
+        timestamp,
+        read: false,
+        createdAt: timestamp
+      };
+
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tables.issuesAlerts,
+        Item: issue
+      }));
+
+      console.log(`✅ [AWS] Added ${type} issue: ${title}`);
+
+      // Clean up old issues if over 100
+      await this.cleanupOldIssues(userId);
+
+      return { success: true, issueId };
+    } catch (error) {
+      console.error('❌ [AWS] Error adding issue:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get all issues/alerts for a user
+   */
+  async getIssues(userId, limit = 100) {
+    try {
+      const command = new QueryCommand({
+        TableName: this.tables.issuesAlerts,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}`,
+          ':sk': 'ISSUE#'
+        },
+        ScanIndexForward: false, // Most recent first
+        Limit: limit
+      });
+
+      const result = await this.dynamodb.send(command);
+      return result.Items || [];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting issues:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Mark issue as read
+   */
+  async markIssueAsRead(userId, issueId) {
+    try {
+      // Find the issue first to get the full SK
+      const issues = await this.getIssues(userId);
+      const issue = issues.find(i => i.issueId === issueId);
+      
+      if (!issue) {
+        throw new Error('Issue not found');
+      }
+
+      await this.dynamodb.send(new UpdateCommand({
+        TableName: this.tables.issuesAlerts,
+        Key: {
+          PK: issue.PK,
+          SK: issue.SK
+        },
+        UpdateExpression: 'SET #read = :read',
+        ExpressionAttributeNames: {
+          '#read': 'read'
+        },
+        ExpressionAttributeValues: {
+          ':read': true
+        }
+      }));
+
+      console.log(`✅ [AWS] Marked issue as read: ${issueId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [AWS] Error marking issue as read:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Delete old issues if count exceeds 100
+   */
+  async cleanupOldIssues(userId) {
+    try {
+      const issues = await this.getIssues(userId, 150); // Get more than limit to check
+
+      if (issues.length > 100) {
+        // Delete oldest issues (they're sorted newest first)
+        const toDelete = issues.slice(100);
+        
+        for (const issue of toDelete) {
+          await this.dynamodb.send(new DeleteCommand({
+            TableName: this.tables.issuesAlerts,
+            Key: {
+              PK: issue.PK,
+              SK: issue.SK
+            }
+          }));
+        }
+
+        console.log(`🗑️ [AWS] Cleaned up ${toDelete.length} old issues`);
+      }
+    } catch (error) {
+      console.error('❌ [AWS] Error cleaning up old issues:', error);
+    }
+  }
+
+  /**
+   * Delete a specific issue
+   */
+  async deleteIssue(userId, issueId) {
+    try {
+      const issues = await this.getIssues(userId);
+      const issue = issues.find(i => i.issueId === issueId);
+      
+      if (!issue) {
+        throw new Error('Issue not found');
+      }
+
+      await this.dynamodb.send(new DeleteCommand({
+        TableName: this.tables.issuesAlerts,
+        Key: {
+          PK: issue.PK,
+          SK: issue.SK
+        }
+      }));
+
+      console.log(`✅ [AWS] Deleted issue: ${issueId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [AWS] Error deleting issue:', error);
+      return { success: false, error: error.message };
     }
   }
 }

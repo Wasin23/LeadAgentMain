@@ -823,6 +823,28 @@ Call the appropriate function to continue the workflow.`;
             }
           );
           
+          // Log to issues/alerts database
+          try {
+            const AWSManager = (await import('../utils/awsManager.js')).default;
+            const awsManager = new AWSManager();
+            await awsManager.addIssue(
+              this.userId,
+              'warning',
+              'Email Unlock Failed',
+              `Could not unlock email for ${this.memory.currentCycle.currentLead?.name} at ${this.memory.currentCycle.currentLead?.company || 'Unknown Company'}`,
+              {
+                agentId: this.agentId,
+                leadName: this.memory.currentCycle.currentLead?.name,
+                company: this.memory.currentCycle.currentLead?.company,
+                reason: actionResult?.error || 'No valid email found',
+                timestamp: new Date().toISOString()
+              }
+            );
+            console.log('📝 [ISSUES] Logged email unlock failure to issues database');
+          } catch (issueError) {
+            console.error('❌ [ISSUES] Failed to log issue:', issueError);
+          }
+          
           this.memory.currentCycle.currentLead = null;
           
           if (this.memory.currentCycle.leadQueue.length > 0) {
