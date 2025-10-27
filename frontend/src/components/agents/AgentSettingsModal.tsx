@@ -73,6 +73,7 @@ interface ZillizAgentSettings {
     callToAction: string;
     personalization: string;
     ccEmails?: string; // Comma-separated email addresses
+    bccEmails?: string; // Comma-separated BCC email addresses
     enableAutoResponse?: boolean; // Toggle for AI auto-response
     rebumpIntervalDays?: number; // Days to wait before follow-up
   };
@@ -921,7 +922,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                       </div>
                     </div>
 
-                    {/* New Fields: CC, Auto-Response, Rebump */}
+                    {/* New Fields: CC, BCC, Auto-Response, Rebump */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -937,6 +938,22 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                         <p className="text-xs text-gray-500 mt-1">Comma-separated email addresses to CC on all emails</p>
                       </div>
 
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          BCC Email Addresses
+                        </label>
+                        <input
+                          type="text"
+                          value={settings.emailBuilder?.bccEmails || ''}
+                          onChange={(e) => updateField('emailBuilder', 'bccEmails', e.target.value)}
+                          placeholder="email1@example.com, email2@example.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Comma-separated email addresses to BCC on all emails (hidden from recipients)</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Follow-up Interval (Days)

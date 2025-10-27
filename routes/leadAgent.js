@@ -771,9 +771,10 @@ router.get('/api-usage/timeseries', async (req, res) => {
   try {
     const userId = req.user.userId;
     const days = parseInt(req.query.days) || 7;
+    const interval = req.query.interval || 'day'; // minute, hour, day, month
     
     const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
-    const result = await userAgent.awsManager.getApiUsageTimeSeries(userId, days);
+    const result = await userAgent.awsManager.getApiUsageTimeSeries(userId, days, interval);
     
     res.json({
       success: true,
@@ -822,18 +823,14 @@ router.post('/rate-limits', async (req, res) => {
     // Update rate limits
     settings.apiRateLimits = rateLimits;
     
-    // Save settings
-    const result = await awsManager.saveUserSettings(userId, settings);
+    // Save settings (returns true on success, throws on error)
+    await awsManager.saveUserSettings(userId, settings);
     
-    if (result.success) {
-      res.json({
-        success: true,
-        message: 'Rate limits updated successfully',
-        rateLimits: settings.apiRateLimits
-      });
-    } else {
-      throw new Error(result.error);
-    }
+    res.json({
+      success: true,
+      message: 'Rate limits updated successfully',
+      rateLimits: settings.apiRateLimits
+    });
   } catch (error) {
     console.error('[LEAD AGENT API] Error updating rate limits:', error);
     res.status(500).json({

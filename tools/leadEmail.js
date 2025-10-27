@@ -5,13 +5,14 @@ import { sendEmailMailgun } from './emailMailgun.js';
  * Handles email sending specifically for automated lead outreach
  * Separated from general email functionality to prevent interference
  */
-export async function leadEmail(to, subject, body, personInfo = null, userId = null, agentId = null, ccEmails = null, senderName = null) {
+export async function leadEmail(to, subject, body, personInfo = null, userId = null, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
   console.log('[LEAD EMAIL] Sending email via dedicated lead email tool');
   console.log('[LEAD EMAIL] To:', to);
   console.log('[LEAD EMAIL] Subject:', subject);
   console.log('[LEAD EMAIL] Body length:', body?.length || 0);
   console.log('[LEAD EMAIL] Person Info:', personInfo ? `${personInfo.fullName} (${personInfo.currentPosition})` : 'Not provided');
   console.log('[LEAD EMAIL] CC:', ccEmails || 'None');
+  console.log('[LEAD EMAIL] BCC:', bccEmails || 'None');
   console.log('[LEAD EMAIL] Sender Name:', senderName || 'Default (Meridian)');
   
   if (!to || !subject || !body) {
@@ -21,8 +22,8 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
   }
   
   try {
-    // Use the tracking-enabled email function with person info, userId, agentId, ccEmails, and senderName
-    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId, ccEmails, senderName);
+    // Use the tracking-enabled email function with person info, userId, agentId, ccEmails, bccEmails, and senderName
+    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId, ccEmails, bccEmails, senderName);
     console.log('[LEAD EMAIL] Mailgun result:', result);
     
     if (result.success) {

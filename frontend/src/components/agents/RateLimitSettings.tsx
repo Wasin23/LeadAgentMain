@@ -196,7 +196,11 @@ const RateLimitSettings: React.FC = () => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full px-6 py-3 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            style={saving ? 
+              { backgroundColor: '#60a5fa', color: '#ffffff' } : 
+              { backgroundColor: '#2563eb', color: '#ffffff' }
+            }
           >
             {saving ? (
               <>

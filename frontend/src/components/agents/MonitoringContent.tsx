@@ -41,6 +41,11 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
   const [totalApiUsage, setTotalApiUsage] = useState<any>(null);
   const [apiUsageTimeSeries, setApiUsageTimeSeries] = useState<any[]>([]);
   const [rateLimits, setRateLimits] = useState<any>(null);
+  const [timeRange, setTimeRange] = useState<'minute' | 'hour' | 'day' | 'month'>('day');
+  const [costTimeRange, setCostTimeRange] = useState<'minute' | 'hour' | 'day' | 'month'>('day');
+  const [costTimeSeries, setCostTimeSeries] = useState<any[]>([]);
+  const [customDays, setCustomDays] = useState<number>(7);
+  const [costCustomDays, setCostCustomDays] = useState<number>(7);
 
   // API cost constants (must match backend)
   const apiCosts = {
@@ -109,12 +114,40 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
 
     const fetchApiUsageTimeSeries = async () => {
       try {
-        const response = await api.get('/api/lead-agent/api-usage/timeseries?days=7');
+        // Map time range to days parameter
+        const daysMap = {
+          'minute': 1, // Last 24 hours (by minute not fully supported yet, will show hourly)
+          'hour': 1,   // Last 24 hours
+          'day': customDays,    // User-specified days
+          'month': customDays  // User-specified days for monthly view
+        };
+        const days = daysMap[timeRange];
+        
+        const response = await api.get(`/api/lead-agent/api-usage/timeseries?days=${days}&interval=${timeRange}`);
         if (response.data.success && response.data.series) {
           setApiUsageTimeSeries(response.data.series);
         }
       } catch (error) {
         console.error('Error fetching API usage time series:', error);
+      }
+    };
+
+    const fetchCostTimeSeries = async () => {
+      try {
+        const daysMap = {
+          'minute': 1,
+          'hour': 1,
+          'day': costCustomDays,
+          'month': costCustomDays
+        };
+        const days = daysMap[costTimeRange];
+        
+        const response = await api.get(`/api/lead-agent/api-usage/timeseries?days=${days}&interval=${costTimeRange}`);
+        if (response.data.success && response.data.series) {
+          setCostTimeSeries(response.data.series);
+        }
+      } catch (error) {
+        console.error('Error fetching cost time series:', error);
       }
     };
 
@@ -133,17 +166,19 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
       fetchAgentStatuses();
       fetchTotalApiUsage();
       fetchApiUsageTimeSeries();
+      fetchCostTimeSeries();
       fetchRateLimits();
       // Refresh statuses every 10 seconds
       const interval = setInterval(() => {
         fetchAgentStatuses();
         fetchTotalApiUsage();
         fetchApiUsageTimeSeries();
+        fetchCostTimeSeries();
         fetchRateLimits();
       }, 10000);
       return () => clearInterval(interval);
     }
-  }, [agents]);
+  }, [agents, timeRange, costTimeRange, customDays, costCustomDays]); // Re-fetch when either timeRange or custom days changes
 
   const fetchRealData = async () => {
     try {
@@ -407,20 +442,20 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
               </div>
             </div>
 
-            {/* Leads Card */}
+            {/* Emails Viewed Card */}
             <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-neutral-600">LEADS</span>
+                <span className="text-xs font-medium text-neutral-600">EMAILS VIEWED</span>
                 <ChartBarIcon className="w-4 h-4 text-green-600" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-neutral-900">
-                  {metrics.leads?.found || 0}
+                  {metrics.emails?.viewed || 0}
                 </span>
-                <span className="text-xs text-neutral-500">found</span>
+                <span className="text-xs text-neutral-500">opened</span>
               </div>
               <div className="mt-2 text-xs text-neutral-600">
-                {metrics.leads?.contacted || 0} contacted
+                {metrics.emails?.sent > 0 ? ((metrics.emails?.viewed || 0) / metrics.emails.sent * 100).toFixed(1) : 0}% open rate
               </div>
             </div>
 
@@ -1568,10 +1603,58 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* API Usage Over Time Graph */}
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">API Calls Over Time (Last 7 Days)</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900">API Calls Over Time</h3>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={() => setTimeRange('hour')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={timeRange === 'hour' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Hour
+                </button>
+                <button
+                  onClick={() => setTimeRange('day')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={timeRange === 'day' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setTimeRange('month')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={timeRange === 'month' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Month
+                </button>
+                {(timeRange === 'day' || timeRange === 'month') && (
+                  <div className="flex items-center gap-2 ml-2 pl-2 border-l border-neutral-300">
+                    <label className="text-xs text-neutral-600">Past</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={customDays}
+                      onChange={(e) => setCustomDays(parseInt(e.target.value) || 7)}
+                      className="w-16 px-2 py-1 text-xs border border-neutral-300 rounded"
+                    />
+                    <span className="text-xs text-neutral-600">days</span>
+                  </div>
+                )}
+              </div>
+            </div>
             {apiUsageTimeSeries.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={apiUsageTimeSeries}>
+                <BarChart data={apiUsageTimeSeries}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
                     dataKey="date" 
@@ -1587,12 +1670,12 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                     }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="apolloCalls" name="Apollo" stroke="#3b82f6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="openaiCalls" name="OpenAI" stroke="#10b981" strokeWidth={2} />
-                  <Line type="monotone" dataKey="mailgunCalls" name="Mailgun" stroke="#f97316" strokeWidth={2} />
-                  <Line type="monotone" dataKey="zerbounceCalls" name="ZeroBounce" stroke="#a855f7" strokeWidth={2} />
-                  <Line type="monotone" dataKey="serperCalls" name="Serper" stroke="#f59e0b" strokeWidth={2} />
-                </LineChart>
+                  <Bar dataKey="apolloCalls" name="Apollo" fill="#3b82f6" stackId="a" />
+                  <Bar dataKey="openaiCalls" name="OpenAI" fill="#10b981" stackId="a" />
+                  <Bar dataKey="mailgunCalls" name="Mailgun" fill="#f97316" stackId="a" />
+                  <Bar dataKey="zerbounceCalls" name="ZeroBounce" fill="#a855f7" stackId="a" />
+                  <Bar dataKey="serperCalls" name="Serper" fill="#f59e0b" stackId="a" />
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-64 flex items-center justify-center text-neutral-400">
@@ -1603,10 +1686,58 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
 
           {/* Cost Over Time Graph */}
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Cost Over Time (Last 7 Days)</h3>
-            {apiUsageTimeSeries.length > 0 ? (
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900">Cost Over Time</h3>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={() => setCostTimeRange('hour')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={costTimeRange === 'hour' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Hour
+                </button>
+                <button
+                  onClick={() => setCostTimeRange('day')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={costTimeRange === 'day' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setCostTimeRange('month')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={costTimeRange === 'month' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Month
+                </button>
+                {(costTimeRange === 'day' || costTimeRange === 'month') && (
+                  <div className="flex items-center gap-2 ml-2 pl-2 border-l border-neutral-300">
+                    <label className="text-xs text-neutral-600">Past</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={costCustomDays}
+                      onChange={(e) => setCostCustomDays(parseInt(e.target.value) || 7)}
+                      className="w-16 px-2 py-1 text-xs border border-neutral-300 rounded"
+                    />
+                    <span className="text-xs text-neutral-600">days</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            {costTimeSeries.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={apiUsageTimeSeries}>
+                <BarChart data={costTimeSeries}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
                     dataKey="date" 

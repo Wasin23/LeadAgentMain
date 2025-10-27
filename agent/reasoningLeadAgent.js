@@ -1187,7 +1187,9 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         callToAction: actualEmailSettings.callToAction,
         hasCustomPrompt: !!actualEmailSettings.customPrompt,
         hasCcEmails: !!emailBuilder.ccEmails,
-        ccEmails: emailBuilder.ccEmails
+        ccEmails: emailBuilder.ccEmails,
+        hasBccEmails: !!emailBuilder.bccEmails,
+        bccEmails: emailBuilder.bccEmails
       });
       
       return actualEmailSettings;
@@ -3064,9 +3066,11 @@ BODY: [email body with proper greeting and signature]`;
       // Emit metric: email queued
       this.emitMetric('emails', 'queued', 1, 'increment');
 
-      // Log CC email settings for debugging
+      // Log CC and BCC email settings for debugging
       const ccEmails = this.memory.emailSettings?.emailBuilder?.ccEmails || '';
+      const bccEmails = this.memory.emailSettings?.emailBuilder?.bccEmails || '';
       console.log('📧 [EMAIL QUEUE] CC Emails from settings:', ccEmails);
+      console.log('📧 [EMAIL QUEUE] BCC Emails from settings:', bccEmails);
       console.log('📧 [EMAIL QUEUE] Full emailSettings:', JSON.stringify(this.memory.emailSettings, null, 2));
 
       const queueData = {
@@ -3082,6 +3086,7 @@ BODY: [email body with proper greeting and signature]`;
         subject: leadData.emailSubject,
         body: leadData.personalizedEmail,
         cc: ccEmails, // Add CC from settings
+        bcc: bccEmails, // Add BCC from settings
         
         // Lead information
         leadInfo: {

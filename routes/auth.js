@@ -766,7 +766,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       emailBuilder: {
         enableAutoResponse: true,
         rebumpIntervalDays: 7,
-        ccEmails: ''
+        ccEmails: '',
+        bccEmails: ''
       }
     };
     

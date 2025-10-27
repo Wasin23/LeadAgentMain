@@ -100,6 +100,7 @@ class AWSEmailQueue {
         status,
         to: emailData.to,
         cc: emailData.cc || '', // Add CC email addresses
+        bcc: emailData.bcc || '', // Add BCC email addresses
         from: emailData.from,
         subject: emailData.subject,
         body: emailData.body || emailData.text,

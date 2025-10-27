@@ -1191,6 +1191,11 @@ class AWSManager {
         cost = usage * this.apiCosts[service];
       }
       
+      // Filter out undefined values from metadata to avoid DynamoDB errors
+      const cleanMetadata = Object.fromEntries(
+        Object.entries(metadata).filter(([_, value]) => value !== undefined)
+      );
+      
       const command = new PutCommand({
         TableName: this.tables.apiUsage,
         Item: {
@@ -1201,7 +1206,7 @@ class AWSManager {
           operation, // e.g., 'search', 'completion', 'send_email', 'email_validation'
           usage, // credits/tokens/emails used
           cost: cost || 0, // Cost in dollars
-          metadata, // Additional data (model name, search query, etc.)
+          metadata: cleanMetadata, // Additional data (model name, search query, etc.) - cleaned of undefined
           createdAt: timestamp
         }
       });
@@ -1316,7 +1321,7 @@ class AWSManager {
   /**
    * Get API usage over time for graphing (last 7 days by default)
    */
-  async getApiUsageTimeSeries(userId, days = 7) {
+  async getApiUsageTimeSeries(userId, days = 7, interval = 'day') {
     try {
       const endDate = new Date();
       const startDate = new Date();
@@ -1335,15 +1340,54 @@ class AWSManager {
       const command = new QueryCommand(params);
       const result = await this.dynamodb.send(command);
 
-      // Group by day and service
+      // Group by interval and service
       const timeSeriesData = {};
       
       result.Items.forEach(item => {
-        const date = item.timestamp.split('T')[0]; // Get YYYY-MM-DD
+        const timestamp = new Date(item.timestamp);
+        let key;
+        let displayDate;
         
-        if (!timeSeriesData[date]) {
-          timeSeriesData[date] = {
-            date,
+        // Generate key based on interval
+        switch(interval) {
+          case 'minute':
+            // Round to nearest minute
+            timestamp.setSeconds(0, 0);
+            key = timestamp.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+            const mins = timestamp.getMinutes();
+            const hourMin = timestamp.getHours();
+            const ampmMin = hourMin >= 12 ? 'PM' : 'AM';
+            const hour12Min = hourMin % 12 || 12;
+            displayDate = `${hour12Min}:${mins.toString().padStart(2, '0')} ${ampmMin}`;
+            break;
+          case 'hour':
+            // Round to nearest hour
+            timestamp.setMinutes(0, 0, 0);
+            key = timestamp.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+            const hr = timestamp.getHours();
+            const ampm = hr >= 12 ? 'PM' : 'AM';
+            const hour12 = hr % 12 || 12;
+            displayDate = `${hour12} ${ampm}`;
+            break;
+          case 'month':
+            // Group by month
+            key = timestamp.toISOString().slice(0, 7); // YYYY-MM
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            displayDate = `${months[timestamp.getMonth()]} ${timestamp.getFullYear()}`;
+            break;
+          case 'day':
+          default:
+            // Group by day
+            key = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
+            const monthsDay = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            displayDate = `${monthsDay[timestamp.getMonth()]} ${timestamp.getDate()}`;
+            break;
+        }
+        
+        if (!timeSeriesData[key]) {
+          timeSeriesData[key] = {
+            date: displayDate,
+            sortKey: key,
             // Flattened structure for API calls chart
             apolloCalls: 0,
             openaiCalls: 0,
@@ -1372,24 +1416,89 @@ class AWSManager {
 
         const serviceName = serviceMap[item.service];
         if (serviceName) {
-          // Update flat calls properties
-          timeSeriesData[date][`${serviceName}Calls`] += item.usage || 0;
-          timeSeriesData[date].totalCalls += item.usage || 0;
+          // Update flat calls properties - count each log entry as 1 API call
+          timeSeriesData[key][`${serviceName}Calls`] += 1;
+          timeSeriesData[key].totalCalls += 1;
           
           // Update nested cost objects
-          if (timeSeriesData[date][item.service]) {
-            timeSeriesData[date][item.service].cost += item.cost || 0;
-            timeSeriesData[date].total.cost += item.cost || 0;
+          if (timeSeriesData[key][item.service]) {
+            timeSeriesData[key][item.service].cost += item.cost || 0;
+            timeSeriesData[key].total.cost += item.cost || 0;
           }
         }
       });
 
-      // Convert to array and sort by date
-      const series = Object.values(timeSeriesData).sort((a, b) => 
-        new Date(a.date) - new Date(b.date)
+      // Fill in missing time periods with zeros
+      const now = new Date();
+      const startTime = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+      const filledData = {};
+      
+      // Generate all time periods in range
+      let currentTime = new Date(startTime);
+      while (currentTime <= now) {
+        let key;
+        let displayDate;
+        
+        switch(interval) {
+          case 'minute':
+            currentTime.setSeconds(0, 0);
+            key = currentTime.toISOString().slice(0, 16);
+            const mins = currentTime.getMinutes();
+            const hourMin = currentTime.getHours();
+            const ampmMin = hourMin >= 12 ? 'PM' : 'AM';
+            const hour12Min = hourMin % 12 || 12;
+            displayDate = `${hour12Min}:${mins.toString().padStart(2, '0')} ${ampmMin}`;
+            currentTime.setMinutes(currentTime.getMinutes() + 1);
+            break;
+          case 'hour':
+            currentTime.setMinutes(0, 0, 0);
+            key = currentTime.toISOString().slice(0, 13);
+            const hr = currentTime.getHours();
+            const ampm = hr >= 12 ? 'PM' : 'AM';
+            const hour12 = hr % 12 || 12;
+            displayDate = `${hour12} ${ampm}`;
+            currentTime.setHours(currentTime.getHours() + 1);
+            break;
+          case 'month':
+            key = currentTime.toISOString().slice(0, 7);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            displayDate = `${months[currentTime.getMonth()]} ${currentTime.getFullYear()}`;
+            currentTime.setMonth(currentTime.getMonth() + 1);
+            break;
+          case 'day':
+          default:
+            key = currentTime.toISOString().split('T')[0];
+            const monthsDay = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            displayDate = `${monthsDay[currentTime.getMonth()]} ${currentTime.getDate()}`;
+            currentTime.setDate(currentTime.getDate() + 1);
+            break;
+        }
+        
+        // Use existing data or create empty entry
+        filledData[key] = timeSeriesData[key] || {
+          date: displayDate,
+          sortKey: key,
+          apolloCalls: 0,
+          openaiCalls: 0,
+          mailgunCalls: 0,
+          zerbounceCalls: 0,
+          serperCalls: 0,
+          totalCalls: 0,
+          apollo: { cost: 0 },
+          openai: { cost: 0 },
+          mailgun: { cost: 0 },
+          zerobounce: { cost: 0 },
+          serper: { cost: 0 },
+          total: { cost: 0 }
+        };
+      }
+
+      // Convert to array and sort by sortKey (chronological order)
+      const series = Object.values(filledData).sort((a, b) => 
+        a.sortKey.localeCompare(b.sortKey)
       );
 
-      return { success: true, series, days };
+      return { success: true, series, days, interval };
     } catch (error) {
       console.error('❌ [AWS] Failed to get API usage time series:', error);
       return { success: false, error: error.message };

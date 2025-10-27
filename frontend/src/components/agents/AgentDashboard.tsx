@@ -201,11 +201,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [editedContent, setEditedContent] = useState('');
   const [editedRecipient, setEditedRecipient] = useState('');
   const [editedCc, setEditedCc] = useState('');
+  const [editedBcc, setEditedBcc] = useState('');
   const [showAddEmail, setShowAddEmail] = useState(false);
   const [newEmailRecipient, setNewEmailRecipient] = useState('');
   const [newEmailSubject, setNewEmailSubject] = useState('');
   const [newEmailContent, setNewEmailContent] = useState('');
   const [newEmailCc, setNewEmailCc] = useState('');
+  const [newEmailBcc, setNewEmailBcc] = useState('');
   const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
   const [showRecentContacts, setShowRecentContacts] = useState(false);
   const [selectedRecentEmail, setSelectedRecentEmail] = useState<any>(null);
@@ -938,6 +940,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     setEditedContent(email.emailData?.body || email.personalizedEmail || email.body || email.finalBody || '');
     setEditedRecipient(email.leadData?.email || email.to || email.finalRecipient || '');
     setEditedCc(email.cc || email.emailData?.cc || '');
+    setEditedBcc(email.bcc || email.emailData?.bcc || '');
   };
 
   const saveEmailEdits = async () => {
@@ -953,6 +956,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       console.log('📝 New content length:', editedContent.length);
       console.log('📝 New recipient:', editedRecipient);
       console.log('📝 New CC:', editedCc);
+      console.log('📝 New BCC:', editedBcc);
       
       const updates = {
         subject: editedSubject,
@@ -960,6 +964,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         body: editedContent,
         to: editedRecipient,
         cc: editedCc,
+        bcc: editedBcc,
         finalRecipient: editedRecipient,
         finalSubject: editedSubject,
         finalBody: editedContent
@@ -1007,6 +1012,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         subject: newEmailSubject,
         body: newEmailContent,
         cc: newEmailCc,
+        bcc: newEmailBcc,
         leadContext: 'Custom email created by user',
         source: 'custom',
         agentId: agentId // Include agentId for agent-specific queue
@@ -1020,6 +1026,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       setNewEmailSubject('');
       setNewEmailContent('');
       setNewEmailCc('');
+      setNewEmailBcc('');
       setShowAddEmail(false);
       
       // Refresh queue
@@ -1970,6 +1977,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   </div>
                 )}
                 
+                {(selectedEmail.bcc || selectedEmail.emailData?.bcc) && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">BCC Email Addresses</label>
+                    <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                      {selectedEmail.bcc || selectedEmail.emailData?.bcc}
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
                   <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
@@ -2087,6 +2103,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 </div>
                 
                 <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    BCC Email Addresses
+                    <span className="text-xs text-neutral-500 ml-2">(optional, comma-separated, hidden from recipients)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editedBcc}
+                    onChange={(e) => setEditedBcc(e.target.value)}
+                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="bcc1@email.com, bcc2@email.com"
+                  />
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
                   <input
                     type="text"
@@ -2184,6 +2214,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     onChange={(e) => setNewEmailCc(e.target.value)}
                     className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="cc1@example.com, cc2@example.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    BCC Email Addresses
+                    <span className="text-xs text-neutral-500 ml-2">(optional, comma-separated, hidden from recipients)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newEmailBcc}
+                    onChange={(e) => setNewEmailBcc(e.target.value)}
+                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="bcc1@example.com, bcc2@example.com"
                   />
                 </div>
                 

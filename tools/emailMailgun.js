@@ -189,7 +189,7 @@ function addTrackingToEmail(body, trackingId) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null, senderName = null) {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
   try {
     // Ensure we always have HTML content for tracking
     let htmlBody = body;
@@ -234,6 +234,12 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     if (ccEmails) {
       emailData.cc = ccEmails;
       console.log(`[MAILGUN] Adding CC: ${ccEmails}`);
+    }
+    
+    // Add BCC if provided
+    if (bccEmails) {
+      emailData.bcc = bccEmails;
+      console.log(`[MAILGUN] Adding BCC: ${bccEmails}`);
     }
     
     // Disable Mailgun's tracking to avoid conflicts

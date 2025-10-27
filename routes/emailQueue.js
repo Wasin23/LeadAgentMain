@@ -88,7 +88,7 @@ router.post('/custom', async (req, res) => {
   console.log('[EMAIL QUEUE] Headers:', req.headers);
   console.log('[EMAIL QUEUE] User from JWT:', req.user);
   try {
-    const { to, subject, body, cc, leadContext, source = 'custom' } = req.body;
+    const { to, subject, body, cc, bcc, leadContext, source = 'custom' } = req.body;
     
     // Validation
     if (!to || !subject || !body) {
@@ -113,6 +113,7 @@ router.post('/custom', async (req, res) => {
       source: source,
       userId: req.user.userId, // Add userId from JWT token for proper tracking
       cc: cc || '', // Add CC field
+      bcc: bcc || '', // Add BCC field
       leadData: {
         email: to,
         company: 'Custom Email',
@@ -132,6 +133,7 @@ router.post('/custom', async (req, res) => {
         subject: subject,
         body: body,
         cc: cc || '', // Add CC to emailData as well
+        bcc: bcc || '', // Add BCC to emailData as well
         finalRecipient: to,
         finalSubject: subject,
         finalBody: body
@@ -231,11 +233,12 @@ router.post('/:id/approve', async (req, res) => {
     const userId = approvedEmail.userId || null; // Get userId from queue data
     const effectiveAgentId = approvedEmail.agentId || req.body.agentId || null;
     
-    // Get CC emails and sender name from settings
+    // Get CC, BCC emails and sender name from settings
     let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
+    let bccEmails = approvedEmail.bcc || approvedEmail.emailData?.bcc || null;
     let senderName = null;
     
-    // Fetch agent settings for CC and sender name
+    // Fetch agent settings for CC, BCC and sender name
     if (userId && effectiveAgentId) {
       try {
         const awsManager = getUserEmailQueue(userId, effectiveAgentId).awsManager;
@@ -246,6 +249,11 @@ router.post('/:id/approve', async (req, res) => {
             if (!ccEmails && agentSettings.emailBuilder && agentSettings.emailBuilder.ccEmails) {
               ccEmails = agentSettings.emailBuilder.ccEmails;
               console.log('[EMAIL QUEUE] Found CC emails in agent settings:', ccEmails);
+            }
+            // Get BCC emails if not already set
+            if (!bccEmails && agentSettings.emailBuilder && agentSettings.emailBuilder.bccEmails) {
+              bccEmails = agentSettings.emailBuilder.bccEmails;
+              console.log('[EMAIL QUEUE] Found BCC emails in agent settings:', bccEmails);
             }
             // Get sender name for branding
             if (agentSettings.companyName) {
@@ -265,6 +273,9 @@ router.post('/:id/approve', async (req, res) => {
     if (ccEmails) {
       console.log('[EMAIL QUEUE] Using CC emails:', ccEmails);
     }
+    if (bccEmails) {
+      console.log('[EMAIL QUEUE] Using BCC emails:', bccEmails);
+    }
     
     console.log('[EMAIL QUEUE] Sending email with data:', {
       finalRecipient,
@@ -273,6 +284,7 @@ router.post('/:id/approve', async (req, res) => {
       personInfo,
       userId,
       ccEmails,
+      bccEmails,
       senderName: senderName || 'Default (Meridian)',
       emailType: approvedEmail.metadata?.customEmail ? 'custom' : 'regular'
     });
@@ -285,6 +297,7 @@ router.post('/:id/approve', async (req, res) => {
       userId,
       effectiveAgentId,
       ccEmails, // Pass CC emails to leadEmail
+      bccEmails, // Pass BCC emails to leadEmail
       senderName // Pass sender name for branding
     );
     

@@ -501,20 +501,20 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 </div>
               </div>
 
-              {/* Leads */}
+              {/* Emails Viewed */}
               <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-white/50 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-neutral-600">LEADS</span>
+                  <span className="text-xs font-medium text-neutral-600">EMAILS VIEWED</span>
                   <BoltIcon className="w-4 h-4 text-green-600" />
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-neutral-900">
-                    {monitoringMetrics.leads?.found || 0}
+                    {monitoringMetrics.emails?.viewed || 0}
                   </span>
-                  <span className="text-xs text-neutral-500">found</span>
+                  <span className="text-xs text-neutral-500">opened</span>
                 </div>
                 <div className="mt-1 text-xs text-neutral-600">
-                  {monitoringMetrics.leads?.contacted || 0} contacted
+                  {monitoringMetrics.emails?.sent > 0 ? ((monitoringMetrics.emails?.viewed || 0) / monitoringMetrics.emails.sent * 100).toFixed(1) : 0}% open rate
                 </div>
               </div>
 
@@ -812,6 +812,20 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   <label className="text-xs font-medium text-neutral-600 uppercase">Subject</label>
                   <p className="text-sm text-neutral-900 mt-1">{selectedEmailDetail.subject}</p>
                 </div>
+
+                {(selectedEmailDetail.cc || selectedEmailDetail.emailData?.cc) && (
+                  <div>
+                    <label className="text-xs font-medium text-neutral-600 uppercase">CC Email Addresses</label>
+                    <p className="text-sm text-neutral-900 mt-1">{selectedEmailDetail.cc || selectedEmailDetail.emailData?.cc}</p>
+                  </div>
+                )}
+
+                {(selectedEmailDetail.bcc || selectedEmailDetail.emailData?.bcc) && (
+                  <div>
+                    <label className="text-xs font-medium text-neutral-600 uppercase">BCC Email Addresses</label>
+                    <p className="text-sm text-neutral-900 mt-1">{selectedEmailDetail.bcc || selectedEmailDetail.emailData?.bcc}</p>
+                  </div>
+                )}
 
                 {selectedEmailDetail.lead && (
                   <div className="grid grid-cols-2 gap-4">
