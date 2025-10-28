@@ -1,7 +1,11 @@
 import express from 'express';
 import AWSManager from '../utils/awsManager.js';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
+
+// Apply JWT authentication middleware to all routes
+router.use(authenticateToken);
 
 /**
  * Get all issues/alerts for the authenticated user

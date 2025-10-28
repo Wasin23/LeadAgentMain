@@ -225,7 +225,7 @@ class ReasoningLeadAgent extends EventEmitter {
   /**
    * Log issue to monitoring system
    */
-  logIssue(severity, message, details = {}) {
+  async logIssue(severity, message, details = {}) {
     if (monitoringStore) {
       try {
         monitoringStore.addIssue(severity, message, this.agentId, {
@@ -235,6 +235,24 @@ class ReasoningLeadAgent extends EventEmitter {
       } catch (error) {
         console.error('📊 [MONITORING] Failed to log issue:', error.message);
       }
+    }
+
+    // Also save to DynamoDB issues database
+    try {
+      const AWSManager = (await import('../utils/awsManager.js')).default;
+      const awsManager = new AWSManager();
+      await awsManager.addIssue(
+        this.userId,
+        severity === 'critical' ? 'error' : severity, // Map critical to error for DynamoDB
+        message,
+        details.reason || details.error || message,
+        {
+          agentId: this.agentId,
+          ...details
+        }
+      );
+    } catch (issueError) {
+      console.error('❌ [ISSUES] Failed to log issue to database:', issueError);
     }
   }
 

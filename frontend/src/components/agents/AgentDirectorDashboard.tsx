@@ -178,6 +178,42 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     }
   }, []);
 
+  // Fetch issues on mount
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        const response = await api.get('/api/issues');
+        if (response.data.success && Array.isArray(response.data.issues)) {
+          // Map backend structure to frontend structure
+          const mappedIssues = response.data.issues.map((issue: any) => ({
+            id: issue.issueId,
+            severity: issue.type, // error, warning, info
+            message: `${issue.title}: ${issue.message}`,
+            timestamp: issue.timestamp,
+            agentId: issue.metadata?.agentId || 'system',
+            details: issue.metadata,
+            resolved: issue.read
+          }));
+          setIssues(mappedIssues);
+          console.log('📋 [ISSUES] Fetched issues:', mappedIssues.length);
+        }
+      } catch (error) {
+        console.error('❌ [ISSUES] Error fetching issues:', error);
+      }
+    };
+    
+    fetchIssues();
+  }, []);
+
+  const handleResolveIssue = (issueId: string) => {
+    // Update the issue to mark it as resolved
+    setIssues(prevIssues => 
+      prevIssues.map(issue => 
+        issue.id === issueId ? { ...issue, resolved: true } : issue
+      )
+    );
+  };
+
   const refreshMonitoringMetrics = async () => {
     try {
       const response = await api.get('/api/monitoring/metrics');
@@ -692,6 +728,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               metrics={monitoringMetrics}
               issues={issues}
               connected={monitoringConnected}
+              onResolveIssue={handleResolveIssue}
             />
           ) : (
             /* Agent Grid for overview */

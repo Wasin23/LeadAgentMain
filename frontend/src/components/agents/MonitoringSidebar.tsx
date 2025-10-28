@@ -7,7 +7,8 @@ import {
   Cog6ToothIcon,
   BoltIcon,
   CurrencyDollarIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  Squares2X2Icon
 } from '@heroicons/react/24/outline';
 
 export type MonitoringView = 'overview' | 'analytics' | 'issues' | 'agents' | 'integrations' | 'logs';
@@ -35,7 +36,7 @@ export default function MonitoringSidebar({
     label: string;
     badge?: number;
   }> = [
-    { id: 'overview', icon: ChartBarIcon, label: 'Overview' },
+    { id: 'overview', icon: Squares2X2Icon, label: 'Overview' },
     { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
     { id: 'issues', icon: BellIcon, label: 'Issues', badge: issueCount },
     { id: 'agents', icon: BoltIcon, label: 'Agents' },

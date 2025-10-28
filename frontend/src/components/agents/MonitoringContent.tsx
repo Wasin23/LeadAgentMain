@@ -21,9 +21,10 @@ interface MonitoringContentProps {
   metrics: any;
   issues: any[];
   connected: boolean;
+  onResolveIssue?: (issueId: string) => void;
 }
 
-export default function MonitoringContent({ view, metrics, issues, connected }: MonitoringContentProps) {
+export default function MonitoringContent({ view, metrics, issues, connected, onResolveIssue }: MonitoringContentProps) {
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgentTab, setSelectedAgentTab] = useState<string>('all');
@@ -217,6 +218,20 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
       console.error('Error fetching real data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResolveIssue = async (issueId: string) => {
+    try {
+      const response = await api.put(`/api/issues/${issueId}/read`);
+      if (response.data.success) {
+        // Call the parent callback to update the issues state
+        if (onResolveIssue) {
+          onResolveIssue(issueId);
+        }
+      }
+    } catch (error) {
+      console.error('Error resolving issue:', error);
     }
   };
 
@@ -886,14 +901,14 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
       </div>
       
       <div className="space-y-2">
-        {issues.length === 0 ? (
+        {issues.filter(i => !i.resolved).length === 0 ? (
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-8 text-center">
             <CheckCircleIcon className="w-12 h-12 text-green-500 mx-auto mb-3" />
             <p className="text-neutral-600">No issues detected</p>
             <p className="text-sm text-neutral-500 mt-1">All systems operating normally</p>
           </div>
         ) : (
-          issues.map((issue) => (
+          issues.filter(i => !i.resolved).map((issue) => (
             <div key={issue.id} className="bg-white rounded-lg border border-neutral-200 shadow-sm p-4">
               <div className="flex items-start gap-3">
                 {issue.severity === 'error' && <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
@@ -913,7 +928,10 @@ export default function MonitoringContent({ view, metrics, issues, connected }: 
                 {issue.resolved ? (
                   <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
                 ) : (
-                  <button className="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors">
+                  <button 
+                    onClick={() => handleResolveIssue(issue.id)}
+                    className="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                  >
                     Resolve
                   </button>
                 )}

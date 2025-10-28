@@ -40,6 +40,30 @@ async function handleMailgunEvent(eventData, userId, agentId) {
           }
         );
       }
+
+      // Also save to DynamoDB
+      if (userId) {
+        try {
+          const AWSManager = require('./awsManager').default || require('./awsManager');
+          const awsManager = new AWSManager();
+          await awsManager.addIssue(
+            userId,
+            severity,
+            'Email Bounced',
+            `Email bounced for ${recipient}: ${bounceReason}`,
+            {
+              agentId: agentId || 'unknown',
+              recipient,
+              bounceType: eventData.severity || 'unknown',
+              reason: bounceReason,
+              code: eventData.code,
+              timestamp: new Date(timestamp * 1000).toISOString()
+            }
+          );
+        } catch (error) {
+          console.error('❌ [ISSUES] Failed to log bounce to database:', error);
+        }
+      }
       
       console.log(`⚠️ [BOUNCE] ${eventData.severity || 'Unknown'} bounce for ${recipient}: ${bounceReason}`);
       break;
@@ -58,6 +82,27 @@ async function handleMailgunEvent(eventData, userId, agentId) {
           }
         );
       }
+
+      // Also save to DynamoDB
+      if (userId) {
+        try {
+          const AWSManager = require('./awsManager').default || require('./awsManager');
+          const awsManager = new AWSManager();
+          await awsManager.addIssue(
+            userId,
+            'warning',
+            'Spam Complaint',
+            `Email marked as spam by ${recipient}`,
+            {
+              agentId: agentId || 'unknown',
+              recipient,
+              timestamp: new Date(timestamp * 1000).toISOString()
+            }
+          );
+        } catch (error) {
+          console.error('❌ [ISSUES] Failed to log spam complaint to database:', error);
+        }
+      }
       
       console.log(`🚫 [SPAM COMPLAINT] ${recipient} marked email as spam`);
       break;
@@ -75,6 +120,27 @@ async function handleMailgunEvent(eventData, userId, agentId) {
             timestamp: new Date(timestamp * 1000).toISOString()
           }
         );
+      }
+
+      // Also save to DynamoDB
+      if (userId) {
+        try {
+          const AWSManager = require('./awsManager').default || require('./awsManager');
+          const awsManager = new AWSManager();
+          await awsManager.addIssue(
+            userId,
+            'info',
+            'Recipient Unsubscribed',
+            `${recipient} unsubscribed from emails`,
+            {
+              agentId: agentId || 'unknown',
+              recipient,
+              timestamp: new Date(timestamp * 1000).toISOString()
+            }
+          );
+        } catch (error) {
+          console.error('❌ [ISSUES] Failed to log unsubscribe to database:', error);
+        }
       }
       
       console.log(`📪 [UNSUBSCRIBE] ${recipient} unsubscribed`);
