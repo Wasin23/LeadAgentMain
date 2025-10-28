@@ -732,7 +732,8 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             />
           ) : (
             /* Agent Grid for overview */
-            agents.length === 0 ? (
+            <>
+              {agents.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-neutral-400 mb-4">
                 <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -809,7 +810,8 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 </motion.div>
               ))}
             </div>
-          )
+          )}
+            </>
           )}
         </div>
       </div>

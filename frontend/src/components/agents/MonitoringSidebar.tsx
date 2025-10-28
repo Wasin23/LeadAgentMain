@@ -8,10 +8,12 @@ import {
   BoltIcon,
   CurrencyDollarIcon,
   DocumentTextIcon,
-  Squares2X2Icon
+  Squares2X2Icon,
+  MagnifyingGlassIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 
-export type MonitoringView = 'overview' | 'analytics' | 'issues' | 'agents' | 'integrations' | 'logs';
+export type MonitoringView = 'overview' | 'analytics' | 'issues' | 'agents' | 'integrations' | 'logs' | 'search' | 'report';
 
 interface MonitoringSidebarProps {
   activeView: MonitoringView;
@@ -37,6 +39,8 @@ export default function MonitoringSidebar({
     badge?: number;
   }> = [
     { id: 'overview', icon: Squares2X2Icon, label: 'Overview' },
+    { id: 'search', icon: MagnifyingGlassIcon, label: 'Lead Search' },
+    { id: 'report', icon: SparklesIcon, label: 'AI Report' },
     { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
     { id: 'issues', icon: BellIcon, label: 'Issues', badge: issueCount },
     { id: 'agents', icon: BoltIcon, label: 'Agents' },

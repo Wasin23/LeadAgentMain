@@ -15,6 +15,8 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import api from '../../lib/api';
 import AgentSettingsModal from './AgentSettingsModal';
 import RateLimitSettings from './RateLimitSettings';
+import LeadSearchPanel from './LeadSearchPanel';
+import AIReportPanel from './AIReportPanel';
 
 interface MonitoringContentProps {
   view: MonitoringView;
@@ -1807,6 +1809,10 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   switch (view) {
     case 'overview':
       return renderOverview();
+    case 'search':
+      return <LeadSearchPanel agents={agents} />;
+    case 'report':
+      return <AIReportPanel />;
     case 'analytics':
       return renderAnalytics();
     case 'issues':

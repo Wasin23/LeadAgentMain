@@ -196,6 +196,26 @@ try {
   issuesRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import AI Report routes
+let aiReportRoutes;
+try {
+  aiReportRoutes = (await import('./routes/aiReport.js')).default;
+  console.log('AI Report routes imported successfully');
+} catch (e) {
+  console.log('AI Report routes not available:', e.message);
+  aiReportRoutes = (req, res, next) => next(); // No-op if not present
+}
+
+// Import AI Search routes
+let aiSearchRoutes;
+try {
+  aiSearchRoutes = (await import('./routes/aiSearch.js')).default;
+  console.log('AI Search routes imported successfully');
+} catch (e) {
+  console.log('AI Search routes not available:', e.message);
+  aiSearchRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import Zilliz Email Tracking routes
 let zillizTrackingRoutes;
 try {
@@ -462,6 +482,8 @@ app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 app.use('/api/issues', issuesRoutes); // Issues and alerts tracking
+app.use('/api/ai-report', aiReportRoutes); // AI-powered performance reports
+app.use('/api/ai-search', aiSearchRoutes); // AI-powered lead search
 
 // Import manual sync routes
 let manualSyncRoutes;

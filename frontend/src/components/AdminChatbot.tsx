@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Database, Bot, Loader2 } from 'lucide-react';
+import api from '../lib/api';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -41,40 +42,37 @@ export default function AdminChatbot() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/admin-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: input,
-          history: messages.map(m => ({
-            role: m.role,
-            content: m.content
-          }))
-        })
+      // Use axios api instance which automatically handles auth token
+      const response = await api.post('/api/chat', {
+        userInput: currentInput
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.response || 'No response received',
+        content: response.data.response || 'No response received',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
+      
+      let errorContent = 'Sorry, I encountered an error.';
+      
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        errorContent = 'Please log in to use the chat feature.';
+      } else if (error.response?.data?.error) {
+        errorContent = `Error: ${error.response.data.error}`;
+      }
+      
       const errorMessage: Message = {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: errorContent,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -95,7 +93,8 @@ export default function AdminChatbot() {
       {/* Floating icon */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-shadow z-50"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-shadow z-50"
+        style={{ background: 'linear-gradient(to bottom right, #3b82f6, #9333ea)' }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
