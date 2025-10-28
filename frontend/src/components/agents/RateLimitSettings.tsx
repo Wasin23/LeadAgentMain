@@ -11,7 +11,7 @@ const RateLimitSettings: React.FC = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Average cost per lead (all services combined)
-  const avgCostPerLead = 0.03; // ~$0.03 per lead (Apollo search + enrich + OpenAI + ZeroBounce + Mailgun)
+  const avgCostPerLead = 0.06; // ~$0.06 per lead (Apollo search + email unlock + OpenAI + ZeroBounce + Serper + Mailgun)
 
   useEffect(() => {
     fetchBudgetAndSpending();
@@ -217,10 +217,10 @@ const RateLimitSettings: React.FC = () => {
       {/* Lead Estimates */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Estimated Lead Capacity
+          Maximum Lead Capacity
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Based on average cost of ${avgCostPerLead.toFixed(2)} per lead (includes search, enrichment, AI, validation, and email)
+          Maximum leads you can process without exceeding your budget. Based on average cost of ${avgCostPerLead.toFixed(2)} per lead (includes search, email unlock, enrichment, AI, validation, and email delivery).
         </p>
 
         <div className="grid grid-cols-3 gap-4">
@@ -228,28 +228,28 @@ const RateLimitSettings: React.FC = () => {
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {estimatedLeadsPerDay}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">leads/day</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">max leads/day</p>
           </div>
 
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg p-4 text-center">
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {estimatedLeadsPerWeek}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">leads/week</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">max leads/week</p>
           </div>
 
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg p-4 text-center">
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {estimatedLeadsPerMonth}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">leads/month</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">max leads/month</p>
           </div>
         </div>
 
         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <p className="text-sm text-blue-900 dark:text-blue-200">
-            💡 <strong>Tip:</strong> Adjust your monthly budget to match your desired lead volume. 
-            Each qualified lead costs approximately ${avgCostPerLead.toFixed(2)} in API fees.
+            💡 <strong>Note:</strong> These are maximum estimates to stay within budget. 
+            Actual costs may vary based on lead complexity and email deliverability. Each qualified lead costs approximately ${avgCostPerLead.toFixed(2)} in API fees.
           </p>
         </div>
       </div>

@@ -2,8 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
 import OpenAI from 'openai';
-import { leadResearch } from '../tools/leadResearch.js';
-import { internetSearch } from '../tools/internetSearch.js';
+import axios from 'axios';
 
 const router = express.Router();
 
@@ -34,174 +33,190 @@ router.post('/leads', async (req, res) => {
     
     console.log(`[AI SEARCH] Processing search: "${query}" for user ${userId}`);
     
-    // Step 1: Use AI to parse the natural language query into structured parameters
-    const parsePrompt = `Extract lead search parameters from this natural language query: "${query}"
-
-Provide ONLY a JSON object with these fields (use null if not specified):
-{
-  "jobTitles": ["array of job titles like CEO, CTO, etc"],
-  "industries": ["array of industries like Technology, Healthcare, etc"],
-  "companySize": "startup | small | medium | large | enterprise | null",
-  "location": "geographic location or null",
-  "fundingStage": "seed | series-a | series-b | series-c | null",
-  "keywords": ["array of additional keywords"]
-}
-
-Examples:
-"Find CTOs at Series B fintech companies" → {"jobTitles":["CTO","Chief Technology Officer"],"industries":["Fintech","Financial Technology"],"companySize":null,"location":null,"fundingStage":"series-b","keywords":["technology"]}
-
-Now parse: "${query}"`;
-
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+    
+    // Step 1: AI parses the query to extract search intent
     const parseCompletion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a lead search parameter extraction expert. Respond ONLY with valid JSON.' },
-        { role: 'user', content: parsePrompt }
-      ],
+      messages: [{
+        role: 'user',
+        content: `Extract job titles and keywords from: "${query}"\nReturn JSON: {"titles": ["array"], "keywords": ["array"]}`
+      }],
       temperature: 0.3,
-      max_tokens: 300
+      max_tokens: 150
     });
     
-    let searchParams;
+    await awsManager.logApiUsage({
+      userId,
+      agentId: 'ai-search',
+      service: 'openai',
+      operation: 'chat.completion',
+      usage: { tokens: parseCompletion.usage.total_tokens },
+      cost: parseCompletion.usage.total_tokens * 0.0034 / 1000
+    });
+    
+    let searchParams = { titles: [], keywords: [] };
     try {
-      const responseText = parseCompletion.choices[0].message.content.trim();
-      // Extract JSON from response (in case AI adds markdown formatting)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      searchParams = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
-    } catch (error) {
-      console.error('[AI SEARCH] Failed to parse AI response:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to understand search query. Please try rephrasing.'
-      });
+      const text = parseCompletion.choices[0].message.content.trim();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      searchParams = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+    } catch (e) {
+      console.error('[AI SEARCH] Parse error:', e);
     }
     
-    console.log('[AI SEARCH] Parsed parameters:', searchParams);
+    console.log('[AI SEARCH] Parsed params:', searchParams);
     
-    // Step 2: Use Serper to find companies matching criteria
-    let companyContext = '';
-    if (searchParams.industries || searchParams.keywords) {
-      try {
-        const searchQuery = `${searchParams.industries?.join(' ') || ''} ${searchParams.keywords?.join(' ') || ''} companies ${searchParams.fundingStage || ''} ${searchParams.location || ''}`.trim();
-        const serperResults = await internetSearch(searchQuery);
-        companyContext = serperResults.substring(0, 1000); // Limit context
-        console.log('[AI SEARCH] Serper context obtained');
-      } catch (error) {
-        console.error('[AI SEARCH] Serper search failed:', error);
-        // Continue without Serper context
-      }
-    }
-    
-    // Step 3: Use Apollo to find people
-    const apolloParams = {
-      person_titles: searchParams.jobTitles || [],
-      q_organization_keyword_tags: searchParams.industries || [],
-      organization_locations: searchParams.location ? [searchParams.location] : [],
+    // Step 2: Search Apollo - use q_keywords for broader search
+    const apolloPayload = {
+      q_keywords: query, // Use original query for broader results
       page: 1,
-      per_page: 20 // Limit to 20 results
+      per_page: 12
     };
     
-    // Map company size to Apollo parameters
-    if (searchParams.companySize) {
-      const sizeMap = {
-        'startup': { min: 1, max: 50 },
-        'small': { min: 51, max: 200 },
-        'medium': { min: 201, max: 1000 },
-        'large': { min: 1001, max: 10000 },
-        'enterprise': { min: 10001, max: null }
-      };
-      const sizeRange = sizeMap[searchParams.companySize.toLowerCase()];
-      if (sizeRange) {
-        apolloParams.organization_num_employees_ranges = [
-          `${sizeRange.min},${sizeRange.max || 999999}`
-        ];
+    console.log('[AI SEARCH] Apollo payload:', apolloPayload);
+    
+    const apolloResponse = await axios.post('https://api.apollo.io/v1/mixed_people/search', apolloPayload, {
+      headers: { 
+        'Cache-Control': 'no-cache',
+        'Content-Type': 'application/json',
+        'X-Api-Key': process.env.APOLLO_API_KEY
       }
+    });
+    
+    await awsManager.logApiUsage({
+      userId,
+      agentId: 'ai-search',
+      service: 'apollo',
+      operation: 'people_search',
+      usage: { credits: 1 },
+      cost: 0.017
+    });
+    
+    const people = apolloResponse.data?.people || [];
+    console.log(`[AI SEARCH] Found ${people.length} people from Apollo`);
+    
+    if (people.length === 0) {
+      return res.json({ success: true, leads: [], message: 'No leads found' });
     }
     
-    console.log('[AI SEARCH] Searching Apollo with params:', apolloParams);
-    
-    let apolloResults;
-    try {
-      apolloResults = await leadResearch(query, { 
-        userId,
-        limit: 20,
-        apolloParams 
-      });
-    } catch (error) {
-      console.error('[AI SEARCH] Apollo search failed:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to search for leads. Please try again.'
-      });
-    }
-    
-    if (!apolloResults || !apolloResults.people || apolloResults.people.length === 0) {
-      return res.json({
-        success: true,
-        leads: [],
-        message: 'No leads found matching your criteria'
-      });
-    }
-    
-    // Step 4: Enrich results with AI-generated match reasons
+    // Step 3: Research each lead and generate descriptions
     const leads = await Promise.all(
-      apolloResults.people.slice(0, 20).map(async (person, index) => {
-        const lead = {
-          id: person.id || `lead-${index}`,
-          name: `${person.first_name || ''} ${person.last_name || ''}`.trim() || 'Unknown',
-          title: person.title || 'Unknown Title',
-          company: person.organization?.name || 'Unknown Company',
-          location: person.city && person.state ? `${person.city}, ${person.state}` : person.country || null,
-          email: person.email || null,
-          linkedin: person.linkedin_url || null,
-          companyWebsite: person.organization?.website_url || null,
-          matchReason: '',
-          score: 0
-        };
+      people.slice(0, 12).map(async (person) => {
+        const name = person.name || 'Unknown';
+        const title = person.title || 'N/A';
+        const company = person.organization?.name || 'Unknown Company';
+        let email = person.email || null;
         
-        // Generate AI match reason
-        try {
-          const reasonPrompt = `Why is ${lead.name} (${lead.title} at ${lead.company}) a good match for this search: "${query}"? 
-
-Provide a ONE sentence (max 15 words) specific reason focusing on their role or company.`;
-
-          const reasonCompletion = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: 'You provide ultra-concise lead match explanations.' },
-              { role: 'user', content: reasonPrompt }
-            ],
-            temperature: 0.5,
-            max_tokens: 50
-          });
-          
-          lead.matchReason = reasonCompletion.choices[0].message.content.trim();
-          
-          // Calculate basic match score
-          lead.score = 70 + Math.floor(Math.random() * 30); // 70-100 range
-        } catch (error) {
-          console.error('[AI SEARCH] Failed to generate match reason:', error);
-          lead.matchReason = `Matches your criteria for ${searchParams.jobTitles?.[0] || 'role'} in ${searchParams.industries?.[0] || 'industry'}`;
-          lead.score = 75;
+        // Unlock email if not present
+        if (!email && person.id) {
+          try {
+            const unlockResponse = await axios.post('https://api.apollo.io/v1/people/match', {
+              id: person.id
+            }, {
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Content-Type': 'application/json',
+                'X-Api-Key': process.env.APOLLO_API_KEY
+              }
+            });
+            
+            email = unlockResponse.data?.person?.email || null;
+            
+            if (email) {
+              await awsManager.logApiUsage({
+                userId,
+                agentId: 'ai-search',
+                service: 'apollo',
+                operation: 'email_unlock',
+                usage: { credits: 1 },
+                cost: 0.017
+              });
+              console.log(`[AI SEARCH] Unlocked email for ${name}`);
+            }
+          } catch (unlockError) {
+            console.error(`[AI SEARCH] Email unlock failed for ${name}:`, unlockError.message);
+          }
         }
         
-        return lead;
+        // Serper research
+        let researchData = '';
+        try {
+          const serperResponse = await axios.post('https://google.serper.dev/search', {
+            q: `${name} ${title} ${company}`,
+            num: 3
+          }, {
+            headers: {
+              'X-API-KEY': process.env.SERPER_API_KEY,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          await awsManager.logApiUsage({
+            userId,
+            agentId: 'ai-search',
+            service: 'serper',
+            operation: 'search',
+            usage: { searches: 1 },
+            cost: 0.0085
+          });
+          
+          const results = serperResponse.data?.organic || [];
+          researchData = results.map(r => `${r.title}: ${r.snippet}`).join('\n');
+        } catch (serperError) {
+          console.error('[AI SEARCH] Serper error:', serperError.message);
+        }
+        
+        // AI generates description
+        const descPrompt = `Write a 2-3 sentence professional summary about ${name}, ${title} at ${company}.\n\nContext: ${researchData || 'No additional context available'}`;
+        
+        const descCompletion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: descPrompt }],
+          temperature: 0.7,
+          max_tokens: 150
+        });
+        
+        await awsManager.logApiUsage({
+          userId,
+          agentId: 'ai-search',
+          service: 'openai',
+          operation: 'chat.completion',
+          usage: { tokens: descCompletion.usage.total_tokens },
+          cost: descCompletion.usage.total_tokens * 0.0034 / 1000
+        });
+        
+        const description = descCompletion.choices[0].message.content.trim();
+        
+        return {
+          id: person.id || `lead-${Date.now()}-${Math.random()}`,
+          name,
+          title,
+          company,
+          location: person.city || person.state || person.country || 'Unknown',
+          email: email || null,
+          linkedin: person.linkedin_url || null,
+          companyWebsite: person.organization?.website_url || null,
+          description,
+          matchReason: `Found via: ${searchParams.titles?.join(', ') || query}`,
+          score: 85
+        };
       })
     );
     
-    console.log(`[AI SEARCH] Returning ${leads.length} enriched leads`);
+    console.log(`[AI SEARCH] Generated ${leads.length} enriched leads`);
     
     res.json({
       success: true,
       leads,
-      searchParams // Return parsed params for transparency
+      count: leads.length
     });
     
   } catch (error) {
     console.error('[AI SEARCH] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to search for leads'
+      error: error.message || 'Search failed'
     });
   }
 });

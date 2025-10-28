@@ -1307,7 +1307,16 @@ class AWSManager {
 
       result.Items.forEach(item => {
         if (stats[item.service]) {
-          stats[item.service].usage += item.usage || 0;
+          // Handle usage which can be a number or object (e.g., { tokens: 123 } or { credits: 5 })
+          let usageValue = 0;
+          if (typeof item.usage === 'object' && item.usage !== null) {
+            // Extract the numeric value from the object (tokens, credits, searches, etc.)
+            usageValue = Object.values(item.usage)[0] || 0;
+          } else {
+            usageValue = item.usage || 0;
+          }
+          
+          stats[item.service].usage += usageValue;
           stats[item.service].calls += 1;
           stats[item.service].cost += item.cost || 0;
         }
@@ -1412,7 +1421,7 @@ class AWSManager {
           'apollo': 'apollo',
           'openai': 'openai',
           'mailgun': 'mailgun',
-          'zerobounce': 'zerbounce',
+          'zerobounce': 'zerobounce',
           'serper': 'serper'
         };
 

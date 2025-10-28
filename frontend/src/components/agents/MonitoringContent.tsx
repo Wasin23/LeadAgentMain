@@ -184,6 +184,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
         
         const response = await api.get(`/api/lead-agent/api-usage/timeseries?days=${days}&interval=${timeRange}`);
         if (response.data.success && response.data.series) {
+          console.log('[API Usage TimeSeries] Received data:', response.data.series);
           setApiUsageTimeSeries(response.data.series);
         }
       } catch (error) {
@@ -1742,7 +1743,29 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                     contentStyle={{ 
                       backgroundColor: 'white', 
                       border: '1px solid #e5e7eb',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      padding: '10px'
+                    }}
+                    content={(props: any) => {
+                      if (!props.active || !props.payload) return null;
+                      
+                      return (
+                        <div style={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          padding: '10px'
+                        }}>
+                          <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                            {props.label}
+                          </p>
+                          {props.payload.map((entry: any, index: number) => (
+                            <p key={index} style={{ color: entry.color, margin: '3px 0' }}>
+                              {entry.name}: {entry.value}
+                            </p>
+                          ))}
+                        </div>
+                      );
                     }}
                   />
                   <Legend />
@@ -1825,9 +1848,30 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                     contentStyle={{ 
                       backgroundColor: 'white', 
                       border: '1px solid #e5e7eb',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      padding: '10px'
                     }}
-                    formatter={(value) => `$${Number(value).toFixed(2)}`}
+                    content={(props: any) => {
+                      if (!props.active || !props.payload) return null;
+                      
+                      return (
+                        <div style={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          padding: '10px'
+                        }}>
+                          <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                            {props.label}
+                          </p>
+                          {props.payload.map((entry: any, index: number) => (
+                            <p key={index} style={{ color: entry.color, margin: '3px 0' }}>
+                              {entry.name}: ${Number(entry.value || 0).toFixed(4)}
+                            </p>
+                          ))}
+                        </div>
+                      );
+                    }}
                   />
                   <Legend />
                   <Bar dataKey="apollo.cost" name="Apollo" fill="#3b82f6" stackId="a" />
