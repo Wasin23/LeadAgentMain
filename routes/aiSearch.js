@@ -1,7 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
 import OpenAI from 'openai';
-import { apolloPeopleSearch } from '../tools/leadResearch.js';
+import { leadResearch } from '../tools/leadResearch.js';
 import { internetSearch } from '../tools/internetSearch.js';
 
 const router = express.Router();
@@ -12,6 +13,8 @@ router.use(authenticateToken);
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+console.log('[AI SEARCH] Route initialized, OpenAI API key:', process.env.OPENAI_API_KEY ? 'present' : 'missing');
 
 /**
  * AI-powered lead search
@@ -119,7 +122,11 @@ Now parse: "${query}"`;
     
     let apolloResults;
     try {
-      apolloResults = await apolloPeopleSearch(apolloParams);
+      apolloResults = await leadResearch(query, { 
+        userId,
+        limit: 20,
+        apolloParams 
+      });
     } catch (error) {
       console.error('[AI SEARCH] Apollo search failed:', error);
       return res.status(500).json({

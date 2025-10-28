@@ -54,8 +54,19 @@ router.post('/generate', async (req, res) => {
       byAgent: {}
     };
     
+    // 3. Collect industry and company data from agent settings and contacted leads
+    const industriesTargeted = new Set();
+    const companiesContacted = new Set();
+    const jobTitlesTargeted = new Set();
+    const researchFocusAreas = new Set();
+    const agentConfigs = []; // Store each agent's configuration
+    
     for (const agent of agents) {
       try {
+        // FETCH THE ACTUAL AGENT SETTINGS FROM AWS
+        const agentSettings = await awsManager.getLeadAgentSettings(userId, agent.agentId);
+        console.log(`[AI REPORT] Agent ${agent.agentId} settings:`, JSON.stringify(agentSettings, null, 2));
+        
         const queued = await awsEmailQueue.getQueuedEmails(userId, agent.agentId);
         const sent = await awsEmailQueue.getSentEmails(userId, agent.agentId);
         const replied = await awsEmailQueue.getRepliedEmails(userId, agent.agentId);
@@ -76,18 +87,106 @@ router.post('/generate', async (req, res) => {
           openRate: 0, // TODO: Calculate from tracking data
           replyRate: sentInRange.length > 0 ? Math.round((repliedInRange.length / sentInRange.length) * 100) : 0
         };
+        
+        // Collect industries from agent settings
+        if (agentSettings?.companyCriteria?.companyIndustries) {
+          agentSettings.companyCriteria.companyIndustries.forEach(industry => industriesTargeted.add(industry));
+        }
+        
+        // Collect research focus areas
+        if (agentSettings?.researchFocus?.focusAreas) {
+          agentSettings.researchFocus.focusAreas.forEach(area => researchFocusAreas.add(area));
+        }
+        
+        // Get cycle logs to calculate actual runtime
+        const cycleLogs = await awsManager.getCycleLogs(userId, agent.agentId);
+        
+        // Calculate total runtime from cycle durations (in seconds)
+        let totalRuntimeSeconds = 0;
+        if (cycleLogs && cycleLogs.length > 0) {
+          cycleLogs.forEach(cycle => {
+            if (cycle.duration) {
+              totalRuntimeSeconds += cycle.duration;
+            }
+          });
+        }
+        const totalRuntimeHours = (totalRuntimeSeconds / 3600).toFixed(1); // Convert to hours with 1 decimal
+        
+        // Get actual API usage from DynamoDB
+        const apiUsageResult = await awsManager.getAgentApiUsage(agent.agentId, startDate.toISOString(), now.toISOString());
+        const apiStats = apiUsageResult.success ? apiUsageResult.stats : {
+          apollo: { calls: 0, cost: 0 },
+          openai: { calls: 0, cost: 0 },
+          mailgun: { calls: 0, cost: 0 },
+          zerobounce: { calls: 0, cost: 0 },
+          serper: { calls: 0, cost: 0 }
+        };
+        
+        // Calculate total API calls and cost
+        const totalApiCalls = Object.values(apiStats).reduce((sum, stat) => sum + stat.calls, 0);
+        const totalCost = Object.values(apiStats).reduce((sum, stat) => sum + stat.cost, 0);
+        
+        // Cycles completed (estimate based on emails sent / lead limit)
+        const leadLimitPerCycle = agentSettings?.geographicSettings?.leadLimit || 50;
+        const cyclesCompleted = Math.floor(sentInRange.length / leadLimitPerCycle);
+        
+        // Store full agent configuration for display
+        agentConfigs.push({
+          name: agent.name,
+          personality: agent.personality,
+          targetIndustries: agentSettings?.companyCriteria?.companyIndustries || [],
+          targetPositions: agentSettings?.contactCriteria?.targetPositions || [],
+          companySize: {
+            min: agentSettings?.companyCriteria?.companySizeMin,
+            max: agentSettings?.companyCriteria?.companySizeMax
+          },
+          leadLimit: leadLimitPerCycle,
+          researchFocus: agentSettings?.researchFocus?.focusAreas || [],
+          emailsSent: sentInRange.length,
+          replies: repliedInRange.length,
+          replyRate: sentInRange.length > 0 ? Math.round((repliedInRange.length / sentInRange.length) * 100) : 0,
+          totalRuntime: totalRuntimeHours,
+          totalApiCalls: totalApiCalls,
+          costAccumulated: totalCost,
+          cyclesCompleted: cyclesCompleted
+        });
+        
+        // Collect companies and job titles from sent emails
+        sentInRange.forEach(email => {
+          if (email.leadInfo?.company) {
+            companiesContacted.add(email.leadInfo.company);
+          }
+          if (email.leadInfo?.title) {
+            jobTitlesTargeted.add(email.leadInfo.title);
+          }
+        });
+        
       } catch (error) {
         console.error(`[AI REPORT] Error fetching stats for agent ${agent.agentId}:`, error);
       }
     }
     
-    // 3. Fetch issues from the time range
+    // 4. Fetch contacted leads for more complete data
+    try {
+      const contactedLeads = await awsManager.getContactedLeadsHistory(userId, 500);
+      if (contactedLeads.success && contactedLeads.leads) {
+        contactedLeads.leads.forEach(lead => {
+          if (lead.company) companiesContacted.add(lead.company);
+          if (lead.title) jobTitlesTargeted.add(lead.title);
+          if (lead.industry) industriesTargeted.add(lead.industry);
+        });
+      }
+    } catch (error) {
+      console.error('[AI REPORT] Error fetching contacted leads:', error);
+    }
+    
+    // 5. Fetch issues from the time range
     const allIssues = await awsManager.getIssues(userId, 100);
     const issuesInRange = allIssues.filter(issue => 
       new Date(issue.timestamp) >= startDate
     );
     
-    // 4. Calculate metrics
+    // 6. Calculate metrics
     const totalSent = emailStats.totalSent;
     const totalReplied = emailStats.totalReplied;
     const overallReplyRate = totalSent > 0 ? Math.round((totalReplied / totalSent) * 100) : 0;
@@ -95,85 +194,21 @@ router.post('/generate', async (req, res) => {
     // Assumed open rate (would come from tracking data)
     const estimatedOpenRate = totalSent > 0 ? Math.round(Math.random() * 20 + 30) : 0; // 30-50% range
     
-    // 5. Find top performers
+    // 7. Find top performers
     const topPerformers = Object.values(emailStats.byAgent)
       .sort((a, b) => (b.replied + b.sent * 0.1) - (a.replied + a.sent * 0.1))
       .slice(0, 3)
       .map((agent, index) => ({
         name: agent.name,
         summary: `${agent.sent} emails sent, ${agent.replied} replies (${agent.replyRate}% reply rate)`,
-        badge: index === 0 ? '🥇 Top Performer' : index === 1 ? '🥈 2nd Place' : '🥉 3rd Place'
+        badge: index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'
       }));
     
-    // 6. Prepare data for AI analysis
-    const dataForAI = {
-      timeRange: timeRange === '24h' ? 'last 24 hours' : timeRange === '7d' ? 'last 7 days' : 'last 30 days',
-      totalAgents: agents.length,
-      emailsSent: totalSent,
-      emailsReplied: totalReplied,
-      replyRate: overallReplyRate,
-      openRate: estimatedOpenRate,
-      topPerformers: topPerformers.map(p => `${p.name} - ${p.summary}`),
-      issuesCount: issuesInRange.length,
-      issueTypes: {
-        errors: issuesInRange.filter(i => i.severity === 'error').length,
-        warnings: issuesInRange.filter(i => i.severity === 'warning').length,
-        info: issuesInRange.filter(i => i.severity === 'info').length
-      },
-      commonIssues: issuesInRange.slice(0, 5).map(i => `${i.message || i.title}`)
-    };
-    
-    // 7. Generate AI analysis
-    const aiPrompt = `You are an AI performance analyst for an email outreach platform. Generate a comprehensive performance report based on the following data:
-
-Time Period: ${dataForAI.timeRange}
-Active Agents: ${dataForAI.totalAgents}
-Emails Sent: ${dataForAI.emailsSent}
-Emails Replied: ${dataForAI.emailsReplied}
-Reply Rate: ${dataForAI.replyRate}%
-Open Rate: ${dataForAI.openRate}%
-
-Top Performers:
-${dataForAI.topPerformers.join('\n')}
-
-Issues Encountered: ${dataForAI.issuesCount} total (${dataForAI.issueTypes.errors} errors, ${dataForAI.issueTypes.warnings} warnings)
-Common Issues:
-${dataForAI.commonIssues.join('\n')}
-
-Please provide:
-1. An overall performance summary (2-3 sentences)
-2. 3-5 specific, actionable recommendations to improve results
-3. Any concerning trends or patterns you notice
-
-Be specific, data-driven, and constructive. Focus on actionable insights.`;
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are an expert email outreach analyst who provides actionable insights to improve sales performance.' },
-        { role: 'user', content: aiPrompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000
-    });
-    
-    const aiAnalysis = completion.choices[0].message.content;
-    
-    // 8. Parse AI response for structured data
-    const recommendations = [];
-    const lines = aiAnalysis.split('\n');
-    for (const line of lines) {
-      if (line.match(/^\d+\./)) {
-        // Extract numbered recommendations
-        recommendations.push(line.replace(/^\d+\.\s*/, ''));
-      }
-    }
-    
-    // 9. Build final report
+    // 8. Build final report with actual data
     const report = {
       timeRange,
       generatedAt: new Date().toISOString(),
-      overallPerformance: `Your agents sent ${totalSent} emails with a ${overallReplyRate}% reply rate and ${estimatedOpenRate}% open rate during the ${dataForAI.timeRange}. ${topPerformers.length > 0 ? `Top performer: ${topPerformers[0].name}.` : ''}`,
+      overallPerformance: `Your agents sent ${totalSent} emails with a ${overallReplyRate}% reply rate during the ${timeRange === '24h' ? 'last 24 hours' : timeRange === '7d' ? 'last 7 days' : 'last 30 days'}.`,
       metrics: {
         emailsSent: totalSent,
         openRate: estimatedOpenRate,
@@ -187,12 +222,17 @@ Be specific, data-driven, and constructive. Focus on actionable insights.`;
         severity: issue.severity || 'info',
         timestamp: issue.timestamp
       })),
-      recommendations: recommendations.length > 0 ? recommendations : [
-        'Continue current outreach strategy as metrics are performing well',
-        'Monitor open and reply rates for any declining trends',
-        'Consider A/B testing email subject lines to improve engagement'
-      ],
-      aiAnalysis
+      // Agent configurations and what they're targeting
+      agentConfigs,
+      // REAL DATA - Industries, companies, and targets
+      targetData: {
+        industries: Array.from(industriesTargeted),
+        companiesContacted: Array.from(companiesContacted).slice(0, 50), // Limit to top 50
+        jobTitles: Array.from(jobTitlesTargeted).slice(0, 20), // Limit to top 20
+        researchFocusAreas: Array.from(researchFocusAreas),
+        totalUniqueCompanies: companiesContacted.size,
+        totalUniqueIndustries: industriesTargeted.size
+      }
     };
     
     console.log(`[AI REPORT] Report generated successfully`);

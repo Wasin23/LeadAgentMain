@@ -695,6 +695,38 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
       const { removeAgentFromUser } = await import('../lib/userManager.js');
       await removeAgentFromUser(userId, agentId);
       console.log(`[AGENT CLEANUP] 🗑️ Removed agent ${agentId} from AWS for user ${userId}`);
+      
+      // Log agent deletion to issues/alerts as an important event
+      const AWSManager = (await import('../utils/awsManager.js')).default;
+      const awsManager = new AWSManager();
+      
+      const activityData = {
+        type: 'warning',
+        category: 'issue',
+        title: 'Agent Deleted',
+        message: `Agent "${agentId}" was permanently deleted`,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          agentId,
+          deletedAt: new Date().toISOString()
+        }
+      };
+      
+      await awsManager.addIssue(
+        userId,
+        activityData.type,
+        activityData.title,
+        activityData.message,
+        activityData.metadata
+      );
+      
+      // Broadcast to SSE clients for real-time updates
+      try {
+        const { broadcastActivity } = await import('./monitoring.js');
+        broadcastActivity(activityData);
+      } catch (sseError) {
+        console.error('[ANALYTICS] Failed to broadcast activity:', sseError);
+      }
     } catch (error) {
       console.error(`[AGENT CLEANUP] ❌ Failed to remove agent from AWS:`, error.message);
       throw error;

@@ -773,6 +773,38 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     
     await awsManagerInstance.saveLeadAgentSettings(userId, agentId, agentSettings);
     
+    // Log agent creation to issues/alerts as an important event
+    const activityData = {
+      type: 'info',
+      category: 'issue',
+      title: 'Agent Created',
+      message: `New agent "${name}" (${agentId}) was successfully created`,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        agentId,
+        agentName: name,
+        agentType: type,
+        personality: personality?.type || 'default',
+        timestamp: new Date().toISOString()
+      }
+    };
+    
+    await awsManagerInstance.addIssue(
+      userId,
+      activityData.type,
+      activityData.title,
+      activityData.message,
+      activityData.metadata
+    );
+    
+    // Broadcast to SSE clients for real-time updates
+    try {
+      const { broadcastActivity } = await import('./monitoring.js');
+      broadcastActivity(activityData);
+    } catch (sseError) {
+      console.error('[AUTH] Failed to broadcast activity:', sseError);
+    }
+    
     console.log(`[AUTH] New agent created: ${agentId} (${name}) for user ${userId} with personality: ${personality?.type || 'default'}`);
     
     res.json({ 

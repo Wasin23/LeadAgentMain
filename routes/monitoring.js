@@ -199,6 +199,13 @@ class MetricStore {
 // Global metric store instance
 const metricStore = new MetricStore();
 
+// Helper function for broadcasting activity events from other modules
+export function broadcastActivity(activity) {
+  if (metricStore && metricStore.broadcastUpdate) {
+    metricStore.broadcastUpdate('activity_added', activity);
+  }
+}
+
 // Export for use by other modules
 router.metricStore = metricStore;
 
@@ -270,6 +277,66 @@ router.get('/issues', (req, res) => {
     });
   } catch (error) {
     console.error('❌ [MONITORING] Error getting issues:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/monitoring/activity
+ * Returns merged activity: important issues (agent created/deleted/budget) + cycle logs
+ */
+router.get('/activity', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+
+    // Fetch persistent issues (from DynamoDB)
+    const persistentIssues = await awsManager.getIssues(userId, 200).catch(err => {
+      console.error('[MONITORING] Failed to fetch persistent issues:', err);
+      return [];
+    });
+
+    // Fetch recent cycle logs
+    const cycleLogs = await awsManager.getCycleLogs(userId, null, 200).catch(err => {
+      console.error('[MONITORING] Failed to fetch cycle logs:', err);
+      return [];
+    });
+
+    // Normalize persistentIssues to unified activity shape
+    const issuesActivity = (persistentIssues || []).map(item => ({
+      type: item.type || 'info',
+      category: 'issue',
+      title: item.title || item.issueId || 'Issue',
+      message: item.message || '',
+      timestamp: item.timestamp || item.createdAt || new Date().toISOString(),
+      metadata: item.metadata || {},
+      raw: item
+    }));
+
+    // Normalize cycle logs
+    const cyclesActivity = (cycleLogs || []).map(cycle => ({
+      type: cycle.success === false ? 'error' : 'info',
+      category: 'cycle',
+      title: `Cycle ${cycle.cycleNumber || ''} - ${cycle.agentId || ''}`.trim(),
+      message: `Cycle ${cycle.cycleNumber || ''} completed. Leads: ${cycle.leadsProcessed || 0}, Emails: ${cycle.emailsSent || 0}`,
+      timestamp: cycle.completedAt || cycle.timestamp || new Date().toISOString(),
+      metadata: {
+        agentId: cycle.agentId,
+        duration: cycle.duration,
+        leadsProcessed: cycle.leadsProcessed,
+        emailsSent: cycle.emailsSent,
+        cycleNumber: cycle.cycleNumber
+      },
+      raw: cycle
+    }));
+
+    // Merge and sort by timestamp desc
+    const merged = [...issuesActivity, ...cyclesActivity].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    res.json({ success: true, activities: merged, count: merged.length, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('❌ [MONITORING] Error getting activity:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -424,6 +491,69 @@ router.post('/metric', (req, res) => {
     });
   } catch (error) {
     console.error('❌ [MONITORING] Error updating metric:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/monitoring/activity/:issueId/mark-read
+ * Mark activity/issue as read
+ */
+router.post('/activity/:issueId/mark-read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { issueId } = req.params;
+    
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+    
+    const result = await awsManager.markIssueAsRead(userId, issueId);
+    
+    if (result.success) {
+      res.json({ success: true, message: 'Activity marked as read' });
+    } else {
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ [MONITORING] Error marking activity as read:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/monitoring/activity/clear-all
+ * Clear all activity logs from DynamoDB (both issues and cycle logs)
+ */
+router.delete('/activity/clear-all', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+    
+    // Clear all issues for this user
+    const issuesResult = await awsManager.clearAllIssues(userId);
+    
+    // Clear all cycle logs for this user
+    const cycleLogsResult = await awsManager.clearAllCycleLogs(userId);
+    
+    if (issuesResult.success && cycleLogsResult.success) {
+      res.json({ 
+        success: true, 
+        message: 'All activity logs cleared',
+        deleted: {
+          issues: issuesResult.deleted,
+          cycleLogs: cycleLogsResult.deleted
+        }
+      });
+    } else {
+      res.status(400).json({ 
+        success: false, 
+        error: issuesResult.error || cycleLogsResult.error 
+      });
+    }
+  } catch (error) {
+    console.error('❌ [MONITORING] Error clearing all activities:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

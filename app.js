@@ -210,9 +210,10 @@ try {
 let aiSearchRoutes;
 try {
   aiSearchRoutes = (await import('./routes/aiSearch.js')).default;
-  console.log('AI Search routes imported successfully');
+  console.log('✅ AI Search routes imported successfully');
 } catch (e) {
-  console.log('AI Search routes not available:', e.message);
+  console.error('❌ AI Search routes not available:', e.message);
+  console.error('Full error:', e);
   aiSearchRoutes = (req, res, next) => next(); // No-op if not present
 }
 
@@ -323,11 +324,24 @@ app.use((req, res, next) => {
 
 // Request logging middleware
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`, {
-    ip: req.ip,
-    userAgent: req.get('User-Agent'),
-    timestamp: new Date().toISOString()
-  });
+  // Skip logging for polling endpoints
+  const pollingEndpoints = [
+    '/api/monitoring/metrics',
+    '/api/lead-agent/status',
+    '/api/lead-agent/api-usage/total',
+    '/api/lead-agent/api-usage/timeseries',
+    '/api/lead-agent/rate-limits',
+    '/api/lead-agent/api-usage',
+    '/api/zilliz-tracking/internal/events'
+  ];
+  
+  if (!pollingEndpoints.includes(req.path)) {
+    logger.info(`${req.method} ${req.path}`, {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      timestamp: new Date().toISOString()
+    });
+  }
   next();
 });
 

@@ -146,18 +146,48 @@ export default function AIReportPanel() {
         
         ${report.recommendations && report.recommendations.length > 0 ? `
           <h2>💡 AI Recommendations</h2>
-          ${report.recommendations.map((rec: any) => `
+          ${report.recommendations.map((rec: string) => `
             <div class="recommendation">
-              <strong>${rec.title}</strong>
-              <p>${rec.description}</p>
+              ${rec}
             </div>
           `).join('')}
         ` : ''}
         
-        ${report.detailedAnalysis ? `
+        ${report.targetData ? `
           <div class="section">
-            <h2>🔍 Detailed Analysis</h2>
-            <p style="white-space: pre-wrap;">${report.detailedAnalysis}</p>
+            <h2>🎯 Target Overview</h2>
+            <div class="metrics">
+              <div class="metric-card">
+                <div class="metric-label">Industries Targeted</div>
+                <div class="metric-value" style="color: #3b82f6;">${report.targetData.totalUniqueIndustries || 0}</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Companies Contacted</div>
+                <div class="metric-value" style="color: #8b5cf6;">${report.targetData.totalUniqueCompanies || 0}</div>
+              </div>
+            </div>
+            
+            ${report.targetData.industries && report.targetData.industries.length > 0 ? `
+              <h3>Industries:</h3>
+              <p>${report.targetData.industries.join(', ')}</p>
+            ` : ''}
+            
+            ${report.targetData.jobTitles && report.targetData.jobTitles.length > 0 ? `
+              <h3>Job Titles Targeted:</h3>
+              <p>${report.targetData.jobTitles.join(', ')}</p>
+            ` : ''}
+            
+            ${report.targetData.researchFocusAreas && report.targetData.researchFocusAreas.length > 0 ? `
+              <h3>Research Focus Areas:</h3>
+              <p>${report.targetData.researchFocusAreas.join(', ')}</p>
+            ` : ''}
+            
+            ${report.targetData.companiesContacted && report.targetData.companiesContacted.length > 0 ? `
+              <h3>Companies Contacted ${report.targetData.companiesContacted.length > 50 ? '(Top 50 of ' + report.targetData.totalUniqueCompanies + ')' : '(' + report.targetData.companiesContacted.length + ')'}:</h3>
+              <ul>
+                ${report.targetData.companiesContacted.map((c: string) => `<li>${c}</li>`).join('')}
+              </ul>
+            ` : ''}
           </div>
         ` : ''}
         
@@ -342,15 +372,25 @@ export default function AIReportPanel() {
             </div>
           )}
 
-          {/* Issues & Alerts */}
+          {/* Issues & Alerts - Only Important Events */}
           {report.issues && report.issues.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
                 <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
-                Issues & Alerts
+                Important Events
               </h2>
               <div className="space-y-3">
-                {report.issues.map((issue: any, idx: number) => (
+                {report.issues
+                  .filter((issue: any) => {
+                    // Only show important events: agent created/deleted, budget limits hit
+                    const importantKeywords = ['agent created', 'agent deleted', 'budget limit', 'rate limit', 'quota exceeded'];
+                    const titleLower = issue.title?.toLowerCase() || '';
+                    const descLower = issue.description?.toLowerCase() || '';
+                    return importantKeywords.some(keyword => 
+                      titleLower.includes(keyword) || descLower.includes(keyword)
+                    );
+                  })
+                  .map((issue: any, idx: number) => (
                   <div key={idx} className={`rounded-lg p-4 border ${
                     issue.severity === 'error' 
                       ? 'bg-red-50 border-red-200' 
@@ -374,6 +414,18 @@ export default function AIReportPanel() {
                     }`}>{issue.description}</p>
                   </div>
                 ))}
+                {report.issues.filter((issue: any) => {
+                  const importantKeywords = ['agent created', 'agent deleted', 'budget limit', 'rate limit', 'quota exceeded'];
+                  const titleLower = issue.title?.toLowerCase() || '';
+                  const descLower = issue.description?.toLowerCase() || '';
+                  return importantKeywords.some(keyword => 
+                    titleLower.includes(keyword) || descLower.includes(keyword)
+                  );
+                }).length === 0 && (
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-center">
+                    <p className="text-sm text-neutral-600">No important events to report</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -395,16 +447,166 @@ export default function AIReportPanel() {
             </div>
           )}
 
-          {/* Detailed AI Analysis */}
-          {report.aiAnalysis && (
+          {/* Target Overview - Industries, Companies, Roles */}
+          {report.agentConfigs && report.agentConfigs.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-purple-600" />
-                Detailed AI Analysis
+                <ChartBarIcon className="w-5 h-5 text-blue-600" />
+                Agent Targeting & Strategy
               </h2>
-              <div className="bg-white rounded-lg p-6 border border-neutral-200">
-                <p className="text-neutral-700 leading-relaxed whitespace-pre-line">{report.aiAnalysis}</p>
+              
+              {/* Agent Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6">
+                {report.agentConfigs.map((agent: any, idx: number) => (
+                  <div key={idx} className="bg-white rounded-lg border border-neutral-200 p-3 shadow-sm">
+                    {/* Agent Header - Compact */}
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-neutral-100">
+                      {agent.personality?.avatar ? (
+                        <img 
+                          src={agent.personality.avatar} 
+                          alt={agent.name}
+                          className="w-8 h-8 rounded object-cover border border-neutral-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                          {agent.name.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm text-neutral-900 truncate">{agent.name}</h3>
+                        <div className="text-xs text-neutral-500">
+                          {agent.emailsSent} sent · {agent.replyRate}% rate
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Metrics - Compact */}
+                    <div className="space-y-1.5 text-xs mb-3">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Runtime:</span>
+                        <span className="font-medium text-neutral-900">{agent.totalRuntime}h</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">API Calls:</span>
+                        <span className="font-medium text-neutral-900">{agent.totalApiCalls}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Cost:</span>
+                        <span className="font-medium text-neutral-900">${agent.costAccumulated?.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Cycles:</span>
+                        <span className="font-medium text-neutral-900">{agent.cyclesCompleted}</span>
+                      </div>
+                    </div>
+
+                    {/* Configuration Data - Compact */}
+                    <div className="space-y-2 text-xs">
+                      {/* Target Industries */}
+                      {agent.targetIndustries && agent.targetIndustries.length > 0 && (
+                        <div>
+                          <div className="font-semibold text-neutral-700 mb-0.5">Industries:</div>
+                          <div className="text-neutral-600 text-xs leading-tight">
+                            {agent.targetIndustries.slice(0, 3).join(', ')}
+                            {agent.targetIndustries.length > 3 && ` +${agent.targetIndustries.length - 3} more`}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Target Positions */}
+                      {agent.targetPositions && agent.targetPositions.length > 0 && (
+                        <div>
+                          <div className="font-semibold text-neutral-700 mb-0.5">Positions:</div>
+                          <div className="text-neutral-600 text-xs leading-tight">
+                            {agent.targetPositions.slice(0, 3).join(', ')}
+                            {agent.targetPositions.length > 3 && ` +${agent.targetPositions.length - 3} more`}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Company Size */}
+                      {(agent.companySize?.min || agent.companySize?.max) && (
+                        <div>
+                          <div className="font-semibold text-neutral-700 mb-0.5">Company Size:</div>
+                          <div className="text-neutral-600 text-xs">
+                            {agent.companySize.min && agent.companySize.max 
+                              ? `${agent.companySize.min}-${agent.companySize.max} emp`
+                              : agent.companySize.min 
+                              ? `${agent.companySize.min}+ emp`
+                              : `Up to ${agent.companySize.max} emp`}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Lead Limit per Cycle */}
+                      {agent.leadLimit && (
+                        <div>
+                          <div className="font-semibold text-neutral-700 mb-0.5">Leads/Cycle:</div>
+                          <div className="text-neutral-600 text-xs">
+                            {agent.leadLimit} leads
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Research Focus */}
+                      {agent.researchFocus && agent.researchFocus.length > 0 && (
+                        <div>
+                          <div className="font-semibold text-neutral-700 mb-0.5">Research:</div>
+                          <div className="text-neutral-600 text-xs leading-tight">
+                            {agent.researchFocus.slice(0, 2).join(', ')}
+                            {agent.researchFocus.length > 2 && ` +${agent.researchFocus.length - 2} more`}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
+            </div>
+          )}
+
+          {/* Companies & Titles - Compact Lists */}
+          {report.targetData && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Job Titles */}
+              {report.targetData.jobTitles && report.targetData.jobTitles.length > 0 && (
+                <div className="bg-white rounded-lg border border-neutral-200 p-4">
+                  <h3 className="text-sm font-semibold text-neutral-700 mb-3">💼 Job Titles Reached ({report.targetData.jobTitles.length})</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {report.targetData.jobTitles.slice(0, 15).map((title: string, idx: number) => (
+                      <span key={idx} className="px-2 py-1 bg-green-50 border border-green-200 text-green-800 rounded text-xs">
+                        {title}
+                      </span>
+                    ))}
+                    {report.targetData.jobTitles.length > 15 && (
+                      <span className="px-2 py-1 bg-neutral-100 text-neutral-600 rounded text-xs">
+                        +{report.targetData.jobTitles.length - 15} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Companies */}
+              {report.targetData.companiesContacted && report.targetData.companiesContacted.length > 0 && (
+                <div className="bg-white rounded-lg border border-neutral-200 p-4">
+                  <h3 className="text-sm font-semibold text-neutral-700 mb-3">
+                    🏢 Companies Contacted ({report.targetData.totalUniqueCompanies || report.targetData.companiesContacted.length})
+                  </h3>
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {report.targetData.companiesContacted.slice(0, 30).map((company: string, idx: number) => (
+                      <div key={idx} className="text-sm text-neutral-700 px-2 py-1 hover:bg-neutral-50 rounded">
+                        • {company}
+                      </div>
+                    ))}
+                    {report.targetData.companiesContacted.length > 30 && (
+                      <div className="text-xs text-neutral-500 px-2 py-1">
+                        And {report.targetData.totalUniqueCompanies - 30} more companies...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand, QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
@@ -44,8 +44,9 @@ class AWSManager {
       serper: 0.0085 // $0.0085 per search query (1.7x)
     };
     
-    console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
-    console.log('🔧 [AWS] Tables configured:', this.tables);
+    // Removed initialization logs to reduce console noise
+    // console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
+    // console.log('🔧 [AWS] Tables configured:', this.tables);
   }
 
   // =====================
@@ -1715,6 +1716,96 @@ class AWSManager {
       return { success: true };
     } catch (error) {
       console.error('❌ [AWS] Error marking issue as read:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Clear all issues for a user
+   */
+  async clearAllIssues(userId) {
+    try {
+      // Get all issues for this user
+      const issues = await this.getIssues(userId, 500); // Get more items for deletion
+      
+      if (issues.length === 0) {
+        console.log(`✅ [AWS] No issues to clear for user ${userId}`);
+        return { success: true, deleted: 0 };
+      }
+
+      // Delete all issues in batches
+      const batchSize = 25; // DynamoDB batch write limit
+      let deletedCount = 0;
+
+      for (let i = 0; i < issues.length; i += batchSize) {
+        const batch = issues.slice(i, i + batchSize);
+        const deleteRequests = batch.map(issue => ({
+          DeleteRequest: {
+            Key: {
+              PK: issue.PK,
+              SK: issue.SK
+            }
+          }
+        }));
+
+        await this.dynamodb.send(new BatchWriteCommand({
+          RequestItems: {
+            [this.tables.issuesAlerts]: deleteRequests
+          }
+        }));
+
+        deletedCount += deleteRequests.length;
+      }
+
+      console.log(`✅ [AWS] Cleared ${deletedCount} issues for user ${userId}`);
+      return { success: true, deleted: deletedCount };
+    } catch (error) {
+      console.error('❌ [AWS] Error clearing all issues:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Clear all cycle logs for a user
+   */
+  async clearAllCycleLogs(userId) {
+    try {
+      // Get all cycle logs for this user
+      const cycleLogs = await this.getCycleLogs(userId, null, 500); // Get more items for deletion
+      
+      if (cycleLogs.length === 0) {
+        console.log(`✅ [AWS] No cycle logs to clear for user ${userId}`);
+        return { success: true, deleted: 0 };
+      }
+
+      // Delete all cycle logs in batches
+      const batchSize = 25; // DynamoDB batch write limit
+      let deletedCount = 0;
+
+      for (let i = 0; i < cycleLogs.length; i += batchSize) {
+        const batch = cycleLogs.slice(i, i + batchSize);
+        const deleteRequests = batch.map(cycle => ({
+          DeleteRequest: {
+            Key: {
+              userId: cycle.userId,
+              cycleId: cycle.cycleId // Use cycleId as the sort key, not timestamp
+            }
+          }
+        }));
+
+        await this.dynamodb.send(new BatchWriteCommand({
+          RequestItems: {
+            [this.tables.cycleLogs]: deleteRequests
+          }
+        }));
+
+        deletedCount += deleteRequests.length;
+      }
+
+      console.log(`✅ [AWS] Cleared ${deletedCount} cycle logs for user ${userId}`);
+      return { success: true, deleted: deletedCount };
+    } catch (error) {
+      console.error('❌ [AWS] Error clearing all cycle logs:', error);
       return { success: false, error: error.message };
     }
   }

@@ -3853,6 +3853,7 @@ BODY: [email body with proper greeting and signature]`;
     try {
       let stepCount = 0;
       const maxSteps = 100; // Safety limit
+      const cycleStartTime = Date.now(); // Track cycle start time
       
       while (stepCount < maxSteps) {
         stepCount++;
@@ -3945,12 +3946,54 @@ BODY: [email body with proper greeting and signature]`;
       }
 
       // Log successful cycle completion to DynamoDB
+      const cycleEndTime = Date.now();
+      const cycleDuration = Math.floor((cycleEndTime - cycleStartTime) / 1000); // Duration in seconds
+      
       await this.logCycleCompletion({
         success: true,
         stepsExecuted: stepCount,
         leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0,
-        targetLeads: this.memory.currentCycle?.targetLeads || 0
+        targetLeads: this.memory.currentCycle?.targetLeads || 0,
+        duration: cycleDuration, // Add duration in seconds
+        startedAt: new Date(cycleStartTime).toISOString(),
+        completedAt: new Date(cycleEndTime).toISOString()
       });
+
+      // Also add a persistent activity/issue entry so activity logs capture the cycle
+      try {
+        const activityData = {
+          type: 'info',
+          category: 'cycle',
+          title: `Cycle ${this.cycleCount} - ${this.agentId}`,
+          message: `Agent ${this.agentId} completed cycle #${this.cycleCount}: ${this.memory.currentCycle?.leadsProcessed || 0} leads processed`,
+          timestamp: new Date().toISOString(),
+          metadata: {
+            agentId: this.agentId,
+            cycleNumber: this.cycleCount,
+            duration: cycleDuration,
+            leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0,
+            timestamp: new Date().toISOString()
+          }
+        };
+        
+        await this.awsManager.addIssue(
+          this.userId,
+          activityData.type,
+          activityData.title,
+          activityData.message,
+          activityData.metadata
+        );
+        
+        // Broadcast to SSE clients for real-time updates
+        try {
+          const { broadcastActivity } = await import('../routes/monitoring.js');
+          broadcastActivity(activityData);
+        } catch (sseError) {
+          console.error('❌ [REASONING AGENT] Failed to broadcast cycle completion:', sseError);
+        }
+      } catch (e) {
+        console.error('❌ [REASONING AGENT] Failed to add persistent cycle activity:', e);
+      }
 
       return {
         success: true,
@@ -3963,11 +4006,17 @@ BODY: [email body with proper greeting and signature]`;
       console.error('❌ [REASONING AGENT] Cycle error:', error);
       
       // Log failed cycle to DynamoDB
+      const cycleEndTime = Date.now();
+      const cycleDuration = Math.floor((cycleEndTime - cycleStartTime) / 1000); // Duration in seconds
+      
       await this.logCycleCompletion({
         success: false,
         error: error.message,
         stepsExecuted: stepCount || 0,
-        leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0
+        leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0,
+        duration: cycleDuration,
+        startedAt: new Date(cycleStartTime).toISOString(),
+        completedAt: new Date(cycleEndTime).toISOString()
       });
       
       this.logOperation('Cycle Failed', `Reasoning cycle #${this.cycleCount} encountered an error: ${error.message}`, 'error', {

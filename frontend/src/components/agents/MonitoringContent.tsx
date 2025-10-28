@@ -49,6 +49,11 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   const [costTimeSeries, setCostTimeSeries] = useState<any[]>([]);
   const [customDays, setCustomDays] = useState<number>(7);
   const [costCustomDays, setCostCustomDays] = useState<number>(7);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState<boolean>(false);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'cycles' | 'important' | 'agents'>('all');
+  const [dismissingActivity, setDismissingActivity] = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState<boolean>(false);
 
   // API cost constants (must match backend)
   const apiCosts = {
@@ -77,6 +82,57 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   useEffect(() => {
     fetchRealData();
   }, []);
+
+  // Fetch activities when Activity Logs view is shown
+  useEffect(() => {
+    const fetchActivities = async () => {
+      setLoadingActivities(true);
+      try {
+        const res = await api.get('/api/monitoring/activity');
+        if (res.data?.success) setActivities(res.data.activities || []);
+      } catch (e) {
+        console.error('Error fetching activities', e);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+
+    if (view === 'logs') {
+      fetchActivities();
+      
+      // Setup SSE connection for real-time activity updates
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const eventSource = new EventSource(`/api/monitoring/stream?token=${token}`);
+      
+      eventSource.addEventListener('message', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          
+          // Handle new activity added
+          if (data.type === 'activity_added' && data.data) {
+            setActivities(prev => [data.data, ...prev]);
+            
+            // Show toast notification
+            console.log('📌 New activity:', data.data.title);
+          }
+        } catch (err) {
+          console.error('Error parsing SSE message:', err);
+        }
+      });
+      
+      eventSource.onerror = (error) => {
+        console.error('SSE connection error:', error);
+        eventSource.close();
+      };
+      
+      // Cleanup on unmount or view change
+      return () => {
+        eventSource.close();
+      };
+    }
+  }, [view]);
 
   // Fetch agent statuses (cycle info, etc.)
   useEffect(() => {
@@ -1797,14 +1853,215 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     </div>
   );
 
-  const renderLogs = () => (
+  // Mark activity as read/dismissed
+  const handleDismissActivity = async (activityId: string) => {
+    if (!activityId) return;
+    
+    setDismissingActivity(activityId);
+    try {
+      await api.post(`/api/monitoring/activity/${activityId}/mark-read`);
+      
+      // Remove from local state
+      setActivities(prev => prev.filter(act => {
+        // For activities from issues table, they have an 'id' field
+        // For cycle logs, we might need to construct an ID from timestamp + agentId
+        const itemId = act.id || `${act.metadata?.agentId}-${act.timestamp}`;
+        return itemId !== activityId;
+      }));
+    } catch (error) {
+      console.error('Failed to dismiss activity:', error);
+    } finally {
+      setDismissingActivity(null);
+    }
+  };
+
+  // Clear all activities
+  const handleClearAll = async () => {
+    if (!confirm('Are you sure you want to clear all activity logs? This cannot be undone.')) {
+      return;
+    }
+
+    setClearingAll(true);
+    try {
+      const response = await api.delete('/api/monitoring/activity/clear-all');
+      
+      if (response.data?.success) {
+        setActivities([]);
+        console.log('✅ All activity logs cleared');
+      } else {
+        console.error('Failed to clear activities:', response.data?.error);
+        alert('Failed to clear activity logs. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to clear all activities:', error);
+      alert('Failed to clear activity logs. Please try again.');
+    } finally {
+      setClearingAll(false);
+    }
+  };
+
+  const renderLogs = () => {
+    // Helper to get agent name from agent ID
+    const getAgentName = (agentId: string) => {
+      const agent = agents.find(a => a.id === agentId);
+      return agent ? agent.name : agentId;
+    };
+
+    // Filter activities based on selected filter
+    const filteredActivities = activities.filter(act => {
+      if (activityFilter === 'all') return true;
+      if (activityFilter === 'cycles') return act.category === 'cycle' || act.title?.toLowerCase().includes('cycle');
+      if (activityFilter === 'important') {
+        // Important events include:
+        // - Agent Created: When a new agent is created
+        // - Agent Deleted: When an agent is permanently deleted
+        // - Budget Limit: When monthly budget limits are reached or exceeded
+        // - Rate Limit: When API rate limits are hit (Apollo, Serper, etc.)
+        // - Quota Exceeded: When service quotas are exceeded
+        const importantKeywords = ['agent created', 'agent deleted', 'budget limit', 'rate limit', 'quota exceeded'];
+        const titleLower = act.title?.toLowerCase() || '';
+        const msgLower = act.message?.toLowerCase() || '';
+        return importantKeywords.some(kw => titleLower.includes(kw) || msgLower.includes(kw));
+      }
+      if (activityFilter === 'agents') {
+        const agentKeywords = ['agent created', 'agent deleted'];
+        const titleLower = act.title?.toLowerCase() || '';
+        return agentKeywords.some(kw => titleLower.includes(kw));
+      }
+      return true;
+    });
+
+    return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-neutral-900">Activity Logs</h2>
       <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-        <p className="text-neutral-600">Activity logs will appear here.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActivityFilter('all')}
+              className={`px-3 py-1 text-sm rounded border transition-colors ${
+                activityFilter === 'all' 
+                  ? '!bg-blue-600 !text-white !border-blue-600' 
+                  : 'bg-white text-neutral-700 border-neutral-300 hover:border-black'
+              }`}
+            >All</button>
+            <button
+              onClick={() => setActivityFilter('cycles')}
+              className={`px-3 py-1 text-sm rounded border transition-colors ${
+                activityFilter === 'cycles' 
+                  ? '!bg-blue-600 !text-white !border-blue-600' 
+                  : 'bg-white text-neutral-700 border-neutral-300 hover:border-black'
+              }`}
+            >Cycles</button>
+            <button
+              onClick={() => setActivityFilter('important')}
+              className={`px-3 py-1 text-sm rounded border transition-colors ${
+                activityFilter === 'important' 
+                  ? '!bg-blue-600 !text-white !border-blue-600' 
+                  : 'bg-white text-neutral-700 border-neutral-300 hover:border-black'
+              }`}
+            >Important</button>
+            <button
+              onClick={() => setActivityFilter('agents')}
+              className={`px-3 py-1 text-sm rounded border transition-colors ${
+                activityFilter === 'agents' 
+                  ? '!bg-blue-600 !text-white !border-blue-600' 
+                  : 'bg-white text-neutral-700 border-neutral-300 hover:border-black'
+              }`}
+            >Agents</button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                setLoadingActivities(true);
+                try {
+                  const res = await api.get('/api/monitoring/activity');
+                  if (res.data?.success) setActivities(res.data.activities || []);
+                } catch (e) {
+                  console.error('Error fetching activities', e);
+                } finally {
+                  setLoadingActivities(false);
+                }
+              }}
+              className="text-sm text-blue-600 hover:underline"
+            >Refresh</button>
+            <button
+              onClick={handleClearAll}
+              disabled={clearingAll || activities.length === 0}
+              className="text-sm text-black hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {clearingAll ? 'Clearing...' : 'Clear All'}
+            </button>
+          </div>
+        </div>
+
+        {loadingActivities ? (
+          <p className="text-neutral-600">Loading activity...</p>
+        ) : filteredActivities.length === 0 ? (
+          <p className="text-neutral-600">No activity matching filter.</p>
+        ) : (
+          <div className="space-y-3">
+            {filteredActivities.map((act, i) => {
+              const activityId = act.id || `${act.metadata?.agentId || 'unknown'}-${act.timestamp}`;
+              const isDismissing = dismissingActivity === activityId;
+              const agentId = act.metadata?.agentId;
+              const agentName = agentId ? getAgentName(agentId) : null;
+              
+              return (
+                <div key={i} className="p-3 border border-neutral-300 rounded-lg hover:border-black transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium text-neutral-900">{act.title}</div>
+                        {agentName && (
+                          <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">
+                            {agentName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-neutral-600 mt-1">{act.message}</div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="text-xs text-neutral-500 text-right">
+                        <div>{new Date(act.timestamp).toLocaleString()}</div>
+                        <div className="mt-1 text-[10px] uppercase font-medium text-neutral-400">{act.category}</div>
+                      </div>
+                      <button
+                        onClick={() => handleDismissActivity(activityId)}
+                        disabled={isDismissing}
+                        className="text-neutral-400 hover:text-neutral-600 disabled:opacity-50"
+                        title="Dismiss activity"
+                      >
+                        {isDismissing ? (
+                          <span className="text-xs">...</span>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {act.metadata && Object.keys(act.metadata).filter(k => !['timestamp', 'agentId'].includes(k)).length > 0 && (
+                    <div className="mt-2 text-xs text-neutral-600 flex flex-wrap gap-2">
+                      {Object.entries(act.metadata)
+                        .filter(([k]) => !['timestamp', 'agentId'].includes(k))
+                        .map(([k, v]) => (
+                          <span key={k} className="inline-block px-2 py-0.5 bg-neutral-50 rounded">
+                            <span className="font-medium">{k}:</span> {String(v)}
+                          </span>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
+  };
 
   switch (view) {
     case 'overview':
