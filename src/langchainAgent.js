@@ -249,14 +249,14 @@ export async function getLangchainAgentWithMemory(userId = null) {
   // AWS Database Query Tool
   const awsDatabaseQueryTool = new DynamicTool({
     name: "aws_database_query",
-    description: "Query AWS DynamoDB tables to read data. Available tables: users, user-settings, agent-settings, lead-data, email-tracking, agent-state, contacted-leads. Use this to fetch user info, agent configurations, lead data, email stats, or agent status.",
+    description: "Query AWS DynamoDB tables to read raw data. Available tables: users, user-settings, agent-settings, lead-data, agent-state, contacted-leads. Use this to fetch user info, agent configurations, lead data, or agent status. **IMPORTANT: For email queue operations, you MUST use the email_queue_operations tool.**",
     schema: {
       type: "object",
       properties: {
         table: {
           type: "string",
-          enum: ["users", "user-settings", "agent-settings", "lead-data", "email-tracking", "agent-state", "contacted-leads"],
-          description: "Table name to query"
+          enum: ["users", "user-settings", "agent-settings", "lead-data", "agent-state", "contacted-leads"],
+          description: "Table name to query (email-tracking is NOT available here - use email_queue_operations tool for emails)"
         },
         operation: {
           type: "string",
@@ -276,7 +276,25 @@ export async function getLangchainAgentWithMemory(userId = null) {
     },
     func: async (input) => {
       try {
-        const params = typeof input === 'string' ? JSON.parse(input) : input;
+        let params;
+        
+        // Handle various input formats
+        if (typeof input === 'string') {
+          // Try to parse as JSON first
+          try {
+            params = JSON.parse(input);
+          } catch {
+            // If not JSON, treat as legacy query string or extract table name
+            console.log('[AWS DB QUERY TOOL] Input is not JSON, attempting to parse:', input);
+            return JSON.stringify({ 
+              error: 'Invalid input format. Please provide JSON with format: {"table": "users", "operation": "scan"}',
+              example: '{"table": "users", "operation": "scan", "limit": 10}'
+            });
+          }
+        } else {
+          params = input;
+        }
+        
         const { table, operation, key, limit } = params;
 
         const tableMap = {
@@ -284,14 +302,14 @@ export async function getLangchainAgentWithMemory(userId = null) {
           'user-settings': awsManager.tables.userSettings,
           'agent-settings': awsManager.tables.agentSettings,
           'lead-data': awsManager.tables.leadData,
-          'email-tracking': awsManager.tables.emailTracking,
           'agent-state': awsManager.tables.agentState,
           'contacted-leads': awsManager.tables.contactedLeads
+          // email-tracking removed - use email_queue_operations tool instead
         };
 
         const tableName = tableMap[table];
         if (!tableName) {
-          return JSON.stringify({ error: `Invalid table: ${table}` });
+          return JSON.stringify({ error: `Invalid table: ${table}. For email operations, use email_queue_operations tool.` });
         }
 
         let result;
@@ -434,7 +452,56 @@ export async function getLangchainAgentWithMemory(userId = null) {
     },
     func: async (input) => {
       try {
-        const params = typeof input === 'string' ? JSON.parse(input) : input;
+        let params;
+        
+        // Handle various input formats
+        if (typeof input === 'string') {
+          // Try to parse as JSON first
+          try {
+            params = JSON.parse(input);
+          } catch {
+            // If not JSON, try to infer action from string
+            console.log('[AGENT CONTROL TOOL] Input is not JSON, attempting to parse:', input);
+            const inputLower = input.toLowerCase();
+            
+            if (inputLower.includes('list')) {
+              params = { action: 'list', userId };
+            } else if (inputLower.includes('status')) {
+              // Try to extract agent ID
+              const match = input.match(/\d+/);
+              if (match) {
+                params = { action: 'status', agentId: match[0] };
+              } else {
+                return JSON.stringify({ 
+                  error: 'Could not find agent ID in input',
+                  hint: 'Provide JSON like: {"action": "status", "agentId": "123456"}'
+                });
+              }
+            } else if (inputLower.includes('start')) {
+              const match = input.match(/\d+/);
+              if (match) {
+                params = { action: 'start', agentId: match[0], userId };
+              } else {
+                return JSON.stringify({ error: 'Agent ID required for start' });
+              }
+            } else if (inputLower.includes('stop')) {
+              const match = input.match(/\d+/);
+              if (match) {
+                params = { action: 'stop', agentId: match[0] };
+              } else {
+                return JSON.stringify({ error: 'Agent ID required for stop' });
+              }
+            } else {
+              return JSON.stringify({ 
+                error: 'Invalid input format. Please provide JSON with format: {"action": "status", "agentId": "123456"}',
+                example: '{"action": "status", "agentId": "957547"}'
+              });
+            }
+          }
+        } else {
+          params = input;
+        }
+        
         const { agentId, action, userId: paramUserId } = params;
         const effectiveUserId = paramUserId || userId;
 
@@ -512,32 +579,85 @@ export async function getLangchainAgentWithMemory(userId = null) {
   // Email Queue Operations Tool
   const emailQueueTool = new DynamicTool({
     name: "email_queue_operations",
-    description: "Manage email queue: view pending emails, approve/reject drafts, get stats. Use this to check what emails are queued, approve them for sending, or get email campaign statistics.",
-    schema: {
-      type: "object",
-      properties: {
-        agentId: {
-          type: "string",
-          description: "Agent ID whose queue to access"
-        },
-        action: {
-          type: "string",
-          enum: ["list", "approve", "reject", "stats"],
-          description: "Action: 'list' pending emails, 'approve' email, 'reject' email, or get 'stats'"
-        },
-        emailId: {
-          type: "string",
-          description: "Email ID for approve/reject actions"
-        }
-      },
-      required: ["agentId", "action"]
-    },
+    description: "**PRIMARY TOOL for email queue operations**. Use this when user asks about 'email queue', 'pending emails', 'queued emails', or wants to view/approve/reject emails. This tool manages the email queue: view pending emails, approve/reject drafts, get email stats. Always use this tool for any email queue related queries. REQUIRED: Provide agentId and action (e.g., {agentId: '957547', action: 'list'}).",
+    // Remove schema - rely on smart parsing instead
     func: async (input) => {
+      console.log('[EMAIL QUEUE TOOL] ✅ Tool called with input:', typeof input, input);
+      
+      // Handle undefined input - LangChain bug where AI doesn't provide parameters
+      if (input === undefined || input === null) {
+        console.log('[EMAIL QUEUE TOOL] ❌ Input is undefined/null - AI did not provide parameters');
+        return JSON.stringify({ 
+          error: 'Missing required parameters',
+          required: { agentId: 'string', action: 'list|approve|reject|stats' },
+          example: { agentId: '957547', action: 'list' },
+          hint: 'You must provide agentId and action parameters'
+        });
+      }
+      
       try {
-        const params = typeof input === 'string' ? JSON.parse(input) : input;
+        let params;
+        
+        // Handle various input formats
+        if (typeof input === 'string') {
+          // Try to parse as JSON first
+          try {
+            params = JSON.parse(input);
+            console.log('[EMAIL QUEUE TOOL] ✅ Parsed JSON successfully:', params);
+          } catch {
+            // If not JSON, try to infer from string
+            console.log('[EMAIL QUEUE TOOL] Input is not JSON, attempting to parse:', input);
+            const inputLower = input.toLowerCase();
+            
+            // Try to extract agent ID
+            const agentIdMatch = input.match(/\d+/);
+            const extractedAgentId = agentIdMatch ? agentIdMatch[0] : null;
+            console.log('[EMAIL QUEUE TOOL] Extracted agent ID:', extractedAgentId);
+            
+            if (inputLower.includes('list') || inputLower.includes('view') || inputLower.includes('pending') || inputLower.includes('queue') || inputLower.includes('get')) {
+              if (!extractedAgentId) {
+                return JSON.stringify({ 
+                  error: 'Agent ID required',
+                  hint: 'Provide JSON like: {"agentId": "957547", "action": "list"}'
+                });
+              }
+              params = { agentId: extractedAgentId, action: 'list' };
+            } else if (inputLower.includes('stat')) {
+              if (!extractedAgentId) {
+                return JSON.stringify({ error: 'Agent ID required for stats' });
+              }
+              params = { agentId: extractedAgentId, action: 'stats' };
+            } else if (extractedAgentId) {
+              // If we found an agent ID but no recognized action, default to 'list'
+              console.log('[EMAIL QUEUE TOOL] No recognized action keyword, defaulting to list for agent:', extractedAgentId);
+              params = { agentId: extractedAgentId, action: 'list' };
+            } else {
+              return JSON.stringify({ 
+                error: 'Invalid input format. Please provide JSON with format: {"agentId": "957547", "action": "list"}',
+                example: '{"agentId": "957547", "action": "list"}'
+              });
+            }
+          }
+        } else {
+          params = input;
+          console.log('[EMAIL QUEUE TOOL] Input is object, using directly:', params);
+        }
+        
+        // Safety check: ensure params is defined
+        if (!params) {
+          console.log('[EMAIL QUEUE TOOL] ❌ params is undefined!');
+          return JSON.stringify({ 
+            error: 'Failed to parse input parameters',
+            hint: 'Provide JSON like: {"agentId": "957547", "action": "list"}'
+          });
+        }
+        
+        console.log('[EMAIL QUEUE TOOL] Final params:', params);
         const { agentId, action, emailId } = params;
+        console.log('[EMAIL QUEUE TOOL] Destructured - agentId:', agentId, 'action:', action, 'emailId:', emailId);
 
-        const queue = new EmailQueue(agentId);
+        // Initialize EmailQueue with both userId and agentId
+        const queue = new EmailQueue(userId, agentId);
 
         if (action === 'list') {
           const pending = await queue.getPendingEmails();
@@ -1010,6 +1130,68 @@ Hey there, programmer! Meridian here, switching to technical consultation mode.
 
 **What specific aspect would you like me to analyze or suggest improvements for?**
 Ready to collaborate on making me better! 🚀`;
+  }
+  
+  // ====================================
+  // EMAIL QUEUE DIRECT HANDLER
+  // ====================================
+  // Bypass LangChain for email queue queries - use direct OpenAI function calling
+  const emailQueueIntent = userInput.toLowerCase().match(/email\s*(queue|pending|list|draft)/i) || 
+                           userInput.toLowerCase().includes('pending emails') ||
+                           userInput.toLowerCase().includes('queued emails');
+  
+  if (emailQueueIntent && userId) {
+    console.log('[EMAIL QUEUE] Direct handler triggered for query:', userInput);
+    
+    // Extract agent ID from query
+    const agentIdMatch = userInput.match(/agent\s*(\d+)/i) || userInput.match(/(\d{6})/);
+    const agentId = agentIdMatch ? agentIdMatch[1] : null;
+    
+    if (!agentId) {
+      return "I'd be happy to show you the email queue! Please provide the agent ID (e.g., 'show email queue for agent 957547').";
+    }
+    
+    try {
+      console.log('[EMAIL QUEUE] Fetching queue for agent:', agentId);
+      const queue = new EmailQueue(userId, agentId);
+      const pending = await queue.getQueue();  // Use getQueue() not getPendingEmails()
+      
+      if (!pending || pending.length === 0) {
+        return `📭 No pending emails in the queue for agent ${agentId}.`;
+      }
+      
+      // Instead of formatting the response ourselves, let the AI analyze the queue data
+      console.log('[EMAIL QUEUE] Passing data to AI for analysis...');
+      
+      // Create a concise data summary for the AI to analyze (less data = faster response)
+      const queueSummary = pending.slice(0, 10).map((email, index) => ({
+        num: index + 1,
+        to: email.to,
+        company: email.company || 'N/A',
+        subject: email.subject,
+        preview: email.body ? email.body.substring(0, 150) : null
+      }));
+      
+      // Pass to AI with analysis instructions
+      const analysisPrompt = `Email queue for agent ${agentId} - ${pending.length} emails:
+
+${JSON.stringify(queueSummary, null, 2)}
+
+Analyze briefly:
+**Targets**: Industries/companies
+**Quality**: What's working/needs fixing
+**Top 3**: Best emails + why (1 line each)
+**Action**: One key improvement
+
+Max 150 words.`;
+
+      // Continue with normal LangChain processing with the analysis prompt
+      userInput = analysisPrompt;
+      
+    } catch (error) {
+      console.error('[EMAIL QUEUE] Error fetching queue:', error);
+      return `❌ Error retrieving email queue for agent ${agentId}: ${error.message}`;
+    }
   }
   
   // MANUAL EMAIL DETECTION - Check if user wants to send an email

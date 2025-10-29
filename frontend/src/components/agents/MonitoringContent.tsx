@@ -9,7 +9,8 @@ import {
   XCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
-  BoltIcon
+  BoltIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../../lib/api';
@@ -54,6 +55,15 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   const [activityFilter, setActivityFilter] = useState<'all' | 'cycles' | 'important' | 'agents'>('all');
   const [dismissingActivity, setDismissingActivity] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState<boolean>(false);
+  
+  // Analytics graphs time filtering
+  const [emailActivityTimeRange, setEmailActivityTimeRange] = useState<'hour' | 'day' | 'week'>('day');
+  const [replyActivityTimeRange, setReplyActivityTimeRange] = useState<'hour' | 'day' | 'week'>('day');
+  const [cyclesTimeRange, setCyclesTimeRange] = useState<'hour' | 'day' | 'week'>('day');
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
+  
+  // Sent emails stream
+  const [sentEmailsStream, setSentEmailsStream] = useState<any[]>([]);
 
   // API cost constants (must match backend)
   const apiCosts = {
@@ -116,6 +126,40 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
             
             // Show toast notification
             console.log('📌 New activity:', data.data.title);
+          }
+        } catch (err) {
+          console.error('Error parsing SSE message:', err);
+        }
+      });
+      
+      eventSource.onerror = (error) => {
+        console.error('SSE connection error:', error);
+        eventSource.close();
+      };
+      
+      // Cleanup on unmount or view change
+      return () => {
+        eventSource.close();
+      };
+    }
+  }, [view]);
+  
+  // Setup SSE connection for analytics view to receive sent emails
+  useEffect(() => {
+    if (view === 'analytics') {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const eventSource = new EventSource(`/api/monitoring/stream?token=${token}`);
+      
+      eventSource.addEventListener('message', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          
+          // Handle sent email updates
+          if (data.type === 'email_sent' && data.data) {
+            console.log('📧 [Analytics] New email sent:', data.data);
+            setSentEmailsStream(prev => [data.data, ...prev].slice(0, 50)); // Keep last 50 emails
           }
         } catch (err) {
           console.error('Error parsing SSE message:', err);
@@ -294,6 +338,35 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     }
   };
 
+  // Helper function to get time key based on range
+  const getTimeKey = (date: Date, range: 'hour' | 'day' | 'week'): string => {
+    if (range === 'hour') {
+      return `${date.toISOString().split('T')[0]} ${date.getHours()}:00`; // YYYY-MM-DD HH:00
+    } else if (range === 'day') {
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD
+    } else { // week
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+      return weekStart.toISOString().split('T')[0]; // YYYY-MM-DD of week start
+    }
+  };
+
+  // Helper function to format time key for display
+  const formatTimeKey = (key: string, range: 'hour' | 'day' | 'week'): string => {
+    if (range === 'hour') {
+      const [dateStr, hourStr] = key.split(' ');
+      const date = new Date(dateStr);
+      return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${hourStr}`;
+    } else if (range === 'day') {
+      return new Date(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else { // week
+      const weekStart = new Date(key);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      return `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    }
+  };
+
   const generateTimeSeriesData = (agentsData: any[], filterAgentId?: string) => {
     // Collect all sent emails with timestamps
     const allEmails: any[] = [];
@@ -318,27 +391,27 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     // Sort by date
     allEmails.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Group by day
-    const dailyData: { [key: string]: { date: string; sent: number; replied: number } } = {};
+    // Group by selected time range
+    const groupedData: { [key: string]: { date: string; sent: number; replied: number } } = {};
     
     allEmails.forEach(email => {
       const date = new Date(email.date);
-      const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const timeKey = getTimeKey(date, emailActivityTimeRange);
       
-      if (!dailyData[dayKey]) {
-        dailyData[dayKey] = { date: dayKey, sent: 0, replied: 0 };
+      if (!groupedData[timeKey]) {
+        groupedData[timeKey] = { date: timeKey, sent: 0, replied: 0 };
       }
       
-      dailyData[dayKey].sent += 1;
+      groupedData[timeKey].sent += 1;
       if (email.replied) {
-        dailyData[dayKey].replied += 1;
+        groupedData[timeKey].replied += 1;
       }
     });
 
     // Convert to array and format dates
-    const timeSeriesArray = Object.values(dailyData).map(day => ({
-      ...day,
-      dateFormatted: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const timeSeriesArray = Object.values(groupedData).map(item => ({
+      ...item,
+      dateFormatted: formatTimeKey(item.date, emailActivityTimeRange)
     }));
 
     setTimeSeriesData(timeSeriesArray);
@@ -368,24 +441,24 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     // Sort by date
     repliedEmails.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Group by day
-    const dailyData: { [key: string]: { date: string; replies: number } } = {};
+    // Group by selected time range
+    const groupedData: { [key: string]: { date: string; replies: number } } = {};
     
     repliedEmails.forEach(email => {
       const date = new Date(email.date);
-      const dayKey = date.toISOString().split('T')[0];
+      const timeKey = getTimeKey(date, replyActivityTimeRange);
       
-      if (!dailyData[dayKey]) {
-        dailyData[dayKey] = { date: dayKey, replies: 0 };
+      if (!groupedData[timeKey]) {
+        groupedData[timeKey] = { date: timeKey, replies: 0 };
       }
       
-      dailyData[dayKey].replies += 1;
+      groupedData[timeKey].replies += 1;
     });
 
     // Convert to array and format dates
-    const replyArray = Object.values(dailyData).map(day => ({
-      ...day,
-      dateFormatted: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const replyArray = Object.values(groupedData).map(item => ({
+      ...item,
+      dateFormatted: formatTimeKey(item.date, replyActivityTimeRange)
     }));
 
     setReplyActivityData(replyArray);
@@ -395,33 +468,36 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     try {
       // Fetch real cycle logs from backend
       const agentParam = filterAgentId ? `?agentId=${filterAgentId}` : '';
-      console.log('📊 Fetching cycle logs with params:', agentParam);
+      console.log('📊 [CYCLES] Fetching cycle logs with params:', agentParam);
       const response = await api.get(`/api/lead-agent/cycle-logs${agentParam}`);
-      console.log('📊 Cycle logs response:', response.data);
+      console.log('📊 [CYCLES] Raw response:', response);
+      console.log('📊 [CYCLES] Response data:', response.data);
+      console.log('📊 [CYCLES] Cycle logs array:', response.data.cycleLogs);
       
       if (response.data.success && response.data.cycleLogs && response.data.cycleLogs.length > 0) {
         const cycleLogs = response.data.cycleLogs;
-        console.log('📊 Processing', cycleLogs.length, 'cycle logs');
+        console.log('📊 [CYCLES] Processing', cycleLogs.length, 'cycle logs');
+        console.log('📊 [CYCLES] First log sample:', cycleLogs[0]);
         
         if (filterAgentId) {
           // Single agent view - simple line
-          const dailyData: { [key: string]: { date: string; cycles: number } } = {};
+          const groupedData: { [key: string]: { date: string; cycles: number } } = {};
           
           cycleLogs.forEach((log: any) => {
             const date = new Date(log.completedAt);
-            const dayKey = date.toISOString().split('T')[0];
+            const timeKey = getTimeKey(date, cyclesTimeRange);
             
-            if (!dailyData[dayKey]) {
-              dailyData[dayKey] = { date: dayKey, cycles: 0 };
+            if (!groupedData[timeKey]) {
+              groupedData[timeKey] = { date: timeKey, cycles: 0 };
             }
             
-            dailyData[dayKey].cycles += 1;
+            groupedData[timeKey].cycles += 1;
           });
           
           // Convert to array and format dates
-          const cyclesArray = Object.values(dailyData).map(day => ({
-            ...day,
-            dateFormatted: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const cyclesArray = Object.values(groupedData).map(item => ({
+            ...item,
+            dateFormatted: formatTimeKey(item.date, cyclesTimeRange)
           }));
           
           // Sort by date
@@ -431,37 +507,37 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
           setCyclesData(cyclesArray);
         } else {
           // All agents view - multiple lines per agent
-          const dailyDataByAgent: { [key: string]: { [key: string]: number } } = {};
-          const allDates = new Set<string>();
+          const groupedDataByAgent: { [key: string]: { [key: string]: number } } = {};
+          const allTimeKeys = new Set<string>();
           
           cycleLogs.forEach((log: any) => {
             const date = new Date(log.completedAt);
-            const dayKey = date.toISOString().split('T')[0];
+            const timeKey = getTimeKey(date, cyclesTimeRange);
             const agentName = agentsData.find(a => a.id === log.agentId)?.name || log.agentId;
             
-            allDates.add(dayKey);
+            allTimeKeys.add(timeKey);
             
-            if (!dailyDataByAgent[dayKey]) {
-              dailyDataByAgent[dayKey] = {};
+            if (!groupedDataByAgent[timeKey]) {
+              groupedDataByAgent[timeKey] = {};
             }
             
-            if (!dailyDataByAgent[dayKey][agentName]) {
-              dailyDataByAgent[dayKey][agentName] = 0;
+            if (!groupedDataByAgent[timeKey][agentName]) {
+              groupedDataByAgent[timeKey][agentName] = 0;
             }
             
-            dailyDataByAgent[dayKey][agentName] += 1;
+            groupedDataByAgent[timeKey][agentName] += 1;
           });
           
           // Convert to array with all agent columns
-          const cyclesArray = Array.from(allDates).map(dayKey => {
+          const cyclesArray = Array.from(allTimeKeys).map(timeKey => {
             const dataPoint: any = {
-              date: dayKey,
-              dateFormatted: new Date(dayKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              date: timeKey,
+              dateFormatted: formatTimeKey(timeKey, cyclesTimeRange)
             };
             
             // Add each agent's count
-            Object.keys(dailyDataByAgent[dayKey] || {}).forEach(agentName => {
-              dataPoint[agentName] = dailyDataByAgent[dayKey][agentName];
+            Object.keys(groupedDataByAgent[timeKey] || {}).forEach(agentName => {
+              dataPoint[agentName] = groupedDataByAgent[timeKey][agentName];
             });
             
             return dataPoint;
@@ -483,7 +559,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     }
   };
 
-  // Regenerate time series data when agent selection changes
+  // Regenerate time series data when agent selection or time ranges change
   useEffect(() => {
     if (agents.length > 0) {
       const filterAgentId = selectedAgentTab === 'all' ? undefined : selectedAgentTab;
@@ -491,7 +567,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       generateReplyActivityData(agents, filterAgentId);
       generateCyclesData(agents, filterAgentId);
     }
-  }, [selectedAgentTab, agents]);
+  }, [selectedAgentTab, agents, emailActivityTimeRange, replyActivityTimeRange, cyclesTimeRange]);
   
   const renderOverview = () => (
     <div className="space-y-6">
@@ -701,13 +777,158 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
           </div>
         </div>
 
+        {/* Real-Time Sent Emails Stream */}
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-neutral-900">📧 Recent Sent Emails</h3>
+            <span className="text-sm text-neutral-500">{sentEmailsStream.length} emails</span>
+          </div>
+          {sentEmailsStream.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {sentEmailsStream.map((email, index) => {
+                // Find the agent that sent this email
+                const sendingAgent = agents.find(a => a.id === email.agentId);
+                const agentColor = sendingAgent?.personality?.color || 'blue';
+                
+                return (
+                  <div
+                    key={`${email.timestamp}-${index}`}
+                    className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 hover:bg-neutral-100 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      {/* Left side - Email info */}
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="h-8 w-8 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium text-sm">
+                          {(email.name || email.to || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-neutral-900 text-sm truncate">
+                              {email.company || 'Unknown Company'}
+                            </span>
+                            <span className="text-xs text-neutral-500">•</span>
+                            <span className="text-xs text-neutral-500 truncate">
+                              {email.to}
+                            </span>
+                            <span className="text-xs text-neutral-500">•</span>
+                            <span className="text-xs text-neutral-400">
+                              {new Date(email.timestamp || email.dateSent).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <p className="text-xs text-neutral-600 truncate mt-1">
+                            {email.subject || 'No Subject'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Right side - Agent icon */}
+                      <div className="flex items-center gap-2 ml-4">
+                        <div className={`inline-flex items-center gap-2 px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-700 border border-green-300`}>
+                          <CheckCircleIcon className="h-3 w-3" />
+                          Sent
+                        </div>
+                        {sendingAgent && (
+                          <div 
+                            className={`h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-xs`}
+                            style={{ 
+                              backgroundColor: agentColor === 'red' ? '#ef4444' : 
+                                             agentColor === 'blue' ? '#3b82f6' :
+                                             agentColor === 'purple' ? '#a855f7' :
+                                             agentColor === 'green' ? '#10b981' :
+                                             agentColor === 'orange' ? '#f97316' : '#3b82f6'
+                            }}
+                            title={`Sent by ${sendingAgent.name}`}
+                          >
+                            {sendingAgent.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-neutral-500">
+              <EnvelopeIcon className="h-16 w-16 mx-auto mb-4 text-neutral-300" />
+              <p>No emails sent yet</p>
+              <p className="text-xs mt-1">Sent emails will appear here in real-time</p>
+            </div>
+          )}
+        </div>
+
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Email Activity Over Time Line Chart */}
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">
-              {selectedAgent ? `${selectedAgent.name} - Activity Timeline` : 'Email Activity Over Time'}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900">
+                {selectedAgent ? `${selectedAgent.name} - Activity Timeline` : 'Email Activity Over Time'}
+              </h3>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={() => setEmailActivityTimeRange('hour')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={emailActivityTimeRange === 'hour' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Hour
+                </button>
+                <button
+                  onClick={() => setEmailActivityTimeRange('day')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={emailActivityTimeRange === 'day' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setEmailActivityTimeRange('week')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={emailActivityTimeRange === 'week' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Week
+                </button>
+                {emailActivityTimeRange === 'week' && (
+                  <div className="flex items-center gap-2 ml-2 pl-2 border-l border-neutral-300">
+                    <button
+                      onClick={() => {
+                        const newDate = selectedWeekStart ? new Date(selectedWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000) : new Date();
+                        setSelectedWeekStart(newDate);
+                      }}
+                      className="px-2 py-1 text-xs bg-neutral-200 hover:bg-neutral-300 rounded"
+                    >
+                      ←
+                    </button>
+                    <span className="text-xs text-neutral-600 whitespace-nowrap">
+                      {selectedWeekStart ? selectedWeekStart.toLocaleDateString() : 'This week'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const newDate = selectedWeekStart ? new Date(selectedWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000) : new Date();
+                        if (newDate <= new Date()) setSelectedWeekStart(newDate);
+                      }}
+                      className="px-2 py-1 text-xs bg-neutral-200 hover:bg-neutral-300 rounded"
+                    >
+                      →
+                    </button>
+                    <button
+                      onClick={() => setSelectedWeekStart(null)}
+                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded"
+                    >
+                      Current
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
             {timeSeriesData.length > 0 ? (
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={timeSeriesData}>
@@ -850,9 +1071,43 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
         {/* Reply Activity Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">
-              {selectedAgent ? `${selectedAgent.name} - Reply Activity` : 'Reply Activity Over Time'}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900">
+                {selectedAgent ? `${selectedAgent.name} - Reply Activity` : 'Reply Activity Over Time'}
+              </h3>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={() => setReplyActivityTimeRange('hour')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={replyActivityTimeRange === 'hour' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Hour
+                </button>
+                <button
+                  onClick={() => setReplyActivityTimeRange('day')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={replyActivityTimeRange === 'day' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setReplyActivityTimeRange('week')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={replyActivityTimeRange === 'week' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Week
+                </button>
+              </div>
+            </div>
             {replyActivityData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={replyActivityData}>
@@ -888,9 +1143,43 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
 
           {/* Cycles Completed Chart */}
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">
-              {selectedAgent ? `${selectedAgent.name} - Cycles Completed` : 'Cycles Completed Over Time'}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900">
+                {selectedAgent ? `${selectedAgent.name} - Cycles Completed` : 'Cycles Completed Over Time'}
+              </h3>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={() => setCyclesTimeRange('hour')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={cyclesTimeRange === 'hour' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Hour
+                </button>
+                <button
+                  onClick={() => setCyclesTimeRange('day')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={cyclesTimeRange === 'day' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setCyclesTimeRange('week')}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors"
+                  style={cyclesTimeRange === 'week' 
+                    ? { backgroundColor: '#2563eb', color: '#ffffff' } 
+                    : { backgroundColor: '#f3f4f6', color: '#4b5563' }
+                  }
+                >
+                  Week
+                </button>
+              </div>
+            </div>
             {cyclesData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={cyclesData}>

@@ -194,6 +194,16 @@ class MetricStore {
       }
     });
   }
+  
+  // Broadcast sent email
+  broadcastSentEmail(emailData) {
+    console.log(`📧 [MONITORING] Broadcasting sent email:`, {
+      to: emailData.to,
+      company: emailData.company,
+      agentId: emailData.agentId
+    });
+    this.broadcastUpdate('email_sent', emailData);
+  }
 }
 
 // Global metric store instance
@@ -203,6 +213,13 @@ const metricStore = new MetricStore();
 export function broadcastActivity(activity) {
   if (metricStore && metricStore.broadcastUpdate) {
     metricStore.broadcastUpdate('activity_added', activity);
+  }
+}
+
+// Helper function for broadcasting sent emails from other modules
+export function broadcastSentEmail(emailData) {
+  if (metricStore && metricStore.broadcastSentEmail) {
+    metricStore.broadcastSentEmail(emailData);
   }
 }
 

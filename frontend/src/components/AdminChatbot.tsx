@@ -47,9 +47,11 @@ export default function AdminChatbot() {
     setIsLoading(true);
 
     try {
-      // Use axios api instance which automatically handles auth token
+      // Use axios api instance with extended timeout for chat (AI analysis can take time)
       const response = await api.post('/api/chat', {
         userInput: currentInput
+      }, {
+        timeout: 90000 // 90 seconds for AI analysis
       });
 
       const assistantMessage: Message = {
