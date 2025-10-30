@@ -3,6 +3,7 @@ import express from 'express';
 import { backupManager } from '../utils/backup.js';
 import { memoryMonitor } from '../utils/memoryMonitor.js';
 import { authenticateToken } from '../middleware/jwt.js';
+import { getUserApiKeys, updateApiKeys } from '../lib/userManager.js';
 
 const router = express.Router();
 
@@ -286,6 +287,67 @@ router.get('/logs/recent', requireAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+// API Keys management
+router.get('/api-keys', async (req, res) => {
+  try {
+    const userId = req.user.userId; // Get from JWT token
+    console.log(`[SYSTEM] Getting API keys for user: ${userId}`);
+    
+    const apiKeys = await getUserApiKeys(userId);
+    
+    // Mask API keys for security (show only last 4 characters)
+    const maskedKeys = {};
+    for (const [key, value] of Object.entries(apiKeys || {})) {
+      if (value && typeof value === 'string' && value.length > 4) {
+        maskedKeys[key] = '••••' + value.slice(-4);
+      } else {
+        maskedKeys[key] = value;
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      apiKeys: maskedKeys 
+    });
+  } catch (error) {
+    console.error('[SYSTEM] Error getting API keys:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+router.post('/api-keys', async (req, res) => {
+  try {
+    const userId = req.user.userId; // Get from JWT token
+    const { apiKeys } = req.body;
+    
+    console.log(`[SYSTEM] Updating API keys for user: ${userId}`);
+    
+    // Filter out masked keys (those starting with ••••)
+    const keysToUpdate = {};
+    for (const [key, value] of Object.entries(apiKeys || {})) {
+      if (value && typeof value === 'string' && !value.startsWith('••••')) {
+        keysToUpdate[key] = value;
+      }
+    }
+    
+    await updateApiKeys(userId, keysToUpdate);
+    
+    res.json({ 
+      success: true, 
+      message: 'API keys updated successfully' 
+    });
+  } catch (error) {
+    console.error('[SYSTEM] Error updating API keys:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
     });
   }
 });

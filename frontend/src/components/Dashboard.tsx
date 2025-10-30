@@ -16,6 +16,7 @@ import UserMenu from '@/components/UserMenu';
 import AgentManager from '@/components/agents/AgentManager';
 import AgentDashboard from '@/components/agents/AgentDashboard';
 import AgentDirectorDashboard from '@/components/agents/AgentDirectorDashboard';
+import SettingsContent from '@/components/SettingsContent';
 
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: ChartBarIcon },
@@ -134,14 +135,11 @@ export default function Dashboard() {
 
         {activeView === 'settings' && (
           <div className="p-6">
-            <motion.div 
-              className="bg-white border border-neutral-200 p-8 text-center"
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Cog6ToothIcon className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-neutral-900 mb-2">Settings</h3>
-              <p className="text-neutral-600">Configuration options coming soon...</p>
+              <SettingsContent />
             </motion.div>
           </div>
         )}

@@ -192,6 +192,35 @@ router.get('/debug-activity', authenticateToken, async (req, res) => {
   }
 });
 
+// Get user profile
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId; // Get from JWT token
+    console.log(`[AUTH] GET /profile - Request received for user: ${userId}`);
+    
+    // Import AWS manager to get user data
+    const { default: AWSManager } = await import('../utils/awsManager.js');
+    const awsManager = new AWSManager();
+    
+    const user = await awsManager.getUserById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Return safe user data (no password hash)
+    const { passwordHash, apiKeys, ...safeUser } = user;
+    
+    res.json({ 
+      success: true, 
+      user: safeUser 
+    });
+  } catch (error) {
+    console.error('[AUTH] Get profile error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get user settings
 router.get('/settings', authenticateToken, async (req, res) => {
   try {
@@ -259,6 +288,29 @@ router.post('/settings/preferences', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('[AUTH] Update preferences error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update email settings
+router.post('/settings/email', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId; // Get from JWT token
+    const { emailSettings } = req.body;
+    
+    const currentSettings = await getUserSettings(userId);
+    currentSettings.emailSettings = { ...currentSettings.emailSettings, ...emailSettings };
+    
+    await updateUserSettings(userId, currentSettings);
+    console.log(`[AUTH] Email settings updated for user: ${userId}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Email settings updated successfully',
+      emailSettings: currentSettings.emailSettings
+    });
+  } catch (error) {
+    console.error('[AUTH] Update email settings error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

@@ -74,13 +74,15 @@ export default function UserMenu() {
 
               {/* Menu Items */}
               <div className="py-2">
-                <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
-                  <UserCircleIcon className="w-4 h-4" />
-                  Profile Settings
-                </button>
-                <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
+                <button 
+                  onClick={() => {
+                    router.push('/settings');
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+                >
                   <Cog6ToothIcon className="w-4 h-4" />
-                  Preferences
+                  Settings
                 </button>
               </div>
 
