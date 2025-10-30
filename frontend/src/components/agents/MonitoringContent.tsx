@@ -10,7 +10,9 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   BoltIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  EyeIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../../lib/api';
@@ -1448,28 +1450,23 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                             <div className="ml-9 mt-2">
                               {(() => {
                                 const usage = apiUsage[agent.id]?.apollo?.usage || 0;
-                                const budgetLimits = getBudgetBasedLimits();
-                                const maxAffordable = budgetLimits?.apollo;
-                                const progressPercent = maxAffordable ? Math.min((usage / maxAffordable) * 100, 100) : 0;
-                                
+                                const calls = apiUsage[agent.id]?.apollo?.calls || 0;
+                                const moneySpent = (usage || 0) * (apiCosts.apollo || 0);
+
                                 return (
                                   <>
                                     <div className="flex justify-between items-center text-xs mb-1">
                                       <span className="text-neutral-600">Credits Used</span>
-                                      <span className="font-medium text-neutral-900">
-                                        {usage.toLocaleString()}{maxAffordable ? ` / ${maxAffordable.toLocaleString()}` : ''} credits
-                                      </span>
+                                      <span className="font-medium text-neutral-900">{usage.toLocaleString()} credits</span>
                                     </div>
-                                    {maxAffordable && (
-                                      <div className="w-full bg-neutral-200 rounded-full h-1">
-                                        <div className="bg-blue-500 h-1 rounded-full" style={{ 
-                                          width: `${progressPercent}%` 
-                                        }}></div>
-                                      </div>
-                                    )}
+
+                                    <div className="flex justify-between items-center text-xs mb-2">
+                                      <span className="text-neutral-600">Money Spent</span>
+                                      <span className="font-medium text-neutral-900">${moneySpent.toFixed(2)}</span>
+                                    </div>
+
                                     <div className="text-xs text-neutral-500 mt-1">
-                                      {apiUsage[agent.id]?.apollo?.calls || 0} API calls
-                                      {maxAffordable && ` · ${progressPercent.toFixed(1)}% of budget`}
+                                      {calls} API calls
                                     </div>
                                   </>
                                 );
@@ -1490,29 +1487,25 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                             </div>
                             <div className="ml-9 mt-2">
                               {(() => {
-                                const usage = apiUsage[agent.id]?.openai?.usage || 0;
-                                const budgetLimits = getBudgetBasedLimits();
-                                const maxAffordable = budgetLimits?.openai;
-                                const progressPercent = maxAffordable ? Math.min((usage / maxAffordable) * 100, 100) : 0;
-                                
+                                const usage = apiUsage[agent.id]?.openai?.usage || 0; // tokens
+                                const calls = apiUsage[agent.id]?.openai?.calls || 0;
+                                // apiCosts.openai is $ per 1K tokens
+                                const moneySpent = ((usage || 0) / 1000) * (apiCosts.openai || 0);
+
                                 return (
                                   <>
                                     <div className="flex justify-between items-center text-xs mb-1">
                                       <span className="text-neutral-600">Tokens Used</span>
-                                      <span className="font-medium text-neutral-900">
-                                        {usage.toLocaleString()}{maxAffordable ? ` / ${maxAffordable.toLocaleString()}` : ''} tokens
-                                      </span>
+                                      <span className="font-medium text-neutral-900">{usage.toLocaleString()} tokens</span>
                                     </div>
-                                    {maxAffordable && (
-                                      <div className="w-full bg-neutral-200 rounded-full h-1">
-                                        <div className="bg-emerald-500 h-1 rounded-full" style={{ 
-                                          width: `${progressPercent}%` 
-                                        }}></div>
-                                      </div>
-                                    )}
+
+                                    <div className="flex justify-between items-center text-xs mb-2">
+                                      <span className="text-neutral-600">Money Spent</span>
+                                      <span className="font-medium text-neutral-900">${moneySpent.toFixed(2)}</span>
+                                    </div>
+
                                     <div className="text-xs text-neutral-500 mt-1">
-                                      {apiUsage[agent.id]?.openai?.calls || 0} API calls · GPT-3.5
-                                      {maxAffordable && ` · ${progressPercent.toFixed(1)}% of budget`}
+                                      {calls} API calls · GPT-3.5
                                     </div>
                                   </>
                                 );
@@ -1533,29 +1526,24 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                             </div>
                             <div className="ml-9 mt-2">
                               {(() => {
-                                const usage = apiUsage[agent.id]?.mailgun?.usage || 0;
-                                const budgetLimits = getBudgetBasedLimits();
-                                const maxAffordable = budgetLimits?.mailgun;
-                                const progressPercent = maxAffordable ? Math.min((usage / maxAffordable) * 100, 100) : 0;
-                                
+                                const usage = apiUsage[agent.id]?.mailgun?.usage || 0; // emails sent
+                                const calls = apiUsage[agent.id]?.mailgun?.calls || 0;
+                                const moneySpent = (usage || 0) * (apiCosts.mailgun || 0);
+
                                 return (
                                   <>
                                     <div className="flex justify-between items-center text-xs mb-1">
                                       <span className="text-neutral-600">Emails Sent</span>
-                                      <span className="font-medium text-neutral-900">
-                                        {usage.toLocaleString()}{maxAffordable ? ` / ${maxAffordable.toLocaleString()}` : ''}
-                                      </span>
+                                      <span className="font-medium text-neutral-900">{usage.toLocaleString()}</span>
                                     </div>
-                                    {maxAffordable && (
-                                      <div className="w-full bg-neutral-200 rounded-full h-1">
-                                        <div className="bg-orange-500 h-1 rounded-full" style={{ 
-                                          width: `${progressPercent}%` 
-                                        }}></div>
-                                      </div>
-                                    )}
+
+                                    <div className="flex justify-between items-center text-xs mb-2">
+                                      <span className="text-neutral-600">Money Spent</span>
+                                      <span className="font-medium text-neutral-900">${moneySpent.toFixed(2)}</span>
+                                    </div>
+
                                     <div className="text-xs text-neutral-500 mt-1">
-                                      {apiUsage[agent.id]?.mailgun?.calls || 0} API calls
-                                      {maxAffordable && ` · ${progressPercent.toFixed(1)}% of budget`}
+                                      {calls} API calls
                                     </div>
                                   </>
                                 );
@@ -1576,29 +1564,24 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                             </div>
                             <div className="ml-9 mt-2">
                               {(() => {
-                                const usage = apiUsage[agent.id]?.zerobounce?.usage || 0;
-                                const budgetLimits = getBudgetBasedLimits();
-                                const maxAffordable = budgetLimits?.zerobounce;
-                                const progressPercent = maxAffordable ? Math.min((usage / maxAffordable) * 100, 100) : 0;
-                                
+                                const usage = apiUsage[agent.id]?.zerobounce?.usage || 0; // validations
+                                const calls = apiUsage[agent.id]?.zerobounce?.calls || 0;
+                                const moneySpent = (usage || 0) * (apiCosts.zerobounce || 0);
+
                                 return (
                                   <>
                                     <div className="flex justify-between items-center text-xs mb-1">
                                       <span className="text-neutral-600">Validations</span>
-                                      <span className="font-medium text-neutral-900">
-                                        {usage.toLocaleString()}{maxAffordable ? ` / ${maxAffordable.toLocaleString()}` : ''} credits
-                                      </span>
+                                      <span className="font-medium text-neutral-900">{usage.toLocaleString()}</span>
                                     </div>
-                                    {maxAffordable && (
-                                      <div className="w-full bg-neutral-200 rounded-full h-1">
-                                        <div className="bg-purple-500 h-1 rounded-full" style={{ 
-                                          width: `${progressPercent}%` 
-                                        }}></div>
-                                      </div>
-                                    )}
+
+                                    <div className="flex justify-between items-center text-xs mb-2">
+                                      <span className="text-neutral-600">Money Spent</span>
+                                      <span className="font-medium text-neutral-900">${moneySpent.toFixed(2)}</span>
+                                    </div>
+
                                     <div className="text-xs text-neutral-500 mt-1">
-                                      {apiUsage[agent.id]?.zerobounce?.calls || 0} API calls
-                                      {maxAffordable && ` · ${progressPercent.toFixed(1)}% of budget`}
+                                      {calls} API calls
                                     </div>
                                   </>
                                 );
@@ -1619,29 +1602,24 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                             </div>
                             <div className="ml-9 mt-2">
                               {(() => {
-                                const usage = apiUsage[agent.id]?.serper?.usage || 0;
-                                const budgetLimits = getBudgetBasedLimits();
-                                const maxAffordable = budgetLimits?.serper;
-                                const progressPercent = maxAffordable ? Math.min((usage / maxAffordable) * 100, 100) : 0;
-                                
+                                const usage = apiUsage[agent.id]?.serper?.usage || 0; // searches
+                                const calls = apiUsage[agent.id]?.serper?.calls || 0;
+                                const moneySpent = (usage || 0) * (apiCosts.serper || 0);
+
                                 return (
                                   <>
                                     <div className="flex justify-between items-center text-xs mb-1">
                                       <span className="text-neutral-600">Searches</span>
-                                      <span className="font-medium text-neutral-900">
-                                        {usage.toLocaleString()}{maxAffordable ? ` / ${maxAffordable.toLocaleString()}` : ''} queries
-                                      </span>
+                                      <span className="font-medium text-neutral-900">{usage.toLocaleString()} queries</span>
                                     </div>
-                                    {maxAffordable && (
-                                      <div className="w-full bg-neutral-200 rounded-full h-1">
-                                        <div className="bg-orange-500 h-1 rounded-full" style={{ 
-                                          width: `${progressPercent}%` 
-                                        }}></div>
-                                      </div>
-                                    )}
+
+                                    <div className="flex justify-between items-center text-xs mb-2">
+                                      <span className="text-neutral-600">Money Spent</span>
+                                      <span className="font-medium text-neutral-900">${moneySpent.toFixed(2)}</span>
+                                    </div>
+
                                     <div className="text-xs text-neutral-500 mt-1">
-                                      {apiUsage[agent.id]?.serper?.calls || 0} API calls
-                                      {maxAffordable && ` · ${progressPercent.toFixed(1)}% of budget`}
+                                      {calls} API calls
                                     </div>
                                   </>
                                 );
