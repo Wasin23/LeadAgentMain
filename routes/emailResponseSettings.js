@@ -1,29 +1,24 @@
 // Email Response Settings API Route
 import express from 'express';
-import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import { authenticateToken } from '../middleware/jwt.js';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
 const router = express.Router();
 
 // Apply JWT authentication to ALL routes in this router
 router.use(authenticateToken);
 
-// Zilliz client setup
-const milvusClient = new MilvusClient({
-  address: process.env.ZILLIZ_ENDPOINT?.trim(),
-  token: process.env.ZILLIZ_TOKEN?.trim(),
+// AWS DynamoDB client setup
+const dynamoClient = new DynamoDBClient({
+  region: process.env.AWS_REGION || 'us-west-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
 });
 
-async function ensureEmailResponseSettingsCollection() {
-  try {
-    // Just load the existing agent_settings collection
-    await milvusClient.loadCollection({ collection_name: 'agent_settings' });
-    console.log('[EMAIL-RESPONSE] Using existing agent_settings collection');
-  } catch (error) {
-    console.error('[EMAIL-RESPONSE] Error loading collection:', error);
-    throw error;
-  }
-}
+const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
 
 // GET /api/email-response-settings
 router.get('/', async (req, res) => {
@@ -31,28 +26,28 @@ router.get('/', async (req, res) => {
     const userId = req.user.userId; // Get from JWT token
     console.log(`[EMAIL-RESPONSE] Getting settings for user: ${userId}`);
     
-    // Extract first 8 characters for user code
-    const userCode = userId.substring(0, 8);
+    const tableName = process.env.AWS_DYNAMODB_USERS_TABLE || 'meridian-users';
     
-    await ensureEmailResponseSettingsCollection();
-    
-    const result = await milvusClient.query({
-      collection_name: 'agent_settings',
-      expr: `setting_key == "email_response_settings" && user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`,
-      output_fields: ['setting_value', 'updated_at'],
-      limit: 1,
-      consistency_level: 'Strong'
+    const command = new GetCommand({
+      TableName: tableName,
+      Key: { userId: userId }
     });
+
+    const result = await dynamodb.send(command);
     
-    const rows = result.data || result || [];
-    
-    if (rows.length === 0) {
+    if (!result.Item || !result.Item.emailResponseSettings) {
       // Return default settings
       const defaultSettings = {
-        calendar_id: 'colton.fidd@gmail.com',
-        company_name: 'Exabits',
+        calendar_id: 'primary',
+        company_name: '',
         timezone: 'America/Los_Angeles',
-        response_tone: 'professional_friendly'
+        response_tone: 'professional_friendly',
+        ai_assistant_name: '',
+        product_name: '',
+        value_propositions: [],
+        meeting_pushiness: 'balanced',
+        technical_depth: 'medium',
+        show_ai_disclaimer: false
       };
       
       res.json({
@@ -64,13 +59,11 @@ router.get('/', async (req, res) => {
       return;
     }
     
-    const settings = JSON.parse(rows[0].setting_value);
-    
     res.json({
       success: true,
       userId: userId,
-      settings: settings,
-      updated_at: rows[0].updated_at,
+      settings: result.Item.emailResponseSettings,
+      updated_at: result.Item.emailResponseSettings.updated_at || null,
       isDefault: false
     });
     
@@ -86,66 +79,46 @@ router.post('/', async (req, res) => {
     const userId = req.user.userId; // Get from JWT token
     const settings = req.body;
     
-    // Extract first 8 characters for user code
-    const userCode = userId.substring(0, 8);
-    
-    console.log(`[EMAIL-RESPONSE] Saving settings for user: ${userId} (code: ${userCode})`);
+    console.log(`[EMAIL-RESPONSE] Saving settings for user: ${userId}`);
     console.log('[EMAIL-RESPONSE] Settings:', settings);
     
-    await ensureEmailResponseSettingsCollection();
-    
+    const tableName = process.env.AWS_DYNAMODB_USERS_TABLE || 'meridian-users';
     const now = new Date().toISOString();
-    const settingsJson = JSON.stringify(settings);
     
-    // Delete existing email response settings record for this user (UPSERT approach)
-    try {
-      const deleteResult = await milvusClient.deleteEntities({
-        collection_name: 'agent_settings',
-        expr: `setting_key == "email_response_settings" && user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`
-      });
-      console.log(`[EMAIL-RESPONSE] Deleted ${deleteResult.delete_cnt || 0} existing records for user ${userCode}`);
-    } catch (deleteError) {
-      console.log(`[EMAIL-RESPONSE] No existing record to delete for user ${userCode}:`, deleteError.message);
-    }
+    // Add timestamp to settings
+    const settingsWithTimestamp = {
+      ...settings,
+      updated_at: now
+    };
     
-    // Insert new record with all email response settings as JSON (UPDATE by replace)
-    const insertResult = await milvusClient.insert({
-      collection_name: 'agent_settings',
-      data: [{
-        setting_key: 'email_response_settings',
-        setting_value: settingsJson,
-        setting_type: 'email_response',
-        updated_at: now,
-        user_id: userCode, // Use 8-character code
-        dummy_vector: [0.1, 0.2] // Required vector field
-      }]
+    // First, get the current user data to preserve other fields
+    const getCommand = new GetCommand({
+      TableName: tableName,
+      Key: { userId: userId }
+    });
+
+    const currentData = await dynamodb.send(getCommand);
+    
+    // Update user record with email response settings
+    const putCommand = new PutCommand({
+      TableName: tableName,
+      Item: {
+        ...currentData.Item, // Preserve existing data
+        userId: userId,
+        emailResponseSettings: settingsWithTimestamp
+      }
     });
     
-    console.log(`[EMAIL-RESPONSE] Settings saved successfully for user ${userCode}. Insert count: ${insertResult.insert_count}`);
+    await dynamodb.send(putCommand);
     
-    // Verify the update was successful by checking for duplicates
-    try {
-      const verifyResult = await milvusClient.query({
-        collection_name: 'agent_settings',
-        expr: `setting_key == "email_response_settings" && user_id == "${userCode.replace(/["\\]/g, '\\$&')}"`,
-        output_fields: ['setting_key', 'user_id', 'updated_at']
-      });
-      
-      if (verifyResult.data.length > 1) {
-        console.warn(`[EMAIL-RESPONSE] Warning: Found ${verifyResult.data.length} records for user ${userCode}. Should only be 1.`);
-      } else {
-        console.log(`[EMAIL-RESPONSE] Verified: Exactly ${verifyResult.data.length} record exists for user ${userCode}`);
-      }
-    } catch (verifyError) {
-      console.log('[EMAIL-RESPONSE] Could not verify record count:', verifyError.message);
-    }
+    console.log(`[EMAIL-RESPONSE] Settings saved successfully to AWS DynamoDB for user ${userId}`);
     
     res.json({
       success: true,
       userId: userId,
-      settings: settings,
+      settings: settingsWithTimestamp,
       updated_at: now,
-      message: 'Email response settings updated successfully (no duplicates)'
+      message: 'Email response settings updated successfully in AWS'
     });
     
   } catch (error) {

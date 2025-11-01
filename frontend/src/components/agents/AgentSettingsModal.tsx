@@ -68,6 +68,7 @@ interface ZillizAgentSettings {
   emailBuilder: {
     emailTemplate: string;
     customPrompt: string;
+    emailResponsePrompt?: string; // Agent-specific prompt for email responses
     tone: string;
     length: string;
     callToAction: string;
@@ -895,6 +896,23 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                         placeholder="Enter custom email generation prompt..."
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Used for generating initial outbound emails
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Response Prompt</label>
+                      <textarea
+                        value={settings.emailBuilder?.emailResponsePrompt || ''}
+                        onChange={(e) => updateField('emailBuilder', 'emailResponsePrompt', e.target.value)}
+                        rows={8}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                        placeholder="Enter prompt for how the AI should respond to incoming email replies..."
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Guides how this agent responds to incoming email replies - specific to this agent's personality
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

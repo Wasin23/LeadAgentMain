@@ -19,6 +19,25 @@ import { generateToken, authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
+// Helper function to generate personality-themed email response prompts
+function getEmailResponsePromptForPersonality(personality) {
+  const personalityType = personality?.type || 'hunter';
+  
+  const prompts = {
+    hunter: `When responding to emails, maintain a direct and action-oriented tone that creates urgency. Keep responses brief but impactful. Focus on clear value propositions and strong calls-to-action. Use confident, results-driven language that encourages immediate engagement. Your goal is to move prospects quickly toward a meeting or next step.`,
+    
+    'relationship-builder': `When responding to emails, prioritize building trust and rapport. Use warm, empathetic language that shows you understand their challenges. Ask thoughtful questions to deepen the conversation. Focus on the relationship first, solution second. Your responses should feel personal, not transactional, creating a foundation for long-term partnership.`,
+    
+    analyst: `When responding to emails, demonstrate deep research and data-driven insights. Reference specific company details, market trends, or industry statistics that show you've done your homework. Use evidence-based language and provide concrete examples. Your responses should position you as a knowledgeable expert who can back up claims with facts.`,
+    
+    consultant: `When responding to emails, position yourself as a strategic advisor focused on business outcomes. Use professional, advisory language that demonstrates industry expertise. Frame your responses around solutions and strategic value rather than just features. Show that you understand their business challenges at a strategic level and can offer meaningful guidance.`,
+    
+    networker: `When responding to emails, leverage connection-based language that builds community. Reference mutual contacts, shared interests, or industry relationships when relevant. Use friendly, social tone that feels collaborative rather than sales-focused. Your responses should feel like a conversation between colleagues in the same professional network.`
+  };
+  
+  return prompts[personalityType] || prompts.hunter;
+}
+
 // Add debugging middleware to log all auth requests
 router.use((req, res, next) => {
   console.log(`[AUTH] ${req.method} ${req.path} - Request received`);
@@ -311,6 +330,29 @@ router.post('/settings/email', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('[AUTH] Update email settings error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update calendar settings
+router.post('/settings/calendar', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId; // Get from JWT token
+    const { calendarSettings } = req.body;
+    
+    const currentSettings = await getUserSettings(userId);
+    currentSettings.calendarSettings = { ...currentSettings.calendarSettings, ...calendarSettings };
+    
+    await updateUserSettings(userId, currentSettings);
+    console.log(`[AUTH] Calendar settings updated for user: ${userId}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Calendar settings updated successfully',
+      calendarSettings: currentSettings.calendarSettings
+    });
+  } catch (error) {
+    console.error('[AUTH] Update calendar settings error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -819,7 +861,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         enableAutoResponse: true,
         rebumpIntervalDays: 7,
         ccEmails: '',
-        bccEmails: ''
+        bccEmails: '',
+        emailResponsePrompt: getEmailResponsePromptForPersonality(agentData.personality)
       }
     };
     

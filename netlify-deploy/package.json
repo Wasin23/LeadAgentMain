@@ -5,6 +5,8 @@
     "node": "18.x"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.478.0",
+    "@aws-sdk/lib-dynamodb": "^3.478.0",
     "@langchain/openai": "^0.0.26",
     "@zilliz/milvus2-sdk-node": "^2.4.9",
     "langchain": "^0.1.25",

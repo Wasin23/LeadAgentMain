@@ -97,6 +97,34 @@ async function getAgentSettingsFromAWS(userId, agentId) {
   }
 }
 
+async function getUserCalendarSettings(userId) {
+  try {
+    if (!userId) {
+      return { calendarId: 'primary' };
+    }
+
+    const tableName = process.env.AWS_DYNAMODB_USERS_TABLE || 'meridian-users';
+    
+    const command = new GetCommand({
+      TableName: tableName,
+      Key: { userId: userId }
+    });
+
+    const result = await dynamodb.send(command);
+    
+    if (result.Item && result.Item.settings && result.Item.settings.calendarSettings) {
+      console.log('[AWS] Found calendar settings for user:', userId, 'calendarId:', result.Item.settings.calendarSettings.calendarId);
+      return result.Item.settings.calendarSettings;
+    }
+
+    console.log('[AWS] No calendar settings found for user:', userId, '- using primary');
+    return { calendarId: 'primary' };
+  } catch (error) {
+    console.error('[AWS] Error getting user calendar settings:', error);
+    return { calendarId: 'primary' };
+  }
+}
+
 async function getAgentPersonality(userId, agentId) {
   try {
     if (!userId || !agentId) {
@@ -290,7 +318,7 @@ const getConversationTool = new DynamicStructuredTool({
   }
 });
 
-// Tool 2: Get user settings (comprehensive) - Fixed with ChatGPT's solution
+// Tool 2: Get user settings (comprehensive) - Now using AWS DynamoDB
 const getUserSettingsTool = new DynamicStructuredTool({
   name: "get_user_settings",
   description: "Get comprehensive user settings including calendar, company info, response style, and knowledge base",
@@ -306,11 +334,21 @@ const getUserSettingsTool = new DynamicStructuredTool({
       
       console.log(`[TOOL] Getting comprehensive settings for user: ${userId}`);
       
-      // Test connection first
-      const connectionOk = await testZillizConnection();
-      if (!connectionOk) {
-        console.log('[TOOL] Zilliz connection failed, using default settings');
+      // Get user settings from AWS DynamoDB
+      const tableName = process.env.AWS_DYNAMODB_USERS_TABLE || 'meridian-users';
+      
+      const command = new GetCommand({
+        TableName: tableName,
+        Key: { userId: userId }
+      });
+
+      const result = await dynamodb.send(command);
+      
+      if (!result.Item || !result.Item.emailResponseSettings) {
+        console.log(`[TOOL] No settings found for user ${userId} - using defaults`);
         return JSON.stringify({
+          error: "No user settings found in AWS. Please configure your Email Response Settings first.",
+          settings_required: true,
           calendar_id: 'primary',
           company_name: 'Exabits',
           timezone: 'America/Los_Angeles',
@@ -318,33 +356,10 @@ const getUserSettingsTool = new DynamicStructuredTool({
         });
       }
       
-      await milvusClient.loadCollection({ collection_name: 'agent_settings' });
-      
-      // Query for user settings (single JSON column)
-      const result = await milvusClient.query({
-        collection_name: 'agent_settings',
-        expr: `setting_key == "email_response_settings" && user_id == "${userId.replace(/["\\]/g, '\\$&')}"`,
-        output_fields: ['setting_value', 'updated_at'],
-        limit: 1,
-        consistency_level: 'Strong'
-      });
-      
-      const rows = result.data || result || [];
-      console.log(`[TOOL] Query result:`, rows);
-      
-      if (rows.length === 0) {
-        console.log(`[TOOL] No settings found for user ${userId} - settings must be configured first`);
-        return JSON.stringify({
-          error: "No user settings found in Zilliz. Please configure your Email Response Settings first.",
-          settings_required: true
-        });
-      }
-      
-      // Parse the JSON settings
-      const settings = JSON.parse(rows[0].setting_value);
+      const settings = result.Item.emailResponseSettings;
       console.log(`[TOOL] Found settings for user ${userId}:`, settings);
       
-      // Return ONLY what's in Zilliz - no fallbacks
+      // Return settings from AWS
       const finalSettings = {
         calendar_id: settings.calendar_id,
         company_name: settings.company_name,
@@ -352,10 +367,13 @@ const getUserSettingsTool = new DynamicStructuredTool({
         response_tone: settings.response_tone,
         ai_assistant_name: settings.ai_assistant_name,
         product_name: settings.product_name,
-        value_propositions: settings.value_propositions
+        value_propositions: settings.value_propositions,
+        meeting_pushiness: settings.meeting_pushiness,
+        technical_depth: settings.technical_depth,
+        show_ai_disclaimer: settings.show_ai_disclaimer
       };
       
-      console.log(`[TOOL] Final settings (Zilliz only):`, finalSettings);
+      console.log(`[TOOL] Final settings (AWS):`, finalSettings);
       return JSON.stringify(finalSettings);
       
     } catch (error) {
@@ -1098,7 +1116,7 @@ const model = new ChatOpenAI({
 });
 
 // Dynamic system prompt that uses user settings
-function createSystemPrompt(userSettings, agentPersonality = null) {
+function createSystemPrompt(userSettings, agentPersonality = null, emailResponsePrompt = null) {
   if (!userSettings || userSettings.error) {
     return `You are an AI assistant that cannot properly function because user settings are not configured. 
 
@@ -1210,6 +1228,11 @@ ${agentPersonality ? `AGENT PERSONALITY STYLE:
 - Your communication style is: ${agentPersonality.style}
 - ${agentPersonality.emailPrompt}
 - Ensure your responses reflect this personality while maintaining professionalism` : ''}
+
+${emailResponsePrompt ? `\nEMAIL RESPONSE GUIDANCE (Agent-Specific):
+${emailResponsePrompt}
+
+Apply this guidance to all your email responses while maintaining your personality style.` : ''}
 
 FOLLOW-UP RESPONSE PROTOCOL:
 - AFTER THE FIRST RESPONSE: Always include available meeting times in every subsequent response
@@ -1428,6 +1451,18 @@ export async function handler(event) {
       userSettings = null;
     }
 
+    // Get user's calendar settings
+    let calendarSettings = { calendarId: 'primary' };
+    try {
+      const userId = extractUserIdFromTrackingId(trackingId);
+      if (userId) {
+        calendarSettings = await getUserCalendarSettings(userId);
+        console.log('[WEBHOOK] Using calendar ID:', calendarSettings.calendarId);
+      }
+    } catch (error) {
+      console.error('[WEBHOOK] Failed to get calendar settings:', error);
+    }
+
     // Get agent personality for this specific agent
     let agentPersonality = null;
     let agentSettings = null;
@@ -1479,9 +1514,15 @@ export async function handler(event) {
 
     console.log('[WEBHOOK] Auto-response is ENABLED, proceeding with AI response');
 
-    // Create personalized system prompt based on user settings and agent personality
-    const systemPrompt = createSystemPrompt(userSettings, agentPersonality);
-    console.log('[WEBHOOK] Generated personalized system prompt with agent personality');
+    // Extract agent-specific email response prompt from agent settings
+    const emailResponsePrompt = agentSettings?.emailBuilder?.emailResponsePrompt || null;
+    if (emailResponsePrompt) {
+      console.log('[WEBHOOK] Using agent-specific email response prompt');
+    }
+
+    // Create personalized system prompt based on user settings, agent personality, and custom response prompt
+    const systemPrompt = createSystemPrompt(userSettings, agentPersonality, emailResponsePrompt);
+    console.log('[WEBHOOK] Generated personalized system prompt with agent personality and response guidance');
 
     // Create the prompt template for the agent
     const prompt = ChatPromptTemplate.fromMessages([

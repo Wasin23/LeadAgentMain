@@ -352,4 +352,22 @@ router.post('/api-keys', async (req, res) => {
   }
 });
 
+// Get calendar configuration (service account email)
+router.get('/calendar-config', async (req, res) => {
+  try {
+    const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '';
+    
+    res.json({ 
+      success: true, 
+      serviceAccountEmail: serviceAccountEmail
+    });
+  } catch (error) {
+    console.error('[SYSTEM] Error getting calendar config:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 export default router;
