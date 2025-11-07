@@ -44,38 +44,8 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
       }
     };
 
-    // Only use user-specific log files - no global logging
-    if (!userId) {
-      console.log('[EMAIL LOG] No userId provided - skipping global email logging');
-      return emailLog;
-    }
-    
-    // Create agent-specific log file if agentId is provided
-    const logFileName = agentId ? `email_logs_${userId}_${agentId}.json` : `email_logs_${userId}.json`;
-    const logPath = path.join(process.cwd(), logFileName);
-    console.log('[EMAIL LOG] Log path:', logPath);
-    
-    let logs = [];
-    
-    try {
-      const existingLogs = await fs.readFile(logPath, 'utf8');
-      logs = JSON.parse(existingLogs);
-      console.log('[EMAIL LOG] Loaded existing logs, count:', logs.length);
-    } catch (error) {
-      // File doesn't exist or is empty, start with empty array
-      console.log('[EMAIL LOG] No existing logs found, starting fresh');
-      logs = [];
-    }
-    
-    logs.unshift(logEntry); // Add to beginning of array
-    
-    // Keep only last 500 emails to prevent file from growing too large
-    if (logs.length > 500) {
-      logs = logs.slice(0, 500);
-    }
-    
-    await fs.writeFile(logPath, JSON.stringify(logs, null, 2));
-    console.log('[EMAIL LOG] Successfully saved email log entry, total logs:', logs.length);
+    // Email logging to JSON files is now disabled - using AWS DynamoDB instead
+    console.log('[EMAIL LOG] Email tracking now handled by AWS DynamoDB, skipping JSON file creation');
     
     return logEntry.id; // Return tracking ID
   } catch (error) {
@@ -86,73 +56,9 @@ async function logEmailToFile(to, subject, body, status, trackingId = null, meta
 
 // Function to update email analytics
 async function updateEmailAnalytics(trackingId, updates) {
-  try {
-    // Extract userId from trackingId if it follows the pattern tracking-{userId}_xxx
-    let userId = null;
-    const userIdMatch = trackingId.match(/tracking-([^_]+)_/);
-    if (userIdMatch) {
-      userId = userIdMatch[1];
-    }
-    
-    // Only use user-specific log files - no global logging
-    if (!userId) {
-      console.log('[EMAIL ANALYTICS] No userId found in trackingId - skipping global email analytics logging');
-      return;
-    }
-    
-    const logFileName = `email_logs_${userId}.json`;
-    const logPath = path.join(process.cwd(), logFileName);
-    let logs = [];
-    
-    try {
-      const existingLogs = await fs.readFile(logPath, 'utf8');
-      logs = JSON.parse(existingLogs);
-    } catch (error) {
-      console.log(`[EMAIL ANALYTICS] No logs found at ${logFileName}`);
-      
-      // If user-specific file doesn't exist, try to find in global file and migrate
-      if (userId) {
-        try {
-          const globalLogPath = path.join(process.cwd(), 'email_logs.json');
-          const globalLogs = await fs.readFile(globalLogPath, 'utf8');
-          const allLogs = JSON.parse(globalLogs);
-          
-          // Find this specific email in global logs
-          const emailEntry = allLogs.find(log => log.id === trackingId);
-          if (emailEntry) {
-            console.log(`[EMAIL ANALYTICS] Found email in global file, migrating to user-specific file`);
-            logs = [emailEntry]; // Start user file with this entry
-          }
-        } catch (globalError) {
-          console.log('[EMAIL ANALYTICS] No global logs found either');
-        }
-      }
-      
-      if (logs.length === 0) {
-        return false;
-      }
-    }
-    
-    // Find and update the email entry
-    const emailIndex = logs.findIndex(log => log.id === trackingId);
-    if (emailIndex !== -1) {
-      logs[emailIndex].analytics = {
-        ...logs[emailIndex].analytics,
-        ...updates,
-        lastActivity: new Date().toISOString()
-      };
-      
-      await fs.writeFile(logPath, JSON.stringify(logs, null, 2));
-      console.log('[EMAIL ANALYTICS] Updated analytics for:', trackingId, updates);
-      return true;
-    } else {
-      console.log('[EMAIL ANALYTICS] Email not found:', trackingId);
-      return false;
-    }
-  } catch (error) {
-    console.error('[EMAIL ANALYTICS] Failed to update analytics:', error);
-    return false;
-  }
+  // Email analytics updates now handled by AWS DynamoDB via desktopEmailTracker
+  console.log('[EMAIL ANALYTICS] Analytics updates now handled by AWS DynamoDB, skipping JSON file updates');
+  return false;
 }
 
 // Function to add tracking links to email body

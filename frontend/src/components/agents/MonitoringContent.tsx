@@ -54,7 +54,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   const [costCustomDays, setCostCustomDays] = useState<number>(7);
   const [activities, setActivities] = useState<any[]>([]);
   const [loadingActivities, setLoadingActivities] = useState<boolean>(false);
-  const [activityFilter, setActivityFilter] = useState<'all' | 'cycles' | 'important' | 'agents'>('all');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'cycles' | 'important' | 'agents' | 'issues'>('all');
   const [dismissingActivity, setDismissingActivity] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState<boolean>(false);
   
@@ -2165,12 +2165,16 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   );
 
   // Mark activity as read/dismissed
-  const handleDismissActivity = async (activityId: string) => {
+  const handleDismissActivity = async (activityId: string, isActualIssue: boolean = false) => {
     if (!activityId) return;
     
     setDismissingActivity(activityId);
     try {
-      await api.post(`/api/monitoring/activity/${activityId}/mark-read`);
+      // Only call the API if it's an actual issue from the issues table
+      // Regular activities are just removed from local state
+      if (isActualIssue) {
+        await api.post(`/api/monitoring/activity/${activityId}/mark-read`);
+      }
       
       // Remove from local state
       setActivities(prev => prev.filter(act => {
@@ -2218,20 +2222,48 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       return agent ? agent.name : agentId;
     };
 
-    // Filter activities based on selected filter
-    const filteredActivities = activities.filter(act => {
+    // Combine activities and issues into a single array
+    const combinedActivities = [
+      ...activities.map(a => ({ ...a, activityType: 'normal' })),
+      ...issues
+        .filter(issue => !issue.resolved) // Only show unresolved issues
+        .map(issue => ({
+          id: issue.id,
+          title: issue.message || 'Issue',
+          message: issue.details ? JSON.stringify(issue.details, null, 2) : '',
+          timestamp: issue.timestamp,
+          category: 'issue',
+          activityType: 'issue',
+          severity: issue.severity, // error, warning, info
+          metadata: {
+            agentId: issue.agentId,
+            issueId: issue.id
+          }
+        }))
+    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Filter combined activities based on selected filter
+    const filteredActivities = combinedActivities.filter(act => {
       if (activityFilter === 'all') return true;
+      if (activityFilter === 'issues') return act.activityType === 'issue';
       if (activityFilter === 'cycles') return act.category === 'cycle' || act.title?.toLowerCase().includes('cycle');
       if (activityFilter === 'important') {
-        // Important events include:
-        // - Agent Created: When a new agent is created
-        // - Agent Deleted: When an agent is permanently deleted
-        // - Budget Limit: When monthly budget limits are reached or exceeded
-        // - Rate Limit: When API rate limits are hit (Apollo, Serper, etc.)
-        // - Quota Exceeded: When service quotas are exceeded
-        const importantKeywords = ['agent created', 'agent deleted', 'budget limit', 'rate limit', 'quota exceeded'];
+        // Important events include cycle completions, issues, and specific keywords
         const titleLower = act.title?.toLowerCase() || '';
         const msgLower = act.message?.toLowerCase() || '';
+        
+        // Check for cycle completion
+        if (titleLower.includes('cycle completed') || 
+            titleLower.includes('cycle complete') ||
+            msgLower.includes('cycle completed') ||
+            msgLower.includes('cycle complete') ||
+            act.category === 'cycle') return true;
+        
+        // Check for issues
+        if (act.activityType === 'issue') return true;
+        
+        // Check for other important keywords
+        const importantKeywords = ['agent created', 'agent deleted', 'budget limit', 'rate limit', 'quota exceeded'];
         return importantKeywords.some(kw => titleLower.includes(kw) || msgLower.includes(kw));
       }
       if (activityFilter === 'agents') {
@@ -2256,6 +2288,14 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                   : 'bg-white text-neutral-700 border-neutral-300 hover:border-black'
               }`}
             >All</button>
+            <button
+              onClick={() => setActivityFilter('issues')}
+              className={`px-3 py-1 text-sm rounded border transition-colors ${
+                activityFilter === 'issues' 
+                  ? '!bg-red-600 !text-white !border-red-600' 
+                  : 'bg-white text-neutral-700 border-neutral-300 hover:border-black'
+              }`}
+            >Issues ({issues.filter(i => !i.resolved).length})</button>
             <button
               onClick={() => setActivityFilter('cycles')}
               className={`px-3 py-1 text-sm rounded border transition-colors ${
@@ -2317,40 +2357,101 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
               const isDismissing = dismissingActivity === activityId;
               const agentId = act.metadata?.agentId;
               const agentName = agentId ? getAgentName(agentId) : null;
+              const isIssue = act.activityType === 'issue';
+              const severity = act.severity || 'info';
+              
+              // Check if this is a cycle completion (important, not an issue)
+              const titleLower = act.title?.toLowerCase() || '';
+              const msgLower = act.message?.toLowerCase() || '';
+              const isCycleCompletion = titleLower.includes('cycle completed') || 
+                                       titleLower.includes('cycle complete') ||
+                                       msgLower.includes('cycle completed') ||
+                                       msgLower.includes('cycle complete') ||
+                                       act.category === 'cycle';
+              
+              // Determine styling based on activity type
+              let borderColor, hoverBorder, textColor, msgColor, iconElement;
+              
+              if (isCycleCompletion) {
+                // Green styling for cycle completions
+                borderColor = 'border-green-400 bg-green-50';
+                hoverBorder = 'hover:border-green-600';
+                textColor = 'text-green-900';
+                msgColor = 'text-green-700';
+                iconElement = <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0" />;
+              } else if (isIssue) {
+                // Red/Orange/Blue styling for issues
+                borderColor = severity === 'error' ? 'border-red-400 bg-red-50' : 
+                             severity === 'warning' ? 'border-orange-400 bg-orange-50' : 
+                             'border-blue-400 bg-blue-50';
+                hoverBorder = severity === 'error' ? 'hover:border-red-600' : 
+                             severity === 'warning' ? 'hover:border-orange-600' : 
+                             'hover:border-blue-600';
+                textColor = severity === 'error' ? 'text-red-900' : 
+                           severity === 'warning' ? 'text-orange-900' : 
+                           'text-blue-900';
+                msgColor = severity === 'error' ? 'text-red-700' : 
+                          severity === 'warning' ? 'text-orange-700' : 
+                          'text-blue-700';
+                iconElement = severity === 'error' ? <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" /> :
+                             severity === 'warning' ? <ExclamationTriangleIcon className="w-5 h-5 text-orange-500 flex-shrink-0" /> :
+                             <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />;
+              } else {
+                // Default styling for normal activities
+                borderColor = 'border-neutral-300 bg-white';
+                hoverBorder = 'hover:border-black';
+                textColor = 'text-neutral-900';
+                msgColor = 'text-neutral-600';
+                iconElement = null;
+              }
               
               return (
-                <div key={i} className="p-3 border border-neutral-300 rounded-lg hover:border-black transition-colors">
+                <div key={i} className={`p-3 border rounded-lg transition-colors ${borderColor} ${hoverBorder}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium text-neutral-900">{act.title}</div>
+                        {iconElement}
+                        <div className={`text-sm font-medium ${textColor}`}>{act.title}</div>
                         {agentName && (
                           <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">
                             {agentName}
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-neutral-600 mt-1">{act.message}</div>
+                      {act.message && (
+                        <div className={`text-xs mt-1 ${msgColor} ${isIssue && act.message.startsWith('{') ? 'bg-white bg-opacity-70 p-2 rounded font-mono overflow-x-auto' : ''}`}>
+                          {act.message}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="text-xs text-neutral-500 text-right">
                         <div>{new Date(act.timestamp).toLocaleString()}</div>
                         <div className="mt-1 text-[10px] uppercase font-medium text-neutral-400">{act.category}</div>
                       </div>
-                      <button
-                        onClick={() => handleDismissActivity(activityId)}
-                        disabled={isDismissing}
-                        className="text-neutral-400 hover:text-neutral-600 disabled:opacity-50"
-                        title="Dismiss activity"
-                      >
-                        {isDismissing ? (
-                          <span className="text-xs">...</span>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        )}
-                      </button>
+                      {isIssue && onResolveIssue ? (
+                        <button
+                          onClick={() => onResolveIssue(act.metadata?.issueId || act.id)}
+                          className="text-xs px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors whitespace-nowrap"
+                        >
+                          Resolve
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDismissActivity(activityId, isIssue)}
+                          disabled={isDismissing}
+                          className="text-neutral-400 hover:text-neutral-600 disabled:opacity-50"
+                          title="Dismiss activity"
+                        >
+                          {isDismissing ? (
+                            <span className="text-xs">...</span>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                   {act.metadata && Object.keys(act.metadata).filter(k => !['timestamp', 'agentId'].includes(k)).length > 0 && (
@@ -2383,8 +2484,6 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       return <AIReportPanel />;
     case 'analytics':
       return renderAnalytics();
-    case 'issues':
-      return renderIssues();
     case 'agents':
       return renderAgents();
     case 'integrations':

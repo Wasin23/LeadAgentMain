@@ -35,6 +35,8 @@ interface LeadSearchPanelProps {
 
 export default function LeadSearchPanel({ agents }: LeadSearchPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [specificCompany, setSpecificCompany] = useState('');
+  const [specificPerson, setSpecificPerson] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Lead[]>([]);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
@@ -46,9 +48,12 @@ export default function LeadSearchPanel({ agents }: LeadSearchPanelProps) {
   const handleSearch = async () => {
     console.log('🔍 [LeadSearch] Starting search...');
     console.log('🔍 [LeadSearch] Search query:', searchQuery);
+    console.log('🔍 [LeadSearch] Specific company:', specificCompany);
+    console.log('🔍 [LeadSearch] Specific person:', specificPerson);
     
-    if (!searchQuery.trim()) {
-      console.log('❌ [LeadSearch] Empty search query, aborting');
+    if (!searchQuery.trim() && !specificCompany.trim() && !specificPerson.trim()) {
+      console.log('❌ [LeadSearch] Empty search query and no filters, aborting');
+      setError('Please enter a search query or specify company/person filters');
       return;
     }
     
@@ -59,10 +64,16 @@ export default function LeadSearchPanel({ agents }: LeadSearchPanelProps) {
     setExpandedLead(null);
     
     try {
-      console.log('📡 [LeadSearch] Sending API request to /api/ai-search/leads');
-      console.log('📡 [LeadSearch] Request payload:', { query: searchQuery });
+      const payload = {
+        query: searchQuery,
+        company: specificCompany.trim() || undefined,
+        person: specificPerson.trim() || undefined
+      };
       
-      const response = await api.post('/api/ai-search/leads', { query: searchQuery });
+      console.log('📡 [LeadSearch] Sending API request to /api/ai-search/leads');
+      console.log('📡 [LeadSearch] Request payload:', payload);
+      
+      const response = await api.post('/api/ai-search/leads', payload);
       
       console.log('✅ [LeadSearch] API response received:', response.data);
       console.log('✅ [LeadSearch] Response success:', response.data.success);
@@ -145,24 +156,26 @@ export default function LeadSearchPanel({ agents }: LeadSearchPanelProps) {
         </div>
         
         {/* Search Bar */}
-        <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !loading && handleSearch()}
-              placeholder='Try: "Find CTOs at Series B fintech companies in San Francisco"'
-              className="w-full pl-12 pr-4 py-3.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-neutral-900 placeholder-neutral-400"
-            />
-          </div>
-          <button
-            onClick={handleSearch}
-            disabled={loading || !searchQuery.trim()}
-            className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
-            style={{ background: loading ? '#94a3b8' : 'linear-gradient(to right, #2563eb, #9333ea)' }}
-          >
+        <div className="space-y-3">
+          {/* Main search input */}
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && !loading && handleSearch()}
+                placeholder='Try: "Find CTOs at Series B fintech companies in San Francisco"'
+                className="w-full pl-12 pr-4 py-3.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-neutral-900 placeholder-neutral-400"
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={loading || (!searchQuery.trim() && !specificCompany.trim() && !specificPerson.trim())}
+              className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+              style={{ background: loading ? '#94a3b8' : 'linear-gradient(to right, #2563eb, #9333ea)' }}
+            >
             {loading ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -176,6 +189,31 @@ export default function LeadSearchPanel({ agents }: LeadSearchPanelProps) {
             )}
           </button>
         </div>
+        
+        {/* Specific Filters */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="relative">
+            <input
+              type="text"
+              value={specificCompany}
+              onChange={(e) => setSpecificCompany(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !loading && handleSearch()}
+              placeholder="Specific company name (optional)"
+              className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-neutral-900 placeholder-neutral-400 text-sm"
+            />
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={specificPerson}
+              onChange={(e) => setSpecificPerson(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !loading && handleSearch()}
+              placeholder="Specific person name (optional)"
+              className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-neutral-900 placeholder-neutral-400 text-sm"
+            />
+          </div>
+        </div>
+      </div>
 
         {/* Success Message */}
         {successMessage && (

@@ -22,57 +22,79 @@ console.log('[AI SEARCH] Route initialized, OpenAI API key:', process.env.OPENAI
 router.post('/leads', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { query } = req.body;
+    const { query, company, person } = req.body;
     
-    if (!query || typeof query !== 'string') {
+    if (!query && !company && !person) {
       return res.status(400).json({
         success: false,
-        error: 'Search query is required'
+        error: 'Search query or specific filters are required'
       });
     }
     
-    console.log(`[AI SEARCH] Processing search: "${query}" for user ${userId}`);
+    console.log(`[AI SEARCH] Processing search for user ${userId}`);
+    console.log(`[AI SEARCH] Query: "${query || 'none'}"`);
+    console.log(`[AI SEARCH] Company filter: "${company || 'none'}"`);
+    console.log(`[AI SEARCH] Person filter: "${person || 'none'}"`);
     
     const AWSManager = (await import('../utils/awsManager.js')).default;
     const awsManager = new AWSManager();
     
-    // Step 1: AI parses the query to extract search intent
-    const parseCompletion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{
-        role: 'user',
-        content: `Extract job titles and keywords from: "${query}"\nReturn JSON: {"titles": ["array"], "keywords": ["array"]}`
-      }],
-      temperature: 0.3,
-      max_tokens: 150
-    });
-    
-    await awsManager.logApiUsage({
-      userId,
-      agentId: 'ai-search',
-      service: 'openai',
-      operation: 'chat.completion',
-      usage: { tokens: parseCompletion.usage.total_tokens },
-      cost: parseCompletion.usage.total_tokens * 0.0034 / 1000
-    });
-    
+    // Step 1: AI parses the query to extract search intent (if query provided)
     let searchParams = { titles: [], keywords: [] };
-    try {
-      const text = parseCompletion.choices[0].message.content.trim();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      searchParams = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-    } catch (e) {
-      console.error('[AI SEARCH] Parse error:', e);
+    
+    if (query) {
+      const parseCompletion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{
+          role: 'user',
+          content: `Extract job titles and keywords from: "${query}"\nReturn JSON: {"titles": ["array"], "keywords": ["array"]}`
+        }],
+        temperature: 0.3,
+        max_tokens: 150
+      });
+      
+      await awsManager.logApiUsage({
+        userId,
+        agentId: 'ai-search',
+        service: 'openai',
+        operation: 'chat.completion',
+        usage: { tokens: parseCompletion.usage.total_tokens },
+        cost: parseCompletion.usage.total_tokens * 0.0034 / 1000
+      });
+      
+      try {
+        const text = parseCompletion.choices[0].message.content.trim();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        searchParams = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+      } catch (e) {
+        console.error('[AI SEARCH] Parse error:', e);
+      }
+      
+      console.log('[AI SEARCH] Parsed params:', searchParams);
     }
     
-    console.log('[AI SEARCH] Parsed params:', searchParams);
-    
-    // Step 2: Search Apollo - use q_keywords for broader search
+    // Step 2: Build Apollo payload with filters
     const apolloPayload = {
-      q_keywords: query, // Use original query for broader results
       page: 1,
       per_page: 12
     };
+    
+    // Add company filter if specified
+    if (company) {
+      apolloPayload.organization_names = [company];
+      console.log('[AI SEARCH] Adding company filter:', company);
+    }
+    
+    // Add person name filter if specified
+    if (person) {
+      apolloPayload.person_name = person;
+      console.log('[AI SEARCH] Adding person filter:', person);
+    }
+    
+    // Add general query if provided
+    if (query) {
+      apolloPayload.q_keywords = query;
+    }
     
     console.log('[AI SEARCH] Apollo payload:', apolloPayload);
     

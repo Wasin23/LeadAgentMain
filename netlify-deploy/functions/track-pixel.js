@@ -70,17 +70,22 @@ exports.handler = async (event, context) => {
             console.log('Search error (proceeding with insert):', searchError);
           }
           
-          // Extract agent ID from tracking ID for proper attribution
-          const extractAgentIdFromTrackingId = (trackingId) => {
-            if (!trackingId) return null;
-            const match = trackingId.match(/tracking-[a-f0-9]{8}_([^_]+)_/);
-            return match ? match[1] : 'reasoning-lead-agent';
+          // Extract user ID and agent ID from tracking ID for proper attribution
+          const extractIdsFromTrackingId = (trackingId) => {
+            if (!trackingId) return { userId: null, agentId: null };
+            // Format: tracking-{userId}_{agentId}_{timestamp}_{hash}
+            const match = trackingId.match(/tracking-([a-f0-9-]+)_([^_]+)_/);
+            return match ? { userId: match[1], agentId: match[2] } : { userId: null, agentId: null };
           };
+          
+          const { userId, agentId } = extractIdsFromTrackingId(trackingId);
           
           // Only insert if not an image proxy and not already opened
           if (!isImageProxy && !alreadyOpened) {
             const data = [{
               tracking_id: trackingId,
+              user_id: userId || 'unknown',
+              agent_id: agentId || 'unknown',
               event_type: 'email_open',
               timestamp: new Date().toISOString(),
               user_agent: userAgent,

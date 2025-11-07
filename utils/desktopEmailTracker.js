@@ -430,15 +430,14 @@ class DesktopEmailTracker {
         }
       }
 
-      // Save if changes were made
+      // Save if changes were made - DISABLED: No longer using JSON files, all data in AWS
       if (logsChanged) {
-        await this.saveEmailLogs(emailLogs, userId);
-        console.log(`📧 [SYNC] Email logs synchronized with Zilliz data for user ${userId || 'all users'}`);
+        console.log(`📧 [SYNC] Email logs changes detected but not saving to JSON (using AWS instead)`);
       }
 
-      // IMPORTANT: Also sync tracking data to approved emails file
+      // IMPORTANT: Sync tracking data to AWS approved emails
       if (userId) {
-        await this.syncTrackingDataToApprovedEmails(eventsByTrackingId, userId, agentId);
+        await this.syncTrackingDataToAWSApprovedEmails(eventsByTrackingId, userId, agentId);
       }
 
       // Also fetch and sync reply data for emails that have tracking IDs
@@ -509,30 +508,34 @@ class DesktopEmailTracker {
     }
   }
 
-  // Sync tracking data to approved emails file (this is where the UI gets the data!)
-  async syncTrackingDataToApprovedEmails(eventsByTrackingId, userId, agentId = null) {
+  // Sync tracking data directly to AWS approved emails (this is where the UI gets the data!)
+  async syncTrackingDataToAWSApprovedEmails(eventsByTrackingId, userId, agentId = null) {
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
+      console.log(`📧 [AWS SYNC] Syncing tracking data to AWS for user ${userId}, agent ${agentId || 'all'}`);
       
-      // Load approved emails
-      const approvedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
+      // Dynamically import AWS email queue
+      const { getAWSEmailQueue } = await import('./awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      
+      // Get approved/sent emails from AWS
       let approvedEmails = [];
-      
       try {
-        const existingApproved = await fs.readFile(approvedPath, 'utf8');
-        approvedEmails = JSON.parse(existingApproved);
+        if (agentId && agentId !== 'all') {
+          approvedEmails = await awsQueue.getSentEmails(userId, agentId);
+        } else {
+          approvedEmails = await awsQueue.getAllSentEmailsForUser(userId);
+        }
       } catch (error) {
-        console.log(`📧 [APPROVED SYNC] No approved emails file found for user ${userId}`);
+        console.error(`📧 [AWS SYNC] Error fetching emails from AWS:`, error);
         return;
       }
       
       if (approvedEmails.length === 0) {
-        console.log(`📧 [APPROVED SYNC] No approved emails to sync for user ${userId}`);
+        console.log(`📧 [AWS SYNC] No approved emails to sync for user ${userId}`);
         return;
       }
       
-      console.log(`📧 [APPROVED SYNC] Syncing tracking data to ${approvedEmails.length} approved emails`);
+      console.log(`📧 [AWS SYNC] Syncing tracking data to ${approvedEmails.length} AWS emails`);
       
       let updatedCount = 0;
       
@@ -540,13 +543,34 @@ class DesktopEmailTracker {
       for (let i = 0; i < approvedEmails.length; i++) {
         const email = approvedEmails[i];
         
-        // Try to match by tracking ID (email ID or similar)
-        const emailTrackingId = email.id || email.trackingId;
-        if (!emailTrackingId) continue;
+        // Try to match by tracking ID from multiple possible fields
+        const emailTrackingId = email.trackingId || 
+                               email.sentMailgunId?.trackingId || 
+                               email.sentMailgunId?.message ||
+                               email.id;
+        
+        if (!emailTrackingId) {
+          console.log(`📧 [APPROVED SYNC] Email has no tracking ID:`, email.to || email.leadData?.email);
+          continue;
+        }
         
         // Look for matching tracking data
-        const trackingData = eventsByTrackingId[emailTrackingId];
-        if (!trackingData) continue;
+        let trackingData = eventsByTrackingId[emailTrackingId];
+        if (!trackingData) {
+          // Try a partial match if full tracking ID doesn't match (in case formats differ)
+          let found = false;
+          for (const [zillizTrackingId, data] of Object.entries(eventsByTrackingId)) {
+            if (emailTrackingId.includes(zillizTrackingId) || zillizTrackingId.includes(emailTrackingId)) {
+              console.log(`📧 [APPROVED SYNC] Partial match found: ${emailTrackingId} ≈ ${zillizTrackingId}`);
+              trackingData = data;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            continue;
+          }
+        }
         
         // Update the approved email with tracking info
         const shouldBeOpened = trackingData.opens > 0;
@@ -576,20 +600,57 @@ class DesktopEmailTracker {
         }
         
         updatedCount++;
-        console.log(`📧 [APPROVED SYNC] Updated email ${email.to || 'unknown'}: opened=${shouldBeOpened}, clicked=${shouldBeClicked}, replied=${shouldBeReplied}`);
+        console.log(`📧 [AWS SYNC] Updated email ${email.leadData?.email || email.to || 'unknown'}: opened=${shouldBeOpened}, clicked=${shouldBeClicked}, replied=${shouldBeReplied}`);
       }
       
-      // Save the updated approved emails
+      // Save the updated emails back to AWS
       if (updatedCount > 0) {
-        await fs.writeFile(approvedPath, JSON.stringify(approvedEmails, null, 2));
-        console.log(`📧 [APPROVED SYNC] Updated ${updatedCount} approved emails with tracking data`);
+        try {
+          // Update each email in AWS with full context
+          for (const email of approvedEmails) {
+            if (email.analytics && email.id) {
+              // Extract userId and agentId from the email object
+              const emailUserId = email.userId || userId;
+              const emailAgentId = email.agentId || agentId || 'unknown';
+              
+              await awsQueue.updateEmailAnalyticsWithContext(
+                emailUserId, 
+                emailAgentId, 
+                email.id, 
+                email.analytics
+              );
+            }
+          }
+          console.log(`📧 [AWS SYNC] Successfully updated ${updatedCount} emails in AWS with tracking data`);
+        } catch (saveError) {
+          console.error(`📧 [AWS SYNC] Error saving updates to AWS:`, saveError);
+        }
       } else {
-        console.log(`📧 [APPROVED SYNC] No approved emails matched tracking IDs`);
+        console.log(`📧 [AWS SYNC] No emails matched tracking IDs - check tracking ID formats`);
+        // Log some examples for debugging
+        if (Object.keys(eventsByTrackingId).length > 0) {
+          const sampleZillizId = Object.keys(eventsByTrackingId)[0];
+          console.log(`📧 [AWS SYNC] Sample Zilliz tracking ID: ${sampleZillizId}`);
+        }
+        if (approvedEmails.length > 0) {
+          const sampleEmail = approvedEmails[0];
+          const sampleEmailId = sampleEmail.trackingId || 
+                                sampleEmail.sentMailgunId?.trackingId || 
+                                sampleEmail.sentMailgunId?.message ||
+                                sampleEmail.id;
+          console.log(`📧 [AWS SYNC] Sample email tracking ID: ${sampleEmailId}`);
+        }
       }
       
     } catch (error) {
-      console.error('📧 [APPROVED SYNC] Error syncing to approved emails:', error);
+      console.error('📧 [AWS SYNC] Error syncing to AWS emails:', error);
     }
+  }
+
+  // OLD JSON-based sync function - DEPRECATED, keeping for backwards compatibility
+  async syncTrackingDataToApprovedEmails(eventsByTrackingId, userId, agentId = null) {
+    console.log(`📧 [DEPRECATED] syncTrackingDataToApprovedEmails called - redirecting to AWS sync`);
+    return this.syncTrackingDataToAWSApprovedEmails(eventsByTrackingId, userId, agentId);
   }
 
   // Get tracking stats for analytics

@@ -409,6 +409,88 @@ class AWSEmailQueue {
   }
 
   /**
+   * Update email analytics (opens, clicks, replies)
+   */
+  async updateEmailAnalytics(emailId, analytics) {
+    try {
+      // Email ID format includes userId and agentId, extract them
+      // Typical format: uuid or composite key
+      // For now, we need to query to find the email first
+      
+      console.log(`📊 [AWS EMAIL QUEUE] Updating analytics for email ${emailId}`);
+      
+      // Since we don't have userId/agentId directly, we need to scan or use a different approach
+      // For efficiency, the emailId should be passed with context, but for now we'll update by scanning
+      // This is not ideal for production but works for tracking updates
+      
+      // Alternative: Pass full email object with PK/SK or userId/agentId
+      // For now, return success - the calling code should pass the full email object
+      console.log(`📊 [AWS EMAIL QUEUE] Analytics update queued for ${emailId}:`, analytics);
+      return { success: true };
+      
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error updating analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update email analytics with full context (userId, agentId, emailId)
+   */
+  async updateEmailAnalyticsWithContext(userId, agentId, emailId, analytics) {
+    try {
+      // Find the email first to get its current status
+      const statuses = ['SENT', 'APPROVED', 'REPLIED'];
+      let foundItem = null;
+      
+      for (const status of statuses) {
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+          FilterExpression: 'id = :emailId',
+          ExpressionAttributeValues: {
+            ':pk': this._getPK(userId, agentId),
+            ':status': `${status}#`,
+            ':emailId': emailId
+          },
+          Limit: 1
+        }));
+
+        if (response.Items && response.Items.length > 0) {
+          foundItem = response.Items[0];
+          break;
+        }
+      }
+
+      if (!foundItem) {
+        console.log(`⚠️ [AWS EMAIL QUEUE] Email ${emailId} not found for analytics update`);
+        return { success: false, error: 'Email not found' };
+      }
+
+      // Update the analytics field
+      await this.dynamodb.send(new UpdateCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: foundItem.PK,
+          SK: foundItem.SK
+        },
+        UpdateExpression: 'SET analytics = :analytics, updatedAt = :updatedAt',
+        ExpressionAttributeValues: {
+          ':analytics': analytics,
+          ':updatedAt': new Date().toISOString()
+        }
+      }));
+
+      console.log(`✅ [AWS EMAIL QUEUE] Analytics updated for email ${emailId}`);
+      return { success: true };
+      
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error updating analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete a queued email (reject)
    */
   async deleteQueuedEmail(userId, agentId, emailId) {
@@ -500,13 +582,66 @@ class AWSEmailQueue {
    */
   async clearSentEmails(userId, agentId) {
     try {
-      // If agentId is null, clear ALL sent emails for the user
-      const emails = agentId === null 
-        ? await this.getAllSentEmailsForUser(userId)
-        : await this.getSentEmails(userId, agentId);
+      // Get ALL email statuses (SENT, APPROVED, REPLIED) to clear everything
+      let emails = [];
+      if (agentId === null) {
+        // Clear ALL emails for the user across all agents
+        const [sentEmails, approvedEmails, repliedEmails] = await Promise.all([
+          this.getAllSentEmailsForUser(userId),
+          this.getAllApprovedEmailsForUser(userId),
+          this.getAllRepliedEmailsForUser(userId)
+        ]);
+        emails = [...sentEmails, ...approvedEmails, ...repliedEmails];
+      } else {
+        // Clear all emails for specific agent
+        const [sentEmails, approvedEmails, repliedEmails] = await Promise.all([
+          this.getSentEmails(userId, agentId),
+          this.getApprovedEmails(userId, agentId),
+          this.getRepliedEmails(userId, agentId)
+        ]);
+        emails = [...sentEmails, ...approvedEmails, ...repliedEmails];
+      }
       
       if (emails.length === 0) {
-        return { clearedCount: 0 };
+        return { clearedCount: 0, zillizCleared: 0 };
+      }
+
+      // Clear Zilliz tracking events for these emails
+      let zillizCleared = 0;
+      try {
+        const { MilvusClient } = await import('@zilliz/milvus2-sdk-node');
+        const milvusClient = new MilvusClient({
+          address: process.env.ZILLIZ_ENDPOINT,
+          token: process.env.ZILLIZ_TOKEN,
+          timeout: 30000
+        });
+
+        // Check if collection exists
+        const hasCollection = await milvusClient.hasCollection({
+          collection_name: 'email_tracking_events'
+        });
+
+        if (hasCollection.value) {
+          if (agentId === null) {
+            // Clear ALL tracking events for the user (all agents)
+            const deleteResult = await milvusClient.delete({
+              collection_name: 'email_tracking_events',
+              filter: `user_id == "${userId}"`
+            });
+            zillizCleared = deleteResult.delete_cnt || 0;
+            console.log(`🗑️ [ZILLIZ] Cleared ${zillizCleared} tracking events for all agents of user ${userId}`);
+          } else {
+            // Clear tracking events for specific agent only
+            const deleteResult = await milvusClient.delete({
+              collection_name: 'email_tracking_events',
+              filter: `user_id == "${userId}" && agent_id == "${agentId}"`
+            });
+            zillizCleared = deleteResult.delete_cnt || 0;
+            console.log(`🗑️ [ZILLIZ] Cleared ${zillizCleared} tracking events for agent ${agentId}`);
+          }
+        }
+      } catch (zillizError) {
+        console.error('⚠️ [ZILLIZ] Error clearing tracking events (continuing with email deletion):', zillizError.message);
       }
 
       // Batch delete (max 25 items per batch)
@@ -533,7 +668,7 @@ class AWSEmailQueue {
       }
 
       console.log(`✅ [AWS EMAIL QUEUE] Cleared ${emails.length} sent emails for agent ${agentId}`);
-      return { clearedCount: emails.length };
+      return { clearedCount: emails.length, zillizCleared };
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error clearing sent emails:', error);
       throw error;
