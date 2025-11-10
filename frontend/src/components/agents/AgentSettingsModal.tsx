@@ -211,6 +211,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
   
   // Search states for industries and job titles
   const [industrySearch, setIndustrySearch] = useState('');
@@ -235,8 +236,49 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
   useEffect(() => {
     if (isOpen) {
       fetchSettings();
+      fetchCompanyProfile(); // Also fetch company profile for simple mode
     }
   }, [isOpen, agentId]);
+
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
+  const [recommendedPreset, setRecommendedPreset] = useState<any>(null);
+
+  const fetchCompanyProfile = async () => {
+    try {
+      const response = await api.get('/api/company-profile/profile');
+      if (response.data.success) {
+        setCompanyProfile(response.data.profile);
+        setRecommendedPreset(response.data.recommendedPreset);
+        console.log('📋 [SETTINGS] Loaded company profile preset:', response.data.recommendedPreset);
+      }
+    } catch (error) {
+      console.warn('No company profile found, using manual settings');
+    }
+  };
+
+  // Apply recommended preset when switching to simple mode
+  useEffect(() => {
+    if (!isAdvancedMode && recommendedPreset && settings) {
+      console.log('🎯 [SIMPLE MODE] Applying recommended preset');
+      setSettings(prev => ({
+        ...prev,
+        companyCriteria: {
+          ...prev.companyCriteria,
+          companyIndustries: recommendedPreset.targetIndustries || prev.companyCriteria.companyIndustries,
+          companySizeMin: recommendedPreset.companySizeMin || prev.companyCriteria.companySizeMin,
+          companySizeMax: recommendedPreset.companySizeMax || prev.companyCriteria.companySizeMax,
+        },
+        contactCriteria: {
+          ...prev.contactCriteria,
+          targetPositions: recommendedPreset.targetPositions || prev.contactCriteria.targetPositions,
+        },
+        geographicSettings: {
+          ...prev.geographicSettings,
+          leadLimit: recommendedPreset.leadLimit || prev.geographicSettings.leadLimit,
+        }
+      }));
+    }
+  }, [isAdvancedMode, recommendedPreset]);
 
   const fetchSettings = async () => {
     try {
@@ -404,13 +446,52 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
               <h3 className="text-xl font-semibold text-gray-900">Lead Agent Settings</h3>
               <p className="text-sm text-gray-500 mt-1">Configure your AI reasoning lead generation agent</p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <XMarkIcon className="h-5 w-5 text-gray-600" />
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Advanced Mode Toggle */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Simple</span>
+                <button
+                  onClick={() => setIsAdvancedMode(!isAdvancedMode)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    isAdvancedMode ? 'bg-blue-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      isAdvancedMode ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+                <span className="text-sm font-medium text-gray-900">Advanced</span>
+              </div>
+              
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <XMarkIcon className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
           </div>
+
+          {/* Mode Explanation Banner */}
+          {!isAdvancedMode && (
+            <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-900">Simple Mode</h4>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    Using recommended settings based on your company profile. Switch to Advanced mode for full customization.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Content */}
           <div className="flex-1 p-6 overflow-y-auto">
@@ -533,13 +614,17 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                   <h4 className="text-lg font-medium text-gray-900 mb-4">Company Targeting</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Company Size Range</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Company Size Range
+                        {!isAdvancedMode && <span className="ml-2 text-xs text-blue-600">(From company profile)</span>}
+                      </label>
                       <div className="flex gap-2 items-center">
                         <input
                           type="number"
                           value={settings.companyCriteria?.companySizeMin ?? 50}
                           onChange={(e) => updateField('companyCriteria', 'companySizeMin', e.target.value === '' ? '' : parseInt(e.target.value))}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          disabled={!isAdvancedMode}
+                          className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isAdvancedMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                           placeholder="Min"
                         />
                         <span className="text-gray-500">to</span>
@@ -547,14 +632,18 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                           type="number"
                           value={settings.companyCriteria?.companySizeMax ?? 500}
                           onChange={(e) => updateField('companyCriteria', 'companySizeMax', e.target.value === '' ? '' : parseInt(e.target.value))}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          disabled={!isAdvancedMode}
+                          className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isAdvancedMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                           placeholder="Max"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Lead Limit</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Lead Limit
+                        {!isAdvancedMode && <span className="ml-2 text-xs text-blue-600">(From company profile)</span>}
+                      </label>
                       <input
                         type="number"
                         min="0"
@@ -577,7 +666,8 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                           }
                         }}
                         onWheel={(e) => e.currentTarget.blur()} // Blur to prevent scroll changing value
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={!isAdvancedMode}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isAdvancedMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                         placeholder="e.g., 50"
                       />
                     </div>
@@ -585,7 +675,10 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
 
                   {/* Industries with Search */}
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Industries</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Target Industries
+                      {!isAdvancedMode && <span className="ml-2 text-xs text-blue-600">(From company profile)</span>}
+                    </label>
                     <div className="relative">
                       <div className="flex items-center space-x-2 mb-2">
                         <div className="relative flex-1">
@@ -595,14 +688,15 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                             value={industrySearch}
                             onChange={(e) => setIndustrySearch(e.target.value)}
                             onFocus={() => setShowIndustryDropdown(true)}
-                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            disabled={!isAdvancedMode}
+                            className={`w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isAdvancedMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                             placeholder="Search industries... (e.g., Healthcare, Technology, Finance)"
                           />
                         </div>
                       </div>
 
                       {/* Industry Dropdown */}
-                      {showIndustryDropdown && (
+                      {showIndustryDropdown && isAdvancedMode && (
                         <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                           {filteredIndustries.map((industry, index) => (
                             <button
@@ -633,12 +727,14 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                             className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
                           >
                             {industry}
-                            <button
-                              onClick={() => removeFromArray('companyCriteria', 'companyIndustries', industry)}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              <XCircleIcon className="h-4 w-4" />
-                            </button>
+                            {isAdvancedMode && (
+                              <button
+                                onClick={() => removeFromArray('companyCriteria', 'companyIndustries', industry)}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <XCircleIcon className="h-4 w-4" />
+                              </button>
+                            )}
                           </span>
                         ))}
                       </div>
@@ -652,7 +748,10 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                   
                   {/* Job Titles with Search */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Job Titles</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Target Job Titles
+                      {!isAdvancedMode && <span className="ml-2 text-xs text-blue-600">(From company profile)</span>}
+                    </label>
                     <div className="relative">
                       <div className="flex items-center space-x-2 mb-2">
                         <div className="relative flex-1">
@@ -662,14 +761,15 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                             value={jobTitleSearch}
                             onChange={(e) => setJobTitleSearch(e.target.value)}
                             onFocus={() => setShowJobTitleDropdown(true)}
-                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            disabled={!isAdvancedMode}
+                            className={`w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isAdvancedMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                             placeholder="Search job titles... (e.g., CEO, CTO, Marketing Director)"
                           />
                         </div>
                       </div>
 
                       {/* Job Title Dropdown */}
-                      {showJobTitleDropdown && (
+                      {showJobTitleDropdown && isAdvancedMode && (
                         <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                           {filteredJobTitles.map((title, index) => (
                             <button
@@ -700,12 +800,14 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                             className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full"
                           >
                             {title}
-                            <button
-                              onClick={() => removeFromArray('contactCriteria', 'targetPositions', title)}
-                              className="text-green-600 hover:text-green-800"
-                            >
-                              <XCircleIcon className="h-4 w-4" />
-                            </button>
+                            {isAdvancedMode && (
+                              <button
+                                onClick={() => removeFromArray('contactCriteria', 'targetPositions', title)}
+                                className="text-green-600 hover:text-green-800"
+                              >
+                                <XCircleIcon className="h-4 w-4" />
+                              </button>
+                            )}
                           </span>
                         ))}
                       </div>

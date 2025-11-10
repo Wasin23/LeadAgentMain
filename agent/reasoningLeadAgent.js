@@ -3688,11 +3688,45 @@ BODY: [email body with proper greeting and signature]`;
         case 'get_user_settings':
           result = await this.getUserSettings();
           this.memory.userSettings = result;
+          
+          // Check if settings have an error
+          if (result?.error) {
+            console.log('⚠️ [SETTINGS] No user settings configured yet');
+            this.logOperation('⚙️ Settings Required', 'Please configure your lead agent settings in the dashboard', 'warning', {
+              error: result.error,
+              action: 'Configure settings to start finding leads'
+            });
+            
+            // Return a shouldStop so the cycle pauses until settings are configured
+            return {
+              success: false,
+              message: 'Agent settings not configured yet. Please set up your targeting criteria.',
+              shouldStop: true,
+              requiresConfiguration: true
+            };
+          }
           break;
           
         case 'get_email_settings':
           result = await this.getEmailSettings();
           this.memory.emailSettings = result;
+          
+          // Check if email settings have an error
+          if (result?.error) {
+            console.log('⚠️ [SETTINGS] No email settings configured yet');
+            this.logOperation('📧 Email Settings Required', 'Please configure your email builder settings in the dashboard', 'warning', {
+              error: result.error,
+              action: 'Configure email settings to start sending emails'
+            });
+            
+            // Return a shouldStop so the cycle pauses until settings are configured
+            return {
+              success: false,
+              message: 'Email settings not configured yet. Please set up your email templates.',
+              shouldStop: true,
+              requiresConfiguration: true
+            };
+          }
           break;
           
         case 'apollo_search':
@@ -3869,8 +3903,8 @@ BODY: [email body with proper greeting and signature]`;
 
         // Execute the full reasoning workflow
         const context = {
-          hasUserSettings: !!this.memory.userSettings,
-          hasEmailSettings: !!this.memory.emailSettings,
+          hasUserSettings: !!this.memory.userSettings && !this.memory.userSettings.error,
+          hasEmailSettings: !!this.memory.emailSettings && !this.memory.emailSettings.error,
           memory: this.memory,
           
           // Sequential processing context
@@ -3884,6 +3918,10 @@ BODY: [email body with proper greeting and signature]`;
 
         // Debug logging for context
         console.log(`🔧 [DEBUG] Step ${stepCount} Context:`, {
+          hasUserSettings: context.hasUserSettings,
+          hasEmailSettings: context.hasEmailSettings,
+          userSettingsError: this.memory.userSettings?.error,
+          emailSettingsError: this.memory.emailSettings?.error,
           processingPhase: context.processingPhase,
           hasCurrentLead: !!context.currentLead,
           currentLeadName: context.currentLead?.name,
@@ -3892,6 +3930,16 @@ BODY: [email body with proper greeting and signature]`;
           targetLeads: context.targetLeads,
           queueLength: context.leadQueue?.length || 0
         });
+        
+        // Check if settings have errors and need to be fetched
+        if (!context.hasUserSettings && this.memory.userSettings?.error) {
+          console.log('⚠️ [SETTINGS] User settings have error, will attempt to fetch again');
+          this.logOperation('⚙️ Configuring Agent', 'Loading your agent settings...', 'in-progress');
+        }
+        if (!context.hasEmailSettings && this.memory.emailSettings?.error) {
+          console.log('⚠️ [SETTINGS] Email settings have error, will attempt to fetch again');
+          this.logOperation('📧 Email Setup', 'Loading your email preferences...', 'in-progress');
+        }
 
         // Get reasoning decision from OpenAI
         const reasoningResult = await this.reason(context);

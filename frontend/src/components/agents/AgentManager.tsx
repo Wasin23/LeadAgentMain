@@ -33,6 +33,19 @@ interface Agent {
     traits: string[];
     color: string;
   };
+  settings?: {
+    companyCriteria?: {
+      companyIndustries?: string[];
+      companySizeMin?: number;
+      companySizeMax?: number;
+    };
+    contactCriteria?: {
+      targetPositions?: string[];
+    };
+    geographicSettings?: {
+      leadLimit?: number;
+    };
+  };
 }
 
 interface AgentManagerProps {
@@ -176,10 +189,20 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       const response = await api.get('/api/auth/agents');
       
       if (response.data.success && response.data.agents) {
-        // Convert AWS agents to frontend Agent format and fetch email stats
+        // Convert AWS agents to frontend Agent format and fetch email stats + settings
         const awsAgents = await Promise.all(
           response.data.agents.map(async (agent: any) => {
             const emailStats = await fetchEmailStats(agent.agentId);
+            
+            // Fetch agent settings to get targeting info
+            let agentSettings = null;
+            try {
+              const settingsResponse = await api.get(`/api/lead-agent/settings/${agent.agentId}`);
+              agentSettings = settingsResponse.data;
+            } catch (err) {
+              console.warn(`Failed to fetch settings for ${agent.agentId}`);
+            }
+            
             return {
               id: agent.agentId,
               name: agent.name,
@@ -188,7 +211,8 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
               emailsSent: emailStats.emailsSent,
               meetingsScheduled: emailStats.meetingsScheduled,
               lastRun: agent.lastRun,
-              personality: agent.personality
+              personality: agent.personality,
+              settings: agentSettings
             };
           })
         );
@@ -398,112 +422,171 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       </div>
 
       {/* Agent List */}
-      <div className="bg-white border border-neutral-200">
-        <div className="border-b border-neutral-200 p-4">
-          <h3 className="text-lg font-medium text-neutral-900">Active Agents</h3>
-        </div>
-        
-        <div className="divide-y divide-neutral-200">
-          <AnimatePresence>
-            {agents.map((agent, index) => {
-              const colors = getPersonalityColors(agent.personality?.color);
-              return (
-                <motion.div
-                  key={agent.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`p-6 cursor-pointer border-l-4 ${colors.card} ${colors.accent.replace('bg-', 'border-l-')}`}
-                  onClick={() => onSelectAgent(agent.id)}
-                >
-                {/* Agent Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-lg overflow-hidden border-2 ${colors.avatar} ${colors.card.split(' ')[1]}`} style={{ borderWidth: '2px' }}>
-                      {(agent.personality?.avatar && (agent.personality.avatar.startsWith('http') || agent.personality.avatar.startsWith('/avatars/'))) ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AnimatePresence>
+          {agents.map((agent, index) => {
+            const colors = getPersonalityColors(agent.personality?.color);
+            return (
+              <motion.div
+                key={agent.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.05 }}
+                className={`border rounded-lg transition-all cursor-pointer bg-white hover:shadow-md ${colors.card.includes('border-') ? colors.card.split(' ')[0] : 'border-neutral-200'}`}
+                onClick={() => onSelectAgent(agent.id)}
+              >
+                {/* Card Header */}
+                <div className="p-4 border-b border-neutral-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      {agent.personality?.avatar ? (
                         <img 
                           src={agent.personality.avatar} 
-                          alt={agent.name}
-                          className="w-full h-full rounded-full object-cover"
+                          alt={agent.personality.name || agent.name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-neutral-200"
                         />
                       ) : (
-                        <span className="text-lg">{agent.personality?.avatar || '👤'}</span>
+                        <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-xl">
+                          🤖
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm text-neutral-900 truncate">{agent.name}</h3>
+                        <p className="text-xs text-neutral-500 truncate">
+                          {agent.personality?.name || 'Standard Agent'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${
+                      agent.status === 'running' 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-neutral-200 text-neutral-600'
+                    }`}>
+                      {agent.status === 'running' ? 'Active' : 'Stopped'}
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center p-2 bg-neutral-50 rounded">
+                      <div className="text-base font-semibold text-neutral-900">{agent.emailsQueued}</div>
+                      <div className="text-xs text-neutral-600">Queued</div>
+                    </div>
+                    <div className="text-center p-2 bg-neutral-50 rounded">
+                      <div className="text-base font-semibold text-neutral-900">{agent.emailsSent}</div>
+                      <div className="text-xs text-neutral-600">Sent</div>
+                    </div>
+                    <div className="text-center p-2 bg-neutral-50 rounded">
+                      <div className="text-base font-semibold text-neutral-900">{agent.meetingsScheduled}</div>
+                      <div className="text-xs text-neutral-600">Meetings</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Agent Targeting Info */}
+                <div className="p-4 space-y-3">
+                  {/* Target Industries */}
+                  <div>
+                    <div className="text-xs font-medium text-neutral-600 mb-1.5 uppercase tracking-wide">Target Industries</div>
+                    <div className="flex flex-wrap gap-1">
+                      {agent.settings?.companyCriteria?.companyIndustries && agent.settings.companyCriteria.companyIndustries.length > 0 ? (
+                        agent.settings.companyCriteria.companyIndustries.slice(0, 3).map((industry, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
+                            {industry}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-neutral-400 italic">Not configured</span>
+                      )}
+                      {agent.settings?.companyCriteria?.companyIndustries && agent.settings.companyCriteria.companyIndustries.length > 3 && (
+                        <span className="px-2 py-0.5 bg-neutral-100 text-neutral-600 text-xs rounded-full">
+                          +{agent.settings.companyCriteria.companyIndustries.length - 3}
+                        </span>
                       )}
                     </div>
+                  </div>
+
+                  {/* Target Positions */}
+                  <div>
+                    <div className="text-xs font-medium text-neutral-600 mb-1.5 uppercase tracking-wide">Target Positions</div>
+                    <div className="flex flex-wrap gap-1">
+                      {agent.settings?.contactCriteria?.targetPositions && agent.settings.contactCriteria.targetPositions.length > 0 ? (
+                        agent.settings.contactCriteria.targetPositions.slice(0, 3).map((position, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-purple-50 text-purple-700 text-xs rounded-full">
+                            {position}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-neutral-400 italic">Not configured</span>
+                      )}
+                      {agent.settings?.contactCriteria?.targetPositions && agent.settings.contactCriteria.targetPositions.length > 3 && (
+                        <span className="px-2 py-0.5 bg-neutral-100 text-neutral-600 text-xs rounded-full">
+                          +{agent.settings.contactCriteria.targetPositions.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Company Size & Lead Limit */}
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <h3 className={`font-medium ${colors.text}`}>{agent.name}</h3>
-                      <div className={`inline-flex items-center px-2 py-1 text-xs font-medium border rounded ${
-                        agent.status === 'running' ? 'bg-green-50 text-green-600 border-green-200' :
-                        agent.status === 'paused' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
-                        'bg-neutral-50 text-neutral-600 border-neutral-200'
-                      }`}>
-                        <div className={`h-2 w-2 rounded-full mr-1 ${
-                          agent.status === 'running' ? 'bg-green-500' : 
-                          agent.status === 'paused' ? 'bg-yellow-500' : 
-                          'bg-neutral-400'
-                        }`}></div>
-                        {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
+                      <div className="text-xs font-medium text-neutral-600 mb-1 uppercase tracking-wide">Company Size</div>
+                      <div className="text-sm text-neutral-900 font-medium">
+                        {agent.settings?.companyCriteria?.companySizeMin && agent.settings?.companyCriteria?.companySizeMax
+                          ? `${agent.settings.companyCriteria.companySizeMin}-${agent.settings.companyCriteria.companySizeMax}`
+                          : <span className="text-neutral-400 italic text-xs">Not set</span>
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-neutral-600 mb-1 uppercase tracking-wide">Lead Limit</div>
+                      <div className="text-sm text-neutral-900 font-medium">
+                        {agent.settings?.geographicSettings?.leadLimit
+                          ? `${agent.settings.geographicSettings.leadLimit} per cycle`
+                          : <span className="text-neutral-400 italic text-xs">Not set</span>
+                        }
                       </div>
                     </div>
                   </div>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                </div>
+
+                {/* Actions Footer */}
+                <div className="p-3 border-t border-neutral-200 flex gap-2">
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleAgent(agent.id);
                     }}
-                    className={`p-2 rounded ${
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded transition-colors ${
                       agent.status === 'running' 
                         ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' 
-                        : `border ${colors.button}`
+                        : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
                     }`}
                   >
                     {agent.status === 'running' ? (
-                      <StopIcon className="h-4 w-4" />
+                      <div className="flex items-center justify-center gap-1">
+                        <StopIcon className="h-4 w-4" />
+                        Stop
+                      </div>
                     ) : (
-                      <PlayIcon className="h-4 w-4" />
+                      <div className="flex items-center justify-center gap-1">
+                        <PlayIcon className="h-4 w-4" />
+                        Start
+                      </div>
                     )}
-                  </motion.button>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className={`text-center p-2 rounded border ${colors.button}`}>
-                    <div className={`text-sm font-medium ${colors.text}`}>{agent.emailsQueued}</div>
-                    <div className="text-xs text-neutral-500">Queued</div>
-                  </div>
-                  <div className={`text-center p-2 rounded border ${colors.button}`}>
-                    <div className={`text-sm font-medium ${colors.text}`}>{agent.emailsSent}</div>
-                    <div className="text-xs text-neutral-600">Sent</div>
-                  </div>
-                  <div className={`text-center p-2 rounded border ${colors.button}`}>
-                    <div className={`text-sm font-medium ${colors.text}`}>{agent.meetingsScheduled}</div>
-                    <div className="text-xs text-neutral-500">Meetings</div>
-                  </div>
-                </div>
-
-                {/* Last Run */}
-                {agent.lastRun && (
-                  <div className={`flex items-center text-sm mb-4 ${colors.text.replace('700', '600')}`}>
-                    <ClockIcon className={`h-4 w-4 mr-1 ${colors.text.replace('700', '500')}`} />
-                    Last run: {new Date(agent.lastRun).toLocaleDateString()}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2">
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectAgent(agent.id);
                     }}
-                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 transition-colors border ${colors.button}`}
+                    className="flex-1 px-3 py-2 text-sm font-medium rounded transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
                   >
-                    <CogIcon className={`h-4 w-4 ${colors.text.replace('700', '600')}`} />
-                    Manage
+                    <div className="flex items-center justify-center gap-1">
+                      <CogIcon className="h-4 w-4" />
+                      Manage
+                    </div>
                   </button>
                   {agent.id !== 'lead-agent-main' && (
                     <button
@@ -511,27 +594,16 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                         e.stopPropagation();
                         showDeleteConfirmation(agent);
                       }}
-                      className="flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200"
+                      className="px-3 py-2 text-sm font-medium rounded transition-colors bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
                   )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // TODO: Show analytics for this agent
-                    }}
-                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 transition-colors border ${colors.button}`}
-                  >
-                    <ChartBarIcon className={`h-4 w-4 ${colors.text.replace('700', '600')}`} />
-                    Analytics
-                  </button>
                 </div>
               </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
       {/* Agent Personality Selector */}
