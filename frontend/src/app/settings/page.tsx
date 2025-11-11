@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useTheme } from '@/contexts/ThemeContext';
 import { 
   UserCircleIcon, 
   CurrencyDollarIcon, 
@@ -36,6 +37,7 @@ interface Preferences {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -329,11 +331,11 @@ export default function SettingsPage() {
                   <p className="text-sm text-neutral-600 mb-6">Customize your application preferences</p>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">Theme</label>
+                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Theme</label>
                       <select
-                        value={preferences.theme}
-                        onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={theme}
+                        onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'auto')}
+                        className="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg text-neutral-900 dark:text-neutral-100 dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="light">Light</option>
                         <option value="dark">Dark</option>

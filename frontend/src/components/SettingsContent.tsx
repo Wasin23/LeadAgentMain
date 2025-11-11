@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { useTheme } from '@/contexts/ThemeContext';
 import { 
   UserCircleIcon, 
   CurrencyDollarIcon, 
@@ -53,6 +54,7 @@ interface Preferences {
 }
 
 export default function SettingsContent() {
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -335,6 +337,31 @@ export default function SettingsContent() {
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Edit Company Profile
+                    </button>
+                  </div>
+                  
+                  {/* Danger Zone */}
+                  <div className="mt-8 pt-6 border-t border-neutral-200">
+                    <h3 className="text-lg font-semibold text-red-600 mb-2">Danger Zone</h3>
+                    <p className="text-sm text-neutral-600 mb-4">
+                      Reset your account data and restart the onboarding process. This will clear your company profile and force you to go through setup again.
+                    </p>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('Are you sure you want to reset your account data? This will clear your company profile and restart onboarding. This action cannot be undone.')) {
+                          try {
+                            await api.delete('/api/company-profile');
+                            alert('Account data reset successfully. Redirecting to onboarding...');
+                            window.location.reload();
+                          } catch (error) {
+                            console.error('Failed to reset account data:', error);
+                            alert('Failed to reset account data. Please try again.');
+                          }
+                        }
+                      }}
+                      className="px-4 py-2 !bg-red-600 text-white rounded-lg hover:!bg-red-700 transition-colors font-medium border border-red-700"
+                    >
+                      Reset Account Data
                     </button>
                   </div>
                 </div>
@@ -669,11 +696,11 @@ export default function SettingsContent() {
                 <p className="text-sm text-neutral-600 mb-6">Customize your application preferences</p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Theme</label>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Theme</label>
                     <select
-                      value={preferences.theme}
-                      onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={theme}
+                      onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'auto')}
+                      className="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg text-neutral-900 dark:text-neutral-100 dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="light">Light</option>
                       <option value="dark">Dark</option>

@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { 
   BuildingOfficeIcon, 
-  DocumentTextIcon, 
   SparklesIcon,
   CheckCircleIcon,
-  ArrowRightIcon,
   CloudArrowUpIcon,
-  ChevronDownIcon
+  DocumentTextIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import api from '../lib/api';
+import AdminChatbot from './AdminChatbot';
 
 interface CompanyProfile {
   companyName: string;
@@ -26,45 +26,77 @@ interface CompanyProfileOnboardingProps {
 }
 
 export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileOnboardingProps) {
-  const [step, setStep] = useState<'welcome' | 'upload' | 'chat' | 'review' | 'complete'>('welcome');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileContent, setFileContent] = useState<string>('');
-  const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
-  const [currentMessage, setCurrentMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
-  const [recommendedPreset, setRecommendedPreset] = useState<any>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [profile, setProfile] = useState({
+    companyName: '',
+    industry: '',
+    services: '',
+    targetMarket: '',
+    companySize: '',
+    description: '',
+    logo: '',
+    website: '',
+    linkedinProfile: '',
+    location: '',
+    phone: '',
+    email: '',
+    tagline: '',
+    founded: '',
+    employees: '',
+    coreOffering: '',
+    keyAdvantages: '',
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Check scroll position
-  useEffect(() => {
-    const chatContainer = chatContainerRef.current;
-    if (!chatContainer) return;
+  const handleWebsiteScrape = async () => {
+    if (!websiteUrl.trim()) {
+      alert('Please enter a website URL');
+      return;
+    }
 
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
-      setShowScrollButton(!isAtBottom);
-    };
+    setIsProcessing(true);
+    try {
+      const response = await api.post('/api/company-profile/scrape-website', {
+        url: websiteUrl
+      });
 
-    chatContainer.addEventListener('scroll', handleScroll);
-    return () => chatContainer.removeEventListener('scroll', handleScroll);
-  }, [step]);
-
-  const scrollToBottom = () => {
-    chatContainerRef.current?.scrollTo({
-      top: chatContainerRef.current.scrollHeight,
-      behavior: 'smooth'
-    });
+      if (response.data.success && response.data.profile) {
+        setProfile({
+          companyName: response.data.profile.companyName || '',
+          industry: response.data.profile.industry || '',
+          services: response.data.profile.services || '',
+          targetMarket: response.data.profile.targetMarket || '',
+          companySize: response.data.profile.companySize || '',
+          description: response.data.profile.description || '',
+          logo: response.data.profile.logo || '',
+          website: response.data.profile.website || '',
+          linkedinProfile: response.data.profile.linkedinProfile || '',
+          location: response.data.profile.location || '',
+          phone: response.data.profile.phone || '',
+          email: response.data.profile.email || '',
+          tagline: response.data.profile.tagline || '',
+          founded: response.data.profile.founded || '',
+          employees: response.data.profile.employees || '',
+          coreOffering: response.data.profile.coreOffering || '',
+          keyAdvantages: response.data.profile.keyAdvantages || '',
+        });
+        alert('Website scraped! Review and edit the extracted information below.');
+      }
+    } catch (error: any) {
+      console.error('Error scraping website:', error);
+      alert('Failed to scrape website. Please fill out the form manually.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadedFile(file);
+    setUploadedFileName(file.name);
     setIsProcessing(true);
 
     try {
@@ -72,7 +104,6 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
       const isImage = file.type.startsWith('image/');
       
       if (isImage) {
-        // Convert image to base64
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve, reject) => {
           reader.onload = () => resolve(reader.result as string);
@@ -81,82 +112,60 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
         });
         content = await base64Promise;
       } else {
-        // Read text file
         content = await file.text();
       }
       
-      setFileContent(content);
-      
-      // Send to backend for AI analysis
       const response = await api.post('/api/company-profile/analyze', {
         content: content,
         fileName: file.name,
         isImage: isImage
       });
 
-      if (response.data.success) {
-        setCompanyProfile(response.data.profile);
-        setRecommendedPreset(response.data.recommendedPreset);
-        setStep('review');
+      if (response.data.success && response.data.profile) {
+        setProfile({
+          companyName: response.data.profile.companyName || '',
+          industry: response.data.profile.industry || '',
+          services: response.data.profile.services || '',
+          targetMarket: response.data.profile.targetMarket || '',
+          companySize: response.data.profile.companySize || '',
+          description: response.data.profile.description || '',
+          logo: response.data.profile.logo || '',
+          website: response.data.profile.website || '',
+          linkedinProfile: response.data.profile.linkedinProfile || '',
+          location: response.data.profile.location || '',
+          phone: response.data.profile.phone || '',
+          email: response.data.profile.email || '',
+          tagline: response.data.profile.tagline || '',
+          founded: response.data.profile.founded || '',
+          employees: response.data.profile.employees || '',
+          coreOffering: response.data.profile.coreOffering || '',
+          keyAdvantages: response.data.profile.keyAdvantages || '',
+        });
+        alert('Document analyzed! Review and edit the extracted information below.');
       }
     } catch (error: any) {
       console.error('Error analyzing file:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to analyze file. Please try the chat option instead.';
-      alert(errorMessage);
+      alert('Failed to analyze file. Please fill out the form manually.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleChatSubmit = async () => {
-    if (!currentMessage.trim()) return;
-
-    const userMessage = currentMessage;
-    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setCurrentMessage('');
-    setIsProcessing(true);
-
-    try {
-      const response = await api.post('/api/company-profile/chat', {
-        messages: [...chatMessages, { role: 'user', content: userMessage }]
-      });
-
-      if (response.data.success) {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: response.data.message }]);
-        
-        // Check if profile is complete
-        if (response.data.profileComplete) {
-          setCompanyProfile(response.data.profile);
-          setRecommendedPreset(response.data.recommendedPreset);
-          setStep('review');
-        }
-      }
-    } catch (error) {
-      console.error('Error in chat:', error);
-      setChatMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Sorry, I encountered an error. Please try again.' 
-      }]);
-    } finally {
-      setIsProcessing(false);
+  const handleSave = async () => {
+    if (!profile.companyName || !profile.industry || !profile.services) {
+      alert('Please fill out at least Company Name, Industry, and Services');
+      return;
     }
-  };
-
-  const handleSaveProfile = async () => {
-    if (!companyProfile) return;
 
     setIsProcessing(true);
     try {
       const response = await api.post('/api/company-profile/save', {
-        profile: companyProfile,
-        recommendedPreset
+        profile,
+        recommendedPreset: null
       });
 
       if (response.data.success) {
-        setStep('complete');
-        setTimeout(() => {
-          onComplete();
-        }, 2000);
+        onComplete();
       }
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -166,328 +175,174 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
     }
   };
 
-  if (step === 'welcome') {
-    // Start with chat immediately
-    setStep('chat');
-    return null;
-  }
-
-  if (step === 'upload' || isProcessing) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-neutral-200 border-t-blue-600 mx-auto mb-6"></div>
-          <h2 className="text-2xl font-semibold text-neutral-900 mb-2">
-            Analyzing your company profile...
-          </h2>
-          <p className="text-neutral-600">
-            Our AI is reading and understanding your document
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'chat') {
-    return (
-      <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-white/80 backdrop-blur-sm border-b border-neutral-200 px-6 py-4 shadow-sm flex-shrink-0">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <BuildingOfficeIcon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-neutral-900">Company Profile Setup</h2>
-                <p className="text-neutral-600 text-xs">AI-powered lead generation</p>
-              </div>
+  return (
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <BuildingOfficeIcon className="w-10 h-10 text-white" />
             </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-              style={{ background: 'linear-gradient(to right, #2563eb, #4f46e5)' }}
-            >
-              <CloudArrowUpIcon className="w-4 h-4" />
-              Upload Company Info
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+            <h1 className="text-4xl font-bold text-neutral-900 mb-3">Company Profile Setup</h1>
+            <p className="text-lg text-neutral-600">Fill out the form or let AI extract your information automatically</p>
           </div>
-        </div>
 
-        {/* Chat Messages */}
-        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 relative">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {/* Initial AI Message */}
-            {chatMessages.length === 0 && (
-              <div className="flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                  <SparklesIcon className="w-6 h-6 text-white" />
-                </div>
-                <div className="bg-white border border-neutral-200 rounded-2xl rounded-tl-none p-4 shadow-sm max-w-2xl">
-                  <p className="text-neutral-900 leading-relaxed">
-                    Hi! I'm here to help set up your lead agent. 
-                    <br/><br/>
-                    You can <strong>upload a document</strong> about your company using the button above, or just <strong>tell me about your business</strong> and I'll ask a few questions to understand who your ideal customers are.
-                    <br/><br/>
-                    Once we're done, I'll create a preset with recommended industries, company sizes, and job titles to target.
-                    <br/><br/>
-                    <strong>What's your company name and what do you do?</strong>
-                  </p>
-                </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: Manual Form - Takes 2/3 width */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-neutral-200 shadow-xl overflow-hidden">
+              <div className="p-6 bg-gradient-to-r from-blue-600 to-purple-600">
+                <h2 className="text-xl font-semibold text-white">Company Information</h2>
               </div>
-            )}
-
-            {/* Chat History */}
-            {chatMessages.map((msg, idx) => (
-              <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                {msg.role === 'assistant' && (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                    <SparklesIcon className="w-6 h-6 text-white" />
-                  </div>
-                )}
-                {msg.role === 'user' && (
-                  <div className="w-10 h-10 rounded-full bg-neutral-700 flex items-center justify-center flex-shrink-0 shadow-md">
-                    <span className="text-white font-semibold text-sm">You</span>
-                  </div>
-                )}
-                <div className={`rounded-2xl p-4 shadow-sm max-w-2xl ${
-                  msg.role === 'user' 
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-tr-none' 
-                    : 'bg-white border border-neutral-200 rounded-tl-none text-neutral-900'
-                }`}>
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+              
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Company Name <span className="text-red-500">*</span></label>
+                  <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.companyName} onChange={(e) => setProfile({...profile, companyName: e.target.value})} placeholder="Your Company Name" />
                 </div>
-              </div>
-            ))}
-
-            {isProcessing && (
-              <div className="flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                  <SparklesIcon className="w-6 h-6 text-white" />
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Tagline</label>
+                  <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.tagline} onChange={(e) => setProfile({...profile, tagline: e.target.value})} placeholder="Your company's tagline" />
                 </div>
-                <div className="bg-white border border-neutral-200 rounded-2xl rounded-tl-none p-4 shadow-sm">
-                  <div className="flex gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-bounce" style={{animationDelay: '0ms'}}></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-bounce" style={{animationDelay: '150ms'}}></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-bounce" style={{animationDelay: '300ms'}}></div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Company Description</label>
+                  <textarea className="w-full px-3 py-2 border border-neutral-300 rounded-lg" rows={4} value={profile.description} onChange={(e) => setProfile({...profile, description: e.target.value})} placeholder="Tell your company's story..." />
+                </div>
+                
+                <h4 className="text-sm font-semibold text-neutral-900 pt-2 border-t border-neutral-200">Contact Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Website</label>
+                    <input type="url" className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.website} onChange={(e) => setProfile({...profile, website: e.target.value})} placeholder="https://yourcompany.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">LinkedIn Profile</label>
+                    <input type="url" className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.linkedinProfile} onChange={(e) => setProfile({...profile, linkedinProfile: e.target.value})} placeholder="https://linkedin.com/company/your-company" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Email</label>
+                    <input type="email" className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.email} onChange={(e) => setProfile({...profile, email: e.target.value})} placeholder="contact@company.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Phone</label>
+                    <input type="tel" className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.phone} onChange={(e) => setProfile({...profile, phone: e.target.value})} placeholder="+1 (555) 000-0000" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Location</label>
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.location} onChange={(e) => setProfile({...profile, location: e.target.value})} placeholder="City, Country" />
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Scroll to Bottom Button */}
-          {showScrollButton && (
-            <button
-              onClick={scrollToBottom}
-              className="absolute bottom-6 right-6 w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
-            >
-              <ChevronDownIcon className="w-5 h-5" />
-            </button>
-          )}
-        </div>
 
-        {/* Input */}
-        <div className="bg-white/80 backdrop-blur-sm border-t border-neutral-200 pt-2 pb-24 px-4 shadow-lg flex-shrink-0">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !isProcessing && handleChatSubmit()}
-                placeholder="Type your message here..."
-                disabled={isProcessing}
-                className="flex-1 px-4 py-3 border-2 border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-neutral-100 disabled:cursor-not-allowed transition-all shadow-sm"
-              />
-              <button
-                onClick={handleChatSubmit}
-                disabled={!currentMessage.trim() || isProcessing}
-                className="px-6 py-3 text-white rounded-lg transition-all disabled:cursor-not-allowed font-semibold shadow-md hover:shadow-lg"
-                style={{ 
-                  background: (!currentMessage.trim() || isProcessing) 
-                    ? 'linear-gradient(to right, #60a5fa, #818cf8)' 
-                    : 'linear-gradient(to right, #2563eb, #4f46e5)'
-                }}
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'review') {
-    return (
-      <div className="min-h-screen bg-neutral-50 p-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-white rounded-2xl border border-neutral-200 shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 text-white">
-              <h2 className="text-3xl font-bold mb-2">Review Your Company Profile</h2>
-              <p className="text-blue-100">Make sure everything looks good before we generate your agent presets</p>
-            </div>
-
-            <div className="p-8">
-              {/* Company Profile */}
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold text-neutral-900 mb-4">Company Information</h3>
-                <div className="grid md:grid-cols-2 gap-6">
+                <h4 className="text-sm font-semibold text-neutral-900 pt-2 border-t border-neutral-200">Company Details</h4>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-neutral-600 mb-2">Company Name</label>
-                    <input
-                      type="text"
-                      value={companyProfile?.companyName || ''}
-                      onChange={(e) => setCompanyProfile(prev => prev ? {...prev, companyName: e.target.value} : null)}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Industry</label>
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.industry} onChange={(e) => setProfile({...profile, industry: e.target.value})} placeholder="e.g., Technology, Healthcare" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-600 mb-2">Industry</label>
-                    <input
-                      type="text"
-                      value={companyProfile?.industry || ''}
-                      onChange={(e) => setCompanyProfile(prev => prev ? {...prev, industry: e.target.value} : null)}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-neutral-600 mb-2">Services</label>
-                    <textarea
-                      value={companyProfile?.services || ''}
-                      onChange={(e) => setCompanyProfile(prev => prev ? {...prev, services: e.target.value} : null)}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Founded Year</label>
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.founded} onChange={(e) => setProfile({...profile, founded: e.target.value})} placeholder="2020" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-600 mb-2">Target Market</label>
-                    <input
-                      type="text"
-                      value={companyProfile?.targetMarket || ''}
-                      onChange={(e) => setCompanyProfile(prev => prev ? {...prev, targetMarket: e.target.value} : null)}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Number of Employees</label>
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.employees} onChange={(e) => setProfile({...profile, employees: e.target.value})} placeholder="25" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-600 mb-2">Company Size</label>
-                    <select
-                      value={companyProfile?.companySize || ''}
-                      onChange={(e) => setCompanyProfile(prev => prev ? {...prev, companySize: e.target.value} : null)}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Company Size</label>
+                    <select className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.companySize} onChange={(e) => setProfile({...profile, companySize: e.target.value})}>
+                      <option value="">Select size</option>
                       <option value="1-10">1-10 employees</option>
                       <option value="11-50">11-50 employees</option>
                       <option value="51-200">51-200 employees</option>
                       <option value="201-500">201-500 employees</option>
-                      <option value="501+">501+ employees</option>
+                      <option value="501-1000">501-1000 employees</option>
+                      <option value="1000+">1000+ employees</option>
                     </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Target Market</label>
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.targetMarket} onChange={(e) => setProfile({...profile, targetMarket: e.target.value})} placeholder="e.g., B2B SaaS companies in North America" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Services / Products</label>
+                    <textarea className="w-full px-3 py-2 border border-neutral-300 rounded-lg" rows={3} value={profile.services} onChange={(e) => setProfile({...profile, services: e.target.value})} placeholder="Describe your main offerings..." />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Core Offering</label>
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.coreOffering} onChange={(e) => setProfile({...profile, coreOffering: e.target.value})} placeholder="e.g., AI-powered sales automation platform" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">Key Advantages</label>
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-lg" value={profile.keyAdvantages} onChange={(e) => setProfile({...profile, keyAdvantages: e.target.value})} placeholder="e.g., Automated, personalized, scalable" />
                   </div>
                 </div>
               </div>
 
-              {/* Recommended Preset */}
-              {recommendedPreset && (
-                <div className="mb-8 bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6">
-                  <div className="flex items-start gap-3 mb-4">
-                    <SparklesIcon className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-                    <div>
-                      <h3 className="text-xl font-semibold text-neutral-900 mb-2">AI-Generated Agent Preset</h3>
-                      <p className="text-neutral-600 text-sm">Based on your company profile, we recommend these default settings for your lead agents</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-4 mt-4">
-                    <div className="bg-white rounded-lg p-4">
-                      <div className="text-xs font-medium text-neutral-600 mb-2">TARGET INDUSTRIES</div>
-                      <div className="flex flex-wrap gap-2">
-                        {recommendedPreset.targetIndustries?.map((ind: string, idx: number) => (
-                          <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                            {ind}
-                          </span>
-                        ))}
+              <div className="flex items-center justify-end px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+                <button onClick={handleSave} disabled={isProcessing} className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2 font-semibold">
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircleIcon className="w-5 h-5" />
+                      Save & Continue
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Upload Options - Takes 1/3 width */}
+            <div className="lg:col-span-1 space-y-4">
+              {/* Upload Document */}
+              <div className="bg-white rounded-2xl border border-neutral-200 shadow-xl overflow-hidden">
+                <div className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-b border-neutral-200">
+                  <div className="text-center">
+                    <CloudArrowUpIcon className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">Upload Document</h3>
+                    <p className="text-sm text-neutral-600 mb-4">PDF, Word, PNG, JPG</p>
+                    {uploadedFileName && (
+                      <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                        <CheckCircleIcon className="w-4 h-4" />
+                        {uploadedFileName}
                       </div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4">
-                      <div className="text-xs font-medium text-neutral-600 mb-2">TARGET POSITIONS</div>
-                      <div className="flex flex-wrap gap-2">
-                        {recommendedPreset.targetPositions?.map((pos: string, idx: number) => (
-                          <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
-                            {pos}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4">
-                      <div className="text-xs font-medium text-neutral-600 mb-2">COMPANY SIZE RANGE</div>
-                      <div className="text-neutral-900 font-medium">{recommendedPreset.companySizeMin}-{recommendedPreset.companySizeMax} employees</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4">
-                      <div className="text-xs font-medium text-neutral-600 mb-2">RECOMMENDED LEAD LIMIT</div>
-                      <div className="text-neutral-900 font-medium">{recommendedPreset.leadLimit} leads per cycle</div>
-                    </div>
+                    )}
+                    <button onClick={() => fileInputRef.current?.click()} disabled={isProcessing} className="w-full px-6 py-2 !bg-blue-600 text-white rounded-lg hover:!bg-blue-700 transition-colors disabled:opacity-50 font-medium">
+                      {isProcessing ? 'Analyzing...' : 'Choose File'}
+                    </button>
+                    <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Actions */}
-              <div className="flex gap-4 justify-end">
-                <button
-                  onClick={() => setStep('welcome')}
-                  className="px-6 py-3 border border-neutral-300 rounded-xl text-neutral-700 hover:bg-neutral-50 transition-colors font-medium"
-                >
-                  Start Over
-                </button>
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={isProcessing}
-                  className="px-8 py-3 text-white rounded-xl transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
-                  style={{ 
-                    background: isProcessing 
-                      ? 'linear-gradient(to right, #60a5fa, #818cf8)' 
-                      : 'linear-gradient(to right, #2563eb, #4f46e5)'
-                  }}
-                >
-                  <CheckCircleIcon className="w-5 h-5" />
-                  Save & Continue
-                </button>
+              {/* Website Scraper */}
+              <div className="bg-white rounded-2xl border border-neutral-200 shadow-xl overflow-hidden">
+                <div className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-b border-neutral-200">
+                  <div>
+                    <GlobeAltIcon className="w-12 h-12 text-purple-600 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2 text-center">Find from Website</h3>
+                    <p className="text-sm text-neutral-600 mb-4 text-center">Enter your company URL</p>
+                    <input 
+                      type="url" 
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="https://yourcompany.com"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm mb-3"
+                    />
+                    <button onClick={handleWebsiteScrape} disabled={isProcessing} className="w-full px-4 py-2 !bg-purple-600 text-white rounded-lg hover:!bg-purple-700 transition-colors disabled:opacity-50 font-medium text-sm">
+                      Find
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    );
-  }
-
-  if (step === 'complete') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-6">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircleIcon className="w-12 h-12 text-green-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-neutral-900 mb-4">
-            Profile Created Successfully!
-          </h2>
-          <p className="text-neutral-600 mb-2">
-            Your company profile has been saved and your agent presets are ready.
-          </p>
-          <p className="text-sm text-neutral-500">
-            Redirecting to dashboard...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+      <AdminChatbot />
+    </>
+  );
 }
+ 

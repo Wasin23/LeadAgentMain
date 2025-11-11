@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import QueryProvider from "@/components/QueryProvider";
 import ScrollRestoration from "@/components/ScrollRestoration";
 
@@ -21,10 +22,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning={true}>
         <QueryProvider>
-          <AuthProvider>
-            <ScrollRestoration />
-            {children}
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <ScrollRestoration />
+              {children}
+            </AuthProvider>
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

@@ -19,8 +19,10 @@ router.get('/check', async (req, res) => {
     const awsManager = new AWSManager();
     
     const userSettings = await awsManager.getUserSettings(userId);
-    // Always return true so dashboard shows, even without profile
-    const hasProfile = true;
+    // Check if company profile exists
+    const hasProfile = !!(userSettings?.companyProfile && userSettings.companyProfile.companyName);
+    
+    console.log(`[COMPANY PROFILE] Check for user ${userId}: hasProfile=${hasProfile}`);
     
     res.json({
       success: true,
@@ -286,6 +288,48 @@ router.get('/profile', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting profile:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Delete company profile (reset account data)
+ */
+router.delete('/', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const awsManager = new AWSManager();
+    
+    console.log(`[COMPANY PROFILE] Resetting account data for user ${userId}`);
+    
+    // Get user settings
+    const userSettings = await awsManager.getUserSettings(userId);
+    
+    if (userSettings) {
+      // Clear company profile
+      delete userSettings.companyProfile;
+      delete userSettings.recommendedAgentPreset;
+      
+      // Save updated settings
+      await awsManager.updateUserSettings(userId, userSettings);
+      
+      console.log(`[COMPANY PROFILE] Account data reset successfully for user ${userId}`);
+      
+      res.json({
+        success: true,
+        message: 'Account data reset successfully'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: 'User settings not found'
+      });
+    }
+  } catch (error) {
+    console.error('Error resetting account data:', error);
     res.status(500).json({
       success: false,
       error: error.message

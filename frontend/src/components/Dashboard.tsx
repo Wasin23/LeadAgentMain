@@ -92,51 +92,55 @@ export default function Dashboard() {
   }, [activeView, selectedAgent]);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      {/* Header */}
-      <header className="border-b border-neutral-200 bg-white/95 backdrop-blur-md sticky top-0 z-50">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-xl font-semibold text-neutral-900">
-              Meridian
-            </h1>
-            <nav className="hidden md:flex items-center gap-6">
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveView(item.id)}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                      activeView === item.id
-                        ? 'text-blue-600 bg-blue-50'
-                        : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.name}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          <UserMenu />
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
+      {/* Show full-page onboarding if no company profile */}
+      {isCheckingProfile ? (
+        <div className="flex items-center justify-center h-screen bg-neutral-50 dark:bg-neutral-900">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 dark:border-neutral-600 border-t-blue-600 dark:border-t-blue-400"></div>
         </div>
-      </header>
+      ) : !hasCompanyProfile ? (
+        <div className="min-h-screen">
+          <CompanyProfileOnboarding onComplete={() => setHasCompanyProfile(true)} />
+        </div>
+      ) : (
+        <>
+          {/* Header - Only show after onboarding complete */}
+          <header className="border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-800/95 backdrop-blur-md sticky top-0 z-50">
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-8">
+                <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+                  Meridian
+                </h1>
+                <nav className="hidden md:flex items-center gap-6">
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveView(item.id)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                          activeView === item.id
+                            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                            : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {item.name}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
 
-      {/* Main Content */}
+              <UserMenu />
+            </div>
+          </header>
+
+      {/* Main Content - Only accessible after onboarding */}
       <main className="flex-1">
         {activeView === 'dashboard' && (
-          isCheckingProfile ? (
-            <div className="flex items-center justify-center h-screen">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 border-t-blue-600"></div>
-            </div>
-          ) : !hasCompanyProfile ? (
-            <CompanyProfileOnboarding onComplete={() => setHasCompanyProfile(true)} />
-          ) : (
-            <div className="p-8 bg-gradient-to-br from-neutral-50 to-neutral-100 min-h-screen">
-              <div className="space-y-8">
+          <div className="p-8 bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 min-h-screen">
+            <div className="space-y-8">
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Left Column - Company Profile (Takes up half) */}
@@ -247,7 +251,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          )
         )}
 
         {activeView === 'agents' && (
@@ -307,6 +310,8 @@ export default function Dashboard() {
           })}
         </div>
       </nav>
+      </>
+      )}
     </div>
   );
 }
