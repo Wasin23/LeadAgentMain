@@ -2,6 +2,9 @@ import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
 import OpenAI from 'openai';
 import AWSManager from '../utils/awsManager.js';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import puppeteer from 'puppeteer';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -167,6 +170,202 @@ Return as JSON: {profile: {...}, recommendedPreset: {...}}`
 });
 
 /**
+ * Scrape website and extract company profile
+ */
+router.post('/scrape-website', async (req, res) => {
+  let browser;
+  try {
+    const userId = req.user.userId;
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL is required'
+      });
+    }
+
+    console.log(`[COMPANY PROFILE] Scraping website for user ${userId}: ${url}`);
+
+    // Use Puppeteer to render JavaScript and get full content
+    let websiteContent = '';
+    try {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      
+      const page = await browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+      
+      console.log(`[COMPANY PROFILE] Loading page: ${url}`);
+      await page.goto(url, { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+      
+      // Wait a bit for any dynamic content to load
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Extract comprehensive content
+      const pageData = await page.evaluate(() => {
+        // Get all text content
+        const bodyText = document.body.innerText || '';
+        
+        // Get meta tags
+        const metaDescription = document.querySelector('meta[name="description"]')?.content || '';
+        const metaKeywords = document.querySelector('meta[name="keywords"]')?.content || '';
+        const title = document.title || '';
+        
+        // Get all headings for structure
+        const headings = Array.from(document.querySelectorAll('h1, h2, h3')).map(h => h.innerText).join('\n');
+        
+        // Get all links (for finding about, services pages)
+        const links = Array.from(document.querySelectorAll('a')).map(a => ({
+          text: a.innerText,
+          href: a.href
+        })).filter(l => l.text && l.href);
+        
+        return {
+          title,
+          metaDescription,
+          metaKeywords,
+          headings,
+          bodyText,
+          links: links.slice(0, 50) // Limit links
+        };
+      });
+      
+      // Try to visit key pages (About, Services, etc.)
+      const aboutPages = pageData.links.filter(link => 
+        /about|company|who-we-are|our-story/i.test(link.text) || 
+        /about|company|who-we-are|our-story/i.test(link.href)
+      ).slice(0, 2);
+      
+      let additionalContent = '';
+      for (const link of aboutPages) {
+        try {
+          if (link.href.startsWith('http')) {
+            console.log(`[COMPANY PROFILE] Visiting additional page: ${link.href}`);
+            await page.goto(link.href, { waitUntil: 'networkidle2', timeout: 15000 });
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const extraText = await page.evaluate(() => document.body.innerText || '');
+            additionalContent += `\n\n--- ${link.text} Page ---\n${extraText.substring(0, 3000)}`;
+          }
+        } catch (e) {
+          console.log(`[COMPANY PROFILE] Could not load ${link.href}: ${e.message}`);
+        }
+      }
+      
+      // Combine all content
+      websiteContent = `
+Title: ${pageData.title}
+Meta Description: ${pageData.metaDescription}
+Keywords: ${pageData.metaKeywords}
+
+Main Headings:
+${pageData.headings}
+
+Main Page Content:
+${pageData.bodyText.substring(0, 12000)}
+
+${additionalContent}
+      `.trim();
+      
+      console.log(`[COMPANY PROFILE] Extracted ${websiteContent.length} characters from website`);
+      
+      await browser.close();
+      browser = null;
+      
+    } catch (fetchError) {
+      console.error('[COMPANY PROFILE] Error fetching website:', fetchError.message);
+      if (browser) await browser.close();
+      return res.status(400).json({
+        success: false,
+        error: 'Unable to fetch website content. Please check the URL and try again.'
+      });
+    }
+
+    // Use OpenAI to analyze the website content
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{
+        role: 'system',
+        content: `You are an expert business analyst. Analyze the provided company website content thoroughly and extract information to create a comprehensive company profile.
+
+CRITICAL INSTRUCTIONS:
+1. Read through ALL the provided content carefully including main page and additional pages
+2. Fill out EVERY field - use your expertise to generate thoughtful answers for fields not explicitly stated
+3. For open-ended questions, craft intelligent responses based on the company's positioning and offerings
+4. Make educated estimates for missing data based on industry standards and company indicators
+
+Extract and return a JSON object with ALL 17 fields (NONE should be empty):
+
+- companyName: The company name
+- tagline: Company tagline/slogan (if not on site, create a compelling one that captures their value proposition)
+- description: Comprehensive 2-3 sentence description covering what they do and their unique approach
+- industry: Primary industry/sector
+- services: Detailed description of ALL products/services - be thorough and specific
+- targetMarket: Specific customer segments they serve (analyze their messaging and offerings to determine this)
+- companySize: Size range (1-10, 11-50, 51-200, 201-500, 501+) - estimate based on team page, about page, scale of operations
+- website: The company website URL
+- email: Contact email (look for contact@, hello@, info@, sales@ etc. If not found, generate likely format: contact@domain.com)
+- phone: Phone number (if found - check contact page, footer)
+- location: City, Country (if found - check contact/about pages)
+- linkedinProfile: LinkedIn URL (if found - look for social links)
+- founded: Year founded (if found - check about/history sections. If not found, estimate based on context clues)
+- employees: Number of employees (if found - check about/team pages. Otherwise estimate based on company size indicators)
+- coreOffering: Their main product/service in one concise phrase
+- keyAdvantages: What makes them different/better - analyze their unique value props, technology, approach (2-3 key differentiators)
+
+IMPORTANT FOR MISSING FIELDS:
+- If phone/LinkedIn not found: Leave as empty string "" (these are truly optional)
+- For location: If not explicitly stated, try to infer from domain (.uk = UK, .de = Germany, etc.) or say "Remote/Global"
+- For founded: If not stated, estimate based on domain registration date, technology used, or say "Established [recent year]"
+- For employees: Estimate based on team photos, about page, scale of operations
+- For coreOffering: Distill their main service into 3-5 words
+- For keyAdvantages: Analyze what makes them unique (technology, approach, pricing, accessibility, etc.)
+
+Also generate recommended agent settings:
+- targetIndustries: 3-5 industries they should target for B2B leads
+- targetPositions: 5-7 job titles to target
+- companySizeMin: Min company size to target
+- companySizeMax: Max company size to target  
+- leadLimit: Recommended leads per cycle (5-15)
+
+Return as JSON: {profile: {...}, recommendedPreset: {...}}`
+      }, {
+        role: 'user',
+        content: `Analyze this company website from ${url}. Read everything carefully and fill out ALL fields with thoughtful, accurate information:\n\n${websiteContent.substring(0, 20000)}`
+      }],
+      temperature: 0.3,
+      response_format: { type: "json_object" }
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    
+    // Ensure website is set
+    if (result.profile) {
+      result.profile.website = url;
+    }
+    
+    console.log('[COMPANY PROFILE] Website scraping complete:', result.profile);
+
+    res.json({
+      success: true,
+      profile: result.profile,
+      recommendedPreset: result.recommendedPreset
+    });
+  } catch (error) {
+    console.error('Error scraping website:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Chat interface for building company profile
  */
 router.post('/chat', async (req, res) => {
@@ -314,7 +513,7 @@ router.delete('/', async (req, res) => {
       delete userSettings.recommendedAgentPreset;
       
       // Save updated settings
-      await awsManager.updateUserSettings(userId, userSettings);
+      await awsManager.saveUserSettings(userId, userSettings);
       
       console.log(`[COMPANY PROFILE] Account data reset successfully for user ${userId}`);
       
