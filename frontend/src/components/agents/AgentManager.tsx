@@ -194,6 +194,16 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
           response.data.agents.map(async (agent: any) => {
             const emailStats = await fetchEmailStats(agent.agentId);
             
+            // Fetch actual agent running status
+            let isRunning = false;
+            try {
+              const statusResponse = await api.get(`/api/lead-agent/status?agentId=${agent.agentId}`);
+              isRunning = statusResponse.data.isActive || false;
+              console.log(`🔄 [AGENT STATUS] ${agent.name} (${agent.agentId}): isActive=${isRunning}`);
+            } catch (error) {
+              console.error(`Error fetching status for agent ${agent.agentId}:`, error);
+            }
+            
             // Fetch agent settings to get targeting info
             let agentSettings = null;
             try {
@@ -208,7 +218,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
             return {
               id: agent.agentId,
               name: agent.name,
-              status: agent.status === 'active' ? 'stopped' : 'stopped', // All start as stopped
+              status: isRunning ? 'running' : 'stopped',
               emailsQueued: emailStats.emailsQueued,
               emailsSent: emailStats.emailsSent,
               meetingsScheduled: emailStats.meetingsScheduled,
@@ -331,46 +341,37 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       const agent = agents.find(a => a.id === agentId);
       if (!agent) return;
 
-      // Only toggle the main agent through API
-      if (agentId === 'lead-agent-main') {
-        let response;
-        if (agent.status === 'running') {
-          console.log('🛑 Stopping agent...');
-          response = await api.post('/api/lead-agent/stop', { agentId });
-        } else {
-          console.log('▶️ Starting agent...');
-          response = await api.post('/api/lead-agent/start', { agentId });
-        }
-        
-        // Wait a moment then fetch updated status
-        setTimeout(async () => {
-          try {
-            const statusResponse = await api.get(`/api/lead-agent/status?agentId=${agentId}`);
-            const isActive = statusResponse.data?.isActive || false;
-            
-            setAgents(prev => prev.map(a => 
-              a.id === agentId 
-                ? { ...a, status: isActive ? 'running' : 'stopped' }
-                : a
-            ));
-          } catch (statusError) {
-            console.error('Failed to fetch updated status:', statusError);
-            // Fallback to optimistic update
-            setAgents(prev => prev.map(a => 
-              a.id === agentId 
-                ? { ...a, status: a.status === 'running' ? 'stopped' : 'running' }
-                : a
-            ));
-          }
-        }, 500);
+      // Toggle agent through API (works for all agents now, not just 'lead-agent-main')
+      let response;
+      if (agent.status === 'running') {
+        console.log(`🛑 Stopping agent ${agentId}...`);
+        response = await api.post('/api/lead-agent/stop', { agentId });
       } else {
-        // For non-main agents, just toggle locally
-        setAgents(prev => prev.map(a => 
-          a.id === agentId 
-            ? { ...a, status: a.status === 'running' ? 'stopped' : 'running' }
-            : a
-        ));
+        console.log(`▶️ Starting agent ${agentId}...`);
+        response = await api.post('/api/lead-agent/start', { agentId });
       }
+      
+      // Wait a moment then fetch updated status
+      setTimeout(async () => {
+        try {
+          const statusResponse = await api.get(`/api/lead-agent/status?agentId=${agentId}`);
+          const isActive = statusResponse.data?.isActive || false;
+          
+          setAgents(prev => prev.map(a => 
+            a.id === agentId 
+              ? { ...a, status: isActive ? 'running' : 'stopped' }
+              : a
+          ));
+        } catch (statusError) {
+          console.error('Failed to fetch updated status:', statusError);
+          // Fallback to optimistic update
+          setAgents(prev => prev.map(a => 
+            a.id === agentId 
+              ? { ...a, status: a.status === 'running' ? 'stopped' : 'running' }
+              : a
+          ));
+        }
+      }, 500);
     } catch (error) {
       console.error('Failed to toggle agent:', error);
       // Show error to user
@@ -503,7 +504,7 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                         ? 'bg-green-100 text-green-700' 
                         : 'bg-neutral-200 text-neutral-600'
                     }`}>
-                      {agent.status === 'running' ? 'Active' : 'Stopped'}
+                      {agent.status === 'running' ? 'Running' : 'Stopped'}
                     </div>
                   </div>
 

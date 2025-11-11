@@ -147,13 +147,14 @@ class ReasoningLeadAgent extends EventEmitter {
       },
       {
         name: 'unlock_email',
-        description: 'Unlock email address for a lead using Apollo credits',
+        description: 'Unlock email address for a lead using Apollo credits. IMPORTANT: Always include domain when available for better accuracy.',
         parameters: {
           type: 'object',
           properties: {
             firstName: { type: 'string', description: 'Lead first name' },
             lastName: { type: 'string', description: 'Lead last name' },
-            companyName: { type: 'string', description: 'Lead company name' }
+            companyName: { type: 'string', description: 'Lead company name' },
+            domain: { type: 'string', description: 'Company domain (e.g., example.com) - CRITICAL for accurate matching when company name is generic' }
           }
         }
       },
@@ -382,12 +383,21 @@ class ReasoningLeadAgent extends EventEmitter {
   // Core reasoning function - the agent's "brain"
   // 🎯 OPTIMIZED: Trimmed prompt for 61% cost savings (700 → 150 tokens)
   async reason(context) {
+    // Build lead info string with domain when available
+    let leadInfo = 'none';
+    if (context.currentLead) {
+      const domain = context.currentLead.organization?.primary_domain || context.currentLead.domain;
+      leadInfo = domain 
+        ? `${context.currentLead.name} (${context.currentLead.company}, domain: ${domain})`
+        : `${context.currentLead.name} (${context.currentLead.company})`;
+    }
+    
     const prompt = `Lead agent cycle decision:
 
 STATUS:
 Settings: ${context.hasUserSettings ? '✓' : '✗'} | Email templates: ${context.hasEmailSettings ? '✓' : '✗'}
 Progress: ${context.leadsProcessed}/${context.targetLeads} | Phase: ${context.processingPhase}
-Lead: ${context.currentLead ? `${context.currentLead.name} (${context.currentLead.company})` : 'none'}
+Lead: ${leadInfo}
 Complete: ${context.cycleComplete}
 
 Call the appropriate function to continue the workflow.`;
@@ -625,7 +635,8 @@ Call the appropriate function to continue the workflow.`;
                 parameters: {
                   firstName: context.currentLead.first_name,
                   lastName: context.currentLead.last_name,
-                  companyName: context.currentLead.company || context.currentLead.organization?.name
+                  companyName: context.currentLead.company || context.currentLead.organization?.name,
+                  domain: context.currentLead.organization?.primary_domain || context.currentLead.domain
                 }
               };
             }
@@ -740,7 +751,8 @@ Call the appropriate function to continue the workflow.`;
           if (this.memory.currentCycle.leadQueue.length > 0 && !this.memory.currentCycle.currentLead) {
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
-            console.log(`📋 [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+            const domain = this.memory.currentCycle.currentLead.organization?.primary_domain;
+            console.log(`📋 [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}${domain ? ` (${domain})` : ''}`);
           }
         } else {
           // No new leads found - increment duplicate counter
@@ -1425,6 +1437,12 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
   // Unlock email using Apollo - WORKING ENRICH METHOD
   async unlockEmail(parameters) {
     console.log('🔐 [APOLLO] Unlocking email for:', parameters.firstName, parameters.lastName);
+    console.log('🔐 [APOLLO] Parameters received:', {
+      firstName: parameters.firstName,
+      lastName: parameters.lastName,
+      companyName: parameters.companyName,
+      domain: parameters.domain || 'NOT PROVIDED ❌'
+    });
     
     try {
       const apiKey = await this.getApiKey('apollo');
@@ -1436,9 +1454,14 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       // STEP 1: First search for the person to get their Apollo ID
       const searchPayload = {
         per_page: 10,
-        page: 1,
-        person_locations: ["United States"]
+        page: 1
       };
+      
+      // Only filter by location if we DON'T have a domain (domain is more specific)
+      // This allows us to find people globally when we have their company domain
+      if (!parameters.domain) {
+        searchPayload.person_locations = ["United States"];
+      }
       
       // Search by person name first for better accuracy
       if (parameters.firstName && parameters.lastName) {
@@ -1448,6 +1471,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       // Add company targeting (try multiple approaches)
       if (parameters.domain) {
         searchPayload.q_organization_domains = [parameters.domain];
+        console.log('🌍 [APOLLO] Using domain-based search (global) instead of location filter');
       } else if (parameters.companyName) {
         // Use both keyword tags and organization name for better matching
         searchPayload.q_organization_keyword_tags = [parameters.companyName.toLowerCase()];
@@ -1497,11 +1521,11 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         
         // FALLBACK 1: Try without domain filtering if we used a domain
         if (parameters.domain) {
-          console.log('🔄 [FALLBACK] Retrying without domain filter...');
+          console.log('🔄 [FALLBACK] Retrying without domain filter (global search)...');
           const fallbackPayload = {
             per_page: 10,
-            page: 1,
-            person_locations: ["United States"]
+            page: 1
+            // NO location filter - search globally
           };
           
           if (parameters.firstName && parameters.lastName) {
@@ -3395,12 +3419,24 @@ BODY: [email body with proper greeting and signature]`;
         this.cycleTimer = null;
       }
 
-      // Reset current goal
+      // Reset cycle counter and all state
+      console.log('🔄 [REASONING AGENT] Resetting cycle counter from', this.cycleCount, 'to 0');
+      this.cycleCount = 0;
+      this.startTime = null;
+      this.nextRunTime = null;
+
+      // Reset memory and current goal
       if (this.memory) {
         this.memory.currentGoal = null;
+        this.memory.currentCycle = {
+          currentLead: null,
+          leadsProcessed: 0,
+          queuedLeads: [],
+          targetLeads: 0
+        };
       }
 
-      console.log('⏹️ [REASONING AGENT] Agent stopped, isRunning now:', this.isRunning);
+      console.log('⏹️ [REASONING AGENT] Agent stopped completely, isRunning now:', this.isRunning);
 
       // Emit progress update
       this.emit('progress', {
@@ -3414,7 +3450,7 @@ BODY: [email body with proper greeting and signature]`;
       const result = {
         success: true,
         message: 'Reasoning Lead Agent stopped successfully',
-        cyclesCompleted: this.cycleCount,
+        cyclesCompleted: 0,
         isActive: false
       };
 
@@ -3424,6 +3460,9 @@ BODY: [email body with proper greeting and signature]`;
       console.error('❌ [REASONING AGENT] Error stopping agent:', error);
       // Force stop even on error
       this.isRunning = false;
+      this.cycleCount = 0;
+      this.startTime = null;
+      this.nextRunTime = null;
       if (this.cycleTimer) {
         clearTimeout(this.cycleTimer);
         this.cycleTimer = null;
@@ -3889,8 +3928,14 @@ BODY: [email body with proper greeting and signature]`;
       const maxSteps = 100; // Safety limit
       const cycleStartTime = Date.now(); // Track cycle start time
       
-      while (stepCount < maxSteps) {
+      while (stepCount < maxSteps && this.isRunning) {
         stepCount++;
+        
+        // Check if agent was stopped
+        if (!this.isRunning) {
+          console.log(`⏹️ [REASONING] Cycle stopped by user at step ${stepCount}`);
+          break;
+        }
         
         // Initialize cycle tracking if needed
         if (!this.memory.currentCycle.targetLeads && this.memory.userSettings?.leadLimit) {
@@ -3941,6 +3986,12 @@ BODY: [email body with proper greeting and signature]`;
           this.logOperation('📧 Email Setup', 'Loading your email preferences...', 'in-progress');
         }
 
+        // Check if agent was stopped before making next decision
+        if (!this.isRunning) {
+          console.log(`⏹️ [REASONING] Cycle stopped by user before reasoning decision (step ${stepCount})`);
+          break;
+        }
+
         // Get reasoning decision from OpenAI
         const reasoningResult = await this.reason(context);
         
@@ -3966,6 +4017,12 @@ BODY: [email body with proper greeting and signature]`;
         // Execute the decided action (don't log it here, log in the specific function handlers)
         console.log(`🎯 [REASONING] Step ${stepCount}: Executing action: ${reasoningResult.action}`);
         const actionResult = await this.executeFunction(reasoningResult.action, reasoningResult.parameters);
+        
+        // Check if agent was stopped during action execution
+        if (!this.isRunning) {
+          console.log(`⏹️ [REASONING] Cycle stopped by user after action execution (step ${stepCount})`);
+          break;
+        }
         
         // Check if action requested to stop the cycle (e.g., due to errors)
         if (actionResult?.shouldStop) {

@@ -917,10 +917,21 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
         const awsAgents = await Promise.all(
           response.data.agents.map(async (agent: any) => {
             const emailStats = await fetchEmailStats(agent.agentId);
+            
+            // Fetch actual agent running status
+            let isRunning = false;
+            try {
+              const statusResponse = await api.get(`/api/lead-agent/status?agentId=${agent.agentId}`);
+              isRunning = statusResponse.data.isActive || false;
+              console.log(`🔄 [AGENT STATUS] ${agent.name} (${agent.agentId}): isActive=${isRunning}`);
+            } catch (error) {
+              console.error(`Error fetching status for agent ${agent.agentId}:`, error);
+            }
+            
             return {
               id: agent.agentId,
               name: agent.name,
-              status: agent.status === 'active' ? 'running' : 'stopped',
+              status: isRunning ? 'running' : 'stopped',
               emailsQueued: emailStats.emailsQueued,
               emailsSent: emailStats.emailsSent,
               meetingsScheduled: emailStats.meetingsScheduled,
