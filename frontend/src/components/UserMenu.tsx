@@ -50,7 +50,7 @@ export default function UserMenu() {
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              className="absolute right-0 mt-2 w-64 bg-white border border-neutral-200 shadow-lg z-20"
+              className="absolute right-0 mt-2 w-96 bg-white border border-neutral-200 shadow-lg z-20"
             >
               {/* User Info */}
               <div className="px-4 py-3 border-b border-neutral-200">
@@ -60,9 +60,14 @@ export default function UserMenu() {
                       {user?.username?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-neutral-900">{user?.username}</p>
-                    <p className="text-sm text-neutral-600">{user?.email}</p>
+                    <p className="text-sm text-neutral-600 truncate">{user?.email}</p>
+                    {user?.userId && (
+                      <p className="text-xs text-neutral-500 font-mono truncate mt-0.5">
+                        ID: {user.userId}
+                      </p>
+                    )}
                     {user?.isGuest && (
                       <span className="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded mt-1">
                         Guest Mode

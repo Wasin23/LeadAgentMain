@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { PlusIcon, ChatBubbleLeftRightIcon, ChartBarIcon, BellIcon, BoltIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ChatBubbleLeftRightIcon, ChartBarIcon, BellIcon, BoltIcon, Cog6ToothIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import AgentPersonalitySelector, { PersonalityType } from './AgentPersonalitySelector';
 import api from '../../lib/api';
@@ -86,12 +86,533 @@ interface AgentDirectorDashboardProps {
 
 import MonitoringSidebar, { MonitoringView } from './MonitoringSidebar';
 import MonitoringContent from './MonitoringContent';
+import AdminChatbot from '../AdminChatbot';
+
+// Presets Management Component
+interface SettingsPreset {
+  id: string;
+  name: string;
+  targetIndustries: string[];
+  targetPositions: string[];
+  companySizeMin: number;
+  companySizeMax: number;
+  leadLimit: number;
+  isDefault?: boolean;
+}
+
+function PresetsManagement() {
+  const [presets, setPresets] = useState<SettingsPreset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<SettingsPreset | null>(null);
+  const [formData, setFormData] = useState<Partial<SettingsPreset>>({
+    name: '',
+    targetIndustries: [],
+    targetPositions: [],
+    companySizeMin: 50,
+    companySizeMax: 500,
+    leadLimit: 10
+  });
+  const [industryInput, setIndustryInput] = useState('');
+  const [positionInput, setPositionInput] = useState('');
+  const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
+
+  const commonIndustries = [
+    'Technology', 'Healthcare', 'Finance', 'E-commerce', 'SaaS',
+    'Manufacturing', 'Retail', 'Education', 'Real Estate', 'Marketing',
+    'Consulting', 'Media', 'Telecommunications', 'Energy', 'Insurance'
+  ];
+
+  const commonPositions = [
+    'CEO', 'CTO', 'CFO', 'CMO', 'COO',
+    'VP of Sales', 'VP of Marketing', 'VP of Engineering',
+    'Director of Sales', 'Director of Marketing', 'Director of Engineering',
+    'Sales Manager', 'Product Manager', 'Engineering Manager',
+    'Founder', 'Co-Founder', 'Partner', 'Owner'
+  ];
+
+  useEffect(() => {
+    loadPresets();
+  }, []);
+
+  const loadPresets = async () => {
+    try {
+      const response = await api.get('/api/settings/presets');
+      setPresets(response.data.presets || []);
+    } catch (error) {
+      console.error('Error loading presets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePreset = async () => {
+    if (!formData.name?.trim()) {
+      alert('Please enter a preset name');
+      return;
+    }
+
+    try {
+      if (editingPreset) {
+        // Update existing preset
+        const response = await api.put(`/api/settings/presets/${editingPreset.id}`, formData);
+        setPresets(presets.map(p => p.id === editingPreset.id ? response.data.preset : p));
+        setEditingPreset(null);
+      } else {
+        // Create new preset
+        const response = await api.post('/api/settings/presets', formData);
+        setPresets([...presets, response.data.preset]);
+      }
+      
+      setIsCreating(false);
+      setFormData({
+        name: '',
+        targetIndustries: [],
+        targetPositions: [],
+        companySizeMin: 50,
+        companySizeMax: 500,
+        leadLimit: 10
+      });
+      setIndustryInput('');
+      setPositionInput('');
+    } catch (error) {
+      console.error('Error saving preset:', error);
+      alert('Failed to save preset');
+    }
+  };
+
+  const handleDeletePreset = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this preset?')) return;
+
+    try {
+      await api.delete(`/api/settings/presets/${id}`);
+      setPresets(presets.filter(p => p.id !== id));
+    } catch (error) {
+      console.error('Error deleting preset:', error);
+      alert('Failed to delete preset');
+    }
+  };
+
+  const handleEditPreset = (preset: SettingsPreset) => {
+    setEditingPreset(preset);
+    setFormData({
+      name: preset.name,
+      targetIndustries: [...preset.targetIndustries],
+      targetPositions: [...preset.targetPositions],
+      companySizeMin: preset.companySizeMin,
+      companySizeMax: preset.companySizeMax,
+      leadLimit: preset.leadLimit
+    });
+    setIsCreating(true);
+  };
+
+  const addIndustry = (industry: string) => {
+    if (industry.trim() && !formData.targetIndustries?.includes(industry.trim())) {
+      setFormData({ ...formData, targetIndustries: [...(formData.targetIndustries || []), industry.trim()] });
+      setIndustryInput('');
+      setShowIndustryDropdown(false);
+    }
+  };
+
+  const removeIndustry = (industry: string) => {
+    setFormData({
+      ...formData,
+      targetIndustries: formData.targetIndustries?.filter(i => i !== industry) || []
+    });
+  };
+
+  const addPosition = (position: string) => {
+    if (position.trim() && !formData.targetPositions?.includes(position.trim())) {
+      setFormData({ ...formData, targetPositions: [...(formData.targetPositions || []), position.trim()] });
+      setPositionInput('');
+      setShowPositionDropdown(false);
+    }
+  };
+
+  const removePosition = (position: string) => {
+    setFormData({
+      ...formData,
+      targetPositions: formData.targetPositions?.filter(p => p !== position) || []
+    });
+  };
+
+  const filteredIndustries = commonIndustries.filter(i =>
+    i.toLowerCase().includes(industryInput.toLowerCase())
+  );
+
+  const filteredPositions = commonPositions.filter(p =>
+    p.toLowerCase().includes(positionInput.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mr-auto ml-0">
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-neutral-900">Settings Presets</h2>
+          <p className="text-neutral-600 text-sm mt-1">
+            Manage preset configurations for your agents
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setIsCreating(true);
+            setEditingPreset(null);
+            setFormData({
+              name: '',
+              targetIndustries: [],
+              targetPositions: [],
+              companySizeMin: 50,
+              companySizeMax: 500,
+              leadLimit: 10
+            });
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+        >
+          <PlusIcon className="w-5 h-5" />
+          Create Preset
+        </button>
+      </div>
+
+      {/* Presets Grid */}
+      {presets.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
+          <div className="text-neutral-400 mb-4">
+            <Cog6ToothIcon className="w-16 h-16 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-neutral-900 mb-2">No presets yet</h3>
+          <p className="text-neutral-600 text-sm mb-6">
+            Create your first preset to quickly configure agents with predefined settings
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {presets.map((preset) => (
+            <div
+              key={preset.id}
+              className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                    {preset.name}
+                    {preset.isDefault && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                        Default
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleEditPreset(preset)}
+                    className="p-2 text-neutral-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleDeletePreset(preset.id)}
+                    className="p-2 text-neutral-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Industries */}
+                <div>
+                  <label className="text-xs font-medium text-neutral-600 uppercase mb-2 block">
+                    Target Industries ({preset.targetIndustries.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {preset.targetIndustries.slice(0, 5).map((industry, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm font-medium"
+                      >
+                        {industry}
+                      </span>
+                    ))}
+                    {preset.targetIndustries.length > 5 && (
+                      <span className="px-3 py-1 bg-neutral-100 text-neutral-600 rounded-full text-sm font-medium">
+                        +{preset.targetIndustries.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Positions */}
+                <div>
+                  <label className="text-xs font-medium text-neutral-600 uppercase mb-2 block">
+                    Target Positions ({preset.targetPositions.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {preset.targetPositions.slice(0, 5).map((position, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium"
+                      >
+                        {position}
+                      </span>
+                    ))}
+                    {preset.targetPositions.length > 5 && (
+                      <span className="px-3 py-1 bg-neutral-100 text-neutral-600 rounded-full text-sm font-medium">
+                        +{preset.targetPositions.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Company Size & Lead Limit */}
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-neutral-200">
+                  <div>
+                    <label className="text-xs font-medium text-neutral-600 uppercase block mb-1">
+                      Company Size
+                    </label>
+                    <p className="text-sm font-semibold text-neutral-900">
+                      {preset.companySizeMin} - {preset.companySizeMax} employees
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-neutral-600 uppercase block mb-1">
+                      Lead Limit
+                    </label>
+                    <p className="text-sm font-semibold text-neutral-900">
+                      {preset.leadLimit} leads
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create/Edit Modal */}
+      {isCreating && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4">
+              <h3 className="text-xl font-semibold text-neutral-900">
+                {editingPreset ? 'Edit Preset' : 'Create New Preset'}
+              </h3>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Preset Name */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Preset Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="e.g., SaaS Executives"
+                />
+              </div>
+
+              {/* Target Industries */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Target Industries
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={industryInput}
+                    onChange={(e) => setIndustryInput(e.target.value)}
+                    onFocus={() => setShowIndustryDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowIndustryDropdown(false), 200)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && industryInput.trim()) {
+                        e.preventDefault();
+                        addIndustry(industryInput);
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Type to search or add custom..."
+                  />
+                  {showIndustryDropdown && filteredIndustries.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredIndustries.map((industry, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => addIndustry(industry)}
+                          className="w-full px-4 py-2 text-left hover:bg-purple-50 transition-colors text-sm"
+                        >
+                          {industry}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {formData.targetIndustries?.map((industry, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
+                    >
+                      {industry}
+                      <button
+                        onClick={() => removeIndustry(industry)}
+                        className="hover:bg-purple-200 rounded-full p-0.5"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Target Positions */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Target Positions
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={positionInput}
+                    onChange={(e) => setPositionInput(e.target.value)}
+                    onFocus={() => setShowPositionDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowPositionDropdown(false), 200)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && positionInput.trim()) {
+                        e.preventDefault();
+                        addPosition(positionInput);
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Type to search or add custom..."
+                  />
+                  {showPositionDropdown && filteredPositions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredPositions.map((position, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => addPosition(position)}
+                          className="w-full px-4 py-2 text-left hover:bg-blue-50 transition-colors text-sm"
+                        >
+                          {position}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {formData.targetPositions?.map((position, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                    >
+                      {position}
+                      <button
+                        onClick={() => removePosition(position)}
+                        className="hover:bg-blue-200 rounded-full p-0.5"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Company Size */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Min Employees
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.companySizeMin}
+                    onChange={(e) => setFormData({ ...formData, companySizeMin: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Max Employees
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.companySizeMax}
+                    onChange={(e) => setFormData({ ...formData, companySizeMax: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Lead Limit */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Lead Limit
+                </label>
+                <input
+                  type="number"
+                  value={formData.leadLimit}
+                  onChange={(e) => setFormData({ ...formData, leadLimit: parseInt(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-neutral-50 border-t border-neutral-200 px-6 py-4 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsCreating(false);
+                  setEditingPreset(null);
+                  setFormData({
+                    name: '',
+                    targetIndustries: [],
+                    targetPositions: [],
+                    companySizeMin: 50,
+                    companySizeMax: 500,
+                    leadLimit: 10
+                  });
+                }}
+                className="px-4 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePreset}
+                style={{ backgroundColor: '#7c3aed', color: 'white' }}
+                className="px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
+              >
+                {editingPreset ? 'Update Preset' : 'Create Preset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorDashboardProps) {
   const [showPersonalitySelector, setShowPersonalitySelector] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showChatbot, setShowChatbot] = useState(false);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'agents' | 'presets'>('agents');
   
   // Monitoring state
   const [monitoringView, setMonitoringView] = useState<MonitoringView>('overview');
@@ -178,7 +699,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     }
   }, []);
 
-  // Fetch issues on mount
+  // Fetch issues on mount and poll every 10 seconds
   useEffect(() => {
     const fetchIssues = async () => {
       try {
@@ -203,6 +724,11 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     };
     
     fetchIssues();
+    
+    // Poll for issues every 10 seconds
+    const issuesInterval = setInterval(fetchIssues, 10000);
+    
+    return () => clearInterval(issuesInterval);
   }, []);
 
   const handleResolveIssue = (issueId: string) => {
@@ -479,9 +1005,23 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     }
   };
 
-  const createAgent = async (personality: PersonalityType, customName: string) => {
+  const createAgent = async (personality: PersonalityType, customName: string, preset?: any) => {
     try {
-      const response = await api.post('/api/auth/create-agent', {
+      console.log('[AgentDirector] Creating agent with:', {
+        name: customName,
+        personality: personality.name,
+        hasPreset: !!preset,
+        preset: preset ? {
+          id: preset._id || preset.id,
+          name: preset.name,
+          targetIndustries: preset.targetIndustries,
+          targetPositions: preset.targetPositions,
+          companySize: preset.companySize,
+          leadLimitPerDay: preset.leadLimitPerDay
+        } : null
+      });
+
+      const agentData: any = {
         name: customName,
         type: 'reasoning-lead-agent',
         personality: {
@@ -494,7 +1034,25 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
           traits: personality.traits,
           color: personality.color
         }
-      });
+      };
+
+      // If preset is provided, include preset data
+      if (preset) {
+        agentData.preset = {
+          presetId: preset._id || preset.id,
+          name: preset.name,
+          targetIndustries: preset.targetIndustries,
+          targetPositions: preset.targetPositions,
+          companySizeMin: preset.companySizeMin,
+          companySizeMax: preset.companySizeMax,
+          leadLimit: preset.leadLimit
+        };
+        console.log('[AgentDirector] Preset data being sent:', agentData.preset);
+      } else {
+        console.log('[AgentDirector] ⚠️ No preset provided');
+      }
+      
+      const response = await api.post('/api/auth/create-agent', agentData);
       
       if (response.data.success) {
         console.log('✅ Agent created successfully:', response.data.agent);
@@ -605,8 +1163,34 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
           </div>
         </div>
 
-        {/* Real-time Monitoring Dashboard - Only show on overview */}
-        {monitoringMetrics && monitoringView === 'overview' && (
+        {/* Tab Navigation */}
+        <div className="bg-white border-b border-neutral-200 px-6">
+          <div className="flex gap-6">
+            <button
+              onClick={() => setActiveTab('agents')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'agents'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
+              }`}
+            >
+              Agents
+            </button>
+            <button
+              onClick={() => setActiveTab('presets')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'presets'
+                  ? 'border-purple-600 text-purple-600'
+                  : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
+              }`}
+            >
+              Presets
+            </button>
+          </div>
+        </div>
+
+        {/* Real-time Monitoring Dashboard - Only show on overview and agents tab */}
+        {monitoringMetrics && monitoringView === 'overview' && activeTab === 'agents' && (
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-neutral-200 px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Emails */}
@@ -721,19 +1305,21 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
         {/* Content Area */}
         <div className="p-6">
-          {/* Show Monitoring Content for non-overview views */}
-          {monitoringView !== 'overview' ? (
-            <MonitoringContent 
-              view={monitoringView}
-              metrics={monitoringMetrics}
-              issues={issues}
-              connected={monitoringConnected}
-              onResolveIssue={handleResolveIssue}
-            />
-          ) : (
-            /* Agent Grid for overview */
+          {activeTab === 'agents' ? (
             <>
-              {agents.length === 0 ? (
+              {/* Show Monitoring Content for non-overview views */}
+              {monitoringView !== 'overview' ? (
+                <MonitoringContent 
+                  view={monitoringView}
+                  metrics={monitoringMetrics}
+                  issues={issues}
+                  connected={monitoringConnected}
+                  onResolveIssue={handleResolveIssue}
+                />
+              ) : (
+                /* Agent Grid for overview */
+                <>
+                  {agents.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-neutral-400 mb-4">
                 <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -812,6 +1398,11 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             </div>
           )}
             </>
+              )}
+            </>
+          ) : (
+            /* Presets Tab Content */
+            <PresetsManagement />
           )}
         </div>
       </div>
@@ -1065,6 +1656,9 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
           </div>
         </div>
       )}
+
+      {/* Admin Chatbot - Always visible on this tab */}
+      <AdminChatbot />
     </div>
   );
 }

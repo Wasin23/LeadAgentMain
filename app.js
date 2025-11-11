@@ -257,6 +257,16 @@ try {
   companyProfileRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Settings routes
+let settingsRoutes;
+try {
+  settingsRoutes = (await import('./routes/settings.js')).default;
+  console.log('Settings routes imported successfully');
+} catch (e) {
+  console.log('Settings routes not available:', e.message);
+  settingsRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import System Management routes
 let systemRoutes;
 try {
@@ -497,6 +507,7 @@ app.use('/api/lead-agent', leadAgentRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/api/email-response-settings', emailResponseSettingsRoutes);
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
+app.use('/api/settings', settingsRoutes); // Settings presets management
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking

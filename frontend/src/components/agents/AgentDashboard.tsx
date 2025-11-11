@@ -39,6 +39,7 @@ interface AgentStatus {
   currentInterval: number;
   totalEmailsSent: number;
   successRate: number;
+  nextCycleIn?: string; // ISO timestamp of next cycle
   currentProgress?: {
     stage: string;
     progress: number;
@@ -325,46 +326,35 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
 
 
-  // Countdown timer effect - only starts AFTER first cycle is completed
+  // Countdown timer effect - uses backend's nextCycleIn to persist across page refreshes
   useEffect(() => {
-    // Only start countdown if interval is set AND at least one cycle has been completed
-    if (!status?.currentInterval || !lastCycleTime) {
+    // Only show countdown if agent is active and backend provides nextCycleIn (ISO timestamp)
+    if (!status?.isActive || !status?.nextCycleIn) {
       setCountdownTime(null);
       return;
     }
 
+    // Backend provides ISO timestamp of next cycle
+    const nextCycleTime = new Date(status.nextCycleIn);
     const now = new Date();
-    const nextCycleTime = new Date(lastCycleTime.getTime() + (status.currentInterval * 60 * 1000));
     const timeUntilNext = Math.max(0, nextCycleTime.getTime() - now.getTime());
     
-    console.log('⏰ [COUNTDOWN START] Next cycle in:', Math.floor(timeUntilNext / 1000), 'seconds');
+    console.log('⏰ [COUNTDOWN START] Next cycle in:', Math.floor(timeUntilNext / 1000), 'seconds (from backend)');
 
     // Display countdown with setInterval (for visual updates)
     const displayInterval = setInterval(() => {
       const currentTime = new Date();
       const remaining = Math.max(0, nextCycleTime.getTime() - currentTime.getTime());
-      
-      if (remaining > 0) {
-        setCountdownTime(Math.floor(remaining / 1000));
-      } else {
-        setCountdownTime(0);
-      }
+      setCountdownTime(Math.floor(remaining / 1000));
     }, 1000);
 
-    // Reset countdown when timer expires (display only - no cycle triggering)
-    const cycleTimeout = setTimeout(() => {
-      console.log('⏰ [COUNTDOWN RESET] Countdown expired, waiting for next cycle completion');
-      setLastCycleTime(null); // Clear countdown
-      setCountdownTime(null);
-      setCycleTriggered(false); // Reset flag for next cycle detection
-      // NOTE: Not calling runCycle() - agent handles its own scheduling
-    }, timeUntilNext);
+    // Initialize countdown
+    setCountdownTime(Math.floor(timeUntilNext / 1000));
 
     return () => {
       clearInterval(displayInterval);
-      clearTimeout(cycleTimeout);
     };
-  }, [status?.currentInterval, lastCycleTime]);
+  }, [status?.isActive, status?.nextCycleIn]);
 
   // Format countdown time
   const formatCountdown = (seconds: number | null) => {
@@ -1139,8 +1129,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const resetAgent = async () => {
     try {
-      await api.post('/api/lead-agent/reset', { agentId });
+      const response = await api.post('/api/lead-agent/reset', { agentId });
       addLog('info', 'Agent reset successfully');
+      
+      if (response.data.issuesCleared) {
+        addLog('info', `Cleared ${response.data.issuesCleared} issues and alerts`);
+      }
+      
       setLogs([]);
       setAgentLogs([]); // Clear Activity Logs
       await fetchStatus();

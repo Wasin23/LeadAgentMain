@@ -6,6 +6,15 @@ import {
   UserGroupIcon,
   Cog6ToothIcon,
   CommandLineIcon,
+  EnvelopeIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  ArrowTrendingUpIcon,
+  UserPlusIcon,
+  ChatBubbleLeftRightIcon,
+  BoltIcon,
+  ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 import UserMenu from '@/components/UserMenu';
@@ -14,6 +23,10 @@ import AgentDashboard from '@/components/agents/AgentDashboard';
 import AgentDirectorDashboard from '@/components/agents/AgentDirectorDashboard';
 import SettingsContent from '@/components/SettingsContent';
 import CompanyProfileOnboarding from '@/components/CompanyProfileOnboarding';
+import CompanyProfileCard from '@/components/CompanyProfileCard';
+import CompanyProfileInstagram from '@/components/CompanyProfileInstagram';
+import SettingsPresetManager from '@/components/SettingsPresetManager';
+import Chat from '@/components/Chat';
 import api from '@/lib/api';
 
 const navigationItems = [
@@ -28,6 +41,8 @@ export default function Dashboard() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [hasCompanyProfile, setHasCompanyProfile] = useState<boolean | null>(null);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+  const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
   const { user } = useAuth();
 
   // Check if user has completed company profile
@@ -46,6 +61,25 @@ export default function Dashboard() {
 
     checkCompanyProfile();
   }, []);
+
+  // Load dashboard metrics when viewing dashboard
+  useEffect(() => {
+    if (activeView === 'dashboard' && hasCompanyProfile) {
+      loadDashboardMetrics();
+    }
+  }, [activeView, hasCompanyProfile]);
+
+  const loadDashboardMetrics = async () => {
+    setLoadingMetrics(true);
+    try {
+      const response = await api.get('/api/monitoring/overview');
+      setDashboardMetrics(response.data);
+    } catch (error) {
+      console.error('Error loading dashboard metrics:', error);
+    } finally {
+      setLoadingMetrics(false);
+    }
+  };
 
   // Reset to main overview when switching tabs
   useEffect(() => {
@@ -101,15 +135,116 @@ export default function Dashboard() {
           ) : !hasCompanyProfile ? (
             <CompanyProfileOnboarding onComplete={() => setHasCompanyProfile(true)} />
           ) : (
-            <div className="p-6 space-y-6">
-              {/* Blank dashboard - ready for new content after onboarding */}
-              <div className="bg-white border border-neutral-200 rounded-xl p-8 text-center">
-                <h2 className="text-2xl font-semibold text-neutral-900 mb-2">
-                  Welcome back, {user?.username}!
-                </h2>
-                <p className="text-neutral-600">
-                  Your company profile is all set. Start creating agents to find leads.
-                </p>
+            <div className="p-8 bg-gradient-to-br from-neutral-50 to-neutral-100 min-h-screen">
+              <div className="space-y-8">
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column - Company Profile (Takes up half) */}
+                  <div>
+                    <CompanyProfileInstagram onEdit={() => setActiveView('settings')} />
+                  </div>
+
+                  {/* Right Column - Metrics, Quick Actions, Activity, Presets */}
+                  <div className="space-y-6">
+                    {/* Metrics Cards */}
+                    {loadingMetrics ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 border-t-blue-600"></div>
+                      </div>
+                    ) : dashboardMetrics ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Active Agents */}
+                        <button
+                          onClick={() => setActiveView('director')}
+                          className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all border border-neutral-200 hover:border-blue-300 text-left group"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-blue-50 rounded-lg">
+                              <UserGroupIcon className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <span className="text-xs font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                              View Details →
+                            </span>
+                          </div>
+                          <p className="text-sm text-neutral-600 mb-1">Active Agents</p>
+                          <p className="text-3xl font-bold text-neutral-900">
+                            {dashboardMetrics.agents?.active || 0}
+                          </p>
+                        </button>
+
+                        {/* Emails Sent */}
+                        <button
+                          onClick={() => setActiveView('director')}
+                          className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all border border-neutral-200 hover:border-purple-300 text-left group"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-purple-50 rounded-lg">
+                              <EnvelopeIcon className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <span className="text-xs font-medium text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                              View Queue →
+                            </span>
+                          </div>
+                          <p className="text-sm text-neutral-600 mb-1">Emails Sent</p>
+                          <p className="text-3xl font-bold text-neutral-900">
+                            {dashboardMetrics.emails?.sent || 0}
+                          </p>
+                        </button>
+                      </div>
+                    ) : null}
+                    {/* Quick Actions */}
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-neutral-200">
+                      <h3 className="text-lg font-semibold text-neutral-900 mb-4">
+                        Quick Actions
+                      </h3>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => setActiveView('agents')}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all text-left"
+                        >
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <UserPlusIcon className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-neutral-900">Create Agent</p>
+                            <p className="text-xs text-neutral-600">Start new lead generation</p>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => setActiveView('director')}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-purple-50 hover:border-purple-200 border border-transparent transition-all text-left"
+                        >
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <ChartBarIcon className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-neutral-900">Analytics</p>
+                            <p className="text-xs text-neutral-600">View performance metrics</p>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => setActiveView('settings')}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-green-50 hover:border-green-200 border border-transparent transition-all text-left"
+                        >
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Cog6ToothIcon className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-neutral-900">Settings</p>
+                            <p className="text-xs text-neutral-600">Configure integrations</p>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Settings Presets */}
+                    <SettingsPresetManager 
+                      onManageClick={() => setActiveView('director')}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )

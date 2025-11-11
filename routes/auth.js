@@ -797,11 +797,41 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // Create new agent for authenticated user
 router.post('/create-agent', authenticateToken, async (req, res) => {
   try {
-    const { name, type = 'reasoning-lead-agent', personality } = req.body;
+    const { name, type = 'reasoning-lead-agent', personality, preset } = req.body;
     const userId = req.user.userId;
+    
+    console.log('[AUTH CREATE-AGENT] Request body:', {
+      name,
+      type,
+      hasPersonality: !!personality,
+      hasPreset: !!preset,
+      preset: preset ? {
+        presetId: preset.presetId,
+        name: preset.name,
+        targetIndustries: preset.targetIndustries,
+        targetPositions: preset.targetPositions,
+        companySizeMin: preset.companySizeMin,
+        companySizeMax: preset.companySizeMax,
+        leadLimit: preset.leadLimit
+      } : null
+    });
     
     if (!name) {
       return res.status(400).json({ error: 'Agent name is required' });
+    }
+    
+    // Check for duplicate agent names
+    const { getUserById } = await import('../lib/userManager.js');
+    const user = await getUserById(userId);
+    const existingAgent = user.activeAgents?.find(
+      agent => agent.name.toLowerCase() === name.trim().toLowerCase()
+    );
+    
+    if (existingAgent) {
+      return res.status(400).json({ 
+        error: 'Duplicate agent name',
+        message: `An agent named "${name.trim()}" already exists. Please choose a different name.` 
+      });
     }
     
     // Generate new 6-digit agent ID
@@ -840,6 +870,23 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     const awsManager = (await import('../utils/awsManager.js')).default;
     const awsManagerInstance = new awsManager();
     
+    // Fetch company profile to auto-populate branding
+    let companyProfile = null;
+    try {
+      const userSettings = await awsManagerInstance.getUserSettings(userId);
+      companyProfile = userSettings?.companyProfile;
+      console.log('[AUTH] Company profile loaded:', companyProfile ? 'YES' : 'NO');
+      if (companyProfile) {
+        console.log('[AUTH] Profile data:', {
+          companyName: companyProfile.companyName,
+          coreOffering: companyProfile.coreOffering,
+          keyAdvantages: companyProfile.keyAdvantages
+        });
+      }
+    } catch (profileError) {
+      console.log('[AUTH] Error loading company profile:', profileError.message);
+    }
+    
     const agentSettings = {
       agentId,
       userId,
@@ -850,12 +897,14 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       personality: agentData.personality, // Copy personality to agent-settings
       companyBranding: {
         agentName: name.trim(),
-        companyName: 'Your Company',
+        companyName: companyProfile?.companyName || 'Your Company',
         agentTitle: 'AI Sales Agent',
-        primaryService: 'Business solutions',
-        coreOffering: 'AI-powered outreach',
-        keyAdvantages: 'Automated, personalized, scalable',
-        expertiseArea: 'Sales automation'
+        companyWebsite: companyProfile?.website || '',
+        primaryService: companyProfile?.services || 'Business solutions',
+        coreOffering: companyProfile?.coreOffering || (companyProfile?.description || 'AI-powered outreach'),
+        keyAdvantages: companyProfile?.keyAdvantages || 'Automated, personalized, scalable',
+        expertiseArea: companyProfile?.industry || 'Sales automation',
+        companyDescription: companyProfile?.description || ''
       },
       emailBuilder: {
         enableAutoResponse: true,
@@ -863,8 +912,66 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         ccEmails: '',
         bccEmails: '',
         emailResponsePrompt: getEmailResponsePromptForPersonality(agentData.personality)
+      },
+      // Initialize targeting criteria structures
+      companyCriteria: {
+        companyIndustries: [],
+        companySizeMin: null,
+        companySizeMax: null
+      },
+      contactCriteria: {
+        targetPositions: []
+      },
+      geographicSettings: {
+        leadLimit: null
       }
     };
+
+    // If preset is provided, apply preset settings
+    if (preset) {
+      // Store the preset ID for reference
+      agentSettings.appliedPresetId = preset.presetId || preset._id;
+      agentSettings.appliedPresetName = preset.name;
+      
+      // Override with preset values
+      agentSettings.companyCriteria = {
+        companyIndustries: preset.targetIndustries || [],
+        companySizeMin: preset.companySizeMin || null,
+        companySizeMax: preset.companySizeMax || null
+      };
+      
+      agentSettings.contactCriteria = {
+        targetPositions: preset.targetPositions || []
+      };
+      
+      agentSettings.geographicSettings = {
+        leadLimit: preset.leadLimit || null
+      };
+      
+      console.log(`[AUTH] ✅ Applied preset "${preset.name}" to agent ${agentId}:`, {
+        appliedPresetId: agentSettings.appliedPresetId,
+        industries: preset.targetIndustries || [],
+        positions: preset.targetPositions || [],
+        companySizeMin: preset.companySizeMin,
+        companySizeMax: preset.companySizeMax,
+        leadLimit: preset.leadLimit
+      });
+    } else {
+      console.log(`[AUTH] ⚠️ No preset provided for agent ${agentId}`);
+    }
+    
+    console.log(`[AUTH] 💾 Saving agent settings for ${agentId}:`, {
+      appliedPresetId: agentSettings.appliedPresetId,
+      appliedPresetName: agentSettings.appliedPresetName,
+      companyCriteria: agentSettings.companyCriteria,
+      contactCriteria: agentSettings.contactCriteria,
+      geographicSettings: agentSettings.geographicSettings,
+      companyBranding: {
+        companyName: agentSettings.companyBranding.companyName,
+        coreOffering: agentSettings.companyBranding.coreOffering,
+        keyAdvantages: agentSettings.companyBranding.keyAdvantages
+      }
+    });
     
     await awsManagerInstance.saveLeadAgentSettings(userId, agentId, agentSettings);
     

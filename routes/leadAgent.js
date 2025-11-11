@@ -191,9 +191,23 @@ router.post('/reset', async (req, res) => {
     const userAgent = getUserAgent(userId, agentId);
     const result = await userAgent.resetAgent();
     
+    // Also clear issues/alerts
+    console.log('[LEAD AGENT API] Clearing issues and alerts for user:', userId);
+    const awsManager = new AWSManager();
+    const issues = await awsManager.getIssues(userId);
+    let deletedIssuesCount = 0;
+    for (const issue of issues) {
+      const deleteResult = await awsManager.deleteIssue(userId, issue.issueId);
+      if (deleteResult.success) {
+        deletedIssuesCount++;
+      }
+    }
+    console.log(`[LEAD AGENT API] Cleared ${deletedIssuesCount} issues/alerts`);
+    
     res.json({
       success: result.success,
-      message: result.message
+      message: result.message,
+      issuesCleared: deletedIssuesCount
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error resetting agent:', error);

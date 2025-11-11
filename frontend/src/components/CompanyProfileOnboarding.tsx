@@ -68,13 +68,30 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
     setIsProcessing(true);
 
     try {
-      const text = await file.text();
-      setFileContent(text);
+      let content = '';
+      const isImage = file.type.startsWith('image/');
+      
+      if (isImage) {
+        // Convert image to base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        content = await base64Promise;
+      } else {
+        // Read text file
+        content = await file.text();
+      }
+      
+      setFileContent(content);
       
       // Send to backend for AI analysis
       const response = await api.post('/api/company-profile/analyze', {
-        content: text,
-        fileName: file.name
+        content: content,
+        fileName: file.name,
+        isImage: isImage
       });
 
       if (response.data.success) {
@@ -197,7 +214,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.txt,.doc,.docx,.md"
+              accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -278,7 +295,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
         </div>
 
         {/* Input */}
-        <div className="bg-white/80 backdrop-blur-sm border-t border-neutral-200 p-4 shadow-lg flex-shrink-0">
+        <div className="bg-white/80 backdrop-blur-sm border-t border-neutral-200 pt-2 pb-24 px-4 shadow-lg flex-shrink-0">
           <div className="max-w-4xl mx-auto">
             <div className="flex gap-3">
               <input

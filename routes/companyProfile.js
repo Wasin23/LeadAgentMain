@@ -19,12 +19,13 @@ router.get('/check', async (req, res) => {
     const awsManager = new AWSManager();
     
     const userSettings = await awsManager.getUserSettings(userId);
-    const hasProfile = !!(userSettings?.companyProfile && userSettings.companyProfile.companyName);
+    // Always return true so dashboard shows, even without profile
+    const hasProfile = true;
     
     res.json({
       success: true,
       hasProfile,
-      profile: hasProfile ? userSettings.companyProfile : null
+      profile: userSettings?.companyProfile || null
     });
   } catch (error) {
     console.error('Error checking company profile:', error);
@@ -41,14 +42,61 @@ router.get('/check', async (req, res) => {
 router.post('/analyze', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { content, fileName } = req.body;
+    const { content, fileName, isImage } = req.body;
 
-    console.log(`[COMPANY PROFILE] Analyzing document for user ${userId}: ${fileName}`);
+    console.log(`[COMPANY PROFILE] Analyzing document for user ${userId}: ${fileName} (isImage: ${isImage})`);
 
-    // Use GPT-4 to analyze the document
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{
+    // Prepare messages based on file type
+    let messages;
+    
+    if (isImage) {
+      // For images, use vision model with base64 image
+      messages = [{
+        role: 'system',
+        content: `You are an expert business analyst. Your job is to analyze COMPANY documents (whitepapers, pitch decks, company descriptions, marketing materials) from images.
+
+IMPORTANT: First, determine if this is a COMPANY document or a PERSONAL document (resume, CV, personal bio).
+
+If it's a PERSONAL document (resume/CV), return:
+{
+  "isPersonalDocument": true,
+  "error": "This appears to be a personal resume or CV. Please upload a company document such as a whitepaper, pitch deck, or company description instead."
+}
+
+If it's a COMPANY document, analyze it and return a JSON object with:
+- companyName: The company name
+- industry: Primary industry/sector
+- services: Description of products/services offered
+- targetMarket: Who their ideal customers are
+- companySize: Estimated company size (1-10, 11-50, 51-200, 201-500, 501+)
+- description: Brief company description
+
+Also generate recommended agent settings:
+- targetIndustries: Array of 3-5 industries they should target for leads
+- targetPositions: Array of 5-7 job titles/positions to target
+- companySizeMin: Minimum company size to target (number)
+- companySizeMax: Maximum company size to target (number)
+- leadLimit: Recommended leads per cycle (5-15 based on company size)
+
+Return as JSON: {profile: {...}, recommendedPreset: {...}}`
+      }, {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze this company document image:'
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: content
+            }
+          }
+        ]
+      }];
+    } else {
+      // For text documents
+      messages = [{
         role: 'system',
         content: `You are an expert business analyst. Your job is to analyze COMPANY documents (whitepapers, pitch decks, company descriptions, marketing materials).
 
@@ -79,7 +127,13 @@ Return as JSON: {profile: {...}, recommendedPreset: {...}}`
       }, {
         role: 'user',
         content: `Analyze this document:\n\n${content.substring(0, 10000)}`
-      }],
+      }];
+    }
+
+    // Use GPT-4 with vision for images, regular GPT-4 for text
+    const completion = await openai.chat.completions.create({
+      model: isImage ? 'gpt-4o' : 'gpt-4o',
+      messages: messages,
       temperature: 0.3,
       response_format: { type: "json_object" }
     });
@@ -198,7 +252,7 @@ router.post('/save', async (req, res) => {
     userSettings.recommendedAgentPreset = recommendedPreset;
     
     // Save back to DynamoDB
-    await awsManager.updateUserSettings(userId, userSettings);
+    await awsManager.saveUserSettings(userId, userSettings);
 
     console.log('[COMPANY PROFILE] Profile saved successfully');
 

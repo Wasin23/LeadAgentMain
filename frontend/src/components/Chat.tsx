@@ -163,7 +163,7 @@ export default function Chat() {
 
   return (
     <motion.div 
-      className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-[700px] overflow-hidden"
+      className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-full"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
@@ -199,7 +199,7 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-gray-50">
+      <div ref={messagesContainerRef} className="overflow-y-auto bg-gray-50 flex-1">
         <div className="p-6 space-y-6">
           <AnimatePresence>
             {messages.map((message) => (
@@ -341,51 +341,49 @@ export default function Chat() {
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-6 border-t border-gray-200 bg-white">
-        <form onSubmit={handleSend} className="space-y-4">
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask about lead research, email campaigns, analytics..."
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                disabled={isLoading}
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <kbd className="hidden sm:inline-block px-2 py-1 text-xs text-gray-400 bg-gray-100 border border-gray-300 rounded">
-                  ⏎
-                </kbd>
-              </div>
-            </div>
-            <motion.button
-              type="submit"
-              disabled={!inputValue.trim() || isLoading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center shadow-sm"
-            >
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-              ) : (
-                <PaperAirplaneIcon className="h-5 w-5" />
-              )}
-            </motion.button>
+      {/* Input Area */}
+      <div className="px-6 py-4 bg-white border-t border-gray-200">
+        <form onSubmit={handleSend} className="flex items-end gap-3">
+          <div className="flex-1">
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(e);
+                }
+              }}
+              placeholder="Type your message here... (Shift + Enter for new line)"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+              rows={2}
+              disabled={isLoading}
+            />
           </div>
-          
-          {isLoading && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center text-sm text-gray-500"
-            >
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2" />
-              AI is processing your request...
-            </motion.div>
-          )}
+          <button
+            type="submit"
+            disabled={isLoading || !inputValue.trim()}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                <span className="text-sm font-medium">Sending...</span>
+              </div>
+            ) : (
+              <>
+                <span className="text-sm font-medium">Send</span>
+                <PaperAirplaneIcon className="h-4 w-4" />
+              </>
+            )}
+          </button>
         </form>
+        
+        {/* Helpful tips */}
+        <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+          <SparklesIcon className="h-3 w-3" />
+          <span>Ask me about lead research, email strategies, or business intelligence</span>
+        </div>
       </div>
     </motion.div>
   );

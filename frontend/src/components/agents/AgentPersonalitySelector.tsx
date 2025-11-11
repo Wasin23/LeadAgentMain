@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   XMarkIcon,
@@ -9,9 +9,11 @@ import {
   BuildingOfficeIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
-  GlobeAmericasIcon
+  GlobeAmericasIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import CustomAgentBuilder from './CustomAgentBuilder';
+import api from '@/lib/api';
 
 interface PersonalityType {
   id: string;
@@ -28,7 +30,7 @@ interface PersonalityType {
 interface AgentPersonalitySelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectPersonality: (personality: PersonalityType, customName: string) => void;
+  onSelectPersonality: (personality: PersonalityType, customName: string, preset?: any) => void;
 }
 
 const PERSONALITY_TYPES: PersonalityType[] = [
@@ -97,19 +99,85 @@ export default function AgentPersonalitySelector({
   const [selectedPersonality, setSelectedPersonality] = useState<PersonalityType | null>(null);
   const [customName, setCustomName] = useState('');
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+  const [showPresetSelection, setShowPresetSelection] = useState(false);
+  const [presets, setPresets] = useState<any[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState<any>(null);
+  const [loadingPresets, setLoadingPresets] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && showPresetSelection) {
+      fetchPresets();
+    }
+  }, [isOpen, showPresetSelection]);
+
+  // Clear selected preset when preset selection view is shown
+  useEffect(() => {
+    if (showPresetSelection) {
+      setSelectedPreset(null);
+    }
+  }, [showPresetSelection]);
+
+  const fetchPresets = async () => {
+    setLoadingPresets(true);
+    try {
+      const response = await api.get('/api/settings/presets');
+      // Handle different response formats
+      const presetsData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.presets || response.data?.data || []);
+      setPresets(presetsData);
+    } catch (error) {
+      console.error('Error fetching presets:', error);
+      setPresets([]); // Set empty array on error
+    } finally {
+      setLoadingPresets(false);
+    }
+  };
 
   const handlePersonalitySelect = (personality: PersonalityType) => {
     setSelectedPersonality(personality);
     setCustomName('');
   };
 
-  const handleConfirmSelection = () => {
+  const handleContinueToPresets = () => {
+    setSelectedPreset(null); // Clear any previously selected preset
+    setShowPresetSelection(true);
+  };
+
+  const handleSkipPresets = () => {
     if (selectedPersonality) {
       const finalName = customName.trim() || selectedPersonality.name;
-      onSelectPersonality(selectedPersonality, finalName);
+      onSelectPersonality(selectedPersonality, finalName, null);
       onClose();
       setSelectedPersonality(null);
       setCustomName('');
+      setShowPresetSelection(false);
+      setSelectedPreset(null);
+    }
+  };
+
+  const handleConfirmSelection = () => {
+    if (selectedPersonality) {
+      const finalName = customName.trim() || selectedPersonality.name;
+      console.log('[AgentPersonalitySelector] Confirming selection:', {
+        personality: selectedPersonality.name,
+        name: finalName,
+        hasPreset: !!selectedPreset,
+        preset: selectedPreset ? {
+          id: selectedPreset._id || selectedPreset.id,
+          name: selectedPreset.name,
+          targetIndustries: selectedPreset.targetIndustries,
+          targetPositions: selectedPreset.targetPositions,
+          companySize: selectedPreset.companySize,
+          leadLimitPerDay: selectedPreset.leadLimitPerDay
+        } : null
+      });
+      onSelectPersonality(selectedPersonality, finalName, selectedPreset);
+      onClose();
+      setSelectedPersonality(null);
+      setCustomName('');
+      setShowPresetSelection(false);
+      setSelectedPreset(null);
     }
   };
 
@@ -332,6 +400,110 @@ export default function AgentPersonalitySelector({
                     autoFocus
                   />
                 </div>
+
+                {/* Preset Selection */}
+                {showPresetSelection && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-neutral-900">Choose Targeting Preset (Optional)</h4>
+                      <button
+                        onClick={() => setShowPresetSelection(false)}
+                        className="text-sm text-neutral-500 hover:text-neutral-700"
+                      >
+                        <XMarkIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                    
+                    {loadingPresets ? (
+                      <div className="text-center py-8">
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                        <p className="mt-2 text-sm text-neutral-600">Loading presets...</p>
+                      </div>
+                    ) : !Array.isArray(presets) || presets.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-neutral-600">No presets available. Create one in Settings Presets.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
+                        {presets.map((preset, index) => (
+                          <motion.div
+                            key={preset._id || preset.id || `preset-${index}`}
+                            whileHover={{ scale: 1.02 }}
+                            onClick={() => {
+                              console.log('[AgentPersonalitySelector] Preset clicked:', {
+                                id: preset._id || preset.id,
+                                name: preset.name,
+                                targetIndustries: preset.targetIndustries,
+                                targetPositions: preset.targetPositions,
+                                companySize: preset.companySize,
+                                leadLimitPerDay: preset.leadLimitPerDay
+                              });
+                              setSelectedPreset(preset);
+                              console.log('[AgentPersonalitySelector] selectedPreset updated to:', preset.name);
+                            }}
+                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                              (selectedPreset?._id || selectedPreset?.id) === (preset._id || preset.id)
+                                ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
+                                : 'border-neutral-300 hover:border-neutral-400 hover:shadow-md'
+                            }`}
+                          >
+                            {(selectedPreset?._id || selectedPreset?.id) === (preset._id || preset.id) && (
+                              <div className="flex justify-end mb-2">
+                                <CheckIcon className="h-5 w-5 text-green-600" />
+                              </div>
+                            )}
+                            <h4 className="font-semibold text-neutral-900 mb-2">{preset.name}</h4>
+                            
+                            {preset.targetIndustries?.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-xs text-neutral-500 mb-1">Industries:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {preset.targetIndustries.slice(0, 3).map((industry: string, idx: number) => (
+                                    <span key={idx} className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                                      {industry}
+                                    </span>
+                                  ))}
+                                  {preset.targetIndustries.length > 3 && (
+                                    <span className="text-xs px-2 py-1 bg-purple-50 text-purple-600 rounded-full">
+                                      +{preset.targetIndustries.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {preset.targetPositions?.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-xs text-neutral-500 mb-1">Positions:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {preset.targetPositions.slice(0, 3).map((position: string, idx: number) => (
+                                    <span key={idx} className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                      {position}
+                                    </span>
+                                  ))}
+                                  {preset.targetPositions.length > 3 && (
+                                    <span className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
+                                      +{preset.targetPositions.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-4 text-xs text-neutral-500 mt-2">
+                              {preset.companySize && (
+                                <span>Size: {preset.companySize}</span>
+                              )}
+                              {preset.leadLimitPerDay && (
+                                <span>Limit: {preset.leadLimitPerDay}/day</span>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -347,22 +519,69 @@ export default function AgentPersonalitySelector({
                   Cancel
                 </button>
               </div>
-            ) : (
+            ) : !showPresetSelection ? (
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => setSelectedPersonality(null)}
+                  onClick={() => {
+                    setSelectedPersonality(null);
+                    setCustomName('');
+                  }}
                   className="px-6 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors"
                   style={{ color: 'black' }}
                 >
                   Back
                 </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSkipPresets}
+                    className="px-6 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors"
+                  >
+                    Skip Presets
+                  </button>
+                  <button
+                    onClick={handleContinueToPresets}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    style={{ color: '#ffffff', backgroundColor: '#2563eb', border: 'none' }}
+                  >
+                    Continue to Presets →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
                 <button
-                  onClick={handleConfirmSelection}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  style={{ color: '#ffffff', backgroundColor: '#2563eb', border: 'none' }}
+                  onClick={() => {
+                    setShowPresetSelection(false);
+                    setSelectedPreset(null);
+                  }}
+                  className="px-6 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors"
+                  style={{ color: 'black' }}
                 >
-                  Create Agent
+                  ← Back
                 </button>
+                <div className="flex gap-2 items-center">
+                  <button
+                    onClick={handleSkipPresets}
+                    className="px-6 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors"
+                  >
+                    Skip Preset
+                  </button>
+                  <button
+                    onClick={handleConfirmSelection}
+                    disabled={!selectedPreset}
+                    className={`px-6 py-2 rounded-lg transition-colors ${
+                      selectedPreset
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                    }`}
+                    style={selectedPreset ? { color: '#ffffff', backgroundColor: '#2563eb', border: 'none' } : {}}
+                  >
+                    Create Agent {selectedPreset && '✓'}
+                  </button>
+                  {!selectedPreset && (
+                    <span className="text-xs text-neutral-500 ml-2">← Click a preset or skip</span>
+                  )}
+                </div>
               </div>
             )}
           </div>

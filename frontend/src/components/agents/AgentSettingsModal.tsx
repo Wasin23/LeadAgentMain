@@ -213,6 +213,11 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
   const [isLoading, setIsLoading] = useState(true);
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
   
+  // Presets state
+  const [presets, setPresets] = useState<any[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [loadingPresets, setLoadingPresets] = useState(false);
+  
   // Search states for industries and job titles
   const [industrySearch, setIndustrySearch] = useState('');
   const [jobTitleSearch, setJobTitleSearch] = useState('');
@@ -235,13 +240,77 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
 
   useEffect(() => {
     if (isOpen) {
-      fetchSettings();
-      fetchCompanyProfile(); // Also fetch company profile for simple mode
+      const loadData = async () => {
+        await fetchCompanyProfile(); // Load company profile first
+        await fetchSettings(); // Then load settings (which can now use company profile data)
+        await fetchPresets(); // Load settings presets
+      };
+      loadData();
     }
   }, [isOpen, agentId]);
 
+  // Detect matching preset after settings and presets are loaded
+  useEffect(() => {
+    if (settings && presets.length > 0 && !selectedPreset && !loadingPresets && !isLoading) {
+      detectMatchingPreset();
+    }
+  }, [settings, presets, loadingPresets, isLoading]);
+
+  const detectMatchingPreset = () => {
+    // Find a preset that matches the current settings
+    const matchingPreset = presets.find(preset => {
+      const industriesMatch = JSON.stringify(preset.targetIndustries?.sort()) === 
+                              JSON.stringify(settings.companyCriteria?.companyIndustries?.sort());
+      const positionsMatch = JSON.stringify(preset.targetPositions?.sort()) === 
+                            JSON.stringify(settings.contactCriteria?.targetPositions?.sort());
+      const leadLimitMatch = preset.leadLimit === settings.geographicSettings?.leadLimit;
+      
+      return industriesMatch && positionsMatch && leadLimitMatch;
+    });
+
+    if (matchingPreset) {
+      console.log('🎯 [SETTINGS] Detected matching preset:', matchingPreset.name);
+      setSelectedPreset(matchingPreset.id || matchingPreset._id);
+    }
+  };
+
   const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [recommendedPreset, setRecommendedPreset] = useState<any>(null);
+
+  const fetchPresets = async () => {
+    try {
+      setLoadingPresets(true);
+      const response = await api.get('/api/settings/presets');
+      setPresets(response.data.presets || []);
+      console.log('📋 [SETTINGS] Loaded presets:', response.data.presets);
+    } catch (error) {
+      console.error('Error loading presets:', error);
+    } finally {
+      setLoadingPresets(false);
+    }
+  };
+
+  const applyPreset = (preset: any) => {
+    console.log('🎯 [SETTINGS] Applying preset:', preset.name);
+    setSelectedPreset(preset.id || preset._id);
+    setSettings(prev => ({
+      ...prev,
+      companyCriteria: {
+        ...prev.companyCriteria,
+        companySizeMin: preset.companySizeMin,
+        companySizeMax: preset.companySizeMax,
+        companyIndustries: preset.targetIndustries || []
+      },
+      contactCriteria: {
+        ...prev.contactCriteria,
+        targetPositions: preset.targetPositions || []
+      },
+      geographicSettings: {
+        ...prev.geographicSettings,
+        leadLimit: preset.leadLimit || 50
+      }
+    }));
+  };
 
   const fetchCompanyProfile = async () => {
     try {
@@ -285,29 +354,66 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
       setIsLoading(true);
       const response = await api.get(`/api/lead-agent/settings?agentId=${agentId}`);
       if (response.data.settings) {
+        // Check if a preset was applied to this agent
+        const appliedPresetId = response.data.settings.appliedPresetId || response.data.settings.userSettings?.appliedPresetId;
+        if (appliedPresetId) {
+          console.log('🎯 [SETTINGS] Detected applied preset ID:', appliedPresetId);
+          setSelectedPreset(appliedPresetId);
+        }
+        
         // Merge API data with default structure to prevent undefined errors
         setSettings(prevSettings => {
           const apiSettings = response.data.settings;
           console.log('🔍 [FRONTEND] Raw API settings:', JSON.stringify(apiSettings, null, 2));
           
-          // The API returns userSettings and emailSettings, so we need to extract from those
-          const userSettings = apiSettings.userSettings || apiSettings.leadGeneration || {};
-          const emailSettings = apiSettings.emailSettings || apiSettings.emailBuilder || {};
+          // The API might return userSettings/emailSettings nested, or directly at root
+          const userSettings = apiSettings.userSettings || apiSettings.leadGeneration || apiSettings;
+          const emailSettings = apiSettings.emailSettings || apiSettings.emailBuilder || apiSettings;
           
           console.log('🔍 [FRONTEND] Extracted userSettings:', JSON.stringify(userSettings, null, 2));
           console.log('🔍 [FRONTEND] Extracted emailSettings:', JSON.stringify(emailSettings, null, 2));
           
-          return {
-            companyBranding: {
-              ...prevSettings.companyBranding,
-              ...userSettings.companyBranding,
-              // Map flat properties if they exist
+          // Check if company branding is empty or default, if so populate from company profile
+          const hasDefaultBranding = !userSettings.companyBranding?.companyName || 
+                                      userSettings.companyBranding?.companyName === 'Your Company' ||
+                                      userSettings.companyBranding?.companyName === '' ||
+                                      !userSettings.companyBranding?.primaryService ||
+                                      userSettings.companyBranding?.primaryService === '' ||
+                                      !userSettings.companyBranding?.coreOffering ||
+                                      userSettings.companyBranding?.coreOffering === '';
+          
+          let companyBrandingData = {};
+          if (hasDefaultBranding && companyProfile) {
+            console.log('🎨 [SETTINGS] Populating from company profile:', companyProfile);
+            companyBrandingData = {
+              agentName: companyProfile.companyName ? `${companyProfile.companyName} Bot` : prevSettings.companyBranding.agentName,
+              companyName: companyProfile.companyName || prevSettings.companyBranding.companyName,
+              agentTitle: 'AI Sales Agent',
+              primaryService: companyProfile.services || prevSettings.companyBranding.primaryService,
+              coreOffering: companyProfile.coreOffering || companyProfile.description || prevSettings.companyBranding.coreOffering,
+              keyAdvantages: companyProfile.keyAdvantages || 'Automated, personalized, scalable',
+              expertiseArea: companyProfile.industry || prevSettings.companyBranding.expertiseArea,
+              companyWebsite: companyProfile.website || prevSettings.companyBranding.companyWebsite,
+              companyDescription: companyProfile.description || prevSettings.companyBranding.companyDescription
+            };
+          } else {
+            companyBrandingData = {
               agentName: userSettings.agentName || userSettings.companyBranding?.agentName || prevSettings.companyBranding.agentName,
               companyName: userSettings.companyName || userSettings.companyBranding?.companyName || prevSettings.companyBranding.companyName,
+              agentTitle: userSettings.agentTitle || userSettings.companyBranding?.agentTitle || prevSettings.companyBranding.agentTitle,
               primaryService: userSettings.primaryService || userSettings.companyBranding?.primaryService || prevSettings.companyBranding.primaryService,
               coreOffering: userSettings.coreOffering || userSettings.companyBranding?.coreOffering || prevSettings.companyBranding.coreOffering,
               keyAdvantages: userSettings.keyAdvantages || userSettings.companyBranding?.keyAdvantages || prevSettings.companyBranding.keyAdvantages,
-              expertiseArea: userSettings.expertiseArea || userSettings.companyBranding?.expertiseArea || prevSettings.companyBranding.expertiseArea
+              expertiseArea: userSettings.expertiseArea || userSettings.companyBranding?.expertiseArea || prevSettings.companyBranding.expertiseArea,
+              companyWebsite: userSettings.companyWebsite || userSettings.companyBranding?.companyWebsite || prevSettings.companyBranding.companyWebsite,
+              companyDescription: userSettings.companyDescription || userSettings.companyBranding?.companyDescription || prevSettings.companyBranding.companyDescription
+            };
+          }
+          
+          return {
+            companyBranding: {
+              ...prevSettings.companyBranding,
+              ...companyBrandingData
             },
             companyCriteria: {
               ...prevSettings.companyCriteria,
@@ -437,7 +543,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
           className={`bg-white rounded-xl shadow-xl w-full overflow-hidden flex flex-col ${
-            compact ? 'max-w-7xl max-h-[75vh]' : 'max-w-7xl max-h-[98vh]'
+            compact ? 'max-w-[95vw] max-h-[75vh]' : 'max-w-[95vw] max-h-[98vh]'
           }`}
         >
           {/* Header */}
@@ -447,23 +553,22 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
               <p className="text-sm text-gray-500 mt-1">Configure your AI reasoning lead generation agent</p>
             </div>
             <div className="flex items-center gap-4">
-              {/* Advanced Mode Toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Simple</span>
+              {/* Advanced Mode Toggle - Only show when not in simple mode or show as button */}
+              {!isAdvancedMode ? (
                 <button
-                  onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    isAdvancedMode ? 'bg-blue-600' : 'bg-gray-300'
-                  }`}
+                  onClick={() => setIsAdvancedMode(true)}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200"
                 >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      isAdvancedMode ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
+                  Advanced Options →
                 </button>
-                <span className="text-sm font-medium text-gray-900">Advanced</span>
-              </div>
+              ) : (
+                <button
+                  onClick={() => setIsAdvancedMode(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+                >
+                  ← Back to Presets
+                </button>
+              )}
               
               <button
                 onClick={onClose}
@@ -473,25 +578,6 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
               </button>
             </div>
           </div>
-
-          {/* Mode Explanation Banner */}
-          {!isAdvancedMode && (
-            <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-blue-900">Simple Mode</h4>
-                  <p className="text-xs text-blue-700 mt-0.5">
-                    Using recommended settings based on your company profile. Switch to Advanced mode for full customization.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Content */}
           <div className="flex-1 p-6 overflow-y-auto">
@@ -503,7 +589,106 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
               <div className="flex items-center justify-center py-12">
                 <div className="text-gray-500">Loading settings...</div>
               </div>
+            ) : !isAdvancedMode ? (
+              /* Simple Mode - Show Presets */
+              <div className="max-w-full mx-auto px-4">
+                <div className="mb-8">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Choose a Settings Preset</h4>
+                  <p className="text-sm text-gray-600">
+                    Select a preset configuration to quickly set up your agent's targeting criteria
+                  </p>
+                </div>
+
+                {loadingPresets ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                  </div>
+                ) : presets.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Presets Yet</h3>
+                    <p className="text-sm text-gray-600 mb-6">
+                      Create presets in the Agent Director to quickly configure agents
+                    </p>
+                    <button
+                      onClick={() => setIsAdvancedMode(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Use Advanced Settings
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {presets.map((preset) => (
+                      <button
+                        key={preset.id || preset._id}
+                        onClick={() => applyPreset(preset)}
+                        className={`text-left p-6 rounded-xl border-2 transition-all ${
+                          selectedPreset === (preset.id || preset._id)
+                            ? 'border-green-500 bg-green-50 shadow-lg ring-2 ring-green-200'
+                            : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">{preset.name}</h3>
+                          {selectedPreset === (preset.id || preset._id) && (
+                            <CheckCircleIcon className="w-6 h-6 text-green-600 flex-shrink-0" />
+                          )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase mb-1">Industries ({preset.targetIndustries?.length || 0})</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(preset.targetIndustries || []).slice(0, 3).map((industry: string, idx: number) => (
+                                <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                  {industry}
+                                </span>
+                              ))}
+                              {(preset.targetIndustries?.length || 0) > 3 && (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                                  +{preset.targetIndustries.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase mb-1">Positions ({preset.targetPositions?.length || 0})</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(preset.targetPositions || []).slice(0, 3).map((position: string, idx: number) => (
+                                <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                  {position}
+                                </span>
+                              ))}
+                              {(preset.targetPositions?.length || 0) > 3 && (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                                  +{preset.targetPositions.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                            <div>
+                              <p className="text-xs text-gray-500">Company Size</p>
+                              <p className="text-sm font-semibold text-gray-900">{preset.companySizeMin}-{preset.companySizeMax}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Lead Limit</p>
+                              <p className="text-sm font-semibold text-gray-900">{preset.leadLimit}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
+              /* Advanced Mode - Show All Settings */
               <div className="space-y-8">
                 
                 {/* Company Branding */}

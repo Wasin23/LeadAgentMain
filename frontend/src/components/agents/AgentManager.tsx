@@ -197,10 +197,12 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
             // Fetch agent settings to get targeting info
             let agentSettings = null;
             try {
-              const settingsResponse = await api.get(`/api/lead-agent/settings/${agent.agentId}`);
-              agentSettings = settingsResponse.data;
+              const settingsResponse = await api.get(`/api/lead-agent/settings?agentId=${agent.agentId}`);
+              // Extract settings from response - it might be nested
+              agentSettings = settingsResponse.data?.settings || settingsResponse.data;
+              console.log(`[AgentManager] Settings for ${agent.agentId}:`, agentSettings);
             } catch (err) {
-              console.warn(`Failed to fetch settings for ${agent.agentId}`);
+              console.error(`Failed to fetch settings for ${agent.agentId}:`, err);
             }
             
             return {
@@ -231,10 +233,23 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
     }
   };
 
-  const createAgent = async (personality: PersonalityType, customName: string) => {
+  const createAgent = async (personality: PersonalityType, customName: string, preset?: any) => {
     try {
-      // Call backend API to create agent in AWS
-      const response = await api.post('/api/auth/create-agent', {
+      console.log('[AgentManager] Creating agent with:', {
+        name: customName,
+        personality: personality.name,
+        hasPreset: !!preset,
+        preset: preset ? {
+          id: preset._id || preset.id,
+          name: preset.name,
+          targetIndustries: preset.targetIndustries,
+          targetPositions: preset.targetPositions,
+          companySize: preset.companySize,
+          leadLimitPerDay: preset.leadLimitPerDay
+        } : null
+      });
+
+      const agentData: any = {
         name: customName,
         type: 'reasoning-lead-agent',
         personality: {
@@ -247,7 +262,26 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
           traits: personality.traits,
           color: personality.color
         }
-      });
+      };
+
+      // If preset is provided, include preset data
+      if (preset) {
+        agentData.preset = {
+          presetId: preset._id || preset.id,
+          name: preset.name,
+          targetIndustries: preset.targetIndustries,
+          targetPositions: preset.targetPositions,
+          companySizeMin: preset.companySizeMin,
+          companySizeMax: preset.companySizeMax,
+          leadLimit: preset.leadLimit
+        };
+        console.log('[AgentManager] Preset data being sent:', agentData.preset);
+      } else {
+        console.log('[AgentManager] ⚠️ No preset provided');
+      }
+
+      // Call backend API to create agent in AWS
+      const response = await api.post('/api/auth/create-agent', agentData);
       
       if (response.data.success) {
         const agentData = response.data.agent;
@@ -280,9 +314,15 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       } else {
         throw new Error(response.data.error || 'Failed to create agent');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create agent:', error);
-      alert('Failed to create agent. Please try again.');
+      
+      // Check for duplicate name error
+      if (error.response?.data?.error === 'Duplicate agent name') {
+        alert(error.response.data.message || 'An agent with this name already exists. Please choose a different name.');
+      } else {
+        alert('Failed to create agent. Please try again.');
+      }
     }
   };
 

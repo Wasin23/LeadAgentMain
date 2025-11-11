@@ -10,6 +10,7 @@ import {
   CalendarIcon,
 } from '@heroicons/react/24/outline';
 import RateLimitSettings from './agents/RateLimitSettings';
+import CompanyProfileModal from './CompanyProfileModal';
 
 type TabType = 'profile' | 'budget' | 'email' | 'emailResponse' | 'calendar' | 'preferences';
 
@@ -53,6 +54,7 @@ interface Preferences {
 
 export default function SettingsContent() {
   const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -327,6 +329,14 @@ export default function SettingsContent() {
                       />
                     </div>
                   )}
+                  <div className="pt-4">
+                    <button
+                      onClick={() => setShowProfileModal(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Edit Company Profile
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -709,6 +719,22 @@ export default function SettingsContent() {
           </div>
         </div>
       </div>
+      {/* Company Profile Modal (shared) */}
+      {showProfileModal && (
+        <CompanyProfileModal
+          open={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          onSaved={async () => {
+            // Refresh settings after profile save
+            try {
+              await fetchSettings();
+            } catch (e) {
+              console.error('Error refreshing settings after profile save', e);
+            }
+            setShowProfileModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
