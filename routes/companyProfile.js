@@ -313,8 +313,8 @@ Extract and return a JSON object with ALL 17 fields (NONE should be empty):
 - phone: Phone number (if found - check contact page, footer)
 - location: City, Country (if found - check contact/about pages)
 - linkedinProfile: LinkedIn URL (if found - look for social links)
-- founded: Year founded (if found - check about/history sections. If not found, estimate based on context clues)
-- employees: Number of employees (if found - check about/team pages. Otherwise estimate based on company size indicators)
+- founded: Year only (e.g., "2020") - if found check about/history. If not found, estimate reasonable year. DO NOT include words like "Established" or "Est.", just the year
+- employees: Number only (e.g., "25" or "50") - if found check about/team pages. Otherwise estimate. DO NOT include words like "Estimated" or "~", just the number
 - coreOffering: Their main product/service in one concise phrase
 - keyAdvantages: What makes them different/better - analyze their unique value props, technology, approach (2-3 key differentiators)
 

@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '../lib/api';
 import AdminChatbot from './AdminChatbot';
+import UserMenu from './UserMenu';
 
 interface CompanyProfile {
   companyName: string;
@@ -344,6 +345,13 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
           <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradient)" strokeWidth="1"/>
         </svg>
         <h1 className="text-3xl font-bold text-white drop-shadow-lg">Meridian</h1>
+      </div>
+
+      {/* User Menu in Top Right */}
+      <div className="fixed top-8 right-8 z-50">
+        <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
+          <UserMenu />
+        </div>
       </div>
       
       <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-8">

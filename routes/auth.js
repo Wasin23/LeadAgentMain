@@ -823,16 +823,21 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     // Check for duplicate agent names
     const { getUserById } = await import('../lib/userManager.js');
     const user = await getUserById(userId);
+    console.log('[AUTH CREATE-AGENT] User agents:', user.activeAgents?.length || 0);
+    
     const existingAgent = user.activeAgents?.find(
       agent => agent.name.toLowerCase() === name.trim().toLowerCase()
     );
     
     if (existingAgent) {
+      console.log('[AUTH CREATE-AGENT] ❌ Duplicate agent name detected:', name.trim());
       return res.status(400).json({ 
         error: 'Duplicate agent name',
         message: `An agent named "${name.trim()}" already exists. Please choose a different name.` 
       });
     }
+    
+    console.log('[AUTH CREATE-AGENT] ✅ Agent name is unique, proceeding with creation');
     
     // Generate new 6-digit agent ID
     const agentId = Math.floor(100000 + Math.random() * 900000).toString();
@@ -929,9 +934,13 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
 
     // If preset is provided, apply preset settings
     if (preset) {
+      // Generate a preset ID if not provided (for onboarding-created presets)
+      const presetId = preset.presetId || preset._id || preset.id || `preset-${agentId}`;
+      const presetName = preset.name || `${name} Settings`;
+      
       // Store the preset ID for reference
-      agentSettings.appliedPresetId = preset.presetId || preset._id;
-      agentSettings.appliedPresetName = preset.name;
+      agentSettings.appliedPresetId = presetId;
+      agentSettings.appliedPresetName = presetName;
       
       // Override with preset values
       agentSettings.companyCriteria = {
@@ -948,8 +957,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         leadLimit: preset.leadLimit || null
       };
       
-      console.log(`[AUTH] ✅ Applied preset "${preset.name}" to agent ${agentId}:`, {
-        appliedPresetId: agentSettings.appliedPresetId,
+      console.log(`[AUTH] ✅ Applied preset "${presetName}" to agent ${agentId}:`, {
+        appliedPresetId: presetId,
         industries: preset.targetIndustries || [],
         positions: preset.targetPositions || [],
         companySizeMin: preset.companySizeMin,
@@ -1015,7 +1024,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       agent: agentData
     });
   } catch (error) {
-    console.error('[AUTH] Create agent error:', error.message);
+    console.error('[AUTH] Create agent error:', error);
+    console.error('[AUTH] Error stack:', error.stack);
     res.status(500).json({ error: error.message });
   }
 });

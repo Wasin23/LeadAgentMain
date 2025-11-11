@@ -252,10 +252,10 @@ export default function SettingsContent() {
   }
 
   return (
-    <div>
-      {/* Message Banner */}
+    <div className="relative">
+      {/* Message Banner - Fixed at top with high z-index */}
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] p-4 rounded-lg shadow-lg ${
           message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
         }`}>
           {message.text}

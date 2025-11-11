@@ -23,6 +23,7 @@ import AgentDashboard from '@/components/agents/AgentDashboard';
 import AgentDirectorDashboard from '@/components/agents/AgentDirectorDashboard';
 import SettingsContent from '@/components/SettingsContent';
 import CompanyProfileOnboarding from '@/components/CompanyProfileOnboarding';
+import AgentOnboarding from '@/components/agents/AgentOnboarding';
 import CompanyProfileCard from '@/components/CompanyProfileCard';
 import CompanyProfileInstagram from '@/components/CompanyProfileInstagram';
 import SettingsPresetManager from '@/components/SettingsPresetManager';
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const [activeView, setActiveView] = useState('dashboard');
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [hasCompanyProfile, setHasCompanyProfile] = useState<boolean | null>(null);
+  const [showAgentOnboarding, setShowAgentOnboarding] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
@@ -100,8 +102,22 @@ export default function Dashboard() {
         </div>
       ) : !hasCompanyProfile ? (
         <div className="min-h-screen">
-          <CompanyProfileOnboarding onComplete={() => setHasCompanyProfile(true)} />
+          <CompanyProfileOnboarding onComplete={() => {
+            setHasCompanyProfile(true);
+            setShowAgentOnboarding(true);
+          }} />
         </div>
+      ) : showAgentOnboarding ? (
+        <AgentOnboarding 
+          onComplete={() => {
+            setShowAgentOnboarding(false);
+            setActiveView('agents');
+          }}
+          onSkip={() => {
+            setShowAgentOnboarding(false);
+            setActiveView('agents');
+          }}
+        />
       ) : (
         <>
           {/* Header - Only show after onboarding complete */}
