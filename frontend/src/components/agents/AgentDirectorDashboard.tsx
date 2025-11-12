@@ -64,6 +64,7 @@ const BasicCounter = ({ type }: { type: 'queued' | 'sent' | 'replied' }) => {
 const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
   const [seconds, setSeconds] = useState<number | null>(null);
   const [showStarting, setShowStarting] = useState(false);
+  const [hasShownStarting, setHasShownStarting] = useState(false);
   
   useEffect(() => {
     const calculateSeconds = () => {
@@ -79,9 +80,10 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
       const newSeconds = calculateSeconds();
       setSeconds(newSeconds);
       
-      // When countdown reaches 0, show "Starting..." then reset after 1.5s
-      if (newSeconds === 0 && !showStarting) {
+      // When countdown reaches 0, show "Starting..." then switch to "Running" after 1.5s
+      if (newSeconds === 0 && !hasShownStarting) {
         setShowStarting(true);
+        setHasShownStarting(true);
         setTimeout(() => {
           setShowStarting(false);
         }, 1500);
@@ -89,7 +91,7 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [nextCycleTime, showStarting]);
+  }, [nextCycleTime, hasShownStarting]);
   
   const formatTime = (secs: number) => {
     const minutes = Math.floor(secs / 60);
@@ -97,12 +99,11 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
     return minutes > 0 ? `${minutes}m ${remainingSecs}s` : `${remainingSecs}s`;
   };
   
-  // Don't show badge if we've passed the "Starting..." phase
-  if (seconds === 0 && !showStarting) {
+  if (seconds === null) {
     return null;
   }
   
-  if (seconds === null || (seconds === 0 && showStarting)) {
+  if (seconds === 0 && showStarting) {
     return (
       <div className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500">
         <span className="inline-flex items-center gap-1.5">
@@ -111,6 +112,17 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </span>
           Starting...
+        </span>
+      </div>
+    );
+  }
+  
+  if (seconds === 0 && !showStarting) {
+    return (
+      <div className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          Running
         </span>
       </div>
     );

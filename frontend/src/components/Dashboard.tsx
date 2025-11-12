@@ -175,7 +175,7 @@ export default function Dashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Active Agents */}
                         <button
-                          onClick={() => setActiveView('director')}
+                          onClick={() => setActiveView('agents')}
                           className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all border border-neutral-200 hover:border-blue-300 text-left group"
                         >
                           <div className="flex items-center justify-between mb-4">

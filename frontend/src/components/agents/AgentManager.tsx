@@ -53,6 +53,7 @@ interface Agent {
 const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [showStarting, setShowStarting] = useState(false);
+  const [hasShownStarting, setHasShownStarting] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -68,9 +69,10 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
       const newTimeLeft = calculateTimeLeft();
       setTimeLeft(newTimeLeft);
       
-      // When countdown reaches 0, show "Starting..." then reset to null after 1.5s
-      if (newTimeLeft === 0 && !showStarting) {
+      // When countdown reaches 0, show "Starting..." then switch to "Running" after 1.5s
+      if (newTimeLeft === 0 && !hasShownStarting) {
         setShowStarting(true);
+        setHasShownStarting(true);
         setTimeout(() => {
           setShowStarting(false);
         }, 1500);
@@ -78,10 +80,9 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [nextCycleTime, showStarting]);
+  }, [nextCycleTime, hasShownStarting]);
 
   const formatTime = (seconds: number) => {
-    if (seconds === 0 || showStarting) return 'Starting...';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     if (mins > 0) {
@@ -91,13 +92,10 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
   };
 
   const getBadgeColor = () => {
-    if (timeLeft === 0 || showStarting) return 'bg-green-100 text-green-700';
+    if (timeLeft === 0) return 'bg-green-100 text-green-700';
     if (timeLeft <= 30) return 'bg-orange-100 text-orange-700 animate-pulse';
     return 'bg-blue-100 text-blue-700';
   };
-  
-  // Don't show badge if we've passed the "Starting..." phase
-  if (timeLeft === 0 && !showStarting) return null;
 
   return (
     <div className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 transition-all duration-300 ${getBadgeColor()} animate-in fade-in slide-in-from-top-2 duration-500`}>
@@ -108,8 +106,11 @@ const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
         )}
-        {!showStarting && <span className="text-[10px] opacity-75 font-semibold">Next cycle in:</span>}
-        <span className="font-bold">{formatTime(timeLeft)}</span>
+        {timeLeft === 0 && !showStarting && (
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        )}
+        {timeLeft > 0 && !showStarting && <span className="text-[10px] opacity-75 font-semibold">Next cycle in:</span>}
+        <span className="font-bold">{showStarting ? 'Starting...' : timeLeft === 0 ? 'Running' : formatTime(timeLeft)}</span>
       </span>
     </div>
   );

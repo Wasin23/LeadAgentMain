@@ -1111,21 +1111,36 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       const analysis = response.choices[0]?.message?.content || 'Analysis completed';
       console.log('✅ [AI ANALYSIS] Strategic analysis generated for:', companyName);
 
-      // Parse the structured response
-      const lines = analysis.split('\n').filter(line => line.trim());
+      // Parse the structured response - capture multi-line content
+      const lines = analysis.split('\n');
       const parsed = {};
       let currentSection = '';
       
       lines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return;
+        
         if (line.includes('BUSINESS TYPE:')) {
+          currentSection = 'businessType';
           parsed.businessType = line.replace('BUSINESS TYPE:', '').trim();
         } else if (line.includes('KEY INSIGHTS:')) {
+          currentSection = 'keyInsights';
           parsed.keyInsights = line.replace('KEY INSIGHTS:', '').trim();
         } else if (line.includes('LEAD VALUE:')) {
+          currentSection = 'leadValue';
           parsed.leadValue = line.replace('LEAD VALUE:', '').trim();
         } else if (line.includes('APPROACH:')) {
+          currentSection = 'approach';
           parsed.approach = line.replace('APPROACH:', '').trim();
+        } else if (currentSection && trimmedLine) {
+          // Continue capturing content for the current section
+          parsed[currentSection] = (parsed[currentSection] || '') + ' ' + trimmedLine;
         }
+      });
+
+      // Trim all parsed values
+      Object.keys(parsed).forEach(key => {
+        if (parsed[key]) parsed[key] = parsed[key].trim();
       });
 
       // Create summary for SSE display
@@ -1967,6 +1982,9 @@ BODY: [email body with proper greeting and signature]`;
         subject = `Quick question about ${companyName}'s ${industry} strategy`;
         body = emailContent;
       }
+      
+      // Clean up body - remove any stray "SUBJECT:" prefix that AI might have included
+      body = body.replace(/^SUBJECT:\s*[^\n]+\n\n?/i, '').trim();
       
       console.log('✅ [EMAIL BUILDER] Personalized email created');
       

@@ -218,6 +218,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [selectedScheduledEvent, setSelectedScheduledEvent] = useState<any>(null);
   const [scheduledEvents, setScheduledEvents] = useState<any[]>([]);
   const [countdownTime, setCountdownTime] = useState<number | null>(null);
+  const [showStarting, setShowStarting] = useState(false);
+  const [hasShownStarting, setHasShownStarting] = useState(false);
   const [lastCycleTime, setLastCycleTime] = useState<Date | null>(null);
   const [cycleTriggered, setCycleTriggered] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -345,7 +347,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     const displayInterval = setInterval(() => {
       const currentTime = new Date();
       const remaining = Math.max(0, nextCycleTime.getTime() - currentTime.getTime());
-      setCountdownTime(Math.floor(remaining / 1000));
+      const seconds = Math.floor(remaining / 1000);
+      setCountdownTime(seconds);
+      
+      // When countdown reaches 0, show "Starting..." then switch to "Running" after 1.5s
+      if (seconds === 0 && !hasShownStarting) {
+        setShowStarting(true);
+        setHasShownStarting(true);
+        setTimeout(() => {
+          setShowStarting(false);
+        }, 1500);
+      }
     }, 1000);
 
     // Initialize countdown
@@ -354,7 +366,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     return () => {
       clearInterval(displayInterval);
     };
-  }, [status?.isActive, status?.nextCycleIn]);
+  }, [status?.isActive, status?.nextCycleIn, hasShownStarting]);
 
   // Format countdown time
   const formatCountdown = (seconds: number | null) => {
@@ -1450,10 +1462,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
                   className={`flex items-center gap-3 px-4 py-2.5 border rounded-lg ${
-                    countdownTime <= 30 
-                      ? 'bg-orange-50 border-orange-200' 
-                      : countdownTime <= 0 
-                        ? 'bg-green-50 border-green-200'
+                    countdownTime === 0
+                      ? 'bg-green-50 border-green-200'
+                      : countdownTime <= 30 
+                        ? 'bg-orange-50 border-orange-200' 
                         : 'bg-blue-50 border-blue-200'
                   }`}
                 >
@@ -1466,28 +1478,27 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                     ) : (
-                      <span className="relative flex h-5 w-5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500"></span>
-                      </span>
+                      <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500"></span>
                     )}
                   </div>
                   <div className="flex-1">
                     <div className={`text-xs font-bold ${
-                      countdownTime <= 30 
-                        ? 'text-orange-700' 
-                        : countdownTime <= 0 
-                          ? 'text-green-700'
+                      countdownTime === 0
+                        ? 'text-green-700'
+                        : countdownTime <= 30 
+                          ? 'text-orange-700' 
                           : 'text-blue-700'
                     }`}>Next cycle in:</div>
                     <div className={`font-mono font-bold text-base ${
-                      countdownTime <= 30 
-                        ? 'text-orange-600' 
-                        : countdownTime <= 0 
-                          ? 'text-green-600'
+                      countdownTime === 0
+                        ? 'text-green-600'
+                        : countdownTime <= 30 
+                          ? 'text-orange-600' 
                           : 'text-blue-600'
                     } ${countdownTime <= 10 && countdownTime > 0 ? 'animate-pulse' : ''}`}>
-                      {countdownTime <= 0 ? 'Starting now...' : formatCountdown(countdownTime)}
+                      {countdownTime === 0 && showStarting && 'Starting...'}
+                      {countdownTime === 0 && !showStarting && 'Running'}
+                      {countdownTime > 0 && formatCountdown(countdownTime)}
                     </div>
                   </div>
                 </motion.div>
@@ -1887,6 +1898,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                                 <span className="font-medium text-neutral-900 text-sm">
                                   {email.lead?.company || email.leadInfo?.company || email.leadData?.company || email.company || 'Unknown Company'}
                                 </span>
+                                {(email.leadData?.title || email.leadInfo?.title || email.lead?.title) && (
+                                  <span className="text-xs text-neutral-500 font-medium">
+                                    • {email.leadData?.title || email.leadInfo?.title || email.lead?.title}
+                                  </span>
+                                )}
                                 <span className="text-xs text-neutral-500">
                                   • {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}
                                 </span>
