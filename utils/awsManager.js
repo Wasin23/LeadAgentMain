@@ -548,6 +548,7 @@ class AWSManager {
   async saveLeadAgentSettings(userId, agentId, settings) {
     try {
       console.log('💾 [AWS] Saving lead agent settings for userId:', userId, 'agentId:', agentId);
+      console.log('💾 [AWS] EmailBuilder being saved:', JSON.stringify(settings.emailBuilder, null, 2));
       
       // Ensure agentId is included in the settings and convert to string for consistency
       const agentIdToUse = String(agentId || settings.agentId || 'lead-agent');

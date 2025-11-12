@@ -283,7 +283,14 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
           targetPositions: preset.targetPositions,
           companySizeMin: preset.companySizeMin,
           companySizeMax: preset.companySizeMax,
-          leadLimit: preset.leadLimit
+          leadLimit: preset.leadLimit,
+          emailLength: preset.emailLength,
+          callToAction: preset.callToAction,
+          personalizationLevel: preset.personalizationLevel,
+          ccEmails: preset.ccEmails,
+          bccEmails: preset.bccEmails,
+          followupIntervalDays: preset.followupIntervalDays,
+          enableAutoResponse: preset.enableAutoResponse
         };
         console.log('[AgentManager] Preset data being sent:', agentData.preset);
       } else {

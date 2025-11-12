@@ -361,6 +361,7 @@ router.get('/settings', async (req, res) => {
       success: true,
       settings: {
         agentId,
+        personality: agentSettings.personality, // Include personality data
         userSettings: agentSettings,
         emailSettings: agentSettings.emailBuilder || agentSettings,
         leadGeneration: agentSettings,

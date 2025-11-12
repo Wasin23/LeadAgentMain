@@ -159,19 +159,7 @@ export default function AgentPersonalitySelector({
   const handleConfirmSelection = () => {
     if (selectedPersonality) {
       const finalName = customName.trim() || selectedPersonality.name;
-      console.log('[AgentPersonalitySelector] Confirming selection:', {
-        personality: selectedPersonality.name,
-        name: finalName,
-        hasPreset: !!selectedPreset,
-        preset: selectedPreset ? {
-          id: selectedPreset._id || selectedPreset.id,
-          name: selectedPreset.name,
-          targetIndustries: selectedPreset.targetIndustries,
-          targetPositions: selectedPreset.targetPositions,
-          companySize: selectedPreset.companySize,
-          leadLimitPerDay: selectedPreset.leadLimitPerDay
-        } : null
-      });
+      console.log('[AgentPersonalitySelector] Confirming selection with FULL preset:', selectedPreset);
       onSelectPersonality(selectedPersonality, finalName, selectedPreset);
       onClose();
       setSelectedPersonality(null);
@@ -430,14 +418,7 @@ export default function AgentPersonalitySelector({
                             key={preset._id || preset.id || `preset-${index}`}
                             whileHover={{ scale: 1.02 }}
                             onClick={() => {
-                              console.log('[AgentPersonalitySelector] Preset clicked:', {
-                                id: preset._id || preset.id,
-                                name: preset.name,
-                                targetIndustries: preset.targetIndustries,
-                                targetPositions: preset.targetPositions,
-                                companySize: preset.companySize,
-                                leadLimitPerDay: preset.leadLimitPerDay
-                              });
+                              console.log('[AgentPersonalitySelector] Preset clicked - FULL OBJECT:', preset);
                               setSelectedPreset(preset);
                               console.log('[AgentPersonalitySelector] selectedPreset updated to:', preset.name);
                             }}

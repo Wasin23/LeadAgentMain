@@ -148,7 +148,7 @@ export default function Dashboard() {
                 </nav>
               </div>
 
-              <UserMenu />
+              <UserMenu onSettingsClick={() => setActiveView('settings')} />
             </div>
           </header>
 

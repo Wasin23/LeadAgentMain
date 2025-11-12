@@ -812,7 +812,14 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         targetPositions: preset.targetPositions,
         companySizeMin: preset.companySizeMin,
         companySizeMax: preset.companySizeMax,
-        leadLimit: preset.leadLimit
+        leadLimit: preset.leadLimit,
+        emailLength: preset.emailLength,
+        callToAction: preset.callToAction,
+        personalizationLevel: preset.personalizationLevel,
+        ccEmails: preset.ccEmails,
+        bccEmails: preset.bccEmails,
+        followupIntervalDays: preset.followupIntervalDays,
+        enableAutoResponse: preset.enableAutoResponse
       } : null
     });
     
@@ -912,6 +919,9 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         companyDescription: companyProfile?.description || ''
       },
       emailBuilder: {
+        length: 'medium',
+        callToAction: 'meeting',
+        personalization: 'high',
         enableAutoResponse: true,
         rebumpIntervalDays: 7,
         ccEmails: '',
@@ -956,6 +966,18 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       agentSettings.geographicSettings = {
         leadLimit: preset.leadLimit || null
       };
+
+      // Apply email response settings from preset
+      agentSettings.emailBuilder = {
+        ...agentSettings.emailBuilder,
+        length: preset.emailLength || agentSettings.emailBuilder?.length || 'medium',
+        callToAction: preset.callToAction || agentSettings.emailBuilder?.callToAction || 'schedule-meeting',
+        personalization: preset.personalizationLevel || agentSettings.emailBuilder?.personalization || 'high',
+        ccEmails: preset.ccEmails || agentSettings.emailBuilder?.ccEmails || '',
+        bccEmails: preset.bccEmails || agentSettings.emailBuilder?.bccEmails || '',
+        rebumpIntervalDays: preset.followupIntervalDays || agentSettings.emailBuilder?.rebumpIntervalDays || 7,
+        enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : (agentSettings.emailBuilder?.enableAutoResponse !== undefined ? agentSettings.emailBuilder.enableAutoResponse : true)
+      };
       
       console.log(`[AUTH] ✅ Applied preset "${presetName}" to agent ${agentId}:`, {
         appliedPresetId: presetId,
@@ -963,7 +985,16 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         positions: preset.targetPositions || [],
         companySizeMin: preset.companySizeMin,
         companySizeMax: preset.companySizeMax,
-        leadLimit: preset.leadLimit
+        leadLimit: preset.leadLimit,
+        emailSettings: {
+          length: preset.emailLength,
+          callToAction: preset.callToAction,
+          personalization: preset.personalizationLevel,
+          ccEmails: preset.ccEmails,
+          bccEmails: preset.bccEmails,
+          rebumpIntervalDays: preset.followupIntervalDays,
+          enableAutoResponse: preset.enableAutoResponse
+        }
       });
     } else {
       console.log(`[AUTH] ⚠️ No preset provided for agent ${agentId}`);
@@ -975,6 +1006,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       companyCriteria: agentSettings.companyCriteria,
       contactCriteria: agentSettings.contactCriteria,
       geographicSettings: agentSettings.geographicSettings,
+      emailBuilder: agentSettings.emailBuilder,
       companyBranding: {
         companyName: agentSettings.companyBranding.companyName,
         coreOffering: agentSettings.companyBranding.coreOffering,

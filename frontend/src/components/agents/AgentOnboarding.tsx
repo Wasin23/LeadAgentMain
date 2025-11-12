@@ -31,7 +31,23 @@ const PERSONALITY_TYPES = [
     description: 'Aggressive prospector focused on high-volume outreach and quick conversions',
     avatar: '/avatars/Hunter.png',
     traits: ['High-energy', 'Results-driven', 'Persistent', 'Direct communication'],
-    color: 'red'
+    color: 'red',
+    prompt: `You are The Hunter - a high-energy, results-driven AI sales agent. Your approach is direct, persistent, and focused on quick conversions.
+
+Writing Style:
+- Keep emails concise and action-oriented
+- Use strong, confident language
+- Create urgency without being pushy
+- Focus on results and ROI
+- Get to the point quickly
+
+Email Structure:
+1. Strong, attention-grabbing opening
+2. Quick value proposition (1-2 sentences)
+3. Clear, specific call-to-action
+4. Brief closing with urgency
+
+Tone: Professional but assertive, confident, results-focused`
   },
   {
     id: 'relationship-builder',
@@ -39,7 +55,24 @@ const PERSONALITY_TYPES = [
     description: 'Warm, consultative approach focused on building long-term partnerships',
     avatar: '/avatars/Relationship-Builder.png',
     traits: ['Empathetic', 'Patient', 'Consultative', 'Trust-focused'],
-    color: 'blue'
+    color: 'blue',
+    prompt: `You are The Relationship Builder - a warm, empathetic AI sales agent focused on building genuine, long-term partnerships.
+
+Writing Style:
+- Use warm, friendly language
+- Show genuine interest in their business
+- Ask thoughtful questions
+- Take time to build rapport
+- Focus on mutual benefit
+
+Email Structure:
+1. Personalized, friendly greeting
+2. Show you've researched their business
+3. Ask about their challenges/goals
+4. Suggest a conversation (not a hard sell)
+5. Warm, patient closing
+
+Tone: Friendly, consultative, empathetic, relationship-focused`
   },
   {
     id: 'analyst',
@@ -47,7 +80,24 @@ const PERSONALITY_TYPES = [
     description: 'Data-driven methodology with deep research and industry insights',
     avatar: '/avatars/Analyst.png',
     traits: ['Analytical', 'Research-heavy', 'Detail-oriented', 'Evidence-based'],
-    color: 'purple'
+    color: 'purple',
+    prompt: `You are The Analyst - a data-driven, research-focused AI sales agent who leads with insights and evidence.
+
+Writing Style:
+- Lead with data and research
+- Reference specific industry trends
+- Use facts and figures
+- Demonstrate deep understanding
+- Provide analytical insights
+
+Email Structure:
+1. Open with a relevant industry insight or data point
+2. Connect research to their specific situation
+3. Provide evidence-based recommendations
+4. Suggest a strategic discussion
+5. Professional, thoughtful closing
+
+Tone: Professional, analytical, insightful, evidence-based`
   },
   {
     id: 'consultant',
@@ -55,7 +105,24 @@ const PERSONALITY_TYPES = [
     description: 'Solution-focused industry expert who positions as a strategic advisor',
     avatar: '/avatars/consultant.png',
     traits: ['Advisory', 'Solution-focused', 'Industry expert', 'Strategic'],
-    color: 'green'
+    color: 'green',
+    prompt: `You are The Consultant - a strategic advisor and industry expert who positions yourself as a trusted consultant.
+
+Writing Style:
+- Position as a strategic partner
+- Focus on solutions and strategy
+- Demonstrate industry expertise
+- Use advisory language
+- Think long-term value
+
+Email Structure:
+1. Open with a strategic observation
+2. Frame challenges from their perspective
+3. Position your solution as strategic guidance
+4. Suggest a consultation or advisory session
+5. Professional, expert closing
+
+Tone: Advisory, strategic, expert, solution-focused`
   },
   {
     id: 'networker',
@@ -63,7 +130,24 @@ const PERSONALITY_TYPES = [
     description: 'LinkedIn-heavy, connection-based approach leveraging mutual contacts',
     avatar: '/avatars/Networker.png',
     traits: ['Social', 'Connection-focused', 'Community-driven', 'Referral-based'],
-    color: 'indigo'
+    color: 'indigo',
+    prompt: `You are The Networker - a socially-savvy AI sales agent who leverages connections, community, and referrals.
+
+Writing Style:
+- Reference mutual connections when possible
+- Use social proof and community
+- Be conversational and approachable
+- Leverage LinkedIn and networks
+- Focus on connections and introductions
+
+Email Structure:
+1. Open with a connection point (mutual contact, group, etc.)
+2. Mention social proof or community relevance
+3. Keep it conversational and light
+4. Suggest connecting or being introduced
+5. Friendly, social closing
+
+Tone: Conversational, social, approachable, connection-focused`
   }
 ];
 
@@ -75,6 +159,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [presetName, setPresetName] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
+  const [creationSuccess, setCreationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'review', 'creating'];
@@ -95,7 +180,14 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         targetPositions: settings.jobTitles || [],
         companySizeMin: settings.companySizeMin || 50,
         companySizeMax: settings.companySizeMax || 500,
-        leadLimit: settings.leadsPerCycle || 10
+        leadLimit: settings.leadsPerCycle || 10,
+        emailLength: settings.emailLength || 'medium',
+        callToAction: settings.callToAction || 'schedule-meeting',
+        personalizationLevel: settings.personalizationLevel || 'high',
+        ccEmails: settings.ccEmails || '',
+        bccEmails: settings.bccEmails || '',
+        followupIntervalDays: settings.followupIntervalDays || 7,
+        enableAutoResponse: settings.enableAutoResponse !== undefined ? settings.enableAutoResponse : true
       });
 
       if (!presetResponse.data.success) {
@@ -125,14 +217,25 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
           targetPositions: createdPreset.targetPositions,
           companySizeMin: createdPreset.companySizeMin,
           companySizeMax: createdPreset.companySizeMax,
-          leadLimit: createdPreset.leadLimit
+          leadLimit: createdPreset.leadLimit,
+          emailLength: createdPreset.emailLength,
+          callToAction: createdPreset.callToAction,
+          personalizationLevel: createdPreset.personalizationLevel,
+          ccEmails: createdPreset.ccEmails,
+          bccEmails: createdPreset.bccEmails,
+          followupIntervalDays: createdPreset.followupIntervalDays,
+          enableAutoResponse: createdPreset.enableAutoResponse
         }
       });
 
       if (response.data.success) {
-        // Wait a moment to show success, then redirect to dashboard
+        // Show success state
+        setCreationSuccess(true);
+        setIsCreating(false);
+        
+        // Redirect to dashboard after showing success
         setTimeout(() => {
-          router.push('/');
+          window.location.href = '/';
         }, 1500);
       } else {
         setError('Failed to create agent. Please try again.');
@@ -170,7 +273,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-6 z-10">
         {/* Meridian Logo + Title */}
         <div className="flex items-center gap-3">
-          <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
+    ``          <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
             <defs>
               <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
@@ -269,6 +372,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               key="creating" 
               name={agentName} 
               isCreating={isCreating}
+              success={creationSuccess}
               error={error}
             />
           )}
@@ -648,12 +752,26 @@ function ChoosePresetStep({
     industries: string[];
     jobTitles: string[];
     leadsPerCycle: number | string;
+    emailLength: 'short' | 'medium' | 'long';
+    callToAction: 'schedule-meeting' | 'request-demo' | 'learn-more' | 'custom';
+    personalizationLevel: 'low' | 'medium' | 'high';
+    ccEmails: string;
+    bccEmails: string;
+    followupIntervalDays: number;
+    enableAutoResponse: boolean;
   }>({
     companySizeMin: 50,
     companySizeMax: 500,
     industries: [] as string[],
     jobTitles: [] as string[],
-    leadsPerCycle: 10
+    leadsPerCycle: 10,
+    emailLength: 'medium',
+    callToAction: 'schedule-meeting',
+    personalizationLevel: 'high',
+    ccEmails: '',
+    bccEmails: '',
+    followupIntervalDays: 7,
+    enableAutoResponse: true
   });
 
   const [industrySearch, setIndustrySearch] = useState('');
@@ -945,6 +1063,128 @@ function ChoosePresetStep({
             </p>
           </div>
         </div>
+
+        {/* Email Response Settings */}
+        <div className="border-t border-white/20 pt-6">
+          <h3 className="text-white font-bold text-2xl mb-4">Email Response Settings</h3>
+          <p className="text-white/70 text-sm mb-6">
+            Configure how your agent communicates with leads
+          </p>
+
+          <div className="space-y-6">
+            {/* Email Length, Call to Action, Personalization Level - Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-white font-semibold mb-2">Email Length</label>
+                <select
+                  value={settings.emailLength}
+                  onChange={(e) => setSettings({ ...settings, emailLength: e.target.value as 'short' | 'medium' | 'long' })}
+                  className="w-[calc(100%-8px)] px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium appearance-none"
+                >
+                  <option value="short">Short (concise)</option>
+                  <option value="medium">Medium (balanced)</option>
+                  <option value="long">Long (detailed)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-semibold mb-2">Call to Action</label>
+                <select
+                  value={settings.callToAction}
+                  onChange={(e) => setSettings({ ...settings, callToAction: e.target.value as any })}
+                  className="w-[calc(100%-8px)] px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium appearance-none"
+                >
+                  <option value="schedule-meeting">Schedule Meeting</option>
+                  <option value="request-demo">Request Demo</option>
+                  <option value="learn-more">Learn More</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-semibold mb-2">Personalization Level</label>
+                <select
+                  value={settings.personalizationLevel}
+                  onChange={(e) => setSettings({ ...settings, personalizationLevel: e.target.value as 'low' | 'medium' | 'high' })}
+                  className="w-[calc(100%-8px)] px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium appearance-none"
+                >
+                  <option value="low">Low (generic)</option>
+                  <option value="medium">Medium (personalized)</option>
+                  <option value="high">High (hyper-personalized)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* CC and BCC Emails */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-semibold mb-2">CC Email Addresses</label>
+                <input
+                  type="text"
+                  value={settings.ccEmails}
+                  onChange={(e) => setSettings({ ...settings, ccEmails: e.target.value })}
+                  className="w-full px-4 py-3 rounded-lg bg-white/90 text-neutral-900 font-medium placeholder:text-neutral-500"
+                  placeholder="email1@example.com, email2@example.com"
+                />
+                <p className="text-white/60 text-xs mt-1">Comma-separated email addresses</p>
+              </div>
+
+              <div>
+                <label className="block text-white font-semibold mb-2">BCC Email Addresses</label>
+                <input
+                  type="text"
+                  value={settings.bccEmails}
+                  onChange={(e) => setSettings({ ...settings, bccEmails: e.target.value })}
+                  className="w-full px-4 py-3 rounded-lg bg-white/90 text-neutral-900 font-medium placeholder:text-neutral-500"
+                  placeholder="email1@example.com, email2@example.com"
+                />
+                <p className="text-white/60 text-xs mt-1">Hidden from recipients</p>
+              </div>
+            </div>
+
+            {/* Follow-up Interval */}
+            <div>
+              <label className="block text-white font-semibold mb-2">Follow-up Interval (Days)</label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={settings.followupIntervalDays}
+                onChange={(e) => setSettings({ ...settings, followupIntervalDays: parseInt(e.target.value) || 7 })}
+                className="w-full md:w-48 px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium"
+              />
+              <p className="text-white/70 text-sm mt-2">
+                Days to wait before sending follow-up email
+              </p>
+            </div>
+
+            {/* Enable Auto-Response */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-white font-semibold text-lg">Enable AI Auto-Response to Emails</label>
+                <p className="text-white/70 text-sm mt-1">
+                  When enabled, AI will automatically respond to incoming emails from leads
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, enableAutoResponse: !settings.enableAutoResponse })}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  settings.enableAutoResponse ? 'bg-green-400' : 'bg-neutral-600'
+                }`}
+                style={{
+                  backgroundColor: settings.enableAutoResponse ? '#4ade80' : '#52525b'
+                }}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                    settings.enableAutoResponse ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
@@ -956,6 +1196,31 @@ function ChoosePresetStep({
         </button>
         <button
           onClick={() => {
+            // Validate required fields
+            const missingFields = [];
+            
+            if (settings.industries.length === 0) {
+              missingFields.push('Target Industries');
+            }
+            if (settings.jobTitles.length === 0) {
+              missingFields.push('Target Positions');
+            }
+            const leadsNum = typeof settings.leadsPerCycle === 'string' ? parseInt(settings.leadsPerCycle) : settings.leadsPerCycle;
+            if (!leadsNum || leadsNum < 1) {
+              missingFields.push('Leads Per Cycle');
+            }
+            if (!settings.companySizeMin || settings.companySizeMin < 1) {
+              missingFields.push('Company Size Minimum');
+            }
+            if (!settings.companySizeMax || settings.companySizeMax < 1) {
+              missingFields.push('Company Size Maximum');
+            }
+            
+            if (missingFields.length > 0) {
+              alert(`Please fill out the following required fields:\n\n• ${missingFields.join('\n• ')}`);
+              return;
+            }
+            
             // Ensure leadsPerCycle is a number before saving
             const settingsToSave = {
               ...settings,
@@ -1077,6 +1342,49 @@ function ReviewStep({
                       <span className="text-neutral-600">Leads per cycle:</span>
                       <span className="font-semibold text-neutral-900">{settings.leadsPerCycle}</span>
                     </div>
+                    
+                    {/* Email Response Settings */}
+                    <div className="border-t border-neutral-200 pt-3 mt-3">
+                      <p className="text-sm font-bold text-neutral-700 mb-2">Email Response Settings</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-neutral-600">Email Length:</span>
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-semibold uppercase">
+                            {settings.emailLength || 'medium'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-neutral-600">Call to Action:</span>
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                            {(settings.callToAction || 'schedule-meeting').replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-neutral-600">Personalization:</span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold uppercase">
+                            {settings.personalizationLevel || 'high'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-neutral-600">Follow-up Interval:</span>
+                          <span className="font-semibold text-neutral-900">{settings.followupIntervalDays || 7} days</span>
+                        </div>
+                        {(settings.ccEmails || settings.bccEmails) && (
+                          <div className="text-xs text-neutral-500 mt-2">
+                            {settings.ccEmails && <div>CC: {settings.ccEmails}</div>}
+                            {settings.bccEmails && <div>BCC: {settings.bccEmails}</div>}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-neutral-600">Auto-Response:</span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                            settings.enableAutoResponse ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'
+                          }`}>
+                            {settings.enableAutoResponse ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               } catch {
@@ -1111,7 +1419,7 @@ function ReviewStep({
 }
 
 // Creating Step
-function CreatingStep({ name, isCreating, error }: { name: string; isCreating: boolean; error: string | null }) {
+function CreatingStep({ name, isCreating, success, error }: { name: string; isCreating: boolean; success: boolean; error: string | null }) {
   if (error) {
     return (
       <motion.div
@@ -1140,6 +1448,31 @@ function CreatingStep({ name, isCreating, error }: { name: string; isCreating: b
     );
   }
 
+  if (success) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center max-w-xl"
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", duration: 0.5 }}
+          className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-8"
+        >
+          <CheckIcon className="w-12 h-12 text-white" />
+        </motion.div>
+        <h2 className="text-4xl font-bold text-white mb-4">
+          {name} Created! ✓
+        </h2>
+        <p className="text-xl text-white/90">
+          Redirecting to your dashboard...
+        </p>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -1152,10 +1485,10 @@ function CreatingStep({ name, isCreating, error }: { name: string; isCreating: b
         className="w-24 h-24 border-8 border-white border-t-transparent rounded-full mx-auto mb-8"
       />
       <h2 className="text-4xl font-bold text-white mb-4">
-        {isCreating ? `Creating ${name}...` : `${name} Created! ✓`}
+        Creating {name}...
       </h2>
       <p className="text-xl text-white/90">
-        {isCreating ? 'Setting up your AI agent. This will only take a moment!' : 'Redirecting to your agent dashboard...'}
+        Setting up your AI agent. This will only take a moment!
       </p>
     </motion.div>
   );

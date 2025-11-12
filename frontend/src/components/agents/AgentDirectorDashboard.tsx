@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { PlusIcon, ChatBubbleLeftRightIcon, ChartBarIcon, BellIcon, BoltIcon, Cog6ToothIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ChatBubbleLeftRightIcon, ChartBarIcon, BellIcon, BoltIcon, Cog6ToothIcon, TrashIcon, XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import AgentPersonalitySelector, { PersonalityType } from './AgentPersonalitySelector';
 import api from '../../lib/api';
@@ -98,21 +98,60 @@ interface SettingsPreset {
   companySizeMax: number;
   leadLimit: number;
   isDefault?: boolean;
+  // Email response settings
+  emailLength?: 'short' | 'medium' | 'long';
+  callToAction?: 'schedule-meeting' | 'request-demo' | 'learn-more' | 'custom';
+  personalizationLevel?: 'low' | 'medium' | 'high';
+  ccEmails?: string;
+  bccEmails?: string;
+  followupIntervalDays?: number;
+  enableAutoResponse?: boolean;
 }
 
-function PresetsManagement() {
+function PresetsManagement({ 
+  externalIsCreating, 
+  externalSetIsCreating, 
+  externalEditingPreset, 
+  externalSetEditingPreset,
+  externalFormData,
+  externalSetFormData 
+}: { 
+  externalIsCreating?: boolean;
+  externalSetIsCreating?: (val: boolean) => void;
+  externalEditingPreset?: SettingsPreset | null;
+  externalSetEditingPreset?: (val: SettingsPreset | null) => void;
+  externalFormData?: Partial<SettingsPreset>;
+  externalSetFormData?: (val: Partial<SettingsPreset>) => void;
+}) {
   const [presets, setPresets] = useState<SettingsPreset[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingPreset, setEditingPreset] = useState<SettingsPreset | null>(null);
-  const [formData, setFormData] = useState<Partial<SettingsPreset>>({
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [localIsCreating, localSetIsCreating] = useState(false);
+  const [localEditingPreset, localSetEditingPreset] = useState<SettingsPreset | null>(null);
+  const [deleteConfirmPreset, setDeleteConfirmPreset] = useState<string | null>(null);
+  const [localFormData, localSetFormData] = useState<Partial<SettingsPreset>>({
     name: '',
     targetIndustries: [],
     targetPositions: [],
     companySizeMin: 50,
     companySizeMax: 500,
-    leadLimit: 10
+    leadLimit: 10,
+    emailLength: 'medium',
+    callToAction: 'schedule-meeting',
+    personalizationLevel: 'high',
+    ccEmails: '',
+    bccEmails: '',
+    followupIntervalDays: 7,
+    enableAutoResponse: false
   });
+  
+  // Use external state if provided, otherwise use local state
+  const isCreating = externalIsCreating !== undefined ? externalIsCreating : localIsCreating;
+  const setIsCreating = externalSetIsCreating || localSetIsCreating;
+  const editingPreset = externalEditingPreset !== undefined ? externalEditingPreset : localEditingPreset;
+  const setEditingPreset = externalSetEditingPreset || localSetEditingPreset;
+  const formData = externalFormData || localFormData;
+  const setFormData = externalSetFormData || localSetFormData;
   const [industryInput, setIndustryInput] = useState('');
   const [positionInput, setPositionInput] = useState('');
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
@@ -149,21 +188,28 @@ function PresetsManagement() {
 
   const handleSavePreset = async () => {
     if (!formData.name?.trim()) {
-      alert('Please enter a preset name');
+      setNotification({ message: 'Please enter a preset name', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
+
+    console.log('📤 [Frontend] Saving preset with formData:', JSON.stringify(formData, null, 2));
 
     try {
       if (editingPreset) {
         // Update existing preset
+        setNotification({ message: 'Preset updated successfully!', type: 'success' });
         const response = await api.put(`/api/settings/presets/${editingPreset.id}`, formData);
         setPresets(presets.map(p => p.id === editingPreset.id ? response.data.preset : p));
         setEditingPreset(null);
       } else {
         // Create new preset
+        setNotification({ message: 'Preset created successfully!', type: 'success' });
         const response = await api.post('/api/settings/presets', formData);
         setPresets([...presets, response.data.preset]);
       }
+      
+      setTimeout(() => setNotification(null), 3000);
       
       setIsCreating(false);
       setFormData({
@@ -172,25 +218,42 @@ function PresetsManagement() {
         targetPositions: [],
         companySizeMin: 50,
         companySizeMax: 500,
-        leadLimit: 10
+        leadLimit: 10,
+        emailLength: 'medium',
+        callToAction: 'schedule-meeting',
+        personalizationLevel: 'high',
+        ccEmails: '',
+        bccEmails: '',
+        followupIntervalDays: 7,
+        enableAutoResponse: false
       });
       setIndustryInput('');
       setPositionInput('');
     } catch (error) {
       console.error('Error saving preset:', error);
-      alert('Failed to save preset');
+      setNotification({ message: 'Failed to save preset', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
   const handleDeletePreset = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this preset?')) return;
+    setDeleteConfirmPreset(id);
+  };
+
+  const confirmDeletePreset = async () => {
+    if (!deleteConfirmPreset) return;
 
     try {
-      await api.delete(`/api/settings/presets/${id}`);
-      setPresets(presets.filter(p => p.id !== id));
+      await api.delete(`/api/settings/presets/${deleteConfirmPreset}`);
+      setPresets(presets.filter(p => p.id !== deleteConfirmPreset));
+      setDeleteConfirmPreset(null);
+      setNotification({ message: 'Preset deleted successfully!', type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       console.error('Error deleting preset:', error);
-      alert('Failed to delete preset');
+      setNotification({ message: 'Failed to delete preset', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+      setDeleteConfirmPreset(null);
     }
   };
 
@@ -202,7 +265,14 @@ function PresetsManagement() {
       targetPositions: [...preset.targetPositions],
       companySizeMin: preset.companySizeMin,
       companySizeMax: preset.companySizeMax,
-      leadLimit: preset.leadLimit
+      leadLimit: preset.leadLimit,
+      emailLength: preset.emailLength || 'medium',
+      callToAction: preset.callToAction || 'schedule-meeting',
+      personalizationLevel: preset.personalizationLevel || 'high',
+      ccEmails: preset.ccEmails || '',
+      bccEmails: preset.bccEmails || '',
+      followupIntervalDays: preset.followupIntervalDays || 7,
+      enableAutoResponse: preset.enableAutoResponse || false
     });
     setIsCreating(true);
   };
@@ -254,33 +324,13 @@ function PresetsManagement() {
   }
 
   return (
-    <div className="max-w-7xl mr-auto ml-0">
+    <div className="w-full">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-neutral-900">Settings Presets</h2>
-          <p className="text-neutral-600 text-sm mt-1">
-            Manage preset configurations for your agents
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setIsCreating(true);
-            setEditingPreset(null);
-            setFormData({
-              name: '',
-              targetIndustries: [],
-              targetPositions: [],
-              companySizeMin: 50,
-              companySizeMax: 500,
-              leadLimit: 10
-            });
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
-        >
-          <PlusIcon className="w-5 h-5" />
-          Create Preset
-        </button>
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold text-neutral-900">Settings Presets</h2>
+        <p className="text-neutral-600 text-sm mt-1">
+          Manage preset configurations for your agents
+        </p>
       </div>
 
       {/* Presets Grid */}
@@ -295,7 +345,7 @@ function PresetsManagement() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {presets.map((preset) => (
             <div
               key={preset.id}
@@ -402,15 +452,15 @@ function PresetsManagement() {
 
       {/* Create/Edit Modal */}
       {isCreating && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 pt-16">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-neutral-200 px-8 py-5 z-10">
               <h3 className="text-xl font-semibold text-neutral-900">
                 {editingPreset ? 'Edit Preset' : 'Create New Preset'}
               </h3>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="pl-8 pr-12 py-8 space-y-8 mb-6">
               {/* Preset Name */}
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
@@ -563,26 +613,169 @@ function PresetsManagement() {
                   Lead Limit
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={formData.leadLimit}
-                  onChange={(e) => setFormData({ ...formData, leadLimit: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    setFormData({ ...formData, leadLimit: parseInt(value) || 0 });
+                  }}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
+
+              {/* Email Response Settings */}
+              <div className="border-t border-neutral-200 pt-6 mt-6">
+                <h4 className="text-lg font-medium text-neutral-900 mb-4">Email Response Settings</h4>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Email Length
+                    </label>
+                    <select
+                      value={formData.emailLength || 'medium'}
+                      onChange={(e) => setFormData({ ...formData, emailLength: e.target.value as 'short' | 'medium' | 'long' })}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="short">Short</option>
+                      <option value="medium">Medium</option>
+                      <option value="long">Long</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Call to Action
+                    </label>
+                    <select
+                      value={formData.callToAction || 'schedule-meeting'}
+                      onChange={(e) => setFormData({ ...formData, callToAction: e.target.value as any })}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="schedule-meeting">Schedule Meeting</option>
+                      <option value="request-demo">Request Demo</option>
+                      <option value="learn-more">Learn More</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Personalization Level
+                    </label>
+                    <select
+                      value={formData.personalizationLevel || 'high'}
+                      onChange={(e) => setFormData({ ...formData, personalizationLevel: e.target.value as 'low' | 'medium' | 'high' })}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      CC Email Addresses
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.ccEmails || ''}
+                      onChange={(e) => setFormData({ ...formData, ccEmails: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="email1@example.com, email2@example.com"
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">Comma-separated email addresses</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      BCC Email Addresses
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.bccEmails || ''}
+                      onChange={(e) => setFormData({ ...formData, bccEmails: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="email1@example.com, email2@example.com"
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">Hidden from recipients</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Follow-up Interval (Days)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.followupIntervalDays || 7}
+                    onChange={(e) => setFormData({ ...formData, followupIntervalDays: parseInt(e.target.value) || 7 })}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    min="1"
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">Days to wait before sending follow-up email</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-neutral-700">
+                      Enable AI Auto-Response to Emails
+                    </label>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      When enabled, AI will automatically respond to incoming emails from leads
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, enableAutoResponse: !formData.enableAutoResponse })}
+                    className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
+                    style={{
+                      backgroundColor: formData.enableAutoResponse ? '#4ade80' : '#52525b'
+                    }}
+                  >
+                    <span
+                      className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                        formData.enableAutoResponse ? 'translate-x-7' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-neutral-50 border-t border-neutral-200 px-6 py-4 flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  setIsCreating(false);
-                  setEditingPreset(null);
-                  setFormData({
-                    name: '',
-                    targetIndustries: [],
-                    targetPositions: [],
-                    companySizeMin: 50,
-                    companySizeMax: 500,
+            <div className="sticky bottom-0 bg-neutral-50 border-t border-neutral-200 px-8 py-5 flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                {notification && notification.type === 'success' && (
+                  <div className="flex items-center space-x-2 text-green-600">
+                    <CheckCircleIcon className="h-5 w-5" />
+                    <span className="text-sm">{notification.message}</span>
+                  </div>
+                )}
+                {notification && notification.type === 'error' && (
+                  <div className="flex items-center space-x-2 text-red-600">
+                    <ExclamationTriangleIcon className="h-5 w-5" />
+                    <span className="text-sm">{notification.message}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setIsCreating(false);
+                    setEditingPreset(null);
+                    setFormData({
+                      name: '',
+                      targetIndustries: [],
+                      targetPositions: [],
+                      companySizeMin: 50,
+                      companySizeMax: 500,
                     leadLimit: 10
                   });
                 }}
@@ -596,6 +789,41 @@ function PresetsManagement() {
                 className="px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
               >
                 {editingPreset ? 'Update Preset' : 'Create Preset'}
+              </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmPreset && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <TrashIcon className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900">Delete Preset</h3>
+            </div>
+            
+            <p className="text-neutral-600 mb-6">
+              Are you sure you want to delete this preset? This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirmPreset(null)}
+                className="px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors border border-neutral-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeletePreset}
+                style={{ backgroundColor: '#dc2626' }}
+                className="px-4 py-2 text-sm font-medium text-white hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Delete
               </button>
             </div>
           </div>
@@ -619,6 +847,25 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   const [monitoringMetrics, setMonitoringMetrics] = useState<any>(null);
   const [issues, setIssues] = useState<any[]>([]);
   const [monitoringConnected, setMonitoringConnected] = useState(false);
+  
+  // Preset creation state (shared with PresetsManagement)
+  const [presetIsCreating, setPresetIsCreating] = useState(false);
+  const [presetEditingPreset, setPresetEditingPreset] = useState<SettingsPreset | null>(null);
+  const [presetFormData, setPresetFormData] = useState<Partial<SettingsPreset>>({
+    name: '',
+    targetIndustries: [],
+    targetPositions: [],
+    companySizeMin: 50,
+    companySizeMax: 500,
+    leadLimit: 10,
+    emailLength: 'medium',
+    callToAction: 'schedule-meeting',
+    personalizationLevel: 'high',
+    ccEmails: '',
+    bccEmails: '',
+    followupIntervalDays: 7,
+    enableAutoResponse: false
+  });
   
   // Queue modal state
   const [selectedQueue, setSelectedQueue] = useState<{agentId: string | 'all', type: 'queued' | 'sent' | 'replied', agentName: string} | null>(null);
@@ -698,6 +945,13 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
         break;
     }
   }, []);
+
+  // Reset to agents tab when leaving overview
+  useEffect(() => {
+    if (monitoringView !== 'overview') {
+      setActiveTab('agents');
+    }
+  }, [monitoringView]);
 
   // Fetch issues on mount and poll every 10 seconds
   useEffect(() => {
@@ -1056,7 +1310,14 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
           targetPositions: preset.targetPositions,
           companySizeMin: preset.companySizeMin,
           companySizeMax: preset.companySizeMax,
-          leadLimit: preset.leadLimit
+          leadLimit: preset.leadLimit,
+          emailLength: preset.emailLength,
+          callToAction: preset.callToAction,
+          personalizationLevel: preset.personalizationLevel,
+          ccEmails: preset.ccEmails,
+          bccEmails: preset.bccEmails,
+          followupIntervalDays: preset.followupIntervalDays,
+          enableAutoResponse: preset.enableAutoResponse
         };
         console.log('[AgentDirector] Preset data being sent:', agentData.preset);
       } else {
@@ -1164,41 +1425,60 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               </div>
               
               <button
-                onClick={() => setShowPersonalitySelector(true)}
+                onClick={() => {
+                  if (activeTab === 'presets') {
+                    // Open create preset modal
+                    setPresetIsCreating(true);
+                    setPresetEditingPreset(null);
+                    setPresetFormData({
+                      name: '',
+                      targetIndustries: [],
+                      targetPositions: [],
+                      companySizeMin: 50,
+                      companySizeMax: 500,
+                      leadLimit: 10
+                    });
+                  } else {
+                    // Open agent personality selector
+                    setShowPersonalitySelector(true);
+                  }
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200 font-medium"
               >
                 <PlusIcon className="w-4 h-4" />
-                Add Agent
+                {activeTab === 'presets' ? 'Add Preset' : 'Add Agent'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="bg-white border-b border-neutral-200 px-6">
-          <div className="flex gap-6">
-            <button
-              onClick={() => setActiveTab('agents')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'agents'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
-              }`}
-            >
-              Agents
-            </button>
-            <button
-              onClick={() => setActiveTab('presets')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'presets'
-                  ? 'border-purple-600 text-purple-600'
-                  : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
-              }`}
-            >
-              Presets
-            </button>
+        {/* Tab Navigation - Only show in overview */}
+        {monitoringView === 'overview' && (
+          <div className="bg-white border-b border-neutral-200 px-6">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setActiveTab('agents')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'agents'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
+                }`}
+              >
+                Agents
+              </button>
+              <button
+                onClick={() => setActiveTab('presets')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'presets'
+                    ? 'border-purple-600 text-purple-600'
+                    : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
+                }`}
+              >
+                Presets
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Real-time Monitoring Dashboard - Only show on overview and agents tab */}
         {monitoringMetrics && monitoringView === 'overview' && activeTab === 'agents' && (
@@ -1413,7 +1693,14 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             </>
           ) : (
             /* Presets Tab Content */
-            <PresetsManagement />
+            <PresetsManagement 
+              externalIsCreating={presetIsCreating}
+              externalSetIsCreating={setPresetIsCreating}
+              externalEditingPreset={presetEditingPreset}
+              externalSetEditingPreset={setPresetEditingPreset}
+              externalFormData={presetFormData}
+              externalSetFormData={setPresetFormData}
+            />
           )}
         </div>
       </div>

@@ -11,7 +11,11 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
-export default function UserMenu() {
+interface UserMenuProps {
+  onSettingsClick?: () => void;
+}
+
+export default function UserMenu({ onSettingsClick }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -19,6 +23,13 @@ export default function UserMenu() {
   const handleLogout = () => {
     logout();
     router.push('/signin');
+  };
+
+  const handleSettingsClick = () => {
+    if (onSettingsClick) {
+      onSettingsClick();
+    }
+    setIsOpen(false);
   };
 
   return (
@@ -80,10 +91,7 @@ export default function UserMenu() {
               {/* Menu Items */}
               <div className="py-2">
                 <button 
-                  onClick={() => {
-                    router.push('/settings');
-                    setIsOpen(false);
-                  }}
+                  onClick={handleSettingsClick}
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
                 >
                   <Cog6ToothIcon className="w-4 h-4" />

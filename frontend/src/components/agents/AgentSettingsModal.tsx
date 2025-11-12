@@ -290,26 +290,59 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
     }
   };
 
-  const applyPreset = (preset: any) => {
+  const applyPreset = async (preset: any) => {
     console.log('🎯 [SETTINGS] Applying preset:', preset.name);
     setSelectedPreset(preset.id || preset._id);
-    setSettings(prev => ({
-      ...prev,
+    
+    // Update settings state
+    const updatedSettings = {
+      ...settings,
       companyCriteria: {
-        ...prev.companyCriteria,
+        ...settings.companyCriteria,
         companySizeMin: preset.companySizeMin,
         companySizeMax: preset.companySizeMax,
         companyIndustries: preset.targetIndustries || []
       },
       contactCriteria: {
-        ...prev.contactCriteria,
+        ...settings.contactCriteria,
         targetPositions: preset.targetPositions || []
       },
       geographicSettings: {
-        ...prev.geographicSettings,
+        ...settings.geographicSettings,
         leadLimit: preset.leadLimit || 50
+      },
+      emailBuilder: {
+        ...settings.emailBuilder,
+        length: preset.emailLength || settings.emailBuilder.length,
+        callToAction: preset.callToAction || settings.emailBuilder.callToAction,
+        personalization: preset.personalizationLevel || settings.emailBuilder.personalization,
+        ccEmails: preset.ccEmails || settings.emailBuilder.ccEmails,
+        bccEmails: preset.bccEmails || settings.emailBuilder.bccEmails,
+        rebumpIntervalDays: preset.followupIntervalDays || settings.emailBuilder.rebumpIntervalDays,
+        enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : settings.emailBuilder.enableAutoResponse
       }
-    }));
+    };
+    
+    setSettings(updatedSettings);
+    
+    // Auto-save the settings
+    try {
+      setSaveStatus('idle');
+      await api.post('/api/lead-agent/settings', {
+        ...updatedSettings,
+        agentId: agentId
+      });
+      setSaveStatus('success');
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to save preset settings:', error);
+      setSaveStatus('error');
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+    }
   };
 
   const fetchCompanyProfile = async () => {
@@ -1106,70 +1139,6 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                   </div>
                 </div>
 
-                {/* Research Focus */}
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Research Focus</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Focus Areas</label>
-                      <textarea
-                        value={settings.researchFocus?.focusAreas?.join('\n') || ''}
-                        onChange={(e) => updateField('researchFocus', 'focusAreas', e.target.value.split('\n').filter(line => line.trim()))}
-                        rows={8}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter focus areas, one per line...&#10;- Employee communication challenges&#10;- HR technology adoption&#10;- ADP integration opportunities"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Research Depth</label>
-                        <select
-                          value={settings.researchFocus?.researchDepth || 'standard'}
-                          onChange={(e) => updateField('researchFocus', 'researchDepth', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="basic">Basic</option>
-                          <option value="standard">Standard</option>
-                          <option value="deep">Deep</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={settings.researchFocus?.includeCompanyNews || false}
-                            onChange={(e) => updateField('researchFocus', 'includeCompanyNews', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Include Company News</span>
-                        </div>
-
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={settings.researchFocus?.includePersonalInfo || false}
-                            onChange={(e) => updateField('researchFocus', 'includePersonalInfo', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Include Personal Info</span>
-                        </div>
-
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={settings.researchFocus?.includeSocialMedia || false}
-                            onChange={(e) => updateField('researchFocus', 'includeSocialMedia', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Include Social Media</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Enhanced Email Builder */}
                 <div>
                   <h4 className="text-lg font-medium text-gray-900 mb-4">Enhanced Email Builder</h4>
@@ -1294,20 +1263,30 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                     </div>
 
                     <div className="pt-2">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={settings.emailBuilder?.enableAutoResponse !== false}
-                          onChange={(e) => updateField('emailBuilder', 'enableAutoResponse', e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">
-                          Enable AI Auto-Response to Emails
-                        </span>
-                      </label>
-                      <p className="text-xs text-gray-500 ml-6 mt-1">
-                        When enabled, AI will automatically respond to incoming emails from leads
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">
+                            Enable AI Auto-Response to Emails
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1">
+                            When enabled, AI will automatically respond to incoming emails from leads
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateField('emailBuilder', 'enableAutoResponse', !(settings.emailBuilder?.enableAutoResponse !== false))}
+                          className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
+                          style={{
+                            backgroundColor: (settings.emailBuilder?.enableAutoResponse !== false) ? '#4ade80' : '#52525b'
+                          }}
+                        >
+                          <span
+                            className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                              (settings.emailBuilder?.enableAutoResponse !== false) ? 'translate-x-7' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

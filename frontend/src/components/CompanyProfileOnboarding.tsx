@@ -305,7 +305,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
       
       {/* Notification Toast */}
       {notification && (
-        <div className={`fixed top-8 right-8 z-50 px-6 py-4 rounded-2xl shadow-2xl animate-fade-in ${
+        <div className={`fixed top-8 right-8 z-[9999] px-6 py-4 rounded-2xl shadow-2xl animate-fade-in ${
           notification.type === 'error' ? 'bg-red-500 text-white' :
           notification.type === 'success' ? 'bg-green-500 text-white' :
           'bg-blue-500 text-white'

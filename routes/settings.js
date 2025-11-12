@@ -18,6 +18,11 @@ router.get('/presets', async (req, res) => {
     const userSettings = await awsManager.getUserSettings(userId);
     const presets = userSettings?.settingsPresets || [];
     
+    console.log('📦 [SETTINGS] Fetching presets from AWS, count:', presets.length);
+    if (presets.length > 0) {
+      console.log('📦 [SETTINGS] First preset example:', JSON.stringify(presets[0], null, 2));
+    }
+    
     res.json({
       success: true,
       presets
@@ -38,7 +43,23 @@ router.get('/presets', async (req, res) => {
 router.post('/presets', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { name, targetIndustries, targetPositions, companySizeMin, companySizeMax, leadLimit } = req.body;
+    console.log('📥 [SETTINGS] Received preset creation request body:', JSON.stringify(req.body, null, 2));
+    
+    const { 
+      name, 
+      targetIndustries, 
+      targetPositions, 
+      companySizeMin, 
+      companySizeMax, 
+      leadLimit,
+      emailLength,
+      callToAction,
+      personalizationLevel,
+      ccEmails,
+      bccEmails,
+      followupIntervalDays,
+      enableAutoResponse
+    } = req.body;
     
     const awsManager = new AWSManager();
     const userSettings = await awsManager.getUserSettings(userId) || {};
@@ -51,13 +72,22 @@ router.post('/presets', async (req, res) => {
       companySizeMin,
       companySizeMax,
       leadLimit,
+      emailLength: emailLength || 'medium',
+      callToAction: callToAction || 'schedule-meeting',
+      personalizationLevel: personalizationLevel || 'high',
+      ccEmails: ccEmails || '',
+      bccEmails: bccEmails || '',
+      followupIntervalDays: followupIntervalDays || 7,
+      enableAutoResponse: enableAutoResponse !== undefined ? enableAutoResponse : true,
       createdAt: new Date().toISOString()
     };
     
     userSettings.settingsPresets = [...(userSettings.settingsPresets || []), newPreset];
     
+    console.log('💾 [SETTINGS] Saving preset to AWS:', JSON.stringify(newPreset, null, 2));
     await awsManager.saveUserSettings(userId, userSettings);
     
+    console.log('✅ [SETTINGS] Returning preset to frontend:', JSON.stringify(newPreset, null, 2));
     res.json({
       success: true,
       preset: newPreset
@@ -92,6 +122,77 @@ router.delete('/presets/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting preset:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/settings/presets/:id
+ * Update a settings preset
+ */
+router.put('/presets/:id', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+    const { 
+      name, 
+      targetIndustries, 
+      targetPositions, 
+      companySizeMin, 
+      companySizeMax, 
+      leadLimit,
+      emailLength,
+      callToAction,
+      personalizationLevel,
+      ccEmails,
+      bccEmails,
+      followupIntervalDays,
+      enableAutoResponse
+    } = req.body;
+    
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(userId) || {};
+    
+    const presetIndex = (userSettings.settingsPresets || []).findIndex(p => p.id === id);
+    
+    if (presetIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Preset not found'
+      });
+    }
+    
+    const updatedPreset = {
+      ...userSettings.settingsPresets[presetIndex],
+      name,
+      targetIndustries,
+      targetPositions,
+      companySizeMin,
+      companySizeMax,
+      leadLimit,
+      emailLength: emailLength || 'medium',
+      callToAction: callToAction || 'schedule-meeting',
+      personalizationLevel: personalizationLevel || 'high',
+      ccEmails: ccEmails || '',
+      bccEmails: bccEmails || '',
+      followupIntervalDays: followupIntervalDays || 7,
+      enableAutoResponse: enableAutoResponse || false,
+      updatedAt: new Date().toISOString()
+    };
+    
+    userSettings.settingsPresets[presetIndex] = updatedPreset;
+    
+    await awsManager.saveUserSettings(userId, userSettings);
+    
+    res.json({
+      success: true,
+      preset: updatedPreset
+    });
+  } catch (error) {
+    console.error('Error updating preset:', error);
     res.status(500).json({
       success: false,
       error: error.message
