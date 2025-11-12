@@ -1079,10 +1079,50 @@ router.get('/agents', authenticateToken, async (req, res) => {
     
     const agents = user.activeAgents || [];
     
+    // Enrich agents with nextCycleTime from their running status (not settings)
+    const enrichedAgents = await Promise.all(agents.map(async (agent) => {
+      try {
+        // Get the running agent instance to get real-time nextCycleTime
+        const { getUserAgent } = await import('../agent/reasoningLeadAgent.js');
+        
+        let nextCycleTime = null;
+        try {
+          const runningAgent = getUserAgent(userId, agent.agentId);
+          if (runningAgent && runningAgent.isRunning) {
+            const status = await runningAgent.getStatus();
+            nextCycleTime = status?.nextCycleIn || null;
+            console.log(`[AUTH] Agent ${agent.name} status from running instance:`, {
+              isActive: status?.isActive,
+              nextCycleIn: status?.nextCycleIn,
+              hasNextCycleTime: !!nextCycleTime
+            });
+          } else {
+            console.log(`[AUTH] Agent ${agent.name} is not running, no nextCycleTime available`);
+          }
+        } catch (agentError) {
+          console.log(`[AUTH] Agent ${agent.name} not found in memory (not started yet)`);
+        }
+        
+        return {
+          ...agent,
+          nextCycleTime
+        };
+      } catch (err) {
+        console.error(`Failed to get status for agent ${agent.agentId}:`, err);
+        return agent;
+      }
+    }));
+    
+    console.log('[AUTH] Enriched agents:', enrichedAgents.map(a => ({
+      name: a.name,
+      agentId: a.agentId,
+      nextCycleTime: a.nextCycleTime
+    })));
+    
     res.json({ 
       success: true, 
-      agents: agents,
-      message: `Found ${agents.length} agents`
+      agents: enrichedAgents,
+      message: `Found ${enrichedAgents.length} agents`
     });
   } catch (error) {
     console.error('[AUTH] Get agents error:', error.message);

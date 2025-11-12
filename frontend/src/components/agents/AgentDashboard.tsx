@@ -1446,38 +1446,47 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               {/* Countdown Timer */}
               {countdownTime !== null && (
                 <motion.div 
-                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg ${
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className={`flex items-center gap-3 px-4 py-2.5 border rounded-lg ${
                     countdownTime <= 30 
                       ? 'bg-orange-50 border-orange-200' 
                       : countdownTime <= 0 
                         ? 'bg-green-50 border-green-200'
                         : 'bg-blue-50 border-blue-200'
                   }`}
-                  animate={countdownTime <= 10 && countdownTime > 0 ? { scale: [1, 1.05, 1] } : {}}
-                  transition={{ duration: 0.5, repeat: countdownTime <= 10 && countdownTime > 0 ? Infinity : 0 }}
                 >
-                  <ClockIcon className={`h-4 w-4 ${
-                    countdownTime <= 30 
-                      ? 'text-orange-600' 
-                      : countdownTime <= 0 
-                        ? 'text-green-600'
-                        : 'text-blue-600'
-                  }`} />
-                  <div className="text-sm">
-                    <div className={`font-medium ${
+                  <div className="relative">
+                    {countdownTime > 0 ? (
+                      <svg className={`h-5 w-5 animate-spin ${
+                        countdownTime <= 30 ? 'text-orange-600' : 'text-blue-600'
+                      }`} fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <span className="relative flex h-5 w-5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500"></span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className={`text-xs font-bold ${
                       countdownTime <= 30 
                         ? 'text-orange-700' 
                         : countdownTime <= 0 
                           ? 'text-green-700'
                           : 'text-blue-700'
-                    }`}>Next Cycle</div>
-                    <div className={`font-mono ${
+                    }`}>Next cycle in:</div>
+                    <div className={`font-mono font-bold text-base ${
                       countdownTime <= 30 
                         ? 'text-orange-600' 
                         : countdownTime <= 0 
                           ? 'text-green-600'
                           : 'text-blue-600'
-                    }`}>
+                    } ${countdownTime <= 10 && countdownTime > 0 ? 'animate-pulse' : ''}`}>
                       {countdownTime <= 0 ? 'Starting now...' : formatCountdown(countdownTime)}
                     </div>
                   </div>
@@ -1485,13 +1494,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               )}
               
               {status?.isActive && countdownTime === null && lastCycleTime === null && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                  <ClockIcon className="h-4 w-4 text-green-600" />
-                  <div className="text-sm">
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="flex items-center gap-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg">
+                  <span className="relative flex h-5 w-5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500"></span>
+                  </span>
+                  <div className="flex-1 text-sm">
                     <div className="font-medium text-green-700">Agent Running</div>
                     <div className="text-green-600">Waiting for first cycle...</div>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
           </div>

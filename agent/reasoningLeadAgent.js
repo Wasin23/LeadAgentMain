@@ -875,6 +875,26 @@ Call the appropriate function to continue the workflow.`;
             console.error('❌ [ISSUES] Failed to log issue:', issueError);
           }
           
+          // Add failed lead to contacted database to prevent duplicates
+          try {
+            const leadInfo = {
+              name: this.memory.currentCycle.currentLead?.name,
+              email: 'email_unlock_failed', // Mark as failed
+              company: this.memory.currentCycle.currentLead?.company || 'Unknown Company',
+              position: this.memory.currentCycle.currentLead?.position || 'Unknown Position',
+              linkedinUrl: this.memory.currentCycle.currentLead?.linkedinUrl,
+              status: 'email_unlock_failed',
+              failureReason: actionResult?.error || 'No valid email found',
+              contactedAt: new Date().toISOString(),
+              agentId: this.agentId
+            };
+            
+            await this.awsManager.addContactedLead(this.userId, leadInfo);
+            console.log('📝 [CONTACT TRACKING] Added failed email unlock to contacted database to prevent duplicates');
+          } catch (trackingError) {
+            console.error('❌ [CONTACT TRACKING] Failed to add failed lead to database:', trackingError);
+          }
+          
           this.memory.currentCycle.currentLead = null;
           
           if (this.memory.currentCycle.leadQueue.length > 0) {
@@ -1666,8 +1686,22 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         console.log(`📧 Personal emails: ${personalEmails.join(', ')}`);
         console.log(`📊 [DEBUG] Email status/confidence:`, person.email_status, person.extrapolated_email_confidence);
         
+        // Accept ANY email from Apollo, including constructed/guessed emails
+        // The bounce handler will validate if they're real
+        const allEmails = [workEmail, ...personalEmails].filter(email => {
+          return email && 
+                 email.trim() !== '' && 
+                 !email.includes('email_not_unlocked') &&
+                 email.includes('@'); // Basic email format check
+        });
+        
+        console.log(`📊 [DEBUG] Filtered emails count: ${allEmails.length}`);
+        if (allEmails.length > 0) {
+          console.log(`📊 [DEBUG] First email to use: ${allEmails[0]}`);
+        }
+        
         // Validate email with ZeroBounce before accepting (non-blocking)
-        const emailToValidate = workEmail;
+        const emailToValidate = allEmails[0]; // Use first available email
         if (emailToValidate) {
           console.log(`🔍 [ZEROBOUNCE] Validating email: ${emailToValidate}`);
           const zeroBounceResult = await this.validateEmailWithZeroBounce(emailToValidate);
@@ -1691,11 +1725,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
           console.log(`✅ [ZEROBOUNCE] Email validation: ${zeroBounceResult.status} (accepted)`);
         }
         
-        // Accept emails with actual confidence scores
-        const allEmails = [workEmail, ...personalEmails].filter(email => {
-          return email && !email.includes('email_not_unlocked');
-        });
-        
+        // Check if we have valid emails (already filtered above)
         if (allEmails.length > 0) {
           console.log('✅ [APOLLO] Email unlocked successfully!');
           

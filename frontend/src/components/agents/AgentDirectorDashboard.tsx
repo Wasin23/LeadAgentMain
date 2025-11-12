@@ -60,6 +60,80 @@ const BasicCounter = ({ type }: { type: 'queued' | 'sent' | 'replied' }) => {
   return <>{count}</>;
 };
 
+// Countdown badge component for agent cards
+const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
+  const [seconds, setSeconds] = useState<number | null>(null);
+  const [showStarting, setShowStarting] = useState(false);
+  
+  useEffect(() => {
+    const calculateSeconds = () => {
+      const now = new Date().getTime();
+      const target = new Date(nextCycleTime).getTime();
+      const remaining = Math.floor((target - now) / 1000);
+      return remaining > 0 ? remaining : 0;
+    };
+    
+    setSeconds(calculateSeconds());
+    
+    const interval = setInterval(() => {
+      const newSeconds = calculateSeconds();
+      setSeconds(newSeconds);
+      
+      // When countdown reaches 0, show "Starting..." then reset after 1.5s
+      if (newSeconds === 0 && !showStarting) {
+        setShowStarting(true);
+        setTimeout(() => {
+          setShowStarting(false);
+        }, 1500);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [nextCycleTime, showStarting]);
+  
+  const formatTime = (secs: number) => {
+    const minutes = Math.floor(secs / 60);
+    const remainingSecs = secs % 60;
+    return minutes > 0 ? `${minutes}m ${remainingSecs}s` : `${remainingSecs}s`;
+  };
+  
+  // Don't show badge if we've passed the "Starting..." phase
+  if (seconds === 0 && !showStarting) {
+    return null;
+  }
+  
+  if (seconds === null || (seconds === 0 && showStarting)) {
+    return (
+      <div className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          Starting...
+        </span>
+      </div>
+    );
+  }
+  
+  return (
+    <div className={`px-2 py-0.5 rounded text-xs font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500 ${
+      seconds <= 30 
+        ? 'bg-orange-100 text-orange-700 animate-pulse' 
+        : 'bg-blue-100 text-blue-700'
+    }`}>
+      <span className="inline-flex items-center gap-1.5">
+        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span className="text-[10px] opacity-75 font-semibold">Next cycle in:</span>
+        <span className="font-bold">{formatTime(seconds)}</span>
+      </span>
+    </div>
+  );
+};
+
 interface Agent {
   id: string;
   name: string;
@@ -68,6 +142,7 @@ interface Agent {
   emailsSent: number;
   meetingsScheduled: number;
   lastRun?: string;
+  nextCycleTime?: string;
   personality?: {
     type: string;
     name: string;
@@ -1190,7 +1265,8 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               emailsSent: emailStats.emailsSent,
               meetingsScheduled: emailStats.meetingsScheduled,
               lastRun: agent.lastRun,
-              personality: agent.personality
+              personality: agent.personality,
+              nextCycleTime: agent.nextCycleTime
             };
           })
         );
@@ -1660,13 +1736,27 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                         </p>
                       </div>
                     </div>
-                    <div className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      agent.status === 'running' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-neutral-200 text-neutral-600'
-                    }`}>
-                      {agent.status === 'running' ? 'Active' : 'Stopped'}
-                    </div>
+                    
+                    {/* Status Badge or Countdown Timer */}
+                    {agent.status === 'running' && agent.nextCycleTime ? (
+                      <CountdownBadge nextCycleTime={agent.nextCycleTime} />
+                    ) : (
+                      <div className={`px-2 py-0.5 rounded text-xs font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500 ${
+                        agent.status === 'running' 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-neutral-200 text-neutral-600'
+                      }`}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {agent.status === 'running' && (
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                          )}
+                          {agent.status === 'running' ? 'Active' : 'Stopped'}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Stats Grid */}

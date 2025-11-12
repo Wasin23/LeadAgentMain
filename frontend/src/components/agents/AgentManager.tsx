@@ -23,6 +23,7 @@ interface Agent {
   emailsSent: number;
   meetingsScheduled: number;
   lastRun?: string;
+  nextCycleTime?: string;
   personality?: {
     type: string;
     name: string;
@@ -47,6 +48,72 @@ interface Agent {
     };
   };
 }
+
+// Countdown Badge Component
+const CountdownBadge = ({ nextCycleTime }: { nextCycleTime: string }) => {
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [showStarting, setShowStarting] = useState(false);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      const target = new Date(nextCycleTime).getTime();
+      const difference = target - now;
+      return Math.max(0, Math.floor(difference / 1000));
+    };
+
+    setTimeLeft(calculateTimeLeft());
+
+    const interval = setInterval(() => {
+      const newTimeLeft = calculateTimeLeft();
+      setTimeLeft(newTimeLeft);
+      
+      // When countdown reaches 0, show "Starting..." then reset to null after 1.5s
+      if (newTimeLeft === 0 && !showStarting) {
+        setShowStarting(true);
+        setTimeout(() => {
+          setShowStarting(false);
+        }, 1500);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [nextCycleTime, showStarting]);
+
+  const formatTime = (seconds: number) => {
+    if (seconds === 0 || showStarting) return 'Starting...';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}m ${secs}s`;
+    }
+    return `${secs}s`;
+  };
+
+  const getBadgeColor = () => {
+    if (timeLeft === 0 || showStarting) return 'bg-green-100 text-green-700';
+    if (timeLeft <= 30) return 'bg-orange-100 text-orange-700 animate-pulse';
+    return 'bg-blue-100 text-blue-700';
+  };
+  
+  // Don't show badge if we've passed the "Starting..." phase
+  if (timeLeft === 0 && !showStarting) return null;
+
+  return (
+    <div className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 transition-all duration-300 ${getBadgeColor()} animate-in fade-in slide-in-from-top-2 duration-500`}>
+      <span className="inline-flex items-center gap-1.5">
+        {timeLeft > 0 && !showStarting && (
+          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        )}
+        {!showStarting && <span className="text-[10px] opacity-75 font-semibold">Next cycle in:</span>}
+        <span className="font-bold">{formatTime(timeLeft)}</span>
+      </span>
+    </div>
+  );
+};
 
 interface AgentManagerProps {
   onSelectAgent: (agentId: string) => void;
@@ -188,10 +255,18 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
       // Fetch user's agents from AWS via backend API
       const response = await api.get('/api/auth/agents');
       
+      console.log('[AgentManager] Agents response:', response.data);
+      
       if (response.data.success && response.data.agents) {
         // Convert AWS agents to frontend Agent format and fetch email stats + settings
         const awsAgents = await Promise.all(
           response.data.agents.map(async (agent: any) => {
+            console.log(`[AgentManager] Processing agent ${agent.name}:`, {
+              agentId: agent.agentId,
+              nextCycleTime: agent.nextCycleTime,
+              hasNextCycleTime: !!agent.nextCycleTime
+            });
+            
             const emailStats = await fetchEmailStats(agent.agentId);
             
             // Fetch actual agent running status
@@ -224,10 +299,20 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
               meetingsScheduled: emailStats.meetingsScheduled,
               lastRun: agent.lastRun,
               personality: agent.personality,
-              settings: agentSettings
+              settings: agentSettings,
+              nextCycleTime: agent.nextCycleTime
             };
           })
         );
+        
+        console.log('[AgentManager] Processed agents:', awsAgents.map(a => ({
+          name: a.name,
+          status: a.status,
+          nextCycleTime: a.nextCycleTime,
+          hasNextCycleTime: !!a.nextCycleTime
+        })));
+        
+        console.log('[AgentManager] Full first agent:', awsAgents[0]);
         
         setAgents(awsAgents);
       } else {
@@ -506,13 +591,27 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                         </p>
                       </div>
                     </div>
-                    <div className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${
-                      agent.status === 'running' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-neutral-200 text-neutral-600'
-                    }`}>
-                      {agent.status === 'running' ? 'Running' : 'Stopped'}
-                    </div>
+                    
+                    {/* Status Badge or Countdown Timer */}
+                    {agent.status === 'running' && agent.nextCycleTime ? (
+                      <CountdownBadge nextCycleTime={agent.nextCycleTime} />
+                    ) : (
+                      <div className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500 ${
+                        agent.status === 'running' 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-neutral-200 text-neutral-600'
+                      }`}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {agent.status === 'running' && (
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                          )}
+                          {agent.status === 'running' ? 'Running' : 'Stopped'}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Stats Grid */}

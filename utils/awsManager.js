@@ -930,11 +930,11 @@ class AWSManager {
     try {
       console.log('📝 [AWS] Adding contacted lead:', leadInfo.name, 'at', leadInfo.company);
 
-      // Create a unique contact ID combining name and company (to match deduplication logic)
-      const contactId = `${leadInfo.name.toLowerCase().replace(/\s+/g, '_')}_${leadInfo.company.toLowerCase().replace(/\s+/g, '_')}`;
+      // Create a unique contact ID combining userId, name and company (user-specific deduplication)
+      const contactId = `${userId}_${leadInfo.name.toLowerCase().replace(/\s+/g, '_')}_${leadInfo.company.toLowerCase().replace(/\s+/g, '_')}`;
       
       const contactData = {
-        contactKey: contactId, // Use contactKey as the primary key
+        contactKey: contactId, // Use contactKey as the primary key (includes userId)
         userId: userId,
         name: leadInfo.name,
         email: leadInfo.email.toLowerCase(),
@@ -1016,13 +1016,13 @@ class AWSManager {
           continue;
         }
 
-        // Use name + company as unique identifier (not email since Apollo doesn't provide emails)
-        const contactId = `${lead.name.toLowerCase().replace(/\s+/g, '_')}_${companyName.toLowerCase().replace(/\s+/g, '_')}`;
+        // Use userId + name + company as unique identifier (user-specific deduplication)
+        const contactId = `${userId}_${lead.name.toLowerCase().replace(/\s+/g, '_')}_${companyName.toLowerCase().replace(/\s+/g, '_')}`;
         
         const command = new GetCommand({
           TableName: this.tables.contactedLeads,
           Key: { 
-            contactKey: contactId  // Use contactKey as the primary key
+            contactKey: contactId  // Use contactKey as the primary key (includes userId)
           }
         });
 
