@@ -58,7 +58,8 @@ router.post('/presets', async (req, res) => {
       ccEmails,
       bccEmails,
       followupIntervalDays,
-      enableAutoResponse
+      enableAutoResponse,
+      specialInstructions
     } = req.body;
     
     const awsManager = new AWSManager();
@@ -79,6 +80,7 @@ router.post('/presets', async (req, res) => {
       bccEmails: bccEmails || '',
       followupIntervalDays: followupIntervalDays || 7,
       enableAutoResponse: enableAutoResponse !== undefined ? enableAutoResponse : true,
+      specialInstructions: specialInstructions || '',
       createdAt: new Date().toISOString()
     };
     
@@ -150,7 +152,8 @@ router.put('/presets/:id', async (req, res) => {
       ccEmails,
       bccEmails,
       followupIntervalDays,
-      enableAutoResponse
+      enableAutoResponse,
+      specialInstructions
     } = req.body;
     
     const awsManager = new AWSManager();
@@ -180,6 +183,7 @@ router.put('/presets/:id', async (req, res) => {
       bccEmails: bccEmails || '',
       followupIntervalDays: followupIntervalDays || 7,
       enableAutoResponse: enableAutoResponse || false,
+      specialInstructions: specialInstructions || '',
       updatedAt: new Date().toISOString()
     };
     

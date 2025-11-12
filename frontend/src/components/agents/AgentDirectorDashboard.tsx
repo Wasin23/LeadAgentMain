@@ -193,6 +193,7 @@ interface SettingsPreset {
   bccEmails?: string;
   followupIntervalDays?: number;
   enableAutoResponse?: boolean;
+  specialInstructions?: string;
 }
 
 function PresetsManagement({ 
@@ -229,7 +230,8 @@ function PresetsManagement({
     ccEmails: '',
     bccEmails: '',
     followupIntervalDays: 7,
-    enableAutoResponse: false
+    enableAutoResponse: false,
+    specialInstructions: ''
   });
   
   // Use external state if provided, otherwise use local state
@@ -560,6 +562,38 @@ function PresetsManagement({
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="e.g., SaaS Executives"
                 />
+              </div>
+
+              {/* Special Instructions */}
+              <div className="rounded-lg p-6" style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.2)', borderWidth: '2px' }}>
+                <div className="flex items-start gap-3 mb-3">
+                  <svg className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: 'rgb(37, 99, 235)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  <div className="flex-1">
+                    <label className="block text-sm font-bold mb-1" style={{ color: 'rgb(30, 64, 175)' }}>
+                      General Instructions
+                    </label>
+                    <p className="text-xs mb-3" style={{ color: 'rgb(29, 78, 216)' }}>
+                      Give specific campaign instructions. The AI will dynamically determine what actions to take based on these instructions.
+                    </p>
+                  </div>
+                </div>
+                <textarea
+                  value={formData.specialInstructions || ''}
+                  onChange={(e) => setFormData({ ...formData, specialInstructions: e.target.value })}
+                  placeholder="Example: Focus on companies that use GPU compute services. Only contact leads who work with AI/ML infrastructure. Emphasize our cost savings and performance improvements..."
+                  className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[100px]"
+                  maxLength={1000}
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs" style={{ color: 'rgb(29, 78, 216)' }}>
+                    💡 These instructions guide the entire campaign behavior
+                  </span>
+                  <span className="text-xs" style={{ color: 'rgb(107, 114, 128)' }}>
+                    {(formData.specialInstructions || '').length}/1000
+                  </span>
+                </div>
               </div>
 
               {/* Target Industries */}
@@ -960,6 +994,12 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [selectedEmailDetail, setSelectedEmailDetail] = useState<any | null>(null);
   
+  // Instructions modal state
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  const [selectedAgentForInstructions, setSelectedAgentForInstructions] = useState<any | null>(null);
+  const [instructionsText, setInstructionsText] = useState('');
+  const [savingInstructions, setSavingInstructions] = useState(false);
+  
   // Prevent concurrent fetches
   const isFetchingRef = useRef(false);
 
@@ -1003,6 +1043,13 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       clearInterval(pollInterval);
     };
   }, []);
+
+  // Load instructions when modal opens
+  useEffect(() => {
+    if (showInstructionsModal && selectedAgentForInstructions) {
+      setInstructionsText(selectedAgentForInstructions.specialInstructions || '');
+    }
+  }, [showInstructionsModal, selectedAgentForInstructions]);
   
   const handleMonitoringEvent = useCallback((message: any) => {
     const { type, data } = message;
@@ -1781,10 +1828,19 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                       e.stopPropagation();
                       handleQueueClick(agent.id, agent.personality?.name || agent.name, 'sent');
                     }} />
-                    <div className="text-center">
-                      <div className="text-base font-semibold text-neutral-900">{agent.meetingsScheduled}</div>
-                      <div className="text-xs text-neutral-600">Meetings</div>
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAgentForInstructions(agent);
+                        setShowInstructionsModal(true);
+                      }}
+                      className="flex flex-col items-center justify-center p-2 hover:bg-neutral-50 rounded transition-colors"
+                    >
+                      <svg className="w-5 h-5 text-blue-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <div className="text-xs text-neutral-600">Instructions</div>
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -2053,6 +2109,117 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Instructions Modal */}
+      {showInstructionsModal && selectedAgentForInstructions && (
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(23, 23, 23, 0.65)' }}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Special Instructions</h2>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    Tell {selectedAgentForInstructions.personality?.name || selectedAgentForInstructions.name} how to approach this campaign
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowInstructionsModal(false);
+                    setSelectedAgentForInstructions(null);
+                    setInstructionsText('');
+                  }}
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 flex-1 overflow-y-auto">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Campaign Instructions
+                  </label>
+                  <textarea
+                    value={instructionsText}
+                    onChange={(e) => setInstructionsText(e.target.value)}
+                    placeholder="Example: Focus on companies using AI/ML. Mention our GPU benchmark data. Target CTOs and Engineering VPs first."
+                    className="w-full h-48 px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    maxLength={1000}
+                  />
+                  <div className="mt-2 text-xs text-neutral-500 text-right">
+                    {instructionsText.length}/1000 characters
+                  </div>
+                </div>
+
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', borderWidth: '1px' }}>
+                  <div className="flex gap-3">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'rgb(37, 99, 235)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-sm font-medium mb-1" style={{ color: 'rgb(30, 64, 175)' }}>How this works</h4>
+                      <p className="text-xs" style={{ color: 'rgb(29, 78, 216)' }}>
+                        The AI will analyze your instructions and convert them into actionable goals. 
+                        It will adjust its search strategy, research focus, and email messaging to match your campaign objectives.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t bg-neutral-50 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowInstructionsModal(false);
+                  setSelectedAgentForInstructions(null);
+                  setInstructionsText('');
+                }}
+                className="px-4 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setSavingInstructions(true);
+                  try {
+                    await api.put(`/api/lead-agent/instructions`, {
+                      agentId: selectedAgentForInstructions.id,
+                      instructions: instructionsText
+                    });
+                    
+                    // Update local agent state
+                    setAgents(prev => prev.map(a => 
+                      a.id === selectedAgentForInstructions.id 
+                        ? { ...a, specialInstructions: instructionsText }
+                        : a
+                    ));
+                    
+                    setShowInstructionsModal(false);
+                    setSelectedAgentForInstructions(null);
+                    setInstructionsText('');
+                  } catch (error) {
+                    console.error('Failed to save instructions:', error);
+                    alert('Failed to save instructions. Please try again.');
+                  } finally {
+                    setSavingInstructions(false);
+                  }
+                }}
+                disabled={savingInstructions}
+                style={{ backgroundColor: savingInstructions ? '#93c5fd' : '#2563eb' }}
+                className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingInstructions ? 'Saving...' : 'Save Instructions'}
+              </button>
+            </div>
           </div>
         </div>
       )}

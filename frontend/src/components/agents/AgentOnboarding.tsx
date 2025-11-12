@@ -158,6 +158,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [agentName, setAgentName] = useState('');
   const [presetName, setPresetName] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [specialInstructions, setSpecialInstructions] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -187,7 +188,8 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         ccEmails: settings.ccEmails || '',
         bccEmails: settings.bccEmails || '',
         followupIntervalDays: settings.followupIntervalDays || 7,
-        enableAutoResponse: settings.enableAutoResponse !== undefined ? settings.enableAutoResponse : true
+        enableAutoResponse: settings.enableAutoResponse !== undefined ? settings.enableAutoResponse : true,
+        specialInstructions: specialInstructions || ''
       });
 
       if (!presetResponse.data.success) {
@@ -200,6 +202,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
       const response = await api.post('/api/auth/create-agent', {
         name: agentName,
         type: 'reasoning-lead-agent',
+        specialInstructions: specialInstructions,
         personality: {
           type: selectedPersonality.id,
           name: selectedPersonality.name,
@@ -343,6 +346,8 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               key="preset"
               selected={selectedPreset}
               onSelect={setSelectedPreset}
+              specialInstructions={specialInstructions}
+              onInstructionsChange={setSpecialInstructions}
               onNext={nextStep}
               onBack={prevStep}
             />
@@ -363,6 +368,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               name={agentName}
               presetName={presetName}
               preset={selectedPreset}
+              instructions={specialInstructions}
               onNext={nextStep}
               onBack={prevStep}
             />
@@ -734,15 +740,92 @@ function NamePresetStep({
   );
 }
 
+// Instructions Step - Special Campaign Instructions
+function InstructionsStep({ 
+  instructions, 
+  onChange, 
+  agentName,
+  onNext, 
+  onBack 
+}: { 
+  instructions: string; 
+  onChange: (text: string) => void; 
+  agentName: string;
+  onNext: () => void; 
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="w-full max-w-2xl"
+    >
+      <div className="text-center mb-8">
+        <div className="w-24 h-24 mx-auto mb-6 bg-white/10 backdrop-blur-lg rounded-full flex items-center justify-center">
+          <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <h2 className="text-4xl font-bold text-white mb-3">Campaign Instructions</h2>
+        <p className="text-xl text-white/90">
+          Give {agentName} special instructions for this campaign (optional)
+        </p>
+      </div>
+
+      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
+        <label className="block text-white font-semibold mb-3 text-lg">
+          Special Instructions
+        </label>
+        <textarea
+          value={instructions}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Example: Focus on companies using AI/ML. Mention our GPU benchmark data. Target CTOs and Engineering VPs first."
+          className="w-full h-48 px-6 py-4 rounded-xl text-lg border-2 border-white/20 focus:border-white focus:ring-4 focus:ring-white/20 bg-white/90 text-neutral-900 resize-none"
+          maxLength={1000}
+        />
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-white/70 text-sm">
+            💡 The AI will analyze and convert your instructions into actionable goals
+          </p>
+          <span className="text-white/70 text-sm">
+            {instructions.length}/1000
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+        >
+          ← Back
+        </button>
+        <button
+          onClick={onNext}
+          className="px-8 py-3 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 inline-flex items-center gap-2 bg-white"
+          style={{ color: 'rgb(147, 51, 234)' }}
+        >
+          Continue <ArrowRightIcon className="w-5 h-5" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // Choose Preset Step - Settings Builder
 function ChoosePresetStep({ 
   selected, 
   onSelect, 
+  specialInstructions,
+  onInstructionsChange,
   onNext, 
   onBack 
 }: { 
   selected: string; 
   onSelect: (p: string) => void; 
+  specialInstructions: string;
+  onInstructionsChange: (instructions: string) => void;
   onNext: () => void; 
   onBack: () => void;
 }) {
@@ -852,6 +935,38 @@ function ChoosePresetStep({
         <p className="text-xl text-white/90">
           Define your ideal customer profile
         </p>
+      </div>
+
+      {/* Special Instructions - Top Priority */}
+      <div className="bg-blue-500/90 backdrop-blur-lg rounded-2xl p-8 mb-6 border-2 border-blue-300">
+        <div className="flex items-start gap-4 mb-4">
+          <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-white font-bold text-2xl mb-2">General Instructions</h3>
+            <p className="text-white/90 text-sm leading-relaxed">
+              Give your agent specific campaign instructions. The AI will dynamically determine what actions to take based on these instructions, adapting its research, outreach, and engagement strategy to meet your goals.
+            </p>
+          </div>
+        </div>
+        <textarea
+          value={specialInstructions}
+          onChange={(e) => onInstructionsChange(e.target.value)}
+          placeholder="Example: Focus on companies that use GPU compute services. Only contact leads who work with AI/ML infrastructure. Emphasize our cost savings and performance improvements..."
+          className="w-full px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium placeholder:text-neutral-400 min-h-[120px] resize-y"
+          maxLength={1000}
+        />
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-white/70 text-sm">
+            💡 These instructions guide the entire campaign behavior
+          </span>
+          <span className="text-white/70 text-sm">
+            {specialInstructions.length}/1000
+          </span>
+        </div>
       </div>
 
       <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8 space-y-6">
@@ -1247,14 +1362,16 @@ function ReviewStep({
   personality, 
   name,
   presetName,
-  preset, 
+  preset,
+  instructions, 
   onNext, 
   onBack 
 }: { 
   personality: any; 
   name: string;
   presetName: string;
-  preset: string; 
+  preset: string;
+  instructions?: string; 
   onNext: () => void; 
   onBack: () => void;
 }) {
@@ -1278,6 +1395,21 @@ function ReviewStep({
             <p className="text-sm text-neutral-500 mb-2">Agent Name</p>
             <p className="text-2xl font-bold text-neutral-900">{name}</p>
           </div>
+          
+          {instructions && instructions.trim() && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-blue-900 mb-1">General Instructions</p>
+                  <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-wrap">{instructions}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div>
             <p className="text-sm text-neutral-500 mb-2">Personality</p>
             <div className="flex items-center gap-4">

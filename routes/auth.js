@@ -797,7 +797,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // Create new agent for authenticated user
 router.post('/create-agent', authenticateToken, async (req, res) => {
   try {
-    const { name, type = 'reasoning-lead-agent', personality, preset } = req.body;
+    const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions } = req.body;
     const userId = req.user.userId;
     
     console.log('[AUTH CREATE-AGENT] Request body:', {
@@ -805,6 +805,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       type,
       hasPersonality: !!personality,
       hasPreset: !!preset,
+      hasSpecialInstructions: !!specialInstructions,
       preset: preset ? {
         presetId: preset.presetId,
         name: preset.name,
@@ -907,6 +908,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       status: 'active',
       createdAt: new Date().toISOString(),
       personality: agentData.personality, // Copy personality to agent-settings
+      specialInstructions: specialInstructions || '',
       companyBranding: {
         agentName: name.trim(),
         companyName: companyProfile?.companyName || 'Your Company',
@@ -978,6 +980,11 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         rebumpIntervalDays: preset.followupIntervalDays || agentSettings.emailBuilder?.rebumpIntervalDays || 7,
         enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : (agentSettings.emailBuilder?.enableAutoResponse !== undefined ? agentSettings.emailBuilder.enableAutoResponse : true)
       };
+      
+      // Apply special instructions from preset if provided
+      if (preset.specialInstructions) {
+        agentSettings.specialInstructions = preset.specialInstructions;
+      }
       
       console.log(`[AUTH] ✅ Applied preset "${presetName}" to agent ${agentId}:`, {
         appliedPresetId: presetId,
@@ -1079,9 +1086,21 @@ router.get('/agents', authenticateToken, async (req, res) => {
     
     const agents = user.activeAgents || [];
     
-    // Enrich agents with nextCycleTime from their running status (not settings)
+    // Enrich agents with nextCycleTime from their running status and specialInstructions from settings
+    const awsManager = (await import('../utils/awsManager.js')).default;
+    const awsManagerInstance = new awsManager();
+    
     const enrichedAgents = await Promise.all(agents.map(async (agent) => {
       try {
+        // Get agent settings to fetch specialInstructions
+        let specialInstructions = '';
+        try {
+          const agentSettings = await awsManagerInstance.getAgentSettings(agent.agentId);
+          specialInstructions = agentSettings?.specialInstructions || '';
+        } catch (settingsError) {
+          console.log(`[AUTH] Could not load settings for agent ${agent.name}:`, settingsError.message);
+        }
+        
         // Get the running agent instance to get real-time nextCycleTime
         const { getUserAgent } = await import('../agent/reasoningLeadAgent.js');
         
@@ -1105,7 +1124,8 @@ router.get('/agents', authenticateToken, async (req, res) => {
         
         return {
           ...agent,
-          nextCycleTime
+          nextCycleTime,
+          specialInstructions
         };
       } catch (err) {
         console.error(`Failed to get status for agent ${agent.agentId}:`, err);
