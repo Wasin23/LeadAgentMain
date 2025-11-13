@@ -169,16 +169,225 @@ class ReasoningLeadAgent extends EventEmitter {
             emailSettings: { type: 'object', description: 'Email builder settings from AWS DynamoDB' }
           }
         }
+      },
+      {
+        name: 'pre_qualify_lead',
+        description: 'Quick qualification check before expensive research. Evaluates if lead is worth researching based on basic information.',
+        parameters: {
+          type: 'object',
+          properties: {
+            companyName: { type: 'string', description: 'Company name' },
+            personName: { type: 'string', description: 'Person name and title' },
+            companyDescription: { type: 'string', description: 'Brief company description or industry' }
+          }
+        }
+      },
+      {
+        name: 'qualify_lead',
+        description: 'Detailed qualification after research. Scores lead against campaign criteria and decides if they should receive email.',
+        parameters: {
+          type: 'object',
+          properties: {
+            leadData: { type: 'object', description: 'Lead information from Apollo' },
+            researchData: { type: 'object', description: 'Company research from Serper' }
+          }
+        }
       }
     ];
 
     console.log('🧠 [REASONING AGENT] Initialized AI reasoning agent for user:', userId);
+    
+    // Campaign plan from instructions (populated at cycle start)
+    this.campaignPlan = null;
     
     // Add initial log entry
     this.logOperation('🤖 Agent Ready', `Ready to find and contact leads`, 'completed', {
       userId,
       timestamp: new Date().toISOString()
     });
+  }
+
+  // === CAMPAIGN PLAN CONVERSION ===
+  
+  /**
+   * Generate a concise human-readable description of the campaign plan
+   */
+  async generatePlanDescription(plan, originalInstructions) {
+    try {
+      const prompt = `Summarize this campaign targeting plan in ONE concise sentence (max 15 words).
+
+ORIGINAL GOAL: ${originalInstructions}
+
+PLAN:
+- Search Keywords: ${plan.searchStrategy?.additionalKeywords?.join(', ') || 'None'}
+- Target Industries: ${plan.searchStrategy?.priorityIndustries?.join(', ') || 'None'}
+- Must-Have Criteria: ${plan.qualificationCriteria?.mustHave?.join(', ') || 'None'}
+
+Write a brief, clear description of WHO we're targeting and WHY. Be specific and concise.`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 50
+      });
+
+      const description = response.choices[0].message.content.trim();
+      
+      // Log API usage
+      if (response.usage) {
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'openai',
+          operation: 'plan_description',
+          usage: response.usage.total_tokens,
+          metadata: {
+            model: 'gpt-3.5-turbo',
+            prompt_tokens: response.usage.prompt_tokens,
+            completion_tokens: response.usage.completion_tokens
+          }
+        }).catch(err => console.error('Failed to log OpenAI usage:', err));
+      }
+      
+      console.log('📝 [PLAN DESCRIPTION]:', description);
+      return description;
+      
+    } catch (error) {
+      console.error('❌ [PLAN DESCRIPTION] Failed to generate description:', error);
+      // Fallback to basic summary
+      const keywords = plan.searchStrategy?.additionalKeywords?.slice(0, 3).join(', ') || 'custom criteria';
+      return `Targeting prospects matching: ${keywords}`;
+    }
+  }
+  
+  /**
+   * Convert special instructions into a structured campaign plan using GPT-4
+   * This is the "brain" that interprets user goals and converts them into actionable strategies
+   */
+  async convertInstructionsToPlan(specialInstructions, userSettings) {
+    console.log('🎯 [CAMPAIGN PLAN] Converting instructions to structured plan...');
+    console.log('📋 [CAMPAIGN PLAN INPUT] Special Instructions:', specialInstructions);
+    console.log('📋 [CAMPAIGN PLAN INPUT] User Settings:', {
+      company: userSettings.companyName,
+      industries: userSettings.companyIndustries,
+      positions: userSettings.targetPositions,
+      companySize: `${userSettings.companySizeMin}-${userSettings.companySizeMax}`
+    });
+    
+    // If no instructions provided, return null (use default behavior)
+    if (!specialInstructions || specialInstructions.trim() === '') {
+      console.log('📋 [CAMPAIGN PLAN] No special instructions provided, using default behavior');
+      return null;
+    }
+    
+    try {
+      const prompt = `You are an AI campaign strategist. Convert these campaign instructions into a structured plan for lead generation and outreach.
+
+CAMPAIGN INSTRUCTIONS (USER'S SEARCH GOAL):
+${specialInstructions}
+
+YOUR COMPANY CONTEXT (the sender of emails - DO NOT use as search criteria):
+- Your Company: ${userSettings.companyName || 'Not specified'}
+- Your Service: ${userSettings.primaryService || 'Not specified'}
+- Core Offering: ${userSettings.coreOffering || 'Not specified'}
+- Key Advantages: ${Array.isArray(userSettings.keyAdvantages) ? userSettings.keyAdvantages.join(', ') : userSettings.keyAdvantages || 'Not specified'}
+
+BASELINE TARGETING SETTINGS (use as minimum requirements, can be expanded based on instructions):
+- Target Industries: ${userSettings.companyIndustries?.join(', ') || 'Not specified'}
+- Target Positions: ${userSettings.targetPositions?.join(', ') || 'Not specified'}
+- Company Size: ${userSettings.companySizeMin || 'Any'} - ${userSettings.companySizeMax || 'Any'} employees
+
+CRITICAL INSTRUCTIONS:
+1. The "Campaign Instructions" are what to SEARCH FOR (target prospects)
+2. The "Your Company Context" describes who is SENDING the emails (never use as search criteria)
+3. Use baseline targeting settings as hard guidelines (don't change industry/position/size unless instructions explicitly say so)
+4. Extract search criteria FROM THE CAMPAIGN INSTRUCTIONS ONLY
+5. ALWAYS exclude educational institutions (schools, universities, institutes) unless explicitly targeting them
+6. Use SPECIFIC industry terms ("SaaS", "Software Development") not generic ones ("Technology")
+
+Convert the campaign instructions into a JSON plan with these fields:
+
+{
+  "searchStrategy": {
+    "additionalKeywords": ["keyword1", "keyword2"],
+    "priorityIndustries": ["industry1", "industry2"],
+    "excludeKeywords": ["Institute", "University", "College", "School", "Education", "keyword1"]
+  },
+  "qualificationCriteria": {
+    "mustHave": ["requirement1", "requirement2"],
+    "niceToHave": ["bonus1", "bonus2"],
+    "disqualifiers": ["Educational institution", "Non-profit organization", "Government agency", "dealbreaker1"]
+  },
+  "researchFocus": {
+    "keyQuestions": ["question1", "question2"],
+    "signalsToLookFor": ["signal1", "signal2"],
+    "verificationNeeds": ["verify1", "verify2"]
+  },
+  "emailMessaging": {
+    "primaryValue": "main value proposition FROM YOUR COMPANY to the prospect",
+    "keyPoints": ["point1", "point2", "point3"],
+    "callToAction": "what to ask for",
+    "tone": "professional/casual/technical"
+  }
+}
+
+IMPORTANT RULES:
+- searchStrategy: Extract keywords FROM the campaign instructions about what prospects to find
+- qualificationCriteria: Based on campaign instructions, what makes a prospect qualified
+- emailMessaging: Use YOUR COMPANY CONTEXT to craft value props (not prospect's business)
+- Return ONLY valid JSON, no other text.`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3
+      });
+
+      const plan = JSON.parse(response.choices[0].message.content);
+      
+      // Log API usage
+      if (response.usage) {
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'openai',
+          operation: 'campaign_plan_conversion',
+          usage: response.usage.total_tokens,
+          metadata: {
+            model: 'gpt-4',
+            prompt_tokens: response.usage.prompt_tokens,
+            completion_tokens: response.usage.completion_tokens
+          }
+        }).catch(err => console.error('Failed to log OpenAI usage:', err));
+      }
+      
+      console.log('✅ [CAMPAIGN PLAN OUTPUT] Generated structured plan:', JSON.stringify(plan, null, 2));
+      console.log('🎯 [CAMPAIGN PLAN SUMMARY]');
+      console.log('  Search Strategy:', plan.searchStrategy?.additionalKeywords?.join(', ') || 'None');
+      console.log('  Priority Industries:', plan.searchStrategy?.priorityIndustries?.join(', ') || 'None');
+      console.log('  Primary Value Prop:', plan.emailMessaging?.primaryValue || 'None');
+      console.log('  Qualification Must-Haves:', plan.qualificationCriteria?.mustHave?.length || 0, 'criteria');
+      
+      // Generate AI description of the plan
+      const planDescription = await this.generatePlanDescription(plan, specialInstructions);
+      
+      this.logOperation('🎯 Campaign Strategy', planDescription || 'Custom targeting campaign', 'completed', {
+        hasSearchStrategy: !!plan.searchStrategy,
+        hasCriteria: !!plan.qualificationCriteria,
+        hasEmailStrategy: !!plan.emailMessaging
+      });
+      
+      return plan;
+      
+    } catch (error) {
+      console.error('❌ [CAMPAIGN PLAN] Failed to convert instructions:', error);
+      this.logIssue('warning', 'Failed to convert campaign instructions to plan', {
+        error: error.message,
+        instructions: specialInstructions.substring(0, 100)
+      });
+      return null; // Fall back to default behavior
+    }
   }
 
   // === MONITORING INTEGRATION METHODS ===
@@ -697,10 +906,24 @@ Call the appropriate function to continue the workflow.`;
         }
         break;
         
+      case 'pre-qualify':
+        if (context.currentLead) {
+          console.log('🔧 [FUNCTION CALL] Forcing pre_qualify_lead');
+          return { name: 'pre_qualify_lead' };
+        }
+        break;
+        
       case 'research':
         if (context.currentLead) {
           console.log('🔧 [FUNCTION CALL] Forcing serper_research');
           return { name: 'serper_research' };
+        }
+        break;
+        
+      case 'qualify':
+        if (context.currentLead) {
+          console.log('🔧 [FUNCTION CALL] Forcing qualify_lead');
+          return { name: 'qualify_lead' };
         }
         break;
         
@@ -750,6 +973,7 @@ Call the appropriate function to continue the workflow.`;
           // Start processing the first lead from queue
           if (this.memory.currentCycle.leadQueue.length > 0 && !this.memory.currentCycle.currentLead) {
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+            // Always start with research (Apollo just gave us names, we need Serper data)
             this.memory.currentCycle.processingPhase = 'research';
             const domain = this.memory.currentCycle.currentLead.organization?.primary_domain;
             console.log(`📋 [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}${domain ? ` (${domain})` : ''}`);
@@ -808,11 +1032,79 @@ Call the appropriate function to continue the workflow.`;
         }
         break;
         
+      case 'pre_qualify_lead':
+        if (actionResult?.success) {
+          if (actionResult.recommendation === 'SKIP') {
+            // Pre-qualification failed, skip lead and get next
+            console.log(`❌ [CYCLE] Pre-qualification failed (score: ${actionResult.score}/100), skipping lead`);
+            this.memory.currentCycle.currentLead = null;
+            
+            // Get next lead from queue or search for more
+            if (this.memory.currentCycle.leadQueue.length > 0) {
+              this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+              this.memory.currentCycle.processingPhase = 'research';
+              console.log(`📋 [QUEUE] Next lead from queue: ${this.memory.currentCycle.currentLead.name}`);
+            } else {
+              this.memory.currentCycle.processingPhase = 'search';
+              console.log(`🔍 [CYCLE] Queue empty, searching for more leads`);
+            }
+          } else {
+            // Pre-qualification passed, proceed to detailed qualification
+            this.memory.currentCycle.processingPhase = 'qualify';
+            console.log(`✅ [CYCLE] Pre-qualification passed (score: ${actionResult.score}/100), proceeding to detailed qualification`);
+          }
+        }
+        break;
+      
       case 'serper_research':
         if (actionResult?.success) {
-          // Research complete, move to email unlock
-          this.memory.currentCycle.processingPhase = 'email';
+          // Research complete, move to pre-qualification ONLY if we have criteria to check
+          const hasCriteria = this.campaignPlan?.qualificationCriteria?.mustHave?.length > 0 ||
+                             this.campaignPlan?.qualificationCriteria?.disqualifiers?.length > 0;
+          
+          this.memory.currentCycle.processingPhase = hasCriteria ? 'pre-qualify' : 'email';
+          
+          if (!hasCriteria && this.campaignPlan) {
+            console.log(`⏭️ [CYCLE] Skipping pre-qualification - no criteria to check`);
+          }
           console.log(`📚 [CYCLE] Research completed for ${this.memory.currentCycle.currentLead?.name}`);
+        }
+        break;
+        
+      case 'qualify_lead':
+        if (actionResult?.success) {
+          // Store qualification results for email generation
+          this.memory.currentQualification = {
+            score: actionResult.score,
+            keyStrengths: actionResult.keyStrengths,
+            weaknesses: actionResult.weaknesses,
+            reasoning: actionResult.reasoning,
+            confidence: actionResult.confidence,
+            researchQuality: actionResult.researchQuality,
+            requiresReview: actionResult.requiresReview
+          };
+          
+          if (actionResult.qualified) {
+            // Qualification passed, proceed to email unlock
+            this.memory.currentCycle.processingPhase = 'email';
+            
+            const confidenceNote = actionResult.confidence === 'LOW' ? ' ⚠️ LOW CONFIDENCE - will mark for review' : '';
+            console.log(`✅ [CYCLE] Lead qualified (score: ${actionResult.score}/100)${confidenceNote}, proceeding to email unlock`);
+          } else {
+            // Qualification failed, skip lead and get next
+            console.log(`❌ [CYCLE] Lead disqualified (score: ${actionResult.score}/100), skipping lead`);
+            this.memory.currentCycle.currentLead = null;
+            
+            // Get next lead from queue or search for more
+            if (this.memory.currentCycle.leadQueue.length > 0) {
+              this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+              this.memory.currentCycle.processingPhase = 'research';
+              console.log(`📋 [QUEUE] Next lead from queue: ${this.memory.currentCycle.currentLead.name}`);
+            } else {
+              this.memory.currentCycle.processingPhase = 'search';
+              console.log(`🔍 [CYCLE] Queue empty, searching for more leads`);
+            }
+          }
         }
         break;
         
@@ -912,7 +1204,12 @@ Call the appropriate function to continue the workflow.`;
         
       case 'build_personalized_email':
         if (actionResult?.success) {
-          // Add email to queue with correct field names
+          // Determine if email should be marked for review based on qualification confidence
+          const qualification = this.memory.currentQualification || {};
+          const requiresReview = qualification.requiresReview || qualification.confidence === 'LOW';
+          const confidence = qualification.confidence || 'MEDIUM';
+          
+          // Add email to queue with confidence metadata
           const leadData = {
             ...this.memory.currentCycle.currentLead,
             email: this.memory.currentCycle.currentLead.email,
@@ -920,10 +1217,20 @@ Call the appropriate function to continue the workflow.`;
             personalizedEmail: actionResult.email,
             emailSubject: actionResult.subject,
             generatedEmail: actionResult.email,
-            research: this.memory.lastResearch // Include the research data from memory
+            research: this.memory.lastResearch, // Include the research data from memory
+            // Add qualification metadata
+            qualificationScore: qualification.score,
+            qualificationConfidence: confidence,
+            researchQuality: qualification.researchQuality,
+            requiresReview: requiresReview,
+            keyStrengths: qualification.keyStrengths,
+            weaknesses: qualification.weaknesses
           };
+          
           await this.addToEmailQueue(leadData);
-          console.log(`📧 [QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}`);
+          
+          const reviewNote = requiresReview ? ' ⚠️ MARKED FOR REVIEW (low confidence)' : '';
+          console.log(`📧 [QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}${reviewNote}`);
           
           // Email built, lead complete - move to next lead
           this.memory.currentCycle.leadsProcessed++;
@@ -1110,6 +1417,23 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
       const analysis = response.choices[0]?.message?.content || 'Analysis completed';
       console.log('✅ [AI ANALYSIS] Strategic analysis generated for:', companyName);
+      
+      // Log API usage
+      if (response.usage) {
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'openai',
+          operation: 'research_analysis',
+          usage: response.usage.total_tokens,
+          metadata: {
+            model: 'gpt-4',
+            prompt_tokens: response.usage.prompt_tokens,
+            completion_tokens: response.usage.completion_tokens,
+            companyName: companyName
+          }
+        }).catch(err => console.error('Failed to log OpenAI usage:', err));
+      }
 
       // Parse the structured response - capture multi-line content
       const lines = analysis.split('\n');
@@ -1286,74 +1610,658 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
     }
   }
 
-  // Research company/lead using Serper
-  async serperResearch(parameters) {
-    const companyName = parameters.companyName || 'Unknown Company';
-    console.log('🔍 [SERPER] Starting research for:', companyName);
+  // === QUALIFICATION TOOLS ===
+  
+  /**
+   * Pre-qualify lead - Quick check AFTER Serper research
+   * Uses research data + campaign plan for fast filtering (saves money on email unlock)
+   */
+  async preQualifyLead(parameters) {
+    // Get data from current cycle state
+    const leadData = this.memory.currentCycle.currentLead;
+    const researchData = this.memory.lastResearch;
+    
+    const personName = leadData?.name || 'Unknown';
+    const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
+    
+    console.log(`🎯 [PRE-QUALIFY] Quick check: ${personName} at ${companyName}`);
     
     try {
-      const searchQuery = parameters.searchQuery || 
-        `${parameters.companyName} company information business model products services`;
+      // If no campaign plan, skip pre-qualification (accept everyone)
+      if (!this.campaignPlan || !this.campaignPlan.qualificationCriteria) {
+        console.log('📋 [PRE-QUALIFY] No campaign plan, accepting lead');
+        return {
+          success: true,
+          score: 70,
+          recommendation: 'RESEARCH',
+          reason: 'No specific criteria configured, proceeding to detailed qualification'
+        };
+      }
       
-      console.log('🔎 [SERPER] Search Query:', searchQuery);
+      const criteria = this.campaignPlan.qualificationCriteria;
       
-      const results = await internetSearch(searchQuery);
+      // Extract research summary - OPTION B: Pass raw Serper organic results from searches array
+      let researchSummary = 'No research data available';
+      const allOrganicResults = [];
+      
+      // Collect all organic results from all searches
+      if (researchData?.searches && Array.isArray(researchData.searches)) {
+        researchData.searches.forEach(search => {
+          if (search.results?.organic && Array.isArray(search.results.organic)) {
+            allOrganicResults.push(...search.results.organic);
+          }
+        });
+      }
+      
+      if (allOrganicResults.length > 0) {
+        // Take top 5 organic results and extract their titles + snippets for better context
+        researchSummary = allOrganicResults
+          .slice(0, 5)
+          .map(result => {
+            const title = result.title || '';
+            const snippet = result.snippet || '';
+            return `${title}\n${snippet}`.trim();
+          })
+          .filter(text => text.length > 0)
+          .join('\n\n');
+        
+        console.log(`📚 [PRE-QUALIFY] Extracted ${allOrganicResults.slice(0, 5).length} organic results from ${researchData.searches.length} searches (${researchSummary.length} chars)`);
+      } else {
+        console.log(`⚠️ [PRE-QUALIFY] No Serper organic results available from ${researchData?.searches?.length || 0} searches`);
+      }
+      
+      const prompt = `You are a lead qualification AI. Quickly evaluate if this lead is worth pursuing based on available information.
+
+LEAD INFORMATION:
+Company: ${companyName}
+Person: ${personName}
+Title: ${leadData?.title || 'Unknown'}
+Industry: ${leadData?.organization?.industry || 'Unknown'}
+
+RESEARCH FINDINGS (from Serper):
+${researchSummary}
+
+MUST-HAVE CRITERIA (ideal qualifications):
+${criteria.mustHave?.map(c => `- ${c}`).join('\n') || '- No specific requirements'}
+
+DISQUALIFIERS (instant rejection):
+${criteria.disqualifiers?.map(d => `- ${d}`).join('\n') || '- None specified'}
+
+IMPORTANT: Even if you cannot find evidence of the must-have criteria, the lead may still be worth pursuing. Absence of evidence is not evidence of absence. Only recommend SKIP if you find clear disqualifiers or the company is completely unrelated to the target criteria.
+
+Give a score 0-100:
+- 80-100: Strong evidence of criteria match
+- 50-79: Limited evidence but good fit (e.g., right industry, position, size)
+- 20-49: Weak fit, missing key evidence but not disqualified
+- 0-19: Clear disqualifier or completely wrong target
+
+Recommend RESEARCH unless score < 20 (clear disqualifier found).
+
+Respond in JSON format:
+{
+  "score": 0-100,
+  "recommendation": "SKIP" or "RESEARCH",
+  "reason": "brief explanation"
+}`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.3
+      });
+
+      const result = JSON.parse(response.choices[0].message.content);
       
       // Log API usage
-      try {
+      if (response.usage) {
         await this.awsManager.logApiUsage({
           userId: this.userId,
           agentId: this.agentId,
-          service: 'serper',
-          operation: 'search',
-          usage: 1, // 1 credit per search
+          service: 'openai',
+          operation: 'pre_qualification',
+          usage: response.usage.total_tokens,
           metadata: {
-            companyName: companyName,
-            queryLength: searchQuery.length,
-            timestamp: new Date().toISOString()
+            model: 'gpt-3.5-turbo',
+            prompt_tokens: response.usage.prompt_tokens,
+            completion_tokens: response.usage.completion_tokens,
+            score: result.score,
+            recommendation: result.recommendation
+          }
+        }).catch(err => console.error('Failed to log OpenAI usage:', err));
+      }
+      
+      // Calculate confidence based on how well research answered our questions
+      let confidence = 'HIGH'; // Default
+      let criteriaVerified = 0;
+      let criteriaMissing = 0;
+      
+      // Check if we verified the must-have criteria with research
+      if (criteria.mustHave && criteria.mustHave.length > 0) {
+        const researchText = researchSummary.toLowerCase();
+        criteria.mustHave.forEach(requirement => {
+          const keywords = requirement.toLowerCase().split(' ').filter(w => w.length > 3);
+          const found = keywords.some(kw => researchText.includes(kw));
+          if (found) {
+            criteriaVerified++;
+          } else {
+            criteriaMissing++;
           }
         });
-        console.log('📊 [SERPER] API usage logged');
-      } catch (logError) {
-        console.error('⚠️ [SERPER] Failed to log API usage:', logError);
-      }
-      
-      // Log detailed findings
-      console.log('📊 [SERPER] Raw Results Summary:');
-      console.log(`   • Total organic results: ${results.organic?.length || 0}`);
-      console.log(`   • Knowledge graph: ${results.knowledgeGraph ? 'YES' : 'NO'}`);
-      console.log(`   • Answer box: ${results.answerBox ? 'YES' : 'NO'}`);
-      console.log(`   • Related searches: ${results.relatedSearches?.length || 0}`);
-      
-      // Log top organic results
-      if (results.organic && results.organic.length > 0) {
-        console.log('🎯 [SERPER] Top Search Results Found:');
-        results.organic.slice(0, 5).forEach((result, index) => {
-          console.log(`   ${index + 1}. ${result.title}`);
-          console.log(`      URL: ${result.link}`);
-          console.log(`      Snippet: ${result.snippet?.substring(0, 100)}...`);
-        });
-      }
-      
-      // Log knowledge graph data if available
-      if (results.knowledgeGraph) {
-        console.log('🧠 [SERPER] Knowledge Graph Found:');
-        console.log(`   • Title: ${results.knowledgeGraph.title}`);
-        console.log(`   • Type: ${results.knowledgeGraph.type}`);
-        console.log(`   • Description: ${results.knowledgeGraph.description?.substring(0, 150)}...`);
-        if (results.knowledgeGraph.attributes) {
-          console.log('   • Key Attributes:');
-          Object.entries(results.knowledgeGraph.attributes).slice(0, 3).forEach(([key, value]) => {
-            console.log(`     - ${key}: ${value}`);
-          });
+        
+        // Calculate confidence
+        const verificationRate = criteriaVerified / criteria.mustHave.length;
+        if (verificationRate >= 0.8) {
+          confidence = 'HIGH';
+        } else if (verificationRate >= 0.5) {
+          confidence = 'MEDIUM';
+        } else {
+          confidence = 'LOW';
         }
       }
       
-      // Log answer box if available
-      if (results.answerBox) {
-        console.log('💡 [SERPER] Answer Box Found:');
-        console.log(`   • Answer: ${results.answerBox.answer?.substring(0, 200)}...`);
-        console.log(`   • Source: ${results.answerBox.link}`);
+      // Emit activity log
+      const emoji = result.recommendation === 'SKIP' ? '❌' : '✅';
+      const confidenceEmoji = confidence === 'HIGH' ? '🟢' : confidence === 'MEDIUM' ? '🟡' : '🔴';
+      
+      this.logOperation(`${emoji} Pre-Check: ${personName}`, 
+        `${result.recommendation === 'SKIP' ? 'Skipped' : 'Passed'} (${result.score}/100) ${confidenceEmoji} - ${result.reason}`, 
+        result.recommendation === 'SKIP' ? 'warning' : (confidence === 'LOW' ? 'warning' : 'completed'),
+        { 
+          score: result.score, 
+          company: companyName,
+          confidence: confidence,
+          criteriaVerified: criteriaVerified,
+          criteriaMissing: criteriaMissing
+        }
+      );
+      
+      console.log(`${emoji} [PRE-QUALIFY] Score: ${result.score}/100 - ${result.recommendation} - ${confidenceEmoji}`);
+      console.log(`💭 [PRE-QUALIFY] Reason: ${result.reason}`);
+      console.log(`📊 [PRE-QUALIFY] Verified ${criteriaVerified}/${criteria.mustHave?.length || 0} must-have criteria`);
+      
+      return {
+        success: true,
+        score: result.score,
+        recommendation: result.recommendation,
+        reason: result.reason,
+        confidence: confidence,
+        criteriaVerified: criteriaVerified,
+        criteriaMissing: criteriaMissing
+      };
+      
+    } catch (error) {
+      console.error('❌ [PRE-QUALIFY] Error:', error);
+      // On error, don't block the lead - proceed with research
+      return {
+        success: true,
+        score: 50,
+        recommendation: 'RESEARCH',
+        reason: 'Pre-qualification error, proceeding with research'
+      };
+    }
+  }
+
+  /**
+   * Detailed qualification after research
+   * Uses full research data and campaign plan for comprehensive scoring
+   */
+  async qualifyLead(parameters) {
+    // Get data from current cycle state (NOT from parameters - GPT-3.5 calls with empty {})
+    const leadData = this.memory.currentCycle.currentLead;
+    const researchData = this.memory.lastResearch;
+    
+    const personName = leadData?.name || 'Unknown';
+    const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
+    
+    console.log(`📊 [QUALIFY] Detailed evaluation: ${personName} at ${companyName}`);
+    
+    try {
+      // If no campaign plan, use default qualification (always qualify)
+      if (!this.campaignPlan || !this.campaignPlan.qualificationCriteria) {
+        console.log('📋 [QUALIFY] No campaign plan, accepting lead');
+        return {
+          success: true,
+          qualified: true,
+          score: 75,
+          reasoning: 'No specific criteria configured, lead accepted',
+          keyStrengths: ['Meets basic targeting criteria'],
+          weaknesses: []
+        };
+      }
+      
+      const criteria = this.campaignPlan.qualificationCriteria;
+      
+      // Extract research insights
+      let researchSummary = 'No research data available';
+      if (researchData?.data?.organic && researchData.data.organic.length > 0) {
+        researchSummary = researchData.data.organic.slice(0, 5)
+          .map(r => r.snippet)
+          .join(' ');
+      }
+      
+      const prompt = `You are an expert lead qualification analyst. Evaluate this lead comprehensively.
+
+LEAD PROFILE:
+Name: ${personName}
+Title: ${leadData?.title || 'Unknown'}
+Company: ${companyName}
+Industry: ${leadData?.organization?.industry || 'Unknown'}
+Company Size: ${leadData?.organization?.estimated_num_employees || 'Unknown'} employees
+
+RESEARCH FINDINGS:
+${researchSummary}
+
+QUALIFICATION CRITERIA:
+Must Have (required): ${criteria.mustHave?.join(', ') || 'None'}
+Nice to Have (bonus points): ${criteria.niceToHave?.join(', ') || 'None'}
+Disqualifiers (instant fail): ${criteria.disqualifiers?.join(', ') || 'None'}
+
+EVALUATION TASK:
+1. Check for disqualifiers (instant 0 score if found)
+2. Score against must-have criteria (0-60 points)
+3. Score against nice-to-have criteria (0-40 points)
+4. Identify key strengths that match campaign goals
+5. Note any weaknesses or concerns
+
+Respond in JSON:
+{
+  "score": 0-100,
+  "qualified": true/false (true if score >= 60),
+  "reasoning": "detailed explanation",
+  "keyStrengths": ["strength1", "strength2"],
+  "weaknesses": ["weakness1", "weakness2"]
+}`;
+
+      console.log('💰 [COST OPTIMIZATION] Using GPT-3.5-Turbo for qualification scoring (10x cheaper than GPT-4)');
+      
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo-1106',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.3
+      });
+
+      const result = JSON.parse(response.choices[0].message.content);
+      
+      // Log API usage
+      if (response.usage) {
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'openai',
+          operation: 'detailed_qualification',
+          usage: response.usage.total_tokens,
+          metadata: {
+            model: 'gpt-3.5-turbo-1106',
+            prompt_tokens: response.usage.prompt_tokens,
+            completion_tokens: response.usage.completion_tokens,
+            score: result.score,
+            qualified: result.qualified
+          }
+        }).catch(err => console.error('Failed to log OpenAI usage:', err));
+      }
+      
+      // Calculate confidence based on research verification
+      let confidence = 'HIGH';
+      let researchQuality = 'COMPLETE';
+      
+      // Check if we have solid research data
+      if (researchData && typeof researchData === 'object' && researchData.combinedFindings) {
+        const findingsCount = researchData.combinedFindings.length;
+        
+        if (findingsCount >= 8) {
+          confidence = 'HIGH';
+          researchQuality = 'COMPLETE';
+        } else if (findingsCount >= 4) {
+          confidence = 'MEDIUM';
+          researchQuality = 'PARTIAL';
+        } else {
+          confidence = 'LOW';
+          researchQuality = 'LIMITED';
+        }
+        
+        // Check if must-have criteria were actually found in research
+        if (criteria.mustHave && criteria.mustHave.length > 0) {
+          const allFindings = researchData.combinedFindings.map(f => f.snippet).join(' ').toLowerCase();
+          let verified = 0;
+          
+          criteria.mustHave.forEach(requirement => {
+            const keywords = requirement.toLowerCase().split(' ').filter(w => w.length > 3);
+            const found = keywords.some(kw => allFindings.includes(kw));
+            if (found) verified++;
+          });
+          
+          const verificationRate = verified / criteria.mustHave.length;
+          if (verificationRate < 0.5) {
+            confidence = 'LOW';
+            researchQuality = 'UNVERIFIED';
+          }
+        }
+      } else {
+        confidence = 'LOW';
+        researchQuality = 'MINIMAL';
+      }
+      
+      // Emit detailed activity log
+      const emoji = result.qualified ? '✅' : '❌';
+      const confidenceEmoji = confidence === 'HIGH' ? '🟢' : confidence === 'MEDIUM' ? '🟡' : '🔴';
+      
+      // Build detailed summary with AI's full reasoning
+      const detailsSummary = [
+        `${result.qualified ? 'Qualified' : 'Disqualified'} (${result.score}/100) ${confidenceEmoji}`,
+        `💭 AI Reasoning: ${result.reasoning}`,
+        result.keyStrengths?.length > 0 ? `💪 Strengths: ${result.keyStrengths.join(', ')}` : null,
+        result.weaknesses?.length > 0 ? `⚠️ Concerns: ${result.weaknesses.join(', ')}` : null,
+        confidence === 'LOW' && result.qualified ? '⚠️ Marked for manual review' : null
+      ].filter(Boolean).join(' • ');
+      
+      this.logOperation(`${emoji} Qualification: ${personName}`, 
+        detailsSummary, 
+        result.qualified ? (confidence === 'LOW' ? 'warning' : 'completed') : 'warning',
+        { 
+          score: result.score,
+          company: companyName,
+          confidence: confidence,
+          researchQuality: researchQuality,
+          reasoning: result.reasoning,
+          strengths: result.keyStrengths,
+          weaknesses: result.weaknesses,
+          requiresReview: confidence === 'LOW' && result.qualified
+        }
+      );
+      
+      console.log(`${emoji} [QUALIFY] Score: ${result.score}/100 - ${result.qualified ? 'QUALIFIED' : 'DISQUALIFIED'} - ${confidenceEmoji}`);
+      console.log(`📊 [QUALIFY] Research Quality: ${researchQuality}`);
+      console.log(`💭 [QUALIFY] Reasoning: ${result.reasoning}`);
+      console.log(`💪 [QUALIFY] Strengths: ${result.keyStrengths?.join(', ')}`);
+      if (result.weaknesses?.length > 0) {
+        console.log(`⚠️ [QUALIFY] Weaknesses: ${result.weaknesses.join(', ')}`);
+      }
+      if (confidence === 'LOW' && result.qualified) {
+        console.log(`⚠️ [QUALIFY] Email should be reviewed before sending`);
+      }
+      
+      return {
+        success: true,
+        qualified: result.qualified,
+        score: result.score,
+        reasoning: result.reasoning,
+        confidence: confidence,
+        researchQuality: researchQuality,
+        requiresReview: confidence === 'LOW' && result.qualified,
+        keyStrengths: result.keyStrengths || [],
+        weaknesses: result.weaknesses || []
+      };
+      
+    } catch (error) {
+      console.error('❌ [QUALIFY] Error:', error);
+      // On error, don't block the lead - default to qualified
+      return {
+        success: true,
+        qualified: true,
+        score: 60,
+        reasoning: 'Qualification error, proceeding with default acceptance',
+        keyStrengths: ['Error in qualification process'],
+        weaknesses: []
+      };
+    }
+  }
+
+  // Research company/lead using Serper - Multi-search with personality
+  async serperResearch(parameters) {
+    const leadData = this.memory.currentCycle.currentLead;
+    
+    // Use provided parameters first, fallback to memory
+    const companyName = parameters?.companyName || leadData?.organization?.name || leadData?.company || 'Unknown Company';
+    const personName = parameters?.personName || leadData?.name || 'Unknown';
+    
+    console.log('🔍 [SERPER] Starting intelligent research for:', personName, 'at', companyName);
+    
+    try {
+      // Get agent personality for research approach
+      const personality = await this.getAgentPersonality();
+      const personalityType = personality?.type || 'hunter';
+      
+      // Multi-search strategy: Run multiple targeted searches to verify qualification criteria
+      const allResearchData = {
+        searches: [],
+        combinedFindings: []
+      };
+      
+      if (!parameters.searchQuery && this.campaignPlan && this.campaignPlan.qualificationCriteria) {
+        console.log(`🎯 [RESEARCH STRATEGY] Running qualification-focused searches with ${personalityType} personality`);
+        
+        const criteria = this.campaignPlan.qualificationCriteria;
+        const searchQueries = [];
+        
+        // Search 1: Verify MUST-HAVE criteria with natural language
+        if (criteria.mustHave && criteria.mustHave.length > 0) {
+          // Extract key industry/business terms only (not full sentences)
+          const keyTerms = criteria.mustHave
+            .join(' ')
+            .replace(/Active in|Company size between|Looking to|uses?|has|have|needs?|requires?|employees|[0-9-]+/gi, '')
+            .split(/\s+/)
+            .filter(word => word.length > 3) // Only meaningful words
+            .slice(0, 3) // Max 3 keywords
+            .join(' ')
+            .trim();
+          
+          if (keyTerms) {
+            searchQueries.push({
+              query: `${companyName} ${keyTerms}`,
+              purpose: 'must_have_verification',
+              description: `Verifying key criteria: ${keyTerms}`
+            });
+          }
+        }
+        
+        // Search 2: Basic company info (ALWAYS run this for foundational data)
+        searchQueries.push({
+          query: `${companyName} company`,
+          purpose: 'company_info',
+          description: 'Basic company information and overview'
+        });
+        
+        // Search 3: Check for DISQUALIFIERS (only specific terms)
+        if (criteria.disqualifiers && criteria.disqualifiers.length > 0) {
+          const specificDisqualifiers = criteria.disqualifiers
+            .filter(d => d.split(' ').length <= 3) // Only short, specific terms like "Educational institution"
+            .slice(0, 2) // Max 2 disqualifiers
+            .join(' OR ')
+            .replace(/uses?|has|have|already|existing/gi, '')
+            .trim();
+          
+          if (specificDisqualifiers) {
+            searchQueries.push({
+              query: `${companyName} ${specificDisqualifiers}`,
+              purpose: 'disqualifier_check',
+              description: `Checking for: ${specificDisqualifiers}`
+            });
+          }
+        }
+        
+        // Search 4: Personality-driven search (simplified for better results)
+        if (personalityType === 'networker') {
+          // Networker: connections and partnerships
+          searchQueries.push({
+            query: `${companyName} partnerships network`,
+            purpose: 'social_proof',
+            description: 'Finding connections and partnerships'
+          });
+        } else if (personalityType === 'hunter') {
+          // Hunter: growth and expansion signals
+          searchQueries.push({
+            query: `${companyName} news growth`,
+            purpose: 'pain_points',
+            description: 'Finding growth and expansion signals'
+          });
+        } else if (personalityType === 'consultant') {
+          // Consultant: thought leadership
+          searchQueries.push({
+            query: `${companyName} ${personName}`,
+            purpose: 'expertise_signals',
+            description: 'Finding leadership and expertise'
+          });
+        } else if (personalityType === 'analyst') {
+          // Analyst: company metrics
+          searchQueries.push({
+            query: `${companyName} revenue growth`,
+            purpose: 'analytical_data',
+            description: 'Finding company metrics'
+          });
+        } else if (personalityType === 'relationship-builder') {
+          // Relationship Builder: company culture
+          searchQueries.push({
+            query: `${companyName} culture team`,
+            purpose: 'relationship_insights',
+            description: 'Finding culture and team information'
+          });
+        }
+        
+        // Search 5: Nice-to-have bonus criteria (simplified)
+        if (criteria.niceToHave && criteria.niceToHave.length > 0) {
+          const keyTerms = criteria.niceToHave
+            .slice(0, 2)
+            .join(' ')
+            .replace(/growing|recent|increasing|has|experience with|uses?/gi, '')
+            .split(/\s+/)
+            .filter(word => word.length > 3)
+            .slice(0, 2)
+            .join(' ')
+            .trim();
+          
+          if (keyTerms) {
+            searchQueries.push({
+              query: `${companyName} ${keyTerms}`,
+              purpose: 'nice_to_have',
+              description: `Checking: ${keyTerms}`
+            });
+          }
+        }
+        
+        // Execute all searches
+        console.log(`🔍 [MULTI-SEARCH] Running ${searchQueries.length} targeted searches`);
+        
+        for (const search of searchQueries) {
+          console.log(`🔎 [${search.purpose.toUpperCase()}] ${search.description}`);
+          console.log(`   Query: "${search.query}"`);
+          
+          try {
+            const results = await internetSearch(search.query);
+            
+            // Log API usage for each search
+            try {
+              await this.awsManager.logApiUsage({
+                userId: this.userId,
+                agentId: this.agentId,
+                service: 'serper',
+                operation: 'search',
+                usage: 1, // 1 credit per search
+                metadata: {
+                  companyName: companyName,
+                  purpose: search.purpose,
+                  queryLength: search.query.length,
+                  timestamp: new Date().toISOString()
+                }
+              });
+            } catch (logError) {
+              console.error(`   ⚠️ Failed to log API usage: ${logError.message}`);
+            }
+            
+            allResearchData.searches.push({
+              purpose: search.purpose,
+              query: search.query,
+              description: search.description,
+              results: results
+            });
+            
+            // Extract findings
+            if (results?.organic && results.organic.length > 0) {
+              const findings = results.organic.slice(0, 3).map(r => ({
+                snippet: r.snippet,
+                title: r.title,
+                purpose: search.purpose
+              }));
+              
+              allResearchData.combinedFindings.push(...findings);
+              console.log(`   ✅ Found ${findings.length} relevant results`);
+            } else {
+              console.log(`   ⚠️ No results found`);
+            }
+            
+            // Small delay between searches to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+          } catch (searchError) {
+            console.error(`   ❌ Search failed: ${searchError.message}`);
+          }
+        }
+        
+        // Store all research data
+        this.memory.lastResearch = allResearchData;
+        
+        console.log(`✅ [MULTI-SEARCH] Completed ${allResearchData.searches.length} searches with ${allResearchData.combinedFindings.length} total findings`);
+        
+      } else {
+        // Fallback: Single generic search
+        const searchQuery = parameters.searchQuery || `${companyName} company information business model products services`;
+        console.log('� [SERPER] Single search query:', searchQuery);
+        
+        const results = await internetSearch(searchQuery);
+        
+        allResearchData.searches.push({
+          purpose: 'general',
+          query: searchQuery,
+          description: 'General company research',
+          results: results
+        });
+        
+        if (results?.data?.organic) {
+          allResearchData.combinedFindings = results.data.organic.slice(0, 5).map(r => ({
+            snippet: r.snippet,
+            title: r.title,
+            purpose: 'general'
+          }));
+        }
+        
+        this.memory.lastResearch = allResearchData;
+        
+        // Log API usage for single search
+        try {
+          await this.awsManager.logApiUsage({
+            userId: this.userId,
+            agentId: this.agentId,
+            service: 'serper',
+            operation: 'search',
+            usage: 1, // 1 credit per search
+            metadata: {
+              companyName: companyName,
+              queryLength: searchQuery.length,
+              timestamp: new Date().toISOString()
+            }
+          });
+          console.log('📊 [SERPER] API usage logged');
+        } catch (logError) {
+          console.error('⚠️ [SERPER] Failed to log API usage:', logError);
+        }
+      }
+      
+      // Log detailed findings from allResearchData
+      console.log('📊 [SERPER] Research Summary:');
+      console.log(`   • Total searches conducted: ${allResearchData.searches.length}`);
+      console.log(`   • Combined findings: ${allResearchData.combinedFindings.length}`);
+      
+      // Log top findings
+      if (allResearchData.combinedFindings && allResearchData.combinedFindings.length > 0) {
+        console.log('🎯 [SERPER] Top Research Findings:');
+        allResearchData.combinedFindings.slice(0, 5).forEach((finding, index) => {
+          console.log(`   ${index + 1}. ${finding.title || 'No title'}`);
+          console.log(`      Purpose: ${finding.purpose}`);
+          if (finding.snippet) {
+            console.log(`      Snippet: ${finding.snippet.substring(0, 100)}...`);
+          }
+        });
       }
       
       console.log('✅ [SERPER] Research complete - Data logged above');
@@ -1361,17 +2269,17 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       // Emit detailed research findings to Activity Logs
       const researchSummary = [];
       
-      if (results.knowledgeGraph) {
-        researchSummary.push(`🧠 Knowledge Graph: ${results.knowledgeGraph.title} (${results.knowledgeGraph.type})`);
+      if (allResearchData.data?.knowledgeGraph) {
+        researchSummary.push(`🧠 Knowledge Graph: ${allResearchData.data.knowledgeGraph.title} (${allResearchData.data.knowledgeGraph.type})`);
       }
       
-      if (results.answerBox) {
-        researchSummary.push(`💡 Answer: ${results.answerBox.answer?.substring(0, 100)}...`);
+      if (allResearchData.data?.answerBox) {
+        researchSummary.push(`💡 Answer: ${allResearchData.data.answerBox.answer?.substring(0, 100)}...`);
       }
       
-      if (results.organic && results.organic.length > 0) {
-        researchSummary.push(`🎯 Found ${results.organic.length} search results`);
-        researchSummary.push(`📖 Top result: ${results.organic[0].title}`);
+      if (allResearchData.data?.organic && allResearchData.data.organic.length > 0) {
+        researchSummary.push(`🎯 Found ${allResearchData.data.organic.length} search results`);
+        researchSummary.push(`📖 Top result: ${allResearchData.data.organic[0].title}`);
       }
       
       const summaryText = researchSummary.length > 0 
@@ -1384,10 +2292,10 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         timestamp: new Date().toISOString(),
         details: {
           company: companyName,
-          query: searchQuery,
-          resultsCount: results.organic?.length || 0,
-          hasKnowledgeGraph: !!results.knowledgeGraph,
-          hasAnswerBox: !!results.answerBox
+          query: allResearchData.searches[0]?.query || 'research query',
+          resultsCount: allResearchData.data?.organic?.length || 0,
+          hasKnowledgeGraph: !!allResearchData.data?.knowledgeGraph,
+          hasAnswerBox: !!allResearchData.data?.answerBox
         }
       });
 
@@ -1395,28 +2303,28 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       const contentFindings = [];
       
       // Add answer box content if available
-      if (results.answerBox) {
+      if (allResearchData.data?.answerBox) {
         contentFindings.push({
           type: 'Answer Box',
-          content: results.answerBox.answer || results.answerBox.snippet,
-          source: results.answerBox.link,
-          title: results.answerBox.title
+          content: allResearchData.data.answerBox.answer || allResearchData.data.answerBox.snippet,
+          source: allResearchData.data.answerBox.link,
+          title: allResearchData.data.answerBox.title
         });
       }
       
       // Add knowledge graph info if available
-      if (results.knowledgeGraph) {
+      if (allResearchData.data?.knowledgeGraph) {
         contentFindings.push({
           type: 'Knowledge Graph',
-          content: results.knowledgeGraph.description,
-          title: results.knowledgeGraph.title,
-          attributes: results.knowledgeGraph.attributes
+          content: allResearchData.data.knowledgeGraph.description,
+          title: allResearchData.data.knowledgeGraph.title,
+          attributes: allResearchData.data.knowledgeGraph.attributes
         });
       }
       
       // Add top 3 search results
-      if (results.organic && results.organic.length > 0) {
-        results.organic.slice(0, 3).forEach((result, index) => {
+      if (allResearchData.data?.organic && allResearchData.data.organic.length > 0) {
+        allResearchData.data.organic.slice(0, 3).forEach((result, index) => {
           contentFindings.push({
             type: `Search Result #${index + 1}`,
             content: result.snippet,
@@ -1446,14 +2354,17 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       }
       
       // Store research results in memory for email building
+      // Keep the multi-search structure intact + add legacy fields for compatibility
       const researchResults = {
         success: true,
-        data: results,
+        ...allResearchData, // Preserve searches[], combinedFindings[]
         companyName: parameters.companyName,
-        insights: results.organic?.slice(0, 3) || [],
-        knowledgeGraph: results.knowledgeGraph,
-        answerBox: results.answerBox,
-        contentFindings: contentFindings
+        contentFindings: contentFindings,
+        // Legacy fields for backward compatibility
+        data: allResearchData.searches?.[0]?.results, // First search results as fallback
+        insights: allResearchData.combinedFindings || [],
+        knowledgeGraph: allResearchData.searches?.[0]?.results?.knowledgeGraph,
+        answerBox: allResearchData.searches?.[0]?.results?.answerBox
       };
       
       this.memory.lastResearch = researchResults;
@@ -1544,6 +2455,21 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       let searchData = await searchResponse.json();
       console.log('🔍 [STEP 1] Search results:', searchData.people?.length || 0, 'people found');
       
+      // Log Apollo search usage for email unlock
+      await this.awsManager.logApiUsage({
+        userId: this.userId,
+        agentId: this.agentId,
+        service: 'apollo',
+        operation: 'person_search',
+        usage: 1, // 1 credit per search
+        metadata: {
+          personName: `${parameters.firstName} ${parameters.lastName}`,
+          companyName: parameters.companyName,
+          domain: parameters.domain || 'none',
+          resultsFound: searchData.people?.length || 0
+        }
+      }).catch(err => console.error('Failed to log Apollo search usage:', err));
+      
       // Emit metric: leads found
       if (searchData.people && searchData.people.length > 0) {
         this.emitMetric('leads', 'searched', 1, 'increment');
@@ -1587,6 +2513,21 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
               console.log('✅ [FALLBACK] Found results without domain filter!');
               // Continue with fallback data
               searchData = fallbackData;
+              
+              // Log fallback search usage
+              await this.awsManager.logApiUsage({
+                userId: this.userId,
+                agentId: this.agentId,
+                service: 'apollo',
+                operation: 'person_search_fallback',
+                usage: 1, // 1 credit per search
+                metadata: {
+                  personName: `${parameters.firstName} ${parameters.lastName}`,
+                  companyName: parameters.companyName,
+                  fallbackType: 'global_search',
+                  resultsFound: fallbackData.people?.length || 0
+                }
+              }).catch(err => console.error('Failed to log Apollo fallback search usage:', err));
             }
           }
         }
@@ -1908,6 +2849,32 @@ ${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join
       // Get custom prompt from email builder settings (editable in UI) - this is the personality/style
       const customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write professional sales emails';
       
+      // Build campaign-specific messaging if plan exists
+      let campaignStrategy = '';
+      let qualificationInsights = '';
+      
+      if (this.campaignPlan && this.campaignPlan.emailMessaging) {
+        const messaging = this.campaignPlan.emailMessaging;
+        campaignStrategy = `
+CAMPAIGN STRATEGY (use this to guide your messaging):
+Primary Value Proposition: ${messaging.primaryValue}
+Key Points to Emphasize: ${messaging.keyPoints?.join(', ') || 'Standard benefits'}
+Call to Action: ${messaging.callToAction || 'Schedule a call'}
+Tone: ${messaging.tone || 'professional'}`;
+        
+        console.log('🎯 [EMAIL] Using campaign-specific messaging strategy');
+      }
+      
+      // Add qualification strengths if available (from qualify_lead tool)
+      if (this.memory.currentQualification?.keyStrengths && this.memory.currentQualification.keyStrengths.length > 0) {
+        qualificationInsights = `
+LEAD QUALIFICATION INSIGHTS (lead with these strengths):
+${this.memory.currentQualification.keyStrengths.map(s => `- ${s}`).join('\n')}
+Score: ${this.memory.currentQualification.score}/100`;
+        
+        console.log('💪 [EMAIL] Incorporating qualification strengths into email');
+      }
+      
       // Common ruleset for email structure - ALWAYS include lead details and context
       const commonRuleset = `
 You are ${emailSettings.companyBranding?.agentName || 'AI Assistant'}, the AI assistant for ${emailSettings.companyBranding?.companyName || 'Our Company'}.
@@ -1918,7 +2885,7 @@ Contact: ${leadData.first_name} ${leadData.last_name}
 Title: ${contactTitle}
 Industry: ${industry}
 Company Description: ${researchInsights}
-Employee Count: ${employeeCount} employees${intelligenceContext}
+Employee Count: ${employeeCount} employees${intelligenceContext}${qualificationInsights}${campaignStrategy}
 
 YOUR TASK - BE A SMART SALESPERSON:
 Generate a professional email that demonstrates you've done your homework:
@@ -1937,6 +2904,7 @@ CRITICAL RULES:
 - Reference specific research insights when available
 - Focus on business value connected to their specific situation
 - Keep it concise (under 200 words), professional, and data-driven
+${this.campaignPlan ? '- LEAD with the campaign strategy and qualification insights above' : ''}
 
 SOLUTION DETAILS:
 - Primary Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
@@ -1965,6 +2933,24 @@ BODY: [email body with proper greeting and signature]`;
       });
 
       const emailContent = response.choices[0].message.content;
+      
+      // Log API usage
+      if (response.usage) {
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'openai',
+          operation: 'email_generation',
+          usage: response.usage.total_tokens,
+          metadata: {
+            model: 'gpt-4',
+            prompt_tokens: response.usage.prompt_tokens,
+            completion_tokens: response.usage.completion_tokens,
+            companyName: companyName,
+            leadName: contactName
+          }
+        }).catch(err => console.error('Failed to log OpenAI usage:', err));
+      }
       
       console.log('📧 [GPT-4 RESPONSE] Email content received:');
       console.log('---START EMAIL---');
@@ -2104,6 +3090,24 @@ BODY: [email body with proper greeting and signature]`;
       } else if (selectedIndustry) {
         searchPayload.q_organization_keyword_tags = [selectedIndustry];
         console.log(`🔍 [FALLBACK] Using rotated industry from settings: "${selectedIndustry}"`);
+      }
+      
+      // Apply campaign plan exclusions to filter out unwanted results (e.g., schools, non-profits)
+      if (this.campaignPlan && this.campaignPlan.searchStrategy?.excludeKeywords?.length > 0) {
+        searchPayload.organization_not_all_keywords = this.campaignPlan.searchStrategy.excludeKeywords;
+        console.log(`🚫 [CAMPAIGN EXCLUSIONS] Filtering out: ${this.campaignPlan.searchStrategy.excludeKeywords.join(', ')}`);
+      }
+      
+      // CAMPAIGN STRATEGY: Keep search broad (baseline settings only)
+      // Campaign plan keywords will be used during RESEARCH and QUALIFICATION phases
+      // This ensures we actually find leads, then filter them based on campaign criteria
+      if (this.campaignPlan && this.campaignPlan.searchStrategy) {
+        console.log(`🎯 [CAMPAIGN STRATEGY] Searching broadly for ${selectedIndustry || 'target industry'} ${targetPosition}s, will qualify during research phase`);
+        console.log(`🎯 [CAMPAIGN CRITERIA] Looking for: ${this.campaignPlan.searchStrategy.additionalKeywords?.join(', ') || 'campaign criteria'}`);
+        
+        // Note: We intentionally DON'T add campaign keywords to the Apollo search
+        // Instead, we'll use them in the research/qualification phase to filter results
+        // This prevents 0-result searches when keywords are too specific
       }
 
       console.log('🔍 [APOLLO] Search payload:', JSON.stringify(searchPayload, null, 2));
@@ -3473,16 +4477,39 @@ BODY: [email body with proper greeting and signature]`;
       this.startTime = null;
       this.nextRunTime = null;
 
-      // Reset memory and current goal
+      // COMPREHENSIVE CACHE CLEARING - Reset ALL memory and state
+      console.log('🧹 [CACHE CLEAR] Clearing all agent memory and cached data...');
+      
       if (this.memory) {
+        // Clear current goal and cycle state
         this.memory.currentGoal = null;
         this.memory.currentCycle = {
           currentLead: null,
           leadsProcessed: 0,
-          queuedLeads: [],
-          targetLeads: 0
+          leadQueue: [],
+          targetLeads: 0,
+          processingPhase: 'search'
         };
+        
+        // Clear cached settings (will be reloaded on next start)
+        this.memory.userSettings = null;
+        this.memory.emailSettings = null;
+        
+        // Clear last research data
+        this.memory.lastResearch = null;
+        
+        // Clear qualification cache
+        this.memory.currentQualification = null;
+        
+        // Reset search adaptation counters
+        this.memory.consecutiveDuplicateSearches = 0;
+        this.memory.searchPageOffset = 0;
+        
+        console.log('✅ [CACHE CLEAR] All memory cleared - agent ready for fresh start');
       }
+      
+      // Clear campaign plan (will be regenerated from instructions)
+      this.campaignPlan = null;
 
       console.log('⏹️ [REASONING AGENT] Agent stopped completely, isRunning now:', this.isRunning);
 
@@ -3637,11 +4664,22 @@ BODY: [email body with proper greeting and signature]`;
    */
   async loadSavedSettings() {
     try {
-      const settings = await this.awsManager.getAgentSettings(this.userId, this.agentId);
-      if (settings && settings.customInterval) {
-        this.customInterval = settings.customInterval * 60 * 1000; // Convert to milliseconds
-        console.log(`✅ [REASONING AGENT] Loaded saved cycle interval: ${settings.customInterval} minutes`);
+      // Load basic agent settings (interval, etc)
+      const basicSettings = await this.awsManager.getAgentSettings(this.userId, this.agentId);
+      if (basicSettings && basicSettings.customInterval) {
+        this.customInterval = basicSettings.customInterval * 60 * 1000; // Convert to milliseconds
+        console.log(`✅ [REASONING AGENT] Loaded saved cycle interval: ${basicSettings.customInterval} minutes`);
       }
+      
+      // Load lead agent settings (contains specialInstructions)
+      const leadSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
+      if (leadSettings && leadSettings.specialInstructions) {
+        console.log(`✅ [REASONING AGENT] Loaded special instructions: "${leadSettings.specialInstructions}"`);
+      }
+      
+      // Store lead settings for campaign plan conversion (has specialInstructions field)
+      this.settings = leadSettings;
+      
     } catch (error) {
       console.error('❌ [REASONING AGENT] Error loading saved settings:', error);
       // Continue with default settings if load fails
@@ -3832,6 +4870,14 @@ BODY: [email body with proper greeting and signature]`;
           result = await this.buildPersonalizedEmail(parameters);
           break;
           
+        case 'pre_qualify_lead':
+          result = await this.preQualifyLead(parameters);
+          break;
+          
+        case 'qualify_lead':
+          result = await this.qualifyLead(parameters);
+          break;
+          
         case 'pause':
           console.log('⏸️ [EXECUTE] Pausing agent due to error:', parameters.error);
           result = {
@@ -3949,14 +4995,63 @@ BODY: [email body with proper greeting and signature]`;
     this.cycleCount++;
     console.log(`🧠 [REASONING AGENT] Starting reasoning cycle #${this.cycleCount}`);
     
-    // Reset cycle tracking for new cycle
+    // CACHE CLEARING: Reset cycle tracking for new cycle (ensures fresh state)
+    console.log('🧹 [CACHE CLEAR] Clearing cycle-specific cache for fresh start...');
     this.memory.currentCycle = {
       leadsProcessed: 0,
       targetLeads: 0,
       currentLead: null,
+      leadQueue: [],
       processingPhase: 'search'
     };
-    console.log(`🔄 [CYCLE] Reset cycle tracking for cycle #${this.cycleCount}`);
+    
+    // Clear last cycle's data
+    this.memory.lastResearch = null;
+    this.memory.currentQualification = null;
+    
+    console.log(`🔄 [CYCLE] Reset cycle tracking for cycle #${this.cycleCount} - starting with clean slate`);
+    console.log('✅ [CACHE CLEAR] Cycle cache cleared - ready to search for new leads');
+    
+    // Load campaign plan from special instructions
+    if (this.settings?.specialInstructions && !this.campaignPlan) {
+      console.log('🎯 [CAMPAIGN PLAN] Special instructions detected, converting to plan...');
+      console.log('📋 [CAMPAIGN PLAN] Instructions: "' + this.settings.specialInstructions + '"');
+      
+      // We'll get userSettings in the cycle, but we can try to load them now for the plan
+      const tempSettings = await this.getUserSettings();
+      if (!tempSettings.error) {
+        console.log('📋 [CAMPAIGN PLAN] Converting with baseline settings:', {
+          industries: tempSettings.companyIndustries,
+          positions: tempSettings.targetPositions,
+          companySize: `${tempSettings.companySizeMin}-${tempSettings.companySizeMax}`,
+          yourCompany: tempSettings.companyName
+        });
+        
+        this.campaignPlan = await this.convertInstructionsToPlan(
+          this.settings.specialInstructions,
+          tempSettings
+        );
+        
+        if (this.campaignPlan) {
+          console.log('✅ [CAMPAIGN PLAN] Campaign plan loaded for this cycle');
+          console.log('🎯 [CAMPAIGN PLAN] Will search for:', this.campaignPlan.searchStrategy?.additionalKeywords?.join(', ') || 'default criteria');
+          console.log('📧 [CAMPAIGN PLAN] Will pitch:', this.campaignPlan.emailMessaging?.primaryValue?.substring(0, 60) + '...' || 'default message');
+          
+          this.emit('progress', {
+            stage: 'campaign-plan',
+            message: `🎯 Campaign Strategy: ${this.campaignPlan.emailMessaging?.primaryValue || 'Custom targeting'}`,
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            data: {
+              hasSearchStrategy: !!this.campaignPlan.searchStrategy,
+              hasCriteria: !!this.campaignPlan.qualificationCriteria,
+              searchKeywords: this.campaignPlan.searchStrategy?.additionalKeywords,
+              instructions: this.settings.specialInstructions
+            }
+          });
+        }
+      }
+    }
     
     // Log cycle start
     this.logOperation('🔄 Starting Search', `Looking for new leads to contact`, 'running', {

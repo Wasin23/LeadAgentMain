@@ -361,7 +361,8 @@ function PresetsManagement({
       ccEmails: preset.ccEmails || '',
       bccEmails: preset.bccEmails || '',
       followupIntervalDays: preset.followupIntervalDays || 7,
-      enableAutoResponse: preset.enableAutoResponse || false
+      enableAutoResponse: preset.enableAutoResponse || false,
+      specialInstructions: preset.specialInstructions || ''
     });
     setIsCreating(true);
   };
@@ -450,6 +451,20 @@ function PresetsManagement({
                       </span>
                     )}
                   </h3>
+                  {preset.specialInstructions && (
+                    <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(59, 130, 246, 0.05)', borderColor: 'rgba(59, 130, 246, 0.15)', borderWidth: '1px' }}>
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'rgb(37, 99, 235)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        <p className="text-xs leading-relaxed" style={{ color: 'rgb(29, 78, 216)' }}>
+                          {preset.specialInstructions.length > 150 
+                            ? `${preset.specialInstructions.substring(0, 150)}...` 
+                            : preset.specialInstructions}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -710,9 +725,10 @@ function PresetsManagement({
                   </label>
                   <input
                     type="number"
-                    value={formData.companySizeMin}
-                    onChange={(e) => setFormData({ ...formData, companySizeMin: parseInt(e.target.value) || 0 })}
+                    value={formData.companySizeMin || ''}
+                    onChange={(e) => setFormData({ ...formData, companySizeMin: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="e.g., 50"
                   />
                 </div>
                 <div>
@@ -721,9 +737,10 @@ function PresetsManagement({
                   </label>
                   <input
                     type="number"
-                    value={formData.companySizeMax}
-                    onChange={(e) => setFormData({ ...formData, companySizeMax: parseInt(e.target.value) || 0 })}
+                    value={formData.companySizeMax || ''}
+                    onChange={(e) => setFormData({ ...formData, companySizeMax: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="e.g., 500"
                   />
                 </div>
               </div>
@@ -1046,9 +1063,27 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
   // Load instructions when modal opens
   useEffect(() => {
-    if (showInstructionsModal && selectedAgentForInstructions) {
-      setInstructionsText(selectedAgentForInstructions.specialInstructions || '');
-    }
+    const loadInstructions = async () => {
+      if (showInstructionsModal && selectedAgentForInstructions) {
+        try {
+          // Fetch fresh agent settings to get current instructions
+          const response = await api.get(`/api/lead-agent/settings?agentId=${selectedAgentForInstructions.id}`);
+          if (response.data && response.data.settings) {
+            const instructions = response.data.settings.specialInstructions || 
+                                response.data.settings.userSettings?.specialInstructions || 
+                                '';
+            setInstructionsText(instructions);
+            console.log('📝 Loaded instructions from settings:', instructions);
+          } else {
+            setInstructionsText(selectedAgentForInstructions.specialInstructions || '');
+          }
+        } catch (error) {
+          console.error('Failed to load instructions:', error);
+          setInstructionsText(selectedAgentForInstructions.specialInstructions || '');
+        }
+      }
+    };
+    loadInstructions();
   }, [showInstructionsModal, selectedAgentForInstructions]);
   
   const handleMonitoringEvent = useCallback((message: any) => {
@@ -1325,7 +1360,8 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               meetingsScheduled: emailStats.meetingsScheduled,
               lastRun: agent.lastRun,
               personality: agent.personality,
-              nextCycleTime: agent.nextCycleTime
+              nextCycleTime: agent.nextCycleTime,
+              specialInstructions: agent.specialInstructions || ''
             };
           })
         );
@@ -2114,14 +2150,28 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       )}
 
       {/* Instructions Modal */}
-      {showInstructionsModal && selectedAgentForInstructions && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(23, 23, 23, 0.65)' }}>
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+      <AnimatePresence>
+        {showInstructionsModal && selectedAgentForInstructions && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" 
+            style={{ backgroundColor: 'rgba(23, 23, 23, 0.65)' }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+            >
             {/* Header */}
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Special Instructions</h2>
+                  <h2 className="text-xl font-semibold text-neutral-900">General Instructions</h2>
                   <p className="text-sm text-neutral-600 mt-1">
                     Tell {selectedAgentForInstructions.personality?.name || selectedAgentForInstructions.name} how to approach this campaign
                   </p>
@@ -2220,9 +2270,10 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 {savingInstructions ? 'Saving...' : 'Save Instructions'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Admin Chatbot - Always visible on this tab */}
       <AdminChatbot />

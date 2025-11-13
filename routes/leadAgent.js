@@ -417,6 +417,50 @@ router.post('/settings', async (req, res) => {
   }
 });
 
+// Update agent special instructions
+router.put('/instructions', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId, instructions } = req.body;
+    
+    console.log('[AGENT INSTRUCTIONS] Updating instructions for agent:', agentId);
+    
+    if (!agentId) {
+      return res.status(400).json({
+        success: false,
+        error: 'agentId is required'
+      });
+    }
+    
+    // Get agent-specific instance
+    const userAgent = getUserAgent(userId, agentId);
+    
+    // Load current settings
+    const currentSettings = await userAgent.awsManager.getLeadAgentSettings(userId, agentId);
+    
+    // Update only the specialInstructions field
+    const updatedSettings = {
+      ...currentSettings,
+      specialInstructions: instructions || ''
+    };
+    
+    // Save updated settings
+    await userAgent.awsManager.saveLeadAgentSettings(userId, agentId, updatedSettings);
+    
+    res.json({
+      success: true,
+      message: 'Instructions updated successfully'
+    });
+  } catch (error) {
+    console.error('[AGENT INSTRUCTIONS] Error updating instructions:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to update instructions'
+    });
+  }
+});
+
 // Reset agent settings to defaults
 router.post('/settings/reset', async (req, res) => {
   try {

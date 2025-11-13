@@ -297,6 +297,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
     // Update settings state
     const updatedSettings = {
       ...settings,
+      specialInstructions: preset.specialInstructions || '',
       companyCriteria: {
         ...settings.companyCriteria,
         companySizeMin: preset.companySizeMin,
@@ -444,6 +445,7 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
           }
           
           return {
+            specialInstructions: apiSettings.specialInstructions || userSettings.specialInstructions || '',
             companyBranding: {
               ...prevSettings.companyBranding,
               ...companyBrandingData
@@ -723,6 +725,38 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
             ) : (
               /* Advanced Mode - Show All Settings */
               <div className="space-y-8">
+                
+                {/* Special Instructions - Top Priority */}
+                <div className="rounded-lg p-6" style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.2)', borderWidth: '2px' }}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <svg className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: 'rgb(37, 99, 235)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold mb-1" style={{ color: 'rgb(30, 64, 175)' }}>
+                        General Instructions
+                      </h4>
+                      <p className="text-sm mb-3" style={{ color: 'rgb(29, 78, 216)' }}>
+                        Give specific campaign instructions. The AI will dynamically determine what actions to take based on these instructions, adapting its research, outreach, and engagement strategy.
+                      </p>
+                    </div>
+                  </div>
+                  <textarea
+                    value={(settings as any).specialInstructions || ''}
+                    onChange={(e) => setSettings({ ...settings, specialInstructions: e.target.value } as any)}
+                    placeholder="Example: Focus on companies that use GPU compute services. Only contact leads who work with AI/ML infrastructure. Emphasize our cost savings and performance improvements..."
+                    className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[120px]"
+                    maxLength={1000}
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs" style={{ color: 'rgb(29, 78, 216)' }}>
+                      💡 These instructions guide the entire campaign behavior
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {((settings as any).specialInstructions || '').length}/1000
+                    </span>
+                  </div>
+                </div>
                 
                 {/* Company Branding */}
                 <div>
