@@ -86,8 +86,16 @@ class ReasoningLeadAgent extends EventEmitter {
       industryInsights: {},
       currentGoal: null,
       currentIndustryIndex: 0, // Track which industry to search next
+      currentKeywordIndex: 0, // Track which keyword within industry (for & splits)
       consecutiveDuplicateSearches: 0, // Track consecutive failed searches
       searchPageOffset: 0, // Increase page numbers when exhausting early pages
+      industryExhaustion: {}, // Track leads found per industry: { "Hotels & Resorts": { leadsFound: 45, lastSearched: timestamp }, ... }
+      totalLeadsFoundThisCycle: 0,
+      aiGeneratedKeywords: [], // AI-generated related industry keywords
+      aiKeywordCycleCount: 0, // Track how many AI keywords used (reset after 5)
+      baseIndustryKeywords: [], // Flattened list of all keywords from user's industries
+      campaignPriorityKeyword: null, // Campaign-specified industry to search first
+      leadsFoundWithCurrentKeyword: 0, // Track leads found with current keyword (rotate every 30)
       
       // Current cycle lead tracking with queue system
       currentCycle: {
@@ -121,15 +129,16 @@ class ReasoningLeadAgent extends EventEmitter {
       },
       {
         name: 'apollo_search',
-        description: 'Search for leads using Apollo API based on user criteria',
+        description: 'Search for leads using Apollo API. You must intelligently determine what to search for based on: 1) User\'s configured target positions, industries, company size, and locations (baseline criteria), 2) Special instructions/campaign plan (what specific prospects to find). IMPORTANT: You can INTELLIGENTLY SELECT which configured industry best fits the campaign goal - if "Hotels & Resorts" aligns with "independent hospitality", use it. If campaign requires a different configured industry, select the most relevant one. NEVER use industries not in user settings. Always validate industry choice matches campaign intent.',
         parameters: {
           type: 'object',
           properties: {
-            query: { type: 'string', description: 'Search query for leads' },
-            companySize: { type: 'string', description: 'Employee range like "100,1000"' },
-            location: { type: 'string', description: 'Geographic location' },
-            industries: { type: 'array', items: { type: 'string' }, description: 'Industry keywords' },
-            position: { type: 'string', description: 'Target job title/position' }
+            query: { type: 'string', description: 'Additional search keywords from campaign plan to narrow results WITHIN the configured industries/positions' },
+            companySize: { type: 'string', description: 'Employee range like "100,1000" - only override user settings if campaign explicitly requires different size' },
+            location: { type: 'string', description: 'Geographic location - only override if campaign explicitly requires different location' },
+            industries: { type: 'array', items: { type: 'string' }, description: 'SELECT the configured industry that BEST FITS the campaign goal. Must be from user\'s configured list. Validate it matches campaign intent (e.g., "Hotels & Resorts" fits "independent hospitality"). ONLY use industries from user settings.' },
+            position: { type: 'string', description: 'SELECT the configured position that BEST FITS the campaign goal. Must be from user\'s configured list. ONLY use positions from user settings.' },
+            reasoning: { type: 'string', description: 'Brief explanation of why you chose this industry/position for the campaign (e.g., "Hotels & Resorts aligns with independent hospitality goal")' }
           }
         }
       },
@@ -304,7 +313,7 @@ CRITICAL INSTRUCTIONS:
 3. Use baseline targeting settings as hard guidelines (don't change industry/position/size unless instructions explicitly say so)
 4. Extract search criteria FROM THE CAMPAIGN INSTRUCTIONS ONLY
 5. ALWAYS exclude educational institutions (schools, universities, institutes) unless explicitly targeting them
-6. Use SPECIFIC industry terms ("SaaS", "Software Development") not generic ones ("Technology")
+6. Use SPECIFIC industry terms (not broad categories)
 
 Convert the campaign instructions into a JSON plan with these fields:
 
@@ -1295,11 +1304,11 @@ Call the appropriate function to continue the workflow.`;
     }
     
     // Industry patterns
-    if (text.includes('fintech') || text.includes('financial technology')) {
+    if (text.includes('fintech') || text.includes('financial services')) {
       return 'FinTech Company';
     }
     if (text.includes('healthcare') || text.includes('medical')) {
-      return 'Healthcare Technology';
+      return 'Healthcare';
     }
     if (text.includes('e-commerce') || text.includes('ecommerce')) {
       return 'E-commerce Platform';
@@ -3003,17 +3012,102 @@ BODY: [email body with proper greeting and signature]`;
       // Use REAL user settings from memory - NO hardcoded fallbacks
       const userSettings = this.memory.userSettings;
       
-      // Pick ONE industry per search (rotate through available industries)
-      let selectedIndustry = null;
-      if (userSettings.companyIndustries && userSettings.companyIndustries.length > 0) {
-        const currentIndex = this.memory.currentIndustryIndex % userSettings.companyIndustries.length;
-        selectedIndustry = userSettings.companyIndustries[currentIndex];
-        
-        // Increment for next search
-        this.memory.currentIndustryIndex++;
-        
-        console.log(`🎯 [INDUSTRY ROTATION] Selected industry ${currentIndex + 1}/${userSettings.companyIndustries.length}: "${selectedIndustry}"`);
+      // STEP 1: Build base keyword list from user industries (if not already done)
+      if (this.memory.baseIndustryKeywords.length === 0 && userSettings.companyIndustries) {
+        this.memory.baseIndustryKeywords = userSettings.companyIndustries.flatMap(ind =>
+          ind.split(/\s*&\s*/).map(k => k.trim().toLowerCase())
+        );
+        console.log(`📋 [KEYWORD INIT] Extracted ${this.memory.baseIndustryKeywords.length} base keywords: ${this.memory.baseIndustryKeywords.join(', ')}`);
       }
+      
+      // STEP 1.5: Check if campaign specifies a priority industry to search first
+      if (!this.memory.campaignPriorityKeyword && this.campaignPlan?.searchStrategy?.priorityIndustries?.length > 0) {
+        // Extract first keyword from priority industry
+        const priorityIndustry = this.campaignPlan.searchStrategy.priorityIndustries[0];
+        this.memory.campaignPriorityKeyword = priorityIndustry.split(/\s*&\s*/)[0].trim().toLowerCase();
+        this.memory.leadsFoundWithCurrentKeyword = 0;
+        console.log(`🎯 [CAMPAIGN PRIORITY] Will search "${this.memory.campaignPriorityKeyword}" first (from campaign instructions)`);
+      }
+      
+      // STEP 2: Smart keyword selection with rotation every 30 leads
+      let selectedKeyword = null;
+      let keywordSource = 'base';
+      
+      // Priority 1: Campaign-specific keyword (search for 30 leads first)
+      if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword < 30) {
+        selectedKeyword = this.memory.campaignPriorityKeyword;
+        keywordSource = 'campaign';
+        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/30 leads found)`);
+      } else {
+        // Finished campaign priority OR no campaign priority set
+        if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 30) {
+          console.log(`✅ [CAMPAIGN PRIORITY] Completed 30 leads with "${this.memory.campaignPriorityKeyword}", moving to rotation`);
+          this.memory.campaignPriorityKeyword = null; // Clear it
+          this.memory.leadsFoundWithCurrentKeyword = 0;
+        }
+        
+        // Priority 2: Rotate through base keywords, then AI keywords (every 30 leads)
+        const totalBaseKeywords = this.memory.baseIndustryKeywords.length;
+        const totalAIKeywords = this.memory.aiGeneratedKeywords.length;
+        const totalKeywords = totalBaseKeywords + totalAIKeywords;
+        
+        if (totalKeywords === 0) {
+          console.log(`❌ [ERROR] No keywords available for search`);
+          return { found: 0, leads: [], error: 'No industry keywords configured' };
+        }
+        
+        // Check if we need to rotate to next keyword (every 30 leads)
+        if (this.memory.leadsFoundWithCurrentKeyword >= 30) {
+          this.memory.currentKeywordIndex++;
+          this.memory.leadsFoundWithCurrentKeyword = 0;
+          console.log(`🔄 [ROTATION] 30 leads found, rotating to next keyword`);
+        }
+        
+        // Determine which keyword to use
+        const keywordIndex = this.memory.currentKeywordIndex % totalKeywords;
+        
+        if (keywordIndex < totalBaseKeywords) {
+          // Use base keyword from user settings
+          selectedKeyword = this.memory.baseIndustryKeywords[keywordIndex];
+          keywordSource = 'base';
+          console.log(`🎯 [BASE KEYWORD] Using keyword ${keywordIndex + 1}/${totalBaseKeywords}: "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/30 leads)`);
+        } else {
+          // Use AI-generated keyword
+          const aiIndex = keywordIndex - totalBaseKeywords;
+          selectedKeyword = this.memory.aiGeneratedKeywords[aiIndex];
+          keywordSource = 'ai';
+          console.log(`🤖 [AI KEYWORD] Using AI-generated keyword ${aiIndex + 1}/${totalAIKeywords}: "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/30 leads)`);
+        }
+        
+        // STEP 3: Generate new AI keywords after cycling through all base + existing AI keywords
+        if (this.memory.currentKeywordIndex % totalKeywords === 0 && this.memory.leadsFoundWithCurrentKeyword === 0) {
+          // Just completed full cycle - generate new AI keywords if under 5
+          if (this.memory.aiGeneratedKeywords.length < 5) {
+            console.log(`🧠 [AI GENERATION] Completed cycle, generating new industry keywords...`);
+            await this.generateRelatedIndustryKeywords(userSettings.companyIndustries);
+          } else {
+            // Reset AI keywords after using 5 generated terms
+            console.log(`🔄 [RESET AI] Used 5 AI-generated keywords, clearing and restarting with base keywords`);
+            this.memory.aiGeneratedKeywords = [];
+            this.memory.aiKeywordCycleCount = 0;
+            this.memory.currentKeywordIndex = 0; // Restart from first base keyword
+          }
+        }
+      }
+      
+      // STEP 4: Track exhaustion per keyword (use selectedKeyword as key)
+      if (!this.memory.industryExhaustion[selectedKeyword]) {
+        this.memory.industryExhaustion[selectedKeyword] = {
+          leadsFound: 0,
+          lastSearched: Date.now(),
+          exhausted: false
+        };
+      }
+      
+      const tracker = this.memory.industryExhaustion[selectedKeyword];
+      tracker.lastSearched = Date.now();
+      
+      console.log(`📊 [TRACKING] "${selectedKeyword}": ${tracker.leadsFound}/100 leads found (${keywordSource} keyword)`);
       
       // Use pagination and vary search parameters intelligently
       // Apply page offset from search adaptation strategy
@@ -3021,13 +3115,25 @@ BODY: [email body with proper greeting and signature]`;
       const searchPage = basePageRange + Math.floor(Math.random() * 10) + 1; // Offset + random 1-10
       console.log(`📄 [PAGINATION] Searching page ${searchPage} (offset: ${basePageRange})`);
       
-      // Use the position the agent reasoned about, or fall back to user settings
+      // INTELLIGENT POSITION SELECTION WITH VALIDATION
       let targetPosition;
       if (parameters.position) {
-        targetPosition = parameters.position;
-        console.log(`🎯 [AGENT DECISION] Using agent-reasoned position: "${targetPosition}"`);
-      } else {
-        // Check user settings for target positions
+        // Validate AI's position choice is from user settings
+        if (userSettings.targetPositions && userSettings.targetPositions.includes(parameters.position)) {
+          targetPosition = parameters.position;
+          console.log(`🤖 [AI SELECTION] Using AI-selected position: "${targetPosition}"`);
+          if (parameters.reasoning) {
+            console.log(`💭 [AI REASONING] ${parameters.reasoning}`);
+          }
+        } else {
+          console.log(`⚠️ [VALIDATION FAILED] AI requested position "${parameters.position}" but it's not in user settings`);
+          console.log(`📋 [USER SETTINGS] Available positions: ${userSettings.targetPositions?.join(', ') || 'None'}`);
+          // Fall through to random selection
+        }
+      }
+      
+      // Fallback to random position from user settings if no valid AI selection
+      if (!targetPosition) {
         if (!userSettings.targetPositions || userSettings.targetPositions.length === 0) {
           console.log(`❌ [CONFIG ERROR] Target positions not set - stopping cycle`);
           return {
@@ -3083,14 +3189,8 @@ BODY: [email body with proper greeting and signature]`;
         console.log(`🔍 [FALLBACK] Using user settings locations: ${userSettings.targetLocations.join(', ')}`);
       }
 
-      // Use agent-reasoned industries or fall back to rotating through user settings
-      if (parameters.industries && parameters.industries.length > 0) {
-        searchPayload.q_organization_keyword_tags = parameters.industries;
-        console.log(`🎯 [AGENT DECISION] Using agent-reasoned industries: ${parameters.industries.join(', ')}`);
-      } else if (selectedIndustry) {
-        searchPayload.q_organization_keyword_tags = [selectedIndustry];
-        console.log(`🔍 [FALLBACK] Using rotated industry from settings: "${selectedIndustry}"`);
-      }
+      // Use the selected keyword (from rotation system) for Apollo search
+      searchPayload.q_organization_keyword_tags = [selectedKeyword];
       
       // Apply campaign plan exclusions to filter out unwanted results (e.g., schools, non-profits)
       if (this.campaignPlan && this.campaignPlan.searchStrategy?.excludeKeywords?.length > 0) {
@@ -3102,7 +3202,7 @@ BODY: [email body with proper greeting and signature]`;
       // Campaign plan keywords will be used during RESEARCH and QUALIFICATION phases
       // This ensures we actually find leads, then filter them based on campaign criteria
       if (this.campaignPlan && this.campaignPlan.searchStrategy) {
-        console.log(`🎯 [CAMPAIGN STRATEGY] Searching broadly for ${selectedIndustry || 'target industry'} ${targetPosition}s, will qualify during research phase`);
+        console.log(`🎯 [CAMPAIGN STRATEGY] Searching for ${selectedKeyword} ${targetPosition}s, will qualify during research phase`);
         console.log(`🎯 [CAMPAIGN CRITERIA] Looking for: ${this.campaignPlan.searchStrategy.additionalKeywords?.join(', ') || 'campaign criteria'}`);
         
         // Note: We intentionally DON'T add campaign keywords to the Apollo search
@@ -3231,6 +3331,18 @@ BODY: [email body with proper greeting and signature]`;
             parameters: parameters
           };
 
+          // Update keyword tracking for rotation (every 30 leads)
+          if (newLeads.length > 0) {
+            this.memory.leadsFoundWithCurrentKeyword += newLeads.length;
+            this.memory.totalLeadsFoundThisCycle += newLeads.length;
+            
+            // Also track per-keyword exhaustion (100 lead threshold)
+            if (selectedKeyword) {
+              this.memory.industryExhaustion[selectedKeyword].leadsFound += newLeads.length;
+              console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/30 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
+            }
+          }
+
           // Record this search in memory
           this.memory.searchHistory.push({
             timestamp: new Date().toISOString(),
@@ -3245,7 +3357,15 @@ BODY: [email body with proper greeting and signature]`;
         }
       }
 
-      console.log(`� [APOLLO] Found ${rawLeads.length} leads from search`);
+      console.log(`📦 [APOLLO] Found ${rawLeads.length} leads from search`);
+
+      // Update keyword tracking (fallback case when deduplication not used)
+      if (selectedKeyword && rawLeads.length > 0) {
+        this.memory.leadsFoundWithCurrentKeyword += rawLeads.length;
+        this.memory.industryExhaustion[selectedKeyword].leadsFound += rawLeads.length;
+        this.memory.totalLeadsFoundThisCycle += rawLeads.length;
+        console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/30 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
+      }
 
       // Return all leads from Apollo (deduplication will happen after email unlock)
       const results = {
@@ -3282,6 +3402,67 @@ BODY: [email body with proper greeting and signature]`;
         error: error.message,
         parameters: parameters
       };
+    }
+  }
+
+  // Generate AI-related industry keywords by analyzing company profile + current targeting
+  async generateRelatedIndustryKeywords(userIndustries) {
+    try {
+      const userSettings = this.memory.userSettings;
+      const companyProfile = userSettings?.companyProfile || {};
+      
+      console.log(`🤖 [AI GENERATION] Generating keywords based on company profile + industries`);
+      console.log(`🏢 [COMPANY CONTEXT] ${companyProfile.companyName || 'Unknown'} - ${companyProfile.services || 'No services defined'}`);
+      
+      const prompt = `You are an intelligent B2B lead generation strategist. Analyze the user's company and suggest related industries to target.
+
+USER'S COMPANY PROFILE:
+- Company: ${companyProfile.companyName || 'Not specified'}
+- Industry: ${companyProfile.industry || 'Not specified'}
+- Services/Products: ${companyProfile.services || 'Not specified'}
+- Core Offering: ${companyProfile.coreOffering || companyProfile.description || 'Not specified'}
+- Target Market: ${companyProfile.targetMarket || 'Not specified'}
+
+CURRENTLY TARGETING INDUSTRIES:
+${userIndustries.join(', ')}
+
+Based on what this company SELLS and who they currently TARGET, generate 5 NEW industry keywords that would be good prospects for them.
+
+Think: "Who else would need ${companyProfile.services || 'their services'}?" or "What adjacent industries match their target market?"
+
+Requirements:
+- Return ONLY lowercase keywords (single-word or two-word terms)
+- Keywords should be DIFFERENT from current industries but complementary
+- Focus on industries that would BENEFIT from their offering
+- Avoid generic terms like "business" or "company"
+- Format as comma-separated list
+- Examples: "hospitality", "property management", "event planning", "facility services"
+
+Keywords:`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 100
+      });
+      
+      const keywords = response.choices[0].message.content
+        .trim()
+        .split(',')
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k.length > 0 && !k.includes('\n'))
+        .slice(0, 5);
+      
+      this.memory.aiGeneratedKeywords = keywords;
+      this.memory.aiKeywordCycleCount++;
+      
+      console.log(`✅ [AI GENERATED] New keywords (cycle ${this.memory.aiKeywordCycleCount}): ${keywords.join(', ')}`);
+      
+    } catch (error) {
+      console.error('❌ [AI GENERATION ERROR]', error.message);
+      // Fallback to base keywords if generation fails
+      this.memory.aiGeneratedKeywords = [];
     }
   }
 
@@ -5068,7 +5249,7 @@ BODY: [email body with proper greeting and signature]`;
 
     try {
       let stepCount = 0;
-      const maxSteps = 100; // Safety limit
+      const maxSteps = 5000; // Safety limit - increased for high-volume lead processing
       const cycleStartTime = Date.now(); // Track cycle start time
       
       while (stepCount < maxSteps && this.isRunning) {

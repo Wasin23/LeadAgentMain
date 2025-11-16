@@ -873,6 +873,7 @@ function ChoosePresetStep({
     realEstate: ['Commercial Real Estate', 'Residential Real Estate', 'Property Management', 'Real Estate Investment', 'Construction', 'Architecture & Planning', 'Interior Design', 'Property Development', 'Facilities Management'],
     education: ['K-12 Education', 'Higher Education', 'Online Learning', 'Corporate Training', 'Educational Technology', 'Tutoring', 'Language Learning', 'Vocational Training', 'Early Childhood Education', 'Special Education', 'Educational Publishing'],
     media: ['Broadcasting', 'Publishing', 'Digital Media', 'Advertising', 'Entertainment', 'Film & Television', 'Music', 'Gaming', 'Social Media', 'Content Creation', 'Journalism', 'Photography', 'Graphic Design', 'Marketing Agencies'],
+    hospitality: ['Hotels & Resorts', 'Restaurants & Food Service', 'Travel & Tourism', 'Event Venues', 'Casino & Gaming', 'Cruise Lines', 'Airlines', 'Vacation Rentals', 'Catering', 'Property Management Companies', 'Third-Party Hotel Management', 'Independent Hotels', 'Hotel Chains', 'Boutique Hotels', 'Bed & Breakfast', 'Hostels', 'Timeshares', 'Conference Centers', 'Spa & Wellness Resorts', 'Golf Resorts', 'Theme Parks'],
     nonprofit: ['Charitable Organizations', 'Social Services', 'Environmental', 'Education', 'Healthcare', 'Religious Organizations', 'Arts & Culture', 'Community Development', 'International Aid', 'Research Foundations', 'Advocacy Groups'],
     government: ['Federal Government', 'State Government', 'Local Government', 'Military', 'Public Safety', 'Transportation', 'Environmental Agencies', 'Healthcare', 'Education', 'Social Services', 'Regulatory Bodies']
   };
@@ -888,7 +889,7 @@ function ChoosePresetStep({
   const allIndustries = Array.from(new Set(Object.values(APOLLO_INDUSTRIES).flat()));
   const allJobTitles = Array.from(new Set(Object.values(JOB_TITLES).flat()));
 
-  const commonIndustries = ['Technology', 'Healthcare', 'Finance', 'Retail', 'Manufacturing', 'Real Estate', 'Education', 'Consulting', 'SaaS', 'E-commerce'];
+  const commonIndustries = ['Technology', 'Healthcare', 'Finance', 'Retail', 'Manufacturing', 'Real Estate', 'Education', 'Consulting', 'SaaS', 'E-commerce', 'Hospitality'];
   const commonTitles = ['CEO', 'CTO', 'VP of Sales', 'Head of Marketing', 'Director of Operations', 'VP of Engineering', 'Chief Revenue Officer', 'Head of Growth'];
 
   // Filter industries based on search

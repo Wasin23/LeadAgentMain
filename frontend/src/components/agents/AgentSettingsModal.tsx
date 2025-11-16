@@ -131,6 +131,13 @@ const APOLLO_INDUSTRIES = {
     'Film & Television', 'Music', 'Gaming', 'Social Media', 'Content Creation',
     'Journalism', 'Photography', 'Graphic Design', 'Marketing Agencies'
   ],
+  hospitality: [
+    'Hotels & Resorts', 'Restaurants & Food Service', 'Travel & Tourism', 'Event Venues',
+    'Casino & Gaming', 'Cruise Lines', 'Airlines', 'Vacation Rentals', 'Catering',
+    'Property Management Companies', 'Third-Party Hotel Management', 'Independent Hotels',
+    'Hotel Chains', 'Boutique Hotels', 'Bed & Breakfast', 'Hostels', 'Timeshares',
+    'Conference Centers', 'Spa & Wellness Resorts', 'Golf Resorts', 'Theme Parks'
+  ],
   nonprofit: [
     'Charitable Organizations', 'Social Services', 'Environmental', 'Education',
     'Healthcare', 'Religious Organizations', 'Arts & Culture', 'Community Development',
