@@ -1068,8 +1068,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const clearRecentEmails = async () => {
     try {
-      // Clear both tracking data AND approved emails for this specific agent
-      console.log('🗑️ [CLEAR] Clearing tracking data and approved emails for agent:', agentId);
+      // Clear all email data for this specific agent
+      console.log('🗑️ [CLEAR] Clearing all emails (sent, approved, tracking) for agent:', agentId);
+      
+      // Clear sent emails (includes tracking events via Zilliz)
+      await api.delete('/api/email-queue/sent/clear', {
+        params: { agentId }
+      });
       
       // Clear analytics/tracking data
       await api.delete(`/api/analytics/emails?agentId=${agentId}`);
@@ -1081,7 +1086,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       await fetchRecentEmails(); // Refresh the list
       await fetchStatus(); // Refresh the status to update total emails counter
       
-      showNotification('Recent emails and tracking data cleared successfully!', 'success');
+      showNotification('All emails and tracking data cleared successfully!', 'success');
     } catch (error: any) {
       console.error('Failed to clear recent emails:', error);
       console.error('Error details:', error.response?.data || error.message);
@@ -1313,17 +1318,6 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             Settings
           </motion.button>
           
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={runCycle}
-            disabled={status?.isActive}
-            className={`flex items-center gap-2 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border ${colors.button}`}
-          >
-            <ArrowPathIcon className="h-4 w-4" />
-            Run Cycle
-          </motion.button>
-
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -1722,7 +1716,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Cycle Interval Modal */}
       {showIntervalModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1784,7 +1778,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Queue Modal */}
       {showEmailQueue && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2078,7 +2072,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Editing Modal */}
       {editingEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2190,7 +2184,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Add Custom Email Modal */}
       {showAddEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2316,7 +2310,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Recent Contacts Modal */}
       {showRecentContacts && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2416,7 +2410,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Recent Email Detail Modal */}
       {selectedRecentEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2531,7 +2525,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Scheduled Events Modal */}
       {showScheduledEvents && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2615,7 +2609,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Scheduled Event Details Modal */}
       {selectedScheduledEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}

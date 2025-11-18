@@ -51,6 +51,7 @@ exports.handler = async (event, context) => {
           // Check if this email has EVER been opened before (single open tracking)
           let alreadyOpened = false;
           try {
+            console.log(`🔍 [DEDUP CHECK] Checking if ${trackingId} already opened...`);
             const existingEvents = await client.search({
               collection_name: 'email_tracking_events',
               vectors: [[0.0, 0.0]], // Dummy vector for search
@@ -59,15 +60,21 @@ exports.handler = async (event, context) => {
               limit: 100
             });
             
+            console.log(`🔍 [DEDUP CHECK] Found ${existingEvents.results?.length || 0} existing events`);
+            
             for (const result of existingEvents.results) {
               if (result.tracking_id === trackingId && result.event_type === 'email_open') {
                 alreadyOpened = true;
-                console.log(`Email ${trackingId} already marked as opened`);
+                console.log(`🔄 [DUPLICATE] Email ${trackingId} already marked as opened`);
                 break;
               }
             }
+            
+            if (!alreadyOpened) {
+              console.log(`✅ [NEW EVENT] Email ${trackingId} is a new open event`);
+            }
           } catch (searchError) {
-            console.log('Search error (proceeding with insert):', searchError);
+            console.warn('⚠️ [DEDUP CHECK] Search error (proceeding with insert):', searchError.message);
           }
           
           // Extract user ID and agent ID from tracking ID for proper attribution
@@ -96,18 +103,27 @@ exports.handler = async (event, context) => {
               dummy_vector: [0.0, 0.0]
             }];
 
-            await client.insert({
+            const insertResult = await client.insert({
               collection_name: 'email_tracking_events',
               data: data
             });
             
-            console.log(`Email ${trackingId} marked as opened for first time`);
+            console.log(`✅ [ZILLIZ INSERT] Email ${trackingId} marked as opened for first time`);
+            console.log(`✅ [ZILLIZ INSERT] Insert result:`, JSON.stringify(insertResult));
           } else {
-            console.log(`Tracking event filtered out for ${trackingId} (image proxy: ${isImageProxy}, already opened: ${alreadyOpened})`);
+            console.log(`⏭️ [SKIP] Tracking event filtered out for ${trackingId} (image proxy: ${isImageProxy}, already opened: ${alreadyOpened})`);
           }
+        } else {
+          console.log('⚠️ [CONFIG] Missing ZILLIZ_ENDPOINT or ZILLIZ_TOKEN environment variables');
         }
       } catch (e) {
-        console.log('Zilliz error:', e);
+        console.error('❌ [ZILLIZ ERROR] Failed to store tracking event:', e);
+        console.error('❌ [ZILLIZ ERROR] Error details:', {
+          message: e.message,
+          code: e.code,
+          status: e.status,
+          stack: e.stack
+        });
       }
     }
 

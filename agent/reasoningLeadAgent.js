@@ -2710,14 +2710,14 @@ Respond in JSON:
             person: person
           };
         } else {
-          console.log('❌ [APOLLO] No emails available');
+          console.log('❌ [APOLLO] No emails available after filtering (empty or contains email_not_unlocked)');
         }
       }
 
-      console.log('❌ [APOLLO] No real emails found - need to find different lead');
+      console.log('❌ [APOLLO] No emails found - Apollo did not return any email addresses');
       return {
         success: false,
-        error: 'No real emails found - only constructed/fallback emails available'
+        error: 'No email addresses available from Apollo (not even constructed emails)'
       };
 
     } catch (error) {

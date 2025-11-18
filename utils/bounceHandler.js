@@ -179,7 +179,7 @@ function parseMailgunEvent(formData) {
   };
 }
 
-module.exports = {
+export {
   handleMailgunEvent,
   parseMailgunEvent
 };

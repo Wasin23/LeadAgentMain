@@ -10,6 +10,10 @@
   node_bundler = "esbuild"
   external_node_modules = ["@zilliz/milvus2-sdk-node"]
 
+[functions.esbuild]
+  format = "cjs"
+  target = "node18"
+
 [[redirects]]
   from = "/track/pixel/:id"
   to = "/.netlify/functions/track-pixel/:id"

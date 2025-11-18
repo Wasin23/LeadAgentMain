@@ -582,24 +582,14 @@ class AWSEmailQueue {
    */
   async clearSentEmails(userId, agentId) {
     try {
-      // Get ALL email statuses (SENT, APPROVED, REPLIED) to clear everything
+      // Get ALL email statuses (SENT only - approved emails are managed separately)
       let emails = [];
       if (agentId === null) {
-        // Clear ALL emails for the user across all agents
-        const [sentEmails, approvedEmails, repliedEmails] = await Promise.all([
-          this.getAllSentEmailsForUser(userId),
-          this.getAllApprovedEmailsForUser(userId),
-          this.getAllRepliedEmailsForUser(userId)
-        ]);
-        emails = [...sentEmails, ...approvedEmails, ...repliedEmails];
+        // Clear ALL sent emails for the user across all agents
+        emails = await this.getAllSentEmailsForUser(userId);
       } else {
-        // Clear all emails for specific agent
-        const [sentEmails, approvedEmails, repliedEmails] = await Promise.all([
-          this.getSentEmails(userId, agentId),
-          this.getApprovedEmails(userId, agentId),
-          this.getRepliedEmails(userId, agentId)
-        ]);
-        emails = [...sentEmails, ...approvedEmails, ...repliedEmails];
+        // Clear sent emails for specific agent
+        emails = await this.getSentEmails(userId, agentId);
       }
       
       if (emails.length === 0) {
