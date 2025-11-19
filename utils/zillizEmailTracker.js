@@ -49,6 +49,16 @@ export class ZillizEmailTracker {
                 max_length: 100
             },
             {
+                name: 'user_id',
+                data_type: DataType.VarChar,
+                max_length: 100
+            },
+            {
+                name: 'agent_id',
+                data_type: DataType.VarChar,
+                max_length: 100
+            },
+            {
                 name: 'event_type',
                 data_type: DataType.VarChar,
                 max_length: 50
@@ -114,7 +124,7 @@ export class ZillizEmailTracker {
         }
     }
 
-    async storeTrackingEvent(trackingId, eventType, userAgent, ipAddress, emailAddress, isImageProxy = false) {
+    async storeTrackingEvent(trackingId, eventType, userAgent, ipAddress, emailAddress, isImageProxy = false, userId = null, agentId = null) {
         try {
             if (!this.initialized) {
                 await this.initialize();
@@ -124,6 +134,19 @@ export class ZillizEmailTracker {
             if (eventType === 'email_open' && isImageProxy) {
                 console.log(`🤖 [ZILLIZ] Skipping image proxy request for: ${trackingId}`);
                 return true;
+            }
+
+            // Extract user ID and agent ID from tracking ID if not provided
+            if (!userId || !agentId) {
+                const extractIdsFromTrackingId = (tid) => {
+                    if (!tid) return { userId: 'unknown', agentId: 'unknown' };
+                    // Format: tracking-{userId}_{agentId}_{timestamp}_{hash}
+                    const match = tid.match(/tracking-([a-f0-9-]+)_([^_]+)_/);
+                    return match ? { userId: match[1], agentId: match[2] } : { userId: 'unknown', agentId: 'unknown' };
+                };
+                const extracted = extractIdsFromTrackingId(trackingId);
+                userId = userId || extracted.userId;
+                agentId = agentId || extracted.agentId;
             }
 
             // Debug: Check collection schema first
@@ -138,6 +161,8 @@ export class ZillizEmailTracker {
 
             const data = [{
                 tracking_id: trackingId,
+                user_id: userId || 'unknown',
+                agent_id: agentId || 'unknown',
                 event_type: eventType,
                 timestamp: new Date().toISOString(),
                 user_agent: userAgent || 'Unknown',

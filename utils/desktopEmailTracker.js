@@ -544,9 +544,11 @@ class DesktopEmailTracker {
         const email = approvedEmails[i];
         
         // Try to match by tracking ID from multiple possible fields
-        const emailTrackingId = email.trackingId || 
+        // Priority: direct trackingId field (from markEmailAsSent) > nested sentMailgunId > email.id
+        const emailTrackingId = email.trackingId ||                      // NEW: Direct trackingId field
                                email.sentMailgunId?.trackingId || 
                                email.sentMailgunId?.message ||
+                               email.mailgunMessage ||                    // NEW: Also check mailgunMessage field
                                email.id;
         
         if (!emailTrackingId) {

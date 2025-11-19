@@ -556,7 +556,7 @@ function PresetsManagement({
 
       {/* Create/Edit Modal */}
       {isCreating && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 pt-16">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 pt-16">
           <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[80vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-neutral-200 px-8 py-5 z-10">
               <h3 className="text-xl font-semibold text-neutral-900">
@@ -936,7 +936,7 @@ function PresetsManagement({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmPreset && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
@@ -1908,7 +1908,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
       {/* Queue Email Modal - Larger size */}
       {selectedQueue && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-7xl w-full h-[98vh] flex flex-col shadow-2xl">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-neutral-50 to-neutral-100">
@@ -2032,7 +2032,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
       {/* Email Detail Modal */}
       {selectedEmailDetail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">

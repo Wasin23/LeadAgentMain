@@ -393,7 +393,8 @@ class AWSEmailQueue {
   async markEmailAsSent(userId, agentId, emailId, mailgunData = {}) {
     return this.updateEmailStatus(userId, agentId, emailId, 'APPROVED', 'SENT', {
       mailgunId: mailgunData.id,
-      mailgunMessage: mailgunData.message
+      mailgunMessage: mailgunData.message,
+      trackingId: mailgunData.trackingId  // Store the tracking ID for correlation with Zilliz events!
     });
   }
 

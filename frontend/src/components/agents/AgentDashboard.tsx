@@ -672,15 +672,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           console.log('📊 [TRACKING DATA] Analytics:', trackingData.analytics, 'Status:', trackingData.analyticsStatus);
         }
         
+        // Check if AWS email already has analytics data (from tracking sync)
+        const hasAWSAnalytics = approvedEmail.analytics && Object.keys(approvedEmail.analytics).length > 0;
+        console.log('📊 [AWS ANALYTICS] Email:', approvedEmail.to, 'Has AWS analytics:', hasAWSAnalytics, approvedEmail.analytics);
+        
         return {
           ...approvedEmail,
-          // Merge tracking information from analytics with extensive fallbacks
-          analytics: trackingData?.analytics || {},
+          // Merge tracking information - prioritize AWS analytics that's already on the email
+          analytics: approvedEmail.analytics || trackingData?.analytics || {},
           analyticsStatus: trackingData?.analyticsStatus || {},
           tracking: trackingData?.tracking || {},
           zillizData: trackingData?.zillizData || {},
-          // Enhanced tracking status detection
+          // Enhanced tracking status detection - CHECK AWS ANALYTICS FIRST
           opened: Boolean(
+            approvedEmail.analytics?.opened ||  // CHECK AWS FIRST!
+            approvedEmail.opened ||              // Direct field on AWS email
             trackingData?.opened || 
             trackingData?.analytics?.opened || 
             trackingData?.analyticsStatus?.opened ||
@@ -688,13 +694,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             (trackingData?.zillizData?.events && trackingData.zillizData.events.some((event: any) => event.event_type === 'email_open'))
           ),
           replied: Boolean(
+            approvedEmail.analytics?.replied ||  // CHECK AWS FIRST!
+            approvedEmail.replied ||              // Direct field on AWS email
             trackingData?.replied || 
             trackingData?.analytics?.replied || 
             trackingData?.analyticsStatus?.replied ||
             trackingData?.zillizData?.replied ||
             (trackingData?.zillizData?.events && trackingData.zillizData.events.some((event: any) => event.event_type === 'email_reply'))
           ),
-          trackingId: trackingData?.trackingId || approvedEmail.id
+          trackingId: approvedEmail.trackingId || trackingData?.trackingId || approvedEmail.id
         };
       });
       
@@ -706,7 +714,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       const combinedEmails = [...emailsWithTracking, ...orphanAnalyticsEmails];
       
       if (combinedEmails.length > 0) {
-        const emailsWithStatus = combinedEmails.map((email: any) => ({
+        const emailsWithStatus = combinedEmails.map((email: any) => {
+          // Debug logging
+          console.log('📧 [STATUS CHECK] Email:', email.to, {
+            'email.opened': email.opened,
+            'email.analytics?.opened': email.analytics?.opened,
+            'email.analytics': email.analytics
+          });
+          
+          return {
           id: email.trackingId || email.id || Date.now().toString(),
           name: email.leadInfo?.name || email.personInfo?.fullName || email.recipientName || email.recipient || email.to?.split('@')[0] || 'Unknown Contact',
           company: email.lead?.company || email.leadInfo?.company || email.personInfo?.company || email.company || 'Unknown Company',
@@ -718,29 +734,30 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           body: email.body || email.content || email.personalizedEmail || 'Email content not available',
           // Enhanced tracking status - check all possible tracking sources including Zilliz
           opened: Boolean(
+            email.opened ||  // Prioritize the merged 'opened' field we set earlier
             email.analytics?.opened || 
             email.analyticsStatus?.opened || 
             email.tracking?.opened || 
-            email.opened ||
             email.zillizData?.opened ||
             (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_open'))
           ),
           replied: Boolean(
+            email.replied ||  // Prioritize the merged 'replied' field we set earlier
             email.analytics?.replied || 
             email.analyticsStatus?.replied || 
             email.tracking?.replied || 
-            email.replied ||
             email.zillizData?.replied ||
             (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_reply'))
           ),
           status: (
-            (email.analytics?.replied || email.analyticsStatus?.replied || email.tracking?.replied || email.replied || email.zillizData?.replied || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_reply'))) ? 'replied' : 
-            (email.analytics?.opened || email.analyticsStatus?.opened || email.tracking?.opened || email.opened || email.zillizData?.opened || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_open'))) ? 'opened' : 
+            (email.replied || email.analytics?.replied || email.analyticsStatus?.replied || email.tracking?.replied || email.zillizData?.replied || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_reply'))) ? 'replied' : 
+            (email.opened || email.analytics?.opened || email.analyticsStatus?.opened || email.tracking?.opened || email.zillizData?.opened || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_open'))) ? 'opened' : 
             'sent'
           ) as 'sent' | 'opened' | 'replied' | 'bounced',
           // Include full email object for detailed view
           ...email
-        }));
+        };
+        });
         
         // Remove duplicates based on email address and sort by date
         const uniqueEmails = emailsWithStatus.filter((email, index, self) => 
@@ -1689,14 +1706,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     </div>
                     <div className="flex items-center gap-2">
                       <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs border ${
-                        contact.status === 'replied' ? 'bg-green-50 text-green-600 border-green-200' :
-                        contact.status === 'opened' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                        contact.replied ? 'bg-green-50 text-green-600 border-green-200' :
+                        contact.opened ? 'bg-blue-50 text-blue-600 border-blue-200' :
                         'bg-neutral-50 text-neutral-600 border-neutral-200'
                       }`}>
-                        {contact.status === 'replied' && <CheckCircleIcon className="h-3 w-3" />}
-                        {contact.status === 'opened' && <EyeIcon className="h-3 w-3" />}
-                        {contact.status === 'sent' && <ClockIcon className="h-3 w-3" />}
-                        {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
+                        {contact.replied && <CheckCircleIcon className="h-3 w-3" />}
+                        {contact.opened && !contact.replied && <EyeIcon className="h-3 w-3" />}
+                        {!contact.opened && !contact.replied && <ClockIcon className="h-3 w-3" />}
+                        {contact.replied ? 'Replied' : contact.opened ? 'Opened' : 'Sent'}
                       </div>
                     </div>
                   </div>
@@ -1716,7 +1733,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Cycle Interval Modal */}
       {showIntervalModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1778,7 +1795,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Queue Modal */}
       {showEmailQueue && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1956,7 +1973,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Detail Modal */}
       {selectedEmail && !editingEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2072,7 +2089,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Editing Modal */}
       {editingEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2184,7 +2201,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Add Custom Email Modal */}
       {showAddEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2310,7 +2327,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Recent Contacts Modal */}
       {showRecentContacts && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2377,22 +2394,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                               </div>
                               <span className="text-sm text-neutral-400">•</span>
                               <span className="text-xs text-neutral-400">
-                                Sent {new Date(contact.dateSent).toLocaleDateString()}
+                                {contact.replied ? 'Replied' : contact.opened ? 'Opened' : 'Sent'} {new Date(contact.dateSent).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <div className={`inline-flex items-center gap-2 px-3 py-1 text-sm rounded-full font-medium ${
-                            contact.status === 'replied' ? 'bg-green-100 text-green-700 border border-green-300' :
-                            contact.status === 'opened' ? 'bg-blue-100 text-blue-700 border border-blue-300' :
+                            contact.replied ? 'bg-green-100 text-green-700 border border-green-300' :
+                            contact.opened ? 'bg-blue-100 text-blue-700 border border-blue-300' :
                             'bg-neutral-100 text-neutral-700 border border-neutral-300'
                           }`}>
-                            {contact.status === 'replied' && <CheckCircleIcon className="h-4 w-4" />}
-                            {contact.status === 'opened' && <EyeIcon className="h-4 w-4" />}
-                            {contact.status === 'sent' && <ClockIcon className="h-4 w-4" />}
-                            {contact.status === 'replied' ? 'Replied' : 
-                             contact.status === 'opened' ? 'Opened' : 'Sent'}
+                            {contact.replied && <CheckCircleIcon className="h-4 w-4" />}
+                            {contact.opened && !contact.replied && <EyeIcon className="h-4 w-4" />}
+                            {!contact.opened && !contact.replied && <ClockIcon className="h-4 w-4" />}
+                            {contact.replied ? 'Replied' : 
+                             contact.opened ? 'Opened' : 'Sent'}
                           </div>
                           <div className="text-sm text-neutral-400">
                             →
@@ -2410,7 +2427,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Recent Email Detail Modal */}
       {selectedRecentEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2426,14 +2443,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       To: {selectedRecentEmail.name} ({selectedRecentEmail.email})
                     </span>
                     <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${
-                      selectedRecentEmail.status === 'replied' ? 'bg-green-100 text-green-700' :
-                      selectedRecentEmail.status === 'opened' ? 'bg-blue-100 text-blue-700' :
+                      selectedRecentEmail.replied ? 'bg-green-100 text-green-700' :
+                      selectedRecentEmail.opened ? 'bg-blue-100 text-blue-700' :
                       'bg-neutral-100 text-neutral-700'
                     }`}>
-                      {selectedRecentEmail.status === 'replied' && <CheckCircleIcon className="h-3 w-3" />}
-                      {selectedRecentEmail.status === 'opened' && <EyeIcon className="h-3 w-3" />}
-                      {selectedRecentEmail.status === 'sent' && <ClockIcon className="h-3 w-3" />}
-                      {selectedRecentEmail.status.charAt(0).toUpperCase() + selectedRecentEmail.status.slice(1)}
+                      {selectedRecentEmail.replied && <CheckCircleIcon className="h-3 w-3" />}
+                      {selectedRecentEmail.opened && !selectedRecentEmail.replied && <EyeIcon className="h-3 w-3" />}
+                      {!selectedRecentEmail.opened && !selectedRecentEmail.replied && <ClockIcon className="h-3 w-3" />}
+                      {selectedRecentEmail.replied ? 'Replied' : selectedRecentEmail.opened ? 'Opened' : 'Sent'}
                     </div>
                   </div>
                 </div>
@@ -2525,7 +2542,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Scheduled Events Modal */}
       {showScheduledEvents && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2609,7 +2626,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Scheduled Event Details Modal */}
       {selectedScheduledEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
