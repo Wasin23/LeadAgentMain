@@ -62,7 +62,9 @@ router.get('/internal/events', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error getting events:', error);
-        res.status(500).json({ error: 'Failed to retrieve events' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to retrieve events' });
+        }
     }
 });
 
@@ -97,7 +99,9 @@ router.post('/email-opened', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ WEBHOOK] Error processing email open:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
     }
 });
 
@@ -139,7 +143,9 @@ router.get('/events', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error getting events:', error);
-        res.status(500).json({ error: 'Failed to retrieve events' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to retrieve events' });
+        }
     }
 });
 
@@ -161,7 +167,9 @@ router.get('/events/:trackingId', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error getting events by tracking ID:', error);
-        res.status(500).json({ error: 'Failed to retrieve events' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to retrieve events' });
+        }
     }
 });
 
@@ -194,10 +202,12 @@ router.delete('/clear', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error clearing events:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Internal server error'
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error'
+            });
+        }
     }
 });
 
@@ -222,10 +232,12 @@ router.post('/recreate-collection', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error recreating collection:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Internal server error'
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error'
+            });
+        }
     }
 });
 
@@ -330,7 +342,9 @@ router.get('/replies/:trackingId', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error getting replies:', error);
-        res.status(500).json({ error: 'Failed to retrieve replies' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to retrieve replies' });
+        }
     }
 });
 
@@ -355,7 +369,9 @@ router.post('/create-replies-collection', authenticateToken, async (req, res) =>
 
     } catch (error) {
         console.error('❌ [ZILLIZ API] Error creating replies collection:', error);
-        res.status(500).json({ error: 'Failed to create replies collection' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to create replies collection' });
+        }
     }
 });
 

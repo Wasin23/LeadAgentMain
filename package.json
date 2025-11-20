@@ -9,13 +9,16 @@
     "start": "node app.js",
     "start:prod": "NODE_ENV=production node app.js",
     "start:monitoring": "ENABLE_MONITORING=true node --expose-gc app.js",
-    
     "backup": "node -e \"import('./utils/backup.js').then(m => m.backupManager.createFullBackup())\"",
     "backup:cleanup": "node -e \"import('./utils/backup.js').then(m => m.backupManager.cleanupOldBackups())\"",
     "health": "curl -f http://localhost:8080/health || exit 1",
     "desktop:build": "echo \"Desktop build disabled (Electron removed)\" && exit 0"
   },
-  "keywords": ["ai","leads","automation"],
+  "keywords": [
+    "ai",
+    "leads",
+    "automation"
+  ],
   "author": "Meridian Team",
   "license": "ISC",
   "description": "Meridian - AI-Powered Lead Research & Email Automation Desktop App",
@@ -24,7 +27,6 @@
     "@aws-sdk/client-ses": "^3.901.0",
     "@aws-sdk/credential-providers": "^3.901.0",
     "@aws-sdk/lib-dynamodb": "^3.902.0",
-    
     "@langchain/community": "^0.3.49",
     "@langchain/core": "^0.3.66",
     "@langchain/openai": "^0.6.3",
@@ -34,7 +36,6 @@
     "@zilliz/milvus2-sdk-node": "^2.6.0",
     "axios": "^1.11.0",
     "cheerio": "^1.1.2",
-    
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -52,8 +53,9 @@
     "openai": "^5.12.0",
     "pg": "^8.16.3",
     "puppeteer": "^24.16.0",
+    "strip": "^3.0.0",
+    "stripe": "^20.0.0",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
-  },
-  "devDependencies": {}
+  }
 }

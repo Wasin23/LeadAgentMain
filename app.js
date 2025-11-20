@@ -287,6 +287,16 @@ try {
   systemRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Billing routes
+let billingRoutes;
+try {
+  billingRoutes = (await import('./routes/billing.js')).default;
+  console.log('Billing routes imported successfully');
+} catch (e) {
+  console.log('Billing routes not available:', e.message);
+  billingRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 const app = express();
 
 // Security Configuration
@@ -531,6 +541,7 @@ app.use('/api/issues', issuesRoutes); // Issues and alerts tracking
 app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe management
 app.use('/api/ai-report', aiReportRoutes); // AI-powered performance reports
 app.use('/api/ai-search', aiSearchRoutes); // AI-powered lead search
+app.use('/api/billing', billingRoutes); // Billing and payment management
 
 // Import manual sync routes
 let manualSyncRoutes;
