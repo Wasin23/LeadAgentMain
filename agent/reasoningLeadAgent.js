@@ -92,10 +92,16 @@ class ReasoningLeadAgent extends EventEmitter {
       industryExhaustion: {}, // Track leads found per industry: { "Hotels & Resorts": { leadsFound: 45, lastSearched: timestamp }, ... }
       totalLeadsFoundThisCycle: 0,
       aiGeneratedKeywords: [], // AI-generated related industry keywords
+      aiGeneratedPositions: [], // AI-generated positions paired with keywords
       aiKeywordCycleCount: 0, // Track how many AI keywords used (reset after 5)
       baseIndustryKeywords: [], // Flattened list of all keywords from user's industries
       campaignPriorityKeyword: null, // Campaign-specified industry to search first
-      leadsFoundWithCurrentKeyword: 0, // Track leads found with current keyword (rotate every 30)
+      leadsFoundWithCurrentKeyword: 0, // Track leads found with current keyword (rotate every 20)
+      lastKeywordUsed: null, // Track the last keyword used to detect changes
+      originalTargetPositions: null, // Store the original positions from instructions/settings
+      cycleOffset: 0, // Offset for position pairing - increases each full cycle for variety
+      searchHistoryDB: new Map(), // Cache of searched industry+position combos from DB
+      lastSearchKey: null, // Track last search combo to detect changes for SSE updates
       
       // Current cycle lead tracking with queue system
       currentCycle: {
@@ -2981,7 +2987,27 @@ BODY: [email body with proper greeting and signature]`;
       // Clean up body - remove any stray "SUBJECT:" prefix that AI might have included
       body = body.replace(/^SUBJECT:\s*[^\n]+\n\n?/i, '').trim();
       
-      console.log('✅ [EMAIL BUILDER] Personalized email created');
+      // Add legal compliance footer
+      const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
+      const unsubscribeToken = generateUnsubscribeToken(leadData.email);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
+      
+      // Get company address from settings (use user settings)
+      const companyAddress = this.memory.userSettings?.companyAddress || 
+                            emailSettings.companyBranding?.companyAddress ||
+                            'Your Company Address';
+      
+      const footer = `\n\n---\n\n` +
+        `You're receiving this email because you match our target audience. ` +
+        `If you'd prefer not to receive future emails, you can <a href="${unsubscribeUrl}">unsubscribe here</a>.\n\n` +
+        `${emailSettings.companyBranding?.companyName || 'Our Company'}\n` +
+        `${companyAddress}\n` +
+        `<a href="${frontendUrl}/privacy">Privacy Policy</a> | <a href="${frontendUrl}/terms">Terms of Service</a>`;
+      
+      body = body + footer;
+      
+      console.log('✅ [EMAIL BUILDER] Personalized email created with legal compliance footer');
       
       return {
         success: true,
@@ -3012,7 +3038,50 @@ BODY: [email body with proper greeting and signature]`;
       // Use REAL user settings from memory - NO hardcoded fallbacks
       const userSettings = this.memory.userSettings;
       
+      if (!userSettings) {
+        console.error('❌ [APOLLO] User settings not loaded yet!');
+        return {
+          success: false,
+          error: 'User settings must be loaded before searching for leads'
+        };
+      }
+      
       // STEP 1: Build base keyword list from user industries (if not already done)
+      // Initialize arrays and objects if they don't exist (safety check after reset)
+      if (!this.memory.baseIndustryKeywords) {
+        this.memory.baseIndustryKeywords = [];
+      }
+      if (!this.memory.aiGeneratedKeywords) {
+        this.memory.aiGeneratedKeywords = [];
+      }
+      if (!this.memory.aiGeneratedPositions) {
+        this.memory.aiGeneratedPositions = [];
+      }
+      if (!this.memory.industryExhaustion) {
+        this.memory.industryExhaustion = {};
+      }
+      if (!this.memory.searchHistoryDB) {
+        this.memory.searchHistoryDB = new Map();
+      }
+      if (this.memory.currentIndustryIndex === undefined) {
+        this.memory.currentIndustryIndex = 0;
+      }
+      if (this.memory.currentKeywordIndex === undefined) {
+        this.memory.currentKeywordIndex = 0;
+      }
+      if (this.memory.cycleOffset === undefined) {
+        this.memory.cycleOffset = 0;
+      }
+      if (this.memory.leadsFoundWithCurrentKeyword === undefined) {
+        this.memory.leadsFoundWithCurrentKeyword = 0;
+      }
+      if (this.memory.totalLeadsFoundThisCycle === undefined) {
+        this.memory.totalLeadsFoundThisCycle = 0;
+      }
+      if (this.memory.aiKeywordCycleCount === undefined) {
+        this.memory.aiKeywordCycleCount = 0;
+      }
+      
       if (this.memory.baseIndustryKeywords.length === 0 && userSettings.companyIndustries) {
         this.memory.baseIndustryKeywords = userSettings.companyIndustries.flatMap(ind =>
           ind.split(/\s*&\s*/).map(k => k.trim().toLowerCase())
@@ -3029,68 +3098,156 @@ BODY: [email body with proper greeting and signature]`;
         console.log(`🎯 [CAMPAIGN PRIORITY] Will search "${this.memory.campaignPriorityKeyword}" first (from campaign instructions)`);
       }
       
-      // STEP 2: Smart keyword selection with rotation every 30 leads
+      // STEP 2: SYNCHRONIZED KEYWORD + POSITION ROTATION (Paired by Index)
       let selectedKeyword = null;
+      let selectedPositionIndex = null;
       let keywordSource = 'base';
       
-      // Priority 1: Campaign-specific keyword (search for 30 leads first)
-      if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword < 30) {
+      // Priority 1: Campaign-specific keyword (search for 20 leads first)
+      if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword < 20) {
         selectedKeyword = this.memory.campaignPriorityKeyword;
         keywordSource = 'campaign';
-        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/30 leads found)`);
+        selectedPositionIndex = 0; // Use first position for campaign priority
+        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/20 leads found)`);
       } else {
         // Finished campaign priority OR no campaign priority set
-        if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 30) {
-          console.log(`✅ [CAMPAIGN PRIORITY] Completed 30 leads with "${this.memory.campaignPriorityKeyword}", moving to rotation`);
+        if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 20) {
+          console.log(`✅ [CAMPAIGN PRIORITY] Completed 20 leads with "${this.memory.campaignPriorityKeyword}", moving to rotation`);
           this.memory.campaignPriorityKeyword = null; // Clear it
           this.memory.leadsFoundWithCurrentKeyword = 0;
         }
         
-        // Priority 2: Rotate through base keywords, then AI keywords (every 30 leads)
-        const totalBaseKeywords = this.memory.baseIndustryKeywords.length;
-        const totalAIKeywords = this.memory.aiGeneratedKeywords.length;
+        // Get base and AI arrays
+        const baseKeywords = this.memory.baseIndustryKeywords;
+        const basePositions = this.memory.originalTargetPositions || userSettings.targetPositions || [];
+        const aiKeywords = this.memory.aiGeneratedKeywords;
+        const aiPositions = this.memory.aiGeneratedPositions || [];
+        
+        const totalBaseKeywords = baseKeywords.length;
+        const totalAIKeywords = aiKeywords.length;
         const totalKeywords = totalBaseKeywords + totalAIKeywords;
         
-        if (totalKeywords === 0) {
-          console.log(`❌ [ERROR] No keywords available for search`);
-          return { found: 0, leads: [], error: 'No industry keywords configured' };
+        if (totalKeywords === 0 || basePositions.length === 0) {
+          console.log(`❌ [ERROR] No keywords or positions available for search`);
+          return { found: 0, leads: [], error: 'Industry keywords or positions not configured' };
         }
         
-        // Check if we need to rotate to next keyword (every 30 leads)
-        if (this.memory.leadsFoundWithCurrentKeyword >= 30) {
+        // Check if we need to rotate to next pair (every 20 leads)
+        if (this.memory.leadsFoundWithCurrentKeyword >= 20) {
           this.memory.currentKeywordIndex++;
           this.memory.leadsFoundWithCurrentKeyword = 0;
-          console.log(`🔄 [ROTATION] 30 leads found, rotating to next keyword`);
+          console.log(`🔄 [ROTATION] 20 leads found, rotating to next keyword+position pair`);
         }
         
-        // Determine which keyword to use
+        // Track cycle offset for infinite variety (increases after full cycle)
+        if (!this.memory.cycleOffset) this.memory.cycleOffset = 0;
+        
+        // Determine which keyword+position pair to use
         const keywordIndex = this.memory.currentKeywordIndex % totalKeywords;
         
         if (keywordIndex < totalBaseKeywords) {
           // Use base keyword from user settings
-          selectedKeyword = this.memory.baseIndustryKeywords[keywordIndex];
+          selectedKeyword = baseKeywords[keywordIndex];
           keywordSource = 'base';
-          console.log(`🎯 [BASE KEYWORD] Using keyword ${keywordIndex + 1}/${totalBaseKeywords}: "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/30 leads)`);
+          // Pair with matching position index + cycle offset for variety
+          selectedPositionIndex = (keywordIndex + this.memory.cycleOffset) % basePositions.length;
+          console.log(`🎯 [BASE PAIR] Keyword[${keywordIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${basePositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset}) (${this.memory.leadsFoundWithCurrentKeyword}/20 leads)`);
         } else {
           // Use AI-generated keyword
           const aiIndex = keywordIndex - totalBaseKeywords;
-          selectedKeyword = this.memory.aiGeneratedKeywords[aiIndex];
+          selectedKeyword = aiKeywords[aiIndex];
           keywordSource = 'ai';
-          console.log(`🤖 [AI KEYWORD] Using AI-generated keyword ${aiIndex + 1}/${totalAIKeywords}: "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/30 leads)`);
+          // Pair with matching AI position + cycle offset
+          selectedPositionIndex = (aiIndex + this.memory.cycleOffset) % aiPositions.length;
+          console.log(`🤖 [AI PAIR] Keyword[${aiIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${aiPositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset}) (${this.memory.leadsFoundWithCurrentKeyword}/20 leads)`);
         }
         
-        // STEP 3: Generate new AI keywords after cycling through all base + existing AI keywords
-        if (this.memory.currentKeywordIndex % totalKeywords === 0 && this.memory.leadsFoundWithCurrentKeyword === 0) {
-          // Just completed full cycle - generate new AI keywords if under 5
-          if (this.memory.aiGeneratedKeywords.length < 5) {
-            console.log(`🧠 [AI GENERATION] Completed cycle, generating new industry keywords...`);
-            await this.generateRelatedIndustryKeywords(userSettings.companyIndustries);
+        // Determine the actual position being used
+        const currentSearchPosition = (keywordIndex < totalBaseKeywords) 
+          ? basePositions[selectedPositionIndex] 
+          : aiPositions[selectedPositionIndex];
+        
+        // Update agent state and broadcast current search via SSE when keyword/position changes
+        const searchKey = `${selectedKeyword}#${currentSearchPosition}`;
+        if (!this.memory.lastSearchKey || this.memory.lastSearchKey !== searchKey) {
+          this.memory.lastSearchKey = searchKey;
+          
+          // Update agent state in AWS
+          await this.awsManager.saveAgentState(userSettings.userId, this.agentId, {
+            currentSearchIndustry: selectedKeyword,
+            currentSearchPosition: currentSearchPosition,
+            searchSource: keywordSource,
+            cycleOffset: this.memory.cycleOffset,
+            leadsFoundWithCurrentPair: this.memory.leadsFoundWithCurrentKeyword,
+            lastSearchUpdate: Date.now()
+          });
+          
+          // Emit SSE update
+          this.emit('progress', {
+            type: 'search-update',
+            agentId: this.agentId,
+            currentSearch: {
+              industry: selectedKeyword,
+              position: currentSearchPosition,
+              source: keywordSource,
+              progress: `${this.memory.leadsFoundWithCurrentKeyword}/20`,
+              cycleOffset: this.memory.cycleOffset
+            },
+            timestamp: new Date().toISOString()
+          });
+          
+          console.log(`📡 [SSE] Broadcasting search update: ${selectedKeyword} + ${currentSearchPosition}`);
+        }
+        
+        // STEP 2.5: Generate dynamic target positions when keyword changes AND after 20 leads
+        if (this.memory.lastKeywordUsed !== selectedKeyword) {
+          console.log(`🔄 [KEYWORD CHANGE] Switched from "${this.memory.lastKeywordUsed || 'none'}" to "${selectedKeyword}"`);
+          
+          // Only generate new positions after we've used the original instructions/settings for 20 leads
+          if (this.memory.totalLeadsFoundThisCycle >= 20 && !this.memory.originalTargetPositions) {
+            // Store original positions first time
+            this.memory.originalTargetPositions = [...(userSettings.targetPositions || [])];
+            console.log(`📌 [ORIGINAL SAVED] Saved original positions: ${this.memory.originalTargetPositions.join(', ')}`);
+          }
+          
+          if (this.memory.totalLeadsFoundThisCycle >= 20 && this.memory.originalTargetPositions) {
+            // After 20 leads, start dynamically adapting positions
+            console.log(`🎯 [DYNAMIC MODE] 20+ leads found, generating industry-specific positions`);
+            await this.generateDynamicTargetPositions(
+              selectedKeyword, 
+              this.memory.originalTargetPositions,
+              userSettings.generalInstructions
+            );
           } else {
-            // Reset AI keywords after using 5 generated terms
-            console.log(`🔄 [RESET AI] Used 5 AI-generated keywords, clearing and restarting with base keywords`);
+            console.log(`📋 [USING ORIGINAL] Using original positions from instructions/settings (${this.memory.totalLeadsFoundThisCycle}/20 leads)`);
+          }
+          
+          this.memory.lastKeywordUsed = selectedKeyword;
+        }
+        
+        // STEP 3: Generate new AI keywords+positions after cycling through all base + existing AI pairs
+        if (this.memory.currentKeywordIndex % totalKeywords === 0 && this.memory.leadsFoundWithCurrentKeyword === 0) {
+          // Just completed full cycle!
+          console.log(`🎊 [CYCLE COMPLETE] Finished full rotation of ${totalKeywords} industry+position pairs`);
+          
+          // Increment cycle offset for next cycle variety
+          this.memory.cycleOffset++;
+          console.log(`🔄 [OFFSET INCREMENT] Cycle offset now: ${this.memory.cycleOffset} (positions will shift by ${this.memory.cycleOffset} next cycle)`);
+          
+          if (this.memory.aiGeneratedKeywords.length < 5) {
+            // Generate new AI keyword+position pairs
+            console.log(`🧠 [AI GENERATION] Generating 5 new industry+position pairs...`);
+            await this.generateRelatedIndustryKeywordsAndPositions(
+              userSettings.companyIndustries,
+              this.memory.originalTargetPositions || userSettings.targetPositions
+            );
+          } else {
+            // Reset AI keywords after using 5 generated pairs
+            console.log(`🔄 [RESET AI] Used 5 AI-generated pairs, clearing and restarting with base pairs`);
             this.memory.aiGeneratedKeywords = [];
+            this.memory.aiGeneratedPositions = [];
             this.memory.aiKeywordCycleCount = 0;
-            this.memory.currentKeywordIndex = 0; // Restart from first base keyword
+            this.memory.currentKeywordIndex = 0; // Restart from first base pair
           }
         }
       }
@@ -3115,26 +3272,21 @@ BODY: [email body with proper greeting and signature]`;
       const searchPage = basePageRange + Math.floor(Math.random() * 10) + 1; // Offset + random 1-10
       console.log(`📄 [PAGINATION] Searching page ${searchPage} (offset: ${basePageRange})`);
       
-      // INTELLIGENT POSITION SELECTION WITH VALIDATION
+      // USE PAIRED POSITION (from rotation logic above)
       let targetPosition;
-      if (parameters.position) {
-        // Validate AI's position choice is from user settings
-        if (userSettings.targetPositions && userSettings.targetPositions.includes(parameters.position)) {
-          targetPosition = parameters.position;
-          console.log(`🤖 [AI SELECTION] Using AI-selected position: "${targetPosition}"`);
-          if (parameters.reasoning) {
-            console.log(`💭 [AI REASONING] ${parameters.reasoning}`);
-          }
-        } else {
-          console.log(`⚠️ [VALIDATION FAILED] AI requested position "${parameters.position}" but it's not in user settings`);
-          console.log(`📋 [USER SETTINGS] Available positions: ${userSettings.targetPositions?.join(', ') || 'None'}`);
-          // Fall through to random selection
-        }
-      }
       
-      // Fallback to random position from user settings if no valid AI selection
-      if (!targetPosition) {
-        if (!userSettings.targetPositions || userSettings.targetPositions.length === 0) {
+      // Determine which position array to use (base or AI)
+      const basePositions = this.memory.originalTargetPositions || userSettings.targetPositions || [];
+      const aiPositions = this.memory.aiGeneratedPositions || [];
+      const usingAI = keywordSource === 'ai';
+      const positionArray = usingAI ? aiPositions : basePositions;
+      
+      if (selectedPositionIndex !== null && positionArray.length > 0) {
+        targetPosition = positionArray[selectedPositionIndex];
+        console.log(`🎯 [PAIRED POSITION] Using ${usingAI ? 'AI' : 'base'} position[${selectedPositionIndex}]: "${targetPosition}"`);
+      } else {
+        // Fallback if something went wrong
+        if (basePositions.length === 0) {
           console.log(`❌ [CONFIG ERROR] Target positions not set - stopping cycle`);
           return {
             success: false,
@@ -3143,9 +3295,96 @@ BODY: [email body with proper greeting and signature]`;
             leads: []
           };
         }
-        targetPosition = userSettings.targetPositions[Math.floor(Math.random() * userSettings.targetPositions.length)];
-        console.log(`🔍 [FALLBACK] Using random position from settings: "${targetPosition}"`);
+        targetPosition = basePositions[0];
+        console.log(`⚠️ [FALLBACK] Using first base position: "${targetPosition}"`);
       }
+      
+      // STEP 5: Check search history for duplicates (30 day window)
+      const historyCheck = await this.awsManager.checkSearchHistory(
+        userSettings.userId,
+        this.agentId,
+        selectedKeyword,
+        targetPosition,
+        30
+      );
+      
+      if (historyCheck.isDuplicate) {
+        console.log(`⏭️ [SKIP] Already searched this combo ${historyCheck.daysAgo} days ago`);
+        
+        // Check if we have anything to rotate to
+        const baseKeywords = this.memory.baseIndustryKeywords;
+        const aiKeywords = this.memory.aiGeneratedKeywords;
+        const totalKeywords = baseKeywords.length + aiKeywords.length;
+        
+        // Track consecutive duplicate attempts
+        if (!this.memory.consecutiveDuplicateAttempts) {
+          this.memory.consecutiveDuplicateAttempts = 0;
+        }
+        this.memory.consecutiveDuplicateAttempts++;
+        
+        // If we've tried all available keywords and they're all duplicates, generate new ones
+        if (this.memory.consecutiveDuplicateAttempts >= totalKeywords) {
+          // Check if we already have AI keywords (meaning we've generated before)
+          if (aiKeywords.length > 0) {
+            // Already tried AI keywords and they're all duplicates too
+            // Clear search history and go back to original keywords
+            console.log(`🗑️ [SEARCH HISTORY] All keywords exhausted (base + AI), clearing search history database...`);
+            await this.awsManager.deleteSearchHistory(userSettings.userId, this.agentId);
+            console.log(`✅ [SEARCH HISTORY] Cleared! Restarting with original keywords`);
+            
+            // Reset everything to start fresh
+            this.memory.consecutiveDuplicateAttempts = 0;
+            this.memory.aiGeneratedKeywords = [];
+            this.memory.aiGeneratedPositions = [];
+            this.memory.campaignPriorityKeyword = null;
+            this.memory.currentKeywordIndex = 0;
+            this.memory.leadsFoundWithCurrentKeyword = 0;
+            
+            // IMPORTANT: Reset page offset since we cleared history - back to fresh searches
+            this.memory.searchPageOffset = 0;
+            this.memory.consecutiveDuplicateSearches = 0;
+            console.log(`🔄 [PAGE RESET] Search history cleared - reset to page 1`);
+            
+            // Retry with cleared history
+            return await this.apolloSearch();
+          } else {
+            // First time hitting all duplicates, generate AI keywords
+            console.log(`🤖 [AI GENERATION] All ${totalKeywords} keywords are duplicates, generating new keywords now...`);
+            this.memory.consecutiveDuplicateAttempts = 0; // Reset counter
+            await this.generateRelatedIndustryKeywordsAndPositions(
+              userSettings.companyIndustries,
+              this.memory.originalTargetPositions || userSettings.targetPositions
+            );
+            // Force rotation to use the new AI keywords - skip the campaign priority
+            this.memory.campaignPriorityKeyword = null;
+            this.memory.leadsFoundWithCurrentKeyword = 20; // Force rotation
+            this.memory.currentKeywordIndex = baseKeywords.length; // Start at first AI keyword
+            
+            // IMPORTANT: Reset page offset since we're searching completely new industries
+            this.memory.searchPageOffset = 0;
+            this.memory.consecutiveDuplicateSearches = 0;
+            console.log(`🔄 [PAGE RESET] New industry keywords - reset to page 1`);
+            
+            // Try again with new keywords
+            console.log(`🔄 [RETRY] Retrying search with newly generated AI keyword`);
+            return await this.apolloSearch();
+          }
+        } else {
+          // Force rotation to next keyword
+          this.memory.leadsFoundWithCurrentKeyword = 20; // Trigger rotation next time
+          console.log(`🔄 [ROTATE] Forcing rotation to next keyword pair (attempt ${this.memory.consecutiveDuplicateAttempts}/${totalKeywords})`);
+          return {
+            success: true,
+            found: 0,
+            leads: [],
+            skipped: true,
+            reason: `Already searched ${selectedKeyword} + ${targetPosition} recently`
+          };
+        }
+      }
+      
+      // Reset duplicate attempt counter on successful search
+      this.memory.consecutiveDuplicateAttempts = 0;
       
       // Calculate how many leads we still need
       const leadsNeeded = this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed;
@@ -3331,7 +3570,7 @@ BODY: [email body with proper greeting and signature]`;
             parameters: parameters
           };
 
-          // Update keyword tracking for rotation (every 30 leads)
+          // Update keyword tracking for rotation (every 20 leads)
           if (newLeads.length > 0) {
             this.memory.leadsFoundWithCurrentKeyword += newLeads.length;
             this.memory.totalLeadsFoundThisCycle += newLeads.length;
@@ -3339,7 +3578,18 @@ BODY: [email body with proper greeting and signature]`;
             // Also track per-keyword exhaustion (100 lead threshold)
             if (selectedKeyword) {
               this.memory.industryExhaustion[selectedKeyword].leadsFound += newLeads.length;
-              console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/30 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
+              console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/20 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
+            }
+            
+            // Record to DB every 20 leads (when rotation happens)
+            if (this.memory.leadsFoundWithCurrentKeyword >= 20 && selectedKeyword && targetPosition) {
+              await this.awsManager.recordSearchHistory(
+                userSettings.userId,
+                this.agentId,
+                selectedKeyword,
+                targetPosition,
+                20
+              );
             }
           }
 
@@ -3364,7 +3614,7 @@ BODY: [email body with proper greeting and signature]`;
         this.memory.leadsFoundWithCurrentKeyword += rawLeads.length;
         this.memory.industryExhaustion[selectedKeyword].leadsFound += rawLeads.length;
         this.memory.totalLeadsFoundThisCycle += rawLeads.length;
-        console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/30 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
+        console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/20 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
       }
 
       // Return all leads from Apollo (deduplication will happen after email unlock)
@@ -3406,15 +3656,16 @@ BODY: [email body with proper greeting and signature]`;
   }
 
   // Generate AI-related industry keywords by analyzing company profile + current targeting
-  async generateRelatedIndustryKeywords(userIndustries) {
+  async generateRelatedIndustryKeywordsAndPositions(userIndustries, basePositions) {
     try {
       const userSettings = this.memory.userSettings;
       const companyProfile = userSettings?.companyProfile || {};
       
-      console.log(`🤖 [AI GENERATION] Generating keywords based on company profile + industries`);
+      console.log(`🤖 [AI GENERATION] Generating 5 industry+position PAIRS based on company profile`);
       console.log(`🏢 [COMPANY CONTEXT] ${companyProfile.companyName || 'Unknown'} - ${companyProfile.services || 'No services defined'}`);
+      console.log(`📋 [BASE POSITIONS] ${basePositions.join(', ')}`);
       
-      const prompt = `You are an intelligent B2B lead generation strategist. Analyze the user's company and suggest related industries to target.
+      const prompt = `You are an intelligent B2B lead generation strategist. Generate 5 SPECIFIC industry+position PAIRS.
 
 USER'S COMPANY PROFILE:
 - Company: ${companyProfile.companyName || 'Not specified'}
@@ -3423,22 +3674,116 @@ USER'S COMPANY PROFILE:
 - Core Offering: ${companyProfile.coreOffering || companyProfile.description || 'Not specified'}
 - Target Market: ${companyProfile.targetMarket || 'Not specified'}
 
-CURRENTLY TARGETING INDUSTRIES:
+CURRENTLY TARGETING (GENERAL INDUSTRIES):
 ${userIndustries.join(', ')}
 
-Based on what this company SELLS and who they currently TARGET, generate 5 NEW industry keywords that would be good prospects for them.
+BASE POSITIONS (for seniority reference):
+${basePositions.join(', ')}
 
-Think: "Who else would need ${companyProfile.services || 'their services'}?" or "What adjacent industries match their target market?"
+Generate 5 PAIRED combinations of:
+1. SPECIFIC sub-industry (lowercase, 1-2 words)
+2. RELEVANT position title for that industry (matching seniority level of base positions)
+
+Examples:
+- If base has "CEO", targeting "tech" → Pair: "saas" with "SaaS Founder"
+- If base has "VP", targeting "healthcare" → Pair: "telemedicine" with "VP of Telehealth"
+- If base has "Director", targeting "finance" → Pair: "fintech" with "Fintech Director"
+
+IMPORTANT: 
+- Keep seniority level similar to base positions
+- Make positions SPECIFIC to the sub-industry
+- Stay within the SAME general industry family but be MORE SPECIFIC
+
+Format as JSON array of objects:
+[
+  {"industry": "saas", "position": "SaaS Founder"},
+  {"industry": "fintech", "position": "VP of Payments"},
+  ...
+]`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 300
+      });
+      
+      const content = response.choices[0].message.content.trim();
+      
+      // Parse JSON response
+      let pairs = [];
+      try {
+        // Extract JSON if wrapped in markdown code blocks
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          pairs = JSON.parse(jsonMatch[0]);
+        }
+      } catch (parseError) {
+        console.error('❌ [JSON PARSE ERROR] Could not parse AI response:', parseError.message);
+        throw new Error('AI response not valid JSON');
+      }
+      
+      // Validate and extract
+      if (Array.isArray(pairs) && pairs.length > 0) {
+        const industries = pairs.map(p => p.industry?.toLowerCase()).filter(Boolean).slice(0, 5);
+        const positions = pairs.map(p => p.position).filter(Boolean).slice(0, 5);
+        
+        this.memory.aiGeneratedKeywords = industries;
+        this.memory.aiGeneratedPositions = positions;
+        this.memory.aiKeywordCycleCount++;
+        
+        console.log(`✅ [AI GENERATED] ${industries.length} pairs (cycle ${this.memory.aiKeywordCycleCount}):`);
+        for (let i = 0; i < industries.length; i++) {
+          console.log(`   ${i+1}. "${industries[i]}" + "${positions[i]}"`);
+        }
+      } else {
+        throw new Error('No valid pairs generated');
+      }
+      
+    } catch (error) {
+      console.error('❌ [AI GENERATION ERROR]', error.message);
+      // Fallback: keep current arrays empty (will use base pairs)
+      this.memory.aiGeneratedKeywords = [];
+      this.memory.aiGeneratedPositions = [];
+    }
+  }
+
+  // DEPRECATED: Old function for backwards compatibility (not used anymore)
+  async generateRelatedIndustryKeywords(userIndustries) {
+    try {
+      const userSettings = this.memory.userSettings;
+      const companyProfile = userSettings?.companyProfile || {};
+      
+      console.log(`🤖 [AI GENERATION] Generating keywords based on company profile + industries`);
+      console.log(`🏢 [COMPANY CONTEXT] ${companyProfile.companyName || 'Unknown'} - ${companyProfile.services || 'No services defined'}`);
+      
+      const prompt = `You are an intelligent B2B lead generation strategist. Generate SPECIFIC sub-industries or niches within the target industries.
+
+USER'S COMPANY PROFILE:
+- Company: ${companyProfile.companyName || 'Not specified'}
+- Industry: ${companyProfile.industry || 'Not specified'}
+- Services/Products: ${companyProfile.services || 'Not specified'}
+- Core Offering: ${companyProfile.coreOffering || companyProfile.description || 'Not specified'}
+- Target Market: ${companyProfile.targetMarket || 'Not specified'}
+
+CURRENTLY TARGETING (GENERAL INDUSTRIES):
+${userIndustries.join(', ')}
+
+Generate 5 SPECIFIC variations/sub-industries within these general categories. Examples:
+- If "tech" or "technology" → provide: "saas", "cloud computing", "cybersecurity", "fintech", "ai/ml"
+- If "healthcare" → provide: "telemedicine", "medical devices", "pharmaceuticals", "health tech", "biotech"
+- If "finance" → provide: "fintech", "investment banking", "insurance tech", "wealth management", "crypto"
+- If "real estate" → provide: "property management", "commercial real estate", "proptech", "construction", "real estate investment"
+
+IMPORTANT: Stay within the SAME general industry but be MORE SPECIFIC. Focus on decision-makers (CTOs, CFOs, VPs) if relevant.
 
 Requirements:
 - Return ONLY lowercase keywords (single-word or two-word terms)
-- Keywords should be DIFFERENT from current industries but complementary
-- Focus on industries that would BENEFIT from their offering
+- Keywords must be SPECIFIC niches within the base industries
 - Avoid generic terms like "business" or "company"
 - Format as comma-separated list
-- Examples: "hospitality", "property management", "event planning", "facility services"
 
-Keywords:`;
+Specific Niche Keywords:`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
@@ -3463,6 +3808,90 @@ Keywords:`;
       console.error('❌ [AI GENERATION ERROR]', error.message);
       // Fallback to base keywords if generation fails
       this.memory.aiGeneratedKeywords = [];
+    }
+  }
+
+  /**
+   * Generate industry-specific target positions based on current keyword
+   * ONLY called after 20 leads with the base instructions/settings positions
+   */
+  async generateDynamicTargetPositions(industryKeyword, originalPositions, generalInstructions) {
+    try {
+      console.log(`🎯 [DYNAMIC POSITIONS] Generating target positions for industry: "${industryKeyword}"`);
+      console.log(`📋 [ORIGINAL POSITIONS] Base positions: ${originalPositions.join(', ')}`);
+      
+      const userSettings = this.memory.userSettings;
+      const companyProfile = userSettings?.companyProfile || {};
+      
+      const prompt = `Generate 5-7 specific job titles/positions to target for the industry: "${industryKeyword}"
+
+Company Context:
+- Services: ${companyProfile.services || 'B2B services'}
+- Target Market: ${companyProfile.targetMarket || 'Business decision-makers'}
+- General Instructions: ${generalInstructions || 'None specified'}
+
+Original Target Positions (from user): ${originalPositions.join(', ')}
+Current Industry Focus: ${industryKeyword}
+
+Based on this industry, what are the MOST RELEVANT decision-maker positions to target?
+
+Examples by industry:
+- "saas" or "cloud computing" → CTO, VP Engineering, Head of DevOps, Technical Director, VP Product
+- "fintech" or "finance" → CFO, VP Finance, Head of Finance Operations, Financial Controller, Treasurer
+- "healthcare" or "medical devices" → Chief Medical Officer, VP Clinical Operations, Healthcare Administrator, Medical Director
+- "real estate" or "proptech" → VP Real Estate, Head of Property Management, Director of Real Estate Operations, Real Estate Manager
+- "marketing" or "adtech" → CMO, VP Marketing, Head of Digital Marketing, Marketing Director, Brand Manager
+
+IMPORTANT: If the original positions are highly specific (e.g., "CEO only"), try to maintain that level/seniority but adapt to this industry.
+
+Requirements:
+- Return 5-7 job titles that would be decision-makers for this industry
+- Focus on C-level, VP-level, Directors, and Heads of departments
+- Be specific to the industry (not generic like "Manager")
+- Format as comma-separated list
+- Use full titles (not abbreviations unless commonly used like CEO, CTO, CFO, CMO)
+
+Target Positions:`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 150
+      });
+      
+      const positions = response.choices[0].message.content
+        .trim()
+        .split(',')
+        .map(p => p.trim())
+        .filter(p => p.length > 0 && !p.includes('\n'))
+        .slice(0, 7);
+      
+      console.log(`✅ [DYNAMIC POSITIONS] Generated ${positions.length} positions for "${industryKeyword}":`, positions.join(', '));
+      
+      // Update settings in AWS (for display purposes)
+      const updatedSettings = {
+        ...userSettings,
+        targetPositions: positions,
+        lastDynamicUpdate: new Date().toISOString(),
+        currentIndustryKeyword: industryKeyword,
+        originalTargetPositions: originalPositions // Store original for reference
+      };
+      
+      // Save to AWS
+      await this.awsManager.updateLeadAgentSettings(this.userId, this.agentId, updatedSettings);
+      
+      // Update memory
+      this.memory.userSettings = updatedSettings;
+      
+      console.log(`💾 [SETTINGS UPDATED] Target positions dynamically updated for "${industryKeyword}"`);
+      
+      return positions;
+      
+    } catch (error) {
+      console.error('❌ [DYNAMIC POSITIONS ERROR]', error.message);
+      // Return original positions on error
+      return originalPositions || ['CEO', 'CTO', 'CFO', 'VP', 'Director'];
     }
   }
 
@@ -4686,6 +5115,22 @@ Keywords:`;
         this.memory.consecutiveDuplicateSearches = 0;
         this.memory.searchPageOffset = 0;
         
+        // Reset search rotation tracking arrays
+        this.memory.baseIndustryKeywords = [];
+        this.memory.aiGeneratedKeywords = [];
+        this.memory.aiGeneratedPositions = [];
+        this.memory.currentIndustryIndex = 0;
+        this.memory.currentKeywordIndex = 0;
+        this.memory.cycleOffset = 0;
+        this.memory.leadsFoundWithCurrentKeyword = 0;
+        this.memory.lastKeywordUsed = null;
+        this.memory.lastSearchKey = null;
+        this.memory.campaignPriorityKeyword = null;
+        this.memory.originalTargetPositions = null;
+        this.memory.totalLeadsFoundThisCycle = 0;
+        this.memory.industryExhaustion = {};
+        this.memory.searchHistoryDB = new Map();
+        
         console.log('✅ [CACHE CLEAR] All memory cleared - agent ready for fresh start');
       }
       
@@ -4878,6 +5323,12 @@ Keywords:`;
       // Stop if running
       if (this.isRunning) {
         await this.stop();
+      }
+
+      // Clear search history from AWS
+      if (this.awsManager && this.userId) {
+        console.log('🗑️ [RESET] Clearing search history from AWS...');
+        await this.awsManager.deleteSearchHistory(this.userId, this.agentId);
       }
 
       // Reset memory and state

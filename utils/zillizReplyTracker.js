@@ -5,7 +5,7 @@ import path from 'path';
 export class ZillizReplyTracker {
     constructor() {
         this.client = null;
-        this.collectionName = 'email_reply_events';
+        this.collectionName = 'email_tracking_events';  // Use same collection as tracking
         this.initialized = false;
     }
 
@@ -16,16 +16,9 @@ export class ZillizReplyTracker {
                 token: process.env.ZILLIZ_TOKEN
             });
 
-            // Check if collection exists
-            const collections = await this.client.listCollections();
-            const collectionExists = collections.data.some(col => col.name === this.collectionName);
-
-            if (!collectionExists) {
-                await this.createReplyCollection();
-            }
-
+            // Use existing email_tracking_events collection - no need to create
             this.initialized = true;
-            console.log('💬 [ZILLIZ REPLY] Reply tracking initialized successfully');
+            console.log('💬 [ZILLIZ REPLY] Reply tracking initialized (using email_tracking_events collection)');
         } catch (error) {
             console.error('❌ [ZILLIZ REPLY] Initialization failed:', error);
             throw error;
@@ -116,15 +109,27 @@ export class ZillizReplyTracker {
             // Analyze reply sentiment and type
             const analysis = await this.analyzeReply(replyData.content);
 
+            // Extract user_id and agent_id from tracking_id
+            const extractIdsFromTrackingId = (trackingId) => {
+                if (!trackingId) return { userId: 'unknown', agentId: 'unknown' };
+                // Format: tracking-{userId}_{agentId}_{timestamp}_{hash}
+                const match = trackingId.match(/tracking-([a-f0-9-]+)_([^_]+)_/);
+                return match ? { userId: match[1], agentId: match[2] } : { userId: 'unknown', agentId: 'unknown' };
+            };
+
+            const { userId, agentId } = extractIdsFromTrackingId(replyData.trackingId);
+
+            // Insert into email_tracking_events with event_type='email_reply'
             const data = [{
                 tracking_id: replyData.trackingId,
-                reply_id: replyData.id,
-                from_email: replyData.from,
-                subject: replyData.subject || 'No Subject',
-                reply_content: replyData.content.substring(0, 9999), // Truncate if too long
+                user_id: userId,
+                agent_id: agentId,
+                event_type: 'email_reply',
                 timestamp: new Date().toISOString(),
-                sentiment: analysis.sentiment,
-                reply_type: analysis.type,
+                user_agent: 'Reply via Email',
+                ip_address: 'N/A',
+                email_address: replyData.from,
+                recipient: replyData.from,
                 processed: false,
                 dummy_vector: [0.0, 0.0]
             }];
@@ -134,7 +139,7 @@ export class ZillizReplyTracker {
                 data: data
             });
 
-            console.log(`💬 [ZILLIZ REPLY] Reply logged for tracking ${replyData.trackingId}: ${analysis.sentiment} ${analysis.type}`);
+            console.log(`💬 [ZILLIZ REPLY] Reply logged for tracking ${replyData.trackingId} (user: ${userId}, agent: ${agentId}): ${analysis.sentiment} ${analysis.type}`);
             
             // Also save to local file for backup
             await this.saveLocalReply(replyData, analysis);

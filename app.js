@@ -196,6 +196,16 @@ try {
   issuesRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Unsubscribe routes
+let unsubscribeRoutes;
+try {
+  unsubscribeRoutes = (await import('./routes/unsubscribe.js')).default;
+  console.log('Unsubscribe routes imported successfully');
+} catch (e) {
+  console.log('Unsubscribe routes not available:', e.message);
+  unsubscribeRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import AI Report routes
 let aiReportRoutes;
 try {
@@ -518,6 +528,7 @@ app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 app.use('/api/issues', issuesRoutes); // Issues and alerts tracking
+app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe management
 app.use('/api/ai-report', aiReportRoutes); // AI-powered performance reports
 app.use('/api/ai-search', aiSearchRoutes); // AI-powered lead search
 

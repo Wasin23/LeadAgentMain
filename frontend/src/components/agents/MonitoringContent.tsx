@@ -73,7 +73,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     openai: 0.0034, // $0.0034 per 1K tokens
     mailgun: 0.00136, // $0.00136 per email
     zerobounce: 0.0085, // $0.0085 per validation
-    serper: 0.0085 // $0.0085 per search
+    serper: 0.001 // $0.001 per search ($50 for 50k credits)
   };
 
   // Calculate budget-based limits for each API
@@ -149,6 +149,55 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   // Setup SSE connection for analytics view to receive sent emails
   useEffect(() => {
     if (view === 'analytics') {
+      // First, fetch historical sent emails
+      const fetchHistoricalSentEmails = async () => {
+        try {
+          console.log('📧 [Analytics] Fetching historical sent emails...');
+          const response = await api.get('/api/email-queue/sent?agentId=all');
+          const emails = response.data || [];
+          console.log(`📧 [Analytics] Loaded ${emails.length} historical sent emails`);
+          
+          // Map the emails to match the expected format
+          const formattedEmails = emails.map((email: any) => {
+            // Extract company from multiple possible locations
+            const company = email.lead?.company || 
+                          email.leadInfo?.company || 
+                          email.leadData?.company ||
+                          email.personInfo?.company || 
+                          email.company ||
+                          email.metadata?.company ||
+                          'Unknown Company';
+            
+            // Check if email was opened from tracking data
+            const opened = Boolean(
+              email.opened ||
+              email.analytics?.opened ||
+              email.tracking?.opened ||
+              email.zillizData?.opened ||
+              (email.zillizData?.events && email.zillizData.events.some((e: any) => e.event_type === 'email_open'))
+            );
+            
+            return {
+              timestamp: email.sentAt || email.createdAt,
+              dateSent: email.sentAt || email.createdAt,
+              to: email.to,
+              name: email.lead?.name || email.leadInfo?.name || email.personInfo?.fullName || email.to?.split('@')[0],
+              company,
+              subject: email.subject,
+              agentId: email.agentId,
+              opened,
+              ...email
+            };
+          });
+          
+          setSentEmailsStream(formattedEmails.slice(0, 50)); // Keep last 50 emails
+        } catch (error) {
+          console.error('📧 [Analytics] Error fetching historical sent emails:', error);
+        }
+      };
+      
+      fetchHistoricalSentEmails();
+      
       const token = localStorage.getItem('token');
       if (!token) return;
       
@@ -274,15 +323,24 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       fetchApiUsageTimeSeries();
       fetchCostTimeSeries();
       fetchRateLimits();
-      // Refresh statuses every 10 seconds
-      const interval = setInterval(() => {
+      
+      // Refresh statuses every 30 seconds
+      const statusInterval = setInterval(() => {
         fetchAgentStatuses();
         fetchTotalApiUsage();
+        fetchRateLimits();
+      }, 30000); // 30 seconds for agent statuses
+      
+      // Refresh time series data every 2 minutes (matches backend cache TTL)
+      const timeSeriesInterval = setInterval(() => {
         fetchApiUsageTimeSeries();
         fetchCostTimeSeries();
-        fetchRateLimits();
-      }, 10000);
-      return () => clearInterval(interval);
+      }, 120000); // 2 minutes for time series data
+      
+      return () => {
+        clearInterval(statusInterval);
+        clearInterval(timeSeriesInterval);
+      };
     }
   }, [agents, timeRange, costTimeRange, customDays, costCustomDays]); // Re-fetch when either timeRange or custom days changes
 
@@ -791,6 +849,14 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                 // Find the agent that sent this email
                 const sendingAgent = agents.find(a => a.id === email.agentId);
                 const agentColor = sendingAgent?.personality?.color || 'blue';
+                const agentAvatar = sendingAgent?.personality?.avatar;
+                const agentName = sendingAgent?.name || 'Unknown Agent';
+                
+                // Determine status badge
+                const isOpened = email.opened || email.analytics?.opened;
+                const statusBadge = isOpened 
+                  ? { text: 'Viewed', color: 'bg-blue-100 text-blue-700 border-blue-300', icon: EyeIcon }
+                  : { text: 'Sent', color: 'bg-green-100 text-green-700 border-green-300', icon: CheckCircleIcon };
                 
                 return (
                   <div
@@ -806,7 +872,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-neutral-900 text-sm truncate">
-                              {email.company || 'Unknown Company'}
+                              {email.company}
                             </span>
                             <span className="text-xs text-neutral-500">•</span>
                             <span className="text-xs text-neutral-500 truncate">
@@ -823,25 +889,39 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                         </div>
                       </div>
                       
-                      {/* Right side - Agent icon */}
+                      {/* Right side - Status and Agent */}
                       <div className="flex items-center gap-2 ml-4">
-                        <div className={`inline-flex items-center gap-2 px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-700 border border-green-300`}>
-                          <CheckCircleIcon className="h-3 w-3" />
-                          Sent
+                        <div className={`inline-flex items-center gap-2 px-2 py-1 text-xs rounded-full font-medium ${statusBadge.color} border`}>
+                          <statusBadge.icon className="h-3 w-3" />
+                          {statusBadge.text}
                         </div>
                         {sendingAgent && (
-                          <div 
-                            className={`h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-xs`}
-                            style={{ 
-                              backgroundColor: agentColor === 'red' ? '#ef4444' : 
-                                             agentColor === 'blue' ? '#3b82f6' :
-                                             agentColor === 'purple' ? '#a855f7' :
-                                             agentColor === 'green' ? '#10b981' :
-                                             agentColor === 'orange' ? '#f97316' : '#3b82f6'
-                            }}
-                            title={`Sent by ${sendingAgent.name}`}
-                          >
-                            {sendingAgent.name.charAt(0).toUpperCase()}
+                          <div className="flex items-center gap-2">
+                            {agentAvatar ? (
+                              <img 
+                                src={agentAvatar} 
+                                alt={agentName}
+                                className="h-8 w-8 rounded-full object-cover"
+                                title={`Sent by ${agentName}`}
+                              />
+                            ) : (
+                              <div 
+                                className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-xs"
+                                style={{ 
+                                  backgroundColor: agentColor === 'red' ? '#ef4444' : 
+                                                 agentColor === 'blue' ? '#3b82f6' :
+                                                 agentColor === 'purple' ? '#a855f7' :
+                                                 agentColor === 'green' ? '#10b981' :
+                                                 agentColor === 'orange' ? '#f97316' : '#3b82f6'
+                                }}
+                                title={`Sent by ${agentName}`}
+                              >
+                                {agentName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <span className="text-xs font-medium text-neutral-700 hidden lg:inline">
+                              {agentName}
+                            </span>
                           </div>
                         )}
                       </div>

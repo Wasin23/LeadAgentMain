@@ -1,4 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, CreateTableCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand, QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
@@ -32,7 +32,9 @@ class AWSManager {
       contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'meridian-contacted-leads',
       cycleLogs: process.env.AWS_DYNAMODB_CYCLE_LOGS_TABLE || 'meridian-cycle-logs',
       apiUsage: process.env.AWS_DYNAMODB_API_USAGE_TABLE || 'meridian-api-usage',
-      issuesAlerts: process.env.AWS_DYNAMODB_ISSUES_ALERTS_TABLE || 'meridian-issues-alerts'
+      issuesAlerts: process.env.AWS_DYNAMODB_ISSUES_ALERTS_TABLE || 'meridian-issues-alerts',
+      unsubscribes: process.env.AWS_DYNAMODB_UNSUBSCRIBES_TABLE || 'meridian-unsubscribes',
+      searchHistory: process.env.AWS_DYNAMODB_SEARCH_HISTORY_TABLE || 'meridian-search-history'
     };
     
     // API Cost rates (estimated)
@@ -41,7 +43,7 @@ class AWSManager {
       openai: 0.0034 / 1000, // $0.0034 per 1K tokens for GPT-3.5 (1.7x)
       mailgun: 0.00136, // $0.00136 per email (1.7x)
       zerobounce: 0.0085, // $0.0085 per validation (1.7x)
-      serper: 0.0085 // $0.0085 per search query (1.7x)
+      serper: 0.001 // $0.001 per search query ($50 for 50k credits)
     };
     
     // Removed initialization logs to reduce console noise
@@ -762,6 +764,27 @@ class AWSManager {
     } catch (error) {
       console.error('❌ [AWS] Error getting agent state:', error);
       throw error;
+    }
+  }
+
+  async getAllAgentStates(userId) {
+    try {
+      console.log('🤖 [AWS] Getting all agent states for userId:', userId);
+      
+      // Use Scan with filter instead of Query since table structure may not support querying by userId alone
+      const result = await this.dynamodb.send(new ScanCommand({
+        TableName: this.tables.agentState,
+        FilterExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        }
+      }));
+      
+      console.log(`✅ [AWS] Retrieved ${result.Items?.length || 0} agent states`);
+      return { success: true, states: result.Items || [] };
+    } catch (error) {
+      console.error('❌ [AWS] Error getting all agent states:', error);
+      return { success: false, error: error.message, states: [] };
     }
   }
 
@@ -1513,6 +1536,22 @@ class AWSManager {
       return { success: true, series, days, interval };
     } catch (error) {
       console.error('❌ [AWS] Failed to get API usage time series:', error);
+      
+      // Check if it's a throughput exceeded error
+      if (error.name === 'ProvisionedThroughputExceededException' || 
+          error.__type?.includes('ProvisionedThroughputExceededException')) {
+        console.log('⚠️  [AWS] Throughput exceeded - returning empty data set (this is cached to prevent further queries)');
+        // Return empty data instead of error - this will be cached
+        return { 
+          success: true, 
+          series: [], 
+          days, 
+          interval,
+          throttled: true,
+          message: 'API usage data temporarily unavailable due to high load. Data will refresh in a few minutes.'
+        };
+      }
+      
       return { success: false, error: error.message };
     }
   }
@@ -1872,6 +1911,345 @@ class AWSManager {
       return { success: true };
     } catch (error) {
       console.error('❌ [AWS] Error deleting issue:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ======================
+  // UNSUBSCRIBE MANAGEMENT
+  // ======================
+
+  /**
+   * Add email to unsubscribe list
+   */
+  async addUnsubscribe(email, reason = 'User request', metadata = {}) {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const timestamp = new Date().toISOString();
+      
+      const item = {
+        PK: `UNSUBSCRIBE#${normalizedEmail}`,
+        SK: timestamp,
+        email: normalizedEmail,
+        reason,
+        unsubscribedAt: timestamp,
+        metadata: metadata || {},
+        type: 'unsubscribe'
+      };
+
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tables.unsubscribes,
+        Item: item
+      }));
+
+      console.log(`🚫 [AWS] Email unsubscribed: ${normalizedEmail}`);
+      return { success: true, email: normalizedEmail };
+    } catch (error) {
+      console.error('❌ [AWS] Error adding unsubscribe:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Check if email is unsubscribed
+   */
+  async isUnsubscribed(email) {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.unsubscribes,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `UNSUBSCRIBE#${normalizedEmail}`
+        },
+        Limit: 1
+      }));
+
+      return result.Items && result.Items.length > 0;
+    } catch (error) {
+      console.error('❌ [AWS] Error checking unsubscribe status:', error);
+      return false; // Default to not unsubscribed on error
+    }
+  }
+
+  /**
+   * Get all unsubscribed emails for a user's campaigns
+   */
+  async getUnsubscribes(limit = 100) {
+    try {
+      const result = await this.dynamodb.send(new ScanCommand({
+        TableName: this.tables.unsubscribes,
+        Limit: limit
+      }));
+
+      return result.Items || [];
+    } catch (error) {
+      console.error('❌ [AWS] Error fetching unsubscribes:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Remove email from unsubscribe list (re-subscribe)
+   */
+  async removeUnsubscribe(email) {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Find the item first
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.unsubscribes,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `UNSUBSCRIBE#${normalizedEmail}`
+        }
+      }));
+
+      if (!result.Items || result.Items.length === 0) {
+        return { success: false, error: 'Email not in unsubscribe list' };
+      }
+
+      // Delete all entries for this email
+      for (const item of result.Items) {
+        await this.dynamodb.send(new DeleteCommand({
+          TableName: this.tables.unsubscribes,
+          Key: {
+            PK: item.PK,
+            SK: item.SK
+          }
+        }));
+      }
+
+      console.log(`✅ [AWS] Email re-subscribed: ${normalizedEmail}`);
+      return { success: true, email: normalizedEmail };
+    } catch (error) {
+      console.error('❌ [AWS] Error removing unsubscribe:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ==================== SEARCH HISTORY TRACKING ====================
+  
+  async recordSearchHistory(userId, agentId, industry, position, leadsFound) {
+    try {
+      const timestamp = Date.now();
+      const searchKey = `${industry.toLowerCase()}#${position.toLowerCase()}`;
+      
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tables.searchHistory,
+        Item: {
+          PK: `USER#${userId}#AGENT#${agentId}`,
+          SK: `SEARCH#${timestamp}`,
+          searchKey: searchKey,
+          industry: industry.toLowerCase(),
+          position: position,
+          leadsFound: leadsFound,
+          timestamp: timestamp,
+          searchDate: new Date(timestamp).toISOString(),
+          TTL: Math.floor(timestamp / 1000) + (90 * 24 * 60 * 60) // 90 day TTL
+        }
+      }));
+      
+      console.log(`📝 [SEARCH HISTORY] Recorded: ${industry} + ${position} (${leadsFound} leads)`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [AWS] Error recording search history:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async checkSearchHistory(userId, agentId, industry, position, daysBack = 30) {
+    try {
+      const cutoffTime = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
+      const searchKey = `${industry.toLowerCase()}#${position.toLowerCase()}`;
+      
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.searchHistory,
+        KeyConditionExpression: 'PK = :pk AND SK >= :cutoff',
+        FilterExpression: 'searchKey = :searchKey',
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}#AGENT#${agentId}`,
+          ':cutoff': `SEARCH#${cutoffTime}`,
+          ':searchKey': searchKey
+        },
+        ScanIndexForward: false, // Most recent first
+        Limit: 1
+      }));
+
+      if (result.Items && result.Items.length > 0) {
+        const lastSearch = result.Items[0];
+        const daysAgo = Math.floor((Date.now() - lastSearch.timestamp) / (24 * 60 * 60 * 1000));
+        console.log(`⚠️ [DUPLICATE] Already searched ${industry} + ${position} ${daysAgo} days ago (${lastSearch.leadsFound} leads)`);
+        return {
+          isDuplicate: true,
+          lastSearched: lastSearch.timestamp,
+          daysAgo: daysAgo,
+          leadsFound: lastSearch.leadsFound
+        };
+      }
+
+      return { isDuplicate: false };
+    } catch (error) {
+      console.error('❌ [AWS] Error checking search history:', error);
+      return { isDuplicate: false }; // Don't block searches on error
+    }
+  }
+
+  async getSearchHistory(userId, agentId, limit = 50) {
+    try {
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.searchHistory,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}#AGENT#${agentId}`
+        },
+        ScanIndexForward: false, // Most recent first
+        Limit: limit
+      }));
+
+      return {
+        success: true,
+        searches: result.Items || []
+      };
+    } catch (error) {
+      console.error('❌ [AWS] Error getting search history:', error);
+      return { success: false, error: error.message, searches: [] };
+    }
+  }
+
+  async deleteSearchHistory(userId, agentId) {
+    try {
+      const pk = `USER#${userId}#AGENT#${agentId}`;
+      
+      // Query all search history entries
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.searchHistory,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk
+        }
+      }));
+
+      if (!result.Items || result.Items.length === 0) {
+        console.log(`📝 [AWS] No search history found for agent ${agentId}`);
+        return { success: true, deletedCount: 0 };
+      }
+
+      // Delete all entries
+      for (const item of result.Items) {
+        await this.dynamodb.send(new DeleteCommand({
+          TableName: this.tables.searchHistory,
+          Key: {
+            PK: item.PK,
+            SK: item.SK
+          }
+        }));
+      }
+
+      console.log(`✅ [AWS] Deleted ${result.Items.length} search history entries for agent ${agentId}`);
+      return { success: true, deletedCount: result.Items.length };
+    } catch (error) {
+      console.error('❌ [AWS] Error deleting search history:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteAgentState(userId, agentId) {
+    try {
+      await this.dynamodb.send(new DeleteCommand({
+        TableName: this.tables.agentState,
+        Key: {
+          userId: userId,
+          agentId: agentId
+        }
+      }));
+
+      console.log(`✅ [AWS] Deleted agent state for ${agentId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [AWS] Error deleting agent state:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteCycleLogs(userId, agentId) {
+    try {
+      const pk = `USER#${userId}#AGENT#${agentId}`;
+      
+      // Query all cycle logs
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.cycleLogs,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': pk
+        }
+      }));
+
+      if (!result.Items || result.Items.length === 0) {
+        console.log(`📝 [AWS] No cycle logs found for agent ${agentId}`);
+        return { success: true, deletedCount: 0 };
+      }
+
+      // Delete all entries
+      for (const item of result.Items) {
+        await this.dynamodb.send(new DeleteCommand({
+          TableName: this.tables.cycleLogs,
+          Key: {
+            PK: item.PK,
+            SK: item.SK
+          }
+        }));
+      }
+
+      console.log(`✅ [AWS] Deleted ${result.Items.length} cycle logs for agent ${agentId}`);
+      return { success: true, deletedCount: result.Items.length };
+    } catch (error) {
+      console.error('❌ [AWS] Error deleting cycle logs:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ====================
+  // TABLE CREATION
+  // ====================
+  
+  async createSearchHistoryTable() {
+    try {
+      console.log('🔧 [AWS] Creating search history table...');
+      
+      const command = new CreateTableCommand({
+        TableName: this.tables.searchHistory,
+        KeySchema: [
+          { AttributeName: 'PK', KeyType: 'HASH' },  // Partition key: USER#{userId}#AGENT#{agentId}
+          { AttributeName: 'SK', KeyType: 'RANGE' }  // Sort key: SEARCH#{timestamp}
+        ],
+        AttributeDefinitions: [
+          { AttributeName: 'PK', AttributeType: 'S' },
+          { AttributeName: 'SK', AttributeType: 'S' }
+        ],
+        BillingMode: 'PAY_PER_REQUEST', // On-demand pricing
+        Tags: [
+          { Key: 'Project', Value: 'Meridian' },
+          { Key: 'Purpose', Value: 'SearchHistory' }
+        ]
+      });
+      
+      const ddbClient = new DynamoDBClient({
+        region: this.region,
+        credentials: fromNodeProviderChain()
+      });
+      
+      await ddbClient.send(command);
+      
+      console.log('✅ [AWS] Search history table created successfully');
+      return { success: true, tableName: this.tables.searchHistory };
+    } catch (error) {
+      if (error.name === 'ResourceInUseException') {
+        console.log('ℹ️ [AWS] Search history table already exists');
+        return { success: true, tableName: this.tables.searchHistory, alreadyExists: true };
+      }
+      console.error('❌ [AWS] Error creating search history table:', error);
       return { success: false, error: error.message };
     }
   }

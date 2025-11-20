@@ -45,3 +45,16 @@
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-15T17:34:36.745Z"}
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-18T19:02:07.130Z"}
 {"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-19T00:35:50.595Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-19T01:05:58.741Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-19T01:17:20.798Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-11-19T20:42:51.384Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-19T21:43:23.334Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-19T21:52:42.765Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-11-20T00:30:38.344Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-11-20T00:31:47.409Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-11-20T00:32:02.427Z"}
+{"level":"error","message":"Unhandled Rejection at:","service":"meridian-api","timestamp":"2025-11-20T00:32:13.457Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-20T02:13:28.429Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-20T02:47:41.057Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-20T05:29:49.720Z"}
+{"error":"Cannot set headers after they are sent to the client","ip":"::1","level":"error","message":"Unhandled error:","method":"GET","path":"/api/zilliz-tracking/internal/events","service":"meridian-api","stack":"Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n    at ServerResponse.setHeader (node:_http_outgoing:642:11)\n    at ServerResponse.header (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\express\\lib\\response.js:684:10)\n    at ServerResponse.send (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\express\\lib\\response.js:161:12)\n    at ServerResponse.json (C:\\Users\\colto\\OneDrive\\Meridian\\node_modules\\express\\lib\\response.js:250:15)\n    at file:///C:/Users/colto/OneDrive/Meridian/routes/zillizTracking.js:65:25\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at runNextTicks (node:internal/process/task_queues:69:3)\n    at process.processTimers (node:internal/timers:540:9)","timestamp":"2025-11-20T17:00:57.736Z"}

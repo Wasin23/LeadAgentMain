@@ -205,11 +205,77 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [currentSearches, setCurrentSearches] = useState<Record<string, {
+    industry: string;
+    position: string;
+    source: string;
+    progress: string;
+    cycleOffset: number;
+  }>>({});
 
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo({ top: 0, behavior: 'smooth' });
     fetchAgents();
+    
+    // Fetch initial current search states
+    const fetchCurrentSearches = async () => {
+      try {
+        const response = await api.get('/api/lead-agent/current-search');
+        if (response.data?.success && response.data.searches) {
+          console.log('[INITIAL] Current searches:', response.data.searches);
+          setCurrentSearches(response.data.searches);
+        }
+      } catch (error) {
+        console.error('Failed to fetch current searches:', error);
+      }
+    };
+    fetchCurrentSearches();
+    
+    // Set up SSE connection for real-time search updates
+    const eventSource = new EventSource('/api/lead-agent/progress-stream', {
+      withCredentials: true
+    });
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[SSE] Received message:', data);
+        
+        // Handle search-update events
+        if (data.type === 'search-update' && data.agentId && data.currentSearch) {
+          console.log('[SSE] Search update:', data);
+          setCurrentSearches(prev => ({
+            ...prev,
+            [data.agentId]: data.currentSearch
+          }));
+        }
+        
+        // Handle progress events that contain search updates
+        if (data.type === 'progress' && data.data?.type === 'search-update') {
+          const { agentId, currentSearch } = data.data;
+          if (agentId && currentSearch) {
+            console.log('[SSE] Progress search update:', data.data);
+            setCurrentSearches(prev => ({
+              ...prev,
+              [agentId]: currentSearch
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing SSE message:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      eventSource.close();
+    };
+
+    return () => {
+      console.log('[SSE] Closing connection');
+      eventSource.close();
+    };
   }, []);
 
   const fetchEmailStats = async (agentId: string) => {
@@ -630,6 +696,53 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
                       <div className="text-xs text-neutral-600">Meetings</div>
                     </div>
                   </div>
+
+                  {/* Current Search (Real-time via SSE) - Below Meetings */}
+                  {currentSearches[agent.id] && agent.status === 'running' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-2 p-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="relative">
+                          <span className="flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-emerald-900 uppercase tracking-wide">Searching Now</span>
+                        <span className="ml-auto text-[9px] font-medium text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                          {currentSearches[agent.id].source === 'ai' ? '🤖 AI' : '📋 Base'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                        <div>
+                          <div className="text-[9px] font-medium text-emerald-600 mb-0.5 uppercase">Industry</div>
+                          <div className="text-xs font-semibold text-emerald-900 truncate">
+                            {currentSearches[agent.id].industry}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] font-medium text-emerald-600 mb-0.5 uppercase">Position</div>
+                          <div className="text-xs font-semibold text-emerald-900 truncate">
+                            {currentSearches[agent.id].position}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 bg-emerald-100 rounded-full h-1 overflow-hidden">
+                          <div 
+                            className="bg-emerald-500 h-full transition-all duration-500"
+                            style={{ width: `${(parseInt(currentSearches[agent.id].progress.split('/')[0]) / 20) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-[9px] font-bold text-emerald-700">
+                          {currentSearches[agent.id].progress}
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
 
                 {/* Agent Targeting Info */}

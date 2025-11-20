@@ -180,7 +180,7 @@ router.post('/leads', async (req, res) => {
             service: 'serper',
             operation: 'search',
             usage: { searches: 1 },
-            cost: 0.0085
+            cost: 0.001
           });
           
           const results = serperResponse.data?.organic || [];

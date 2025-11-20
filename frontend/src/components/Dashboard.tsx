@@ -124,9 +124,33 @@ export default function Dashboard() {
           <header className="border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-800/95 backdrop-blur-md sticky top-0 z-50">
             <div className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-8">
-                <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                  Meridian
-                </h1>
+                <div className="flex items-center gap-3">
+                  <svg width="32" height="32" viewBox="0 0 48 48">
+                    <defs>
+                      <linearGradient id="globeGradientHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
+                        <stop offset="50%" style={{ stopColor: 'rgb(168, 85, 247)', stopOpacity: 1 }} />
+                        <stop offset="100%" style={{ stopColor: 'rgb(236, 72, 153)', stopOpacity: 1 }} />
+                      </linearGradient>
+                    </defs>
+                    
+                    {/* Globe circle */}
+                    <circle cx="24" cy="24" r="20" fill="white" className="dark:fill-neutral-800"/>
+                    
+                    {/* Vertical meridian lines */}
+                    <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientHeader)" strokeWidth="1"/>
+                    <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientHeader)" strokeWidth="1"/>
+                    <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientHeader)" strokeWidth="1"/>
+                    
+                    {/* Horizontal latitude lines */}
+                    <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientHeader)" strokeWidth="1"/>
+                    <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientHeader)" strokeWidth="1"/>
+                    <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientHeader)" strokeWidth="1"/>
+                  </svg>
+                  <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+                    Meridian
+                  </h1>
+                </div>
                 <nav className="hidden md:flex items-center gap-6">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;

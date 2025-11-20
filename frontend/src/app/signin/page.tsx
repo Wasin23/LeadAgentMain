@@ -236,27 +236,57 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white border border-neutral-200 w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10"
       >
-        {/* Header */}
-        <div className="text-center p-10 pb-8">
+        {/* Header with Logo */}
+        <div className="text-center p-10 pb-6">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", duration: 0.6 }}
+            className="inline-block mb-6"
+          >
+            <svg width="80" height="80" viewBox="0 0 48 48" className="drop-shadow-lg">
+              <defs>
+                <linearGradient id="globeGradientSignIn" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
+                  <stop offset="50%" style={{ stopColor: 'rgb(168, 85, 247)', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: 'rgb(236, 72, 153)', stopOpacity: 1 }} />
+                </linearGradient>
+              </defs>
+              <circle cx="24" cy="24" r="20" fill="white"/>
+              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
+              <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
+            </svg>
+          </motion.div>
           <motion.h1 
-            className="text-3xl font-semibold text-neutral-900 mb-2"
+            className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
             Meridian
           </motion.h1>
-          <p className="text-neutral-500 text-sm">AI-Powered Lead Research & Automation</p>
+          <p className="text-neutral-600 text-sm font-medium">AI-Powered Lead Research & Automation</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex mx-10 mb-8 bg-neutral-50 border border-neutral-200 p-1">
+        <div className="flex mx-10 mb-8 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-1.5">
           {(['signin', 'signup'] as const).map((tab) => (
             <button
               key={tab}
@@ -264,10 +294,10 @@ export default function SignInPage() {
                 setActiveTab(tab);
                 clearMessages();
               }}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all ${
+              className={`flex-1 py-3 px-4 text-sm font-semibold rounded-xl transition-all ${
                 activeTab === tab
-                  ? 'bg-white text-neutral-900 border border-neutral-200'
-                  : 'text-neutral-500 hover:text-neutral-700'
+                  ? 'bg-white text-purple-700 shadow-lg'
+                  : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
               {tab === 'signin' ? 'Sign In' : 'Sign Up'}
@@ -282,10 +312,10 @@ export default function SignInPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mx-10 mb-6 p-4 bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2"
+              className="mx-10 mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-sm flex items-center gap-3 shadow-sm"
             >
-              <ExclamationCircleIcon className="w-4 h-4 flex-shrink-0" />
-              {error}
+              <ExclamationCircleIcon className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium">{error}</span>
             </motion.div>
           )}
           {success && (
@@ -293,10 +323,10 @@ export default function SignInPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mx-10 mb-6 p-4 bg-green-50 border border-green-200 text-green-600 text-sm flex items-center gap-2"
+              className="mx-10 mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-2xl text-green-700 text-sm flex items-center gap-3 shadow-sm"
             >
-              <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
-              {success}
+              <CheckCircleIcon className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium">{success}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -315,20 +345,20 @@ export default function SignInPage() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
-                    Username
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Email
                   </label>
                   <input
-                    type="text"
+                    type="email"
                     required
                     value={signInForm.username}
                     onChange={(e) => setSignInForm({ ...signInForm, username: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Password
                   </label>
                   <div className="relative">
@@ -337,7 +367,7 @@ export default function SignInPage() {
                       required
                       value={signInForm.password}
                       onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
-                      className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
                     />
                     <button
                       type="button"
@@ -351,7 +381,7 @@ export default function SignInPage() {
                     <button
                       type="button"
                       onClick={() => setShowForgotModal(true)}
-                      className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
                     >
                       Forgot Password?
                     </button>
@@ -361,11 +391,9 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 text-white font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                   style={{
-                    background: isLoading ? '#a3a3a3 !important' : '#3b82f6 !important',
-                    color: '#ffffff !important',
-                    fontWeight: '500 !important'
+                    background: isLoading ? 'rgb(107, 114, 128)' : 'linear-gradient(to right, rgb(59, 130, 246), rgb(147, 51, 234))'
                   }}
                 >
                   {isLoading && (
@@ -387,7 +415,7 @@ export default function SignInPage() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Username
                   </label>
                   <input
@@ -396,12 +424,12 @@ export default function SignInPage() {
                     minLength={3}
                     value={signUpForm.username}
                     onChange={(e) => setSignUpForm({ ...signUpForm, username: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Email
                   </label>
                   <input
@@ -409,12 +437,12 @@ export default function SignInPage() {
                     required
                     value={signUpForm.email}
                     onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Password
                   </label>
                   <input
@@ -423,13 +451,13 @@ export default function SignInPage() {
                     minLength={6}
                     value={signUpForm.password}
                     onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
                   />
                   {signUpForm.password && (
                     <div className="mt-2">
-                      <div className="w-full h-1 bg-neutral-200 overflow-hidden">
+                      <div className="w-full h-1.5 bg-neutral-200 rounded-full overflow-hidden">
                         <motion.div 
-                          className={`h-full ${
+                          className={`h-full rounded-full ${
                             getPasswordStrength(signUpForm.password).strength === 'weak' ? 'bg-red-500' :
                             getPasswordStrength(signUpForm.password).strength === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
                           }`}
@@ -437,7 +465,7 @@ export default function SignInPage() {
                           animate={{ width: `${getPasswordStrength(signUpForm.password).score}%` }}
                         />
                       </div>
-                      <p className={`text-xs mt-1 ${
+                      <p className={`text-xs mt-1 font-medium ${
                         getPasswordStrength(signUpForm.password).strength === 'weak' ? 'text-red-600' :
                         getPasswordStrength(signUpForm.password).strength === 'medium' ? 'text-yellow-600' : 'text-green-600'
                       }`}>
@@ -450,7 +478,7 @@ export default function SignInPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Confirm Password
                   </label>
                   <input
@@ -459,10 +487,10 @@ export default function SignInPage() {
                     minLength={6}
                     value={signUpForm.confirmPassword}
                     onChange={(e) => setSignUpForm({ ...signUpForm, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
                   />
                   {signUpForm.confirmPassword && (
-                    <p className={`text-xs mt-1 ${
+                    <p className={`text-xs mt-1 font-medium ${
                       signUpForm.password === signUpForm.confirmPassword && signUpForm.password.length >= 6
                         ? 'text-green-600' : 'text-red-600'
                     }`}>
@@ -475,11 +503,9 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}
-                  className="w-full py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 text-white font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                   style={{
-                    background: (isLoading || signUpForm.password !== signUpForm.confirmPassword) ? '#a3a3a3 !important' : '#3b82f6 !important',
-                    color: '#ffffff !important',
-                    fontWeight: '500 !important'
+                    background: (isLoading || signUpForm.password !== signUpForm.confirmPassword) ? 'rgb(107, 114, 128)' : 'linear-gradient(to right, rgb(168, 85, 247), rgb(219, 39, 119))'
                   }}
                 >
                   {isLoading && (
@@ -489,17 +515,15 @@ export default function SignInPage() {
                 </button>
               </motion.form>
             )}
-
-
           </AnimatePresence>
         </div>
 
         {/* Guest Mode */}
-        <div className="text-center px-10 pb-10 pt-6 border-t border-neutral-100">
-          <p className="text-sm text-neutral-500 mb-3">Just want to try it out?</p>
+        <div className="text-center px-10 pb-10 pt-6 border-t border-neutral-200">
+          <p className="text-sm text-neutral-600 mb-3 font-medium">Just want to try it out?</p>
           <button
             onClick={handleGuestMode}
-            className="bg-neutral-50 border border-neutral-200 text-neutral-600 py-3 px-6 text-sm font-medium transition-colors hover:bg-neutral-100 hover:border-neutral-300"
+            className="bg-gradient-to-r from-neutral-100 to-neutral-200 text-neutral-700 py-3 px-6 rounded-xl text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
           >
             Continue as Guest
           </button>

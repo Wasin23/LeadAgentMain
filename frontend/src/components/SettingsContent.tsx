@@ -9,11 +9,12 @@ import {
   EnvelopeIcon,
   CogIcon,
   CalendarIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import RateLimitSettings from './agents/RateLimitSettings';
 import CompanyProfileModal from './CompanyProfileModal';
 
-type TabType = 'profile' | 'budget' | 'email' | 'emailResponse' | 'calendar' | 'preferences';
+type TabType = 'profile' | 'budget' | 'email' | 'emailResponse' | 'calendar' | 'privacy';
 
 interface UserProfile {
   username: string;
@@ -240,7 +241,7 @@ export default function SettingsContent() {
     { id: 'email' as TabType, label: 'Email Configuration', icon: EnvelopeIcon },
     { id: 'emailResponse' as TabType, label: 'Email Response Settings', icon: CogIcon },
     { id: 'calendar' as TabType, label: 'Calendar Integration', icon: CalendarIcon },
-    { id: 'preferences' as TabType, label: 'Preferences', icon: CogIcon },
+    { id: 'privacy' as TabType, label: 'Privacy Policy', icon: ShieldCheckIcon },
   ];
 
   if (loading) {
@@ -331,14 +332,6 @@ export default function SettingsContent() {
                       />
                     </div>
                   )}
-                  <div className="pt-4">
-                    <button
-                      onClick={() => setShowProfileModal(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Edit Company Profile
-                    </button>
-                  </div>
                   
                   {/* Danger Zone */}
                   <div className="mt-8 pt-6 border-t border-neutral-200">
@@ -689,56 +682,111 @@ export default function SettingsContent() {
               </div>
             )}
 
-            {/* Preferences Tab */}
-            {activeTab === 'preferences' && (
+            {/* Privacy Policy Tab */}
+            {activeTab === 'privacy' && (
               <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Preferences</h2>
-                <p className="text-sm text-neutral-600 mb-6">Customize your application preferences</p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Theme</label>
-                    <select
-                      value={theme}
-                      onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'auto')}
-                      className="w-full px-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg text-neutral-900 dark:text-neutral-100 dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="auto">Auto</option>
-                    </select>
+                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Privacy Policy</h2>
+                <p className="text-sm text-neutral-600 mb-6">Our commitment to protecting your data</p>
+                
+                <div className="prose prose-sm max-w-none space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-900">
+                      <strong>Last Updated:</strong> November 19, 2025
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Default Lead Limit</label>
-                    <input
-                      type="number"
-                      value={preferences.defaultLeadLimit}
-                      onChange={(e) => setPreferences({ ...preferences, defaultLeadLimit: parseInt(e.target.value) || 10 })}
-                      min="1"
-                      max="500"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-neutral-500 mt-1">Number of leads to fetch by default</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Auto-Save Interval (seconds)</label>
-                    <input
-                      type="number"
-                      value={preferences.autoSaveInterval / 1000}
-                      onChange={(e) => setPreferences({ ...preferences, autoSaveInterval: (parseInt(e.target.value) || 300) * 1000 })}
-                      min="60"
-                      max="3600"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-neutral-500 mt-1">How often to automatically save your work</p>
-                  </div>
-                  <div className="pt-4">
-                    <button
-                      onClick={handleSavePreferences}
-                      disabled={saving}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {saving ? 'Saving...' : 'Save Preferences'}
-                    </button>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">1. Information We Collect</h3>
+                    <p className="text-sm text-neutral-700 mb-2">We collect information you provide directly:</p>
+                    <ul className="list-disc list-inside text-sm text-neutral-700 space-y-1 ml-4">
+                      <li>Account information (username, email, password)</li>
+                      <li>Company profile details (name, industry, services, target market)</li>
+                      <li>Lead research data (company names, contact information)</li>
+                      <li>Email content and communication preferences</li>
+                      <li>Usage data and analytics</li>
+                    </ul>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">2. How We Use Your Information</h3>
+                    <ul className="list-disc list-inside text-sm text-neutral-700 space-y-1 ml-4">
+                      <li>Provide AI-powered lead research and qualification</li>
+                      <li>Generate personalized outreach emails</li>
+                      <li>Track email engagement and campaign performance</li>
+                      <li>Improve our services and user experience</li>
+                      <li>Send important account notifications</li>
+                    </ul>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">3. Third-Party Services</h3>
+                    <p className="text-sm text-neutral-700 mb-2">We use the following third-party services:</p>
+                    <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 space-y-2">
+                      <div>
+                        <strong className="text-sm text-neutral-900">OpenAI:</strong>
+                        <span className="text-sm text-neutral-700"> AI analysis and email generation</span>
+                      </div>
+                      <div>
+                        <strong className="text-sm text-neutral-900">Apollo.io:</strong>
+                        <span className="text-sm text-neutral-700"> Lead data enrichment</span>
+                      </div>
+                      <div>
+                        <strong className="text-sm text-neutral-900">Mailgun:</strong>
+                        <span className="text-sm text-neutral-700"> Email delivery service</span>
+                      </div>
+                      <div>
+                        <strong className="text-sm text-neutral-900">Serper:</strong>
+                        <span className="text-sm text-neutral-700"> Web search capabilities</span>
+                      </div>
+                      <div>
+                        <strong className="text-sm text-neutral-900">AWS:</strong>
+                        <span className="text-sm text-neutral-700"> Cloud infrastructure and data storage</span>
+                      </div>
+                      <div>
+                        <strong className="text-sm text-neutral-900">Zilliz:</strong>
+                        <span className="text-sm text-neutral-700"> Vector database for AI operations</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">4. Data Storage & Security</h3>
+                    <p className="text-sm text-neutral-700">Your data is stored securely using AWS DynamoDB and Zilliz vector databases with encryption at rest and in transit. We implement industry-standard security measures to protect your information.</p>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">5. Your Rights</h3>
+                    <ul className="list-disc list-inside text-sm text-neutral-700 space-y-1 ml-4">
+                      <li><strong>Access:</strong> Request a copy of your data</li>
+                      <li><strong>Correction:</strong> Update inaccurate information</li>
+                      <li><strong>Deletion:</strong> Request account and data deletion</li>
+                      <li><strong>Export:</strong> Download your data in portable format</li>
+                      <li><strong>Opt-Out:</strong> Unsubscribe from marketing emails</li>
+                    </ul>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">6. CAN-SPAM Compliance</h3>
+                    <p className="text-sm text-neutral-700">All emails sent through Meridian include unsubscribe links, accurate sender information, and comply with CAN-SPAM Act requirements. Recipients can opt-out at any time.</p>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">7. Data Retention</h3>
+                    <p className="text-sm text-neutral-700">We retain your data as long as your account is active. Upon account deletion, we remove all personal data within 30 days, except where required by law.</p>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">8. Contact Us</h3>
+                    <p className="text-sm text-neutral-700">For privacy concerns or data requests, contact us through the support section or email our privacy team.</p>
+                  </section>
+
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 mt-6">
+                    <p className="text-xs text-neutral-600">
+                      For the complete Privacy Policy, visit{' '}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        /privacy
+                      </a>
+                    </p>
                   </div>
                 </div>
               </div>

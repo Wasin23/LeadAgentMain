@@ -1,4 +1,7 @@
 import { sendEmailMailgun } from './emailMailgun.js';
+import AWSManager from '../utils/awsManager.js';
+
+const awsManager = new AWSManager();
 
 /**
  * Dedicated email tool for Lead Contact Agent
@@ -21,6 +24,22 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
     return { success: false, error };
   }
   
+  // Check if email is unsubscribed
+  try {
+    const isUnsubscribed = await awsManager.isUnsubscribed(to);
+    if (isUnsubscribed) {
+      console.warn(`🚫 [LEAD EMAIL] Email address is unsubscribed: ${to}`);
+      return { 
+        success: false, 
+        error: 'Email address has unsubscribed',
+        skipped: true,
+        reason: 'unsubscribed'
+      };
+    }
+  } catch (unsubError) {
+    console.error('[LEAD EMAIL] Error checking unsubscribe status, proceeding with send:', unsubError);
+  }
+  
   try {
     // Use the tracking-enabled email function with person info, userId, agentId, ccEmails, bccEmails, and senderName
     const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId, ccEmails, bccEmails, senderName);
@@ -38,3 +57,4 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
     return { success: false, error: error.message || error };
   }
 }
+

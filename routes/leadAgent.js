@@ -250,6 +250,43 @@ router.post('/run-cycle', async (req, res) => {
   }
 });
 
+// Get current search status for all agents
+router.get('/current-search', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('[LEAD AGENT API] Getting current search status for user:', userId);
+    
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+    
+    // Get all agent states for this user
+    const result = await awsManager.getAllAgentStates(userId);
+    
+    if (!result.success) {
+      return res.json({ success: true, searches: {} });
+    }
+    
+    // Extract current search info from agent states
+    const searches = {};
+    for (const state of result.states || []) {
+      if (state.currentSearchIndustry && state.currentSearchPosition) {
+        searches[state.agentId] = {
+          industry: state.currentSearchIndustry,
+          position: state.currentSearchPosition,
+          source: state.searchSource || 'base',
+          progress: `${state.leadsFoundWithCurrentPair || 0}/20`,
+          cycleOffset: state.cycleOffset || 0
+        };
+      }
+    }
+    
+    res.json({ success: true, searches });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting current search:', error);
+    res.json({ success: true, searches: {} });
+  }
+});
+
 // Real-time progress streaming via Server-Sent Events
 router.get('/progress-stream', (req, res) => {
   console.log('[LEAD AGENT API] Starting progress stream for user:', req.user.userId);
@@ -699,6 +736,46 @@ router.get('/contacted-leads', async (req, res) => {
   }
 });
 
+// Clear agent data (state, search history, cycle logs) - used by reset button
+router.delete('/agent-data', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const agentId = req.query.agentId || 'reasoning-lead-agent';
+    console.log(`🗑️ [CLEAR AGENT DATA] Clearing data for agent: ${agentId}, user: ${userId}`);
+    
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+    
+    // Delete agent state
+    await awsManager.deleteAgentState(userId, agentId);
+    console.log(`✅ Deleted agent state for ${agentId}`);
+    
+    // Delete search history
+    const searchResult = await awsManager.deleteSearchHistory(userId, agentId);
+    console.log(`✅ Deleted ${searchResult.deletedCount} search history entries`);
+    
+    // Delete cycle logs
+    const cycleResult = await awsManager.deleteCycleLogs(userId, agentId);
+    console.log(`✅ Deleted ${cycleResult.deletedCount} cycle logs`);
+    
+    res.json({
+      success: true,
+      message: 'Agent data cleared successfully',
+      deleted: {
+        state: true,
+        searchHistory: searchResult.deletedCount,
+        cycleLogs: cycleResult.deletedCount
+      }
+    });
+  } catch (error) {
+    console.error('[CLEAR AGENT DATA] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Clear contacted leads database for testing
 router.delete('/clear-contacts', async (req, res) => {
   try {
@@ -825,6 +902,10 @@ router.get('/api-usage/total', async (req, res) => {
   }
 });
 
+// Cache for API usage time series (2 minute TTL)
+const apiUsageTimeSeriesCache = new Map();
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
 // Get API usage time series for graphing
 router.get('/api-usage/timeseries', async (req, res) => {
   try {
@@ -832,8 +913,32 @@ router.get('/api-usage/timeseries', async (req, res) => {
     const days = parseInt(req.query.days) || 7;
     const interval = req.query.interval || 'day'; // minute, hour, day, month
     
+    // Check cache
+    const cacheKey = `${userId}-${days}-${interval}`;
+    const cached = apiUsageTimeSeriesCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('[LEAD AGENT API] Returning cached API usage time series');
+      return res.json({
+        success: true,
+        ...cached.data,
+        cached: true
+      });
+    }
+    
     const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
     const result = await userAgent.awsManager.getApiUsageTimeSeries(userId, days, interval);
+    
+    // Cache the result
+    apiUsageTimeSeriesCache.set(cacheKey, {
+      timestamp: Date.now(),
+      data: result
+    });
+    
+    // Cleanup old cache entries (keep last 100)
+    if (apiUsageTimeSeriesCache.size > 100) {
+      const firstKey = apiUsageTimeSeriesCache.keys().next().value;
+      apiUsageTimeSeriesCache.delete(firstKey);
+    }
     
     res.json({
       success: true,

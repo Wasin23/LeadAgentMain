@@ -29,6 +29,8 @@ interface CompanyProfile {
   employees: string;
   coreOffering: string;
   keyAdvantages: string;
+  termsAccepted?: boolean;
+  termsAcceptedAt?: string;
 }
 
 interface CompanyProfileOnboardingProps {
@@ -96,6 +98,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
     employees: '',
     coreOffering: '',
     keyAdvantages: '',
+    termsAccepted: false
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null);
@@ -141,7 +144,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
       const q = questions[i];
       const value = extractedProfile[q.id as keyof CompanyProfile];
       
-      if (value) {
+      if (value && typeof value === 'string') {
         setCurrentQuestionIndex(i);
         await new Promise(resolve => setTimeout(resolve, 300));
         await animateTyping(value, q.id);
@@ -494,8 +497,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {questions.map((question) => {
-                  const fieldValue = profile[question.id as keyof CompanyProfile] || '';
-                  const isEmpty = !fieldValue || fieldValue.trim() === '';
+                const fieldValue = profile[question.id as keyof CompanyProfile];
+                  const isEmpty = !fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === '');
                   
                   return (
                     <div key={question.id} className="text-left">
@@ -506,7 +509,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       </label>
                       {question.type === 'textarea' ? (
                         <textarea
-                          value={profile[question.id as keyof CompanyProfile] || ''}
+                          value={String(profile[question.id as keyof CompanyProfile] || '')}
                           onChange={(e) => {
                             setProfile({ ...profile, [question.id]: e.target.value });
                             // Auto-resize textarea
@@ -522,7 +525,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       ) : (
                         <input
                           type={question.type}
-                          value={profile[question.id as keyof CompanyProfile] || ''}
+                          value={String(profile[question.id as keyof CompanyProfile] || '')}
                           onChange={(e) => setProfile({ ...profile, [question.id]: e.target.value })}
                           className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all ${
                             isEmpty ? 'border-orange-400 bg-orange-50' : 'border-neutral-200'
@@ -532,6 +535,35 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     </div>
                   );
                 })}
+              </div>
+              
+              {/* Terms and Privacy Consent */}
+              <div className="mt-8 p-6 bg-neutral-50 rounded-2xl border-2 border-neutral-200">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={profile.termsAccepted || false}
+                    onChange={(e) => {
+                      setProfile({ 
+                        ...profile, 
+                        termsAccepted: e.target.checked,
+                        termsAcceptedAt: e.target.checked ? new Date().toISOString() : undefined
+                      });
+                    }}
+                    className="mt-1 w-5 h-5 text-purple-600 border-neutral-300 rounded focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm text-neutral-700">
+                    I agree to the{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline font-medium">
+                      Terms of Service
+                    </a>
+                    {' '}and{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline font-medium">
+                      Privacy Policy
+                    </a>
+                    , and I consent to Meridian processing my company data to provide AI-powered lead generation services.
+                  </span>
+                </label>
               </div>
 
               <div className="flex items-center justify-between">
@@ -543,7 +575,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={isProcessing}
+                  disabled={isProcessing || !profile.termsAccepted}
                   className="px-10 py-4 text-lg font-bold text-white !bg-gradient-to-r !from-green-500 !via-blue-500 !to-purple-500 rounded-2xl hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isProcessing ? 'Saving...' : 'Save Profile ✓'}
@@ -571,7 +603,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 {currentQuestion.type === 'textarea' ? (
                   <textarea
                     ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                    value={profile[currentQuestion.id as keyof CompanyProfile] || ''}
+                    value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
                     onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
                     placeholder={currentQuestion.placeholder}
                     disabled={isAnimating}
@@ -581,7 +613,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 ) : currentQuestion.type === 'select' ? (
                   <select
                     ref={inputRef as React.RefObject<HTMLSelectElement>}
-                    value={profile[currentQuestion.id as keyof CompanyProfile] || ''}
+                    value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
                     onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
                     disabled={isAnimating}
                     className="w-full px-6 py-4 text-xl text-neutral-900 border-3 border-neutral-200 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all disabled:opacity-50 text-center"
@@ -595,7 +627,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                   <input
                     ref={inputRef as React.RefObject<HTMLInputElement>}
                     type={currentQuestion.type}
-                    value={profile[currentQuestion.id as keyof CompanyProfile] || ''}
+                    value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
                     onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
                     placeholder={currentQuestion.placeholder}
                     disabled={isAnimating}

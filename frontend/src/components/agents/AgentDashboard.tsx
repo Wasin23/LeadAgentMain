@@ -1099,6 +1099,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       // Clear approved emails from the agent-specific email queue
       await api.delete(`/api/email-queue/approved?agentId=${agentId}`);
       
+      // Clear agent state, search history, and cycle logs from AWS
+      try {
+        await api.delete(`/api/lead-agent/agent-data?agentId=${agentId}`);
+        console.log('✅ Cleared agent state, search history, and cycle logs');
+      } catch (cleanupError) {
+        console.warn('⚠️ Failed to clear agent data from AWS:', cleanupError);
+      }
+      
       // Refresh the lists
       await fetchRecentEmails(); // Refresh the list
       await fetchStatus(); // Refresh the status to update total emails counter

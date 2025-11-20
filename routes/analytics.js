@@ -650,8 +650,20 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
       const awsManager = new AWSManager();
       await awsManager.deleteAgentSettings(userId, agentId);
       console.log(`[AGENT CLEANUP] 🗑️ Deleted agent settings from AWS for ${agentId}`);
+      
+      // Delete agent state
+      await awsManager.deleteAgentState(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted agent state from AWS for ${agentId}`);
+      
+      // Delete search history for this agent
+      await awsManager.deleteSearchHistory(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted search history from AWS for ${agentId}`);
+      
+      // Delete cycle logs for this agent
+      await awsManager.deleteCycleLogs(userId, agentId);
+      console.log(`[AGENT CLEANUP] 🗑️ Deleted cycle logs from AWS for ${agentId}`);
     } catch (error) {
-      console.log(`[AGENT CLEANUP] ⚠️ Error deleting agent settings: ${error.message}`);
+      console.log(`[AGENT CLEANUP] ⚠️ Error deleting agent data from AWS: ${error.message}`);
     }
     
     // Clean up agent's sent/replied emails from AWS DynamoDB
