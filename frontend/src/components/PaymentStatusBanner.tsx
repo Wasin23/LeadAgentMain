@@ -8,6 +8,7 @@ export default function PaymentStatusBanner() {
   const [paymentStatus, setPaymentStatus] = useState<{
     status: 'active' | 'payment_failed' | 'suspended';
     gracePeriodEnd?: string;
+    nextPaymentDue?: string;
     lastFailedCharge?: {
       date: string;
       amount: number;
@@ -15,6 +16,7 @@ export default function PaymentStatusBanner() {
   } | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(0);
+  const [daysUntilNextPayment, setDaysUntilNextPayment] = useState(0);
 
   useEffect(() => {
     checkPaymentStatus();
@@ -35,21 +37,65 @@ export default function PaymentStatusBanner() {
 
       return () => clearInterval(interval);
     }
+    
+    if (paymentStatus?.nextPaymentDue) {
+      const calculateNextPayment = () => {
+        const nextDue = new Date(paymentStatus.nextPaymentDue!);
+        const now = new Date();
+        const diff = nextDue.getTime() - now.getTime();
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        setDaysUntilNextPayment(Math.max(0, days));
+      };
+
+      calculateNextPayment();
+      const interval = setInterval(calculateNextPayment, 60000); // Update every minute
+
+      return () => clearInterval(interval);
+    }
   }, [paymentStatus]);
 
   const checkPaymentStatus = async () => {
     try {
       const { data } = await api.get('/api/billing/payment-status');
-      if (data.status !== 'active') {
-        setPaymentStatus(data);
-      }
+      setPaymentStatus(data);
     } catch (error) {
       console.error('Error checking payment status:', error);
     }
   };
 
-  if (!paymentStatus || dismissed || paymentStatus.status === 'active') {
+  if (!paymentStatus || dismissed) {
     return null;
+  }
+
+  // Show success banner for active status
+  if (paymentStatus.status === 'active') {
+    return (
+      <div className="relative bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-semibold text-sm">✓ Account Active</p>
+                <p className="text-sm mt-0.5">
+                  {paymentStatus.nextPaymentDue && (
+                    <>Next payment due in <span className="font-semibold">{daysUntilNextPayment} day{daysUntilNextPayment !== 1 ? 's' : ''}</span> ({new Date(paymentStatus.nextPaymentDue).toLocaleDateString()})</>
+                  )}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setDismissed(true)}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const isSuspended = paymentStatus.status === 'suspended';

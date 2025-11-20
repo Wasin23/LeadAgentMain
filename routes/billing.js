@@ -2,12 +2,64 @@ import express from 'express';
 import Stripe from 'stripe';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSManager from '../utils/awsManager.js';
+import { broadcastActivity } from './monitoring.js';
 import { 
   sendPaymentFailedEmail, 
   sendPaymentSuccessEmail, 
   sendAccountSuspendedEmail,
   sendAccountReactivatedEmail 
 } from '../utils/billingEmails.js';
+
+// Activity logging helper - creates single critical issue for billing failures
+async function logBillingActivity(userId, action, details, status = 'success') {
+  try {
+    const awsManager = new AWSManager();
+    const timestamp = new Date().toISOString();
+    
+    // Console log only
+    console.log(`💰 [BILLING LOG] ${timestamp} - User: ${userId} - Action: ${action} - Status: ${status}`);
+    console.log(`   Details:`, details);
+    
+    // Only create critical issue for failures (shows in notifications AND activity feed)
+    if (status === 'failed' || status === 'error') {
+      try {
+        const issueResult = await awsManager.addIssue(
+          userId,
+          'billing',
+          `💳 Payment ${action} Failed`,
+          details.error || details.message || 'Unknown error',
+          {
+            severity: 'critical',
+            amount: details.amount,
+            currency: details.currency || 'USD',
+            timestamp
+          }
+        );
+        console.log('✅ [BILLING LOG] Critical issue created:', issueResult);
+        
+        // Broadcast the billing failure to SSE clients immediately
+        broadcastActivity({
+          type: 'error',
+          category: 'issue',
+          severity: 'critical',
+          title: `💳 Payment ${action} Failed`,
+          message: details.error || details.message || 'Unknown error',
+          timestamp,
+          metadata: {
+            amount: details.amount,
+            currency: details.currency || 'USD'
+          }
+        });
+        console.log('📡 [BILLING LOG] Broadcasted billing failure to SSE clients');
+      } catch (issueError) {
+        console.error('❌ [BILLING LOG] Failed to create issue:', issueError.message);
+        console.error('   Stack:', issueError.stack);
+      }
+    }
+  } catch (error) {
+    console.error('❌ [BILLING LOG] Error logging activity:', error);
+  }
+}
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -19,11 +71,16 @@ router.get('/payment-status', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const userSettings = await awsManager.getUserSettings(userId);
     
+    // Calculate next payment due date (1st of next month at 2am)
+    const now = new Date();
+    const nextPaymentDue = new Date(now.getFullYear(), now.getMonth() + 1, 1, 2, 0, 0);
+    
     res.json({
       status: userSettings?.paymentStatus || 'active',
       gracePeriodEnd: userSettings?.gracePeriodEnd,
       lastChargeDate: userSettings?.lastChargeDate,
-      lastFailedCharge: userSettings?.lastFailedCharge
+      lastFailedCharge: userSettings?.lastFailedCharge,
+      nextPaymentDue: nextPaymentDue.toISOString()
     });
   } catch (error) {
     console.error('❌ [BILLING] Error getting payment status:', error);
@@ -168,6 +225,13 @@ router.post('/set-default-payment', authenticateToken, async (req, res) => {
           await sendAccountReactivatedEmail(userId, userSettings.email);
         }
         
+        // Log successful reactivation
+        await logBillingActivity(userId, 'Account Reactivation', {
+          amount: userSettings.lastFailedCharge.amount,
+          paymentMethodId,
+          retriedCharge: true
+        }, 'success');
+        
         console.log('✅ [BILLING] Charge retry successful, account reactivated');
         
         return res.json({ 
@@ -244,159 +308,201 @@ router.post('/charge-tokens', authenticateToken, async (req, res) => {
   }
 });
 
+// Extracted billing logic for direct calls (from admin or cron)
+export async function scanUsersAndCharge() {
+  console.log('💰 [BILLING] Starting monthly billing cycle...');
+  
+  // Get all users with Stripe customers
+  const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+  const scanCommand = new ScanCommand({
+    TableName: awsManager.tables.userSettings,
+    FilterExpression: 'attribute_exists(stripeCustomerId)'
+  });
+  
+  const { Items: users } = await awsManager.dynamodb.send(scanCommand);
+  console.log(`📊 [BILLING] Found ${users?.length || 0} users with payment methods`);
+  
+  const results = {
+    total: users?.length || 0,
+    successful: 0,
+    failed: 0,
+    errors: []
+  };
+  
+  for (const user of users || []) {
+    try {
+      const userId = user.userId;
+      
+      // Skip if already charged this month
+      const lastChargeDate = user.lastChargeDate;
+      if (lastChargeDate) {
+        const lastCharge = new Date(lastChargeDate);
+        const now = new Date();
+        if (lastCharge.getMonth() === now.getMonth() && lastCharge.getFullYear() === now.getFullYear()) {
+          console.log(`⏭️ [BILLING] Skipping ${userId} - already charged this month`);
+          continue;
+        }
+      }
+      
+      // Get usage from api-usage table for this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      
+      const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      const usageQuery = new QueryCommand({
+        TableName: awsManager.tables.apiUsage,
+        KeyConditionExpression: 'userId = :userId AND #timestamp >= :startDate',
+        ExpressionAttributeNames: {
+          '#timestamp': 'timestamp'
+        },
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':startDate': startOfMonth.toISOString()
+        }
+      });
+      
+      const { Items: usageRecords } = await awsManager.dynamodb.send(usageQuery);
+      
+      // Calculate total cost
+      let totalCost = 0;
+      for (const record of usageRecords || []) {
+        totalCost += record.cost || 0;
+      }
+      
+      // Convert to cents and round
+      const amountInCents = Math.round(totalCost * 100);
+      
+      console.log(`💵 [BILLING] User ${userId}: $${totalCost.toFixed(2)} (${amountInCents} cents)`);
+      
+      // Skip if no charges
+      if (amountInCents === 0) {
+        console.log(`⏭️ [BILLING] Skipping ${userId} - no usage this month`);
+        continue;
+      }
+      
+      // Charge the card
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: 'usd',
+          customer: user.stripeCustomerId,
+          payment_method: user.defaultPaymentMethodId,
+          off_session: true,
+          confirm: true,
+          description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          metadata: { 
+            userId,
+            billingPeriod: `${startOfMonth.toISOString()}`,
+            recordCount: usageRecords?.length || 0
+          }
+        });
+        
+        // Update user settings with success
+        await awsManager.saveUserSettings(userId, {
+          ...user,
+          paymentStatus: 'active',
+          lastChargeDate: new Date().toISOString(),
+          lastChargeAmount: totalCost,
+          gracePeriodEnd: null
+        });
+        
+          // Log payment to history
+          await awsManager.logPayment(userId, {
+            amount: totalCost,
+            status: 'success',
+            currency: 'USD',
+            stripePaymentIntentId: paymentIntent.id,
+            billingPeriod: startOfMonth.toISOString(),
+            description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+          });
+        
+          // Send success email
+          if (user.email) {
+            await sendPaymentSuccessEmail(userId, user.email, totalCost);
+          }
+          
+          // Log successful billing
+          await logBillingActivity(userId, 'Monthly Charge', {
+            amount: totalCost,
+            currency: 'USD',
+            paymentIntentId: paymentIntent.id,
+            billingPeriod: startOfMonth.toISOString()
+          }, 'success');
+          
+          console.log(`✅ [BILLING] Charged ${userId}: $${totalCost.toFixed(2)}`);
+          results.successful++;      } catch (chargeError) {
+        console.error(`❌ [BILLING] Charge failed for ${userId}:`, chargeError.message);
+        
+        // Log failed payment to history
+        await awsManager.logPayment(userId, {
+          amount: totalCost,
+          status: 'failed',
+          currency: 'USD',
+          stripePaymentIntentId: null,
+          billingPeriod: startOfMonth.toISOString(),
+          description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          errorMessage: chargeError.message
+        });
+        
+        // Set grace period (7 days)
+        const gracePeriodEnd = new Date();
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
+        
+        // Update user settings with failure
+        await awsManager.saveUserSettings(userId, {
+          ...user,
+          paymentStatus: 'payment_failed',
+          gracePeriodEnd: gracePeriodEnd.toISOString(),
+          lastFailedCharge: {
+            date: new Date().toISOString(),
+            amount: totalCost,
+            error: chargeError.message
+          }
+        });
+        
+        // Send failed payment email
+        if (user.email) {
+          await sendPaymentFailedEmail(userId, user.email, totalCost, chargeError.message);
+        }
+        
+        // Log failed billing and create alert
+        await logBillingActivity(userId, 'Monthly Charge', {
+          amount: totalCost,
+          currency: 'USD',
+          error: chargeError.message,
+          gracePeriodEnd: gracePeriodEnd.toISOString()
+        }, 'failed');
+        
+        results.failed++;
+        results.errors.push({
+          userId,
+          amount: totalCost,
+          error: chargeError.message
+        });
+      }
+      
+    } catch (userError) {
+      console.error(`❌ [BILLING] Error processing user:`, userError);
+      results.errors.push({
+        userId: user.userId,
+        error: userError.message
+      });
+    }
+  }
+  
+  console.log('✅ [BILLING] Monthly billing complete:', results);
+  return results;
+}
+
 // Monthly billing - charge all users for API usage
 router.post('/charge-monthly', authenticateToken, async (req, res) => {
   try {
     // Only allow admin users to trigger monthly billing
     // TODO: Add admin check or use cron job authentication
     
-    console.log('💰 [BILLING] Starting monthly billing cycle...');
+    const results = await scanUsersAndCharge();
     
-    // Get all users with Stripe customers
-    const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-    const scanCommand = new ScanCommand({
-      TableName: awsManager.tables.userSettings,
-      FilterExpression: 'attribute_exists(stripeCustomerId)'
-    });
-    
-    const { Items: users } = await awsManager.dynamodb.send(scanCommand);
-    console.log(`📊 [BILLING] Found ${users?.length || 0} users with payment methods`);
-    
-    const results = {
-      total: users?.length || 0,
-      successful: 0,
-      failed: 0,
-      errors: []
-    };
-    
-    for (const user of users || []) {
-      try {
-        const userId = user.userId;
-        
-        // Skip if already charged this month
-        const lastChargeDate = user.lastChargeDate;
-        if (lastChargeDate) {
-          const lastCharge = new Date(lastChargeDate);
-          const now = new Date();
-          if (lastCharge.getMonth() === now.getMonth() && lastCharge.getFullYear() === now.getFullYear()) {
-            console.log(`⏭️ [BILLING] Skipping ${userId} - already charged this month`);
-            continue;
-          }
-        }
-        
-        // Get usage from api-usage table for this month
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        
-        const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
-        const usageQuery = new QueryCommand({
-          TableName: awsManager.tables.apiUsage,
-          KeyConditionExpression: 'userId = :userId AND #timestamp >= :startDate',
-          ExpressionAttributeNames: {
-            '#timestamp': 'timestamp'
-          },
-          ExpressionAttributeValues: {
-            ':userId': userId,
-            ':startDate': startOfMonth.toISOString()
-          }
-        });
-        
-        const { Items: usageRecords } = await awsManager.dynamodb.send(usageQuery);
-        
-        // Calculate total cost
-        let totalCost = 0;
-        for (const record of usageRecords || []) {
-          totalCost += record.cost || 0;
-        }
-        
-        // Convert to cents and round
-        const amountInCents = Math.round(totalCost * 100);
-        
-        console.log(`💵 [BILLING] User ${userId}: $${totalCost.toFixed(2)} (${amountInCents} cents)`);
-        
-        // Skip if no charges
-        if (amountInCents === 0) {
-          console.log(`⏭️ [BILLING] Skipping ${userId} - no usage this month`);
-          continue;
-        }
-        
-        // Charge the card
-        try {
-          const paymentIntent = await stripe.paymentIntents.create({
-            amount: amountInCents,
-            currency: 'usd',
-            customer: user.stripeCustomerId,
-            payment_method: user.defaultPaymentMethodId,
-            off_session: true,
-            confirm: true,
-            description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
-            metadata: { 
-              userId,
-              billingPeriod: `${startOfMonth.toISOString()}`,
-              recordCount: usageRecords?.length || 0
-            }
-          });
-          
-          // Update user settings with success
-          await awsManager.saveUserSettings(userId, {
-            ...user,
-            paymentStatus: 'active',
-            lastChargeDate: new Date().toISOString(),
-            lastChargeAmount: totalCost,
-            gracePeriodEnd: null
-          });
-          
-          // Send success email
-          if (user.email) {
-            await sendPaymentSuccessEmail(userId, user.email, totalCost);
-          }
-          
-          console.log(`✅ [BILLING] Charged ${userId}: $${totalCost.toFixed(2)}`);
-          results.successful++;
-          
-        } catch (chargeError) {
-          console.error(`❌ [BILLING] Charge failed for ${userId}:`, chargeError.message);
-          
-          // Set grace period (7 days)
-          const gracePeriodEnd = new Date();
-          gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
-          
-          // Update user settings with failure
-          await awsManager.saveUserSettings(userId, {
-            ...user,
-            paymentStatus: 'payment_failed',
-            gracePeriodEnd: gracePeriodEnd.toISOString(),
-            lastFailedCharge: {
-              date: new Date().toISOString(),
-              amount: totalCost,
-              error: chargeError.message
-            }
-          });
-          
-          // Send failed payment email
-          if (user.email) {
-            await sendPaymentFailedEmail(userId, user.email, totalCost, chargeError.message);
-          }
-          
-          results.failed++;
-          results.errors.push({
-            userId,
-            amount: totalCost,
-            error: chargeError.message
-          });
-        }
-        
-      } catch (userError) {
-        console.error(`❌ [BILLING] Error processing user:`, userError);
-        results.errors.push({
-          userId: user.userId,
-          error: userError.message
-        });
-      }
-    }
-    
-    console.log('✅ [BILLING] Monthly billing complete:', results);
     res.json({
       success: true,
       results
@@ -405,6 +511,43 @@ router.post('/charge-monthly', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('❌ [BILLING] Error in monthly billing:', error);
     res.status(500).json({ error: error.message || 'Failed to process monthly billing' });
+  }
+});
+
+// Get payment history for user
+router.get('/payment-history', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const limit = parseInt(req.query.limit) || 20;
+    
+    const history = await awsManager.getPaymentHistory(userId, limit);
+    
+    res.json({
+      success: true,
+      payments: history
+    });
+    
+  } catch (error) {
+    console.error('❌ [BILLING] Error getting payment history:', error);
+    res.status(500).json({ error: 'Failed to get payment history' });
+  }
+});
+
+// Get payment statistics
+router.get('/payment-stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const stats = await awsManager.getPaymentStats(userId);
+    
+    res.json({
+      success: true,
+      stats
+    });
+    
+  } catch (error) {
+    console.error('❌ [BILLING] Error getting payment stats:', error);
+    res.status(500).json({ error: 'Failed to get payment stats' });
   }
 });
 

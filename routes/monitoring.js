@@ -412,32 +412,69 @@ router.get('/activity', authenticateToken, async (req, res) => {
     });
 
     // Normalize persistentIssues to unified activity shape
-    const issuesActivity = (persistentIssues || []).map(item => ({
-      type: item.type || 'info',
-      category: 'issue',
-      title: item.title || item.issueId || 'Issue',
-      message: item.message || '',
-      timestamp: item.timestamp || item.createdAt || new Date().toISOString(),
-      metadata: item.metadata || {},
-      raw: item
-    }));
+    const issuesActivity = (persistentIssues || []).map(item => {
+      // Map severity to display type for styling
+      let displayType = 'info';
+      if (item.severity === 'critical' || item.severity === 'high') {
+        displayType = 'error';
+      } else if (item.severity === 'medium') {
+        displayType = 'warning';
+      }
+      
+      return {
+        type: displayType,
+        category: 'issue',
+        severity: item.severity, // Keep original severity
+        title: item.title || item.issueId || 'Issue',
+        message: item.message || '',
+        timestamp: item.timestamp || item.createdAt || new Date().toISOString(),
+        metadata: item.metadata || {},
+        raw: item
+      };
+    });
 
     // Normalize cycle logs
-    const cyclesActivity = (cycleLogs || []).map(cycle => ({
-      type: cycle.success === false ? 'error' : 'info',
-      category: 'cycle',
-      title: `Cycle ${cycle.cycleNumber || ''} - ${cycle.agentId || ''}`.trim(),
-      message: `Cycle ${cycle.cycleNumber || ''} completed. Leads: ${cycle.leadsProcessed || 0}, Emails: ${cycle.emailsSent || 0}`,
-      timestamp: cycle.completedAt || cycle.timestamp || new Date().toISOString(),
-      metadata: {
-        agentId: cycle.agentId,
-        duration: cycle.duration,
-        leadsProcessed: cycle.leadsProcessed,
-        emailsSent: cycle.emailsSent,
-        cycleNumber: cycle.cycleNumber
-      },
-      raw: cycle
-    }));
+    const cyclesActivity = (cycleLogs || []).map(cycle => {
+      // Special handling for billing cycles
+      const isBilling = cycle.agentId === 'billing-system';
+      const billingFailed = isBilling && cycle.success === false;
+      
+      if (isBilling) {
+        return {
+          type: billingFailed ? 'error' : 'success',
+          category: 'billing',
+          title: billingFailed 
+            ? `💳 Payment Failed - $${cycle.metadata?.amount || 0}` 
+            : `💳 Payment Successful - $${cycle.metadata?.amount || 0}`,
+          message: cycle.metadata?.error || `${cycle.metadata?.action || 'Payment'} processed successfully`,
+          timestamp: cycle.completedAt || cycle.timestamp || new Date().toISOString(),
+          metadata: {
+            amount: cycle.metadata?.amount,
+            currency: cycle.metadata?.currency || 'USD',
+            action: cycle.metadata?.action,
+            error: cycle.metadata?.error
+          },
+          raw: cycle
+        };
+      }
+      
+      // Regular cycle logs
+      return {
+        type: cycle.success === false ? 'error' : 'info',
+        category: 'cycle',
+        title: `Cycle ${cycle.cycleNumber || ''} - ${cycle.agentId || ''}`.trim(),
+        message: `Cycle ${cycle.cycleNumber || ''} completed. Leads: ${cycle.leadsProcessed || 0}, Emails: ${cycle.emailsSent || 0}`,
+        timestamp: cycle.completedAt || cycle.timestamp || new Date().toISOString(),
+        metadata: {
+          agentId: cycle.agentId,
+          duration: cycle.duration,
+          leadsProcessed: cycle.leadsProcessed,
+          emailsSent: cycle.emailsSent,
+          cycleNumber: cycle.cycleNumber
+        },
+        raw: cycle
+      };
+    });
 
     // Merge and sort by timestamp desc
     const merged = [...issuesActivity, ...cyclesActivity].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

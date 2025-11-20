@@ -34,7 +34,8 @@ class AWSManager {
       apiUsage: process.env.AWS_DYNAMODB_API_USAGE_TABLE || 'meridian-api-usage',
       issuesAlerts: process.env.AWS_DYNAMODB_ISSUES_ALERTS_TABLE || 'meridian-issues-alerts',
       unsubscribes: process.env.AWS_DYNAMODB_UNSUBSCRIBES_TABLE || 'meridian-unsubscribes',
-      searchHistory: process.env.AWS_DYNAMODB_SEARCH_HISTORY_TABLE || 'meridian-search-history'
+      searchHistory: process.env.AWS_DYNAMODB_SEARCH_HISTORY_TABLE || 'meridian-search-history',
+      paymentHistory: process.env.AWS_DYNAMODB_PAYMENT_HISTORY_TABLE || 'meridian-payment-history'
     };
     
     // API Cost rates (estimated)
@@ -1678,15 +1679,19 @@ class AWSManager {
       const timestamp = new Date().toISOString();
       const issueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
+      // Extract severity from metadata if provided, default to 'medium'
+      const { severity = 'medium', ...otherMetadata } = metadata;
+      
       const issue = {
         PK: `USER#${userId}`,
         SK: `ISSUE#${timestamp}#${issueId}`,
         issueId,
         userId,
-        type, // error, warning, info
+        type, // billing, agent, email, system
+        severity, // critical, high, medium, low (top-level for easy filtering)
         title,
         message,
-        metadata,
+        metadata: otherMetadata, // Store remaining metadata
         timestamp,
         read: false,
         createdAt: timestamp
@@ -1697,7 +1702,7 @@ class AWSManager {
         Item: issue
       }));
 
-      console.log(`✅ [AWS] Added ${type} issue: ${title}`);
+      console.log(`✅ [AWS] Added ${type} issue (${severity}): ${title}`);
 
       // Clean up old issues if over 100
       await this.cleanupOldIssues(userId);
@@ -1912,6 +1917,127 @@ class AWSManager {
     } catch (error) {
       console.error('❌ [AWS] Error deleting issue:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  // ======================
+  // PAYMENT HISTORY METHODS
+  // ======================
+
+  /**
+   * Log a payment transaction
+   */
+  async logPayment(userId, paymentData) {
+    try {
+      const timestamp = new Date().toISOString();
+      const paymentId = `PAYMENT#${timestamp}#${Math.random().toString(36).substr(2, 9)}`;
+
+      const command = new PutCommand({
+        TableName: this.tables.paymentHistory,
+        Item: {
+          userId,
+          paymentId,
+          timestamp,
+          amount: paymentData.amount,
+          status: paymentData.status, // 'success', 'failed', 'refunded'
+          currency: paymentData.currency || 'USD',
+          stripePaymentIntentId: paymentData.stripePaymentIntentId,
+          billingPeriod: paymentData.billingPeriod,
+          description: paymentData.description || `Monthly billing for ${paymentData.billingPeriod}`,
+          errorMessage: paymentData.errorMessage || null,
+          metadata: paymentData.metadata || {}
+        }
+      });
+
+      await this.dynamodb.send(command);
+      console.log(`💳 [AWS] Logged payment: ${paymentData.status} - $${paymentData.amount}`);
+      return { success: true, paymentId };
+    } catch (error) {
+      console.error('❌ [AWS] Error logging payment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get payment history for a user
+   */
+  async getPaymentHistory(userId, limit = 20) {
+    try {
+      const command = new QueryCommand({
+        TableName: this.tables.paymentHistory,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        },
+        ScanIndexForward: false, // Most recent first
+        Limit: limit
+      });
+
+      const result = await this.dynamodb.send(command);
+      console.log(`✅ [AWS] Retrieved ${result.Items?.length || 0} payment records`);
+      return result.Items || [];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting payment history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get payment statistics for a user
+   */
+  async getPaymentStats(userId) {
+    try {
+      const payments = await this.getPaymentHistory(userId, 100);
+      
+      const stats = {
+        totalPaid: 0,
+        totalFailed: 0,
+        successCount: 0,
+        failedCount: 0,
+        lastSuccessfulPayment: null,
+        lastFailedPayment: null
+      };
+
+      // Track unique billing periods to avoid counting duplicates
+      const successfulPeriods = new Set();
+      const failedPeriods = new Map(); // Map to store amount per period
+
+      payments.forEach(payment => {
+        if (payment.status === 'success') {
+          // Only count each successful billing period once
+          if (!successfulPeriods.has(payment.billingPeriod)) {
+            stats.totalPaid += payment.amount;
+            stats.successCount++;
+            successfulPeriods.add(payment.billingPeriod);
+          }
+          if (!stats.lastSuccessfulPayment || payment.timestamp > stats.lastSuccessfulPayment.timestamp) {
+            stats.lastSuccessfulPayment = payment;
+          }
+        } else if (payment.status === 'failed') {
+          // Only count each failed billing period once (use the first/latest attempt amount)
+          if (!failedPeriods.has(payment.billingPeriod)) {
+            failedPeriods.set(payment.billingPeriod, payment.amount);
+            stats.failedCount++;
+          }
+          if (!stats.lastFailedPayment || payment.timestamp > stats.lastFailedPayment.timestamp) {
+            stats.lastFailedPayment = payment;
+          }
+        }
+      });
+
+      // Sum up unique failed amounts
+      stats.totalFailed = Array.from(failedPeriods.values()).reduce((sum, amount) => sum + amount, 0);
+
+      // Calculate next billing date (first of next month)
+      const now = new Date();
+      const nextBillingDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      stats.nextBillingDate = nextBillingDate.toISOString();
+
+      console.log(`✅ [AWS] Payment stats: ${stats.successCount} successful, ${stats.failedCount} failed (unique periods)`);
+      return stats;
+    } catch (error) {
+      console.error('❌ [AWS] Error getting payment stats:', error);
+      return null;
     }
   }
 

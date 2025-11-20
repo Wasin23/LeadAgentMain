@@ -13,6 +13,7 @@ const RateLimitSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [nextBillingDate, setNextBillingDate] = useState<string | null>(null);
 
   // Average cost per lead (all services combined)
   const avgCostPerLead = 0.06; // ~$0.06 per lead (Apollo search + email unlock + OpenAI + ZeroBounce + Serper + Mailgun)
@@ -58,6 +59,12 @@ const RateLimitSettings: React.FC = () => {
           (spendingResponse.data.stats?.zerobounce?.cost || 0) +
           (spendingResponse.data.stats?.serper?.cost || 0);
         setTotalSpent(totalCost);
+      }
+
+      // Fetch next billing date from payment stats
+      const statsResponse = await api.get('/api/billing/payment-stats');
+      if (statsResponse.data.stats?.nextBillingDate) {
+        setNextBillingDate(statsResponse.data.stats.nextBillingDate);
       }
     } catch (error: any) {
       console.error('Error fetching budget/spending:', error);
@@ -136,7 +143,14 @@ const RateLimitSettings: React.FC = () => {
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-blue-100 text-sm font-medium mb-1">Total Spent This Month</p>
+            <div className="flex items-baseline gap-3 mb-1">
+              <p className="text-blue-100 text-sm font-medium">Total Spent This Month</p>
+              {nextBillingDate && (
+                <p className="text-blue-200 text-xs">
+                  Next: {new Date(nextBillingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+              )}
+            </div>
             <p className="text-4xl font-bold">${totalSpent.toFixed(2)}</p>
           </div>
           <div className="text-right">

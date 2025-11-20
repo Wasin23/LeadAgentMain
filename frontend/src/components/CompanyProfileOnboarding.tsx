@@ -446,7 +446,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                   <button 
                     onClick={handleWebsiteScrape} 
                     disabled={isProcessing}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-black font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 text-purple-600 font-semibold hover:bg-purple-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border-2 border-purple-200"
                   >
                     {isProcessing && (
                       <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

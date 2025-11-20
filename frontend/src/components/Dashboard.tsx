@@ -45,7 +45,30 @@ export default function Dashboard() {
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [criticalIssueCount, setCriticalIssueCount] = useState(0);
   const { user } = useAuth();
+
+  // Fetch critical issue count
+  useEffect(() => {
+    const fetchCriticalCount = async () => {
+      try {
+        const response = await api.get('/api/notifications/count');
+        if (response.data?.success) {
+          const count = (response.data.bySeverity?.critical || 0) + (response.data.bySeverity?.high || 0);
+          setCriticalIssueCount(count);
+        }
+      } catch (error) {
+        console.error('Error fetching critical issues:', error);
+      }
+    };
+
+    if (hasCompanyProfile) {
+      fetchCriticalCount();
+      // Poll every 10 seconds for updates
+      const interval = setInterval(fetchCriticalCount, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [hasCompanyProfile]);
 
   // Check if user has completed company profile
   useEffect(() => {
@@ -154,11 +177,12 @@ export default function Dashboard() {
                 <nav className="hidden md:flex items-center gap-6">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
+                    const showBadge = item.id === 'director' && criticalIssueCount > 0;
                     return (
                       <button
                         key={item.id}
                         onClick={() => setActiveView(item.id)}
-                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors rounded-lg relative ${
                           activeView === item.id
                             ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
                             : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700'
@@ -166,6 +190,11 @@ export default function Dashboard() {
                       >
                         <Icon className="w-4 h-4" />
                         {item.name}
+                        {showBadge && (
+                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {criticalIssueCount > 9 ? '9+' : criticalIssueCount}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

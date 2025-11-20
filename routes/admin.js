@@ -1,7 +1,7 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
-import axios from 'axios';
 import { checkGracePeriods } from '../utils/gracePeriodChecker.js';
+import { scanUsersAndCharge } from './billing.js';
 
 const router = express.Router();
 
@@ -13,18 +13,18 @@ router.post('/trigger-billing', authenticateToken, async (req, res) => {
     // In production, add admin check here
     console.log('🔧 [ADMIN] Manual billing trigger by:', userId);
     
-    const result = await axios.post('http://localhost:8080/api/billing/charge-monthly');
+    // Call billing function directly
+    const result = await scanUsersAndCharge();
     
     res.json({
       success: true,
       message: 'Billing job triggered',
-      result: result.data
+      result
     });
   } catch (error) {
     console.error('❌ [ADMIN] Billing trigger failed:', error);
     res.status(500).json({ 
-      error: error.message || 'Failed to trigger billing',
-      details: error.response?.data
+      error: error.message || 'Failed to trigger billing'
     });
   }
 });

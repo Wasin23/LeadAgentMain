@@ -20,6 +20,7 @@ import AgentSettingsModal from './AgentSettingsModal';
 import RateLimitSettings from './RateLimitSettings';
 import LeadSearchPanel from './LeadSearchPanel';
 import AIReportPanel from './AIReportPanel';
+import NotificationBadge from '../NotificationBadge';
 
 interface MonitoringContentProps {
   view: MonitoringView;
@@ -699,7 +700,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                 <span className="text-xs text-neutral-500">active</span>
               </div>
               <div className="mt-2 text-xs text-neutral-600">
-                {issues.filter(i => i.severity === 'error').length} errors · {issues.filter(i => i.severity === 'warning').length} warnings
+                {issues.filter(i => i.severity === 'critical' || i.severity === 'high').length} errors · {issues.filter(i => i.severity === 'medium').length} warnings
               </div>
             </div>
           </div>
@@ -711,12 +712,15 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
         <div>
           <h3 className="text-lg font-semibold text-neutral-900 mb-3">Recent Issues</h3>
           <div className="bg-white rounded-lg border border-neutral-200 shadow-sm divide-y divide-neutral-100">
-            {issues.slice(0, 5).map((issue) => (
+            {issues.slice(0, 5).map((issue) => {
+              const isCritical = issue.severity === 'critical' || issue.severity === 'high';
+              const isWarning = issue.severity === 'medium';
+              return (
               <div key={issue.id} className="p-4">
                 <div className="flex items-start gap-3">
-                  {issue.severity === 'error' && <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
-                  {issue.severity === 'warning' && <ExclamationTriangleIcon className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />}
-                  {issue.severity === 'info' && <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />}
+                  {isCritical && <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
+                  {isWarning && <ExclamationTriangleIcon className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />}
+                  {!isCritical && !isWarning && <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-neutral-900">{issue.message}</p>
                     <p className="text-xs text-neutral-500 mt-1">
@@ -728,7 +732,8 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                   )}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       )}
@@ -1338,12 +1343,17 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
             <p className="text-sm text-neutral-500 mt-1">All systems operating normally</p>
           </div>
         ) : (
-          issues.filter(i => !i.resolved).map((issue) => (
+          issues.filter(i => !i.resolved).map((issue) => {
+            // Map severity to display styling
+            const isCritical = issue.severity === 'critical' || issue.severity === 'high';
+            const isWarning = issue.severity === 'medium';
+            
+            return (
             <div key={issue.id} className="bg-white rounded-lg border border-neutral-200 shadow-sm p-4">
               <div className="flex items-start gap-3">
-                {issue.severity === 'error' && <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
-                {issue.severity === 'warning' && <ExclamationTriangleIcon className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />}
-                {issue.severity === 'info' && <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />}
+                {isCritical && <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
+                {isWarning && <ExclamationTriangleIcon className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />}
+                {!isCritical && !isWarning && <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-neutral-900">{issue.message}</p>
                   <p className="text-xs text-neutral-500 mt-1">
@@ -1367,7 +1377,8 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                 )}
               </div>
             </div>
-          ))
+          );
+        })
         )}
       </div>
     </div>
@@ -2302,30 +2313,14 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       return agent ? agent.name : agentId;
     };
 
-    // Combine activities and issues into a single array
-    const combinedActivities = [
-      ...activities.map(a => ({ ...a, activityType: 'normal' })),
-      ...issues
-        .filter(issue => !issue.resolved) // Only show unresolved issues
-        .map(issue => ({
-          id: issue.id,
-          title: issue.message || 'Issue',
-          message: issue.details ? JSON.stringify(issue.details, null, 2) : '',
-          timestamp: issue.timestamp,
-          category: 'issue',
-          activityType: 'issue',
-          severity: issue.severity, // error, warning, info
-          metadata: {
-            agentId: issue.agentId,
-            issueId: issue.id
-          }
-        }))
-    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // Use ONLY activities feed - it already includes issues from backend
+    // Do NOT combine with raw issues to avoid duplicates
+    const combinedActivities = activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     // Filter combined activities based on selected filter
     const filteredActivities = combinedActivities.filter(act => {
       if (activityFilter === 'all') return true;
-      if (activityFilter === 'issues') return act.activityType === 'issue';
+      if (activityFilter === 'issues') return act.category === 'issue';
       if (activityFilter === 'cycles') return act.category === 'cycle' || act.title?.toLowerCase().includes('cycle');
       if (activityFilter === 'important') {
         // Important events include cycle completions, issues, and specific keywords
@@ -2437,8 +2432,8 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
               const isDismissing = dismissingActivity === activityId;
               const agentId = act.metadata?.agentId;
               const agentName = agentId ? getAgentName(agentId) : null;
-              const isIssue = act.activityType === 'issue';
-              const severity = act.severity || 'info';
+              const isIssue = act.category === 'issue' || act.activityType === 'issue';
+              const severity = act.type || act.severity || 'info'; // Backend sends 'type' field for display styling
               
               // Check if this is a cycle completion (important, not an issue)
               const titleLower = act.title?.toLowerCase() || '';

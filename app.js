@@ -530,6 +530,17 @@ app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 app.use('/api/issues', issuesRoutes); // Issues and alerts tracking
+
+// Notification routes
+let notificationRoutes;
+try {
+  notificationRoutes = (await import('./routes/notifications.js')).default;
+  app.use('/api/notifications', notificationRoutes); // Notification count and management
+  console.log('[APP] Notification routes loaded successfully');
+} catch (error) {
+  console.warn('[WARNING] Notification routes not available:', error.message);
+}
+
 app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe management
 app.use('/api/ai-report', aiReportRoutes); // AI-powered performance reports
 app.use('/api/ai-search', aiSearchRoutes); // AI-powered lead search

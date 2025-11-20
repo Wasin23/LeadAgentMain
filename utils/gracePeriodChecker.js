@@ -3,6 +3,30 @@ import { sendAccountSuspendedEmail, sendGracePeriodWarningEmail } from '../utils
 
 const awsManager = new AWSManager();
 
+// Activity logging helper
+async function logBillingActivity(userId, action, details, status = 'warning') {
+  try {
+    const timestamp = new Date().toISOString();
+    
+    console.log(`💰 [BILLING LOG] ${timestamp} - User: ${userId} - Action: ${action} - Status: ${status}`);
+    console.log(`   Details:`, details);
+    
+    // Create issue/alert for warnings and suspensions
+    if (status === 'warning' || status === 'suspended') {
+      await awsManager.createIssue(userId, {
+        type: 'billing',
+        severity: status === 'suspended' ? 'critical' : 'high',
+        title: status === 'suspended' ? 'Account Suspended' : 'Payment Grace Period Ending',
+        message: details.message || `${action} - ${status}`,
+        data: details,
+        timestamp
+      });
+    }
+  } catch (error) {
+    console.error('❌ [BILLING LOG] Error logging activity:', error);
+  }
+}
+
 /**
  * Check for expired grace periods and suspend accounts
  */
@@ -59,6 +83,13 @@ export async function checkGracePeriods() {
             await sendAccountSuspendedEmail(userId, user.email, lastFailedCharge.amount);
           }
           
+          // Log suspension and create alert
+          await logBillingActivity(userId, 'Account Suspended', {
+            amount: lastFailedCharge.amount,
+            gracePeriodEnd: gracePeriodEnd.toISOString(),
+            message: `Account suspended due to unpaid balance of $${lastFailedCharge.amount.toFixed(2)}`
+          }, 'suspended');
+          
           suspended++;
         }
         // Check if grace period ending soon (2 days warning)
@@ -70,6 +101,14 @@ export async function checkGracePeriods() {
           if (user.email) {
             await sendGracePeriodWarningEmail(userId, user.email, daysRemaining, lastFailedCharge.amount);
           }
+          
+          // Log warning and create alert
+          await logBillingActivity(userId, 'Grace Period Ending', {
+            daysRemaining,
+            amount: lastFailedCharge.amount,
+            gracePeriodEnd: gracePeriodEnd.toISOString(),
+            message: `Payment grace period ending in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. Amount due: $${lastFailedCharge.amount.toFixed(2)}`
+          }, 'warning');
           
           // Mark warning as sent
           await awsManager.saveUserSettings(userId, {

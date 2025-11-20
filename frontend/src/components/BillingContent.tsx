@@ -5,6 +5,7 @@ import { CreditCardIcon, PlusIcon, TrashIcon, CheckCircleIcon } from '@heroicons
 import api from '@/lib/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import PaymentHistory from './PaymentHistory';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
@@ -360,7 +361,16 @@ function BillingContentInner() {
 export default function BillingContent() {
   return (
     <Elements stripe={stripePromise}>
-      <BillingContentInner />
+      <div className="space-y-8">
+        {/* Payment Methods Section */}
+        <BillingContentInner />
+        
+        {/* Payment History Section */}
+        <div className="border-t border-gray-200 pt-8">
+          <h2 className="text-xl font-semibold text-neutral-900 mb-6">Payment History</h2>
+          <PaymentHistory />
+        </div>
+      </div>
     </Elements>
   );
 }

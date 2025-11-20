@@ -44,7 +44,7 @@ export default function MonitoringSidebar({
     { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
     { id: 'agents', icon: BoltIcon, label: 'Agents' },
     { id: 'integrations', icon: CurrencyDollarIcon, label: 'Billing' },
-    { id: 'logs', icon: DocumentTextIcon, label: 'Activity Logs' },
+    { id: 'logs', icon: DocumentTextIcon, label: 'Activity Logs', badge: issueCount },
   ];
 
   return (
