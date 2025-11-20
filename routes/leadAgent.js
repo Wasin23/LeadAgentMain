@@ -2,12 +2,17 @@ import express from 'express';
 import { getUserAgent } from '../agent/reasoningLeadAgent.js';
 import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
 import { authenticateToken } from '../middleware/jwt.js';
+import { checkPaymentStatus } from '../middleware/paymentStatus.js';
 import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
 
 // Apply JWT authentication to ALL routes in this router
 router.use(authenticateToken);
+
+// Apply payment status check to agent operations
+router.use(checkPaymentStatus);
+
 const agentSettings = new AgentSettingsManager();
 const awsManager = new AWSManager();
 

@@ -18,7 +18,6 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import api from '../../lib/api';
 import AgentSettingsModal from './AgentSettingsModal';
 import RateLimitSettings from './RateLimitSettings';
-import BillingContent from '../BillingContent';
 import LeadSearchPanel from './LeadSearchPanel';
 import AIReportPanel from './AIReportPanel';
 
@@ -1865,9 +1864,6 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
 
   const renderIntegrations = () => (
     <div className="space-y-6">
-      {/* Billing & Payment Methods */}
-      <BillingContent />
-
       {/* Budget Management Section */}
       <RateLimitSettings />
 

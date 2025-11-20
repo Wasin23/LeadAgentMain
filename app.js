@@ -18,6 +18,8 @@ import cookieParser from 'cookie-parser';
 import { getConfig } from './utils/config.js';
 import { memoryMonitor, performanceMiddleware } from './utils/memoryMonitor.js';
 import chatRoutes from './routes/chat.js';
+import billingRoutes from './routes/billing.js';
+import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
 
 // Load and validate configuration
 const config = getConfig();
@@ -287,16 +289,6 @@ try {
   systemRoutes = (req, res, next) => next(); // No-op if not present
 }
 
-// Import Billing routes
-let billingRoutes;
-try {
-  billingRoutes = (await import('./routes/billing.js')).default;
-  console.log('Billing routes imported successfully');
-} catch (e) {
-  console.log('Billing routes not available:', e.message);
-  billingRoutes = (req, res, next) => next(); // No-op if not present
-}
-
 const app = express();
 
 // Security Configuration
@@ -543,6 +535,16 @@ app.use('/api/ai-report', aiReportRoutes); // AI-powered performance reports
 app.use('/api/ai-search', aiSearchRoutes); // AI-powered lead search
 app.use('/api/billing', billingRoutes); // Billing and payment management
 
+// Admin routes
+let adminRoutes;
+try {
+  adminRoutes = (await import('./routes/admin.js')).default;
+  app.use('/api/admin', adminRoutes); // Admin utilities for billing/testing
+  console.log('[APP] Admin routes loaded successfully');
+} catch (error) {
+  console.warn('[WARNING] Admin routes not available:', error.message);
+}
+
 // Import manual sync routes
 let manualSyncRoutes;
 try {
@@ -603,6 +605,9 @@ const server = app.listen(PORT, () => {
     deploymentMode: DEPLOYMENT_MODE,
     sessionId: SERVER_SESSION_ID
   });
+  
+  // Start grace period checker (hourly checks for suspensions/warnings)
+  startGracePeriodChecker();
 });
 
 // Graceful shutdown handling

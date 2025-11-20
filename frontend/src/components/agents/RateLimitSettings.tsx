@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { CreditCardIcon } from '@heroicons/react/24/outline';
 import api from '../../lib/api';
+import BillingContent from '../BillingContent';
 
 const RateLimitSettings: React.FC = () => {
   const [monthlyBudget, setMonthlyBudget] = useState<number>(100); // Default $100/month
@@ -9,9 +12,22 @@ const RateLimitSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Average cost per lead (all services combined)
   const avgCostPerLead = 0.06; // ~$0.06 per lead (Apollo search + email unlock + OpenAI + ZeroBounce + Serper + Mailgun)
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showPaymentModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showPaymentModal]);
 
   useEffect(() => {
     fetchBudgetAndSpending();
@@ -211,8 +227,45 @@ const RateLimitSettings: React.FC = () => {
               'Save Budget'
             )}
           </button>
+
+          <button
+            onClick={() => setShowPaymentModal(true)}
+            className="w-full px-6 py-3 bg-white dark:bg-gray-700 border-2 border-blue-600 text-blue-600 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <CreditCardIcon className="w-5 h-5" />
+            Manage Payment Methods
+          </button>
         </div>
       </div>
+
+      {/* Payment Methods Modal */}
+      {showPaymentModal && typeof window !== 'undefined' && ReactDOM.createPortal(
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[99999] p-4 overflow-hidden" 
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPaymentModal(false);
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Methods</h2>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-8">
+              <BillingContent />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Lead Estimates */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">

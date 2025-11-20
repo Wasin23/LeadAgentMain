@@ -22,6 +22,8 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cardholderName, setCardholderName] = useState('');
+  const [cardReady, setCardReady] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +44,9 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
       const { error: stripeError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)!,
+          billing_details: {
+            name: cardholderName,
+          },
         },
       });
 
@@ -62,50 +67,106 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: '16px',
-                color: '#171717',
-                '::placeholder': {
-                  color: '#737373',
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Cardholder Name */}
+      <div>
+        <label className="block text-sm font-semibold text-neutral-900 mb-2">
+          Cardholder Name
+        </label>
+        <input
+          type="text"
+          value={cardholderName}
+          onChange={(e) => setCardholderName(e.target.value)}
+          placeholder="John Doe"
+          required
+          className="w-full px-4 py-3 border-2 border-neutral-200 rounded-lg bg-white text-neutral-900 placeholder-neutral-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+        />
+      </div>
+
+      {/* Card Details */}
+      <div>
+        <label className="block text-sm font-semibold text-neutral-900 mb-2">
+          Card Details
+        </label>
+        <div className="p-4 border-2 border-neutral-200 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all" style={{ minHeight: '44px' }}>
+          <CardElement
+            onReady={() => {
+              console.log('✅ Stripe CardElement ready');
+              setCardReady(true);
+            }}
+            onChange={(e) => {
+              console.log('🔄 Card element changed:', e.complete, e.error);
+              if (e.error) {
+                setError(e.error.message);
+              } else {
+                setError(null);
+              }
+            }}
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  color: '#171717',
+                  lineHeight: '24px',
+                  '::placeholder': {
+                    color: '#a3a3a3',
+                  },
+                },
+                invalid: {
+                  color: '#dc2626',
+                  iconColor: '#dc2626',
                 },
               },
-            },
-          }}
-        />
+            }}
+          />
+        </div>
+        <p className="text-xs text-neutral-500 mt-2">
+          💳 All card fields appear in the box above (card number • expiry • CVC)
+        </p>
       </div>
       
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-          {error}
+        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 text-sm text-red-700 font-medium">
+          ⚠️ {error}
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          disabled={!stripe || loading}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+          disabled={!stripe || !elements || loading || !cardholderName.trim() || !cardReady}
+          className="flex-1 px-6 py-3.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-base transition-colors shadow-sm hover:shadow-md"
         >
-          {loading ? 'Adding...' : 'Add Card'}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Adding Card...
+            </span>
+          ) : (
+            'Add Card'
+          )}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 font-medium transition-colors"
+          disabled={loading}
+          className="px-6 py-3.5 border-2 border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 font-semibold text-base transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
+      </div>
+
+      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+        <p className="text-xs text-neutral-600 leading-relaxed">
+          🔒 <strong>Secure Payment:</strong> Your card details are encrypted and processed securely by Stripe. We never store your full card information.
+        </p>
       </div>
     </form>
   );
 }
 
-export default function BillingContent() {
+function BillingContentInner() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddCard, setShowAddCard] = useState(false);
@@ -117,9 +178,18 @@ export default function BillingContent() {
 
   const loadPaymentMethods = async () => {
     try {
+      console.log('🔵 [BILLING] Fetching payment methods...');
+      console.log('🔵 [BILLING] API Base URL:', api.defaults.baseURL);
+      console.log('🔵 [BILLING] Full URL:', `${api.defaults.baseURL}/api/billing/payment-methods`);
       const { data } = await api.get('/api/billing/payment-methods');
+      console.log('✅ [BILLING] Payment methods received:', data);
       setPaymentMethods(data.paymentMethods || []);
+      setError(null);
     } catch (err: any) {
+      console.error('❌ [BILLING] Error loading payment methods:', err);
+      console.error('❌ [BILLING] Error response:', err.response);
+      console.error('❌ [BILLING] Error status:', err.response?.status);
+      console.error('❌ [BILLING] Error data:', err.response?.data);
       setError(err.response?.data?.error || 'Failed to load payment methods');
     } finally {
       setLoading(false);
@@ -167,7 +237,12 @@ export default function BillingContent() {
         {!showAddCard && (
           <button
             onClick={() => setShowAddCard(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+            style={{ 
+              backgroundColor: '#2563eb', 
+              color: '#ffffff', 
+              border: 'none'
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90"
           >
             <PlusIcon className="w-5 h-5" />
             Add Card
@@ -192,17 +267,20 @@ export default function BillingContent() {
 
       {/* Add Card Form */}
       {showAddCard && (
-        <div className="bg-white border border-neutral-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-neutral-900 mb-4">Add Payment Method</h3>
-          <Elements stripe={stripePromise}>
-            <AddCardForm
-              onSuccess={() => {
-                setShowAddCard(false);
-                loadPaymentMethods();
-              }}
-              onCancel={() => setShowAddCard(false)}
-            />
-          </Elements>
+        <div className="bg-white border-2 border-blue-200 rounded-xl p-8 shadow-lg">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <CreditCardIcon className="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900">Add Payment Method</h3>
+          </div>
+          <AddCardForm
+            onSuccess={() => {
+              setShowAddCard(false);
+              loadPaymentMethods();
+            }}
+            onCancel={() => setShowAddCard(false)}
+          />
         </div>
       )}
 
@@ -276,5 +354,13 @@ export default function BillingContent() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BillingContent() {
+  return (
+    <Elements stripe={stripePromise}>
+      <BillingContentInner />
+    </Elements>
   );
 }
