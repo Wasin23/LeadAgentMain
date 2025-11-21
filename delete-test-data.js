@@ -11,14 +11,14 @@ async function deleteTestData() {
     await memory.initialize();
     console.log('✅ Connected to Zilliz\n');
 
-    // Delete test user data
-    console.log('🗑️  Deleting test-user-123 data...');
-    const result = await memory.resetUserMemory('test-user-123');
+    // Delete ALL data for your user
+    console.log('🗑️  Deleting all data for user 5781c511-2307-4fcf-a763-33e8ec64a638...');
+    const result = await memory.resetUserMemory('5781c511-2307-4fcf-a763-33e8ec64a638');
     console.log('Delete result:', JSON.stringify(result, null, 2));
 
     // Verify deletion
     console.log('\n🔍 Verifying deletion...');
-    const loadResult = await memory.loadKeywordPerformance('test-user-123');
+    const loadResult = await memory.loadKeywordPerformance('5781c511-2307-4fcf-a763-33e8ec64a638');
     console.log('Should be empty:', JSON.stringify(loadResult, null, 2));
 
     // Get collection stats

@@ -244,6 +244,17 @@ export default function SignInPage() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10"
       >
+        {/* Back to Home Button */}
+        <button
+          onClick={() => router.push('/')}
+          className="absolute top-6 left-6 text-neutral-500 hover:text-neutral-700 transition-colors z-20"
+          title="Back to Home"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+
         {/* Header with Logo */}
         <div className="text-center p-10 pb-6">
           <motion.div

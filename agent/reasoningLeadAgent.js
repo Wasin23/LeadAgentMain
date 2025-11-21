@@ -981,9 +981,23 @@ Call the appropriate function to continue the workflow.`;
           
           // Add all leads to the queue for sequential processing
           actionResult.leads.forEach(lead => {
+            // Detect generic company names (industry terms)
+            const genericTerms = ['Real Estate', 'Technology', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'];
+            let companyName = lead.organization?.name || lead.company || 'Unknown Company';
+            
+            // If company name is generic, try to use domain-based name or employment history
+            if (genericTerms.includes(companyName) && lead.organization?.primary_domain) {
+              // Extract domain name (e.g., zillow.com -> Zillow)
+              const domainParts = lead.organization.primary_domain.split('.');
+              if (domainParts.length > 0) {
+                companyName = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+                console.log(`🔧 [COMPANY FIX] Generic name "${lead.organization.name}" replaced with domain-based "${companyName}"`);
+              }
+            }
+            
             const normalizedLead = {
               ...lead,
-              company: lead.organization?.name || lead.company || 'Unknown Company'
+              company: companyName
             };
             this.memory.currentCycle.leadQueue.push(normalizedLead);
           });
@@ -1137,9 +1151,22 @@ Call the appropriate function to continue the workflow.`;
           
           // Update company name from enriched Apollo data (person.organization.name)
           if (actionResult.person?.organization?.name) {
-            this.memory.currentCycle.currentLead.company = actionResult.person.organization.name;
+            // Detect generic company names
+            const genericTerms = ['Real Estate', 'Technology', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'];
+            let companyName = actionResult.person.organization.name;
+            
+            // If enriched name is generic but we have a domain, derive from domain
+            if (genericTerms.includes(companyName) && actionResult.person.organization.primary_domain) {
+              const domainParts = actionResult.person.organization.primary_domain.split('.');
+              if (domainParts.length > 0) {
+                companyName = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+                console.log(`🔧 [COMPANY FIX] Generic enriched name "${actionResult.person.organization.name}" replaced with "${companyName}"`);
+              }
+            }
+            
+            this.memory.currentCycle.currentLead.company = companyName;
             this.memory.currentCycle.currentLead.organization = actionResult.person.organization;
-            console.log(`🏢 [CYCLE] Updated company name from enriched data: ${actionResult.person.organization.name}`);
+            console.log(`🏢 [CYCLE] Updated company name from enriched data: ${companyName}`);
           }
           
           this.memory.currentCycle.processingPhase = 'build';
@@ -3638,7 +3665,7 @@ Be honest and critical. Format as a brief 4-sentence paragraph.`;
                 try {
                   console.log(`🧠 [MEMORY STORE] Saving performance for "${selectedKeyword}" to Zilliz...`);
                   const storeResult = await this.leadMemory.storeKeywordPerformance(
-                    userSettings.userId,
+                    this.userId, // Use agent's userId, not userSettings.userId
                     this.agentId,
                     selectedKeyword,
                     targetPosition,

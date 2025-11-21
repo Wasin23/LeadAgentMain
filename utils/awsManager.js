@@ -58,7 +58,7 @@ class AWSManager {
   
   async getUserSettings(userId) {
     try {
-      console.log('⚙️ [AWS] Getting user settings for userId:', userId);
+      // Reduced verbosity - only log errors
       
       const command = new GetCommand({
         TableName: this.tables.userSettings,
@@ -72,7 +72,7 @@ class AWSManager {
         return null;
       }
       
-      console.log('✅ [AWS] User settings retrieved successfully');
+      // Settings retrieved successfully (log removed for cleaner output)
       return result.Item;
     } catch (error) {
       console.error('❌ [AWS] Error getting user settings:', error);
@@ -109,7 +109,7 @@ class AWSManager {
   
   async getUserById(userId) {
     try {
-      console.log('👤 [AWS] Getting user by ID:', userId);
+      // Reduced verbosity - only log errors
       
       const command = new GetCommand({
         TableName: this.tables.users,
@@ -123,7 +123,7 @@ class AWSManager {
         return null;
       }
       
-      console.log('✅ [AWS] User retrieved successfully');
+      // User retrieved successfully (log removed for cleaner output)
       return result.Item;
     } catch (error) {
       console.error('❌ [AWS] Error getting user by ID:', error);
@@ -519,7 +519,7 @@ class AWSManager {
   
   async getLeadAgentSettings(userId, agentId = 'lead-agent') {
     try {
-      console.log('⚙️ [AWS] Getting lead agent settings for userId:', userId, 'agentId:', agentId);
+      // Reduced verbosity - only log errors
       
       // Ensure agentId is string for consistency with save
       const agentIdToUse = String(agentId);
@@ -540,7 +540,7 @@ class AWSManager {
         return null;
       }
       
-      console.log('✅ [AWS] Lead agent settings retrieved successfully');
+      // Settings retrieved successfully (log removed for cleaner output)
       return result.Item.settings;
     } catch (error) {
       console.error('❌ [AWS] Error getting lead agent settings:', error);

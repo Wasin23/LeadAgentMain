@@ -157,10 +157,14 @@ export class ZillizLeadMemory {
     async storeKeywordPerformance(userId, agentId, keyword, position, attempts, duplicates, source = 'base') {
         try {
             if (!this.initialized) await this.initialize();
+            
+            console.log(`📝 [STORE] Called with: userId=${userId}, agentId=${agentId}, keyword=${keyword}, position=${position}, attempts=${attempts}, duplicates=${duplicates}, source=${source}`);
 
             // Ensure collection is loaded
             try {
+                console.log('🔄 [STORE] Loading collection...');
                 await this.client.loadCollection({ collection_name: this.collectionName });
+                console.log('✅ [STORE] Collection loaded');
             } catch (loadError) {
                 // Collection might already be loaded, ignore error
                 if (!loadError.message?.includes('already loaded')) {
@@ -172,37 +176,53 @@ export class ZillizLeadMemory {
             const cumulativeRate = attempts > 0 ? (duplicates / attempts) * 100 : 0;
             const isExhausted = cumulativeRate > 50 && attempts >= 5;
 
+            console.log(`🔍 [STORE] searchCombo=${searchCombo}, cumulativeRate=${cumulativeRate.toFixed(1)}%, isExhausted=${isExhausted}`);
+
             // Check if record exists for this user + combo
+            console.log(`🔍 [STORE] Checking for existing record: userId="${userId}" && searchCombo="${searchCombo}"`);
             const existingQuery = await this.client.query({
                 collection_name: this.collectionName,
                 filter: `user_id == "${userId}" && search_combo == "${searchCombo}"`,
                 output_fields: ['id', 'total_attempts', 'total_duplicates'],
                 limit: 1
             });
+            
+            console.log(`📊 [STORE] Existing query result: found ${existingQuery.data?.length || 0} records`);
+            if (existingQuery.data && existingQuery.data.length > 0) {
+                console.log(`📊 [STORE] Existing record data:`, JSON.stringify(existingQuery.data[0]));
+            }
 
             if (existingQuery.data && existingQuery.data.length > 0) {
                 // Update existing record (cumulative across all agents for this user)
+                console.log('🔄 [STORE] Updating existing record...');
                 const existing = existingQuery.data[0];
-                const newTotalAttempts = existing.total_attempts + attempts;
-                const newTotalDuplicates = existing.total_duplicates + duplicates;
+                const newTotalAttempts = parseInt(existing.total_attempts) + attempts;
+                const newTotalDuplicates = parseInt(existing.total_duplicates) + duplicates;
                 const newCumulativeRate = (newTotalDuplicates / newTotalAttempts) * 100;
                 const newIsExhausted = newCumulativeRate > 50 && newTotalAttempts >= 5;
 
+                console.log(`📊 [STORE] Cumulative: attempts ${existing.total_attempts}+${attempts}=${newTotalAttempts}, duplicates ${existing.total_duplicates}+${duplicates}=${newTotalDuplicates}, rate ${newCumulativeRate.toFixed(1)}%`);
+
                 // Delete old record
-                await this.client.delete({
+                console.log(`🗑️ [STORE] Deleting old record id=${existing.id}...`);
+                const deleteResult = await this.client.delete({
                     collection_name: this.collectionName,
                     filter: `id == ${existing.id}`
                 });
+                console.log(`✅ [STORE] Delete result:`, JSON.stringify(deleteResult));
 
                 // Generate embedding with updated context
+                console.log('🧬 [STORE] Generating embedding...');
                 const embedding = await this.generateEmbedding(keyword, position, {
                     duplicateRate: newCumulativeRate,
                     attempts: newTotalAttempts,
                     exhausted: newIsExhausted
                 });
+                console.log(`✅ [STORE] Embedding generated, length=${embedding.length}`);
 
                 // Insert updated record
-                await this.client.insert({
+                console.log('📝 [STORE] Inserting updated record...');
+                const insertResult = await this.client.insert({
                     collection_name: this.collectionName,
                     data: [{
                         user_id: userId,
@@ -219,6 +239,7 @@ export class ZillizLeadMemory {
                         embedding: embedding
                     }]
                 });
+                console.log(`✅ [STORE] Insert result:`, JSON.stringify(insertResult));
 
                 // Flush to ensure data is persisted immediately
                 console.log('🔄 [FLUSH] Flushing data to Zilliz...');
@@ -236,13 +257,17 @@ export class ZillizLeadMemory {
                 };
             } else {
                 // Create new record
+                console.log('📝 [STORE] Creating new record (no existing found)...');
+                console.log('🧬 [STORE] Generating embedding...');
                 const embedding = await this.generateEmbedding(keyword, position, {
                     duplicateRate: cumulativeRate,
                     attempts: attempts,
                     exhausted: isExhausted
                 });
+                console.log(`✅ [STORE] Embedding generated, length=${embedding.length}`);
 
-                await this.client.insert({
+                console.log('📝 [STORE] Inserting new record...');
+                const insertResult = await this.client.insert({
                     collection_name: this.collectionName,
                     data: [{
                         user_id: userId,
@@ -259,6 +284,7 @@ export class ZillizLeadMemory {
                         embedding: embedding
                     }]
                 });
+                console.log(`✅ [STORE] Insert result:`, JSON.stringify(insertResult));
 
                 // Flush to ensure data is persisted immediately
                 console.log('🔄 [FLUSH] Flushing data to Zilliz...');
@@ -277,6 +303,11 @@ export class ZillizLeadMemory {
             }
         } catch (error) {
             console.error('❌ [MEMORY STORE] Failed:', error);
+            console.error('❌ [MEMORY STORE] Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             return { success: false, error: error.message };
         }
     }
