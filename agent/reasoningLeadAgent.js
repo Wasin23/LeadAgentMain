@@ -20,6 +20,7 @@ import { EmailQueue } from '../lib/emailQueue.js';
 import { internetSearch } from '../tools/internetSearch.js';
 import { companyIntelligence } from '../tools/companyIntelligence.js';
 import { deepResearch } from '../tools/deepResearch.js';
+import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -60,6 +61,10 @@ class ReasoningLeadAgent extends EventEmitter {
     
     // AWS manager for settings and data storage
     this.awsManager = new AWSManager();
+    
+    // Zilliz lead memory for persistent learning
+    this.leadMemory = new ZillizLeadMemory();
+    this.memoryInitialized = false;
     
     // Report agent initialization to monitoring
     this.emitAgentStatus('initialized');
@@ -3103,16 +3108,16 @@ BODY: [email body with proper greeting and signature]`;
       let selectedPositionIndex = null;
       let keywordSource = 'base';
       
-      // Priority 1: Campaign-specific keyword (search for 20 leads first)
-      if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword < 20) {
+      // Priority 1: Campaign-specific keyword (until high duplicate rate)
+      if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword < 999) {
         selectedKeyword = this.memory.campaignPriorityKeyword;
         keywordSource = 'campaign';
         selectedPositionIndex = 0; // Use first position for campaign priority
-        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (${this.memory.leadsFoundWithCurrentKeyword}/20 leads found)`);
+        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (active until >50% duplicates)`);
       } else {
         // Finished campaign priority OR no campaign priority set
-        if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 20) {
-          console.log(`✅ [CAMPAIGN PRIORITY] Completed 20 leads with "${this.memory.campaignPriorityKeyword}", moving to rotation`);
+        if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 999) {
+          console.log(`✅ [CAMPAIGN PRIORITY] High duplicate rate with "${this.memory.campaignPriorityKeyword}", moving to rotation`);
           this.memory.campaignPriorityKeyword = null; // Clear it
           this.memory.leadsFoundWithCurrentKeyword = 0;
         }
@@ -3132,11 +3137,11 @@ BODY: [email body with proper greeting and signature]`;
           return { found: 0, leads: [], error: 'Industry keywords or positions not configured' };
         }
         
-        // Check if we need to rotate to next pair (every 20 leads)
-        if (this.memory.leadsFoundWithCurrentKeyword >= 20) {
+        // Check if we need to rotate to next pair (triggered by high duplicate rate)
+        if (this.memory.leadsFoundWithCurrentKeyword >= 999) {
           this.memory.currentKeywordIndex++;
           this.memory.leadsFoundWithCurrentKeyword = 0;
-          console.log(`🔄 [ROTATION] 20 leads found, rotating to next keyword+position pair`);
+          console.log(`🔄 [ROTATION] High duplicate rate detected, rotating to next keyword+position pair`);
         }
         
         // Track cycle offset for infinite variety (increases after full cycle)
@@ -3151,7 +3156,7 @@ BODY: [email body with proper greeting and signature]`;
           keywordSource = 'base';
           // Pair with matching position index + cycle offset for variety
           selectedPositionIndex = (keywordIndex + this.memory.cycleOffset) % basePositions.length;
-          console.log(`🎯 [BASE PAIR] Keyword[${keywordIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${basePositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset}) (${this.memory.leadsFoundWithCurrentKeyword}/20 leads)`);
+          console.log(`🎯 [BASE PAIR] Keyword[${keywordIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${basePositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset})`);
         } else {
           // Use AI-generated keyword
           const aiIndex = keywordIndex - totalBaseKeywords;
@@ -3159,7 +3164,7 @@ BODY: [email body with proper greeting and signature]`;
           keywordSource = 'ai';
           // Pair with matching AI position + cycle offset
           selectedPositionIndex = (aiIndex + this.memory.cycleOffset) % aiPositions.length;
-          console.log(`🤖 [AI PAIR] Keyword[${aiIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${aiPositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset}) (${this.memory.leadsFoundWithCurrentKeyword}/20 leads)`);
+          console.log(`🤖 [AI PAIR] Keyword[${aiIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${aiPositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset})`);
         }
         
         // Determine the actual position being used
@@ -3257,14 +3262,17 @@ BODY: [email body with proper greeting and signature]`;
         this.memory.industryExhaustion[selectedKeyword] = {
           leadsFound: 0,
           lastSearched: Date.now(),
-          exhausted: false
+          exhausted: false,
+          totalAttempts: 0,
+          totalDuplicates: 0,
+          cumulativeDuplicateRate: 0
         };
       }
       
       const tracker = this.memory.industryExhaustion[selectedKeyword];
       tracker.lastSearched = Date.now();
       
-      console.log(`📊 [TRACKING] "${selectedKeyword}": ${tracker.leadsFound}/100 leads found (${keywordSource} keyword)`);
+      console.log(`📊 [TRACKING] "${selectedKeyword}": ${tracker.leadsFound}/100 leads found, ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative duplicates (${keywordSource} keyword)`);
       
       // Use pagination and vary search parameters intelligently
       // Apply page offset from search adaptation strategy
@@ -3311,80 +3319,34 @@ BODY: [email body with proper greeting and signature]`;
       if (historyCheck.isDuplicate) {
         console.log(`⏭️ [SKIP] Already searched this combo ${historyCheck.daysAgo} days ago`);
         
-        // Check if we have anything to rotate to
-        const baseKeywords = this.memory.baseIndustryKeywords;
-        const aiKeywords = this.memory.aiGeneratedKeywords;
-        const totalKeywords = baseKeywords.length + aiKeywords.length;
-        
-        // Track consecutive duplicate attempts
-        if (!this.memory.consecutiveDuplicateAttempts) {
-          this.memory.consecutiveDuplicateAttempts = 0;
-        }
-        this.memory.consecutiveDuplicateAttempts++;
-        
-        // If we've tried all available keywords and they're all duplicates, generate new ones
-        if (this.memory.consecutiveDuplicateAttempts >= totalKeywords) {
-          // Check if we already have AI keywords (meaning we've generated before)
-          if (aiKeywords.length > 0) {
-            // Already tried AI keywords and they're all duplicates too
-            // Clear search history and go back to original keywords
-            console.log(`🗑️ [SEARCH HISTORY] All keywords exhausted (base + AI), clearing search history database...`);
-            await this.awsManager.deleteSearchHistory(userSettings.userId, this.agentId);
-            console.log(`✅ [SEARCH HISTORY] Cleared! Restarting with original keywords`);
-            
-            // Reset everything to start fresh
-            this.memory.consecutiveDuplicateAttempts = 0;
-            this.memory.aiGeneratedKeywords = [];
-            this.memory.aiGeneratedPositions = [];
-            this.memory.campaignPriorityKeyword = null;
-            this.memory.currentKeywordIndex = 0;
-            this.memory.leadsFoundWithCurrentKeyword = 0;
-            
-            // IMPORTANT: Reset page offset since we cleared history - back to fresh searches
-            this.memory.searchPageOffset = 0;
-            this.memory.consecutiveDuplicateSearches = 0;
-            console.log(`🔄 [PAGE RESET] Search history cleared - reset to page 1`);
-            
-            // Retry with cleared history
-            return await this.apolloSearch();
-          } else {
-            // First time hitting all duplicates, generate AI keywords
-            console.log(`🤖 [AI GENERATION] All ${totalKeywords} keywords are duplicates, generating new keywords now...`);
-            this.memory.consecutiveDuplicateAttempts = 0; // Reset counter
-            await this.generateRelatedIndustryKeywordsAndPositions(
-              userSettings.companyIndustries,
-              this.memory.originalTargetPositions || userSettings.targetPositions
-            );
-            // Force rotation to use the new AI keywords - skip the campaign priority
-            this.memory.campaignPriorityKeyword = null;
-            this.memory.leadsFoundWithCurrentKeyword = 20; // Force rotation
-            this.memory.currentKeywordIndex = baseKeywords.length; // Start at first AI keyword
-            
-            // IMPORTANT: Reset page offset since we're searching completely new industries
-            this.memory.searchPageOffset = 0;
-            this.memory.consecutiveDuplicateSearches = 0;
-            console.log(`🔄 [PAGE RESET] New industry keywords - reset to page 1`);
-            
-            // Try again with new keywords
-            console.log(`🔄 [RETRY] Retrying search with newly generated AI keyword`);
-            return await this.apolloSearch();
-          }
-        } else {
-          // Force rotation to next keyword
-          this.memory.leadsFoundWithCurrentKeyword = 20; // Trigger rotation next time
-          console.log(`🔄 [ROTATE] Forcing rotation to next keyword pair (attempt ${this.memory.consecutiveDuplicateAttempts}/${totalKeywords})`);
+        // Check if this keyword has high cumulative duplicate rate - if so, skip it entirely
+        const tracker = this.memory.industryExhaustion[selectedKeyword];
+        if (tracker && tracker.cumulativeDuplicateRate > 50 && tracker.totalAttempts >= 5) {
+          console.log(`🔄 [EXHAUSTED] Keyword "${selectedKeyword}" has ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative duplicates - forcing rotation`);
+          this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation to next keyword
           return {
             success: true,
             found: 0,
             leads: [],
             skipped: true,
-            reason: `Already searched ${selectedKeyword} + ${targetPosition} recently`
+            reason: `Keyword exhausted (${tracker.cumulativeDuplicateRate.toFixed(1)}% duplicates)`
           };
         }
+        
+        // Otherwise just force rotation to try next keyword
+        this.memory.leadsFoundWithCurrentKeyword = 999;
+        console.log(`🔄 [ROTATE] Forcing rotation to next keyword pair`);
+        return {
+          success: true,
+          found: 0,
+          leads: [],
+          skipped: true,
+          reason: `Already searched ${selectedKeyword} + ${targetPosition} recently`
+        };
       }
       
-      // Reset duplicate attempt counter on successful search
-      this.memory.consecutiveDuplicateAttempts = 0;
+      // Reset duplicate search counter on successful new search
+      this.memory.consecutiveDuplicateSearches = 0;
       
       // Calculate how many leads we still need
       const leadsNeeded = this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed;
@@ -3570,26 +3532,55 @@ BODY: [email body with proper greeting and signature]`;
             parameters: parameters
           };
 
-          // Update keyword tracking for rotation (every 20 leads)
-          if (newLeads.length > 0) {
+          // Update keyword tracking and calculate duplicate percentage
+          if (newLeads.length > 0 || duplicateLeads.length > 0) {
+            const totalAttempts = newLeads.length + duplicateLeads.length;
+            const duplicatePercentage = (duplicateLeads.length / totalAttempts) * 100;
+            
             this.memory.leadsFoundWithCurrentKeyword += newLeads.length;
             this.memory.totalLeadsFoundThisCycle += newLeads.length;
             
-            // Also track per-keyword exhaustion (100 lead threshold)
+            // Track cumulative duplicate rate per keyword
             if (selectedKeyword) {
-              this.memory.industryExhaustion[selectedKeyword].leadsFound += newLeads.length;
-              console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/20 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
-            }
-            
-            // Record to DB every 20 leads (when rotation happens)
-            if (this.memory.leadsFoundWithCurrentKeyword >= 20 && selectedKeyword && targetPosition) {
-              await this.awsManager.recordSearchHistory(
-                userSettings.userId,
-                this.agentId,
-                selectedKeyword,
-                targetPosition,
-                20
-              );
+              const tracker = this.memory.industryExhaustion[selectedKeyword];
+              tracker.leadsFound += newLeads.length;
+              tracker.totalAttempts += totalAttempts;
+              tracker.totalDuplicates += duplicateLeads.length;
+              tracker.cumulativeDuplicateRate = (tracker.totalDuplicates / tracker.totalAttempts) * 100;
+              
+              console.log(`📊 [TRACKING] "${selectedKeyword}": This search ${duplicatePercentage.toFixed(1)}% duplicates (${duplicateLeads.length}/${totalAttempts}), Cumulative ${tracker.cumulativeDuplicateRate.toFixed(1)}% (${tracker.totalDuplicates}/${tracker.totalAttempts}), ${tracker.leadsFound}/100 total`);
+              
+              // Store performance to Zilliz for persistent learning
+              if (this.memoryInitialized) {
+                try {
+                  await this.leadMemory.storeKeywordPerformance(
+                    userSettings.userId,
+                    this.agentId,
+                    selectedKeyword,
+                    targetPosition,
+                    totalAttempts,
+                    duplicateLeads.length,
+                    keywordSource
+                  );
+                } catch (memError) {
+                  console.error('⚠️ [MEMORY] Failed to store performance:', memError.message);
+                }
+              }
+              
+              // Rotate if CUMULATIVE duplicate rate exceeds 50%
+              if (tracker.cumulativeDuplicateRate > 50 && tracker.totalAttempts >= 5) {
+                console.log(`🔄 [AUTO-ROTATE] Cumulative duplicate rate ${tracker.cumulativeDuplicateRate.toFixed(1)}% > 50% threshold (${tracker.totalAttempts} total attempts) - rotating to next keyword`);
+                this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation
+                
+                // Record this search to DB
+                await this.awsManager.recordSearchHistory(
+                  userSettings.userId,
+                  this.agentId,
+                  selectedKeyword,
+                  targetPosition,
+                  this.memory.leadsFoundWithCurrentKeyword
+                );
+              }
             }
           }
 
@@ -3665,39 +3656,37 @@ BODY: [email body with proper greeting and signature]`;
       console.log(`🏢 [COMPANY CONTEXT] ${companyProfile.companyName || 'Unknown'} - ${companyProfile.services || 'No services defined'}`);
       console.log(`📋 [BASE POSITIONS] ${basePositions.join(', ')}`);
       
-      const prompt = `You are an intelligent B2B lead generation strategist. Generate 5 SPECIFIC industry+position PAIRS.
+      const prompt = `You are an intelligent B2B lead generation strategist. Generate 5 SPECIFIC industry+position PAIRS of prospects WHO WOULD BUY from this company.
 
-USER'S COMPANY PROFILE:
+COMPANY SELLING (THE SENDER):
 - Company: ${companyProfile.companyName || 'Not specified'}
-- Industry: ${companyProfile.industry || 'Not specified'}
-- Services/Products: ${companyProfile.services || 'Not specified'}
-- Core Offering: ${companyProfile.coreOffering || companyProfile.description || 'Not specified'}
+- What They Sell: ${companyProfile.services || companyProfile.coreOffering || companyProfile.description || 'Not specified'}
 - Target Market: ${companyProfile.targetMarket || 'Not specified'}
-
-CURRENTLY TARGETING (GENERAL INDUSTRIES):
-${userIndustries.join(', ')}
 
 BASE POSITIONS (for seniority reference):
 ${basePositions.join(', ')}
 
-Generate 5 PAIRED combinations of:
-1. SPECIFIC sub-industry (lowercase, 1-2 words)
-2. RELEVANT position title for that industry (matching seniority level of base positions)
+YOUR TASK: Generate 5 industry+position PAIRS of BUYERS (not sellers).
+
+Think: "WHO would want to BUY ${companyProfile.services || 'this service'}?"
 
 Examples:
-- If base has "CEO", targeting "tech" → Pair: "saas" with "SaaS Founder"
-- If base has "VP", targeting "healthcare" → Pair: "telemedicine" with "VP of Telehealth"
-- If base has "Director", targeting "finance" → Pair: "fintech" with "Fintech Director"
+- Selling "Real Estate Investment Platform" → Target: "wealth management" + "VP of Investments"
+- Selling "HR Software" → Target: "manufacturing" + "Chief People Officer"
+- Selling "Cybersecurity Services" → Target: "healthcare" + "Chief Information Security Officer"
+- Selling "Marketing Automation" → Target: "ecommerce" + "VP of Marketing"
 
 IMPORTANT: 
-- Keep seniority level similar to base positions
-- Make positions SPECIFIC to the sub-industry
-- Stay within the SAME general industry family but be MORE SPECIFIC
+- Generate BUYER industries (who needs this product/service)
+- NOT industries similar to the seller
+- Match seniority level of base positions
+- Make positions relevant to the industry
+- Think about who has budget authority
 
 Format as JSON array of objects:
 [
-  {"industry": "saas", "position": "SaaS Founder"},
-  {"industry": "fintech", "position": "VP of Payments"},
+  {"industry": "wealth_management", "position": "VP of Investments"},
+  {"industry": "manufacturing", "position": "Chief People Officer"},
   ...
 ]`;
 
@@ -5020,6 +5009,37 @@ Target Positions:`;
       
       console.log('🚀 [REASONING AGENT] Agent started, isRunning now:', this.isRunning);
       
+      // Initialize and load memory from Zilliz
+      if (!this.memoryInitialized) {
+        console.log('🧠 [MEMORY] Initializing lead memory system...');
+        try {
+          await this.leadMemory.initialize();
+          const memoryData = await this.leadMemory.loadKeywordPerformance(this.userId);
+          
+          if (memoryData.success && memoryData.count > 0) {
+            // Restore memory into industryExhaustion tracker
+            Object.keys(memoryData.performanceMap).forEach(keyword => {
+              const data = memoryData.performanceMap[keyword];
+              this.memory.industryExhaustion[keyword] = {
+                leadsFound: 0, // Reset current cycle count
+                lastSearched: data.lastUpdated,
+                exhausted: data.isExhausted,
+                totalAttempts: data.totalAttempts,
+                totalDuplicates: data.totalDuplicates,
+                cumulativeDuplicateRate: data.cumulativeDuplicateRate
+              };
+            });
+            console.log(`🧠 [MEMORY] Loaded ${memoryData.count} keyword performance records from previous sessions`);
+            console.log(`🧠 [MEMORY] Exhausted keywords: ${Object.keys(memoryData.performanceMap).filter(k => memoryData.performanceMap[k].isExhausted).length}`);
+          } else {
+            console.log('🧠 [MEMORY] No existing memory found, starting fresh');
+          }
+          this.memoryInitialized = true;
+        } catch (memError) {
+          console.error('⚠️ [MEMORY] Failed to load memory, continuing without it:', memError.message);
+        }
+      }
+      
       // Log the start operation
       this.logOperation('Agent Started', `Reasoning Lead Agent started with ${minutes ? minutes + ' minute' : 'default'} interval`, 'active', {
         customInterval: minutes,
@@ -5839,9 +5859,10 @@ Target Positions:`;
         completedAt: new Date(cycleEndTime).toISOString()
       });
 
-      // Also add a persistent activity/issue entry so activity logs capture the cycle
+      // Broadcast cycle completion to SSE clients for real-time updates
       try {
-        const activityData = {
+        const { broadcastActivity } = await import('../routes/monitoring.js');
+        broadcastActivity({
           type: 'info',
           category: 'cycle',
           title: `Cycle ${this.cycleCount} - ${this.agentId}`,
@@ -5851,28 +5872,11 @@ Target Positions:`;
             agentId: this.agentId,
             cycleNumber: this.cycleCount,
             duration: cycleDuration,
-            leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0,
-            timestamp: new Date().toISOString()
+            leadsProcessed: this.memory.currentCycle?.leadsProcessed || 0
           }
-        };
-        
-        await this.awsManager.addIssue(
-          this.userId,
-          activityData.type,
-          activityData.title,
-          activityData.message,
-          activityData.metadata
-        );
-        
-        // Broadcast to SSE clients for real-time updates
-        try {
-          const { broadcastActivity } = await import('../routes/monitoring.js');
-          broadcastActivity(activityData);
-        } catch (sseError) {
-          console.error('❌ [REASONING AGENT] Failed to broadcast cycle completion:', sseError);
-        }
-      } catch (e) {
-        console.error('❌ [REASONING AGENT] Failed to add persistent cycle activity:', e);
+        });
+      } catch (sseError) {
+        console.error('❌ [REASONING AGENT] Failed to broadcast cycle completion:', sseError);
       }
 
       return {

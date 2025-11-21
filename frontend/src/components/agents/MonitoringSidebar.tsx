@@ -10,10 +10,11 @@ import {
   DocumentTextIcon,
   Squares2X2Icon,
   MagnifyingGlassIcon,
-  SparklesIcon
+  SparklesIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline';
 
-export type MonitoringView = 'overview' | 'analytics' | 'agents' | 'integrations' | 'logs' | 'search' | 'report';
+export type MonitoringView = 'overview' | 'analytics' | 'agents' | 'integrations' | 'logs' | 'search' | 'report' | 'memory';
 
 interface MonitoringSidebarProps {
   activeView: MonitoringView;
@@ -43,6 +44,7 @@ export default function MonitoringSidebar({
     { id: 'report', icon: SparklesIcon, label: 'AI Report' },
     { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
     { id: 'agents', icon: BoltIcon, label: 'Agents' },
+    { id: 'memory', icon: CpuChipIcon, label: 'Keyword Memory' },
     { id: 'integrations', icon: CurrencyDollarIcon, label: 'Billing' },
     { id: 'logs', icon: DocumentTextIcon, label: 'Activity Logs', badge: issueCount },
   ];

@@ -20,6 +20,7 @@ import AgentSettingsModal from './AgentSettingsModal';
 import RateLimitSettings from './RateLimitSettings';
 import LeadSearchPanel from './LeadSearchPanel';
 import AIReportPanel from './AIReportPanel';
+import KeywordMemoryPanel from './KeywordMemoryPanel';
 import NotificationBadge from '../NotificationBadge';
 
 interface MonitoringContentProps {
@@ -2561,6 +2562,8 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       return renderAnalytics();
     case 'agents':
       return renderAgents();
+    case 'memory':
+      return <KeywordMemoryPanel />;
     case 'integrations':
       return renderIntegrations();
     case 'logs':

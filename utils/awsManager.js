@@ -1018,29 +1018,58 @@ class AWSManager {
   }
 
   /**
-   * Check if leads have already been contacted
+   * Check if leads have already been contacted OR unsubscribed
    * @param {string} userId - User ID to check contacts for
    * @param {array} leads - Array of lead objects to check
-   * @returns {object} - Object with newLeads and duplicateLeads arrays
+   * @returns {object} - Object with newLeads, duplicateLeads, and unsubscribedLeads arrays
    */
   async checkForDuplicateContacts(userId, leads) {
     try {
-      console.log('🔍 [AWS] Checking', leads.length, 'leads for duplicates...');
+      console.log('🔍 [AWS] Checking', leads.length, 'leads for duplicates and unsubscribes...');
 
       const newLeads = [];
       const duplicateLeads = [];
+      const unsubscribedLeads = [];
 
       // Check each lead individually
       for (const lead of leads) {
         // Apollo returns organization.name, normalize to company field
         const companyName = lead.company || lead.organization?.name;
+        const leadEmail = lead.email || lead.email_address;
         
         if (!lead.name || !companyName) {
           console.log('⚠️ [AWS] Skipping lead with missing data:', lead.name || 'MISSING', '| Company:', companyName || 'MISSING');
           continue;
         }
 
-        // Use userId + name + company as unique identifier (user-specific deduplication)
+        // STEP 1: Check if email is unsubscribed (blocks across ALL agents for this user)
+        if (leadEmail) {
+          const unsubCheckCommand = new GetCommand({
+            TableName: this.tables.unsubscribes,
+            Key: {
+              email: leadEmail.toLowerCase()
+            }
+          });
+
+          try {
+            const unsubResult = await this.dynamodb.send(unsubCheckCommand);
+            if (unsubResult.Item && unsubResult.Item.userId === userId) {
+              console.log('🚫 [UNSUBSCRIBED]:', lead.name, '(', leadEmail, ') - BLOCKED');
+              unsubscribedLeads.push({
+                ...lead,
+                unsubscribedAt: unsubResult.Item.timestamp,
+                reason: 'unsubscribed'
+              });
+              continue; // Skip to next lead
+            }
+          } catch (unsubError) {
+            console.error('❌ [AWS] Error checking unsubscribe:', leadEmail, unsubError.message);
+            // Continue to duplicate check if unsubscribe check fails
+          }
+        }
+
+        // STEP 2: Check if already contacted (user-level, not agent-specific)
+        // Use userId + name + company as unique identifier (ALL agents for this user share this list)
         const contactId = `${userId}_${lead.name.toLowerCase().replace(/\s+/g, '_')}_${companyName.toLowerCase().replace(/\s+/g, '_')}`;
         
         const command = new GetCommand({
@@ -1071,16 +1100,18 @@ class AWSManager {
         }
       }
 
-      console.log(`📊 [AWS] Deduplication results: ${newLeads.length} new leads, ${duplicateLeads.length} duplicates filtered out`);
+      console.log(`📊 [AWS] Deduplication results: ${newLeads.length} new leads, ${duplicateLeads.length} duplicates, ${unsubscribedLeads.length} unsubscribed`);
       
       return {
         success: true,
         newLeads,
         duplicateLeads,
+        unsubscribedLeads,
         summary: {
           totalChecked: leads.length,
           newCount: newLeads.length,
-          duplicateCount: duplicateLeads.length
+          duplicateCount: duplicateLeads.length,
+          unsubscribedCount: unsubscribedLeads.length
         }
       };
 
@@ -1090,7 +1121,8 @@ class AWSManager {
         success: false,
         error: error.message,
         newLeads: leads, // Return all leads as "new" if check fails
-        duplicateLeads: []
+        duplicateLeads: [],
+        unsubscribedLeads: []
       };
     }
   }

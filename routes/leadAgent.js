@@ -4,6 +4,7 @@ import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
 import { authenticateToken } from '../middleware/jwt.js';
 import { checkPaymentStatus } from '../middleware/paymentStatus.js';
 import AWSManager from '../utils/awsManager.js';
+import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.use(checkPaymentStatus);
 
 const agentSettings = new AgentSettingsManager();
 const awsManager = new AWSManager();
+const leadMemory = new ZillizLeadMemory();
 
 // DEBUG: Test route to verify routes are loading
 router.get('/test', (req, res) => {
@@ -1005,6 +1007,116 @@ router.post('/rate-limits', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating rate limits',
+      error: error.message
+    });
+  }
+});
+
+// Get keyword memory stats
+router.get('/memory/stats', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    await leadMemory.initialize();
+    const stats = await leadMemory.getMemoryStats(userId);
+    
+    res.json({
+      success: stats.success,
+      stats: stats.stats || {}
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting memory stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting memory stats',
+      error: error.message
+    });
+  }
+});
+
+// Get all keyword performance records
+router.get('/memory/keywords', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    await leadMemory.initialize();
+    const memoryData = await leadMemory.loadKeywordPerformance(userId);
+    
+    // Convert performanceMap to array for easier display
+    const keywords = Object.values(memoryData.performanceMap || {}).map(data => ({
+      keyword: data.keyword,
+      position: data.position,
+      searchCombo: data.searchCombo,
+      totalAttempts: data.totalAttempts,
+      totalDuplicates: data.totalDuplicates,
+      cumulativeDuplicateRate: data.cumulativeDuplicateRate,
+      isExhausted: data.isExhausted,
+      keywordSource: data.keywordSource,
+      lastUpdated: data.lastUpdated
+    }));
+    
+    res.json({
+      success: true,
+      keywords: keywords,
+      count: keywords.length
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting keywords:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting keywords',
+      error: error.message
+    });
+  }
+});
+
+// Reset specific keyword combo
+router.delete('/memory/keyword/:searchCombo', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { searchCombo } = req.params;
+    
+    await leadMemory.initialize();
+    
+    // Delete the specific record
+    const deleteResult = await leadMemory.client.delete({
+      collection_name: 'lead_agent_memory',
+      filter: `user_id == "${userId}" && search_combo == "${searchCombo}"`
+    });
+    
+    res.json({
+      success: true,
+      message: `Reset ${searchCombo}`,
+      deletedCount: deleteResult.delete_cnt || 0
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error resetting keyword:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error resetting keyword',
+      error: error.message
+    });
+  }
+});
+
+// Reset all keywords for user
+router.delete('/memory/reset-all', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    await leadMemory.initialize();
+    const result = await leadMemory.resetUserMemory(userId);
+    
+    res.json({
+      success: result.success,
+      message: `Reset all keyword memory for user`,
+      deletedCount: result.deletedCount || 0
+    });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error resetting all memory:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error resetting memory',
       error: error.message
     });
   }
