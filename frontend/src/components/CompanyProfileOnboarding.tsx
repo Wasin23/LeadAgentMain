@@ -566,7 +566,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 </label>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mt-8">
                 <button
                   onClick={() => setShowReview(false)}
                   className="px-8 py-4 text-lg font-bold text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-2xl transition-all"

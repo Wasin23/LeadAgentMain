@@ -130,18 +130,56 @@ export default function TermsOfServicePage() {
               7. Pricing and Payment
             </h2>
             <div className="space-y-4 text-neutral-700 dark:text-neutral-300 leading-relaxed">
-              <p>
-                Service fees are based on your selected plan and usage. You agree to:
-              </p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>Pay all fees associated with your account on time</li>
-                <li>Provide valid payment information</li>
-                <li>Accept that fees are non-refundable except as required by law</li>
-                <li>Be responsible for API usage costs from third-party providers</li>
-              </ul>
-              <p className="mt-4">
-                We reserve the right to change pricing with 30 days' notice to active users.
-              </p>
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.1 Subscription Plans</h3>
+                <p>Service fees are based on your selected plan and usage tier. You agree to:</p>
+                <ul className="list-disc pl-6 space-y-2 mt-2">
+                  <li>Pay all fees associated with your account on time</li>
+                  <li>Provide valid payment information (credit card or other accepted payment method)</li>
+                  <li>Maintain up-to-date billing information in your account settings</li>
+                  <li>Be responsible for API usage costs from third-party providers (Apollo, OpenAI, etc.)</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.2 Billing Cycle</h3>
+                <p>Subscriptions are billed monthly or annually depending on your selected plan. Payment is due at the beginning of each billing period. Failure to pay on time may result in service suspension or termination.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.3 Auto-Renewal</h3>
+                <p>Your subscription will automatically renew at the end of each billing period unless you cancel before the renewal date. You authorize us to charge your payment method for the renewal amount. You can cancel auto-renewal at any time through your account settings.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.4 Payment Processing</h3>
+                <p>Payments are processed securely through Stripe or other payment processors. We do not store your full credit card information on our servers. By providing payment information, you authorize us to charge the specified payment method for all agreed-upon fees.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.5 Refund Policy</h3>
+                <p>All fees are non-refundable except as required by law or at our sole discretion. If you cancel mid-billing cycle, you will retain access until the end of the paid period, but no prorated refunds will be issued. Refunds may be considered on a case-by-case basis for technical issues preventing service usage.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.6 Failed Payments</h3>
+                <p>If a payment fails, we will attempt to charge your payment method up to three times. If all attempts fail, your account may be suspended until payment is received. You are responsible for any fees incurred during suspension attempts.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.7 Price Changes</h3>
+                <p>We reserve the right to change pricing with 30 days' advance notice to active users. Price changes will not affect your current billing period but will apply to subsequent renewals. You may cancel your subscription before the price change takes effect.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.8 Taxes</h3>
+                <p>All fees are exclusive of applicable taxes (VAT, sales tax, GST, etc.). You are responsible for paying all taxes associated with your purchase. We will add applicable taxes to your invoice based on your billing address.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">7.9 Disputed Charges</h3>
+                <p>If you believe you have been incorrectly charged, you must notify us within 30 days of the charge. We will investigate and, if the charge was in error, issue a refund or credit. Chargeback disputes may result in immediate account suspension.</p>
+              </div>
             </div>
           </section>
 

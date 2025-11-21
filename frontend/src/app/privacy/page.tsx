@@ -66,6 +66,11 @@ export default function PrivacyPolicyPage() {
                 <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">Usage Data</h3>
                 <p>We collect information about how you interact with our platform, including API usage, feature engagement, and performance metrics.</p>
               </div>
+              
+              <div>
+                <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">Payment Information</h3>
+                <p>When you subscribe to our service, we collect billing information including your name, billing address, and payment method details. Credit card information is processed and stored securely by our payment processor (Stripe) and is not stored on our servers. We retain transaction history, invoice details, and subscription status for accounting and legal compliance purposes.</p>
+              </div>
             </div>
           </section>
 
@@ -78,10 +83,12 @@ export default function PrivacyPolicyPage() {
               <li>Generate personalized email content using GPT-4</li>
               <li>Search for and qualify leads based on your targeting criteria</li>
               <li>Track email engagement and provide analytics</li>
-              <li>Process payments and manage your subscription</li>
-              <li>Send important service updates and security notifications</li>
+              <li>Process payments, manage your subscription, and send billing notifications</li>
+              <li>Generate invoices and maintain transaction records for tax and accounting purposes</li>
+              <li>Detect and prevent fraudulent transactions or unauthorized access</li>
+              <li>Send important service updates, security notifications, and subscription reminders</li>
               <li>Improve our platform through usage analytics</li>
-              <li>Comply with legal obligations and prevent fraud</li>
+              <li>Comply with legal obligations including tax reporting and financial regulations</li>
             </ul>
           </section>
 
@@ -99,6 +106,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Serper</strong> - Company research and web search</li>
               <li><strong>Amazon Web Services (AWS)</strong> - Cloud hosting and data storage</li>
               <li><strong>Zilliz</strong> - Vector database for tracking and analytics</li>
+              <li><strong>Stripe</strong> - Secure payment processing and subscription management (your payment card details are not stored on our servers)</li>
             </ul>
           </section>
 

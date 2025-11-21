@@ -27,7 +27,7 @@ export default function SignInPage() {
   const [forgotForm, setForgotForm] = useState({ email: '' });
   const [resetForm, setResetForm] = useState({ code: '', newPassword: '', confirmPassword: '' });
 
-  const { login, register, continueAsGuest, isAuthenticated } = useAuth();
+  const { login, register, isAuthenticated } = useAuth();
   const router = useRouter();
 
   // Redirect if already authenticated
@@ -166,11 +166,6 @@ export default function SignInPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleGuestMode = () => {
-    continueAsGuest();
-    router.push('/');
   };
 
   const getPasswordStrength = (password: string) => {
@@ -516,17 +511,6 @@ export default function SignInPage() {
               </motion.form>
             )}
           </AnimatePresence>
-        </div>
-
-        {/* Guest Mode */}
-        <div className="text-center px-10 pb-10 pt-6 border-t border-neutral-200">
-          <p className="text-sm text-neutral-600 mb-3 font-medium">Just want to try it out?</p>
-          <button
-            onClick={handleGuestMode}
-            className="bg-gradient-to-r from-neutral-100 to-neutral-200 text-neutral-700 py-3 px-6 rounded-xl text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
-          >
-            Continue as Guest
-          </button>
         </div>
       </motion.div>
 

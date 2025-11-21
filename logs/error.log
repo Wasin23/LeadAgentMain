@@ -1,1 +1,4 @@
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-20T23:37:20.394Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-21T16:42:33.446Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-21T16:45:40.182Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-21T17:05:19.561Z"}

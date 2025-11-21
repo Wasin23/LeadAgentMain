@@ -2050,118 +2050,43 @@ Respond in JSON:
       };
       
       if (!parameters.searchQuery && this.campaignPlan && this.campaignPlan.qualificationCriteria) {
-        console.log(`🎯 [RESEARCH STRATEGY] Running qualification-focused searches with ${personalityType} personality`);
+        console.log(`🎯 [RESEARCH STRATEGY] Running deep research with ${personalityType} personality`);
         
         const criteria = this.campaignPlan.qualificationCriteria;
         const searchQueries = [];
         
-        // Search 1: Verify MUST-HAVE criteria with natural language
-        if (criteria.mustHave && criteria.mustHave.length > 0) {
-          // Extract key industry/business terms only (not full sentences)
-          const keyTerms = criteria.mustHave
-            .join(' ')
-            .replace(/Active in|Company size between|Looking to|uses?|has|have|needs?|requires?|employees|[0-9-]+/gi, '')
-            .split(/\s+/)
-            .filter(word => word.length > 3) // Only meaningful words
-            .slice(0, 3) // Max 3 keywords
-            .join(' ')
-            .trim();
-          
-          if (keyTerms) {
-            searchQueries.push({
-              query: `${companyName} ${keyTerms}`,
-              purpose: 'must_have_verification',
-              description: `Verifying key criteria: ${keyTerms}`
-            });
-          }
-        }
+        // SIMPLIFIED: Only 2 searches for better depth
         
-        // Search 2: Basic company info (ALWAYS run this for foundational data)
+        // Search 1: Company overview with key criteria
+        const keyTerms = criteria.mustHave && criteria.mustHave.length > 0
+          ? criteria.mustHave
+              .join(' ')
+              .replace(/Active in|Company size between|Looking to|uses?|has|have|needs?|requires?|employees|[0-9-]+/gi, '')
+              .split(/\s+/)
+              .filter(word => word.length > 3)
+              .slice(0, 2)
+              .join(' ')
+              .trim()
+          : '';
+        
         searchQueries.push({
-          query: `${companyName} company`,
-          purpose: 'company_info',
-          description: 'Basic company information and overview'
+          query: keyTerms ? `${companyName} ${keyTerms} company` : `${companyName} company overview`,
+          purpose: 'company_overview',
+          description: 'Company information and key criteria verification'
         });
         
-        // Search 3: Check for DISQUALIFIERS (only specific terms)
-        if (criteria.disqualifiers && criteria.disqualifiers.length > 0) {
-          const specificDisqualifiers = criteria.disqualifiers
-            .filter(d => d.split(' ').length <= 3) // Only short, specific terms like "Educational institution"
-            .slice(0, 2) // Max 2 disqualifiers
-            .join(' OR ')
-            .replace(/uses?|has|have|already|existing/gi, '')
-            .trim();
-          
-          if (specificDisqualifiers) {
-            searchQueries.push({
-              query: `${companyName} ${specificDisqualifiers}`,
-              purpose: 'disqualifier_check',
-              description: `Checking for: ${specificDisqualifiers}`
-            });
-          }
-        }
+        // Search 2: Recent news and growth signals
+        searchQueries.push({
+          query: `${companyName} news recent growth`,
+          purpose: 'recent_developments',
+          description: 'Recent news, growth, and developments'
+        });
         
-        // Search 4: Personality-driven search (simplified for better results)
-        if (personalityType === 'networker') {
-          // Networker: connections and partnerships
-          searchQueries.push({
-            query: `${companyName} partnerships network`,
-            purpose: 'social_proof',
-            description: 'Finding connections and partnerships'
-          });
-        } else if (personalityType === 'hunter') {
-          // Hunter: growth and expansion signals
-          searchQueries.push({
-            query: `${companyName} news growth`,
-            purpose: 'pain_points',
-            description: 'Finding growth and expansion signals'
-          });
-        } else if (personalityType === 'consultant') {
-          // Consultant: thought leadership
-          searchQueries.push({
-            query: `${companyName} ${personName}`,
-            purpose: 'expertise_signals',
-            description: 'Finding leadership and expertise'
-          });
-        } else if (personalityType === 'analyst') {
-          // Analyst: company metrics
-          searchQueries.push({
-            query: `${companyName} revenue growth`,
-            purpose: 'analytical_data',
-            description: 'Finding company metrics'
-          });
-        } else if (personalityType === 'relationship-builder') {
-          // Relationship Builder: company culture
-          searchQueries.push({
-            query: `${companyName} culture team`,
-            purpose: 'relationship_insights',
-            description: 'Finding culture and team information'
-          });
-        }
+        // Execute searches and fetch webpages
+        console.log(`🔍 [DEEP RESEARCH] Running ${searchQueries.length} searches + fetching top 3 webpages each`);
         
-        // Search 5: Nice-to-have bonus criteria (simplified)
-        if (criteria.niceToHave && criteria.niceToHave.length > 0) {
-          const keyTerms = criteria.niceToHave
-            .slice(0, 2)
-            .join(' ')
-            .replace(/growing|recent|increasing|has|experience with|uses?/gi, '')
-            .split(/\s+/)
-            .filter(word => word.length > 3)
-            .slice(0, 2)
-            .join(' ')
-            .trim();
-          
-          if (keyTerms) {
-            searchQueries.push({
-              query: `${companyName} ${keyTerms}`,
-              purpose: 'nice_to_have',
-              description: `Checking: ${keyTerms}`
-            });
-          }
-        }
-        
-        // Execute all searches
-        console.log(`🔍 [MULTI-SEARCH] Running ${searchQueries.length} targeted searches`);
+        // Import webpage fetcher
+        const { fetchMultipleWebpages } = await import('../tools/webpageFetcher.js');
         
         for (const search of searchQueries) {
           console.log(`🔎 [${search.purpose.toUpperCase()}] ${search.description}`);
@@ -2170,18 +2095,17 @@ Respond in JSON:
           try {
             const results = await internetSearch(search.query);
             
-            // Log API usage for each search
+            // Log API usage for search
             try {
               await this.awsManager.logApiUsage({
                 userId: this.userId,
                 agentId: this.agentId,
                 service: 'serper',
                 operation: 'search',
-                usage: 1, // 1 credit per search
+                usage: 1,
                 metadata: {
                   companyName: companyName,
                   purpose: search.purpose,
-                  queryLength: search.query.length,
                   timestamp: new Date().toISOString()
                 }
               });
@@ -2189,14 +2113,86 @@ Respond in JSON:
               console.error(`   ⚠️ Failed to log API usage: ${logError.message}`);
             }
             
+            // Extract top 3 URLs from organic results
+            const organicResults = results?.organic || results?.data?.organic || [];
+            const topUrls = organicResults
+              .slice(0, 3)
+              .map(r => r.link)
+              .filter(url => url && !url.includes('youtube.com') && !url.includes('pdf')); // Skip videos and PDFs
+            
+            console.log(`   📄 Fetching ${topUrls.length} webpages...`);
+            
+            // Fetch webpage content
+            const webpageContents = await fetchMultipleWebpages(topUrls, 3);
+            
+            // Extract relevant insights from each webpage using AI
+            const webpageInsights = [];
+            for (const webpage of webpageContents) {
+              if (webpage.success && webpage.content) {
+                try {
+                  // Use GPT-4 to extract only relevant business insights
+                  const insightPrompt = `Extract ONLY the most relevant and impressive business facts about ${companyName} from this webpage content. Focus on:
+- Recent achievements, growth, funding
+- Key partnerships or clients
+- Unique value propositions or innovations
+- Market position or awards
+- Leadership or company culture highlights
+
+Webpage: ${webpage.title}
+Content: ${webpage.content}
+
+Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and relevant facts. Skip generic marketing fluff. Format as:
+- [fact 1]
+- [fact 2]
+- [fact 3]`;
+
+                  const insightResponse = await this.openai.chat.completions.create({
+                    model: 'gpt-4o-mini', // Use mini for cost efficiency on extraction
+                    messages: [{ role: 'user', content: insightPrompt }],
+                    temperature: 0.3,
+                    max_tokens: 300
+                  });
+                  
+                  const extractedInsights = insightResponse.choices[0].message.content;
+                  webpageInsights.push({
+                    source: webpage.url,
+                    title: webpage.title,
+                    insights: extractedInsights
+                  });
+                  
+                  console.log(`   ✅ Extracted insights from: ${webpage.title}`);
+                  
+                  // Log OpenAI usage
+                  if (insightResponse.usage) {
+                    await this.awsManager.logApiUsage({
+                      userId: this.userId,
+                      agentId: this.agentId,
+                      service: 'openai',
+                      operation: 'insight_extraction',
+                      usage: insightResponse.usage.total_tokens,
+                      metadata: {
+                        model: 'gpt-4o-mini',
+                        companyName: companyName,
+                        source: webpage.url
+                      }
+                    }).catch(err => console.error('Failed to log OpenAI usage:', err));
+                  }
+                  
+                } catch (aiError) {
+                  console.error(`   ⚠️ Failed to extract insights:`, aiError.message);
+                }
+              }
+            }
+            
             allResearchData.searches.push({
               purpose: search.purpose,
               query: search.query,
               description: search.description,
-              results: results
+              results: results,
+              webpageInsights: webpageInsights // NEW: AI-extracted insights from full webpages
             });
             
-            // Extract findings
+            // Extract findings from snippets (keep for quick reference)
             if (results?.organic && results.organic.length > 0) {
               const findings = results.organic.slice(0, 3).map(r => ({
                 snippet: r.snippet,
@@ -2205,13 +2201,13 @@ Respond in JSON:
               }));
               
               allResearchData.combinedFindings.push(...findings);
-              console.log(`   ✅ Found ${findings.length} relevant results`);
+              console.log(`   ✅ Found ${findings.length} snippets + ${webpageInsights.length} deep insights`);
             } else {
               console.log(`   ⚠️ No results found`);
             }
             
-            // Small delay between searches to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Delay between searches
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
           } catch (searchError) {
             console.error(`   ❌ Search failed: ${searchError.message}`);
@@ -2221,7 +2217,15 @@ Respond in JSON:
         // Store all research data
         this.memory.lastResearch = allResearchData;
         
-        console.log(`✅ [MULTI-SEARCH] Completed ${allResearchData.searches.length} searches with ${allResearchData.combinedFindings.length} total findings`);
+        // Count total insights
+        const totalWebpageInsights = allResearchData.searches
+          .flatMap(s => s.webpageInsights || [])
+          .length;
+        
+        console.log(`✅ [DEEP RESEARCH] Completed ${allResearchData.searches.length} searches with:`);
+        console.log(`   - ${allResearchData.combinedFindings.length} search snippets`);
+        console.log(`   - ${totalWebpageInsights} deep webpage insights`);
+        console.log(`   - Total data sources: ${allResearchData.combinedFindings.length + totalWebpageInsights}`);
         
       } else {
         // Fallback: Single generic search
@@ -2682,10 +2686,10 @@ Respond in JSON:
           console.log(`🔍 [ZEROBOUNCE] Validating email: ${emailToValidate}`);
           const zeroBounceResult = await this.validateEmailWithZeroBounce(emailToValidate);
           
-          // Only reject if ZeroBounce specifically says it's invalid or spamtrap
-          if (!zeroBounceResult.isValid && ['invalid', 'spamtrap', 'abuse', 'do_not_mail'].includes(zeroBounceResult.status?.toLowerCase())) {
-            console.log(`❌ [ZEROBOUNCE] Email validation failed: ${zeroBounceResult.status} - ${zeroBounceResult.reason}`);
-            this.logIssue('warning', `Email validation failed for ${emailToValidate}`, {
+          // Only reject if ZeroBounce says it's spamtrap or do_not_mail (accept catch-all and unknown)
+          if (['spamtrap', 'do_not_mail'].includes(zeroBounceResult.status?.toLowerCase())) {
+            console.log(`❌ [ZEROBOUNCE] Email rejected: ${zeroBounceResult.status} - ${zeroBounceResult.reason}`);
+            this.logIssue('warning', `Email rejected for ${emailToValidate}`, {
               email: emailToValidate,
               status: zeroBounceResult.status,
               reason: zeroBounceResult.reason,
@@ -2694,7 +2698,7 @@ Respond in JSON:
             });
             return {
               success: false,
-              error: `Email validation failed: ${zeroBounceResult.status}`
+              error: `Email rejected: ${zeroBounceResult.status}`
             };
           }
           
@@ -2785,7 +2789,9 @@ Respond in JSON:
       });
       
       // ZeroBounce status values: valid, invalid, catch-all, unknown, spamtrap, abuse, do_not_mail
-      const validStatuses = ['valid', 'catch-all'];
+      // Accept: valid, catch-all, unknown, invalid (let bounce handler deal with it)
+      // Reject only: spamtrap, do_not_mail
+      const validStatuses = ['valid', 'catch-all', 'unknown', 'invalid'];
       const isValid = validStatuses.includes(data.status.toLowerCase());
       
       return {
@@ -2856,12 +2862,30 @@ Respond in JSON:
       // Enhanced personalized email prompt with specific research insights
       const specificInsights = this.extractSpecificInsights(researchData);
       
+      // Extract deep webpage insights from research
+      let deepInsights = '';
+      if (researchData?.searches) {
+        const allWebpageInsights = researchData.searches
+          .flatMap(search => search.webpageInsights || [])
+          .filter(insight => insight.insights);
+        
+        if (allWebpageInsights.length > 0) {
+          deepInsights = `\nDEEP COMPANY RESEARCH (from ${allWebpageInsights.length} articles):
+${allWebpageInsights.map(insight => `
+Source: ${insight.title}
+${insight.insights}`).join('\n')}`;
+        }
+      }
+      
       // Build intelligence context from research
       let intelligenceContext = '';
-      if (researchData && specificInsights.length > 0) {
-        intelligenceContext = `\nSPECIFIC COMPANY RESEARCH FINDINGS:
+      if (specificInsights.length > 0) {
+        intelligenceContext = `\nQUICK RESEARCH FINDINGS:
 ${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join('\n')}`;
       }
+      
+      // Combine all research context
+      const fullResearchContext = intelligenceContext + deepInsights;
       
       // Get agent personality for email style
       const personality = await this.getAgentPersonality();
@@ -2904,16 +2928,18 @@ Company: ${companyName}
 Contact: ${leadData.first_name} ${leadData.last_name}
 Title: ${contactTitle}
 Industry: ${industry}
-Company Description: ${researchInsights}
-Employee Count: ${employeeCount} employees${intelligenceContext}${qualificationInsights}${campaignStrategy}
+Employee Count: ${employeeCount} employees${fullResearchContext}${qualificationInsights}${campaignStrategy}
 
-YOUR TASK - BE A SMART SALESPERSON:
-Generate a professional email that demonstrates you've done your homework:
+YOUR TASK - WRITE A HIGHLY PERSONALIZED EMAIL:
+You have access to deep research about ${companyName}. Use these SPECIFIC FACTS to write a personalized email that shows you've done real homework.
 
-1. Subject line that references specific company context (growth, initiatives, etc.)
-2. Opening with SINGLE greeting only (Hello ${leadData.first_name}, - NOT "Hello ${leadData.first_name} ${leadData.last_name},")
-3. Connect their specific situation to ${emailSettings.companyBranding?.companyName || 'our'} solutions with LOGICAL REASONING
-4. Explain WHY our solution specifically fits their company's needs
+REQUIREMENTS:
+1. Subject line that references a SPECIFIC insight from the research (e.g., their recent funding, partnership, growth)
+2. Opening: "Hello ${leadData.first_name}," (first name only, no last name)
+3. First paragraph: Reference a SPECIFIC fact from the research above and connect it to their business challenges
+4. Second paragraph: Explain how ${emailSettings.companyBranding?.companyName || 'our company'} specifically addresses that challenge
+5. Call-to-action that's relevant to their situation
+6. Signature: "Best regards,\\n${emailSettings.companyBranding?.agentName || 'AI Assistant'}\\n${emailSettings.companyBranding?.companyName || 'Our Company'} ${emailSettings.companyBranding?.agentTitle || 'Representative'}"
 5. Professional call-to-action
 6. Simple signature: "Best regards,\\n${emailSettings.companyBranding?.agentName || 'AI Assistant'}\\n${emailSettings.companyBranding?.companyName || 'Our Company'} ${emailSettings.companyBranding?.agentTitle || 'Representative'}"
 
@@ -2991,6 +3017,55 @@ BODY: [email body with proper greeting and signature]`;
       
       // Clean up body - remove any stray "SUBJECT:" prefix that AI might have included
       body = body.replace(/^SUBJECT:\s*[^\n]+\n\n?/i, '').trim();
+      
+      // Generate confidence analysis (AI self-assessment)
+      console.log('🔍 [EMAIL ANALYSIS] Generating confidence report...');
+      const analysisPrompt = `You just wrote this sales email. Analyze its quality in 4 sentences or less.
+
+EMAIL SUBJECT: ${subject}
+EMAIL BODY:
+${body}
+
+RESEARCH AVAILABLE:
+${fullResearchContext || 'Limited research data'}
+
+Provide a brief confidence assessment covering:
+1. Personalization quality (did you use specific facts or generic statements?)
+2. Any concerns or weaknesses
+3. Key strengths
+4. Overall confidence level (Low/Medium/High)
+
+Be honest and critical. Format as a brief 4-sentence paragraph.`;
+
+      const analysisResponse = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: analysisPrompt }],
+        temperature: 0.3,
+        max_tokens: 200
+      });
+
+      const confidenceReport = analysisResponse.choices[0].message.content.trim();
+      
+      // Log analysis API usage
+      if (analysisResponse.usage) {
+        await this.awsManager.logApiUsage({
+          userId: this.userId,
+          agentId: this.agentId,
+          service: 'openai',
+          operation: 'email_analysis',
+          usage: analysisResponse.usage.total_tokens,
+          metadata: {
+            model: 'gpt-4o-mini',
+            prompt_tokens: analysisResponse.usage.prompt_tokens,
+            completion_tokens: analysisResponse.usage.completion_tokens
+          }
+        }).catch(err => console.error('Failed to log analysis usage:', err));
+      }
+
+      console.log('📊 [CONFIDENCE REPORT]', confidenceReport);
+      
+      // Prepend confidence report to email body
+      body = `[AI CONFIDENCE REPORT]\n${confidenceReport}\n\n---\n\n` + body;
       
       // Add legal compliance footer
       const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
@@ -3553,7 +3628,8 @@ BODY: [email body with proper greeting and signature]`;
               // Store performance to Zilliz for persistent learning
               if (this.memoryInitialized) {
                 try {
-                  await this.leadMemory.storeKeywordPerformance(
+                  console.log(`🧠 [MEMORY STORE] Saving performance for "${selectedKeyword}" to Zilliz...`);
+                  const storeResult = await this.leadMemory.storeKeywordPerformance(
                     userSettings.userId,
                     this.agentId,
                     selectedKeyword,
@@ -3562,9 +3638,20 @@ BODY: [email body with proper greeting and signature]`;
                     duplicateLeads.length,
                     keywordSource
                   );
+                  console.log(`✅ [MEMORY STORE] Performance saved to Zilliz successfully`);
+                  
+                  // Log to UI so user can see RAG is working
+                  this.logOperation(
+                    '🧠 Memory Updated',
+                    `Stored performance for "${selectedKeyword}" - ${storeResult.totalAttempts} total attempts, ${storeResult.cumulativeRate.toFixed(1)}% duplicate rate`,
+                    'info'
+                  );
                 } catch (memError) {
                   console.error('⚠️ [MEMORY] Failed to store performance:', memError.message);
+                  this.logOperation('⚠️ Memory Error', `Failed to store performance: ${memError.message}`, 'warning');
                 }
+              } else {
+                console.log('⚠️ [MEMORY] Not initialized yet, skipping storage');
               }
               
               // Rotate if CUMULATIVE duplicate rate exceeds 50%
@@ -5031,12 +5118,21 @@ Target Positions:`;
             });
             console.log(`🧠 [MEMORY] Loaded ${memoryData.count} keyword performance records from previous sessions`);
             console.log(`🧠 [MEMORY] Exhausted keywords: ${Object.keys(memoryData.performanceMap).filter(k => memoryData.performanceMap[k].isExhausted).length}`);
+            
+            // Log to UI
+            this.logOperation(
+              '🧠 Memory Loaded',
+              `Restored ${memoryData.count} keyword records from Zilliz (${Object.keys(memoryData.performanceMap).filter(k => memoryData.performanceMap[k].isExhausted).length} exhausted)`,
+              'success'
+            );
           } else {
             console.log('🧠 [MEMORY] No existing memory found, starting fresh');
+            this.logOperation('🧠 Memory Initialized', 'No previous memory found, starting fresh', 'info');
           }
           this.memoryInitialized = true;
         } catch (memError) {
           console.error('⚠️ [MEMORY] Failed to load memory, continuing without it:', memError.message);
+          this.logOperation('⚠️ Memory Error', `Failed to load memory: ${memError.message}`, 'warning');
         }
       }
       

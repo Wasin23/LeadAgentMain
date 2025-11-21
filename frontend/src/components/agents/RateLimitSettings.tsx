@@ -16,7 +16,7 @@ const RateLimitSettings: React.FC = () => {
   const [nextBillingDate, setNextBillingDate] = useState<string | null>(null);
 
   // Average cost per lead (all services combined)
-  const avgCostPerLead = 0.06; // ~$0.06 per lead (Apollo search + email unlock + OpenAI + ZeroBounce + Serper + Mailgun)
+  const avgCostPerLead = 0.12; // ~$0.12 per lead (Apollo search + email unlock + OpenAI + ZeroBounce + Serper + Mailgun)
 
   // Prevent body scroll when modal is open
   useEffect(() => {
