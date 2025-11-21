@@ -2032,6 +2032,35 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   </div>
                 )}
                 
+                {/* AI Confidence Report Box */}
+                {(selectedEmail.confidenceReport || selectedEmail.emailData?.confidenceReport) && (
+                  <div className="mb-4">
+                    <div className={`p-4 rounded-lg border-2 ${
+                      (selectedEmail.confidenceLevel || selectedEmail.emailData?.confidenceLevel) === 'high' 
+                        ? 'bg-green-50 border-green-300' 
+                        : (selectedEmail.confidenceLevel || selectedEmail.emailData?.confidenceLevel) === 'low'
+                        ? 'bg-red-50 border-red-300'
+                        : 'bg-yellow-50 border-yellow-300'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                          (selectedEmail.confidenceLevel || selectedEmail.emailData?.confidenceLevel) === 'high' 
+                            ? 'bg-green-500' 
+                            : (selectedEmail.confidenceLevel || selectedEmail.emailData?.confidenceLevel) === 'low'
+                            ? 'bg-red-500'
+                            : 'bg-yellow-500'
+                        }`} />
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-neutral-800 mb-1">AI Confidence Report</h4>
+                          <p className="text-sm text-neutral-700 leading-relaxed">
+                            {selectedEmail.confidenceReport || selectedEmail.emailData?.confidenceReport}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
                   <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">

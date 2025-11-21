@@ -221,7 +221,9 @@ export class ZillizLeadMemory {
                 });
 
                 // Flush to ensure data is persisted immediately
-                await this.client.flush({ collection_names: [this.collectionName] });
+                console.log('🔄 [FLUSH] Flushing data to Zilliz...');
+                const flushResult = await this.client.flush({ collection_names: [this.collectionName] });
+                console.log('✅ [FLUSH] Flush result:', JSON.stringify(flushResult));
 
                 console.log(`🔄 [MEMORY UPDATE] ${keyword}+${position}: ${newTotalAttempts} attempts, ${newCumulativeRate.toFixed(1)}% duplicates (${newIsExhausted ? 'EXHAUSTED' : 'OK'})`);
                 
@@ -259,7 +261,9 @@ export class ZillizLeadMemory {
                 });
 
                 // Flush to ensure data is persisted immediately
-                await this.client.flush({ collection_names: [this.collectionName] });
+                console.log('🔄 [FLUSH] Flushing data to Zilliz...');
+                const flushResult = await this.client.flush({ collection_names: [this.collectionName] });
+                console.log('✅ [FLUSH] Flush result:', JSON.stringify(flushResult));
 
                 console.log(`💾 [MEMORY NEW] ${keyword}+${position}: ${attempts} attempts, ${cumulativeRate.toFixed(1)}% duplicates`);
                 

@@ -3064,8 +3064,14 @@ Be honest and critical. Format as a brief 4-sentence paragraph.`;
 
       console.log('📊 [CONFIDENCE REPORT]', confidenceReport);
       
-      // Prepend confidence report to email body
-      body = `[AI CONFIDENCE REPORT]\n${confidenceReport}\n\n---\n\n` + body;
+      // Extract confidence level from report
+      let confidenceLevel = 'medium';
+      const reportLower = confidenceReport.toLowerCase();
+      if (reportLower.includes('confidence: high') || reportLower.includes('confidence: strong')) {
+        confidenceLevel = 'high';
+      } else if (reportLower.includes('confidence: low') || reportLower.includes('confidence: weak')) {
+        confidenceLevel = 'low';
+      }
       
       // Add legal compliance footer
       const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
@@ -3092,7 +3098,9 @@ Be honest and critical. Format as a brief 4-sentence paragraph.`;
       return {
         success: true,
         email: body,
-        subject: subject
+        subject: subject,
+        confidenceReport: confidenceReport,
+        confidenceLevel: confidenceLevel
       };
     } catch (error) {
       console.error('❌ [EMAIL BUILDER] Failed to create email:', error);
@@ -4139,6 +4147,8 @@ Target Positions:`;
                     research: research.data,
                     personalizedEmail: personalizedEmail.email,
                     emailSubject: personalizedEmail.subject,
+                    confidenceReport: personalizedEmail.confidenceReport,
+                    confidenceLevel: personalizedEmail.confidenceLevel,
                     emailUnlockStatus: 'success'
                   };
                   
@@ -4873,6 +4883,8 @@ Target Positions:`;
       const bccEmails = this.memory.emailSettings?.emailBuilder?.bccEmails || '';
       console.log('📧 [EMAIL QUEUE] CC Emails from settings:', ccEmails);
       console.log('📧 [EMAIL QUEUE] BCC Emails from settings:', bccEmails);
+      console.log('📧 [EMAIL QUEUE] Confidence Report:', leadData.confidenceReport);
+      console.log('📧 [EMAIL QUEUE] Confidence Level:', leadData.confidenceLevel);
       console.log('📧 [EMAIL QUEUE] Full emailSettings:', JSON.stringify(this.memory.emailSettings, null, 2));
 
       const queueData = {
@@ -4889,6 +4901,10 @@ Target Positions:`;
         body: leadData.personalizedEmail,
         cc: ccEmails, // Add CC from settings
         bcc: bccEmails, // Add BCC from settings
+        
+        // AI Confidence Report
+        confidenceReport: leadData.confidenceReport,
+        confidenceLevel: leadData.confidenceLevel,
         
         // Lead information
         leadInfo: {
