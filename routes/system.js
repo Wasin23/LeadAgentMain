@@ -266,30 +266,7 @@ router.get('/maintenance/info', requireAdmin, (req, res) => {
   res.json(info);
 });
 
-// Logs endpoint (if needed for debugging)
-router.get('/logs/recent', requireAdmin, async (req, res) => {
-  try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    
-    const logsDir = path.join(process.cwd(), 'logs');
-    const logFile = path.join(logsDir, 'combined.log');
-    
-    // Read last 100 lines of log file
-    const logContent = await fs.readFile(logFile, 'utf8').catch(() => 'No logs available');
-    const lines = logContent.split('\n').slice(-100);
-    
-    res.json({
-      logs: lines.filter(line => line.trim()),
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+
 
 // API Keys management
 router.get('/api-keys', async (req, res) => {
