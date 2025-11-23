@@ -3,7 +3,6 @@ dotenv.config();
 
 // Generate unique server session ID on startup
 const SERVER_SESSION_ID = Date.now().toString(36) + Math.random().toString(36).substr(2);
-console.log('Server session ID:', SERVER_SESSION_ID);
 
 // All other imports must come after dotenv.config()
 import express from 'express';
@@ -28,10 +27,6 @@ const config = getConfig();
 const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'web'; // 'web' or 'desktop'
 const IS_WEB_DEPLOYMENT = DEPLOYMENT_MODE === 'web';
 const IS_DESKTOP_DEPLOYMENT = DEPLOYMENT_MODE === 'desktop';
-
-console.log(`🚀 [DEPLOYMENT] Mode: ${DEPLOYMENT_MODE.toUpperCase()}`);
-console.log(`📋 [DEPLOYMENT] Web features: ${IS_WEB_DEPLOYMENT ? 'ENABLED' : 'DISABLED'}`);
-console.log(`🖥️ [DEPLOYMENT] Desktop features: ${IS_DESKTOP_DEPLOYMENT ? 'ENABLED' : 'DISABLED'}`);
 
 // Configure Winston Logger
 const logger = winston.createLogger({
@@ -64,9 +59,6 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-console.log('=== Meridian app.js is running! ===');
-console.log('PORT from env:', process.env.PORT);
-
 // Import email routes
 let emailRoutes;
 try {
@@ -79,22 +71,18 @@ try {
 let authRoutes;
 try {
   authRoutes = (await import('./routes/auth.js')).default;
-  console.log('Authentication routes loaded successfully');
 } catch (e) {
-  console.log('Auth routes not available:', e.message);
+  console.error('[AUTH] Routes not available:', e.message);
   authRoutes = (req, res, next) => next(); // No-op if not present
 }
 
 // Import lead agent routes
-console.log('[APP] Attempting to load lead agent routes...');
 let leadAgentRoutes;
 try {
   const importResult = await import('./routes/leadAgent.js');
   leadAgentRoutes = importResult.default;
-  console.log('[APP] Lead agent routes loaded successfully, router type:', typeof leadAgentRoutes);
 } catch (e) {
-  console.error('[APP] Failed to load lead agent routes:', e.message);
-  console.error('[APP] Full error:', e);
+  console.error('[LEAD AGENT] Routes failed to load:', e.message);
   leadAgentRoutes = (req, res, next) => next(); // No-op if not present
 }
 
@@ -102,7 +90,6 @@ try {
 let emailQueueRoutes;
 try {
   emailQueueRoutes = (await import('./routes/emailQueue.js')).default;
-  console.log('Email queue routes imported successfully');
 } catch (e) {
   console.log('Email queue routes not available:', e.message);
   emailQueueRoutes = (req, res, next) => next(); // No-op if not present
@@ -112,7 +99,6 @@ try {
 let analyticsRoutes;
 try {
   analyticsRoutes = (await import('./routes/analytics.js')).default;
-  console.log('Analytics routes imported successfully');
 } catch (e) {
   console.log('Analytics routes not available:', e.message);
   analyticsRoutes = (req, res, next) => next(); // No-op if not present
@@ -122,7 +108,6 @@ try {
 let webhookRoutes;
 try {
   webhookRoutes = (await import('./routes/webhooks.js')).default;
-  console.log('Webhook routes imported successfully');
 } catch (e) {
   console.log('Webhook routes not available:', e.message);
   webhookRoutes = (req, res, next) => next(); // No-op if not present
@@ -132,47 +117,15 @@ try {
 let webhooksDesktopRoutes;
 try {
   webhooksDesktopRoutes = (await import('./routes/webhooks-desktop.js')).default;
-  console.log('Desktop webhook routes imported successfully');
 } catch (e) {
   console.log('Desktop webhook routes not available:', e.message);
   webhooksDesktopRoutes = (req, res, next) => next(); // No-op if not present
-}
-
-// Import LinkedIn routes
-let linkedinRoutes;
-try {
-  linkedinRoutes = (await import('./routes/linkedin.js')).default;
-  console.log('LinkedIn routes imported successfully');
-} catch (e) {
-  console.log('LinkedIn routes not available:', e.message);
-  linkedinRoutes = (req, res, next) => next(); // No-op if not present
-}
-
-// Import LinkedIn API routes
-let linkedinApiRoutes;
-try {
-  linkedinApiRoutes = (await import('./routes/linkedinApi.js')).default;
-  console.log('LinkedIn API routes imported successfully');
-} catch (e) {
-  console.log('LinkedIn API routes not available:', e.message);
-  linkedinApiRoutes = (req, res, next) => next(); // No-op if not present
-}
-
-// Import Post Generator routes
-let postGeneratorRoutes;
-try {
-  postGeneratorRoutes = (await import('./routes/postGenerator.js')).default;
-  console.log('Post Generator routes imported successfully');
-} catch (e) {
-  console.log('Post Generator routes not available:', e.message);
-  postGeneratorRoutes = (req, res, next) => next(); // No-op if not present
 }
 
 // Import AI Training routes
 let trainingRoutes;
 try {
   trainingRoutes = (await import('./routes/training.js')).default;
-  console.log('AI Training routes imported successfully');
 } catch (e) {
   console.log('AI Training routes not available:', e.message);
   trainingRoutes = (req, res, next) => next(); // No-op if not present
@@ -182,7 +135,6 @@ try {
 let monitoringRoutes;
 try {
   monitoringRoutes = (await import('./routes/monitoring.js')).default;
-  console.log('Monitoring routes imported successfully');
 } catch (e) {
   console.log('Monitoring routes not available:', e.message);
   monitoringRoutes = (req, res, next) => next(); // No-op if not present
@@ -192,7 +144,6 @@ try {
 let issuesRoutes;
 try {
   issuesRoutes = (await import('./routes/issues.js')).default;
-  console.log('Issues routes imported successfully');
 } catch (e) {
   console.log('Issues routes not available:', e.message);
   issuesRoutes = (req, res, next) => next(); // No-op if not present
@@ -202,7 +153,6 @@ try {
 let unsubscribeRoutes;
 try {
   unsubscribeRoutes = (await import('./routes/unsubscribe.js')).default;
-  console.log('Unsubscribe routes imported successfully');
 } catch (e) {
   console.log('Unsubscribe routes not available:', e.message);
   unsubscribeRoutes = (req, res, next) => next(); // No-op if not present
@@ -212,7 +162,6 @@ try {
 let aiReportRoutes;
 try {
   aiReportRoutes = (await import('./routes/aiReport.js')).default;
-  console.log('AI Report routes imported successfully');
 } catch (e) {
   console.log('AI Report routes not available:', e.message);
   aiReportRoutes = (req, res, next) => next(); // No-op if not present
@@ -222,10 +171,8 @@ try {
 let aiSearchRoutes;
 try {
   aiSearchRoutes = (await import('./routes/aiSearch.js')).default;
-  console.log('✅ AI Search routes imported successfully');
 } catch (e) {
-  console.error('❌ AI Search routes not available:', e.message);
-  console.error('Full error:', e);
+  console.error('[AI SEARCH] Routes not available:', e.message);
   aiSearchRoutes = (req, res, next) => next(); // No-op if not present
 }
 
@@ -233,7 +180,6 @@ try {
 let zillizTrackingRoutes;
 try {
   zillizTrackingRoutes = (await import('./routes/zillizTracking.js')).default;
-  console.log('Zilliz email tracking routes imported successfully');
 } catch (e) {
   console.log('Zilliz email tracking routes not available:', e.message);
   zillizTrackingRoutes = (req, res, next) => next(); // No-op if not present
@@ -243,7 +189,6 @@ try {
 let trackingRoutes;
 try {
   trackingRoutes = (await import('./routes/tracking.js')).default;
-  console.log('Desktop email tracking routes imported successfully');
 } catch (e) {
   console.log('Desktop email tracking routes not available:', e.message);
   trackingRoutes = (req, res, next) => next(); // No-op if not present
@@ -253,7 +198,6 @@ try {
 let emailResponseSettingsRoutes;
 try {
   emailResponseSettingsRoutes = (await import('./routes/emailResponseSettings.js')).default;
-  console.log('Email response settings routes imported successfully');
 } catch (e) {
   console.log('Email response settings routes not available:', e.message);
   emailResponseSettingsRoutes = (req, res, next) => next(); // No-op if not present
@@ -263,7 +207,6 @@ try {
 let companyProfileRoutes;
 try {
   companyProfileRoutes = (await import('./routes/companyProfile.js')).default;
-  console.log('Company profile routes imported successfully');
 } catch (e) {
   console.log('Company profile routes not available:', e.message);
   companyProfileRoutes = (req, res, next) => next(); // No-op if not present
@@ -273,7 +216,6 @@ try {
 let settingsRoutes;
 try {
   settingsRoutes = (await import('./routes/settings.js')).default;
-  console.log('Settings routes imported successfully');
 } catch (e) {
   console.log('Settings routes not available:', e.message);
   settingsRoutes = (req, res, next) => next(); // No-op if not present
@@ -283,7 +225,6 @@ try {
 let systemRoutes;
 try {
   systemRoutes = (await import('./routes/system.js')).default;
-  console.log('System management routes imported successfully');
 } catch (e) {
   console.log('System management routes not available:', e.message);
   systemRoutes = (req, res, next) => next(); // No-op if not present
@@ -293,13 +234,6 @@ const app = express();
 
 // Security Configuration
 const isProduction = process.env.NODE_ENV === 'production';
-
-// Start memory monitoring in production - DISABLED FOR RENDER
-// if (isProduction || process.env.ENABLE_MONITORING === 'true') {
-//   memoryMonitor.start();
-//   console.log('[SYSTEM] Memory monitoring started');
-// }
-console.log('[SYSTEM] Memory monitoring disabled for Render compatibility');
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -524,9 +458,6 @@ app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking
 app.use('/track', trackingRoutes); // Desktop email tracking (safe, no external deps)
-app.use('/api/linkedin', linkedinRoutes); // LinkedIn profile builder routes
-app.use('/api/linkedin-api', linkedinApiRoutes); // LinkedIn API integration routes
-app.use('/api/post-generator', postGeneratorRoutes); // Post generator routes
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 app.use('/api/issues', issuesRoutes); // Issues and alerts tracking

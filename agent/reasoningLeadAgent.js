@@ -34,9 +34,7 @@ async function getMonitoringStore() {
     try {
       const monitoringModule = await import('../routes/monitoring.js');
       monitoringStore = monitoringModule.metricStore;
-      console.log('📊 [REASONING LEAD AGENT] Monitoring integration initialized');
     } catch (error) {
-      console.warn('📊 [REASONING LEAD AGENT] Monitoring not available:', error.message);
     }
   }
   return monitoringStore;

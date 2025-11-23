@@ -97,5 +97,3 @@ export function shutdown() {
     clearInterval(cleanupInterval);
   }
 }
-
-console.log('[ACTIVITY] Activity tracker initialized - inactivity timeout:', INACTIVITY_TIMEOUT / 1000, 'seconds');

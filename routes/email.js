@@ -6,8 +6,6 @@ import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
-console.log('DEBUG: sendEmailTool import:', sendEmailTool);
-
 router.post('/email', async (req, res) => {
   const { to, subject, body } = req.body;
   if (!to || !subject || !body) {

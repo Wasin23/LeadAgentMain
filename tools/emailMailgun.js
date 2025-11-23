@@ -10,7 +10,6 @@ import AWSManager from '../utils/awsManager.js';
 // Initialize AWS Manager for API usage tracking
 const awsManager = new AWSManager();
 
-console.log('MAILGUN_API_KEY:', process.env.MAILGUN_API_KEY);
 const mailgun = new Mailgun(FormData);
 const mg = mailgun.client({
   username: 'api',

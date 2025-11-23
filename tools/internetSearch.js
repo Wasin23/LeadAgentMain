@@ -11,8 +11,6 @@ const SERPER_API_URL = 'https://google.serper.dev/search';
 const CACHE_DIR = path.join(process.cwd(), '.search_cache');
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
-console.log('[SERPER] API KEY:', SERPER_API_KEY);
-
 // Ensure cache directory exists
 async function ensureCacheDir() {
   try {
