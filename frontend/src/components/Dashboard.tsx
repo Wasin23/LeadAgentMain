@@ -299,6 +299,7 @@ export default function Dashboard() {
 
                         <button
                           onClick={() => setActiveView('settings')}
+                          data-settings-trigger
                           className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-green-50 hover:border-green-200 border border-transparent transition-all text-left"
                         >
                           <div className="p-2 bg-green-100 rounded-lg">

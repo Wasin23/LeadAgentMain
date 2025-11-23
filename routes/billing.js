@@ -1,6 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { authenticateToken } from '../middleware/jwt.js';
+import { getTrialCreditStatus } from '../middleware/apiCostTracker.js';
 import AWSManager from '../utils/awsManager.js';
 import { broadcastActivity } from './monitoring.js';
 import { 
@@ -64,6 +65,90 @@ async function logBillingActivity(userId, action, details, status = 'success') {
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const awsManager = new AWSManager();
+
+// Get trial credit status
+router.get('/trial-credits', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const creditStatus = await getTrialCreditStatus(userId);
+    
+    res.json({
+      success: true,
+      credits: creditStatus
+    });
+  } catch (error) {
+    console.error('❌ [BILLING] Error getting trial credits:', error);
+    res.status(500).json({ error: 'Failed to get trial credit status' });
+  }
+});
+
+// Add payment method and unlock unlimited API usage
+router.post('/add-payment-method', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { paymentMethodId } = req.body;
+    
+    if (!paymentMethodId) {
+      return res.status(400).json({ error: 'Payment method ID is required' });
+    }
+    
+    // Get user
+    const user = await awsManager.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    let customerId = user.stripeCustomerId;
+    
+    // Create Stripe customer if doesn't exist
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          userId: userId,
+          username: user.username
+        }
+      });
+      customerId = customer.id;
+      
+      await awsManager.updateUser(userId, {
+        stripeCustomerId: customerId
+      });
+    }
+    
+    // Attach payment method to customer
+    await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customerId
+    });
+    
+    // Set as default payment method
+    await stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId
+      }
+    });
+    
+    // Update user to indicate payment method added (unlocks unlimited API usage)
+    await awsManager.updateUser(userId, {
+      paymentMethodAdded: true,
+      stripeCustomerId: customerId
+    });
+    
+    console.log(`✅ [BILLING] Payment method added for user ${userId} - Trial restrictions removed`);
+    
+    res.json({
+      success: true,
+      message: 'Payment method added successfully. You now have unlimited API usage!',
+      customerId: customerId
+    });
+  } catch (error) {
+    console.error('❌ [BILLING] Error adding payment method:', error);
+    res.status(500).json({ 
+      error: 'Failed to add payment method',
+      message: error.message 
+    });
+  }
+});
 
 // Get payment status
 router.get('/payment-status', authenticateToken, async (req, res) => {

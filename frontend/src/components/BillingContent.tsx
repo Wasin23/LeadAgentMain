@@ -172,10 +172,23 @@ function BillingContentInner() {
   const [loading, setLoading] = useState(true);
   const [showAddCard, setShowAddCard] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trialCredits, setTrialCredits] = useState<any>(null);
 
   useEffect(() => {
     loadPaymentMethods();
+    loadTrialCredits();
   }, []);
+
+  const loadTrialCredits = async () => {
+    try {
+      const { data } = await api.get('/api/billing/trial-credits');
+      if (data.success) {
+        setTrialCredits(data.credits);
+      }
+    } catch (err: any) {
+      console.error('Failed to load trial credits:', err);
+    }
+  };
 
   const loadPaymentMethods = async () => {
     try {
@@ -230,6 +243,62 @@ function BillingContentInner() {
 
   return (
     <div className="space-y-6">
+      {/* Trial Credits Banner */}
+      {trialCredits && !trialCredits.paymentMethodAdded && (
+        <div className={`rounded-lg p-4 ${
+          trialCredits.limitReached 
+            ? 'bg-red-50 border-2 border-red-300' 
+            : trialCredits.warningThreshold
+            ? 'bg-yellow-50 border-2 border-yellow-300'
+            : 'bg-blue-50 border-2 border-blue-300'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">
+              {trialCredits.limitReached ? '🚫' : trialCredits.warningThreshold ? '⚠️' : '🎁'}
+            </div>
+            <div className="flex-1">
+              <h3 className={`text-sm font-semibold mb-1 ${
+                trialCredits.limitReached 
+                  ? 'text-red-900' 
+                  : trialCredits.warningThreshold
+                  ? 'text-yellow-900'
+                  : 'text-blue-900'
+              }`}>
+                {trialCredits.limitReached 
+                  ? 'Trial Credits Exhausted' 
+                  : trialCredits.warningThreshold
+                  ? 'Trial Credits Running Low'
+                  : 'Free Trial Active'}
+              </h3>
+              <p className={`text-xs ${
+                trialCredits.limitReached 
+                  ? 'text-red-800' 
+                  : trialCredits.warningThreshold
+                  ? 'text-yellow-800'
+                  : 'text-blue-800'
+              }`}>
+                {trialCredits.limitReached 
+                  ? `You've used all $${trialCredits.creditsLimit} of your trial credits. Add a payment method below to continue using the platform.`
+                  : `You've used $${trialCredits.creditsUsed} of your $${trialCredits.creditsLimit} trial credits (${trialCredits.percentageUsed}%). Add a payment method to unlock unlimited API usage.`
+                }
+              </p>
+              <div className="mt-2 bg-white/50 rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full transition-all ${
+                    trialCredits.limitReached 
+                      ? 'bg-red-600' 
+                      : trialCredits.warningThreshold
+                      ? 'bg-yellow-600'
+                      : 'bg-blue-600'
+                  }`}
+                  style={{ width: `${Math.min(parseFloat(trialCredits.percentageUsed), 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-neutral-900">Payment Methods</h2>
@@ -279,6 +348,7 @@ function BillingContentInner() {
             onSuccess={() => {
               setShowAddCard(false);
               loadPaymentMethods();
+              loadTrialCredits();
             }}
             onCancel={() => setShowAddCard(false)}
           />

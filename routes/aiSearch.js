@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
+import { requireTrialCredits, trackApiUsage } from '../middleware/apiCostTracker.js';
 import OpenAI from 'openai';
 import axios from 'axios';
 
@@ -19,7 +20,7 @@ console.log('[AI SEARCH] Route initialized, OpenAI API key:', process.env.OPENAI
  * AI-powered lead search
  * POST /api/ai-search/leads
  */
-router.post('/leads', async (req, res) => {
+router.post('/leads', requireTrialCredits('openai-gpt4', 1), async (req, res) => {
   try {
     const userId = req.user.userId;
     const { query, company, person } = req.body;
@@ -52,6 +53,9 @@ router.post('/leads', async (req, res) => {
         temperature: 0.3,
         max_tokens: 150
       });
+      
+      // Track API usage for trial credits
+      await trackApiUsage(userId, 'openai-gpt35', 1);
       
       await awsManager.logApiUsage({
         userId,

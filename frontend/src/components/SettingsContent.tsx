@@ -274,6 +274,7 @@ export default function SettingsContent() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
+                    data-tab={tab.id}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === tab.id
                         ? 'bg-blue-50 text-blue-700 border border-blue-200'

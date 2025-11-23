@@ -14,6 +14,7 @@ const RateLimitSettings: React.FC = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [nextBillingDate, setNextBillingDate] = useState<string | null>(null);
+  const [trialCredits, setTrialCredits] = useState<any>(null);
 
   // Average cost per lead (all services combined)
   const avgCostPerLead = 0.12; // ~$0.12 per lead (Apollo search + email unlock + OpenAI + ZeroBounce + Serper + Mailgun)
@@ -36,6 +37,17 @@ const RateLimitSettings: React.FC = () => {
 
   const fetchBudgetAndSpending = async () => {
     try {
+      // Fetch trial credits first
+      const trialResponse = await api.get('/api/billing/trial-credits');
+      if (trialResponse.data.success) {
+        setTrialCredits(trialResponse.data.credits);
+        
+        // If on trial (no payment method), use trial credits as "budget"
+        if (!trialResponse.data.credits.paymentMethodAdded) {
+          setTotalSpent(parseFloat(trialResponse.data.credits.creditsUsed));
+        }
+      }
+
       // Fetch saved budget
       const budgetResponse = await api.get('/api/lead-agent/rate-limits');
       console.log('💰 Budget response:', budgetResponse.data);
@@ -104,11 +116,12 @@ const RateLimitSettings: React.FC = () => {
   };
 
   // Calculate estimates
-  const estimatedLeadsPerMonth = Math.floor(monthlyBudget / avgCostPerLead);
+  const effectiveBudget = trialCredits && !trialCredits.paymentMethodAdded ? 25 : monthlyBudget;
+  const estimatedLeadsPerMonth = Math.floor(effectiveBudget / avgCostPerLead);
   const estimatedLeadsPerWeek = Math.floor(estimatedLeadsPerMonth / 4.33);
   const estimatedLeadsPerDay = Math.floor(estimatedLeadsPerMonth / 30);
-  const remainingBudget = monthlyBudget - totalSpent;
-  const budgetUsedPercent = monthlyBudget > 0 ? (totalSpent / monthlyBudget) * 100 : 0;
+  const remainingBudget = effectiveBudget - totalSpent;
+  const budgetUsedPercent = effectiveBudget > 0 ? (totalSpent / effectiveBudget) * 100 : 0;
 
   if (loading) {
     return (
@@ -144,8 +157,10 @@ const RateLimitSettings: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-baseline gap-3 mb-1">
-              <p className="text-blue-100 text-sm font-medium">Total Spent This Month</p>
-              {nextBillingDate && (
+              <p className="text-blue-100 text-sm font-medium">
+                {trialCredits && !trialCredits.paymentMethodAdded ? 'Trial Credits Used' : 'Total Spent This Month'}
+              </p>
+              {nextBillingDate && trialCredits?.paymentMethodAdded && (
                 <p className="text-blue-200 text-xs">
                   Next: {new Date(nextBillingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
@@ -154,8 +169,12 @@ const RateLimitSettings: React.FC = () => {
             <p className="text-4xl font-bold">${totalSpent.toFixed(2)}</p>
           </div>
           <div className="text-right">
-            <p className="text-blue-100 text-sm font-medium mb-1">Monthly Budget</p>
-            <p className="text-2xl font-semibold">${monthlyBudget.toFixed(2)}</p>
+            <p className="text-blue-100 text-sm font-medium mb-1">
+              {trialCredits && !trialCredits.paymentMethodAdded ? 'Trial Budget' : 'Monthly Budget'}
+            </p>
+            <p className="text-2xl font-semibold">
+              ${trialCredits && !trialCredits.paymentMethodAdded ? '25.00' : monthlyBudget.toFixed(2)}
+            </p>
           </div>
         </div>
 
@@ -163,7 +182,11 @@ const RateLimitSettings: React.FC = () => {
         <div className="mb-3">
           <div className="flex justify-between text-sm text-blue-100 mb-1">
             <span>{budgetUsedPercent.toFixed(1)}% used</span>
-            <span>${remainingBudget.toFixed(2)} remaining</span>
+            <span>
+              ${trialCredits && !trialCredits.paymentMethodAdded 
+                ? trialCredits.creditsRemaining 
+                : remainingBudget.toFixed(2)} remaining
+            </span>
           </div>
           <div className="w-full bg-blue-400/30 rounded-full h-3">
             <div 
@@ -179,16 +202,42 @@ const RateLimitSettings: React.FC = () => {
 
         {budgetUsedPercent > 90 && (
           <div className="bg-red-500/20 border border-red-300/30 rounded px-3 py-2 text-sm">
-            ⚠️ Warning: You have used {budgetUsedPercent.toFixed(1)}% of your monthly budget
+            ⚠️ Warning: You have used {budgetUsedPercent.toFixed(1)}% of your {trialCredits && !trialCredits.paymentMethodAdded ? 'trial budget' : 'monthly budget'}
+          </div>
+        )}
+        
+        {trialCredits && !trialCredits.paymentMethodAdded && (
+          <div className="mt-3 bg-white/10 border border-white/20 rounded px-3 py-2 text-sm">
+            🎁 You're on a free trial! Add a payment method below to unlock unlimited usage.
           </div>
         )}
       </div>
 
-      {/* Budget Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Set Monthly Budget
-        </h3>
+      {/* Add Payment Method Button - Show for trial users */}
+      {trialCredits && !trialCredits.paymentMethodAdded && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Unlock Unlimited Usage
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Add a payment method to remove trial limits and continue using all features without interruption.
+          </p>
+          <button
+            onClick={() => setShowPaymentModal(true)}
+            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <CreditCardIcon className="w-5 h-5" />
+            Add Payment Method
+          </button>
+        </div>
+      )}
+
+      {/* Budget Settings - Only show if payment method added */}
+      {trialCredits && trialCredits.paymentMethodAdded && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Set Monthly Budget
+          </h3>
 
         <div className="space-y-4">
           <div>
@@ -251,6 +300,7 @@ const RateLimitSettings: React.FC = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Payment Methods Modal */}
       {showPaymentModal && typeof window !== 'undefined' && ReactDOM.createPortal(
