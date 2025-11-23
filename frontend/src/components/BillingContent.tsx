@@ -349,6 +349,10 @@ function BillingContentInner() {
               setShowAddCard(false);
               loadPaymentMethods();
               loadTrialCredits();
+              // Reload page to refresh user data and remove trial banner
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
             }}
             onCancel={() => setShowAddCard(false)}
           />

@@ -169,17 +169,25 @@ export async function checkTrialCredits(userId, apiType, quantity = 1) {
  */
 export async function getTrialCreditStatus(userId) {
   try {
+    console.log('🔵 [TRIAL] Getting status for user:', userId);
     const user = await awsManager.getUserById(userId);
     if (!user) {
       throw new Error('User not found');
     }
+
+    console.log('🔵 [TRIAL] User data:', {
+      paymentMethodAdded: user.paymentMethodAdded,
+      stripeCustomerId: user.stripeCustomerId,
+      trialCreditsUsed: user.trialCreditsUsed,
+      trialCreditsLimit: user.trialCreditsLimit
+    });
 
     const creditsUsed = user.trialCreditsUsed || 0;
     const creditsLimit = user.trialCreditsLimit || 25;
     const creditsRemaining = Math.max(0, creditsLimit - creditsUsed);
     const percentageUsed = (creditsUsed / creditsLimit) * 100;
 
-    return {
+    const status = {
       creditsUsed: creditsUsed.toFixed(2),
       creditsLimit: creditsLimit,
       creditsRemaining: creditsRemaining.toFixed(2),
@@ -189,6 +197,9 @@ export async function getTrialCreditStatus(userId) {
       limitReached: creditsUsed >= creditsLimit,
       warningThreshold: percentageUsed >= 80 // Show warning at 80%
     };
+
+    console.log('🔵 [TRIAL] Returning status:', status);
+    return status;
   } catch (error) {
     console.error(`[API Cost Tracker] Error getting credit status for ${userId}:`, error);
     throw error;

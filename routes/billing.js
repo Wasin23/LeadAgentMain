@@ -70,7 +70,9 @@ const awsManager = new AWSManager();
 router.get('/trial-credits', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
+    console.log('🔵 [BILLING] Getting trial credits for user:', userId);
     const creditStatus = await getTrialCreditStatus(userId);
+    console.log('🔵 [BILLING] Trial credit status:', creditStatus);
     
     res.json({
       success: true,
@@ -129,11 +131,12 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
     });
     
     // Update user to indicate payment method added (unlocks unlimited API usage)
-    await awsManager.updateUser(userId, {
+    console.log('🔵 [BILLING] Updating user with paymentMethodAdded=true...');
+    const updateResult = await awsManager.updateUser(userId, {
       paymentMethodAdded: true,
       stripeCustomerId: customerId
     });
-    
+    console.log('✅ [BILLING] User update result:', updateResult);
     console.log(`✅ [BILLING] Payment method added for user ${userId} - Trial restrictions removed`);
     
     res.json({
