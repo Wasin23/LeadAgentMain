@@ -182,6 +182,21 @@ export async function getTrialCreditStatus(userId) {
       trialCreditsLimit: user.trialCreditsLimit
     });
 
+    // MIGRATION: If user doesn't have trial credit fields, add them
+    if (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined) {
+      console.log('⚠️ [TRIAL] User missing trial fields, migrating...');
+      await awsManager.updateUser(userId, {
+        trialCreditsUsed: user.trialCreditsUsed || 0,
+        trialCreditsLimit: user.trialCreditsLimit || 25,
+        paymentMethodAdded: user.paymentMethodAdded || false,
+        stripeCustomerId: user.stripeCustomerId || null
+      });
+      console.log('✅ [TRIAL] User migrated with trial fields');
+      // Refetch user
+      const updatedUser = await awsManager.getUserById(userId);
+      Object.assign(user, updatedUser);
+    }
+
     const creditsUsed = user.trialCreditsUsed || 0;
     const creditsLimit = user.trialCreditsLimit || 25;
     const creditsRemaining = Math.max(0, creditsLimit - creditsUsed);
