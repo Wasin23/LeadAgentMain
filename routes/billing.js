@@ -177,31 +177,68 @@ router.get('/payment-status', authenticateToken, async (req, res) => {
 router.get('/payment-methods', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
+    console.log('🔵 [BILLING] Fetching payment methods for user:', userId);
     
     // Get or create Stripe customer
     const userSettings = await awsManager.getUserSettings(userId);
+    console.log('🔵 [BILLING] User settings:', userSettings);
     
     let customerId = userSettings?.stripeCustomerId;
+    console.log('🔵 [BILLING] Existing customer ID:', customerId);
     
     if (!customerId) {
+      console.log('🔵 [BILLING] Creating new Stripe customer...');
       // Create new Stripe customer
       const customer = await stripe.customers.create({
         metadata: { userId }
       });
       customerId = customer.id;
+      console.log('✅ [BILLING] Created Stripe customer:', customerId);
       
       // Save to AWS
       await awsManager.saveUserSettings(userId, {
         ...userSettings,
         stripeCustomerId: customerId
       });
+      console.log('✅ [BILLING] Saved customer ID to user settings');
     }
     
     // Get payment methods
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customerId,
-      type: 'card'
-    });
+    console.log('🔵 [BILLING] Fetching payment methods from Stripe...');
+    let paymentMethods;
+    try {
+      paymentMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card'
+      });
+    } catch (stripeError) {
+      // If customer doesn't exist (switched from test to live mode), create new one
+      if (stripeError.code === 'resource_missing') {
+        console.log('⚠️ [BILLING] Customer not found in Stripe, creating new one...');
+        const newCustomer = await stripe.customers.create({
+          metadata: { userId }
+        });
+        customerId = newCustomer.id;
+        console.log('✅ [BILLING] Created new Stripe customer:', customerId);
+        
+        // Update user settings with new customer ID
+        await awsManager.saveUserSettings(userId, {
+          ...userSettings,
+          stripeCustomerId: customerId,
+          defaultPaymentMethodId: null // Clear old payment method ID
+        });
+        console.log('✅ [BILLING] Updated user settings with new customer ID');
+        
+        // Try again with new customer
+        paymentMethods = await stripe.paymentMethods.list({
+          customer: customerId,
+          type: 'card'
+        });
+      } else {
+        throw stripeError;
+      }
+    }
+    console.log('✅ [BILLING] Found', paymentMethods.data.length, 'payment methods');
     
     res.json({
       success: true,
@@ -217,7 +254,11 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('❌ [BILLING] Error fetching payment methods:', error);
-    res.status(500).json({ error: 'Failed to fetch payment methods' });
+    console.error('❌ [BILLING] Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to fetch payment methods',
+      message: error.message 
+    });
   }
 });
 
