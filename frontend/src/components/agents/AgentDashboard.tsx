@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 import { 
   PlayIcon, 
   StopIcon, 
@@ -2052,9 +2053,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         }`} />
                         <div className="flex-1">
                           <h4 className="text-sm font-semibold text-neutral-800 mb-1">AI Confidence Report</h4>
-                          <p className="text-sm text-neutral-700 leading-relaxed">
-                            {selectedEmail.confidenceReport || selectedEmail.emailData?.confidenceReport}
-                          </p>
+                          <div className="text-sm text-neutral-700 leading-relaxed prose prose-sm max-w-none">
+                            <ReactMarkdown
+                              components={{
+                                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                                em: ({node, ...props}) => <em className="italic" {...props} />,
+                              }}
+                            >
+                              {selectedEmail.confidenceReport || selectedEmail.emailData?.confidenceReport}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
                     </div>

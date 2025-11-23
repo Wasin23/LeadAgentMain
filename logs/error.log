@@ -5,3 +5,10 @@
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-21T17:07:14.967Z"}
 {"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-21T20:17:54.038Z"}
 {"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-21T20:19:20.566Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-22T21:47:39.846Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-22T22:11:45.532Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-22T22:21:04.161Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-22T22:22:56.511Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-22T23:01:13.289Z"}
+{"level":"error","message":"Request timeout:","service":"meridian-api","timestamp":"2025-11-22T23:12:44.114Z"}
+{"level":"error","message":"Forced shutdown after timeout","service":"meridian-api","timestamp":"2025-11-23T04:28:59.252Z"}

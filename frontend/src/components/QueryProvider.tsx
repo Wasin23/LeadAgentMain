@@ -8,7 +8,8 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
     () => new QueryClient({
       defaultOptions: {
         queries: {
-          staleTime: 5 * 60 * 1000, // 5 minutes
+          staleTime: 0, // No caching - always fetch fresh data
+          cacheTime: 0, // Don't keep data in cache
           retry: 1,
         },
       },

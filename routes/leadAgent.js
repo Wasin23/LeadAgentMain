@@ -887,13 +887,14 @@ router.get('/api-usage', async (req, res) => {
   }
 });
 
-// Get total API usage for user (all agents)
+// Get total API usage for user (all agents) - uses fast summary table
 router.get('/api-usage/total', async (req, res) => {
   try {
     const userId = req.user.userId;
     
     const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
-    const result = await userAgent.awsManager.getUserApiUsage(userId);
+    // Use summary table instead of querying all records
+    const result = await userAgent.awsManager.getUserApiUsageSummary(userId);
     
     res.json({
       success: true,

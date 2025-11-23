@@ -107,6 +107,10 @@ class AWSEmailQueue {
         text: emailData.text,
         html: emailData.html,
         
+        // AI Confidence Report
+        confidenceReport: emailData.confidenceReport || '',
+        confidenceLevel: emailData.confidenceLevel || 'medium',
+        
         // Lead information (normalize leadInfo -> lead for backward compatibility)
         lead: emailData.lead || emailData.leadInfo || {},
         

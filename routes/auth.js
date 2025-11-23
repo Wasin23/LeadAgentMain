@@ -820,7 +820,10 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         ccEmails: preset.ccEmails,
         bccEmails: preset.bccEmails,
         followupIntervalDays: preset.followupIntervalDays,
-        enableAutoResponse: preset.enableAutoResponse
+        enableAutoResponse: preset.enableAutoResponse,
+        useCustomSignature: preset.useCustomSignature,
+        signatureName: preset.signatureName,
+        signatureTitle: preset.signatureTitle
       } : null
     });
     
@@ -978,7 +981,10 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         ccEmails: preset.ccEmails || agentSettings.emailBuilder?.ccEmails || '',
         bccEmails: preset.bccEmails || agentSettings.emailBuilder?.bccEmails || '',
         rebumpIntervalDays: preset.followupIntervalDays || agentSettings.emailBuilder?.rebumpIntervalDays || 7,
-        enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : (agentSettings.emailBuilder?.enableAutoResponse !== undefined ? agentSettings.emailBuilder.enableAutoResponse : true)
+        enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : (agentSettings.emailBuilder?.enableAutoResponse !== undefined ? agentSettings.emailBuilder.enableAutoResponse : true),
+        useCustomSignature: preset.useCustomSignature || agentSettings.emailBuilder?.useCustomSignature || false,
+        signatureName: preset.signatureName || agentSettings.emailBuilder?.signatureName || '',
+        signatureTitle: preset.signatureTitle || agentSettings.emailBuilder?.signatureTitle || ''
       };
       
       // Apply special instructions from preset if provided
@@ -1000,7 +1006,10 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
           ccEmails: preset.ccEmails,
           bccEmails: preset.bccEmails,
           rebumpIntervalDays: preset.followupIntervalDays,
-          enableAutoResponse: preset.enableAutoResponse
+          enableAutoResponse: preset.enableAutoResponse,
+          useCustomSignature: preset.useCustomSignature,
+          signatureName: preset.signatureName,
+          signatureTitle: preset.signatureTitle
         }
       });
     } else {

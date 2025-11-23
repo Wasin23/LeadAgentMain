@@ -32,6 +32,7 @@ class AWSManager {
       contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'meridian-contacted-leads',
       cycleLogs: process.env.AWS_DYNAMODB_CYCLE_LOGS_TABLE || 'meridian-cycle-logs',
       apiUsage: process.env.AWS_DYNAMODB_API_USAGE_TABLE || 'meridian-api-usage',
+      apiUsageSummary: process.env.AWS_DYNAMODB_API_USAGE_SUMMARY_TABLE || 'meridian-api-usage-summary',
       issuesAlerts: process.env.AWS_DYNAMODB_ISSUES_ALERTS_TABLE || 'meridian-issues-alerts',
       unsubscribes: process.env.AWS_DYNAMODB_UNSUBSCRIBES_TABLE || 'meridian-unsubscribes',
       searchHistory: process.env.AWS_DYNAMODB_SEARCH_HISTORY_TABLE || 'meridian-search-history',
@@ -1255,35 +1256,132 @@ class AWSManager {
         Object.entries(metadata).filter(([_, value]) => value !== undefined)
       );
       
+      const item = {
+        userId,
+        timestamp,
+        agentId,
+        service, // 'apollo', 'openai', 'mailgun', 'zerobounce'
+        operation, // e.g., 'search', 'completion', 'send_email', 'email_validation'
+        usage, // credits/tokens/emails used
+        cost: cost || 0, // Cost in dollars
+        metadata: cleanMetadata, // Additional data (model name, search query, etc.) - cleaned of undefined
+        createdAt: timestamp
+      };
+      
+      console.log(`🔍 [AWS DEBUG] Writing to table: ${this.tables.apiUsage}, userId: ${userId}, service: ${service}, cost: ${cost}`);
+      
       const command = new PutCommand({
         TableName: this.tables.apiUsage,
-        Item: {
-          userId,
-          timestamp,
-          agentId,
-          service, // 'apollo', 'openai', 'mailgun', 'zerobounce'
-          operation, // e.g., 'search', 'completion', 'send_email', 'email_validation'
-          usage, // credits/tokens/emails used
-          cost: cost || 0, // Cost in dollars
-          metadata: cleanMetadata, // Additional data (model name, search query, etc.) - cleaned of undefined
-          createdAt: timestamp
-        }
+        Item: item
       });
 
-      await this.dynamodb.send(command);
+      const writeResult = await this.dynamodb.send(command);
       console.log(`📊 [AWS] Logged ${service} usage: ${usage} (${operation}) - $${(cost || 0).toFixed(4)}`);
+      console.log(`✅ [AWS] DynamoDB write confirmed:`, JSON.stringify(writeResult.$metadata));
+      
+      // Update summary table asynchronously (don't wait)
+      this.updateApiUsageSummary(userId, service, usage, cost || 0).catch(err => {
+        console.error('⚠️  [AWS] Failed to update summary:', err.message);
+      });
       
       return { success: true };
     } catch (error) {
       console.error('❌ [AWS] Failed to log API usage:', error);
+      console.error('❌ [AWS] Error details:', JSON.stringify(error, null, 2));
       return { success: false, error: error.message };
     }
   }
 
   /**
-   * Get API usage stats for a specific agent
+   * Update API usage summary table (aggregated totals per user)
    */
-  async getAgentApiUsage(agentId, startDate = null, endDate = null) {
+  async updateApiUsageSummary(userId, service, usage, cost) {
+    try {
+      const command = new UpdateCommand({
+        TableName: this.tables.apiUsageSummary,
+        Key: { userId },
+        UpdateExpression: 'ADD #service.#usage :usage, #service.#calls :calls, #service.#cost :cost SET updatedAt = :timestamp',
+        ExpressionAttributeNames: {
+          '#service': service,
+          '#usage': 'usage',
+          '#calls': 'calls',
+          '#cost': 'cost'
+        },
+        ExpressionAttributeValues: {
+          ':usage': usage,
+          ':calls': 1,
+          ':cost': cost,
+          ':timestamp': new Date().toISOString()
+        }
+      });
+
+      await this.dynamodb.send(command);
+      console.log(`✅ [SUMMARY] Updated ${service} totals for user ${userId}`);
+    } catch (error) {
+      console.error(`❌ [SUMMARY] Failed to update summary:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get API usage from summary table (fast, no aggregation needed)
+   */
+  async getUserApiUsageSummary(userId) {
+    try {
+      const command = new GetCommand({
+        TableName: this.tables.apiUsageSummary,
+        Key: { userId }
+      });
+
+      const result = await this.dynamodb.send(command);
+      
+      if (!result.Item) {
+        // No summary yet, return empty stats
+        return {
+          success: true,
+          stats: {
+            apollo: { usage: 0, calls: 0, cost: 0 },
+            openai: { usage: 0, calls: 0, cost: 0 },
+            mailgun: { usage: 0, calls: 0, cost: 0 },
+            zerobounce: { usage: 0, calls: 0, cost: 0 },
+            serper: { usage: 0, calls: 0, cost: 0 }
+          }
+        };
+      }
+
+      // Return the aggregated stats directly from the item
+      const stats = {
+        apollo: result.Item.apollo || { usage: 0, calls: 0, cost: 0 },
+        openai: result.Item.openai || { usage: 0, calls: 0, cost: 0 },
+        mailgun: result.Item.mailgun || { usage: 0, calls: 0, cost: 0 },
+        zerobounce: result.Item.zerobounce || { usage: 0, calls: 0, cost: 0 },
+        serper: result.Item.serper || { usage: 0, calls: 0, cost: 0 }
+      };
+
+      return { success: true, stats };
+    } catch (error) {
+      console.error('❌ [SUMMARY] Failed to get user summary:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        stats: {
+          apollo: { usage: 0, calls: 0, cost: 0 },
+          openai: { usage: 0, calls: 0, cost: 0 },
+          mailgun: { usage: 0, calls: 0, cost: 0 },
+          zerobounce: { usage: 0, calls: 0, cost: 0 },
+          serper: { usage: 0, calls: 0, cost: 0 }
+        }
+      };
+    }
+  }
+
+  /**
+   * Get API usage stats for a specific agent (with retry logic for throttling)
+   */
+  async getAgentApiUsage(agentId, startDate = null, endDate = null, retryCount = 0) {
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+    
     try {
       const params = {
         TableName: this.tables.apiUsage,
@@ -1324,22 +1422,45 @@ class AWSManager {
 
       return { success: true, stats, total: result.Items.length };
     } catch (error) {
-      console.error('❌ [AWS] Failed to get agent API usage:', error);
-      return { success: false, error: error.message };
+      // Check if it's a throttling error
+      if (error.name === 'ProvisionedThroughputExceededException' && retryCount < maxRetries) {
+        const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+        console.log(`⚠️ [AWS] Throttled on getAgentApiUsage, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.getAgentApiUsage(agentId, startDate, endDate, retryCount + 1);
+      }
+      
+      // Log error but don't crash - return empty stats
+      console.error('❌ [AWS] Failed to get agent API usage:', error.message);
+      return { 
+        success: false, 
+        error: error.message,
+        stats: {
+          apollo: { usage: 0, calls: 0, cost: 0 },
+          openai: { usage: 0, calls: 0, cost: 0 },
+          mailgun: { usage: 0, calls: 0, cost: 0 },
+          zerobounce: { usage: 0, calls: 0, cost: 0 },
+          serper: { usage: 0, calls: 0, cost: 0 }
+        }
+      };
     }
   }
 
   /**
-   * Get total API usage across all agents for a user
+   * Get total API usage across all agents for a user (with retry logic for throttling)
    */
-  async getUserApiUsage(userId, startDate = null, endDate = null) {
+  async getUserApiUsage(userId, startDate = null, endDate = null, retryCount = 0) {
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+    
     try {
       const params = {
         TableName: this.tables.apiUsage,
         KeyConditionExpression: 'userId = :userId',
         ExpressionAttributeValues: {
           ':userId': userId
-        }
+        },
+        ConsistentRead: true // Force strongly consistent reads to see latest data immediately
       };
 
       // Add date range if provided
@@ -1381,8 +1502,27 @@ class AWSManager {
 
       return { success: true, stats, total: result.Items.length };
     } catch (error) {
-      console.error('❌ [AWS] Failed to get user API usage:', error);
-      return { success: false, error: error.message };
+      // Check if it's a throttling error
+      if (error.name === 'ProvisionedThroughputExceededException' && retryCount < maxRetries) {
+        const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+        console.log(`⚠️ [AWS] Throttled on getUserApiUsage, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.getUserApiUsage(userId, startDate, endDate, retryCount + 1);
+      }
+      
+      // Log error but don't crash - return empty stats
+      console.error('❌ [AWS] Failed to get user API usage:', error.message);
+      return { 
+        success: false, 
+        error: error.message,
+        stats: {
+          apollo: { usage: 0, calls: 0, cost: 0 },
+          openai: { usage: 0, calls: 0, cost: 0 },
+          mailgun: { usage: 0, calls: 0, cost: 0 },
+          zerobounce: { usage: 0, calls: 0, cost: 0 },
+          serper: { usage: 0, calls: 0, cost: 0 }
+        }
+      };
     }
   }
 

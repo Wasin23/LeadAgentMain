@@ -189,6 +189,9 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         bccEmails: settings.bccEmails || '',
         followupIntervalDays: settings.followupIntervalDays || 7,
         enableAutoResponse: settings.enableAutoResponse !== undefined ? settings.enableAutoResponse : true,
+        useCustomSignature: false,
+        signatureName: '',
+        signatureTitle: '',
         specialInstructions: specialInstructions || ''
       });
 
@@ -227,7 +230,10 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
           ccEmails: createdPreset.ccEmails,
           bccEmails: createdPreset.bccEmails,
           followupIntervalDays: createdPreset.followupIntervalDays,
-          enableAutoResponse: createdPreset.enableAutoResponse
+          enableAutoResponse: createdPreset.enableAutoResponse,
+          useCustomSignature: createdPreset.useCustomSignature,
+          signatureName: createdPreset.signatureName,
+          signatureTitle: createdPreset.signatureTitle
         }
       });
 
@@ -1298,6 +1304,62 @@ function ChoosePresetStep({
                   }`}
                 />
               </button>
+            </div>
+
+            {/* Email Signature Customization */}
+            <div className="border-t border-white/20 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <label className="text-white font-semibold text-lg">Use Custom Email Signature</label>
+                  <p className="text-white/70 text-sm mt-1">
+                    {settings.useCustomSignature 
+                      ? 'Emails will be signed with your custom name and title' 
+                      : 'Emails will be signed as the AI agent'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, useCustomSignature: !settings.useCustomSignature })}
+                  className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
+                  style={{
+                    backgroundColor: settings.useCustomSignature ? '#4ade80' : '#52525b'
+                  }}
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                      settings.useCustomSignature ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {settings.useCustomSignature && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-white font-semibold mb-2">Your Name</label>
+                    <input
+                      type="text"
+                      value={settings.signatureName || ''}
+                      onChange={(e) => setSettings({ ...settings, signatureName: e.target.value })}
+                      className="w-full px-4 py-3 rounded-lg bg-white/90 text-neutral-900 font-medium placeholder:text-neutral-500"
+                      placeholder="e.g., John Smith"
+                    />
+                    <p className="text-white/60 text-xs mt-1">The name that will appear in email signatures</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2">Your Title</label>
+                    <input
+                      type="text"
+                      value={settings.signatureTitle || ''}
+                      onChange={(e) => setSettings({ ...settings, signatureTitle: e.target.value })}
+                      className="w-full px-4 py-3 rounded-lg bg-white/90 text-neutral-900 font-medium placeholder:text-neutral-500"
+                      placeholder="e.g., CEO, Sales Director"
+                    />
+                    <p className="text-white/60 text-xs mt-1">Your title or role in the company</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

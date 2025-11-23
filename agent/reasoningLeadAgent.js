@@ -557,6 +557,14 @@ IMPORTANT RULES:
       await this.awsManager.saveCycleLog(this.userId, this.agentId, cycleLog);
       
       console.log(`📊 [CYCLE LOG] Logged cycle #${this.cycleCount} completion to DynamoDB`);
+      
+      // Get current total API usage from summary table and log it
+      const apiUsage = await this.awsManager.getUserApiUsageSummary(this.userId);
+      if (apiUsage.success && apiUsage.stats) {
+        const totalCost = Object.values(apiUsage.stats).reduce((sum, service) => sum + (service.cost || 0), 0);
+        console.log(`💰 [CYCLE COST] Total API cost after cycle #${this.cycleCount}: $${totalCost.toFixed(4)}`);
+        console.log(`📊 [CYCLE COST] Breakdown:`, JSON.stringify(apiUsage.stats, null, 2));
+      }
     } catch (error) {
       console.error('❌ [CYCLE LOG] Failed to log cycle completion:', error);
     }
@@ -1265,6 +1273,9 @@ Call the appropriate function to continue the workflow.`;
             emailSubject: actionResult.subject,
             generatedEmail: actionResult.email,
             research: this.memory.lastResearch, // Include the research data from memory
+            // Add AI confidence report from email generation
+            confidenceReport: actionResult.confidenceReport,
+            confidenceLevel: actionResult.confidenceLevel,
             // Add qualification metadata
             qualificationScore: qualification.score,
             qualificationConfidence: confidence,
@@ -2966,9 +2977,9 @@ REQUIREMENTS:
 3. First paragraph: Reference a SPECIFIC fact from the research above and connect it to their business challenges
 4. Second paragraph: Explain how ${emailSettings.companyBranding?.companyName || 'our company'} specifically addresses that challenge
 5. Call-to-action that's relevant to their situation
-6. Signature: "Best regards,\\n${emailSettings.companyBranding?.agentName || 'AI Assistant'}\\n${emailSettings.companyBranding?.companyName || 'Our Company'} ${emailSettings.companyBranding?.agentTitle || 'Representative'}"
+6. Signature: "Best regards,\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}"
 5. Professional call-to-action
-6. Simple signature: "Best regards,\\n${emailSettings.companyBranding?.agentName || 'AI Assistant'}\\n${emailSettings.companyBranding?.companyName || 'Our Company'} ${emailSettings.companyBranding?.agentTitle || 'Representative'}"
+6. Simple signature: "Best regards,\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}"
 
 CRITICAL RULES:
 - Use ONLY "Hello ${leadData.first_name}," (first name only)
@@ -3045,24 +3056,31 @@ BODY: [email body with proper greeting and signature]`;
       // Clean up body - remove any stray "SUBJECT:" prefix that AI might have included
       body = body.replace(/^SUBJECT:\s*[^\n]+\n\n?/i, '').trim();
       
-      // Generate confidence analysis (AI self-assessment)
-      console.log('🔍 [EMAIL ANALYSIS] Generating confidence report...');
-      const analysisPrompt = `You just wrote this sales email. Analyze its quality in 4 sentences or less.
+      // Generate lead qualification confidence report
+      console.log('🔍 [LEAD ANALYSIS] Generating confidence report...');
+      const analysisPrompt = `Analyze this lead's qualification and likelihood to respond positively.
 
-EMAIL SUBJECT: ${subject}
-EMAIL BODY:
-${body}
+LEAD DETAILS:
+- Name: ${leadData.first_name} ${leadData.last_name}
+- Title: ${leadData.title}
+- Company: ${companyName}
+- Industry: ${industry}
 
-RESEARCH AVAILABLE:
-${fullResearchContext || 'Limited research data'}
+RESEARCH DATA QUALITY:
+${fullResearchContext || 'Limited research data available'}
 
-Provide a brief confidence assessment covering:
-1. Personalization quality (did you use specific facts or generic statements?)
-2. Any concerns or weaknesses
-3. Key strengths
-4. Overall confidence level (Low/Medium/High)
+QUALIFICATION INSIGHTS:
+${leadData.qualificationScore ? `Qualification Score: ${leadData.qualificationScore}/100` : 'Not scored'}
+${leadData.keyStrengths ? `Strengths: ${leadData.keyStrengths}` : ''}
+${leadData.weaknesses ? `Concerns: ${leadData.weaknesses}` : ''}
 
-Be honest and critical. Format as a brief 4-sentence paragraph.`;
+YOUR TASK: Assess this lead's potential in 4 sentences or less:
+1. Research quality: How much relevant data did we find about this lead/company?
+2. Fit assessment: How well does their role/company match what we're offering?
+3. Response likelihood: Based on their profile, how likely are they to engage?
+4. Overall confidence: Low/Medium/High confidence this lead will convert
+
+Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.`;
 
       const analysisResponse = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -3079,7 +3097,7 @@ Be honest and critical. Format as a brief 4-sentence paragraph.`;
           userId: this.userId,
           agentId: this.agentId,
           service: 'openai',
-          operation: 'email_analysis',
+          operation: 'lead_confidence_analysis',
           usage: analysisResponse.usage.total_tokens,
           metadata: {
             model: 'gpt-4o-mini',
@@ -3089,16 +3107,34 @@ Be honest and critical. Format as a brief 4-sentence paragraph.`;
         }).catch(err => console.error('Failed to log analysis usage:', err));
       }
 
-      console.log('📊 [CONFIDENCE REPORT]', confidenceReport);
+      console.log('📊 [LEAD CONFIDENCE]', confidenceReport);
       
-      // Extract confidence level from report
+      // Extract confidence level from report - look for conversion likelihood
       let confidenceLevel = 'medium';
       const reportLower = confidenceReport.toLowerCase();
-      if (reportLower.includes('confidence: high') || reportLower.includes('confidence: strong')) {
+      
+      // Check for explicit confidence markers in various formats
+      if (reportLower.includes('high confidence') || 
+          reportLower.includes('strong confidence') || 
+          reportLower.includes('confidence: high') ||
+          reportLower.includes('confidence level: high') ||
+          reportLower.includes('likely to convert') ||
+          reportLower.includes('high likelihood')) {
         confidenceLevel = 'high';
-      } else if (reportLower.includes('confidence: low') || reportLower.includes('confidence: weak')) {
+      } else if (reportLower.includes('low confidence') || 
+                 reportLower.includes('weak confidence') || 
+                 reportLower.includes('confidence: low') ||
+                 reportLower.includes('confidence level: low') ||
+                 reportLower.includes('unlikely to convert') ||
+                 reportLower.includes('low likelihood')) {
         confidenceLevel = 'low';
+      } else if (reportLower.includes('medium confidence') || 
+                 reportLower.includes('moderate confidence') ||
+                 reportLower.includes('confidence: medium')) {
+        confidenceLevel = 'medium';
       }
+      
+      console.log('🎯 [CONFIDENCE LEVEL]', confidenceLevel);
       
       // Add legal compliance footer
       const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
@@ -4994,6 +5030,14 @@ Target Positions:`;
           hasIntelligence: false
         }
       };
+
+      console.log('📧 [DEBUG QUEUE DATA] About to queue email with:', {
+        to: queueData.to,
+        hasConfidenceReport: !!queueData.confidenceReport,
+        confidenceReportLength: queueData.confidenceReport?.length || 0,
+        confidenceLevel: queueData.confidenceLevel,
+        confidenceReportPreview: queueData.confidenceReport?.substring(0, 100)
+      });
 
       await this.emailQueue.addToQueue(queueData);
       console.log(`📧 [EMAIL QUEUE] Added email for ${leadData.company} (${leadData.email})`);

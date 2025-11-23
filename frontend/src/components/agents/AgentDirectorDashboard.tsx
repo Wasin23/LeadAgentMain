@@ -193,6 +193,9 @@ interface SettingsPreset {
   bccEmails?: string;
   followupIntervalDays?: number;
   enableAutoResponse?: boolean;
+  useCustomSignature?: boolean;
+  signatureName?: string;
+  signatureTitle?: string;
   specialInstructions?: string;
 }
 
@@ -231,6 +234,9 @@ function PresetsManagement({
     bccEmails: '',
     followupIntervalDays: 7,
     enableAutoResponse: false,
+    useCustomSignature: false,
+    signatureName: '',
+    signatureTitle: '',
     specialInstructions: ''
   });
   
@@ -314,7 +320,10 @@ function PresetsManagement({
         ccEmails: '',
         bccEmails: '',
         followupIntervalDays: 7,
-        enableAutoResponse: false
+        enableAutoResponse: false,
+        useCustomSignature: false,
+        signatureName: '',
+        signatureTitle: ''
       });
       setIndustryInput('');
       setPositionInput('');
@@ -362,6 +371,9 @@ function PresetsManagement({
       bccEmails: preset.bccEmails || '',
       followupIntervalDays: preset.followupIntervalDays || 7,
       enableAutoResponse: preset.enableAutoResponse || false,
+      useCustomSignature: preset.useCustomSignature || false,
+      signatureName: preset.signatureName || '',
+      signatureTitle: preset.signatureTitle || '',
       specialInstructions: preset.specialInstructions || ''
     });
     setIsCreating(true);
@@ -882,6 +894,68 @@ function PresetsManagement({
                       }`}
                     />
                   </button>
+                </div>
+
+                {/* Email Signature Customization */}
+                <div className="pt-4 border-t border-neutral-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <label className="text-sm font-medium text-neutral-700">
+                        Use Custom Email Signature
+                      </label>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        {formData.useCustomSignature 
+                          ? 'Emails will be signed with your custom name and title' 
+                          : 'Emails will be signed as the AI agent'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, useCustomSignature: !formData.useCustomSignature })}
+                      className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
+                      style={{
+                        backgroundColor: formData.useCustomSignature ? '#4ade80' : '#52525b'
+                      }}
+                    >
+                      <span
+                        className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                          formData.useCustomSignature ? 'translate-x-7' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {formData.useCustomSignature && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                          Your Name
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.signatureName || ''}
+                          onChange={(e) => setFormData({ ...formData, signatureName: e.target.value })}
+                          placeholder="e.g., John Smith"
+                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        <p className="text-xs text-neutral-500 mt-1">The name that will appear in email signatures</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                          Your Title
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.signatureTitle || ''}
+                          onChange={(e) => setFormData({ ...formData, signatureTitle: e.target.value })}
+                          placeholder="e.g., CEO, Sales Director"
+                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        <p className="text-xs text-neutral-500 mt-1">Your title or role in the company</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1488,7 +1562,10 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
           ccEmails: preset.ccEmails,
           bccEmails: preset.bccEmails,
           followupIntervalDays: preset.followupIntervalDays,
-          enableAutoResponse: preset.enableAutoResponse
+          enableAutoResponse: preset.enableAutoResponse,
+          useCustomSignature: preset.useCustomSignature,
+          signatureName: preset.signatureName,
+          signatureTitle: preset.signatureTitle
         };
         console.log('[AgentDirector] Preset data being sent:', agentData.preset);
       } else {
@@ -1745,10 +1822,10 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 </div>
               </div>
 
-              {/* Issues */}
+              {/* Alerts */}
               <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-white/50 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-neutral-600">ISSUES</span>
+                  <span className="text-xs font-medium text-neutral-600">ALERTS</span>
                   <BellIcon className="w-4 h-4 text-orange-600" />
                 </div>
                 <div className="flex items-baseline gap-2">

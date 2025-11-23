@@ -59,6 +59,9 @@ router.post('/presets', async (req, res) => {
       bccEmails,
       followupIntervalDays,
       enableAutoResponse,
+      useCustomSignature,
+      signatureName,
+      signatureTitle,
       specialInstructions
     } = req.body;
     
@@ -80,6 +83,9 @@ router.post('/presets', async (req, res) => {
       bccEmails: bccEmails || '',
       followupIntervalDays: followupIntervalDays || 7,
       enableAutoResponse: enableAutoResponse !== undefined ? enableAutoResponse : true,
+      useCustomSignature: useCustomSignature || false,
+      signatureName: signatureName || '',
+      signatureTitle: signatureTitle || '',
       specialInstructions: specialInstructions || '',
       createdAt: new Date().toISOString()
     };
@@ -153,6 +159,9 @@ router.put('/presets/:id', async (req, res) => {
       bccEmails,
       followupIntervalDays,
       enableAutoResponse,
+      useCustomSignature,
+      signatureName,
+      signatureTitle,
       specialInstructions
     } = req.body;
     
@@ -183,6 +192,9 @@ router.put('/presets/:id', async (req, res) => {
       bccEmails: bccEmails || '',
       followupIntervalDays: followupIntervalDays || 7,
       enableAutoResponse: enableAutoResponse || false,
+      useCustomSignature: useCustomSignature || false,
+      signatureName: signatureName || '',
+      signatureTitle: signatureTitle || '',
       specialInstructions: specialInstructions || '',
       updatedAt: new Date().toISOString()
     };

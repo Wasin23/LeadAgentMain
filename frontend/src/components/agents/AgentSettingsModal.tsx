@@ -77,6 +77,9 @@ interface ZillizAgentSettings {
     bccEmails?: string; // Comma-separated BCC email addresses
     enableAutoResponse?: boolean; // Toggle for AI auto-response
     rebumpIntervalDays?: number; // Days to wait before follow-up
+    useCustomSignature?: boolean; // Toggle for custom signature vs AI signature
+    signatureName?: string; // Name to use in signature
+    signatureTitle?: string; // Title to use in signature
   };
 }
 
@@ -327,7 +330,10 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
         ccEmails: preset.ccEmails || settings.emailBuilder.ccEmails,
         bccEmails: preset.bccEmails || settings.emailBuilder.bccEmails,
         rebumpIntervalDays: preset.followupIntervalDays || settings.emailBuilder.rebumpIntervalDays,
-        enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : settings.emailBuilder.enableAutoResponse
+        enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : settings.emailBuilder.enableAutoResponse,
+        useCustomSignature: preset.useCustomSignature !== undefined ? preset.useCustomSignature : settings.emailBuilder.useCustomSignature,
+        signatureName: preset.signatureName || settings.emailBuilder.signatureName,
+        signatureTitle: preset.signatureTitle || settings.emailBuilder.signatureTitle
       }
     };
     
@@ -1328,6 +1334,68 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                           />
                         </button>
                       </div>
+                    </div>
+
+                    {/* Email Signature Customization */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">
+                            Use Custom Email Signature
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {settings.emailBuilder?.useCustomSignature 
+                              ? 'Emails will be signed with your custom name and title' 
+                              : `Emails will be signed as "${settings.companyBranding?.agentName || 'AI Assistant'}" from "${settings.companyBranding?.companyName || 'Company'}"`}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateField('emailBuilder', 'useCustomSignature', !settings.emailBuilder?.useCustomSignature)}
+                          className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
+                          style={{
+                            backgroundColor: settings.emailBuilder?.useCustomSignature ? '#4ade80' : '#52525b'
+                          }}
+                        >
+                          <span
+                            className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                              settings.emailBuilder?.useCustomSignature ? 'translate-x-7' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {settings.emailBuilder?.useCustomSignature && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Your Name
+                            </label>
+                            <input
+                              type="text"
+                              value={settings.emailBuilder?.signatureName || ''}
+                              onChange={(e) => updateField('emailBuilder', 'signatureName', e.target.value)}
+                              placeholder="e.g., John Smith"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">The name that will appear in email signatures</p>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Your Title
+                            </label>
+                            <input
+                              type="text"
+                              value={settings.emailBuilder?.signatureTitle || ''}
+                              onChange={(e) => updateField('emailBuilder', 'signatureTitle', e.target.value)}
+                              placeholder="e.g., CEO, Sales Director"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Your title or role in the company</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -58,10 +58,10 @@ const questions = [
   { id: 'companySize', question: "Company size range?", placeholder: '', type: 'select', options: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'], step: 3 },
   
   // Step 4: Market & Offering (4 questions)
-  { id: 'targetMarket', question: "Who's your target market?", placeholder: 'e.g., B2B SaaS companies', type: 'text', step: 4 },
+  { id: 'targetMarket', question: "Who's your target market?", placeholder: 'e.g., B2B SaaS companies', type: 'textarea', step: 4 },
   { id: 'services', question: "What services or products do you offer?", placeholder: 'Describe your offerings...', type: 'textarea', required: true, step: 4 },
-  { id: 'coreOffering', question: "What's your core offering?", placeholder: 'e.g., AI-powered platform', type: 'text', step: 4 },
-  { id: 'keyAdvantages', question: "What makes you different?", placeholder: 'Your key advantages', type: 'text', step: 4 },
+  { id: 'coreOffering', question: "What's your core offering?", placeholder: 'e.g., AI-powered platform', type: 'textarea', step: 4 },
+  { id: 'keyAdvantages', question: "What makes you different?", placeholder: 'Your key advantages', type: 'textarea', step: 4 },
 ];
 
 const steps = [
@@ -607,8 +607,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
                     placeholder={currentQuestion.placeholder}
                     disabled={isAnimating}
-                    rows={5}
-                    className="w-full px-6 py-4 text-xl text-neutral-900 placeholder-neutral-400 border-3 border-neutral-200 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all disabled:opacity-50 resize-none text-center"
+                    rows={6}
+                    className="w-full px-6 py-4 text-xl text-neutral-900 placeholder-neutral-400 border-3 border-neutral-200 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all disabled:opacity-50 resize-none text-center overflow-y-auto"
                   />
                 ) : currentQuestion.type === 'select' ? (
                   <select
