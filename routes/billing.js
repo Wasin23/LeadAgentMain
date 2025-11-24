@@ -130,9 +130,34 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
     }
     
     // Attach payment method to customer
-    await stripe.paymentMethods.attach(paymentMethodId, {
-      customer: customerId
-    });
+    try {
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customerId
+      });
+      console.log('✅ [BILLING] Payment method attached successfully');
+    } catch (attachError) {
+      // If customer doesn't exist (even though retrieve said it did), create new one
+      if (attachError.code === 'resource_missing') {
+        console.log('⚠️ [BILLING] Customer disappeared, creating fresh one...');
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            userId: userId,
+            username: user.username
+          }
+        });
+        customerId = customer.id;
+        console.log('✅ [BILLING] Created new customer:', customerId);
+        
+        // Retry attach with new customer
+        await stripe.paymentMethods.attach(paymentMethodId, {
+          customer: customerId
+        });
+        console.log('✅ [BILLING] Payment method attached to new customer');
+      } else {
+        throw attachError;
+      }
+    }
     
     // Set as default payment method
     await stripe.customers.update(customerId, {
@@ -141,11 +166,11 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       }
     });
     
-    // Update user to indicate payment method added (unlocks unlimited API usage)
+    // Update user to indicate payment method added and save customer ID
     console.log('🔵 [BILLING] Updating user with paymentMethodAdded=true...');
     const updateResult = await awsManager.updateUser(userId, {
       paymentMethodAdded: true,
-      stripeCustomerId: customerId
+      stripeCustomerId: customerId  // Single source of truth in users table
     });
     console.log('✅ [BILLING] User update result:', updateResult);
     console.log(`✅ [BILLING] Payment method added for user ${userId} - Trial restrictions removed`);
@@ -193,11 +218,15 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     console.log('🔵 [BILLING] Fetching payment methods for user:', userId);
     
-    // Get or create Stripe customer
+    // Get or create Stripe customer from users table (single source of truth)
+    const user = await awsManager.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     const userSettings = await awsManager.getUserSettings(userId);
     console.log('🔵 [BILLING] User settings:', userSettings);
     
-    let customerId = userSettings?.stripeCustomerId;
+    let customerId = user.stripeCustomerId;
     console.log('🔵 [BILLING] Existing customer ID:', customerId);
     
     if (!customerId) {
@@ -209,12 +238,11 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
       customerId = customer.id;
       console.log('✅ [BILLING] Created Stripe customer:', customerId);
       
-      // Save to AWS
-      await awsManager.saveUserSettings(userId, {
-        ...userSettings,
+      // Save to users table (single source of truth)
+      await awsManager.updateUser(userId, {
         stripeCustomerId: customerId
       });
-      console.log('✅ [BILLING] Saved customer ID to user settings');
+      console.log('✅ [BILLING] Saved customer ID to users table');
     }
     
     // Get payment methods
@@ -235,13 +263,11 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
         customerId = newCustomer.id;
         console.log('✅ [BILLING] Created new Stripe customer:', customerId);
         
-        // Update user settings with new customer ID
-        await awsManager.saveUserSettings(userId, {
-          ...userSettings,
-          stripeCustomerId: customerId,
-          defaultPaymentMethodId: null // Clear old payment method ID
+        // Update users table with new customer ID (single source of truth)
+        await awsManager.updateUser(userId, {
+          stripeCustomerId: customerId
         });
-        console.log('✅ [BILLING] Updated user settings with new customer ID');
+        console.log('✅ [BILLING] Updated users table with new customer ID');
         
         // Try again with new customer
         paymentMethods = await stripe.paymentMethods.list({
