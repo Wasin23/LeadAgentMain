@@ -5,6 +5,12 @@ import AWSManager from '../utils/awsManager.js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import puppeteer from 'puppeteer';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync, readdirSync } from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -190,8 +196,27 @@ router.post('/scrape-website', async (req, res) => {
     // Use Puppeteer with real Chrome
     let websiteContent = '';
     try {
-      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
-                            (await puppeteer.executablePath().catch(() => null));
+      // Find Chrome in the Puppeteer cache
+      let executablePath = null;
+      
+      const cacheDir = process.env.PUPPETEER_CACHE_DIR || join(__dirname, '..', '.cache', 'puppeteer');
+      const chromePath = join(cacheDir, 'chrome');
+      
+      if (existsSync(chromePath)) {
+        // Find the latest Chrome version directory
+        const versions = readdirSync(chromePath);
+        if (versions.length > 0) {
+          const latestVersion = versions.sort().reverse()[0];
+          executablePath = join(chromePath, latestVersion, 'chrome-linux64', 'chrome');
+          if (!existsSync(executablePath)) {
+            executablePath = join(chromePath, latestVersion, 'chrome-linux', 'chrome');
+          }
+        }
+      }
+      
+      if (!executablePath || !existsSync(executablePath)) {
+        executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || null;
+      }
       
       console.log(`[COMPANY PROFILE] Using Chrome at: ${executablePath}`);
       
