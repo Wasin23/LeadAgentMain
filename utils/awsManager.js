@@ -1300,36 +1300,33 @@ class AWSManager {
       // Get current month in YYYY-MM format
       const month = new Date().toISOString().slice(0, 7);
       
-      const command = new UpdateCommand({
+      // First, try to get existing record
+      const getCommand = new GetCommand({
         TableName: this.tables.apiUsageSummary,
-        Key: { 
+        Key: { userId, month }
+      });
+      
+      const existing = await this.dynamodb.send(getCommand);
+      
+      // Build the service stats
+      const serviceStats = existing.Item?.[service] || { usage: 0, calls: 0, cost: 0 };
+      serviceStats.usage += usage;
+      serviceStats.calls += 1;
+      serviceStats.cost += cost;
+      
+      // Update with new values
+      const putCommand = new PutCommand({
+        TableName: this.tables.apiUsageSummary,
+        Item: {
+          ...existing.Item,
           userId,
-          month
-        },
-        UpdateExpression: `
-          SET #service = if_not_exists(#service, :emptyMap),
-              #service.#usage = if_not_exists(#service.#usage, :zero) + :usage,
-              #service.#calls = if_not_exists(#service.#calls, :zero) + :calls,
-              #service.#cost = if_not_exists(#service.#cost, :zero) + :cost,
-              updatedAt = :timestamp
-        `,
-        ExpressionAttributeNames: {
-          '#service': service,
-          '#usage': 'usage',
-          '#calls': 'calls',
-          '#cost': 'cost'
-        },
-        ExpressionAttributeValues: {
-          ':emptyMap': { usage: 0, calls: 0, cost: 0 },
-          ':zero': 0,
-          ':usage': usage,
-          ':calls': 1,
-          ':cost': cost,
-          ':timestamp': new Date().toISOString()
+          month,
+          [service]: serviceStats,
+          updatedAt: new Date().toISOString()
         }
       });
 
-      await this.dynamodb.send(command);
+      await this.dynamodb.send(putCommand);
       console.log(`✅ [SUMMARY] Updated ${service} totals for user ${userId} (${month})`);
     } catch (error) {
       console.error(`❌ [SUMMARY] Failed to update summary:`, error.message);
