@@ -125,32 +125,18 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       });
       console.log('✅ [BILLING] Payment method attached successfully');
     } catch (attachError) {
-      // If already attached to a different customer, detach and reattach
+      // If already attached to THIS customer, that's fine - just continue
       if (attachError.message?.includes('already been attached')) {
-        console.log('⚠️ [BILLING] Payment method already attached to another customer, detaching...');
-        try {
-          // Detach from old customer
-          await stripe.paymentMethods.detach(paymentMethodId);
-          console.log('✅ [BILLING] Payment method detached from old customer');
-          
-          // Attach to current customer
-          await stripe.paymentMethods.attach(paymentMethodId, {
-            customer: customerId
-          });
-          console.log('✅ [BILLING] Payment method attached to current customer');
-        } catch (detachError) {
-          console.error('❌ [BILLING] Error during detach/reattach:', detachError.message);
-          throw detachError;
+        console.log('⚠️ [BILLING] Payment method already attached to this customer, continuing...');
+        // Verify it's actually attached to THIS customer
+        const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+        if (paymentMethod.customer !== customerId) {
+          // Attached to different customer - this payment method can't be reused
+          throw new Error('This payment method is attached to a different account. Please enter your card details again to create a new payment method.');
         }
       } else if (attachError.code !== 'resource_missing') {
         throw attachError;
       }
-    }
-    
-    // Verify payment method is attached to this customer before setting as default
-    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-    if (paymentMethod.customer !== customerId) {
-      throw new Error('Payment method is not attached to this customer');
     }
     
     // Set as default payment method
