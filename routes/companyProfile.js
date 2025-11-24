@@ -4,8 +4,6 @@ import OpenAI from 'openai';
 import AWSManager from '../utils/awsManager.js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -174,7 +172,6 @@ Return as JSON: {profile: {...}, recommendedPreset: {...}}`
  * Scrape website and extract company profile
  */
 router.post('/scrape-website', async (req, res) => {
-  let browser;
   try {
     const userId = req.user.userId;
     const { url } = req.body;
@@ -188,102 +185,44 @@ router.post('/scrape-website', async (req, res) => {
 
     console.log(`[COMPANY PROFILE] Scraping website for user ${userId}: ${url}`);
 
-    // Use Puppeteer to render JavaScript and get full content
+    // Fetch website content using axios and cheerio
     let websiteContent = '';
     try {
-      browser = await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath,
-        headless: chromium.headless,
-        ignoreHTTPSErrors: true
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        },
+        timeout: 30000
       });
       
-      const page = await browser.newPage();
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+      const $ = cheerio.load(response.data);
       
-      console.log(`[COMPANY PROFILE] Loading page: ${url}`);
-      await page.goto(url, { 
-        waitUntil: 'networkidle2',
-        timeout: 30000 
-      });
+      // Remove script and style elements
+      $('script, style, nav, footer').remove();
       
-      // Wait a bit for any dynamic content to load
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Extract content
+      const title = $('title').text() || '';
+      const metaDescription = $('meta[name="description"]').attr('content') || '';
+      const metaKeywords = $('meta[name="keywords"]').attr('content') || '';
+      const headings = $('h1, h2, h3').map((i, el) => $(el).text().trim()).get().join('\n');
+      const bodyText = $('body').text().replace(/\s+/g, ' ').trim().substring(0, 12000);
       
-      // Extract comprehensive content
-      const pageData = await page.evaluate(() => {
-        // Get all text content
-        const bodyText = document.body.innerText || '';
-        
-        // Get meta tags
-        const metaDescription = document.querySelector('meta[name="description"]')?.content || '';
-        const metaKeywords = document.querySelector('meta[name="keywords"]')?.content || '';
-        const title = document.title || '';
-        
-        // Get all headings for structure
-        const headings = Array.from(document.querySelectorAll('h1, h2, h3')).map(h => h.innerText).join('\n');
-        
-        // Get all links (for finding about, services pages)
-        const links = Array.from(document.querySelectorAll('a')).map(a => ({
-          text: a.innerText,
-          href: a.href
-        })).filter(l => l.text && l.href);
-        
-        return {
-          title,
-          metaDescription,
-          metaKeywords,
-          headings,
-          bodyText,
-          links: links.slice(0, 50) // Limit links
-        };
-      });
-      
-      // Try to visit key pages (About, Services, etc.)
-      const aboutPages = pageData.links.filter(link => 
-        /about|company|who-we-are|our-story/i.test(link.text) || 
-        /about|company|who-we-are|our-story/i.test(link.href)
-      ).slice(0, 2);
-      
-      let additionalContent = '';
-      for (const link of aboutPages) {
-        try {
-          if (link.href.startsWith('http')) {
-            console.log(`[COMPANY PROFILE] Visiting additional page: ${link.href}`);
-            await page.goto(link.href, { waitUntil: 'networkidle2', timeout: 15000 });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const extraText = await page.evaluate(() => document.body.innerText || '');
-            additionalContent += `\n\n--- ${link.text} Page ---\n${extraText.substring(0, 3000)}`;
-          }
-        } catch (e) {
-          console.log(`[COMPANY PROFILE] Could not load ${link.href}: ${e.message}`);
-        }
-      }
-      
-      // Combine all content
       websiteContent = `
-Title: ${pageData.title}
-Meta Description: ${pageData.metaDescription}
-Keywords: ${pageData.metaKeywords}
+Title: ${title}
+Meta Description: ${metaDescription}
+Keywords: ${metaKeywords}
 
 Main Headings:
-${pageData.headings}
+${headings}
 
 Main Page Content:
-${pageData.bodyText.substring(0, 12000)}
-
-${additionalContent}
+${bodyText}
       `.trim();
       
       console.log(`[COMPANY PROFILE] Extracted ${websiteContent.length} characters from website`);
       
-      await browser.close();
-      browser = null;
-      
     } catch (fetchError) {
       console.error('[COMPANY PROFILE] Error fetching website:', fetchError.message);
-      if (browser) await browser.close();
       return res.status(400).json({
         success: false,
         error: 'Unable to fetch website content. Please check the URL and try again.'
