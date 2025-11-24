@@ -190,8 +190,14 @@ router.post('/scrape-website', async (req, res) => {
     // Use Puppeteer with real Chrome
     let websiteContent = '';
     try {
+      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
+                            (await puppeteer.executablePath().catch(() => null));
+      
+      console.log(`[COMPANY PROFILE] Using Chrome at: ${executablePath}`);
+      
       browser = await puppeteer.launch({
         headless: true,
+        executablePath: executablePath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
