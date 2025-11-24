@@ -102,7 +102,21 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
     
     let customerId = user.stripeCustomerId;
     
-    // Create Stripe customer if doesn't exist
+    // Check if customer exists in Stripe, create new if not
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId);
+        console.log('✅ [BILLING] Using existing customer:', customerId);
+      } catch (error) {
+        if (error.code === 'resource_missing') {
+          console.log('⚠️ [BILLING] Customer not found in Stripe, creating new one...');
+          customerId = null;
+        } else {
+          throw error;
+        }
+      }
+    }
+    
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,
@@ -112,6 +126,7 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
         }
       });
       customerId = customer.id;
+      console.log('✅ [BILLING] Created new customer:', customerId);
     }
     
     // Attach payment method to customer
