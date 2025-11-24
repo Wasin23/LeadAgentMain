@@ -4,7 +4,8 @@ import OpenAI from 'openai';
 import AWSManager from '../utils/awsManager.js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import puppeteer from 'puppeteer';
+import chromium from 'chrome-aws-lambda';
+import puppeteer from 'puppeteer-core';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -191,14 +192,11 @@ router.post('/scrape-website', async (req, res) => {
     let websiteContent = '';
     try {
       browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu'
-        ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true
       });
       
       const page = await browser.newPage();
