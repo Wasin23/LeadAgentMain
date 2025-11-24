@@ -119,9 +119,17 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
     }
     
     // Attach payment method to customer
-    await stripe.paymentMethods.attach(paymentMethodId, {
-      customer: customerId
-    });
+    try {
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customerId
+      });
+    } catch (attachError) {
+      // If already attached, that's fine - just continue
+      if (attachError.code !== 'resource_missing' && !attachError.message?.includes('already been attached')) {
+        throw attachError;
+      }
+      console.log('⚠️ [BILLING] Payment method already attached, continuing...');
+    }
     
     // Set as default payment method
     await stripe.customers.update(customerId, {
