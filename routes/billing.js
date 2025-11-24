@@ -100,23 +100,24 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // ALWAYS create a fresh Stripe customer to avoid any conflicts
-    console.log('🔄 [BILLING] Creating fresh Stripe customer...');
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: {
-        userId: userId,
-        username: user.username
-      }
-    });
-    const customerId = customer.id;
-    console.log('✅ [BILLING] Fresh customer created:', customerId);
+    let customerId = user.stripeCustomerId;
     
-    // Attach payment method to new customer
+    // Create Stripe customer if doesn't exist
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          userId: userId,
+          username: user.username
+        }
+      });
+      customerId = customer.id;
+    }
+    
+    // Attach payment method to customer
     await stripe.paymentMethods.attach(paymentMethodId, {
       customer: customerId
     });
-    console.log('✅ [BILLING] Payment method attached successfully');
     
     // Set as default payment method
     await stripe.customers.update(customerId, {
@@ -124,7 +125,6 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
         default_payment_method: paymentMethodId
       }
     });
-    console.log('✅ [BILLING] Payment method set as default');
     
     // Update user to indicate payment method added (unlocks unlimited API usage)
     console.log('🔵 [BILLING] Updating user with paymentMethodAdded=true...');
@@ -264,29 +264,10 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
 // Create setup intent for adding card
 router.post('/setup-intent', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    
-    // Get or create Stripe customer
-    const userSettings = await awsManager.getUserSettings(userId);
-    
-    let customerId = userSettings?.stripeCustomerId;
-    
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        metadata: { userId }
-      });
-      customerId = customer.id;
-      
-      await awsManager.saveUserSettings(userId, {
-        ...userSettings,
-        stripeCustomerId: customerId
-      });
-    }
-    
-    // Create setup intent
+    // Create setup intent WITHOUT a customer - payment method will be attached later
     const setupIntent = await stripe.setupIntents.create({
-      customer: customerId,
-      payment_method_types: ['card']
+      payment_method_types: ['card'],
+      usage: 'off_session'
     });
     
     res.json({
