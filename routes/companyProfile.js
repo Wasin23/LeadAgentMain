@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import AWSManager from '../utils/awsManager.js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import chromium from 'chrome-aws-lambda';
+import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 const router = express.Router();
