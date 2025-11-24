@@ -12,7 +12,8 @@
     "backup": "node -e \"import('./utils/backup.js').then(m => m.backupManager.createFullBackup())\"",
     "backup:cleanup": "node -e \"import('./utils/backup.js').then(m => m.backupManager.cleanupOldBackups())\"",
     "health": "curl -f http://localhost:8080/health || exit 1",
-    "desktop:build": "echo \"Desktop build disabled (Electron removed)\" && exit 0"
+    "desktop:build": "echo \"Desktop build disabled (Electron removed)\" && exit 0",
+    "postinstall": "npx puppeteer browsers install chrome || true"
   },
   "keywords": [
     "ai",

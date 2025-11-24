@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ExclamationTriangleIcon, GiftIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import api from '@/lib/api';
 
@@ -19,9 +19,13 @@ interface TrialCredits {
 export default function TrialCreditBanner() {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [credits, setCredits] = useState<TrialCredits | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
+
+  // Only show in main app, not during onboarding or landing page
+  const isMainApp = pathname?.startsWith('/dashboard') || pathname?.startsWith('/settings') || pathname?.startsWith('/agents');
 
   useEffect(() => {
     if (user) {
@@ -44,7 +48,7 @@ export default function TrialCreditBanner() {
     }
   };
 
-  if (!user || loading || !credits || credits.paymentMethodAdded || dismissed) {
+  if (!user || loading || !credits || credits.paymentMethodAdded || dismissed || !isMainApp) {
     return null;
   }
 

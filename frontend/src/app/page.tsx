@@ -90,7 +90,7 @@ export default function Home() {
             className="px-6 py-2.5 font-bold rounded-xl hover:scale-105 transition-all shadow-lg"
             style={{ backgroundColor: 'white', color: 'rgb(147, 51, 234)' }}
           >
-            Get Started
+            Start Free Trial
           </button>
         </motion.div>
       </nav>
@@ -324,7 +324,7 @@ export default function Home() {
               className="px-12 py-5 font-bold text-xl rounded-2xl hover:shadow-2xl hover:scale-105 transition-all flex items-center gap-2 shadow-xl"
               style={{ backgroundColor: 'white', color: 'rgb(147, 51, 234)' }}
             >
-              Get Started
+              Start Free Trial
               <ArrowRightIcon className="w-6 h-6" />
             </button>
           </div>
