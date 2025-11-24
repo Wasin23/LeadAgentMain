@@ -123,12 +123,34 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       await stripe.paymentMethods.attach(paymentMethodId, {
         customer: customerId
       });
+      console.log('✅ [BILLING] Payment method attached successfully');
     } catch (attachError) {
-      // If already attached, that's fine - just continue
-      if (attachError.code !== 'resource_missing' && !attachError.message?.includes('already been attached')) {
+      // If already attached to a different customer, detach and reattach
+      if (attachError.message?.includes('already been attached')) {
+        console.log('⚠️ [BILLING] Payment method already attached to another customer, detaching...');
+        try {
+          // Detach from old customer
+          await stripe.paymentMethods.detach(paymentMethodId);
+          console.log('✅ [BILLING] Payment method detached from old customer');
+          
+          // Attach to current customer
+          await stripe.paymentMethods.attach(paymentMethodId, {
+            customer: customerId
+          });
+          console.log('✅ [BILLING] Payment method attached to current customer');
+        } catch (detachError) {
+          console.error('❌ [BILLING] Error during detach/reattach:', detachError.message);
+          throw detachError;
+        }
+      } else if (attachError.code !== 'resource_missing') {
         throw attachError;
       }
-      console.log('⚠️ [BILLING] Payment method already attached, continuing...');
+    }
+    
+    // Verify payment method is attached to this customer before setting as default
+    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (paymentMethod.customer !== customerId) {
+      throw new Error('Payment method is not attached to this customer');
     }
     
     // Set as default payment method
@@ -137,6 +159,7 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
         default_payment_method: paymentMethodId
       }
     });
+    console.log('✅ [BILLING] Payment method set as default');
     
     // Update user to indicate payment method added (unlocks unlimited API usage)
     console.log('🔵 [BILLING] Updating user with paymentMethodAdded=true...');
