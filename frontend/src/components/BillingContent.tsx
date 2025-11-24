@@ -54,8 +54,8 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
       if (stripeError) {
         setError(stripeError.message || 'Failed to add card');
       } else if (setupIntent?.payment_method) {
-        // Set as default
-        await api.post('/api/billing/set-default-payment', {
+        // Add payment method (sets paymentMethodAdded=true in users table)
+        await api.post('/api/billing/add-payment-method', {
           paymentMethodId: setupIntent.payment_method
         });
         onSuccess();
