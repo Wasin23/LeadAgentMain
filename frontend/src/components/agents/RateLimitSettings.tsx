@@ -70,7 +70,13 @@ const RateLimitSettings: React.FC = () => {
           (spendingResponse.data.stats?.mailgun?.cost || 0) +
           (spendingResponse.data.stats?.zerobounce?.cost || 0) +
           (spendingResponse.data.stats?.serper?.cost || 0);
-        setTotalSpent(totalCost);
+        
+        // Subtract trial credits used as a credit if payment method is added
+        const trialCredit = (spendingResponse.data.hasPaymentMethod && spendingResponse.data.trialCreditsUsed) 
+          ? spendingResponse.data.trialCreditsUsed 
+          : 0;
+        
+        setTotalSpent(totalCost - trialCredit);
       }
 
       // Fetch next billing date from payment stats
@@ -167,6 +173,11 @@ const RateLimitSettings: React.FC = () => {
               )}
             </div>
             <p className="text-4xl font-bold">${totalSpent.toFixed(2)}</p>
+            {trialCredits?.paymentMethodAdded && trialCredits?.creditsUsed > 0 && (
+              <p className="text-green-200 text-xs mt-1">
+                🎁 ${parseFloat(trialCredits.creditsUsed).toFixed(2)} trial credit applied
+              </p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-blue-100 text-sm font-medium mb-1">

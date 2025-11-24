@@ -896,9 +896,16 @@ router.get('/api-usage/total', async (req, res) => {
     // Use summary table instead of querying all records
     const result = await userAgent.awsManager.getUserApiUsageSummary(userId);
     
+    // Get user to check trial credits and payment status
+    const user = await userAgent.awsManager.getUserById(userId);
+    const trialCreditsUsed = user?.trialCreditsUsed || 0;
+    const hasPaymentMethod = user?.paymentMethodAdded || false;
+    
     res.json({
       success: true,
-      ...result
+      ...result,
+      trialCreditsUsed,
+      hasPaymentMethod
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error getting total API usage:', error);

@@ -1306,7 +1306,13 @@ class AWSManager {
           userId,
           month
         },
-        UpdateExpression: 'ADD #service.#usage :usage, #service.#calls :calls, #service.#cost :cost SET updatedAt = :timestamp',
+        UpdateExpression: `
+          SET #service = if_not_exists(#service, :emptyMap),
+              #service.#usage = if_not_exists(#service.#usage, :zero) + :usage,
+              #service.#calls = if_not_exists(#service.#calls, :zero) + :calls,
+              #service.#cost = if_not_exists(#service.#cost, :zero) + :cost,
+              updatedAt = :timestamp
+        `,
         ExpressionAttributeNames: {
           '#service': service,
           '#usage': 'usage',
@@ -1314,6 +1320,8 @@ class AWSManager {
           '#cost': 'cost'
         },
         ExpressionAttributeValues: {
+          ':emptyMap': { usage: 0, calls: 0, cost: 0 },
+          ':zero': 0,
           ':usage': usage,
           ':calls': 1,
           ':cost': cost,
