@@ -67,11 +67,16 @@ export default function NotificationBadge() {
   const { unreadCount, bySeverity } = notifications;
   const hasCritical = bySeverity.critical > 0;
 
+  const handleClick = () => {
+    // Navigate to Agent Director view with activity logs
+    window.location.href = '/dashboard?view=director&tab=logs';
+  };
+
   return (
     <button
-      onClick={() => window.location.href = '/settings?tab=notifications'}
+      onClick={handleClick}
       className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-      title={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
+      title={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''} - Click to view activity logs`}
     >
       <Bell className={`h-6 w-6 ${hasCritical ? 'text-red-500' : unreadCount > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
       

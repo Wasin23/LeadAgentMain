@@ -50,7 +50,7 @@ export default function MonitoringSidebar({
   ];
 
   return (
-    <div className="w-16 h-screen bg-white border-r border-neutral-200 flex flex-col items-center py-4 gap-2 fixed left-0 top-0 overflow-visible">
+    <div className="w-16 h-screen bg-white border-r border-neutral-200 flex flex-col items-center py-4 gap-2 fixed left-0 top-0 overflow-visible" style={{ zIndex: 10 }}>
       {/* Connection Status Indicator */}
       <div 
         className="mb-4 relative"
@@ -95,9 +95,16 @@ export default function MonitoringSidebar({
             >
               <Icon className="w-5 h-5" />
               
-              {/* Badge for issues */}
+              {/* Badge for issues - clickable to go to activity logs */}
               {view.badge !== undefined && view.badge > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewChange('logs');
+                  }}
+                  className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
+                  title="Click to view activity logs"
+                >
                   {view.badge > 9 ? '9+' : view.badge}
                 </span>
               )}

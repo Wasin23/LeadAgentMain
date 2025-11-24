@@ -8,7 +8,6 @@ import {
   GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import api from '../lib/api';
-import AdminChatbot from './AdminChatbot';
 import UserMenu from './UserMenu';
 
 interface CompanyProfile {
@@ -410,17 +409,19 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
           {/* Upload Options - Show at beginning */}
           {showUploadOptions && currentQuestionIndex === 0 && (
             <div className="mb-12 animate-slide-in">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-[1fr_auto_1fr] gap-6 items-stretch">
                 {/* Upload Document */}
                 <div 
-                  className="bg-white rounded-3xl p-8 text-center hover:scale-105 transition-transform cursor-pointer shadow-2xl"
+                  className="bg-white rounded-3xl p-8 text-center hover:scale-105 transition-transform cursor-pointer shadow-2xl flex flex-col justify-between"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <CloudArrowUpIcon className="w-10 h-10 text-white" />
+                  <div>
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <CloudArrowUpIcon className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-neutral-900 mb-2">Upload Company Document</h3>
+                    <p className="text-neutral-600 mb-4">Whitepaper, Pitch Deck, or Company Overview</p>
                   </div>
-                  <h3 className="text-xl font-bold text-neutral-900 mb-2">Upload Document</h3>
-                  <p className="text-neutral-600 mb-4">PDF, Word, or Image</p>
                   {uploadedFileName ? (
                     <div className="text-sm text-green-600 font-semibold">✓ {uploadedFileName}</div>
                   ) : (
@@ -429,33 +430,47 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                   <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
                 </div>
 
+                {/* OR Divider */}
+                <div className="text-white/60 font-semibold text-sm px-4 flex items-center">
+                  OR
+                </div>
+
                 {/* Website Scraper */}
-                <div className="bg-white rounded-3xl p-8 shadow-2xl text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <GlobeAltIcon className="w-10 h-10 text-white" />
+                <div className="bg-white rounded-3xl p-8 shadow-2xl text-center flex flex-col justify-between">
+                  <div>
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <GlobeAltIcon className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-neutral-900 mb-2">Extract from Website</h3>
+                    <p className="text-neutral-600 mb-4">Paste your company URL</p>
                   </div>
-                  <h3 className="text-xl font-bold text-neutral-900 mb-2">Extract from Website</h3>
-                  <p className="text-neutral-600 mb-4">Paste your company URL</p>
-                  <input 
-                    type="url" 
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="https://yourcompany.com"
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl text-sm mb-3 text-center focus:outline-none focus:border-purple-500 transition-colors"
-                  />
-                  <button 
-                    onClick={handleWebsiteScrape} 
-                    disabled={isProcessing}
-                    className="w-full px-4 py-3 text-purple-600 font-semibold hover:bg-purple-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border-2 border-purple-200"
-                  >
-                    {isProcessing && (
-                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    )}
-                    {isProcessing ? 'Extracting...' : 'Extract Info →'}
-                  </button>
+                  <div>
+                    <input 
+                      type="url" 
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && websiteUrl && !isProcessing) {
+                          handleWebsiteScrape();
+                        }
+                      }}
+                      placeholder="https://yourcompany.com"
+                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl text-sm mb-3 text-center focus:outline-none focus:border-purple-500 transition-colors"
+                    />
+                    <button 
+                      onClick={handleWebsiteScrape} 
+                      disabled={isProcessing}
+                      className="w-full px-4 py-3 text-purple-600 font-semibold hover:bg-purple-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border-2 border-purple-200"
+                    >
+                      {isProcessing && (
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      )}
+                      {isProcessing ? 'Extracting...' : 'Extract Info →'}
+                    </button>
+                  </div>
                 </div>
               </div>
               
@@ -680,7 +695,6 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
           )}
         </div>
       </div>
-      <AdminChatbot />
     </>
   );
 }

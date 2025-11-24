@@ -750,14 +750,14 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                         General Instructions
                       </h4>
                       <p className="text-sm mb-3" style={{ color: 'rgb(29, 78, 216)' }}>
-                        Give specific campaign instructions. The AI will dynamically determine what actions to take based on these instructions, adapting its research, outreach, and engagement strategy.
+                        Write concise instructions on who to target and in what industry. Be specific about pain points and desired outcomes.
                       </p>
                     </div>
                   </div>
                   <textarea
                     value={(settings as any).specialInstructions || ''}
                     onChange={(e) => setSettings({ ...settings, specialInstructions: e.target.value } as any)}
-                    placeholder="Example: Focus on companies that use GPU compute services. Only contact leads who work with AI/ML infrastructure. Emphasize our cost savings and performance improvements..."
+                    placeholder="Example: Target CTOs at Series A startups in healthcare tech. Focus on pain points around scaling engineering teams and infrastructure costs. Keep tone professional but friendly."
                     className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[120px]"
                     maxLength={1000}
                   />

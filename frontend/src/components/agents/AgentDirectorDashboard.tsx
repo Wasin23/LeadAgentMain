@@ -602,14 +602,14 @@ function PresetsManagement({
                       General Instructions
                     </label>
                     <p className="text-xs mb-3" style={{ color: 'rgb(29, 78, 216)' }}>
-                      Give specific campaign instructions. The AI will dynamically determine what actions to take based on these instructions.
+                      Write concise instructions on who to target and in what industry. Be specific about pain points and desired outcomes.
                     </p>
                   </div>
                 </div>
                 <textarea
                   value={formData.specialInstructions || ''}
                   onChange={(e) => setFormData({ ...formData, specialInstructions: e.target.value })}
-                  placeholder="Example: Focus on companies that use GPU compute services. Only contact leads who work with AI/ML infrastructure. Emphasize our cost savings and performance improvements..."
+                  placeholder="Example: Target CTOs at Series A startups in healthcare tech. Focus on pain points around scaling engineering teams and infrastructure costs. Keep tone professional but friendly."
                   className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[100px]"
                   maxLength={1000}
                 />
@@ -1823,7 +1823,10 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               </div>
 
               {/* Alerts */}
-              <div className="bg-white/80 backdrop-blur rounded-lg p-4 border border-white/50 shadow-sm">
+              <div 
+                onClick={() => setMonitoringView('logs')}
+                className="bg-white/80 backdrop-blur rounded-lg p-4 border border-white/50 shadow-sm cursor-pointer hover:bg-white hover:shadow-md transition-all"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-neutral-600">ALERTS</span>
                   <BellIcon className="w-4 h-4 text-orange-600" />
@@ -2276,7 +2279,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   <textarea
                     value={instructionsText}
                     onChange={(e) => setInstructionsText(e.target.value)}
-                    placeholder="Example: Focus on companies using AI/ML. Mention our GPU benchmark data. Target CTOs and Engineering VPs first."
+                    placeholder="Example: Target CTOs at Series A startups in healthcare tech. Focus on pain points around scaling engineering teams and infrastructure costs. Keep tone professional but friendly."
                     className="w-full h-48 px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     maxLength={1000}
                   />

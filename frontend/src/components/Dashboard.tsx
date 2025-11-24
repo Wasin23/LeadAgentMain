@@ -46,6 +46,8 @@ export default function Dashboard() {
   const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [criticalIssueCount, setCriticalIssueCount] = useState(0);
+  const [showStartHere, setShowStartHere] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const { user } = useAuth();
 
   // Fetch critical issue count
@@ -76,6 +78,14 @@ export default function Dashboard() {
       try {
         const response = await api.get('/api/company-profile/check');
         setHasCompanyProfile(response.data.hasProfile);
+        setHasSeenOnboarding(response.data.hasCompletedOnboarding || false);
+        
+        // Show "Start Here" indicator only if profile exists and user just completed onboarding
+        if (response.data.hasProfile && !response.data.hasCompletedOnboarding) {
+          setShowStartHere(true);
+          // Auto-hide after 8 seconds
+          setTimeout(() => setShowStartHere(false), 8000);
+        }
       } catch (error) {
         console.error('Error checking company profile:', error);
         setHasCompanyProfile(false);
@@ -191,7 +201,18 @@ export default function Dashboard() {
                         <Icon className="w-4 h-4" />
                         {item.name}
                         {showBadge && (
-                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          <span 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveView('settings');
+                              // Use setTimeout to ensure view switches first, then navigate to notifications tab
+                              setTimeout(() => {
+                                window.location.hash = 'notifications';
+                              }, 100);
+                            }}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
+                            title="Click to view alerts"
+                          >
                             {criticalIssueCount > 9 ? '9+' : criticalIssueCount}
                           </span>
                         )}
@@ -228,9 +249,29 @@ export default function Dashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Active Agents */}
                         <button
-                          onClick={() => setActiveView('agents')}
-                          className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all border border-neutral-200 hover:border-blue-300 text-left group"
+                          onClick={() => {
+                            console.log('[START HERE] Button clicked, showStartHere:', showStartHere);
+                            setActiveView('agents');
+                            if (showStartHere) {
+                              console.log('[START HERE] Hiding badge and marking onboarding complete');
+                              setShowStartHere(false);
+                              setHasSeenOnboarding(true);
+                              // Mark as completed on server
+                              api.put('/api/company-profile/complete-onboarding')
+                                .then(res => console.log('[START HERE] API success:', res.data))
+                                .catch(err => {
+                                  console.error('[START HERE] API error:', err);
+                                  console.error('[START HERE] Error details:', err.response?.data, err.response?.status);
+                                });
+                            }
+                          }}
+                          className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all border border-neutral-200 hover:border-blue-300 text-left group relative"
                         >
+                          {showStartHere && (
+                            <span className="absolute -top-2 -right-2 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse z-10">
+                              START HERE
+                            </span>
+                          )}
                           <div className="flex items-center justify-between mb-4">
                             <div className="p-3 bg-blue-50 rounded-lg">
                               <UserGroupIcon className="w-6 h-6 text-blue-600" />

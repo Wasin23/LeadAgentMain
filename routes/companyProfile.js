@@ -28,6 +28,8 @@ router.get('/check', async (req, res) => {
     const awsManager = new AWSManager();
     
     const userSettings = await awsManager.getUserSettings(userId);
+    const user = await awsManager.getUserById(userId);
+    
     // Check if company profile exists
     const hasProfile = !!(userSettings?.companyProfile && userSettings.companyProfile.companyName);
     
@@ -36,7 +38,8 @@ router.get('/check', async (req, res) => {
     res.json({
       success: true,
       hasProfile,
-      profile: userSettings?.companyProfile || null
+      profile: userSettings?.companyProfile || null,
+      hasCompletedOnboarding: user?.hasCompletedOnboarding || false
     });
   } catch (error) {
     console.error('Error checking company profile:', error);
@@ -479,6 +482,9 @@ router.post('/save', async (req, res) => {
     
     // Save back to DynamoDB
     await awsManager.saveUserSettings(userId, userSettings);
+    
+    // Mark that user has completed onboarding (first time)
+    await awsManager.updateUser(userId, { hasCompletedOnboarding: true });
 
     console.log('[COMPANY PROFILE] Profile saved successfully');
 
@@ -512,6 +518,31 @@ router.get('/profile', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting profile:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Mark onboarding as completed
+ */
+router.put('/complete-onboarding', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const awsManager = new AWSManager();
+    
+    await awsManager.updateUser(userId, { hasCompletedOnboarding: true });
+    
+    console.log(`[COMPANY PROFILE] Marked onboarding complete for user ${userId}`);
+    
+    res.json({
+      success: true,
+      message: 'Onboarding marked as complete'
+    });
+  } catch (error) {
+    console.error('Error marking onboarding complete:', error);
     res.status(500).json({
       success: false,
       error: error.message

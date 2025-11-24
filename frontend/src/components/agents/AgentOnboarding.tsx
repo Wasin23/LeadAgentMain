@@ -962,7 +962,7 @@ function ChoosePresetStep({
         <textarea
           value={specialInstructions}
           onChange={(e) => onInstructionsChange(e.target.value)}
-          placeholder="Example: Focus on companies that use GPU compute services. Only contact leads who work with AI/ML infrastructure. Emphasize our cost savings and performance improvements..."
+          placeholder="Example: Target CTOs at Series A startups in healthcare tech. Focus on pain points around scaling engineering teams and infrastructure costs. Keep tone professional but friendly."
           className="w-full px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium placeholder:text-neutral-400 min-h-[120px] resize-y"
           maxLength={1000}
         />
@@ -1177,11 +1177,11 @@ function ChoosePresetStep({
             <div className="flex items-center justify-between">
               <span className="text-white font-medium">Estimated Cost:</span>
               <span className="text-green-400 font-bold text-xl">
-                ${((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 0.12).toFixed(2)} per cycle
+                ${((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 0.18).toFixed(2)} per cycle
               </span>
             </div>
             <p className="text-white/70 text-sm mt-2">
-              ~$0.12 per lead • {settings.leadsPerCycle || 0} leads = ${((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 0.12).toFixed(2)}
+              ~$0.18 per lead • {settings.leadsPerCycle || 0} leads = ${((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 0.18).toFixed(2)}
             </p>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ExclamationTriangleIcon, GiftIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import api from '@/lib/api';
 
@@ -20,20 +20,33 @@ export default function TrialCreditBanner() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [credits, setCredits] = useState<TrialCredits | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
+  const [hasCompanyProfile, setHasCompanyProfile] = useState<boolean | null>(null);
 
-  // Only show in main app, not during onboarding or landing page
+  // Only show in main app after onboarding is complete
   const isMainApp = pathname?.startsWith('/dashboard') || pathname?.startsWith('/settings') || pathname?.startsWith('/agents');
 
   useEffect(() => {
-    if (user) {
+    if (user && isMainApp) {
+      checkCompanyProfile();
       fetchCredits();
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isMainApp]);
+
+  const checkCompanyProfile = async () => {
+    try {
+      const response = await api.get('/api/company-profile/check');
+      setHasCompanyProfile(response.data.hasProfile);
+    } catch (error) {
+      console.error('Failed to check company profile:', error);
+      setHasCompanyProfile(true); // Assume has profile on error to show banner
+    }
+  };
 
   const fetchCredits = async () => {
     try {
@@ -48,7 +61,8 @@ export default function TrialCreditBanner() {
     }
   };
 
-  if (!user || loading || !credits || credits.paymentMethodAdded || dismissed || !isMainApp) {
+  // Hide during onboarding (no company profile yet)
+  if (!user || loading || !credits || credits.paymentMethodAdded || dismissed || !isMainApp || !hasCompanyProfile) {
     return null;
   }
 
@@ -75,10 +89,9 @@ export default function TrialCreditBanner() {
   };
 
   return (
-    <div className={`${getBackgroundColor()} text-white px-4 py-3 relative`}>
+    <div className={`${getBackgroundColor()} text-white px-6 py-4 relative`} style={{ zIndex: 50 }}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {credits.limitReached ? (
+        <div className="flex items-center gap-3">{credits.limitReached ? (
             <XCircleIcon className="w-6 h-6 flex-shrink-0" />
           ) : credits.warningThreshold ? (
             <ExclamationTriangleIcon className="w-6 h-6 flex-shrink-0" />

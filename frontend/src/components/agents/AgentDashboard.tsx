@@ -2052,7 +2052,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             : 'bg-yellow-500'
                         }`} />
                         <div className="flex-1">
-                          <h4 className="text-sm font-semibold text-neutral-800 mb-1">AI Confidence Report</h4>
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-semibold text-neutral-800">AI Confidence Report</h4>
+                            <span className="text-xs text-neutral-500 italic">Note: This report does not send with the email</span>
+                          </div>
                           <div className="text-sm text-neutral-700 leading-relaxed prose prose-sm max-w-none">
                             <ReactMarkdown
                               components={{
