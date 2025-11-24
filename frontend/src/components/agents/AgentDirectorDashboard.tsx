@@ -155,6 +155,7 @@ interface Agent {
   meetingsScheduled: number;
   lastRun?: string;
   nextCycleTime?: string;
+  currentActivity?: string;
   personality?: {
     type: string;
     name: string;
@@ -1119,6 +1120,17 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       try {
         const data = JSON.parse(event.data);
         handleMonitoringEvent(data);
+        
+        // Handle agent activity updates for Director dashboard cards
+        if (data.type === 'agent_activity' && data.agentId) {
+          setAgents(prevAgents => 
+            prevAgents.map(agent => 
+              agent.id === data.agentId
+                ? { ...agent, currentActivity: data.details }
+                : agent
+            )
+          );
+        }
       } catch (error) {
         console.error('📊 [MONITORING] Failed to parse event:', error);
       }
@@ -1904,11 +1916,16 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                       ) : (
                         <div className="text-xl">🤖</div>
                       )}
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm text-neutral-900">{agent.name}</h3>
                         <p className="text-xs text-neutral-500">
                           {agent.personality?.name || 'Standard Agent'}
                         </p>
+                        {agent.currentActivity && agent.status === 'running' && (
+                          <p className="text-xs text-blue-600 mt-1 truncate" title={agent.currentActivity}>
+                            {agent.currentActivity}
+                          </p>
+                        )}
                       </div>
                     </div>
                     

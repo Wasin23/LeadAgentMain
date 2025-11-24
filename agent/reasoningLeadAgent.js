@@ -527,6 +527,45 @@ IMPORTANT RULES:
       status: status,
       data: data
     });
+
+    // Broadcast specific operations via SSE for Director dashboard cards
+    const broadcastableOperations = [
+      'Lead Search',
+      'Lead Processing', 
+      'Email Processing',
+      'Lead Complete',
+      '💭 Agent Activity',
+      '✅ Process Complete'
+    ];
+
+    if (broadcastableOperations.includes(operation)) {
+      this.broadcastAgentActivity({
+        agentId: this.agentId,
+        operation,
+        details,
+        status,
+        timestamp: logEntry.timestamp
+      }).catch(err => {
+        console.error('⚠️ [SSE] Failed to broadcast agent activity:', err.message);
+      });
+    }
+  }
+
+  // Broadcast agent activity to SSE clients
+  async broadcastAgentActivity(activityData) {
+    try {
+      const { broadcastActivity } = await import('../routes/monitoring.js');
+      broadcastActivity({
+        type: 'agent_activity',
+        agentId: activityData.agentId,
+        operation: activityData.operation,
+        details: activityData.details,
+        status: activityData.status,
+        timestamp: activityData.timestamp
+      });
+    } catch (error) {
+      console.error('❌ [SSE BROADCAST] Error:', error);
+    }
   }
 
   getOperationLogs() {
