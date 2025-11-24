@@ -100,44 +100,23 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    let customerId = user.stripeCustomerId;
-    
-    // Create Stripe customer if doesn't exist
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          userId: userId,
-          username: user.username
-        }
-      });
-      customerId = customer.id;
-      
-      await awsManager.updateUser(userId, {
-        stripeCustomerId: customerId
-      });
-    }
-    
-    // Attach payment method to customer
-    try {
-      await stripe.paymentMethods.attach(paymentMethodId, {
-        customer: customerId
-      });
-      console.log('✅ [BILLING] Payment method attached successfully');
-    } catch (attachError) {
-      // If already attached to THIS customer, that's fine - just continue
-      if (attachError.message?.includes('already been attached')) {
-        console.log('⚠️ [BILLING] Payment method already attached to this customer, continuing...');
-        // Verify it's actually attached to THIS customer
-        const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-        if (paymentMethod.customer !== customerId) {
-          // Attached to different customer - this payment method can't be reused
-          throw new Error('This payment method is attached to a different account. Please enter your card details again to create a new payment method.');
-        }
-      } else if (attachError.code !== 'resource_missing') {
-        throw attachError;
+    // ALWAYS create a fresh Stripe customer to avoid any conflicts
+    console.log('🔄 [BILLING] Creating fresh Stripe customer...');
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: {
+        userId: userId,
+        username: user.username
       }
-    }
+    });
+    const customerId = customer.id;
+    console.log('✅ [BILLING] Fresh customer created:', customerId);
+    
+    // Attach payment method to new customer
+    await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customerId
+    });
+    console.log('✅ [BILLING] Payment method attached successfully');
     
     // Set as default payment method
     await stripe.customers.update(customerId, {

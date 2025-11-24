@@ -52,7 +52,12 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
       });
 
       if (stripeError) {
-        setError(stripeError.message || 'Failed to add card');
+        const errorMsg = stripeError.message || 'Failed to add card';
+        if (errorMsg.toLowerCase().includes('too many')) {
+          setError('Too many attempts. Please close this form and try again in a moment, or refresh the page.');
+        } else {
+          setError(errorMsg);
+        }
       } else if (setupIntent?.payment_method) {
         // Add payment method (sets paymentMethodAdded=true in users table)
         await api.post('/api/billing/add-payment-method', {
@@ -61,7 +66,12 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
         onSuccess();
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to add card');
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Failed to add card';
+      if (errorMsg.toLowerCase().includes('different account')) {
+        setError('This card was previously used. Please close this form, reopen it, and enter your card details again to create a fresh payment method.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
