@@ -194,9 +194,7 @@ const RateLimitSettings: React.FC = () => {
           <div className="flex justify-between text-sm text-blue-100 mb-1">
             <span>{budgetUsedPercent.toFixed(1)}% used</span>
             <span>
-              ${trialCredits && !trialCredits.paymentMethodAdded 
-                ? trialCredits.creditsRemaining 
-                : remainingBudget.toFixed(2)} remaining
+              ${remainingBudget.toFixed(2)} remaining
             </span>
           </div>
           <div className="w-full bg-blue-400/30 rounded-full h-3">

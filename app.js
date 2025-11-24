@@ -294,7 +294,12 @@ app.use((req, res, next) => {
     '/api/lead-agent/api-usage/timeseries',
     '/api/lead-agent/rate-limits',
     '/api/lead-agent/api-usage',
-    '/api/zilliz-tracking/internal/events'
+    '/api/zilliz-tracking/internal/events',
+    '/api/issues',
+    '/api/notifications/count',
+    '/api/email-queue/queue',
+    '/api/email-queue/sent',
+    '/api/email-queue/replied'
   ];
   
   if (!pollingEndpoints.includes(req.path)) {

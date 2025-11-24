@@ -5,6 +5,7 @@ import { PlusIcon, ChatBubbleLeftRightIcon, ChartBarIcon, BellIcon, BoltIcon, Co
 import { motion, AnimatePresence } from 'framer-motion';
 import AgentPersonalitySelector, { PersonalityType } from './AgentPersonalitySelector';
 import api from '../../lib/api';
+import ReactMarkdown from 'react-markdown';
 
 // Live counter component - fetches count on mount
 const LiveCounter = ({ agentId, type, onClick }: { agentId: string; type: 'queued' | 'sent'; onClick: (e: React.MouseEvent) => void }) => {
@@ -36,7 +37,44 @@ const LiveCounter = ({ agentId, type, onClick }: { agentId: string; type: 'queue
   );
 };
 
-// Basic counter for monitoring panel - fetches from all agents
+// Live total counter - sums counts from all agents
+const LiveTotalCounter = ({ agents, type }: { agents: Agent[]; type: 'queued' | 'sent' | 'replied' }) => {
+  const [count, setCount] = useState<number>(0);
+  
+  useEffect(() => {
+    const fetchTotalCount = async () => {
+      try {
+        let total = 0;
+        await Promise.all(
+          agents.map(async (agent) => {
+            try {
+              let endpoint = '';
+              if (type === 'queued') endpoint = `/api/email-queue/queue?agentId=${agent.id}`;
+              else if (type === 'sent') endpoint = `/api/email-queue/sent?agentId=${agent.id}`;
+              else if (type === 'replied') endpoint = `/api/email-queue/replied?agentId=${agent.id}`;
+              
+              const response = await api.get(endpoint);
+              total += Array.isArray(response.data) ? response.data.length : 0;
+            } catch {
+              // Skip failed requests
+            }
+          })
+        );
+        setCount(total);
+      } catch {
+        setCount(0);
+      }
+    };
+    
+    if (agents.length > 0) {
+      fetchTotalCount();
+    }
+  }, [agents, type]);
+  
+  return <>{count}</>;
+};
+
+// Basic counter for monitoring panel - fetches from all agents (deprecated, use LiveTotalCounter)
 const BasicCounter = ({ type }: { type: 'queued' | 'sent' | 'replied' }) => {
   const [count, setCount] = useState<number>(0);
   
@@ -1095,6 +1133,19 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   // Prevent concurrent fetches
   const isFetchingRef = useRef(false);
 
+  // Disable body scroll when modals are open
+  useEffect(() => {
+    if (selectedQueue || selectedEmailDetail || showInstructionsModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedQueue, selectedEmailDetail, showInstructionsModal]);
+
   useEffect(() => {
     fetchAgents();
     
@@ -1113,6 +1164,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     
     eventSource.onopen = () => {
       console.log('📊 [MONITORING] Connected to monitoring stream');
+      console.log('📊 [MONITORING] Current agents state:', agents.length, 'agents');
       setMonitoringConnected(true);
     };
     
@@ -1122,11 +1174,19 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
         handleMonitoringEvent(data);
         
         // Handle agent activity updates for Director dashboard cards
-        if (data.type === 'agent_activity' && data.agentId) {
+        // Check both top-level and nested data for agent_activity type
+        const activityData = data.type === 'agent_activity' ? data : 
+                            (data.type === 'activity_added' && data.data?.type === 'agent_activity') ? data.data : 
+                            null;
+        
+        if (activityData && activityData.agentId) {
+          // Use concise cardMessage if available, fallback to details
+          const displayMessage = activityData.cardMessage || activityData.details;
+          console.log('📊 [AGENT ACTIVITY]', activityData.agentId, displayMessage);
           setAgents(prevAgents => 
             prevAgents.map(agent => 
-              agent.id === data.agentId
-                ? { ...agent, currentActivity: data.details }
+              agent.id === activityData.agentId
+                ? { ...agent, currentActivity: displayMessage }
                 : agent
             )
           );
@@ -1354,7 +1414,6 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       
       // Refresh the queue
       fetchQueueEmails(selectedQueue.agentId, selectedQueue.type);
-      fetchAgents(); // Refresh agent stats
       refreshMonitoringMetrics(); // Refresh monitoring metrics
     } catch (error) {
       console.error('Error approving email:', error);
@@ -1374,7 +1433,6 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       
       // Refresh the queue
       fetchQueueEmails(selectedQueue.agentId, selectedQueue.type);
-      fetchAgents(); // Refresh agent stats
       refreshMonitoringMetrics(); // Refresh monitoring metrics
     } catch (error) {
       console.error('Error rejecting email:', error);
@@ -1437,6 +1495,9 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               console.error(`Error fetching status for agent ${agent.agentId}:`, error);
             }
             
+            // Preserve currentActivity from existing state
+            const existingAgent = agents.find(a => a.id === agent.agentId);
+            
             return {
               id: agent.agentId,
               name: agent.name,
@@ -1447,7 +1508,8 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               lastRun: agent.lastRun,
               personality: agent.personality,
               nextCycleTime: agent.nextCycleTime,
-              specialInstructions: agent.specialInstructions || ''
+              specialInstructions: agent.specialInstructions || '',
+              currentActivity: existingAgent?.currentActivity || (isRunning ? 'Thinking' : undefined) // Show "Thinking" for running agents until SSE updates
             };
           })
         );
@@ -1760,7 +1822,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   >
                     <div className="text-center">
                       <div className="text-lg font-bold text-neutral-900">
-                        <BasicCounter type="queued" />
+                        <LiveTotalCounter agents={agents} type="queued" />
                       </div>
                       <div className="text-[10px] text-neutral-600 uppercase">
                         Queued
@@ -1775,7 +1837,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   >
                     <div className="text-center">
                       <div className="text-lg font-bold text-neutral-900">
-                        <BasicCounter type="sent" />
+                        <LiveTotalCounter agents={agents} type="sent" />
                       </div>
                       <div className="text-[10px] text-neutral-600 uppercase">
                         Sent
@@ -1790,7 +1852,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   >
                     <div className="text-center">
                       <div className="text-lg font-bold text-neutral-900">
-                        <BasicCounter type="replied" />
+                        <LiveTotalCounter agents={agents} type="replied" />
                       </div>
                       <div className="text-[10px] text-neutral-600 uppercase">
                         Replied
@@ -1906,50 +1968,60 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 >
                   {/* Agent Header */}
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       {agent.personality?.avatar ? (
                         <img 
                           src={agent.personality.avatar} 
                           alt={agent.personality.name || agent.name}
-                          className="w-9 h-9 rounded-full object-cover"
+                          className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="text-xl">🤖</div>
+                        <div className="text-xl flex-shrink-0">🤖</div>
                       )}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm text-neutral-900">{agent.name}</h3>
                         <p className="text-xs text-neutral-500">
                           {agent.personality?.name || 'Standard Agent'}
                         </p>
-                        {agent.currentActivity && agent.status === 'running' && (
-                          <p className="text-xs text-blue-600 mt-1 truncate" title={agent.currentActivity}>
-                            {agent.currentActivity}
-                          </p>
-                        )}
                       </div>
                     </div>
                     
                     {/* Status Badge or Countdown Timer */}
-                    {agent.status === 'running' && agent.nextCycleTime ? (
-                      <CountdownBadge nextCycleTime={agent.nextCycleTime} />
-                    ) : (
-                      <div className={`px-2 py-0.5 rounded text-xs font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500 ${
-                        agent.status === 'running' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-neutral-200 text-neutral-600'
-                      }`}>
-                        <span className="inline-flex items-center gap-1.5">
-                          {agent.status === 'running' && (
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                            </span>
-                          )}
-                          {agent.status === 'running' ? 'Active' : 'Stopped'}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex-shrink-0">
+                      {agent.status === 'running' && agent.nextCycleTime ? (
+                        <CountdownBadge nextCycleTime={agent.nextCycleTime} />
+                      ) : (
+                        <div className={`px-2 py-0.5 rounded text-xs font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500 ${
+                          agent.status === 'running' 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-neutral-200 text-neutral-600'
+                        }`}>
+                          <span className="inline-flex items-center gap-1.5">
+                            {agent.status === 'running' && (
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                              </span>
+                            )}
+                            {agent.status === 'running' ? 'Active' : 'Stopped'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Activity Message - Separate Row */}
+                  {agent.currentActivity && agent.status === 'running' && (
+                    <div className="flex items-center gap-1.5 mb-2 -mt-1">
+                      <svg className="animate-spin h-3 w-3 text-neutral-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-xs text-neutral-400 break-words" title={agent.currentActivity}>
+                        {agent.currentActivity}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-3 gap-2">
@@ -2130,7 +2202,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       {/* Email Detail Modal */}
       {selectedEmailDetail && (
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] flex flex-col shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
               <div>
@@ -2152,6 +2224,46 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
+                {/* AI Confidence Report Box */}
+                {(selectedEmailDetail.confidenceReport || selectedEmailDetail.emailData?.confidenceReport) && (
+                  <div className="mb-4">
+                    <div className={`p-4 rounded-lg border-2 ${
+                      (selectedEmailDetail.confidenceLevel || selectedEmailDetail.emailData?.confidenceLevel) === 'high' 
+                        ? 'bg-green-50 border-green-300' 
+                        : (selectedEmailDetail.confidenceLevel || selectedEmailDetail.emailData?.confidenceLevel) === 'low'
+                        ? 'bg-red-50 border-red-300'
+                        : 'bg-yellow-50 border-yellow-300'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                          (selectedEmailDetail.confidenceLevel || selectedEmailDetail.emailData?.confidenceLevel) === 'high' 
+                            ? 'bg-green-500' 
+                            : (selectedEmailDetail.confidenceLevel || selectedEmailDetail.emailData?.confidenceLevel) === 'low'
+                            ? 'bg-red-500'
+                            : 'bg-yellow-500'
+                        }`} />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-semibold text-neutral-800">AI Confidence Report</h4>
+                            <span className="text-xs text-neutral-500 italic">Note: This report does not send with the email</span>
+                          </div>
+                          <div className="text-sm text-neutral-700 leading-relaxed prose prose-sm max-w-none">
+                            <ReactMarkdown
+                              components={{
+                                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                                em: ({node, ...props}) => <em className="italic" {...props} />,
+                              }}
+                            >
+                              {selectedEmailDetail.confidenceReport || selectedEmailDetail.emailData?.confidenceReport}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-xs font-medium text-neutral-600 uppercase">To</label>
                   <p className="text-sm text-neutral-900 mt-1">{selectedEmailDetail.to}</p>
@@ -2201,7 +2313,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 
                 <div>
                   <label className="text-xs font-medium text-neutral-600 uppercase">Email Body</label>
-                  <div className="mt-2 p-4 bg-neutral-50 rounded text-sm text-neutral-900 whitespace-pre-wrap">
+                  <div className="mt-2 p-4 bg-neutral-50 rounded text-sm text-neutral-900 whitespace-pre-wrap break-words overflow-wrap-anywhere">
                     {selectedEmailDetail.body || selectedEmailDetail.text || 'No content'}
                   </div>
                 </div>
@@ -2221,24 +2333,58 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
             {/* Footer with actions */}
             {selectedQueue?.type === 'queued' && (
+              <div className="p-6 border-t bg-neutral-50 flex items-center justify-between gap-3">
+                <button
+                  onClick={() => {
+                    const agentId = selectedEmailDetail._agentInfo?.id || selectedEmailDetail.agentId;
+                    const emailId = selectedEmailDetail.id;
+                    setSelectedEmailDetail(null);
+                    setSelectedQueue(null);
+                    onSelectAgent(agentId);
+                    // Store email ID to be opened by AgentDashboard
+                    sessionStorage.setItem('openEmailId', emailId);
+                  }}
+                  className="px-4 py-2 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700 transition-colors font-medium"
+                >
+                  Take me to email
+                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      handleRejectEmail(selectedEmailDetail.id, selectedEmailDetail._agentInfo?.id);
+                      setSelectedEmailDetail(null);
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleApproveEmail(selectedEmailDetail.id, selectedEmailDetail._agentInfo?.id);
+                      setSelectedEmailDetail(null);
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  >
+                    Approve & Send
+                  </button>
+                </div>
+              </div>
+            )}
+            {selectedQueue?.type === 'sent' && (
               <div className="p-6 border-t bg-neutral-50 flex items-center justify-end gap-3">
                 <button
                   onClick={() => {
-                    handleRejectEmail(selectedEmailDetail.id, selectedEmailDetail._agentInfo?.id);
+                    const agentId = selectedEmailDetail._agentInfo?.id || selectedEmailDetail.agentId;
+                    const emailId = selectedEmailDetail.id;
                     setSelectedEmailDetail(null);
+                    setSelectedQueue(null);
+                    onSelectAgent(agentId);
+                    // Store email ID to be opened by AgentDashboard
+                    sessionStorage.setItem('openEmailId', emailId);
                   }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                  className="px-4 py-2 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700 transition-colors font-medium"
                 >
-                  Reject
-                </button>
-                <button
-                  onClick={() => {
-                    handleApproveEmail(selectedEmailDetail.id, selectedEmailDetail._agentInfo?.id);
-                    setSelectedEmailDetail(null);
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                >
-                  Approve & Send
+                  Take me to email
                 </button>
               </div>
             )}

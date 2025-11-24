@@ -789,10 +789,32 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         console.log('  - email.leadInfo?.company:', response.data[0]?.leadInfo?.company);
         console.log('  - email.leadData?.company:', response.data[0]?.leadData?.company);
         setEmailQueue(response.data);
+        
+        // Check if there's an email ID to open from director dashboard
+        const openEmailId = sessionStorage.getItem('openEmailId');
+        if (openEmailId) {
+          const emailToOpen = response.data.find((email: any) => email.id === openEmailId);
+          if (emailToOpen) {
+            setSelectedEmail(emailToOpen);
+            setShowEmailQueue(true);
+          }
+          sessionStorage.removeItem('openEmailId');
+        }
       } else if (response.data && response.data.data && Array.isArray(response.data.data.pending)) {
         // Handle the formatted response structure
         console.log('📧 [EMAIL QUEUE] First email structure (nested):', response.data.data.pending[0]);
         setEmailQueue(response.data.data.pending);
+        
+        // Check if there's an email ID to open from director dashboard
+        const openEmailId = sessionStorage.getItem('openEmailId');
+        if (openEmailId) {
+          const emailToOpen = response.data.data.pending.find((email: any) => email.id === openEmailId);
+          if (emailToOpen) {
+            setSelectedEmail(emailToOpen);
+            setShowEmailQueue(true);
+          }
+          sessionStorage.removeItem('openEmailId');
+        }
       } else {
         setEmailQueue([]);
       }

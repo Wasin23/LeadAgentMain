@@ -52,7 +52,34 @@ export default function TrialCreditBanner() {
     try {
       const response = await api.get('/api/billing/trial-credits');
       if (response.data.success) {
-        setCredits(response.data.credits);
+        const trialData = response.data.credits;
+        
+        // Fetch actual spending from API usage logs (same as billing UI)
+        const spendingResponse = await api.get('/api/lead-agent/api-usage/total');
+        if (spendingResponse.data.success) {
+          const actualSpent = 
+            (spendingResponse.data.stats?.apollo?.cost || 0) +
+            (spendingResponse.data.stats?.openai?.cost || 0) +
+            (spendingResponse.data.stats?.mailgun?.cost || 0) +
+            (spendingResponse.data.stats?.zerobounce?.cost || 0) +
+            (spendingResponse.data.stats?.serper?.cost || 0);
+          
+          // Override with actual spending data
+          const creditsLimit = trialData.creditsLimit;
+          const creditsRemaining = Math.max(0, creditsLimit - actualSpent);
+          const percentageUsed = (actualSpent / creditsLimit) * 100;
+          
+          setCredits({
+            ...trialData,
+            creditsUsed: actualSpent.toFixed(2),
+            creditsRemaining: creditsRemaining.toFixed(2),
+            percentageUsed: percentageUsed.toFixed(1),
+            limitReached: actualSpent >= creditsLimit,
+            warningThreshold: percentageUsed >= 80
+          });
+        } else {
+          setCredits(trialData);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch trial credits:', error);

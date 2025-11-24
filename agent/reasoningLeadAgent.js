@@ -555,11 +555,16 @@ IMPORTANT RULES:
   async broadcastAgentActivity(activityData) {
     try {
       const { broadcastActivity } = await import('../routes/monitoring.js');
+      
+      // Create concise card message
+      const cardMessage = this.translateToConciseCardMessage(activityData.operation, activityData.details);
+      
       broadcastActivity({
         type: 'agent_activity',
         agentId: activityData.agentId,
         operation: activityData.operation,
-        details: activityData.details,
+        details: activityData.details, // Full details for activity logs
+        cardMessage: cardMessage, // Concise message for cards
         status: activityData.status,
         timestamp: activityData.timestamp
       });
@@ -620,13 +625,50 @@ IMPORTANT RULES:
       'apollo_search': `🔍 Searching for ${context.targetLeads || 'new'} qualified leads in your target industries`,
       'serper_research': `🔬 Researching ${context.currentLead?.company || 'company'} to personalize outreach`,
       'unlock_email': `🔓 Finding email address for ${context.currentLead?.name || 'contact'}`,
-      'build_personalized_email': `✍️ Writing personalized email for ${context.currentLead?.name || 'lead'} at ${context.currentLead?.company || 'company'}`,
+      'build_personalized_email': `✍️ Writing personalized email for ${context.currentLead?.name || 'lead'}${context.currentLead?.company ? ` at ${context.currentLead.company}` : ''}`,
       'queue_email': `📤 Scheduling email to ${context.currentLead?.name || 'contact'}`,
       'think': '💭 Analyzing next steps...',
       'complete': '✅ Finished processing leads'
     };
     
     return messages[action] || `⚙️ ${action}`;
+  }
+
+  // Translate operations to concise card messages (no emojis, simplified)
+  translateToConciseCardMessage(operation, details) {
+    // Strip emojis first
+    const cleaned = details.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+    
+    // Extract lead name if present
+    const leadNameMatch = cleaned.match(/(?:for|researching lead:|email for)\s+([^\s]+)/i);
+    const leadName = leadNameMatch ? leadNameMatch[1] : null;
+    
+    let message = '';
+    
+    // Check operation name first
+    if (operation === 'pre_qualification' || operation === 'detailed_qualification' || 
+        operation === 'Lead Processing' || operation.includes('Pre-Check') || 
+        operation.includes('Qualification') || cleaned.toLowerCase().includes('qualifying')) {
+      message = 'Qualifying lead';
+    } else if (operation === 'email_generation' || operation === 'Email Processing' || 
+               operation.includes('EMAIL') || cleaned.toLowerCase().includes('writing') || 
+               cleaned.toLowerCase().includes('personalized email')) {
+      message = leadName ? `Writing email for ${leadName}` : 'Writing email';
+    } else if (operation === 'Action Execution' && cleaned.includes('settings')) {
+      message = 'Loading settings';
+    } else if (operation === 'Lead Search' || cleaned.includes('SEARCH') || cleaned.toLowerCase().includes('searching')) {
+      message = 'Searching for leads';
+    } else if (operation === 'Lead Complete' || cleaned.toLowerCase().includes('completed')) {
+      message = leadName ? `Completed ${leadName}` : 'Lead complete';
+    } else {
+      // Take first 8 words
+      const words = cleaned.split(/\s+/).slice(0, 8);
+      message = words.join(' ');
+    }
+    
+    // Enforce 8 word maximum on all messages
+    const finalWords = message.split(/\s+/).slice(0, 8);
+    return finalWords.join(' ');
   }
 
   // Get agent personality data from AWS
