@@ -1383,6 +1383,7 @@ class AWSManager {
     const baseDelay = 1000; // 1 second
     
     try {
+      // Use Query with GSI for fast lookups by agentId
       const params = {
         TableName: this.tables.apiUsage,
         IndexName: 'agentId-timestamp-index',

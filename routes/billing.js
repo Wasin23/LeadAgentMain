@@ -159,12 +159,21 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       }
     }
     
-    // Set as default payment method
-    await stripe.customers.update(customerId, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId
-      }
+    // Check if this is the first payment method and set as default
+    const existingPaymentMethods = await stripe.paymentMethods.list({
+      customer: customerId,
+      type: 'card'
     });
+    
+    if (existingPaymentMethods.data.length === 1) {
+      // This is the first payment method, set as default
+      await stripe.customers.update(customerId, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId
+        }
+      });
+      console.log('✅ [BILLING] Set first payment method as default');
+    }
     
     // Update user to indicate payment method added and save customer ID
     console.log('🔵 [BILLING] Updating user with paymentMethodAdded=true...');
