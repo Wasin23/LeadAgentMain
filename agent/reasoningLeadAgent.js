@@ -5189,6 +5189,11 @@ Target Positions:`;
           const memoryData = await this.leadMemory.loadKeywordPerformance(this.userId);
           
           if (memoryData.success && memoryData.count > 0) {
+            // Ensure industryExhaustion exists before restoring
+            if (!this.memory.industryExhaustion) {
+              this.memory.industryExhaustion = {};
+            }
+            
             // Restore memory into industryExhaustion tracker
             Object.keys(memoryData.performanceMap).forEach(keyword => {
               const data = memoryData.performanceMap[keyword];
