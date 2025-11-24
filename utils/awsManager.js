@@ -1297,9 +1297,15 @@ class AWSManager {
    */
   async updateApiUsageSummary(userId, service, usage, cost) {
     try {
+      // Get current month in YYYY-MM format
+      const month = new Date().toISOString().slice(0, 7);
+      
       const command = new UpdateCommand({
         TableName: this.tables.apiUsageSummary,
-        Key: { userId },
+        Key: { 
+          userId,
+          month
+        },
         UpdateExpression: 'ADD #service.#usage :usage, #service.#calls :calls, #service.#cost :cost SET updatedAt = :timestamp',
         ExpressionAttributeNames: {
           '#service': service,
@@ -1316,7 +1322,7 @@ class AWSManager {
       });
 
       await this.dynamodb.send(command);
-      console.log(`✅ [SUMMARY] Updated ${service} totals for user ${userId}`);
+      console.log(`✅ [SUMMARY] Updated ${service} totals for user ${userId} (${month})`);
     } catch (error) {
       console.error(`❌ [SUMMARY] Failed to update summary:`, error.message);
       throw error;
@@ -1328,14 +1334,18 @@ class AWSManager {
    */
   async getUserApiUsageSummary(userId) {
     try {
-      const command = new GetCommand({
+      // Query all months for this user and aggregate
+      const command = new QueryCommand({
         TableName: this.tables.apiUsageSummary,
-        Key: { userId }
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        }
       });
 
       const result = await this.dynamodb.send(command);
       
-      if (!result.Item) {
+      if (!result.Items || result.Items.length === 0) {
         // No summary yet, return empty stats
         return {
           success: true,
@@ -1349,14 +1359,24 @@ class AWSManager {
         };
       }
 
-      // Return the aggregated stats directly from the item
+      // Aggregate across all months
       const stats = {
-        apollo: result.Item.apollo || { usage: 0, calls: 0, cost: 0 },
-        openai: result.Item.openai || { usage: 0, calls: 0, cost: 0 },
-        mailgun: result.Item.mailgun || { usage: 0, calls: 0, cost: 0 },
-        zerobounce: result.Item.zerobounce || { usage: 0, calls: 0, cost: 0 },
-        serper: result.Item.serper || { usage: 0, calls: 0, cost: 0 }
+        apollo: { usage: 0, calls: 0, cost: 0 },
+        openai: { usage: 0, calls: 0, cost: 0 },
+        mailgun: { usage: 0, calls: 0, cost: 0 },
+        zerobounce: { usage: 0, calls: 0, cost: 0 },
+        serper: { usage: 0, calls: 0, cost: 0 }
       };
+
+      result.Items.forEach(item => {
+        ['apollo', 'openai', 'mailgun', 'zerobounce', 'serper'].forEach(service => {
+          if (item[service]) {
+            stats[service].usage += item[service].usage || 0;
+            stats[service].calls += item[service].calls || 0;
+            stats[service].cost += item[service].cost || 0;
+          }
+        });
+      });
 
       return { success: true, stats };
     } catch (error) {
