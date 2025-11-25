@@ -1,8 +1,10 @@
 // Desktop email tracking routes
 import express from 'express';
 import { desktopEmailTracker } from '../utils/desktopEmailTracker.js';
+import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
+const awsManager = new AWSManager();
 
 // Tracking pixel endpoint (1x1 transparent PNG)
 router.get('/pixel/:trackingId.png', async (req, res) => {
@@ -10,8 +12,43 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
   const userAgent = req.get('User-Agent') || '';
   const ip = req.ip || req.connection.remoteAddress || '';
   
-  // Record the open
+  console.log('🔔 [TRACKING PIXEL] Endpoint hit!');
+  console.log('[TRACKING PIXEL] Tracking ID:', trackingId);
+  console.log('[TRACKING PIXEL] User Agent:', userAgent);
+  console.log('[TRACKING PIXEL] IP:', ip);
+  
+  // Record the open in old desktop tracker (for backwards compatibility)
   await desktopEmailTracker.recordOpen(trackingId, userAgent, ip);
+  
+  // NEW: Log to DynamoDB for AWS-based tracking
+  try {
+    const userId = trackingId.split('_')[0].replace('tracking-', ''); // Extract userId
+    const agentId = trackingId.split('_')[1]; // Extract agentId
+    
+    await awsManager.logEmailTracking(userId, agentId, trackingId, {
+      eventType: 'open',
+      ipAddress: ip,
+      userAgent: userAgent,
+      timestamp: new Date().toISOString()
+    });
+    console.log('✅ [TRACKING PIXEL] Logged to DynamoDB');
+    
+    // Broadcast to SSE clients for real-time UI updates
+    try {
+      const { broadcastAIResponse } = await import('./outreach.js');
+      broadcastAIResponse(userId, agentId, {
+        type: 'tracking_update',
+        trackingId: trackingId,
+        eventType: 'open',
+        timestamp: new Date().toISOString()
+      });
+      console.log('✅ [TRACKING PIXEL] SSE broadcast sent');
+    } catch (sseError) {
+      console.error('[TRACKING PIXEL] SSE broadcast failed:', sseError.message);
+    }
+  } catch (dbError) {
+    console.error('❌ [TRACKING PIXEL] DynamoDB logging failed:', dbError);
+  }
   
   // Return 1x1 transparent PNG
   const pixel = Buffer.from(
