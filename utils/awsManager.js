@@ -2534,6 +2534,77 @@ class AWSManager {
     }
   }
 
+  // =======================
+  // EMAIL TRACKING METHODS
+  // =======================
+  
+  async logEmailTracking(userId, agentId, trackingId, eventData) {
+    try {
+      const timestamp = new Date().toISOString();
+      const eventId = `${trackingId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const command = new PutCommand({
+        TableName: this.tables.emailTracking,
+        Item: {
+          PK: `TRACKING#${trackingId}`,
+          SK: `EVENT#${timestamp}#${eventId}`,
+          userId,
+          agentId,
+          trackingId,
+          eventId,
+          timestamp,
+          ...eventData
+        }
+      });
+      
+      await this.dynamodb.send(command);
+      return { success: true, eventId };
+    } catch (error) {
+      console.error('❌ [AWS] Error logging email tracking:', error);
+      return { success: false, error: error.message };
+    }
+  }
+  
+  async getEmailTrackingByTracking(userId, trackingId) {
+    try {
+      const command = new QueryCommand({
+        TableName: this.tables.emailTracking,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `TRACKING#${trackingId}`
+        },
+        ScanIndexForward: true // Ascending order by SK (timestamp)
+      });
+      
+      const result = await this.dynamodb.send(command);
+      return result.Items || [];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting email tracking:', error);
+      return [];
+    }
+  }
+  
+  async getEmailTrackingByUser(userId, agentId = null, limit = 100) {
+    try {
+      const command = new ScanCommand({
+        TableName: this.tables.emailTracking,
+        FilterExpression: agentId 
+          ? 'userId = :userId AND agentId = :agentId'
+          : 'userId = :userId',
+        ExpressionAttributeValues: agentId
+          ? { ':userId': userId, ':agentId': agentId }
+          : { ':userId': userId },
+        Limit: limit
+      });
+      
+      const result = await this.dynamodb.send(command);
+      return result.Items || [];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting user email tracking:', error);
+      return [];
+    }
+  }
+
   // ====================
   // TABLE CREATION
   // ====================

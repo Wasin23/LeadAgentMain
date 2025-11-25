@@ -1084,6 +1084,198 @@ function PresetsManagement({
   );
 }
 
+// Outreach Tracking Component
+function OutreachTracking({ agents }: { agents: Agent[] }) {
+  const [viewTracking, setViewTracking] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ viewed: 0, replied: 0, meetings: 0, conversionRate: 0 });
+
+  useEffect(() => {
+    fetchOutreachData();
+  }, [agents]);
+
+  const fetchOutreachData = async () => {
+    setLoading(true);
+    try {
+      // For now, use simple fallback data until backend tracking is fully operational
+      const response = await api.get('/api/outreach/stats?timeRange=7d').catch(() => null);
+      if (response?.data?.success) {
+        setStats({
+          viewed: response.data.stats.totalOpened || 0,
+          replied: response.data.stats.totalReplies || 0,
+          meetings: response.data.stats.totalMeetingsBooked || 0,
+          conversionRate: response.data.stats.replyRate || 0
+        });
+      } else {
+        // Fallback to empty state
+        setStats({ viewed: 0, replied: 0, meetings: 0, conversionRate: 0 });
+      }
+
+      const convResponse = await api.get('/api/outreach/conversations?timeRange=7d').catch(() => null);
+      if (convResponse?.data?.success) {
+        setConversations(convResponse.data.conversations || []);
+      }
+
+      const timelineResponse = await api.get('/api/outreach/timeline?timeRange=7d').catch(() => null);
+      if (timelineResponse?.data?.success) {
+        const views = (timelineResponse.data.events || []).filter((e: any) => e.eventType === 'open');
+        setViewTracking(views);
+      }
+    } catch (error) {
+      console.error('Failed to fetch outreach data:', error);
+      // Set empty fallback data
+      setStats({ viewed: 0, replied: 0, meetings: 0, conversionRate: 0 });
+      setConversations([]);
+      setViewTracking([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 border-t-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-sm text-neutral-600 mb-1">Emails Viewed</div>
+          <div className="text-3xl font-bold text-neutral-900">{stats.viewed}</div>
+        </div>
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-sm text-neutral-600 mb-1">Conversations</div>
+          <div className="text-3xl font-bold text-blue-600">{stats.replied}</div>
+        </div>
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-sm text-neutral-600 mb-1">Meetings Booked</div>
+          <div className="text-3xl font-bold text-green-600">{stats.meetings}</div>
+        </div>
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-sm text-neutral-600 mb-1">Conversion Rate</div>
+          <div className="text-3xl font-bold text-purple-600">{stats.conversionRate.toFixed(1)}%</div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* View Tracking */}
+        <div className="bg-white border border-neutral-200 rounded-lg">
+          <div className="p-4 border-b">
+            <h3 className="font-semibold text-neutral-900">View Tracking</h3>
+            <p className="text-sm text-neutral-600">Emails that have been opened</p>
+          </div>
+          <div className="p-4 max-h-96 overflow-y-auto">
+            {viewTracking.length === 0 ? (
+              <div className="text-center py-8 text-neutral-500">No views yet</div>
+            ) : (
+              <div className="space-y-2">
+                {viewTracking.map((view, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-neutral-50 rounded">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-neutral-900 truncate">{view.recipientEmail}</div>
+                      {view.agentName && <div className="text-xs text-neutral-500">{view.agentName}</div>}
+                    </div>
+                    <div className="text-xs text-neutral-500">{formatTime(view.timestamp)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Conversations */}
+        <div className="bg-white border border-neutral-200 rounded-lg">
+          <div className="p-4 border-b">
+            <h3 className="font-semibold text-neutral-900">Reply Log</h3>
+            <p className="text-sm text-neutral-600">Active conversations with leads</p>
+          </div>
+          <div className="p-4 max-h-96 overflow-y-auto">
+            {conversations.length === 0 ? (
+              <div className="text-center py-8 text-neutral-500">No conversations yet</div>
+            ) : (
+              <div className="space-y-2">
+                {conversations.map((conv, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => setSelectedConversation(conv)}
+                    className="p-3 bg-neutral-50 rounded hover:bg-neutral-100 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="font-medium text-sm text-neutral-900">{conv.leadName}</div>
+                      <div className="text-xs text-neutral-500">{formatTime(conv.lastActivity)}</div>
+                    </div>
+                    <div className="text-xs text-neutral-600 truncate">{conv.leadEmail}</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs text-neutral-500">Agent: {conv.agentName}</span>
+                      <span className="text-xs text-neutral-400">• {conv.messageCount} messages</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Conversation Modal */}
+      {selectedConversation && (
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedConversation(null)}>
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-neutral-900">{selectedConversation.leadName}</h2>
+                  <p className="text-sm text-neutral-600">{selectedConversation.leadEmail}</p>
+                </div>
+                <button onClick={() => setSelectedConversation(null)} className="text-neutral-400 hover:text-neutral-600">
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {selectedConversation.messages.map((msg: any, idx: number) => (
+                <div key={idx} className={`${msg.type === 'outbound' || msg.type === 'ai_response' ? 'ml-8' : 'mr-8'}`}>
+                  <div className={`rounded-lg p-4 ${
+                    msg.type === 'outbound' ? 'bg-blue-50 border border-blue-200' :
+                    msg.type === 'reply' ? 'bg-neutral-100 border border-neutral-200' :
+                    'bg-orange-50 border border-orange-200'
+                  }`}>
+                    <div className="text-xs font-medium text-neutral-600 mb-2">
+                      {msg.type === 'outbound' ? 'Sent' : msg.type === 'reply' ? selectedConversation.leadName : 'AI Response'}
+                      {' • '}{formatTime(msg.timestamp)}
+                    </div>
+                    <p className="text-sm text-neutral-700 whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorDashboardProps) {
   const [showPersonalitySelector, setShowPersonalitySelector] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);

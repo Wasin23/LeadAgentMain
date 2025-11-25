@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { 
   ChartBarIcon, 
-  BellIcon, 
+  EnvelopeIcon, 
   Cog6ToothIcon,
   BoltIcon,
   CurrencyDollarIcon,
@@ -14,7 +14,7 @@ import {
   CpuChipIcon
 } from '@heroicons/react/24/outline';
 
-export type MonitoringView = 'overview' | 'analytics' | 'agents' | 'integrations' | 'logs' | 'search' | 'report' | 'memory';
+export type MonitoringView = 'overview' | 'analytics' | 'agents' | 'integrations' | 'logs' | 'memory' | 'outreach';
 
 interface MonitoringSidebarProps {
   activeView: MonitoringView;
@@ -40,8 +40,7 @@ export default function MonitoringSidebar({
     badge?: number;
   }> = [
     { id: 'overview', icon: Squares2X2Icon, label: 'Overview' },
-    { id: 'search', icon: MagnifyingGlassIcon, label: 'Lead Search' },
-    { id: 'report', icon: SparklesIcon, label: 'AI Report' },
+    { id: 'outreach', icon: EnvelopeIcon, label: 'Outreach' },
     { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
     { id: 'agents', icon: BoltIcon, label: 'Agents' },
     { id: 'memory', icon: CpuChipIcon, label: 'Keyword Memory' },

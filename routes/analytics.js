@@ -1,10 +1,12 @@
 import express from 'express';
 import { updateEmailAnalytics } from '../tools/emailMailgun.js';
 import { authenticateToken } from '../middleware/jwt.js';
+import { AWSManager } from '../utils/awsManager.js';
 import fs from 'fs/promises';
 import path from 'path';
 
 const router = express.Router();
+const awsManager = new AWSManager();
 
 // Debug endpoint to test tracking pixel HTML generation
 router.get('/debug/email-html/:trackingId', async (req, res) => {
@@ -72,6 +74,20 @@ router.get('/track/open/:trackingId', async (req, res) => {
         lastActivity: new Date().toISOString(),
         ipAddress: req.ip
       });
+      
+      // Log to DynamoDB for Outreach dashboard
+      try {
+        const userId = trackingId.split('_')[0]; // Extract userId from tracking ID
+        const agentId = trackingId.split('_')[2]; // Extract agentId if present
+        await awsManager.logEmailTracking(userId, agentId, trackingId, {
+          eventType: 'open',
+          ipAddress: req.ip,
+          userAgent: userAgent,
+          timestamp: new Date().toISOString()
+        });
+      } catch (dbError) {
+        console.error('[EMAIL TRACKING] DynamoDB logging failed:', dbError);
+      }
     } else {
       console.log('[EMAIL TRACKING] 🤖 Image proxy request ignored (not counted as open)');
     }
@@ -110,6 +126,19 @@ router.get('/track/click/:trackingId', async (req, res) => {
       clicked: true,
       clickCount: 1 // Will be incremented if already clicked
     });
+    
+    // Log to DynamoDB for Outreach dashboard
+    try {
+      const userId = trackingId.split('_')[0];
+      const agentId = trackingId.split('_')[2];
+      await awsManager.logEmailTracking(userId, agentId, trackingId, {
+        eventType: 'click',
+        url: url,
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      console.error('[EMAIL TRACKING] DynamoDB logging failed:', dbError);
+    }
     
     // Redirect to original URL
     if (url) {

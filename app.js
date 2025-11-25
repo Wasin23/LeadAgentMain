@@ -109,6 +109,15 @@ try {
   webhookRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import email response webhook routes (replaces Netlify function)
+let webhooksReplyRoutes;
+try {
+  webhooksReplyRoutes = (await import('./routes/webhooks-reply.js')).default;
+} catch (e) {
+  console.log('Email response webhook routes not available:', e.message);
+  webhooksReplyRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import desktop webhook routes for domain tracking
 let webhooksDesktopRoutes;
 try {
@@ -154,23 +163,9 @@ try {
   unsubscribeRoutes = (req, res, next) => next(); // No-op if not present
 }
 
-// Import AI Report routes
-let aiReportRoutes;
-try {
-  aiReportRoutes = (await import('./routes/aiReport.js')).default;
-} catch (e) {
-  console.log('AI Report routes not available:', e.message);
-  aiReportRoutes = (req, res, next) => next(); // No-op if not present
-}
-
-// Import AI Search routes
-let aiSearchRoutes;
-try {
-  aiSearchRoutes = (await import('./routes/aiSearch.js')).default;
-} catch (e) {
-  console.error('[AI SEARCH] Routes not available:', e.message);
-  aiSearchRoutes = (req, res, next) => next(); // No-op if not present
-}
+// AI Report and AI Search routes removed - unused features
+// let aiReportRoutes;
+// let aiSearchRoutes;
 
 // Import Zilliz Email Tracking routes
 let zillizTrackingRoutes;
@@ -224,6 +219,15 @@ try {
 } catch (e) {
   console.log('System management routes not available:', e.message);
   systemRoutes = (req, res, next) => next(); // No-op if not present
+}
+
+// Import Outreach routes
+let outreachRoutes;
+try {
+  outreachRoutes = (await import('./routes/outreach.js')).default;
+} catch (e) {
+  console.log('Outreach routes not available:', e.message);
+  outreachRoutes = (req, res, next) => next(); // No-op if not present
 }
 
 const app = express();
@@ -474,9 +478,13 @@ try {
 }
 
 app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe management
-app.use('/api/ai-report', aiReportRoutes); // AI-powered performance reports
-app.use('/api/ai-search', aiSearchRoutes); // AI-powered lead search
+// app.use('/api/ai-report', aiReportRoutes); // REMOVED - unused feature
+// app.use('/api/ai-search', aiSearchRoutes); // REMOVED - unused feature
 app.use('/api/billing', billingRoutes); // Billing and payment management
+app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conversations
+
+// Webhook routes for email response agent (replaces Netlify function)
+app.use('/api/webhooks', webhooksReplyRoutes); // Mailgun email response webhooks
 
 // Admin routes
 let adminRoutes;

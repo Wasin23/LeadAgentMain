@@ -21,7 +21,11 @@ import {
   CheckIcon,
   MagnifyingGlassIcon,
   PencilIcon,
-  CalendarIcon
+  CalendarIcon,
+  PauseIcon,
+  ChatBubbleLeftRightIcon,
+  FunnelIcon,
+  PaperAirplaneIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import AgentSettingsModal from './AgentSettingsModal';
@@ -181,6 +185,20 @@ const getPersonalityColors = (color?: string) => {
   }
 };
 
+const getBorderColor = (personality: string): string => {
+  switch (personality) {
+    case 'orange': return '#fed7aa'; // orange-200
+    case 'teal': return '#99f6e4'; // teal-200
+    case 'blue': return '#bfdbfe'; // blue-200
+    case 'purple': return '#e9d5ff'; // purple-200
+    case 'green': return '#bbf7d0'; // green-200
+    case 'red': return '#fecaca'; // red-200
+    case 'indigo': return '#c7d2fe'; // indigo-200
+    case 'pink': return '#fbcfe8'; // pink-200
+    default: return '#e5e5e5'; // neutral-200
+  }
+};
+
 export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps) {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -218,6 +236,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [showScheduledEvents, setShowScheduledEvents] = useState(false);
   const [selectedScheduledEvent, setSelectedScheduledEvent] = useState<any>(null);
   const [scheduledEvents, setScheduledEvents] = useState<any[]>([]);
+  const [showOutreach, setShowOutreach] = useState(false);
+  const [agentOutreachStats, setAgentOutreachStats] = useState({ viewed: 0, replied: 0, meetings: 0, conversionRate: 0 });
+  const [agentConversations, setAgentConversations] = useState<any[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+  const [outreachTab, setOutreachTab] = useState<'conversations' | 'analytics' | 'viewed' | 'settings'>('conversations');
+  
+  // Real-time streaming state
+  const [streamingResponses, setStreamingResponses] = useState<any[]>([]);
+  const [conversationSearch, setConversationSearch] = useState('');
+  const [conversationFilter, setConversationFilter] = useState<'all' | 'active' | 'replied' | 'waiting'>('all');
+  const [aiResponseControl, setAiResponseControl] = useState<Record<string, boolean>>({});
+  const eventSourceRef = useRef<EventSource | null>(null);
   const [countdownTime, setCountdownTime] = useState<number | null>(null);
   const [showStarting, setShowStarting] = useState(false);
   const [hasShownStarting, setHasShownStarting] = useState(false);
@@ -603,7 +633,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         fetchRecentEmails(),
         fetchEmailQueue(),
         fetchAgentLogs(),
-        fetchScheduledEvents()
+        fetchAgentOutreach()
       ]);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -824,19 +854,117 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     }
   };
 
-  const fetchScheduledEvents = async () => {
+  const fetchAgentOutreach = async () => {
     try {
-      const response = await api.get(`/api/analytics/scheduled-events?agentId=${agentId}`);
-      if (response.data && Array.isArray(response.data)) {
-        setScheduledEvents(response.data);
+      const response = await api.get(`/api/outreach/stats?agentId=${agentId}&timeRange=7d`).catch(() => null);
+      if (response?.data?.success) {
+        setAgentOutreachStats({
+          viewed: response.data.stats.totalOpened || 0,
+          replied: response.data.stats.totalReplies || 0,
+          meetings: response.data.stats.totalMeetingsBooked || 0,
+          conversionRate: response.data.stats.replyRate || 0
+        });
       } else {
-        setScheduledEvents([]);
+        setAgentOutreachStats({ viewed: 0, replied: 0, meetings: 0, conversionRate: 0 });
+      }
+
+      const convResponse = await api.get(`/api/outreach/conversations?agentId=${agentId}&timeRange=7d`).catch(() => null);
+      if (convResponse?.data?.success) {
+        setAgentConversations(convResponse.data.conversations || []);
       }
     } catch (error) {
-      console.error('Failed to fetch scheduled events:', error);
-      setScheduledEvents([]);
+      console.error('Failed to fetch agent outreach:', error);
+      setAgentOutreachStats({ viewed: 0, replied: 0, meetings: 0, conversionRate: 0 });
+      setAgentConversations([]);
     }
   };
+
+  // Establish SSE connection for real-time response streaming
+  useEffect(() => {
+    if (!showOutreach || outreachTab !== 'conversations') return;
+
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let hasConnected = false;
+
+    const connect = () => {
+      try {
+        eventSource = new EventSource(`${baseURL}/api/outreach/stream?agentId=${agentId}`);
+        eventSourceRef.current = eventSource;
+
+        eventSource.onopen = () => {
+          hasConnected = true;
+          console.log('✅ SSE connection established for outreach streaming');
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'response_start') {
+              setStreamingResponses(prev => [...prev, {
+                id: data.conversationId,
+                leadName: data.leadName,
+                leadEmail: data.leadEmail,
+                content: '',
+                status: 'generating',
+                timestamp: new Date().toISOString()
+              }]);
+            } else if (data.type === 'response_chunk') {
+              setStreamingResponses(prev => prev.map(r => 
+                r.id === data.conversationId 
+                  ? { ...r, content: r.content + data.chunk }
+                  : r
+              ));
+            } else if (data.type === 'response_complete') {
+              setStreamingResponses(prev => prev.map(r => 
+                r.id === data.conversationId 
+                  ? { ...r, status: 'sent', sentAt: new Date().toISOString() }
+                  : r
+              ));
+              // Refresh conversations list
+              fetchAgentOutreach();
+            }
+          } catch (error) {
+            console.error('Failed to parse SSE data:', error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          if (!hasConnected) {
+            // Silently fail if endpoint doesn't exist yet
+            console.log('ℹ️ SSE streaming endpoint not available yet (will work when backend is ready)');
+          } else {
+            console.warn('SSE connection lost, will retry...');
+          }
+          
+          eventSource?.close();
+          eventSourceRef.current = null;
+
+          // Only retry if we had a successful connection before
+          if (hasConnected) {
+            reconnectTimeout = setTimeout(() => {
+              console.log('🔄 Attempting to reconnect SSE...');
+              connect();
+            }, 5000);
+          }
+        };
+      } catch (error) {
+        console.log('ℹ️ SSE streaming not available (optional feature)');
+      }
+    };
+
+    connect();
+
+    return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      eventSource?.close();
+      eventSourceRef.current = null;
+    };
+  }, [showOutreach, outreachTab, agentId]);
 
   const fetchAgentLogs = async () => {
     try {
@@ -1268,14 +1396,6 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     }
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="p-6">
@@ -1287,6 +1407,515 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   }
 
   const colors = getPersonalityColors(agentPersonality?.color);
+
+  // Format time helpers
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Filter conversations based on search and filter
+  const filteredConversations = agentConversations.filter(conv => {
+    // Apply status filter
+    if (conversationFilter !== 'all') {
+      if (conversationFilter === 'active' && conv.status !== 'active') return false;
+      if (conversationFilter === 'replied' && conv.status !== 'ai_responded') return false;
+      if (conversationFilter === 'waiting' && conv.status !== 'waiting_response') return false;
+    }
+    
+    // Apply search filter
+    if (conversationSearch) {
+      const searchLower = conversationSearch.toLowerCase();
+      return (
+        conv.leadName?.toLowerCase().includes(searchLower) ||
+        conv.leadEmail?.toLowerCase().includes(searchLower) ||
+        conv.company?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return true;
+  });
+
+  // Toggle AI response for a conversation
+  const toggleAIResponse = async (conversationId: string, enabled: boolean) => {
+    setAiResponseControl(prev => ({ ...prev, [conversationId]: !enabled }));
+    
+    try {
+      await api.post('/api/outreach/control-ai', {
+        conversationId,
+        enabled: !enabled,
+        agentId
+      });
+    } catch (error) {
+      console.error('Failed to toggle AI response:', error);
+      // Revert on error
+      setAiResponseControl(prev => ({ ...prev, [conversationId]: enabled }));
+    }
+  };
+
+  // Navigate back to original email in sent tab
+  const navigateToOriginalEmail = (emailId: string) => {
+    // This will be handled by the parent component or router
+    window.location.href = `/agents?tab=sent&emailId=${emailId}`;
+  };
+
+  // Outreach View
+  if (showOutreach) {
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowOutreach(false)}
+            className="p-3 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors rounded"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+          </motion.button>
+          <h1 className={`text-2xl font-semibold ${colors.primary}`}>{getAgentDisplayName()}'s Outreach</h1>
+        </div>
+
+        {/* Tabs - Styled like main dashboard */}
+        <div className="grid grid-cols-4 gap-6">
+          <button
+            onClick={() => setOutreachTab('conversations')}
+            className={`p-6 border-2 border-b-0 transition-all ${
+              outreachTab === 'conversations'
+                ? 'bg-white shadow-sm'
+                : 'bg-white hover:bg-neutral-50'
+            }`}
+            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <EnvelopeIcon className={`h-6 w-6 ${outreachTab === 'conversations' ? colors.text : 'text-neutral-600'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'conversations' ? colors.text : 'text-neutral-700'}`}>
+                Active Conversations
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setOutreachTab('analytics')}
+            className={`p-6 border-2 border-b-0 transition-all ${
+              outreachTab === 'analytics'
+                ? 'bg-white shadow-sm'
+                : 'bg-white hover:bg-neutral-50'
+            }`}
+            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <ChartBarIcon className={`h-6 w-6 ${outreachTab === 'analytics' ? colors.text : 'text-neutral-600'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'analytics' ? colors.text : 'text-neutral-700'}`}>
+                Analytics
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setOutreachTab('viewed')}
+            className={`p-6 border-2 border-b-0 transition-all ${
+              outreachTab === 'viewed'
+                ? 'bg-white shadow-sm'
+                : 'bg-white hover:bg-neutral-50'
+            }`}
+            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <EyeIcon className={`h-6 w-6 ${outreachTab === 'viewed' ? colors.text : 'text-neutral-600'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'viewed' ? colors.text : 'text-neutral-700'}`}>
+                Emails Viewed
+              </span>
+            </div>
+          </button>
+          <button
+            onClick={() => setOutreachTab('settings')}
+            className={`p-6 border-2 border-b-0 transition-all ${
+              outreachTab === 'settings'
+                ? 'bg-white shadow-sm'
+                : 'bg-white hover:bg-neutral-50'
+            }`}
+            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <CogIcon className={`h-6 w-6 ${outreachTab === 'settings' ? colors.text : 'text-neutral-600'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'settings' ? colors.text : 'text-neutral-700'}`}>
+                Settings
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* Tab Content - Connected */}
+        {outreachTab === 'conversations' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 -mt-6">
+          {/* LEFT: Live Response Stream */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`bg-neutral-50 border ${colors.border} flex flex-col`}
+          >
+            <div className={`p-6 border-b ${colors.border} bg-white`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className={`text-lg font-medium ${colors.primary}`}>Live Response Stream</h3>
+                  <p className="text-sm text-neutral-600 mt-1">Watch AI respond in real-time</p>
+                </div>
+                <PaperAirplaneIcon className={`h-5 w-5 ${colors.text}`} />
+              </div>
+            </div>
+            
+            <div className="h-96 overflow-y-auto p-4 flex-1">{streamingResponses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-neutral-400">
+                  <PaperAirplaneIcon className="h-12 w-12 mb-3 text-neutral-300" />
+                  <p className="text-sm">No active responses</p>
+                  <p className="text-xs mt-1">AI responses will stream here</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {streamingResponses.map((response) => (
+                    <motion.div
+                      key={response.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`p-3 border rounded-lg ${colors.bgLight} ${colors.border}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="font-medium text-sm text-neutral-900">{response.leadName}</div>
+                          <div className="text-xs text-neutral-600">{response.leadEmail}</div>
+                        </div>
+                        {response.status === 'generating' && (
+                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                            <div className="animate-pulse">●</div>
+                            Typing...
+                          </div>
+                        )}
+                        {response.status === 'sent' && (
+                          <div className="flex items-center gap-1 text-xs text-green-600">
+                            <CheckIcon className="h-3 w-3" />
+                            Sent
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-sm text-neutral-700 mt-2 whitespace-pre-wrap">
+                        {response.content || <span className="text-neutral-400 animate-pulse">Generating response...</span>}
+                      </div>
+                      {response.status === 'sent' && (
+                        <div className="text-xs text-neutral-500 mt-2">
+                          Sent {formatTimeAgo(response.sentAt)}
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* RIGHT: All Conversations */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`bg-white border ${colors.border}`}
+          >
+            <div className={`p-6 border-b ${colors.border}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className={`text-lg font-medium ${colors.primary}`}>All Conversations</h3>
+                  <p className="text-sm text-neutral-600 mt-1">Ongoing threads with leads</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                    {filteredConversations.length} conversations
+                  </span>
+                </div>
+              </div>
+
+              {/* Search and Filter Controls */}
+              <div className="mt-4 space-y-3">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, company..."
+                    value={conversationSearch}
+                    onChange={(e) => setConversationSearch(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  {['all', 'active', 'replied', 'waiting'].map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setConversationFilter(filter as any)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                        conversationFilter === filter
+                          ? `${colors.button} text-white`
+                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="h-96 overflow-y-auto p-4 bg-neutral-50">
+              {filteredConversations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-neutral-400">
+                  <FunnelIcon className="h-12 w-12 mb-3 text-neutral-300" />
+                  <p className="text-sm">No conversations found</p>
+                  <p className="text-xs mt-1">Try adjusting your filters</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredConversations.map((conv, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.02 }}
+                      onClick={() => setSelectedConversation(conv)}
+                      className={`p-3 border border-neutral-200 rounded-lg hover:border-${colors.text.replace('text-', '')} cursor-pointer transition-all bg-white`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-neutral-900 truncate">{conv.leadName}</div>
+                          <div className="text-xs text-neutral-600 truncate">{conv.leadEmail}</div>
+                          {conv.company && (
+                            <div className="text-xs text-neutral-500 truncate mt-0.5">{conv.company}</div>
+                          )}
+                        </div>
+                        <div className="text-xs text-neutral-500 whitespace-nowrap ml-2">{formatTimeAgo(conv.lastActivity)}</div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-neutral-500">{conv.messageCount} msgs</span>
+                        {conv.status === 'meeting_booked' && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">Meeting</span>
+                        )}
+                        {conv.status === 'ai_responded' && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">Replied</span>
+                        )}
+                        {conv.status === 'waiting_response' && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">Waiting</span>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+        )}
+
+        {outreachTab === 'analytics' && (
+          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
+            <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Analytics Overview</h3>
+            <div className="grid grid-cols-4 gap-4">
+              <div className="p-4 border border-neutral-200 rounded-lg">
+                <p className="text-sm text-neutral-600">Messages Viewed</p>
+                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.viewed}</p>
+              </div>
+              <div className="p-4 border border-neutral-200 rounded-lg">
+                <p className="text-sm text-neutral-600">Conversations</p>
+                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.replied}</p>
+              </div>
+              <div className="p-4 border border-neutral-200 rounded-lg">
+                <p className="text-sm text-neutral-600">Meetings Booked</p>
+                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.meetings}</p>
+              </div>
+              <div className="p-4 border border-neutral-200 rounded-lg">
+                <p className="text-sm text-neutral-600">Conversion Rate</p>
+                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.conversionRate}%</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {outreachTab === 'viewed' && (
+          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
+            <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Emails Viewed</h3>
+            <p className="text-neutral-500">Coming soon...</p>
+          </div>
+        )}
+
+        {outreachTab === 'settings' && (
+          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
+            <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Settings</h3>
+            <p className="text-neutral-500">Coming soon...</p>
+          </div>
+        )}
+
+        {/* Conversation Detail Modal */}
+        {selectedConversation && (
+          <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedConversation(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className={`p-6 border-b ${colors.border}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <h2 className={`text-xl font-bold ${colors.primary}`}>{selectedConversation.leadName}</h2>
+                    <p className="text-sm text-neutral-600">{selectedConversation.leadEmail}</p>
+                    {selectedConversation.company && (
+                      <p className="text-sm text-neutral-500 mt-1">{selectedConversation.company}</p>
+                    )}
+                  </div>
+                  <button onClick={() => setSelectedConversation(null)} className="text-neutral-400 hover:text-neutral-600">
+                    <XMarkIcon className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* AI Control Panel */}
+                <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className={`w-2 h-2 rounded-full ${aiResponseControl[selectedConversation.id] === false ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                    <span className="text-sm font-medium text-neutral-700">
+                      AI Auto-Response: {aiResponseControl[selectedConversation.id] === false ? 'PAUSED' : 'ACTIVE'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => toggleAIResponse(selectedConversation.id, aiResponseControl[selectedConversation.id] !== false)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                      aiResponseControl[selectedConversation.id] === false
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-red-500 text-white hover:bg-red-600'
+                    }`}
+                  >
+                    {aiResponseControl[selectedConversation.id] === false ? (
+                      <>
+                        <PlayIcon className="h-4 w-4" />
+                        Enable AI
+                      </>
+                    ) : (
+                      <>
+                        <PauseIcon className="h-4 w-4" />
+                        Pause AI
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => navigateToOriginalEmail(selectedConversation.originalEmailId)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${colors.button} text-white hover:opacity-90 transition-all flex items-center gap-2`}
+                  >
+                    <EnvelopeIcon className="h-4 w-4" />
+                    View Original Email
+                  </button>
+                </div>
+              </div>
+
+              {/* Message Thread */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-neutral-50">
+                {selectedConversation.messages?.map((msg: any, idx: number) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className={`${msg.type === 'outbound' || msg.type === 'ai_response' ? 'ml-8' : 'mr-8'}`}
+                  >
+                    <div className={`rounded-lg p-4 ${
+                      msg.type === 'outbound' ? `${colors.bgLight} border ${colors.border}` :
+                      msg.type === 'reply' ? 'bg-white border border-neutral-200' :
+                      'bg-orange-50 border border-orange-200'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-medium text-neutral-600">
+                          {msg.type === 'outbound' ? '📤 Sent by Agent' : 
+                           msg.type === 'reply' ? `💬 ${selectedConversation.leadName}` : 
+                           '🤖 AI Response'}
+                          {' • '}{formatTimeAgo(msg.timestamp)}
+                        </div>
+                        {msg.type === 'ai_response' && msg.status === 'generating' && (
+                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                            <div className="animate-pulse">●</div>
+                            Generating...
+                          </div>
+                        )}
+                        {msg.type === 'ai_response' && msg.status === 'sent' && (
+                          <div className="flex items-center gap-1 text-xs text-green-600">
+                            <CheckIcon className="h-3 w-3" />
+                            Sent
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{msg.content}</p>
+                      
+                      {/* Real-time streaming for AI responses */}
+                      {msg.type === 'ai_response' && msg.status === 'generating' && (
+                        <div className="mt-3 pt-3 border-t border-neutral-200">
+                          <div className="flex items-center gap-2 text-xs text-neutral-500">
+                            <div className="flex gap-1">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                            <span>AI is typing response...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )) || (
+                  <div className="text-center py-12 text-neutral-500">
+                    <ChatBubbleLeftRightIcon className="h-12 w-12 mx-auto mb-3 text-neutral-300" />
+                    <p>No messages in this conversation</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Conversation Stats Footer */}
+              <div className="p-4 border-t border-neutral-200 bg-white">
+                <div className="flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <EnvelopeIcon className="h-4 w-4 text-neutral-400" />
+                    <span className="text-neutral-600">{selectedConversation.messageCount || 0} messages</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ClockIcon className="h-4 w-4 text-neutral-400" />
+                    <span className="text-neutral-600">Last activity: {formatTimeAgo(selectedConversation.lastActivity)}</span>
+                  </div>
+                  {selectedConversation.status && (
+                    <div className="ml-auto">
+                      {selectedConversation.status === 'meeting_booked' && (
+                        <span className="text-xs px-3 py-1.5 rounded-full bg-green-100 text-green-700 font-medium">✓ Meeting Booked</span>
+                      )}
+                      {selectedConversation.status === 'ai_responded' && (
+                        <span className="text-xs px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 font-medium">AI Responded</span>
+                      )}
+                      {selectedConversation.status === 'waiting_response' && (
+                        <span className="text-xs px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">Awaiting Reply</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -1422,22 +2051,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </div>
         </motion.div>
 
-        {/* Clickable Scheduled Events */}
+        {/* Clickable Outreach */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
-          onClick={() => setShowScheduledEvents(true)}
+          onClick={() => setShowOutreach(true)}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-neutral-600 flex items-center gap-2">
-                Scheduled Events
                 <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to view</span>
               </p>
-              <p className="text-2xl font-semibold text-neutral-900 mt-1">{scheduledEvents.length}</p>
+              <p className="text-2xl font-semibold text-neutral-900 mt-1">Outreach</p>
             </div>
-            <CalendarIcon className={`h-8 w-8 ${colors.text}`} />
+            <EnvelopeIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
         </motion.div>
 
