@@ -30,15 +30,16 @@ export async function trackUserActivity(req, res, next) {
   // If this is the user's first activity (or they were inactive), start polling
   if (!lastActivity || (now - lastActivity) > INACTIVITY_TIMEOUT) {
     if (!isPollingRoute) {
-      console.log(`[ACTIVITY] Starting polling for newly active user ${userId}`);
+      console.log(`[ACTIVITY] User ${userId} is active (Zilliz polling disabled - using AWS DynamoDB)`);
     }
     
-    try {
-      const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
-      desktopEmailTracker.startUserPolling(userId);
-    } catch (error) {
-      console.error(`[ACTIVITY] Failed to start polling for user ${userId}:`, error);
-    }
+    // DISABLED: No longer using Zilliz polling - tracking now handled by AWS DynamoDB + SSE
+    // try {
+    //   const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
+    //   desktopEmailTracker.startUserPolling(userId);
+    // } catch (error) {
+    //   console.error(`[ACTIVITY] Failed to start polling for user ${userId}:`, error);
+    // }
   }
   
   next();
@@ -53,15 +54,18 @@ async function cleanupInactiveUsers() {
   
   for (const [userId, lastActivity] of userLastActivity.entries()) {
     if ((now - lastActivity) > INACTIVITY_TIMEOUT) {
-      console.log(`[ACTIVITY] User ${userId} inactive for ${Math.round((now - lastActivity) / 1000)}s - stopping polling`);
+      console.log(`[ACTIVITY] User ${userId} inactive for ${Math.round((now - lastActivity) / 1000)}s`);
       
-      try {
-        const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
-        desktopEmailTracker.stopUserPolling(userId);
-        userLastActivity.delete(userId);
-      } catch (error) {
-        console.error(`[ACTIVITY] Failed to stop polling for inactive user ${userId}:`, error);
-      }
+      // DISABLED: No longer using Zilliz polling - tracking now handled by AWS DynamoDB + SSE
+      // try {
+      //   const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
+      //   desktopEmailTracker.stopUserPolling(userId);
+      //   userLastActivity.delete(userId);
+      // } catch (error) {
+      //   console.error(`[ACTIVITY] Failed to stop polling for inactive user ${userId}:`, error);
+      // }
+      
+      userLastActivity.delete(userId);
     }
   }
 }
