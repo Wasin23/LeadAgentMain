@@ -34,10 +34,12 @@ router.get('/debug/email-html/:trackingId', async (req, res) => {
 
 // Track email opens (1x1 tracking pixel)
 router.get('/track/open/:trackingId', async (req, res) => {
+  console.log('🔔 [TRACKING HIT] /track/open endpoint accessed!');
   try {
     const { trackingId } = req.params;
     const userAgent = req.get('User-Agent') || '';
     const referer = req.get('Referer') || '';
+    const forwarded = req.get('X-Forwarded-For') || '';
     
     // Detect actual bots/crawlers (but allow email client proxies like Gmail)
     const imageProxyPatterns = [
@@ -60,6 +62,8 @@ router.get('/track/open/:trackingId', async (req, res) => {
     console.log('[EMAIL TRACKING] ===== EMAIL OPENED =====');
     console.log('[EMAIL TRACKING] Tracking ID:', trackingId);
     console.log('[EMAIL TRACKING] User Agent:', userAgent);
+    console.log('[EMAIL TRACKING] Referer:', referer);
+    console.log('[EMAIL TRACKING] X-Forwarded-For:', forwarded);
     console.log('[EMAIL TRACKING] Is Image Proxy:', isImageProxy);
     console.log('[EMAIL TRACKING] IP:', req.ip);
     console.log('[EMAIL TRACKING] ========================');

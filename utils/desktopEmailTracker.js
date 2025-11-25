@@ -6,9 +6,9 @@ import crypto from 'crypto';
 class DesktopEmailTracker {
   constructor() {
     this.trackingDataFile = path.join(process.cwd(), 'lib', 'data', 'email_tracking.json');
-    this.baseUrl = 'https://examarkchat.com'; // Your domain for tracking
+    this.baseUrl = process.env.TRACKING_DOMAIN || 'https://meridian-kdew.onrender.com'; // Use env var for tracking domain
     this.apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080'; // API server URL
-    this.renderWebhookUrl = process.env.TRACKING_DOMAIN || 'https://examark-ga2o.onrender.com'; // Your Render app URL
+    this.renderWebhookUrl = process.env.TRACKING_DOMAIN || 'https://meridian-kdew.onrender.com'; // Your Render app URL
     this.trackingData = new Map();
     
     // User session polling management
