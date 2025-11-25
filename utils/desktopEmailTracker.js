@@ -84,8 +84,8 @@ class DesktopEmailTracker {
     
     this.saveTrackingData();
 
-    // Add tracking pixel that will call Zilliz webhook
-    const trackingPixel = `<img src="${this.baseUrl}/track/pixel/${trackingId}" width="16" height="16" style="margin:0; display:block;" alt="Email tracking" />`;
+    // Add tracking pixel (1x1 invisible image)
+    const trackingPixel = `<img src="${this.baseUrl}/track/pixel/${trackingId}.png" width="1" height="1" style="display:none;" alt="" />`;
     
     // Replace links with trackable versions
     let trackedHtml = emailHtml.replace(

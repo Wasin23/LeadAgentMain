@@ -4,7 +4,6 @@ import Mailgun from 'mailgun.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { desktopEmailTracker } from '../utils/desktopEmailTracker.js';
 import AWSManager from '../utils/awsManager.js';
 
 // Initialize AWS Manager for API usage tracking
@@ -109,13 +108,12 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     
     let trackingId = null;
     
-    // Use desktop email tracker for safe, self-contained tracking with agent-specific tracking
+    // Use new AWS-based tracking system with DynamoDB
     if (enableTracking) {
-      const trackingResult = desktopEmailTracker.injectTracking(htmlBody, to, subject, userId, agentId);
-      htmlBody = trackingResult.html;
-      trackingId = trackingResult.trackingId;
+      trackingId = `tracking-${userId}_${agentId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      htmlBody = addTrackingToEmail(htmlBody, trackingId);
       
-      console.log(`[DESKTOP TRACKER] Email tracking injected for ${to} with ID: ${trackingId} (User: ${userId})`);
+      console.log(`✅ [AWS TRACKING] Email tracking injected for ${to} with ID: ${trackingId} (User: ${userId}, Agent: ${agentId})`);
     }
     
     // Use custom sender name if provided, otherwise default to "Meridian"
