@@ -668,132 +668,54 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchRecentEmails = async () => {
     try {
-      // First try to get approved emails from agent-specific email queue
+      // Fetch approved/sent emails from AWS (now enriched with tracking data from DynamoDB)
       const approvedResponse = await api.get(`/api/email-queue/approved?agentId=${agentId}`);
-      const approvedEmails = approvedResponse.data || [];
+      const emails = approvedResponse.data || [];
       
-      // Also fetch from analytics endpoint for additional data (like tracking stats)
-      let analyticsEmails = [];
-      try {
-        const analyticsResponse = await api.get(`/api/analytics/emails?agentId=${agentId}`);
-        analyticsEmails = analyticsResponse.data?.data || analyticsResponse.data || [];
-        console.log('📊 [ANALYTICS] Fetched analytics data:', analyticsEmails.length, 'emails');
-        if (analyticsEmails.length > 0) {
-          console.log('📊 [ANALYTICS] Sample analytics email:', analyticsEmails[0]);
-        }
-      } catch (analyticsError) {
-        console.log('Analytics endpoint not available, using approved emails only');
+      console.log('📧 [EMAIL QUEUE] Fetched', emails.length, 'emails with tracking data from AWS');
+      if (emails.length > 0) {
+        console.log('📊 [TRACKING] Sample email tracking:', {
+          email: emails[0].to,
+          opened: emails[0].opened,
+          replied: emails[0].replied,
+          analytics: emails[0].analytics
+        });
       }
-
-      // Merge tracking data from analytics with approved emails based on multiple matching criteria
-      const emailsWithTracking = approvedEmails.map((approvedEmail: any) => {
-        // Try multiple matching strategies
-        const trackingData = analyticsEmails.find((analyticsEmail: any) => 
-          // Match by email address
-          (analyticsEmail.to || analyticsEmail.email) === approvedEmail.to ||
-          // Match by tracking ID patterns
-          (analyticsEmail.trackingId && approvedEmail.id && analyticsEmail.trackingId.includes(approvedEmail.id.split('_')[1])) ||
-          // Match by recipient name or company
-          (analyticsEmail.recipientName === approvedEmail.leadInfo?.name) ||
-          (analyticsEmail.company === approvedEmail.leadInfo?.company)
-        );
-        
-        console.log('🔍 [TRACKING MERGE] Approved email:', approvedEmail.to, 'Found tracking:', !!trackingData);
-        if (trackingData) {
-          console.log('📊 [TRACKING DATA] Analytics:', trackingData.analytics, 'Status:', trackingData.analyticsStatus);
-        }
-        
-        // Check if AWS email already has analytics data (from tracking sync)
-        const hasAWSAnalytics = approvedEmail.analytics && Object.keys(approvedEmail.analytics).length > 0;
-        console.log('📊 [AWS ANALYTICS] Email:', approvedEmail.to, 'Has AWS analytics:', hasAWSAnalytics, approvedEmail.analytics);
-        
-        return {
-          ...approvedEmail,
-          // Merge tracking information - prioritize AWS analytics that's already on the email
-          analytics: approvedEmail.analytics || trackingData?.analytics || {},
-          analyticsStatus: trackingData?.analyticsStatus || {},
-          tracking: trackingData?.tracking || {},
-          zillizData: trackingData?.zillizData || {},
-          // Enhanced tracking status detection - CHECK AWS ANALYTICS FIRST
-          opened: Boolean(
-            approvedEmail.analytics?.opened ||  // CHECK AWS FIRST!
-            approvedEmail.opened ||              // Direct field on AWS email
-            trackingData?.opened || 
-            trackingData?.analytics?.opened || 
-            trackingData?.analyticsStatus?.opened ||
-            trackingData?.zillizData?.opened ||
-            (trackingData?.zillizData?.events && trackingData.zillizData.events.some((event: any) => event.event_type === 'email_open'))
-          ),
-          replied: Boolean(
-            approvedEmail.analytics?.replied ||  // CHECK AWS FIRST!
-            approvedEmail.replied ||              // Direct field on AWS email
-            trackingData?.replied || 
-            trackingData?.analytics?.replied || 
-            trackingData?.analyticsStatus?.replied ||
-            trackingData?.zillizData?.replied ||
-            (trackingData?.zillizData?.events && trackingData.zillizData.events.some((event: any) => event.event_type === 'email_reply'))
-          ),
-          trackingId: approvedEmail.trackingId || trackingData?.trackingId || approvedEmail.id
-        };
-      });
       
-      // Add any analytics emails that don't have corresponding approved emails (fallback)
-      const orphanAnalyticsEmails = analyticsEmails.filter((analyticsEmail: any) => 
-        !approvedEmails.some((approvedEmail: any) => approvedEmail.to === (analyticsEmail.to || analyticsEmail.email))
-      );
-      
-      const combinedEmails = [...emailsWithTracking, ...orphanAnalyticsEmails];
-      
-      if (combinedEmails.length > 0) {
-        const emailsWithStatus = combinedEmails.map((email: any) => {
-          // Debug logging
-          console.log('📧 [STATUS CHECK] Email:', email.to, {
+      if (emails.length > 0) {
+        const emailsWithStatus = emails.map((email: any) => {
+          console.log('📊 [STATUS CHECK] Email:', email.to, {
             'email.opened': email.opened,
             'email.analytics?.opened': email.analytics?.opened,
             'email.analytics': email.analytics
           });
           
           return {
-          id: email.trackingId || email.id || Date.now().toString(),
-          name: email.leadInfo?.name || email.personInfo?.fullName || email.recipientName || email.recipient || email.to?.split('@')[0] || 'Unknown Contact',
-          company: email.lead?.company || email.leadInfo?.company || email.personInfo?.company || email.company || 'Unknown Company',
-          email: email.to || email.email,
-          dateSent: email.approvedAt || email.sentAt || email.timestamp || new Date().toISOString(),
-          // Add the missing fields for email content display
-          subject: email.subject || email.emailSubject || 'Email subject not available',
-          content: email.body || email.content || email.personalizedEmail || 'Email content not available',
-          body: email.body || email.content || email.personalizedEmail || 'Email content not available',
-          // Enhanced tracking status - check all possible tracking sources including Zilliz
-          opened: Boolean(
-            email.opened ||  // Prioritize the merged 'opened' field we set earlier
-            email.analytics?.opened || 
-            email.analyticsStatus?.opened || 
-            email.tracking?.opened || 
-            email.zillizData?.opened ||
-            (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_open'))
-          ),
-          replied: Boolean(
-            email.replied ||  // Prioritize the merged 'replied' field we set earlier
-            email.analytics?.replied || 
-            email.analyticsStatus?.replied || 
-            email.tracking?.replied || 
-            email.zillizData?.replied ||
-            (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_reply'))
-          ),
-          status: (
-            (email.replied || email.analytics?.replied || email.analyticsStatus?.replied || email.tracking?.replied || email.zillizData?.replied || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_reply'))) ? 'replied' : 
-            (email.opened || email.analytics?.opened || email.analyticsStatus?.opened || email.tracking?.opened || email.zillizData?.opened || (email.zillizData?.events && email.zillizData.events.some((event: any) => event.event_type === 'email_open'))) ? 'opened' : 
-            'sent'
-          ) as 'sent' | 'opened' | 'replied' | 'bounced',
-          // Include full email object for detailed view
-          ...email
-        };
+            id: email.trackingId || email.id || Date.now().toString(),
+            name: email.leadInfo?.name || email.personInfo?.fullName || email.recipientName || email.recipient || email.to?.split('@')[0] || 'Unknown Contact',
+            company: email.lead?.company || email.leadInfo?.company || email.personInfo?.company || email.company || 'Unknown Company',
+            email: email.to || email.email,
+            dateSent: email.approvedAt || email.sentAt || email.timestamp || new Date().toISOString(),
+            subject: email.subject || email.emailSubject || 'Email subject not available',
+            content: email.body || email.content || email.personalizedEmail || 'Email content not available',
+            body: email.body || email.content || email.personalizedEmail || 'Email content not available',
+            // Use AWS DynamoDB tracking data (enriched by backend)
+            opened: Boolean(email.opened || email.analytics?.opened),
+            replied: Boolean(email.replied || email.analytics?.replied),
+            status: (
+              (email.replied || email.analytics?.replied) ? 'replied' : 
+              (email.opened || email.analytics?.opened) ? 'opened' : 
+              'sent'
+            ) as 'sent' | 'opened' | 'replied' | 'bounced',
+            // Include full email object for detailed view
+            ...email
+          };
         });
         
         // Remove duplicates based on email address and sort by date
-        const uniqueEmails = emailsWithStatus.filter((email, index, self) => 
-          index === self.findIndex(e => e.email === email.email)
-        ).sort((a, b) => new Date(b.dateSent).getTime() - new Date(a.dateSent).getTime());
+        const uniqueEmails = emailsWithStatus.filter((email: any, index: number, self: any[]) => 
+          index === self.findIndex((e: any) => e.email === email.email)
+        ).sort((a: any, b: any) => new Date(b.dateSent).getTime() - new Date(a.dateSent).getTime());
         
         setRecentEmails(uniqueEmails.slice(0, 10));
       } else {
@@ -884,13 +806,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     if (!showOutreach || outreachTab !== 'conversations') return;
 
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const authToken = localStorage.getItem('authToken');
     let eventSource: EventSource | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
     let hasConnected = false;
 
     const connect = () => {
       try {
-        eventSource = new EventSource(`${baseURL}/api/outreach/stream?agentId=${agentId}`);
+        console.log('🔗 [OUTREACH-SSE] Connecting with token:', authToken ? 'Token present ✓' : 'No token ✗');
+        console.log('🔗 [OUTREACH-SSE] Full URL:', `${baseURL}/api/outreach/stream?token=${authToken ? '[REDACTED]' : 'MISSING'}&agentId=${encodeURIComponent(agentId)}`);
+        eventSource = new EventSource(`${baseURL}/api/outreach/stream?token=${encodeURIComponent(authToken || '')}&agentId=${encodeURIComponent(agentId)}`);
         eventSourceRef.current = eventSource;
 
         eventSource.onopen = () => {
@@ -1494,12 +1419,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <div className="grid grid-cols-4 gap-6">
           <button
             onClick={() => setOutreachTab('conversations')}
-            className={`p-6 border-2 border-b-0 transition-all ${
+            className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'conversations'
                 ? 'bg-white shadow-sm'
                 : 'bg-white hover:bg-neutral-50'
             }`}
-            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+            style={{ 
+              border: '1px solid #fecaca',
+              borderBottom: 'none'
+            }}
           >
             <div className="flex flex-col items-center gap-2">
               <EnvelopeIcon className={`h-6 w-6 ${outreachTab === 'conversations' ? colors.text : 'text-neutral-600'}`} />
@@ -1510,12 +1438,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </button>
           <button
             onClick={() => setOutreachTab('analytics')}
-            className={`p-6 border-2 border-b-0 transition-all ${
+            className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'analytics'
                 ? 'bg-white shadow-sm'
                 : 'bg-white hover:bg-neutral-50'
             }`}
-            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+            style={{ 
+              border: '1px solid #fecaca',
+              borderBottom: 'none'
+            }}
           >
             <div className="flex flex-col items-center gap-2">
               <ChartBarIcon className={`h-6 w-6 ${outreachTab === 'analytics' ? colors.text : 'text-neutral-600'}`} />
@@ -1526,12 +1457,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </button>
           <button
             onClick={() => setOutreachTab('viewed')}
-            className={`p-6 border-2 border-b-0 transition-all ${
+            className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'viewed'
                 ? 'bg-white shadow-sm'
                 : 'bg-white hover:bg-neutral-50'
             }`}
-            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+            style={{ 
+              border: '1px solid #fecaca',
+              borderBottom: 'none'
+            }}
           >
             <div className="flex flex-col items-center gap-2">
               <EyeIcon className={`h-6 w-6 ${outreachTab === 'viewed' ? colors.text : 'text-neutral-600'}`} />
@@ -1542,12 +1476,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </button>
           <button
             onClick={() => setOutreachTab('settings')}
-            className={`p-6 border-2 border-b-0 transition-all ${
+            className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'settings'
                 ? 'bg-white shadow-sm'
                 : 'bg-white hover:bg-neutral-50'
             }`}
-            style={{ borderColor: getBorderColor(agentPersonality?.color || '') }}
+            style={{ 
+              border: '1px solid #fecaca',
+              borderBottom: 'none'
+            }}
           >
             <div className="flex flex-col items-center gap-2">
               <CogIcon className={`h-6 w-6 ${outreachTab === 'settings' ? colors.text : 'text-neutral-600'}`} />

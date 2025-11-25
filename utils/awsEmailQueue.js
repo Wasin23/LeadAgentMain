@@ -161,7 +161,69 @@ class AWSEmailQueue {
   }
 
   /**
-   * Get all sent emails for a specific agent
+   * Enrich emails with tracking data from DynamoDB tracking table
+   */
+  async enrichEmailsWithTracking(userId, agentId, emails) {
+    try {
+      if (!emails || emails.length === 0) return emails;
+
+      const { default: AWSManager } = await import('./awsManager.js');
+      const awsManager = new AWSManager();
+
+      // Fetch tracking events for this user/agent
+      const trackingEvents = await awsManager.getEmailTrackingByUser(userId, agentId);
+      console.log(`📊 [AWS ENRICHMENT] Found ${trackingEvents.length} tracking events for ${emails.length} emails`);
+
+      // Create a map of tracking events by trackingId
+      const trackingMap = new Map();
+      trackingEvents.forEach(event => {
+        const id = event.trackingId;
+        if (!trackingMap.has(id)) {
+          trackingMap.set(id, { opened: false, clicked: false, replied: false, events: [] });
+        }
+        const data = trackingMap.get(id);
+        data.events.push(event);
+        
+        // Set flags based on event type
+        if (event.eventType === 'open') data.opened = true;
+        if (event.eventType === 'click') data.clicked = true;
+        if (event.eventType === 'reply') data.replied = true;
+        if (event.eventType === 'ai_response') data.aiResponded = true;
+      });
+
+      // Enrich each email with its tracking data
+      const enrichedEmails = emails.map(email => {
+        const tracking = trackingMap.get(email.trackingId) || trackingMap.get(email.id);
+        
+        if (tracking) {
+          return {
+            ...email,
+            analytics: {
+              opened: tracking.opened,
+              clicked: tracking.clicked,
+              replied: tracking.replied,
+              aiResponded: tracking.aiResponded
+            },
+            opened: tracking.opened,
+            replied: tracking.replied,
+            trackingEvents: tracking.events
+          };
+        }
+        
+        return email;
+      });
+
+      console.log(`✅ [AWS ENRICHMENT] Enriched ${enrichedEmails.filter(e => e.analytics).length} emails with tracking data`);
+      return enrichedEmails;
+      
+    } catch (error) {
+      console.error('[AWS ENRICHMENT] Error enriching emails with tracking:', error);
+      return emails; // Return original emails if enrichment fails
+    }
+  }
+
+  /**
+   * Get all sent emails for a specific agent (enriched with tracking data)
    */
   async getSentEmails(userId, agentId) {
     try {
@@ -174,7 +236,10 @@ class AWSEmailQueue {
         }
       }));
 
-      return response.Items || [];
+      const emails = response.Items || [];
+      
+      // Enrich with tracking data from DynamoDB tracking table
+      return await this.enrichEmailsWithTracking(userId, agentId, emails);
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting sent emails:', error);
       throw error;
@@ -224,7 +289,7 @@ class AWSEmailQueue {
   }
 
   /**
-   * Get ALL sent emails across ALL agents for a user (using GSI)
+   * Get ALL sent emails across ALL agents for a user (using GSI, enriched with tracking)
    */
   async getAllSentEmailsForUser(userId) {
     try {
@@ -237,7 +302,10 @@ class AWSEmailQueue {
         }
       }));
 
-      return response.Items || [];
+      const emails = response.Items || [];
+      
+      // Enrich with tracking data (pass null for agentId to get all tracking)
+      return await this.enrichEmailsWithTracking(userId, null, emails);
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting all sent emails for user:', error);
       throw error;

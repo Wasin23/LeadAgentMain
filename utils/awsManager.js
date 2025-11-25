@@ -2543,6 +2543,15 @@ class AWSManager {
       const timestamp = new Date().toISOString();
       const eventId = `${trackingId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
+      console.log(`📝 [EMAIL-TRACKING] Logging event:`, {
+        eventType: eventData.eventType,
+        userId,
+        agentId,
+        trackingId,
+        recipientEmail: eventData.recipientEmail,
+        timestamp
+      });
+      
       const command = new PutCommand({
         TableName: this.tables.emailTracking,
         Item: {
@@ -2558,9 +2567,10 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
+      console.log(`✅ [EMAIL-TRACKING] Event logged successfully: ${eventData.eventType}`, { eventId });
       return { success: true, eventId };
     } catch (error) {
-      console.error('❌ [AWS] Error logging email tracking:', error);
+      console.error('❌ [EMAIL-TRACKING] Error logging email tracking:', error);
       return { success: false, error: error.message };
     }
   }
@@ -2586,6 +2596,8 @@ class AWSManager {
   
   async getEmailTrackingByUser(userId, agentId = null, limit = 100) {
     try {
+      console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
+      
       const command = new ScanCommand({
         TableName: this.tables.emailTracking,
         FilterExpression: agentId 
@@ -2598,9 +2610,12 @@ class AWSManager {
       });
       
       const result = await this.dynamodb.send(command);
-      return result.Items || [];
+      const events = result.Items || [];
+      
+      console.log(`✅ [EMAIL-TRACKING] Retrieved ${events.length} events for userId: ${userId}`);
+      return events;
     } catch (error) {
-      console.error('❌ [AWS] Error getting user email tracking:', error);
+      console.error('❌ [EMAIL-TRACKING] Error getting user email tracking:', error);
       return [];
     }
   }

@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
-import { AWSManager } from '../utils/awsManager.js';
+import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
 const awsManager = new AWSManager();
@@ -8,11 +8,61 @@ const awsManager = new AWSManager();
 // Apply JWT authentication to all routes
 router.use(authenticateToken);
 
+// DEBUG: Inspect tracking table contents
+router.get('/debug/tracking', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId, limit = 50 } = req.query;
+
+    console.log(`🔍 [DEBUG] Fetching tracking events for userId: ${userId}, agentId: ${agentId}`);
+
+    // Get email tracking events from DynamoDB
+    const events = await awsManager.getEmailTrackingByUser(userId, agentId !== 'all' ? agentId : null, parseInt(limit));
+    
+    console.log(`🔍 [DEBUG] Retrieved ${events.length} tracking events`);
+
+    // Group events by tracking ID for easier viewing
+    const eventsByTracking = events.reduce((acc, event) => {
+      const id = event.trackingId;
+      if (!acc[id]) {
+        acc[id] = [];
+      }
+      acc[id].push({
+        eventType: event.eventType,
+        timestamp: event.timestamp,
+        recipientEmail: event.recipientEmail,
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+        url: event.url,
+        messagePreview: event.messagePreview,
+        leadName: event.leadName
+      });
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      totalEvents: events.length,
+      uniqueTrackingIds: Object.keys(eventsByTracking).length,
+      eventsByTracking,
+      rawEvents: events.slice(0, 10) // First 10 raw events for inspection
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Error fetching tracking events:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Get outreach statistics
 router.get('/stats', async (req, res) => {
   try {
     const userId = req.user.userId;
     const { agentId, timeRange } = req.query;
+
+    console.log(`📊 [OUTREACH-STATS] Fetching stats for userId: ${userId}, agentId: ${agentId}, timeRange: ${timeRange}`);
 
     // Calculate time filter
     let startTime = null;
@@ -27,10 +77,14 @@ router.get('/stats', async (req, res) => {
     // Get email tracking events from DynamoDB
     const events = await awsManager.getEmailTrackingByUser(userId, agentId !== 'all' ? agentId : null, 1000);
     
+    console.log(`📊 [OUTREACH-STATS] Retrieved ${events.length} total events`);
+    
     // Filter by time range
     const filteredEvents = startTime 
       ? events.filter(e => new Date(e.timestamp) >= startTime)
       : events;
+
+    console.log(`📊 [OUTREACH-STATS] Filtered to ${filteredEvents.length} events within time range`);
 
     // Calculate stats
     const trackingIds = new Set();
@@ -106,8 +160,16 @@ router.get('/stats', async (req, res) => {
         bestSendTime
       }
     });
+    
+    console.log(`✅ [OUTREACH-STATS] Stats calculated and returned`, {
+      totalSent,
+      totalOpened,
+      totalReplies,
+      totalAIResponses,
+      openRate: totalSent > 0 ? (totalOpened / totalSent * 100).toFixed(1) : 0
+    });
   } catch (error) {
-    console.error('Error fetching outreach stats:', error);
+    console.error('❌ [OUTREACH-STATS] Error fetching outreach stats:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -118,8 +180,12 @@ router.get('/conversations', async (req, res) => {
     const userId = req.user.userId;
     const { agentId, timeRange } = req.query;
 
+    console.log(`💬 [OUTREACH-CONVERSATIONS] Fetching conversations for userId: ${userId}, agentId: ${agentId}`);
+
     // Get email tracking events
     const events = await awsManager.getEmailTrackingByUser(userId, agentId !== 'all' ? agentId : null, 1000);
+
+    console.log(`💬 [OUTREACH-CONVERSATIONS] Retrieved ${events.length} events`);
 
     // Group events by tracking ID to form conversations
     const conversationMap = {};
@@ -182,12 +248,14 @@ router.get('/conversations', async (req, res) => {
       .filter(conv => conv.messages.some(m => m.type === 'reply' || m.type === 'ai_response'))
       .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
 
+    console.log(`✅ [OUTREACH-CONVERSATIONS] Processed ${conversations.length} conversations with replies`);
+
     res.json({
       success: true,
       conversations
     });
   } catch (error) {
-    console.error('Error fetching conversations:', error);
+    console.error('❌ [OUTREACH-CONVERSATIONS] Error fetching conversations:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -197,6 +265,8 @@ router.get('/timeline', async (req, res) => {
   try {
     const userId = req.user.userId;
     const { agentId, timeRange } = req.query;
+
+    console.log(`📅 [OUTREACH-TIMELINE] Fetching timeline for userId: ${userId}, agentId: ${agentId}, timeRange: ${timeRange}`);
 
     // Calculate time filter
     let startTime = null;
@@ -210,6 +280,8 @@ router.get('/timeline', async (req, res) => {
 
     // Get email tracking events
     const events = await awsManager.getEmailTrackingByUser(userId, agentId !== 'all' ? agentId : null, 1000);
+
+    console.log(`📅 [OUTREACH-TIMELINE] Retrieved ${events.length} events`);
 
     // Filter and format events
     const filteredEvents = events
@@ -236,14 +308,124 @@ router.get('/timeline', async (req, res) => {
       }))
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+    console.log(`✅ [OUTREACH-TIMELINE] Filtered to ${filteredEvents.length} engagement events`);
+
     res.json({
       success: true,
       events: filteredEvents
     });
   } catch (error) {
-    console.error('Error fetching timeline:', error);
+    console.error('❌ [OUTREACH-TIMELINE] Error fetching timeline:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Real-time SSE streaming for live AI responses
+router.get('/stream', async (req, res) => {
+  const { agentId } = req.query;
+  const userId = req.user?.userId;
+
+  console.log(`🔌 [OUTREACH-SSE] Stream endpoint hit`);
+  console.log(`🔌 [OUTREACH-SSE] Query params:`, req.query);
+  console.log(`🔌 [OUTREACH-SSE] User from JWT:`, req.user ? 'Present' : 'MISSING');
+  console.log(`🔌 [OUTREACH-SSE] New client connected - userId: ${userId}, agentId: ${agentId}`);
+
+  // Set SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no' // Disable buffering for nginx
+  });
+
+  // Send initial connection message
+  res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`);
+
+  // Keep connection alive with heartbeat
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(`: heartbeat ${new Date().toISOString()}\n\n`);
+    }
+  }, 30000); // Every 30 seconds
+
+  // Store this connection for broadcasting
+  if (!global.outreachSSEClients) {
+    global.outreachSSEClients = new Map();
+  }
+  
+  const clientKey = `${userId}_${agentId}`;
+  if (!global.outreachSSEClients.has(clientKey)) {
+    global.outreachSSEClients.set(clientKey, []);
+  }
+  global.outreachSSEClients.get(clientKey).push(res);
+
+  console.log(`✅ [OUTREACH-SSE] Client registered: ${clientKey}, total clients: ${global.outreachSSEClients.get(clientKey).length}`);
+  console.log(`📊 [OUTREACH-SSE] Total client keys: ${global.outreachSSEClients.size}`);
+
+  // Clean up on close
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    
+    // Remove this client from the list
+    const clients = global.outreachSSEClients.get(clientKey);
+    if (clients) {
+      const index = clients.indexOf(res);
+      if (index > -1) {
+        clients.splice(index, 1);
+      }
+      if (clients.length === 0) {
+        global.outreachSSEClients.delete(clientKey);
+        console.log(`🗑️ [OUTREACH-SSE] All clients disconnected for ${clientKey}, key removed`);
+      } else {
+        console.log(`📊 [OUTREACH-SSE] Client removed. Remaining clients for ${clientKey}: ${clients.length}`);
+      }
+    }
+    
+    console.log(`🔌 [OUTREACH-SSE] Client disconnected: ${clientKey}`);
+    res.end();
+  });
+});
+
+// Helper function to broadcast AI response events to connected clients
+export function broadcastAIResponse(userId, agentId, eventData) {
+  if (!global.outreachSSEClients) {
+    console.log(`⚠️ [OUTREACH-SSE] No SSE clients map available for broadcast`);
+    return;
+  }
+  
+  const clientKey = `${userId}_${agentId}`;
+  const clients = global.outreachSSEClients.get(clientKey);
+  
+  if (!clients || clients.length === 0) {
+    console.log(`⚠️ [OUTREACH-SSE] No connected clients for ${clientKey}`);
+    return;
+  }
+  
+  console.log(`📡 [OUTREACH-SSE] Broadcasting to ${clients.length} client(s): ${clientKey}`, {
+    eventType: eventData.type,
+    recipientEmail: eventData.recipientEmail,
+    hasChunk: !!eventData.chunk
+  });
+  
+  const data = JSON.stringify(eventData);
+  let successCount = 0;
+  
+  clients.forEach((client, index) => {
+    try {
+      if (!client.writableEnded) {
+        client.write(`data: ${data}\n\n`);
+        successCount++;
+      } else {
+        console.log(`⚠️ [OUTREACH-SSE] Client ${index} connection ended, removing...`);
+      }
+    } catch (error) {
+      console.error(`❌ [OUTREACH-SSE] Error writing to client ${index}:`, error.message);
+      // Remove dead client
+      clients.splice(index, 1);
+    }
+  });
+  
+  console.log(`✅ [OUTREACH-SSE] Broadcast complete. Sent to ${successCount}/${clients.length} client(s)`);
+}
 
 export default router;

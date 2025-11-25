@@ -11,6 +11,16 @@ import fetch from 'node-fetch';
 const router = express.Router();
 const awsManager = new AWSManager();
 
+// Import broadcast function for real-time updates
+let broadcastAIResponse = null;
+try {
+  const outreachModule = await import('./outreach.js');
+  broadcastAIResponse = outreachModule.broadcastAIResponse;
+  console.log('[WEBHOOK] Outreach broadcast function loaded');
+} catch (error) {
+  console.log('[WEBHOOK] Outreach broadcast not available (will work when loaded)');
+}
+
 // Deduplication cache (in-memory, could move to Redis later)
 const processedMessages = new Set();
 const MESSAGE_CACHE_SIZE = 1000;
@@ -367,6 +377,40 @@ const sendEmailTool = new DynamicStructuredTool({
       const userId = extractUserIdFromTrackingId(tracking_id);
       const agentId = extractAgentIdFromTrackingId(tracking_id);
       
+      // Broadcast response start event
+      if (broadcastAIResponse) {
+        console.log(`📡 [OUTREACH] Broadcasting response_start`, { userId, agentId, to, tracking_id });
+        broadcastAIResponse(userId, agentId, {
+          type: 'response_start',
+          conversationId: tracking_id,
+          leadName: to.split('@')[0],
+          leadEmail: to,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Broadcast the response content in chunks for streaming effect
+      if (broadcastAIResponse) {
+        const words = body.split(' ');
+        const chunkSize = 5; // Send 5 words at a time
+        const totalChunks = Math.ceil(words.length / chunkSize);
+        
+        console.log(`📡 [OUTREACH] Streaming ${words.length} words in ${totalChunks} chunks to userId: ${userId}, agentId: ${agentId}`);
+        
+        for (let i = 0; i < words.length; i += chunkSize) {
+          const chunk = words.slice(i, i + chunkSize).join(' ') + ' ';
+          broadcastAIResponse(userId, agentId, {
+            type: 'response_chunk',
+            conversationId: tracking_id,
+            chunk
+          });
+          // Small delay for visual effect
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        console.log(`✅ [OUTREACH] Streaming complete`);
+      }
+      
       // Generate message ID with tracking
       const timestamp = Date.now();
       const hash = crypto.randomBytes(4).toString('hex');
@@ -405,6 +449,18 @@ const sendEmailTool = new DynamicStructuredTool({
       
       console.log(`[TOOL] Email sent successfully: ${messageId}`);
       
+      // Broadcast response complete event
+      if (broadcastAIResponse) {
+        console.log(`📡 [OUTREACH] Broadcasting response_complete`, { messageLength: body.length, messageId });
+        broadcastAIResponse(userId, agentId, {
+          type: 'response_complete',
+          conversationId: tracking_id,
+          fullResponse: body,
+          messageId: messageId,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       // Log the sent email
       await storeConversationEvent(tracking_id, 'ai_reply', {
         subject,
@@ -415,15 +471,18 @@ const sendEmailTool = new DynamicStructuredTool({
       });
       
       // Log AI response to DynamoDB for Outreach dashboard
+      console.log(`📊 [OUTREACH] Logging AI response event to DynamoDB`, { userId, agentId, tracking_id, to });
       try {
         await awsManager.logEmailTracking(userId, agentId, tracking_id, {
           eventType: 'ai_response',
           recipientEmail: to,
           aiResponsePreview: body.substring(0, 200),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          leadName: to.split('@')[0]
         });
+        console.log(`✅ [OUTREACH] AI response event logged successfully`);
       } catch (dbError) {
-        console.error('[TOOL] DynamoDB logging failed:', dbError);
+        console.error('❌ [OUTREACH] DynamoDB logging failed:', dbError);
       }
       
       return JSON.stringify({
@@ -540,6 +599,7 @@ router.post('/mailgun-reply', async (req, res) => {
     });
     
     // Log reply event to DynamoDB for Outreach dashboard
+    console.log(`📊 [OUTREACH] Logging reply event to DynamoDB`, { userId, agentId, trackingId, from: emailData.from });
     try {
       await awsManager.logEmailTracking(userId, agentId, trackingId, {
         eventType: 'reply',
@@ -547,8 +607,25 @@ router.post('/mailgun-reply', async (req, res) => {
         messagePreview: emailData.body.substring(0, 200),
         timestamp: new Date().toISOString()
       });
+      console.log(`✅ [OUTREACH] Reply event logged successfully`);
+      
+      // Broadcast to SSE clients for real-time UI updates
+      try {
+        const { broadcastAIResponse } = await import('./outreach.js');
+        broadcastAIResponse(userId, agentId, {
+          type: 'tracking_update',
+          trackingId: trackingId,
+          eventType: 'reply',
+          recipientEmail: emailData.from,
+          messagePreview: emailData.body.substring(0, 200),
+          timestamp: new Date().toISOString()
+        });
+        console.log(`✅ [OUTREACH] SSE broadcast sent for reply event`);
+      } catch (sseError) {
+        console.error('❌ [OUTREACH] SSE broadcast failed:', sseError.message);
+      }
     } catch (dbError) {
-      console.error('[WEBHOOK] DynamoDB logging failed:', dbError);
+      console.error('❌ [OUTREACH] DynamoDB logging failed:', dbError);
     }
     
     // Get agent settings to check if auto-response is enabled

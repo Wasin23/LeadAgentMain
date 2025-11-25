@@ -217,13 +217,11 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                           email.metadata?.company ||
                           'Unknown Company';
             
-            // Check if email was opened from tracking data
+            // Check if email was opened from AWS DynamoDB tracking data
             const opened = Boolean(
               email.opened ||
               email.analytics?.opened ||
-              email.tracking?.opened ||
-              email.zillizData?.opened ||
-              (email.zillizData?.events && email.zillizData.events.some((e: any) => e.event_type === 'email_open'))
+              email.tracking?.opened
             );
             
             return {

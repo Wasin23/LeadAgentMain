@@ -1,7 +1,7 @@
 import express from 'express';
 import { updateEmailAnalytics } from '../tools/emailMailgun.js';
 import { authenticateToken } from '../middleware/jwt.js';
-import { AWSManager } from '../utils/awsManager.js';
+import AWSManager from '../utils/awsManager.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -85,6 +85,20 @@ router.get('/track/open/:trackingId', async (req, res) => {
           userAgent: userAgent,
           timestamp: new Date().toISOString()
         });
+        
+        // Broadcast to SSE clients for real-time UI updates
+        try {
+          const { broadcastAIResponse } = await import('./outreach.js');
+          broadcastAIResponse(userId, agentId, {
+            type: 'tracking_update',
+            trackingId: trackingId,
+            eventType: 'open',
+            timestamp: new Date().toISOString()
+          });
+          console.log('[EMAIL TRACKING] ✅ SSE broadcast sent for open event');
+        } catch (sseError) {
+          console.error('[EMAIL TRACKING] SSE broadcast failed:', sseError.message);
+        }
       } catch (dbError) {
         console.error('[EMAIL TRACKING] DynamoDB logging failed:', dbError);
       }
@@ -136,6 +150,21 @@ router.get('/track/click/:trackingId', async (req, res) => {
         url: url,
         timestamp: new Date().toISOString()
       });
+      
+      // Broadcast to SSE clients for real-time UI updates
+      try {
+        const { broadcastAIResponse } = await import('./outreach.js');
+        broadcastAIResponse(userId, agentId, {
+          type: 'tracking_update',
+          trackingId: trackingId,
+          eventType: 'click',
+          url: url,
+          timestamp: new Date().toISOString()
+        });
+        console.log('[EMAIL TRACKING] ✅ SSE broadcast sent for click event');
+      } catch (sseError) {
+        console.error('[EMAIL TRACKING] SSE broadcast failed:', sseError.message);
+      }
     } catch (dbError) {
       console.error('[EMAIL TRACKING] DynamoDB logging failed:', dbError);
     }
