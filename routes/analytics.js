@@ -81,8 +81,11 @@ router.get('/track/open/:trackingId', async (req, res) => {
       
       // Log to DynamoDB for Outreach dashboard
       try {
-        const userId = trackingId.split('_')[0]; // Extract userId from tracking ID
-        const agentId = trackingId.split('_')[2]; // Extract agentId if present
+        // Parse tracking ID format: tracking-{userId}_{agentId}_{timestamp}_{random}
+        const parts = trackingId.split('_');
+        const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
+        const agentId = parts[1]; // Extract agentId
+        
         await awsManager.logEmailTracking(userId, agentId, trackingId, {
           eventType: 'open',
           ipAddress: req.ip,
@@ -147,8 +150,11 @@ router.get('/track/click/:trackingId', async (req, res) => {
     
     // Log to DynamoDB for Outreach dashboard
     try {
-      const userId = trackingId.split('_')[0];
-      const agentId = trackingId.split('_')[2];
+      // Parse tracking ID format: tracking-{userId}_{agentId}_{timestamp}_{random}
+      const parts = trackingId.split('_');
+      const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
+      const agentId = parts[1]; // Extract agentId
+      
       await awsManager.logEmailTracking(userId, agentId, trackingId, {
         eventType: 'click',
         url: url,
