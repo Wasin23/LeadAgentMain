@@ -1101,11 +1101,20 @@ router.get('/agents', authenticateToken, async (req, res) => {
     
     const enrichedAgents = await Promise.all(agents.map(async (agent) => {
       try {
-        // Get agent settings to fetch specialInstructions
+        // Get agent settings to fetch specialInstructions and full settings
         let specialInstructions = '';
+        let settings = {};
         try {
-          const agentSettings = await awsManagerInstance.getAgentSettings(agent.agentId);
+          const agentSettings = await awsManagerInstance.getAgentSettings(userId, agent.agentId);
+          console.log(`[AUTH] Agent ${agent.name} raw settings from AWS:`, agentSettings);
           specialInstructions = agentSettings?.specialInstructions || '';
+          settings = agentSettings || {};
+          console.log(`[AUTH] Agent ${agent.name} mapped settings:`, {
+            hasSettings: !!settings,
+            companyCriteria: settings.companyCriteria,
+            contactCriteria: settings.contactCriteria,
+            geographicSettings: settings.geographicSettings
+          });
         } catch (settingsError) {
           console.log(`[AUTH] Could not load settings for agent ${agent.name}:`, settingsError.message);
         }
@@ -1134,7 +1143,8 @@ router.get('/agents', authenticateToken, async (req, res) => {
         return {
           ...agent,
           nextCycleTime,
-          specialInstructions
+          specialInstructions,
+          settings
         };
       } catch (err) {
         console.error(`Failed to get status for agent ${agent.agentId}:`, err);

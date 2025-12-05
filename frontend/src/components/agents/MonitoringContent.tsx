@@ -27,10 +27,12 @@ interface MonitoringContentProps {
   issues: any[];
   connected: boolean;
   onResolveIssue?: (issueId: string) => void;
+  onViewChange?: (view: MonitoringView) => void;
+  agents?: any[];
 }
 
-export default function MonitoringContent({ view, metrics, issues, connected, onResolveIssue }: MonitoringContentProps) {
-  const [agents, setAgents] = useState<any[]>([]);
+export default function MonitoringContent({ view, metrics, issues, connected, onResolveIssue, onViewChange, agents: propsAgents }: MonitoringContentProps) {
+  const [agents, setAgents] = useState<any[]>(propsAgents || []);
   const [loading, setLoading] = useState(true);
   const [selectedAgentTab, setSelectedAgentTab] = useState<string>('all');
   const [timeSeriesData, setTimeSeriesData] = useState<any[]>([]);
@@ -47,6 +49,13 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   const [totalApiUsage, setTotalApiUsage] = useState<any>(null);
   const [apiUsageTimeSeries, setApiUsageTimeSeries] = useState<any[]>([]);
   const [rateLimits, setRateLimits] = useState<any>(null);
+
+  // Update local agents state when prop changes
+  useEffect(() => {
+    if (propsAgents) {
+      setAgents(propsAgents);
+    }
+  }, [propsAgents]);
   const [timeRange, setTimeRange] = useState<'minute' | 'hour' | 'day' | 'month'>('day');
   const [costTimeRange, setCostTimeRange] = useState<'minute' | 'hour' | 'day' | 'month'>('day');
   const [costTimeSeries, setCostTimeSeries] = useState<any[]>([]);
@@ -679,7 +688,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   const renderOverview = () => (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-neutral-900 mb-4">System Overview</h2>
+        <h2 className="text-xl font-semibold text-neutral-900 mb-6">System Overview</h2>
         {metrics && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Emails Card */}
@@ -783,6 +792,125 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
           </div>
         </div>
       )}
+
+      {/* Agent Management Section */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-neutral-900">Active Agents</h3>
+          <button
+            onClick={() => onViewChange?.('agents')}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            View All →
+          </button>
+        </div>
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-sm">
+          {agents.length > 0 ? (
+            <div className="divide-y divide-neutral-100">
+              {agents.slice(0, 3).map((agent) => {
+                const agentStatus = agentStatuses[agent.id];
+                const isActive = agentStatus?.isActive || false;
+                const personalityAvatar = agent.personality?.avatar || agentStatus?.personality?.avatar;
+                const initials = agent.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+                
+                return (
+                  <div key={agent.id} className="p-4 hover:bg-neutral-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      {/* Agent Avatar */}
+                      <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600">
+                        {personalityAvatar ? (
+                          <img 
+                            src={personalityAvatar} 
+                            alt={agent.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.style.display = 'none';
+                              if (target.parentElement) {
+                                target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white font-bold text-sm">${initials}</div>`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
+                            {initials}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Agent Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-neutral-900 truncate">{agent.name}</p>
+                          {isActive && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <circle cx="10" cy="10" r="4" />
+                              </svg>
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-neutral-600">
+                          <span>{agent.sent || 0} sent</span>
+                          <span>•</span>
+                          <span>{agent.replied || 0} replied</span>
+                        </div>
+                      </div>
+                      
+                      {/* Status Indicator */}
+                      <div className="text-right">
+                        {isActive ? (
+                          <div className="flex items-center gap-1 text-green-600">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.3 2.84A1 1 0 0 1 7 2h6a1 1 0 0 1 .7.3l4 4A1 1 0 0 1 18 7v6a1 1 0 0 1-.3.7l-4 4a1 1 0 0 1-.7.3H7a1 1 0 0 1-.7-.3l-4-4A1 1 0 0 1 2 13V7a1 1 0 0 1 .3-.7l4-4z" />
+                            </svg>
+                            <span className="text-xs font-medium">Running</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-neutral-500">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <rect x="4" y="4" width="12" height="12" rx="1" />
+                            </svg>
+                            <span className="text-xs font-medium">Stopped</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-neutral-500">
+              <p className="text-sm">No agents configured yet</p>
+              <button
+                onClick={() => onViewChange?.('agents')}
+                className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Create Your First Agent
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Settings Presets Section */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-neutral-900">Settings Presets</h3>
+          <button
+            onClick={() => onViewChange?.('settings')}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            Manage Presets →
+          </button>
+        </div>
+        {(() => {
+          const SettingsPresetManager = require('../SettingsPresetManager').default;
+          return <SettingsPresetManager />;
+        })()}
+      </div>
     </div>
   );
 
@@ -828,7 +956,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-neutral-900">Analytics Dashboard</h2>
           <div className="text-sm text-neutral-600">
             {connected ? '🟢 Live Data' : '🔴 Offline'} {loading && '⏳ Loading...'}
@@ -1374,7 +1502,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
 
   const renderIssues = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-neutral-900">Issues & Alerts</h2>
         <div className="text-sm text-neutral-600">
           {issues.filter(i => !i.resolved).length} active
@@ -1490,7 +1618,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-neutral-900">Agent Management</h2>
           <div className="text-sm text-neutral-600">
             {uniqueAgents.length} {uniqueAgents.length === 1 ? 'Agent' : 'Agents'}
@@ -1924,7 +2052,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       {/* Budget Management Section */}
       <RateLimitSettings />
 
-      <h2 className="text-xl font-semibold text-neutral-900">API Usage Details</h2>
+      <h2 className="text-xl font-semibold text-neutral-900 mb-6">API Usage Details</h2>
       
       {totalApiUsage ? (
         <>
@@ -2397,7 +2525,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
 
     return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-neutral-900">Activity Logs</h2>
+      <h2 className="text-xl font-semibold text-neutral-900 mb-6">Activity Logs</h2>
       <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -2724,9 +2852,188 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
     );
   };
 
+  const renderSettings = () => {
+    const SettingsContent = require('../SettingsContent').default;
+    return (
+      <div className="space-y-6">
+        <SettingsContent />
+      </div>
+    );
+  };
+
+  const renderDashboard = () => {
+    // Dynamically import components
+    const CompanyProfileInstagram = require('../CompanyProfileInstagram').default;
+    const SettingsPresetManager = require('../SettingsPresetManager').default;
+    
+    // Calculate real-time counts from agents state
+    const activeAgentsCount = agents.filter(a => a.status === 'running').length;
+    const totalEmailsSent = agents.reduce((sum, agent) => sum + (agent.emailsSent || 0), 0);
+    
+    return (
+      <div className="space-y-6">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Company Profile */}
+          <div>
+            <CompanyProfileInstagram />
+          </div>
+
+          {/* Right Column - Metrics, Quick Actions, Presets, Redirects */}
+          <div className="space-y-6">
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Active Agents */}
+              <div 
+                onClick={() => onViewChange?.('overview')}
+                className="bg-white rounded-xl p-6 shadow-sm border border-neutral-200 hover:border-blue-300 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    View Details →
+                  </span>
+                </div>
+                <p className="text-sm text-neutral-600 mb-1">Active Agents</p>
+                <p className="text-3xl font-bold text-neutral-900">
+                  {activeAgentsCount}
+                </p>
+              </div>
+
+              {/* Emails Sent */}
+              <div 
+                onClick={() => onViewChange?.('outreach')}
+                className="bg-white rounded-xl p-6 shadow-sm border border-neutral-200 hover:border-purple-300 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    View Queue →
+                  </span>
+                </div>
+                <p className="text-sm text-neutral-600 mb-1">Emails Sent</p>
+                <p className="text-3xl font-bold text-neutral-900">
+                  {totalEmailsSent}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-neutral-200">
+              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all text-left">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-neutral-900">Create Agent</p>
+                    <p className="text-xs text-neutral-600">Start new lead generation</p>
+                  </div>
+                </button>
+
+                <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-purple-50 hover:border-purple-200 border border-transparent transition-all text-left">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-neutral-900">Analytics</p>
+                    <p className="text-xs text-neutral-600">View performance metrics</p>
+                  </div>
+                </button>
+
+                <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-green-50 hover:border-green-200 border border-transparent transition-all text-left">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-neutral-900">Settings</p>
+                    <p className="text-xs text-neutral-600">Configure integrations</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Settings Presets */}
+            <SettingsPresetManager />
+
+            {/* System Redirects */}
+            <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-neutral-900 mb-4">System Redirects</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-neutral-900">Mailgun Webhook</div>
+                    <div className="text-xs text-neutral-500 truncate">https://meridian-kdew.onrender.com/api/webhooks/mailgun-reply</div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://meridian-kdew.onrender.com/api/webhooks/mailgun-reply');
+                      alert('Copied to clipboard!');
+                    }}
+                    className="ml-3 px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors whitespace-nowrap"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-neutral-900">Tracking Domain</div>
+                    <div className="text-xs text-neutral-500 truncate">meridian-kdew.onrender.com</div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText('meridian-kdew.onrender.com');
+                      alert('Copied to clipboard!');
+                    }}
+                    className="ml-3 px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors whitespace-nowrap"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-neutral-900">Reply-To Email</div>
+                    <div className="text-xs text-neutral-500 truncate">replies@mg.examarkchat.com</div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText('replies@mg.examarkchat.com');
+                      alert('Copied to clipboard!');
+                    }}
+                    className="ml-3 px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors whitespace-nowrap"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   switch (view) {
     case 'overview':
       return renderOverview();
+    case 'dashboard':
+      return renderDashboard();
     case 'analytics':
       return renderAnalytics();
     case 'agents':
@@ -2739,6 +3046,8 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
       return renderIntegrations();
     case 'logs':
       return renderLogs();
+    case 'settings':
+      return renderSettings();
     default:
       return renderOverview();
   }

@@ -11,10 +11,11 @@ import {
   Squares2X2Icon,
   MagnifyingGlassIcon,
   SparklesIcon,
-  CpuChipIcon
+  CpuChipIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
 
-export type MonitoringView = 'overview' | 'analytics' | 'agents' | 'integrations' | 'logs' | 'memory' | 'outreach';
+export type MonitoringView = 'overview' | 'dashboard' | 'analytics' | 'agents' | 'integrations' | 'logs' | 'memory' | 'outreach' | 'settings';
 
 interface MonitoringSidebarProps {
   activeView: MonitoringView;
@@ -27,7 +28,7 @@ export default function MonitoringSidebar({
   activeView, 
   onViewChange, 
   issueCount = 0,
-  connected = false 
+  connected = false
 }: MonitoringSidebarProps) {
   const [hoveredView, setHoveredView] = useState<MonitoringView | null>(null);
   const [showConnectionTooltip, setShowConnectionTooltip] = useState(false);
@@ -39,6 +40,7 @@ export default function MonitoringSidebar({
     label: string;
     badge?: number;
   }> = [
+    { id: 'dashboard', icon: UserCircleIcon, label: 'Dashboard' },
     { id: 'overview', icon: Squares2X2Icon, label: 'Overview' },
     { id: 'outreach', icon: EnvelopeIcon, label: 'Outreach' },
     { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
@@ -127,27 +129,38 @@ export default function MonitoringSidebar({
         );
       })}
 
-      {/* Settings at bottom */}
-      <div className="mt-auto">
-        <div 
-          className="relative"
-          onMouseEnter={() => setShowSettingsTooltip(true)}
-          onMouseLeave={() => setShowSettingsTooltip(false)}
+      {/* Settings button */}
+      <div 
+        className="relative"
+        onMouseEnter={() => setShowSettingsTooltip(true)}
+        onMouseLeave={() => setShowSettingsTooltip(false)}
+      >
+        <button
+          onClick={() => onViewChange('settings')}
+          className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all relative ${
+            activeView === 'settings'
+              ? 'bg-blue-50 text-blue-600 shadow-sm' 
+              : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+          }`}
         >
-          <button
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600 transition-all"
-          >
-            <Cog6ToothIcon className="w-5 h-5" />
-          </button>
-
-          {/* Tooltip */}
-          {showSettingsTooltip && (
-            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap pointer-events-none shadow-lg" style={{ zIndex: 9999 }}>
-              Settings
-            </div>
+          <Cog6ToothIcon className="w-5 h-5" />
+          
+          {/* Active indicator */}
+          {activeView === 'settings' && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-600 rounded-r"></div>
           )}
-        </div>
+        </button>
+
+        {/* Tooltip */}
+        {showSettingsTooltip && (
+          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded whitespace-nowrap pointer-events-none shadow-lg" style={{ zIndex: 9999 }}>
+            Settings
+          </div>
+        )}
       </div>
+
+      {/* Spacer */}
+      <div className="mt-auto"></div>
     </div>
   );
 }

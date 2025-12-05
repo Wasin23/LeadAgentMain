@@ -204,6 +204,19 @@ interface Agent {
     traits: string[];
     color: string;
   };
+  settings?: {
+    companyCriteria?: {
+      companyIndustries?: string[];
+      companySizeMin?: number;
+      companySizeMax?: number;
+    };
+    contactCriteria?: {
+      targetPositions?: string[];
+    };
+    geographicSettings?: {
+      leadLimit?: number;
+    };
+  };
 }
 
 interface AgentDirectorDashboardProps {
@@ -1281,12 +1294,10 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showChatbot, setShowChatbot] = useState(false);
-  
-  // Tab state
   const [activeTab, setActiveTab] = useState<'agents' | 'presets'>('agents');
   
   // Monitoring state
-  const [monitoringView, setMonitoringView] = useState<MonitoringView>('overview');
+  const [monitoringView, setMonitoringView] = useState<MonitoringView>('dashboard');
   const [monitoringMetrics, setMonitoringMetrics] = useState<any>(null);
   const [issues, setIssues] = useState<any[]>([]);
   const [monitoringConnected, setMonitoringConnected] = useState(false);
@@ -1318,6 +1329,11 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   
   // Instructions modal state
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [selectedAgentForInstructions, setSelectedAgentForInstructions] = useState<any | null>(null);
   const [instructionsText, setInstructionsText] = useState('');
   const [savingInstructions, setSavingInstructions] = useState(false);
@@ -1452,13 +1468,6 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
         break;
     }
   }, []);
-
-  // Reset to agents tab when leaving overview
-  useEffect(() => {
-    if (monitoringView !== 'overview') {
-      setActiveTab('agents');
-    }
-  }, [monitoringView]);
 
   // Fetch issues on mount and poll every 10 seconds
   useEffect(() => {
@@ -1658,6 +1667,93 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
     }
   };
 
+  const toggleAgent = async (agentId: string) => {
+    try {
+      const agent = agents.find(a => a.id === agentId);
+      if (!agent) return;
+
+      // Toggle agent through API
+      let response;
+      if (agent.status === 'running') {
+        console.log(`🛑 Stopping agent ${agentId}...`);
+        response = await api.post('/api/lead-agent/stop', { agentId });
+      } else {
+        console.log(`▶️ Starting agent ${agentId}...`);
+        response = await api.post('/api/lead-agent/start', { agentId });
+      }
+      
+      // Wait a moment then fetch updated status
+      setTimeout(async () => {
+        try {
+          const statusResponse = await api.get(`/api/lead-agent/status?agentId=${agentId}`);
+          const isActive = statusResponse.data?.isActive || false;
+          
+          setAgents(prev => prev.map(a => 
+            a.id === agentId 
+              ? { ...a, status: isActive ? 'running' : 'stopped' }
+              : a
+          ));
+        } catch (statusError) {
+          console.error('Failed to fetch updated status:', statusError);
+          // Fallback to optimistic update
+          setAgents(prev => prev.map(a => 
+            a.id === agentId 
+              ? { ...a, status: a.status === 'running' ? 'stopped' : 'running' }
+              : a
+          ));
+        }
+      }, 500);
+    } catch (error) {
+      console.error('Failed to toggle agent:', error);
+      alert('Failed to toggle agent. Please try again.');
+    }
+  };
+
+  const showDeleteConfirmation = (agent: Agent) => {
+    if (agent.id === 'lead-agent-main') return; // Can't delete main agent
+    setAgentToDelete(agent);
+    setDeleteConfirmText('');
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (!agentToDelete) return;
+    
+    const requiredText = `DELETE ${agentToDelete.name}`;
+    if (deleteConfirmText !== requiredText) return;
+    
+    try {
+      // Call backend API to clean up agent logs and data
+      try {
+        await api.delete(`/api/agents/${agentToDelete.id}`);
+        console.log(`✅ Cleaned up backend data for agent ${agentToDelete.id}`);
+      } catch (apiError) {
+        console.warn('⚠️ Failed to clean up backend data:', apiError);
+      }
+
+      // Remove from localStorage
+      const existingAgents = JSON.parse(localStorage.getItem('meridian-agents') || '[]');
+      const updatedAgents = existingAgents.filter((a: Agent) => a.id !== agentToDelete.id);
+      localStorage.setItem('meridian-agents', JSON.stringify(updatedAgents));
+      
+      // Update local state
+      setAgents(prev => prev.filter(a => a.id !== agentToDelete.id));
+      
+      // Close modal
+      setShowDeleteModal(false);
+      setAgentToDelete(null);
+      setDeleteConfirmText('');
+    } catch (error) {
+      console.error('Failed to delete agent:', error);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setAgentToDelete(null);
+    setDeleteConfirmText('');
+  };
+
   const fetchAgents = async () => {
     // Prevent concurrent fetches
     if (isFetchingRef.current) {
@@ -1690,7 +1786,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             // Preserve currentActivity from existing state
             const existingAgent = agents.find(a => a.id === agent.agentId);
             
-            return {
+            const mappedAgent = {
               id: agent.agentId,
               name: agent.name,
               status: isRunning ? 'running' : 'stopped',
@@ -1701,8 +1797,19 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
               personality: agent.personality,
               nextCycleTime: agent.nextCycleTime,
               specialInstructions: agent.specialInstructions || '',
-              currentActivity: existingAgent?.currentActivity || (isRunning ? 'Thinking' : undefined) // Show "Thinking" for running agents until SSE updates
+              currentActivity: existingAgent?.currentActivity || (isRunning ? 'Thinking' : undefined), // Show "Thinking" for running agents until SSE updates
+              settings: agent.settings || {} // Include settings from backend
             };
+            
+            console.log(`🔍 [AGENT SETTINGS] ${agent.name} settings:`, {
+              hasSettings: !!agent.settings,
+              settings: agent.settings,
+              companyCriteria: agent.settings?.companyCriteria,
+              contactCriteria: agent.settings?.contactCriteria,
+              geographicSettings: agent.settings?.geographicSettings
+            });
+            
+            return mappedAgent;
           })
         );
         console.log('✅ [AGENTS] Agent fetch complete:', awsAgents);
@@ -1892,22 +1999,24 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 relative flex">
-      {/* Grid Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.06]">
-        <svg width="100%" height="100%">
-          <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#000" strokeWidth="1"/>
-              <circle cx="0.5" cy="0.5" r="2.5" fill="#000"/>
-              <circle cx="40.5" cy="0.5" r="2.5" fill="#000"/>
-              <circle cx="0.5" cy="40.5" r="2.5" fill="#000"/>
-              <circle cx="40.5" cy="40.5" r="2.5" fill="#000"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-      </div>
+    <div className={`min-h-screen relative flex ${monitoringView === 'overview' ? 'bg-neutral-50' : 'bg-white'}`}>
+      {/* Grid Background Pattern - Only show on overview */}
+      {monitoringView === 'overview' && (
+        <div className="absolute inset-0 opacity-[0.06]">
+          <svg width="100%" height="100%">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#000" strokeWidth="1"/>
+                <circle cx="0.5" cy="0.5" r="2.5" fill="#000"/>
+                <circle cx="40.5" cy="0.5" r="2.5" fill="#000"/>
+                <circle cx="0.5" cy="40.5" r="2.5" fill="#000"/>
+                <circle cx="40.5" cy="40.5" r="2.5" fill="#000"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+        </div>
+      )}
 
       {/* Monitoring Sidebar */}
       <div className="relative z-20">
@@ -1921,81 +2030,38 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
       {/* Main Content */}
       <div className="relative z-0 flex-1 ml-16">
-        {/* Left-aligned Header with White Background */}
-        <div className="bg-white border-b border-neutral-200 px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-neutral-900">Agent Director</h1>
-              <p className="text-neutral-600 text-sm mt-1">Central command for all your AI agents</p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Monitoring Status Indicator */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded text-sm">
-                <div className={`w-2 h-2 rounded-full ${monitoringConnected ? 'bg-green-500' : 'bg-neutral-300'}`}></div>
-                <span className="text-neutral-600 text-xs">
-                  {monitoringConnected ? 'Live' : 'Offline'}
-                </span>
+        {/* Left-aligned Header with White Background - Only show on overview */}
+        {monitoringView === 'overview' && (
+          <div className="bg-white border-b border-neutral-200 px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-neutral-900">Agent Director</h1>
+                <p className="text-neutral-600 text-sm mt-1">Central command for all your AI agents</p>
               </div>
               
-              <button
-                onClick={() => {
-                  if (activeTab === 'presets') {
-                    // Open create preset modal
-                    setPresetIsCreating(true);
-                    setPresetEditingPreset(null);
-                    setPresetFormData({
-                      name: '',
-                      targetIndustries: [],
-                      targetPositions: [],
-                      companySizeMin: 50,
-                      companySizeMax: 500,
-                      leadLimit: 10
-                    });
-                  } else {
-                    // Open agent personality selector
-                    setShowPersonalitySelector(true);
-                  }
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200 font-medium"
-              >
-                <PlusIcon className="w-4 h-4" />
-                {activeTab === 'presets' ? 'Add Preset' : 'Add Agent'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Navigation - Only show in overview */}
-        {monitoringView === 'overview' && (
-          <div className="bg-white border-b border-neutral-200 px-6">
-            <div className="flex gap-6">
-              <button
-                onClick={() => setActiveTab('agents')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'agents'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
-                }`}
-              >
-                Agents
-              </button>
-              <button
-                onClick={() => setActiveTab('presets')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'presets'
-                    ? 'border-purple-600 text-purple-600'
-                    : 'border-transparent text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
-                }`}
-              >
-                Presets
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Monitoring Status Indicator */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded text-sm">
+                  <div className={`w-2 h-2 rounded-full ${monitoringConnected ? 'bg-green-500' : 'bg-neutral-300'}`}></div>
+                  <span className="text-neutral-600 text-xs">
+                    {monitoringConnected ? 'Live' : 'Offline'}
+                  </span>
+                </div>
+                
+                <button
+                  onClick={() => activeTab === 'agents' ? setShowPersonalitySelector(true) : setPresetIsCreating(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200 font-medium"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  {activeTab === 'agents' ? 'Add Agent' : 'Add Preset'}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Real-time Monitoring Dashboard - Only show on overview and agents tab */}
-        {monitoringMetrics && monitoringView === 'overview' && activeTab === 'agents' && (
+        {/* Real-time Monitoring Dashboard - Only show on overview */}
+        {monitoringMetrics && monitoringView === 'overview' && (
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-neutral-200 px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Emails */}
@@ -2113,20 +2179,58 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
 
         {/* Content Area */}
         <div className="p-6">
-          {activeTab === 'agents' ? (
+          {/* Tab System - Only show on overview */}
+          {monitoringView === 'overview' && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-lg p-1 w-fit">
+                <button
+                  onClick={() => setActiveTab('agents')}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-all ${
+                    activeTab === 'agents'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50'
+                  }`}
+                >
+                  🤖 Agents
+                </button>
+                <button
+                  onClick={() => setActiveTab('presets')}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-all ${
+                    activeTab === 'presets'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50'
+                  }`}
+                >
+                  ⚙️ Presets
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Show Monitoring Content for non-overview views */}
+          {monitoringView !== 'overview' ? (
+            <MonitoringContent 
+              view={monitoringView}
+              metrics={monitoringMetrics}
+              issues={issues}
+              connected={monitoringConnected}
+              onResolveIssue={handleResolveIssue}
+              onViewChange={setMonitoringView}
+              agents={agents}
+            />
+          ) : activeTab === 'presets' ? (
+            /* Presets View */
+            <PresetsManagement 
+              externalIsCreating={presetIsCreating}
+              externalSetIsCreating={setPresetIsCreating}
+              externalEditingPreset={presetEditingPreset}
+              externalSetEditingPreset={setPresetEditingPreset}
+              externalFormData={presetFormData}
+              externalSetFormData={setPresetFormData}
+            />
+          ) : (
+            /* Agent Grid for overview */
             <>
-              {/* Show Monitoring Content for non-overview views */}
-              {monitoringView !== 'overview' ? (
-                <MonitoringContent 
-                  view={monitoringView}
-                  metrics={monitoringMetrics}
-                  issues={issues}
-                  connected={monitoringConnected}
-                  onResolveIssue={handleResolveIssue}
-                />
-              ) : (
-                /* Agent Grid for overview */
-                <>
                   {agents.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-neutral-400 mb-4">
@@ -2154,89 +2258,212 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  whileHover={{ scale: 1.02 }}
-                  onClick={() => onSelectAgent(agent.id)}
-                  className={`border rounded-lg p-3 transition-all cursor-pointer ${getPersonalityColors(agent.personality?.color)}`}
+                  className={`border rounded-xl overflow-hidden transition-all ${getPersonalityColors(agent.personality?.color)}`}
                 >
                   {/* Agent Header */}
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {agent.personality?.avatar ? (
-                        <img 
-                          src={agent.personality.avatar} 
-                          alt={agent.personality.name || agent.name}
-                          className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="text-xl flex-shrink-0">🤖</div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm text-neutral-900">{agent.name}</h3>
-                        <p className="text-xs text-neutral-500">
-                          {agent.personality?.name || 'Standard Agent'}
-                        </p>
+                  <div 
+                    onClick={() => onSelectAgent(agent.id)}
+                    className="p-4 cursor-pointer hover:bg-white/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {agent.personality?.avatar ? (
+                          <img 
+                            src={agent.personality.avatar} 
+                            alt={agent.personality.name || agent.name}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="text-2xl flex-shrink-0">🤖</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base text-neutral-900 truncate">{agent.name}</h3>
+                          <p className="text-sm text-neutral-600">
+                            {agent.personality?.name || 'Standard Agent'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Status Badge or Countdown Timer */}
+                      <div className="flex-shrink-0">
+                        {agent.status === 'running' && agent.nextCycleTime ? (
+                          <CountdownBadge nextCycleTime={agent.nextCycleTime} />
+                        ) : (
+                          <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            agent.status === 'running' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-neutral-200 text-neutral-600'
+                          }`}>
+                            <span className="inline-flex items-center gap-1.5">
+                              {agent.status === 'running' && (
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                              )}
+                              {agent.status === 'running' ? 'Active' : 'Stopped'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    
-                    {/* Status Badge or Countdown Timer */}
-                    <div className="flex-shrink-0">
-                      {agent.status === 'running' && agent.nextCycleTime ? (
-                        <CountdownBadge nextCycleTime={agent.nextCycleTime} />
-                      ) : (
-                        <div className={`px-2 py-0.5 rounded text-xs font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-500 ${
-                          agent.status === 'running' 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-neutral-200 text-neutral-600'
-                        }`}>
-                          <span className="inline-flex items-center gap-1.5">
-                            {agent.status === 'running' && (
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                              </span>
-                            )}
-                            {agent.status === 'running' ? 'Active' : 'Stopped'}
-                          </span>
+
+                    {/* Activity Message - Real-time progress streaming */}
+                    {agent.currentActivity && agent.status === 'running' && (
+                      <div className="flex items-center gap-2 mb-3 p-2 bg-blue-50/50 rounded-lg">
+                        <svg className="animate-spin h-3.5 w-3.5 text-blue-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p className="text-xs text-blue-700 font-medium break-words" title={agent.currentActivity}>
+                          {agent.currentActivity}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQueueClick(agent.id, agent.personality?.name || agent.name, 'queued');
+                        }}
+                        className="text-center p-2 bg-white/50 rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-all"
+                      >
+                        <div className="text-lg font-bold text-neutral-900">{agent.emailsQueued}</div>
+                        <div className="text-[10px] text-neutral-600 uppercase">Queued</div>
+                      </div>
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQueueClick(agent.id, agent.personality?.name || agent.name, 'sent');
+                        }}
+                        className="text-center p-2 bg-white/50 rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-all"
+                      >
+                        <div className="text-lg font-bold text-neutral-900">{agent.emailsSent}</div>
+                        <div className="text-[10px] text-neutral-600 uppercase">Sent</div>
+                      </div>
+                      <div className="text-center p-2 bg-white/50 rounded-lg">
+                        <div className="text-lg font-bold text-neutral-900">{agent.meetingsScheduled}</div>
+                        <div className="text-[10px] text-neutral-600 uppercase">Meetings</div>
+                      </div>
+                    </div>
+
+                    {/* Agent Targeting Info */}
+                    <div className="space-y-2 border-t border-neutral-200/50 pt-3">
+                      {/* Target Industries */}
+                      <div>
+                        <div className="text-[10px] font-semibold text-neutral-500 mb-1 uppercase tracking-wide">Target Industries</div>
+                        <div className="flex flex-wrap gap-1">
+                          {agent.settings?.companyCriteria?.companyIndustries && agent.settings.companyCriteria.companyIndustries.length > 0 ? (
+                            <>
+                              {agent.settings.companyCriteria.companyIndustries.slice(0, 3).map((industry, idx) => (
+                                <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded font-medium">
+                                  {industry}
+                                </span>
+                              ))}
+                              {agent.settings.companyCriteria.companyIndustries.length > 3 && (
+                                <span className="px-2 py-0.5 bg-neutral-100 text-neutral-600 text-[10px] rounded font-medium">
+                                  +{agent.settings.companyCriteria.companyIndustries.length - 3}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-neutral-400 italic">Not configured</span>
+                          )}
                         </div>
-                      )}
+                      </div>
+
+                      {/* Target Positions */}
+                      <div>
+                        <div className="text-[10px] font-semibold text-neutral-500 mb-1 uppercase tracking-wide">Target Positions</div>
+                        <div className="flex flex-wrap gap-1">
+                          {agent.settings?.contactCriteria?.targetPositions && agent.settings.contactCriteria.targetPositions.length > 0 ? (
+                            <>
+                              {agent.settings.contactCriteria.targetPositions.slice(0, 3).map((position, idx) => (
+                                <span key={idx} className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded font-medium">
+                                  {position}
+                                </span>
+                              ))}
+                              {agent.settings.contactCriteria.targetPositions.length > 3 && (
+                                <span className="px-2 py-0.5 bg-neutral-100 text-neutral-600 text-[10px] rounded font-medium">
+                                  +{agent.settings.contactCriteria.targetPositions.length - 3}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-neutral-400 italic">Not configured</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Company Size & Lead Limit */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-[10px] font-semibold text-neutral-500 mb-1 uppercase tracking-wide">Company Size</div>
+                          <div className="text-xs text-neutral-900 font-medium">
+                            {agent.settings?.companyCriteria?.companySizeMin && agent.settings?.companyCriteria?.companySizeMax
+                              ? `${agent.settings.companyCriteria.companySizeMin}-${agent.settings.companyCriteria.companySizeMax}`
+                              : <span className="text-neutral-400 italic text-[10px]">Not set</span>
+                            }
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-semibold text-neutral-500 mb-1 uppercase tracking-wide">Lead Limit</div>
+                          <div className="text-xs text-neutral-900 font-medium">
+                            {agent.settings?.geographicSettings?.leadLimit
+                              ? `${agent.settings.geographicSettings.leadLimit}/cycle`
+                              : <span className="text-neutral-400 italic text-[10px]">Not set</span>
+                            }
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Activity Message - Separate Row */}
-                  {agent.currentActivity && agent.status === 'running' && (
-                    <div className="flex items-center gap-1.5 mb-2 -mt-1">
-                      <svg className="animate-spin h-3 w-3 text-neutral-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <p className="text-xs text-neutral-400 break-words" title={agent.currentActivity}>
-                        {agent.currentActivity}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <LiveCounter agentId={agent.id} type="queued" onClick={(e) => {
-                      e.stopPropagation();
-                      handleQueueClick(agent.id, agent.personality?.name || agent.name, 'queued');
-                    }} />
-                    <LiveCounter agentId={agent.id} type="sent" onClick={(e) => {
-                      e.stopPropagation();
-                      handleQueueClick(agent.id, agent.personality?.name || agent.name, 'sent');
-                    }} />
+                  {/* Action Footer */}
+                  <div className="border-t border-neutral-200/50 bg-white/30 p-2 flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAgent(agent.id);
+                      }}
+                      className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                        agent.status === 'running'
+                          ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                          : 'bg-green-50 text-green-700 hover:bg-green-100'
+                      }`}
+                    >
+                      {agent.status === 'running' ? '⏸ Stop' : '▶ Start'}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectAgent(agent.id);
+                      }}
+                      className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium text-sm transition-all"
+                    >
+                      ⚙️ Manage
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedAgentForInstructions(agent);
                         setShowInstructionsModal(true);
                       }}
-                      className="flex flex-col items-center justify-center p-2 hover:bg-neutral-50 rounded transition-colors"
+                      className="px-3 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg font-medium text-sm transition-all"
                     >
-                      <svg className="w-5 h-5 text-blue-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <div className="text-xs text-neutral-600">Instructions</div>
+                      💬
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        showDeleteConfirmation(agent);
+                      }}
+                      disabled={agent.id === 'lead-agent-main'}
+                      className="px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      🗑️
                     </button>
                   </div>
                 </motion.div>
@@ -2244,18 +2471,6 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
             </div>
           )}
             </>
-              )}
-            </>
-          ) : (
-            /* Presets Tab Content */
-            <PresetsManagement 
-              externalIsCreating={presetIsCreating}
-              externalSetIsCreating={setPresetIsCreating}
-              externalEditingPreset={presetEditingPreset}
-              externalSetEditingPreset={setPresetEditingPreset}
-              externalFormData={presetFormData}
-              externalSetFormData={setPresetFormData}
-            />
           )}
         </div>
       </div>
@@ -2705,6 +2920,80 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
                 {savingInstructions ? 'Saving...' : 'Save Instructions'}
               </button>
             </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Agent Modal */}
+      <AnimatePresence>
+        {showDeleteModal && agentToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={cancelDelete}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <TrashIcon className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-neutral-900">Delete Agent</h3>
+                    <p className="text-sm text-neutral-500">This action cannot be undone</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-neutral-700">
+                    You are about to permanently delete the agent <strong>"{agentToDelete.name}"</strong>. 
+                    This will remove all associated data and cannot be undone.
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Type <span className="font-bold text-red-600">DELETE {agentToDelete.name}</span> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder={`DELETE ${agentToDelete.name}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-neutral-200 mt-6">
+                  <button
+                    onClick={cancelDelete}
+                    className="flex-1 px-4 py-2 text-neutral-700 bg-neutral-50 hover:bg-neutral-100 transition-colors border border-neutral-200 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteAgent}
+                    disabled={deleteConfirmText !== `DELETE ${agentToDelete.name}`}
+                    className="flex-1 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: deleteConfirmText === `DELETE ${agentToDelete.name}` ? '#dc2626 !important' : '#a3a3a3 !important',
+                      color: '#ffffff !important',
+                      fontWeight: '600 !important'
+                    }}
+                  >
+                    Delete Agent
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

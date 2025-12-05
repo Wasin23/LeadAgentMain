@@ -38,7 +38,7 @@ const navigationItems = [
 ];
 
 export default function Dashboard() {
-  const [activeView, setActiveView] = useState('dashboard');
+  const [activeView, setActiveView] = useState('director');
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [hasCompanyProfile, setHasCompanyProfile] = useState<boolean | null>(null);
   const [showAgentOnboarding, setShowAgentOnboarding] = useState(false);
@@ -184,42 +184,6 @@ export default function Dashboard() {
                     Meridian
                   </h1>
                 </div>
-                <nav className="hidden md:flex items-center gap-6">
-                  {navigationItems.map((item) => {
-                    const Icon = item.icon;
-                    const showBadge = item.id === 'director' && criticalIssueCount > 0;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveView(item.id)}
-                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors rounded-lg relative ${
-                          activeView === item.id
-                            ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
-                            : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {item.name}
-                        {showBadge && (
-                          <span 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveView('settings');
-                              // Use setTimeout to ensure view switches first, then navigate to notifications tab
-                              setTimeout(() => {
-                                window.location.hash = 'notifications';
-                              }, 100);
-                            }}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
-                            title="Click to view alerts"
-                          >
-                            {criticalIssueCount > 9 ? '9+' : criticalIssueCount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
               </div>
 
               <UserMenu onSettingsClick={() => setActiveView('settings')} />
@@ -228,199 +192,19 @@ export default function Dashboard() {
 
       {/* Main Content - Only accessible after onboarding */}
       <main className="flex-1">
-        {activeView === 'dashboard' && (
-          <div className="p-8 bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 min-h-screen">
-            <div className="space-y-8">
-                {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Left Column - Company Profile (Takes up half) */}
-                  <div>
-                    <CompanyProfileInstagram onEdit={() => setActiveView('settings')} />
-                  </div>
-
-                  {/* Right Column - Metrics, Quick Actions, Activity, Presets */}
-                  <div className="space-y-6">
-                    {/* Metrics Cards */}
-                    {loadingMetrics ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 border-t-blue-600"></div>
-                      </div>
-                    ) : dashboardMetrics ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Active Agents */}
-                        <button
-                          onClick={() => {
-                            console.log('[START HERE] Button clicked, showStartHere:', showStartHere);
-                            setActiveView('agents');
-                            if (showStartHere) {
-                              console.log('[START HERE] Hiding badge and marking onboarding complete');
-                              setShowStartHere(false);
-                              setHasSeenOnboarding(true);
-                              // Mark as completed on server
-                              api.put('/api/company-profile/complete-onboarding')
-                                .then(res => console.log('[START HERE] API success:', res.data))
-                                .catch(err => {
-                                  console.error('[START HERE] API error:', err);
-                                  console.error('[START HERE] Error details:', err.response?.data, err.response?.status);
-                                });
-                            }
-                          }}
-                          className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all border border-neutral-200 hover:border-blue-300 text-left group relative"
-                        >
-                          {showStartHere && (
-                            <span className="absolute -top-2 -right-2 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse z-10">
-                              START HERE
-                            </span>
-                          )}
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-blue-50 rounded-lg">
-                              <UserGroupIcon className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <span className="text-xs font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                              View Details →
-                            </span>
-                          </div>
-                          <p className="text-sm text-neutral-600 mb-1">Active Agents</p>
-                          <p className="text-3xl font-bold text-neutral-900">
-                            {dashboardMetrics.agents?.active || 0}
-                          </p>
-                        </button>
-
-                        {/* Emails Sent */}
-                        <button
-                          onClick={() => setActiveView('director')}
-                          className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all border border-neutral-200 hover:border-purple-300 text-left group"
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-purple-50 rounded-lg">
-                              <EnvelopeIcon className="w-6 h-6 text-purple-600" />
-                            </div>
-                            <span className="text-xs font-medium text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                              View Queue →
-                            </span>
-                          </div>
-                          <p className="text-sm text-neutral-600 mb-1">Emails Sent</p>
-                          <p className="text-3xl font-bold text-neutral-900">
-                            {dashboardMetrics.emails?.sent || 0}
-                          </p>
-                        </button>
-                      </div>
-                    ) : null}
-                    {/* Quick Actions */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-neutral-200">
-                      <h3 className="text-lg font-semibold text-neutral-900 mb-4">
-                        Quick Actions
-                      </h3>
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => setActiveView('agents')}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all text-left"
-                        >
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <UserPlusIcon className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-neutral-900">Create Agent</p>
-                            <p className="text-xs text-neutral-600">Start new lead generation</p>
-                          </div>
-                        </button>
-
-                        <button
-                          onClick={() => setActiveView('director')}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-purple-50 hover:border-purple-200 border border-transparent transition-all text-left"
-                        >
-                          <div className="p-2 bg-purple-100 rounded-lg">
-                            <ChartBarIcon className="w-4 h-4 text-purple-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-neutral-900">Analytics</p>
-                            <p className="text-xs text-neutral-600">View performance metrics</p>
-                          </div>
-                        </button>
-
-                        <button
-                          onClick={() => setActiveView('settings')}
-                          data-settings-trigger
-                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-green-50 hover:border-green-200 border border-transparent transition-all text-left"
-                        >
-                          <div className="p-2 bg-green-100 rounded-lg">
-                            <Cog6ToothIcon className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-neutral-900">Settings</p>
-                            <p className="text-xs text-neutral-600">Configure integrations</p>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Settings Presets */}
-                    <SettingsPresetManager 
-                      onManageClick={() => setActiveView('director')}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-        )}
-
-        {activeView === 'agents' && (
-          <div className="p-0">
-            {selectedAgent ? (
-              <AgentDashboard 
-                agentId={selectedAgent} 
-                onBack={() => setSelectedAgent(null)}
-              />
-            ) : (
-              <AgentManager onSelectAgent={setSelectedAgent} />
-            )}
-          </div>
-        )}
-
-        {activeView === 'director' && (
-          <div className="p-0">
-            {selectedAgent ? (
-              <AgentDashboard 
-                agentId={selectedAgent} 
-                onBack={() => setSelectedAgent(null)}
-              />
-            ) : (
-              <AgentDirectorDashboard onSelectAgent={setSelectedAgent} />
-            )}
-          </div>
-        )}
-
-        {activeView === 'settings' && (
-          <div className="p-6">
-            <div>
-              <SettingsContent />
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50">
-        <div className="flex items-center justify-around py-2">
-          {navigationItems.slice(0, 4).map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveView(item.id)}
-                className={`flex flex-col items-center gap-1 p-2 text-xs ${
-                  activeView === item.id
-                    ? 'text-blue-600'
-                    : 'text-neutral-600'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                {item.name}
-              </button>
-            );
-          })}
+        <div className="p-0">
+          {selectedAgent ? (
+            <AgentDashboard 
+              agentId={selectedAgent} 
+              onBack={() => setSelectedAgent(null)}
+            />
+          ) : (
+            <AgentDirectorDashboard 
+              onSelectAgent={setSelectedAgent}
+            />
+          )}
         </div>
-      </nav>
+      </main>
       </>
       )}
     </div>

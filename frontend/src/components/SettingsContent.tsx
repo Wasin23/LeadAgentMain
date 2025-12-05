@@ -263,36 +263,38 @@ export default function SettingsContent() {
         </div>
       )}
 
-      <div className="flex gap-6">
-        {/* Sidebar Navigation */}
-        <div className="w-64 flex-shrink-0">
-          <div className="bg-white rounded-xl border border-neutral-200 shadow-sm p-2">
-            <nav className="space-y-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
+      {/* Top Tabs Navigation */}
+      <div className="bg-white rounded-lg border border-neutral-200 shadow-sm mb-6">
+        <div className="border-b border-neutral-200">
+          <nav className="flex flex-wrap px-2">
+            {tabs.map((tab, index) => {
+              const Icon = tab.icon;
+              return (
+                <div key={tab.id} className="flex items-center">
                   <button
-                    key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     data-tab={tab.id}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
                       activeTab === tab.id
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'text-neutral-700 hover:bg-neutral-50 border border-transparent'
+                        ? 'text-blue-600 border-blue-600'
+                        : 'text-neutral-600 border-transparent hover:text-neutral-900 hover:border-neutral-300'
                     }`}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                     <span>{tab.label}</span>
                   </button>
-                );
-              })}
-            </nav>
-          </div>
+                  {index < tabs.length - 1 && (
+                    <div className="h-8 w-px bg-neutral-200"></div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
         </div>
+      </div>
 
-        {/* Content Area */}
-        <div className="flex-1">
-          <div className="bg-white rounded-xl border border-neutral-200 shadow-sm p-6">
+      {/* Content Area */}
+      <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
             {/* Profile Tab */}
             {activeTab === 'profile' && (
               <div>
@@ -793,24 +795,23 @@ export default function SettingsContent() {
               </div>
             )}
           </div>
-        </div>
+      
+        {/* Company Profile Modal (shared) */}
+        {showProfileModal && (
+          <CompanyProfileModal
+            open={showProfileModal}
+            onClose={() => setShowProfileModal(false)}
+            onSaved={async () => {
+              // Refresh settings after profile save
+              try {
+                await fetchSettings();
+              } catch (e) {
+                console.error('Error refreshing settings after profile save', e);
+              }
+              setShowProfileModal(false);
+            }}
+          />
+        )}
       </div>
-      {/* Company Profile Modal (shared) */}
-      {showProfileModal && (
-        <CompanyProfileModal
-          open={showProfileModal}
-          onClose={() => setShowProfileModal(false)}
-          onSaved={async () => {
-            // Refresh settings after profile save
-            try {
-              await fetchSettings();
-            } catch (e) {
-              console.error('Error refreshing settings after profile save', e);
-            }
-            setShowProfileModal(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
+    );
+  }
