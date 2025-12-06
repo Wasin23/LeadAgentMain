@@ -98,36 +98,33 @@ async function buildEmailSignature(userId, userSettings) {
   try {
     let signature = '';
     
-    // Check if user has enabled company logo in email settings
-    if (userSettings?.emailSettings?.useCompanyLogo) {
-      // Get company profile to access the logo
-      const companyProfile = userSettings?.companyProfile;
+    // Get company profile to access the logo (automatically inject if available)
+    const companyProfile = userSettings?.companyProfile;
+    
+    if (companyProfile?.logo) {
+      console.log(`✅ [EMAIL SIGNATURE] Adding company logo for user ${userId}`);
       
-      if (companyProfile?.logo) {
-        console.log(`✅ [EMAIL SIGNATURE] Adding company logo for user ${userId}`);
-        
-        // Build signature HTML with logo
-        signature = `
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-family: Arial, sans-serif;">
-            <table cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td style="padding-right: 15px; vertical-align: top;">
-                  <img src="${companyProfile.logo}" alt="${companyProfile.companyName || 'Company'} Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: contain;" />
-                </td>
-                <td style="vertical-align: top;">
-                  <div style="font-size: 14px; color: #111827; font-weight: 600; margin-bottom: 4px;">
-                    ${companyProfile.companyName || ''}
-                  </div>
-                  ${companyProfile.tagline ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">${companyProfile.tagline}</div>` : ''}
-                  ${companyProfile.website ? `<div style="font-size: 12px;"><a href="${companyProfile.website}" style="color: #2563eb; text-decoration: none;">${companyProfile.website}</a></div>` : ''}
-                  ${companyProfile.email ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.email}</div>` : ''}
-                  ${companyProfile.phone ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.phone}</div>` : ''}
-                </td>
-              </tr>
-            </table>
-          </div>
-        `;
-      }
+      // Build signature HTML with logo
+      signature = `
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-family: Arial, sans-serif;">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding-right: 15px; vertical-align: top;">
+                <img src="${companyProfile.logo}" alt="${companyProfile.companyName || 'Company'} Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: contain;" />
+              </td>
+              <td style="vertical-align: top;">
+                <div style="font-size: 14px; color: #111827; font-weight: 600; margin-bottom: 4px;">
+                  ${companyProfile.companyName || ''}
+                </div>
+                ${companyProfile.tagline ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">${companyProfile.tagline}</div>` : ''}
+                ${companyProfile.website ? `<div style="font-size: 12px;"><a href="${companyProfile.website}" style="color: #2563eb; text-decoration: none;">${companyProfile.website}</a></div>` : ''}
+                ${companyProfile.email ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.email}</div>` : ''}
+                ${companyProfile.phone ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.phone}</div>` : ''}
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
     }
     
     // Add custom signature if provided (appends after logo)

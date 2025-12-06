@@ -99,11 +99,20 @@ router.get('/callback', async (req, res) => {
       });
     }
 
-    await awsManager.saveUserSettings(userId, {
+    const settingsToSave = {
       ...existingSettings,
       gmailAccounts: existingAccounts,
       activeGmailIndex: existingAccounts.findIndex(acc => acc.isActive)
+    };
+
+    console.log('📝 [GMAIL AUTH] Saving to DynamoDB:', {
+      userId,
+      accountsCount: existingAccounts.length,
+      accounts: existingAccounts.map(a => ({ email: a.email, isActive: a.isActive })),
+      activeIndex: settingsToSave.activeGmailIndex
     });
+
+    await awsManager.saveUserSettings(userId, settingsToSave);
 
     console.log('✅ [GMAIL AUTH] Gmail connected successfully for user:', userId);
     console.log('✅ [GMAIL AUTH] Total accounts:', existingAccounts.length);
@@ -127,13 +136,42 @@ router.get('/status', authenticateToken, async (req, res) => {
 
     const userSettings = await awsManager.getUserSettings(userId);
     
+    // Check for new format (gmailAccounts array)
     if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+      console.log(`[GMAIL AUTH] Found ${userSettings.gmailAccounts.length} Gmail accounts`);
       res.json({
         connected: true,
         accounts: userSettings.gmailAccounts,
         activeIndex: userSettings.activeGmailIndex || 0
       });
-    } else {
+    } 
+    // Migrate from old format (gmailAuth) to new format
+    else if (userSettings?.gmailAuth?.refreshToken) {
+      console.log('[GMAIL AUTH] Migrating old gmailAuth format to gmailAccounts array');
+      const migratedAccount = {
+        email: userSettings.gmailAuth.email,
+        refreshToken: userSettings.gmailAuth.refreshToken,
+        connectedAt: userSettings.gmailAuth.connectedAt,
+        profilePicture: null,
+        isActive: true
+      };
+      
+      // Save migrated format
+      await awsManager.saveUserSettings(userId, {
+        ...userSettings,
+        gmailAccounts: [migratedAccount],
+        activeGmailIndex: 0,
+        gmailAuth: undefined // Remove old format
+      });
+      
+      res.json({
+        connected: true,
+        accounts: [migratedAccount],
+        activeIndex: 0
+      });
+    } 
+    else {
+      console.log('[GMAIL AUTH] No Gmail accounts found');
       res.json({ connected: false, accounts: [] });
     }
   } catch (error) {

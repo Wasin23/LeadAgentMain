@@ -310,9 +310,11 @@ router.post('/:id/approve', async (req, res) => {
           await userEmailQueue.markEmailAsSent(id, {
             id: sendResult.result.mailgunId || null,
             message: sendResult.result.trackingId,
-            trackingId: sendResult.result.trackingId
+            trackingId: sendResult.result.trackingId,
+            fromAccount: sendResult.result.fromAccount || null,
+            method: sendResult.method || 'mailgun'
           });
-          console.log(`[EMAIL QUEUE] 💾 Marked email ${id} as sent in AWS with tracking ID ${sendResult.result.trackingId}`);
+          console.log(`[EMAIL QUEUE] 💾 Marked email ${id} as sent in AWS with tracking ID ${sendResult.result.trackingId} from ${sendResult.result.fromAccount || 'Mailgun'}`);
         } catch (trackingError) {
           console.error('[EMAIL QUEUE] ⚠️ Failed to mark email as sent in AWS:', trackingError);
         }

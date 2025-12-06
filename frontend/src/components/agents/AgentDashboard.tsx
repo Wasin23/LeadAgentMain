@@ -668,11 +668,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchRecentEmails = async () => {
     try {
-      // Fetch approved/sent emails from AWS (now enriched with tracking data from DynamoDB)
-      const approvedResponse = await api.get(`/api/email-queue/approved?agentId=${agentId}`);
-      const emails = approvedResponse.data || [];
+      // Fetch sent emails from AWS (enriched with tracking data from DynamoDB)
+      const sentResponse = await api.get(`/api/email-queue/sent?agentId=${agentId}`);
+      const emails = sentResponse.data || [];
       
-      console.log('📧 [EMAIL QUEUE] Fetched', emails.length, 'emails with tracking data from AWS');
+      console.log('📧 [RECENT EMAILS] Fetched', emails.length, 'sent emails with tracking data from AWS');
       if (emails.length > 0) {
         console.log('📊 [TRACKING] Sample email tracking:', {
           email: emails[0].to,
@@ -3112,6 +3112,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       </p>
                     </div>
                     <div>
+                      <p className="text-xs text-neutral-500">From</p>
+                      <p className="text-sm font-medium text-neutral-900">
+                        {selectedRecentEmail.fromAccount || 'Mailgun'}
+                      </p>
+                    </div>
+                    <div>
                       <p className="text-xs text-neutral-500">Status</p>
                       <p className={`text-sm font-medium ${
                         selectedRecentEmail.status === 'replied' ? 'text-green-600' :
@@ -3119,6 +3125,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         'text-neutral-600'
                       }`}>
                         {selectedRecentEmail.status.charAt(0).toUpperCase() + selectedRecentEmail.status.slice(1)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Method</p>
+                      <p className="text-sm font-medium text-neutral-900">
+                        {selectedRecentEmail.sendMethod === 'gmail' ? 'Gmail OAuth' : 'Mailgun'}
                       </p>
                     </div>
                     <div>

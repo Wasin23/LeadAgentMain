@@ -625,23 +625,13 @@ router.get('/activity-logs', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
     const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
-    console.log('🔍 [AGENT LOGS] ===== ACTIVITY LOGS ENDPOINT HIT =====');
-    console.log('🔍 [AGENT LOGS] Loading activity logs for user:', userId, 'agentId:', agentId);
     
     // Get agent-specific instance
     const userAgent = getUserAgent(userId, agentId);
-    console.log('🔍 [AGENT LOGS] User agent found:', !!userAgent);
-    console.log('🔍 [AGENT LOGS] User agent type:', typeof userAgent);
     
     // Get the agent's operation logs and reasoning history
     const agentLogs = userAgent.getOperationLogs ? userAgent.getOperationLogs() : [];
     const agentMemory = userAgent.memory || {};
-    
-    console.log(`🔍 [AGENT LOGS] Found ${agentLogs.length} operation logs for user ${userId}`);
-    console.log(`🔍 [AGENT LOGS] Raw agent logs:`, JSON.stringify(agentLogs, null, 2));
-    console.log(`🔍 [AGENT LOGS] Agent status: isRunning=${userAgent.isRunning}, isActive=${userAgent.isActive}`);
-    console.log(`🔍 [AGENT LOGS] Agent has getOperationLogs method:`, typeof userAgent.getOperationLogs);
-    console.log(`🔍 [AGENT LOGS] Direct operationLogs array length:`, userAgent.operationLogs?.length || 'undefined');
     
     // Format logs for the frontend
     const formattedLogs = agentLogs.map(log => ({
@@ -682,9 +672,6 @@ router.get('/activity-logs', async (req, res) => {
         }
       });
     }
-    
-    console.log(`🔍 [AGENT LOGS] Returning ${formattedLogs.length} log entries`);
-    console.log('🔍 [AGENT LOGS] Formatted logs:', JSON.stringify(formattedLogs, null, 2));
     
     res.json(formattedLogs);
   } catch (error) {

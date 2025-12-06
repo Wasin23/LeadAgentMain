@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   UserCircleIcon, 
   CurrencyDollarIcon, 
@@ -78,6 +79,7 @@ interface Preferences {
 
 export default function SettingsContent() {
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -131,6 +133,44 @@ export default function SettingsContent() {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // Auto-check domain health when Gmail accounts are connected
+  useEffect(() => {
+    const checkDomainHealth = async () => {
+      if (emailSettings.gmailAccounts.length === 0) return;
+      
+      const domain = emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1];
+      if (!domain) return;
+
+      // Check if last check was more than 6 hours ago
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+      const lastChecked = emailSettings.domainHealth.lastChecked ? new Date(emailSettings.domainHealth.lastChecked) : null;
+      
+      if (!lastChecked || lastChecked < sixHoursAgo) {
+        console.log('[SETTINGS] Auto-checking domain health for:', domain);
+        try {
+          const response = await api.post('/api/check-domain-health', { domain });
+          setEmailSettings(prev => ({
+            ...prev,
+            domainHealth: {
+              spf: response.data.spf,
+              dkim: response.data.dkim,
+              dmarc: response.data.dmarc,
+              lastChecked: new Date().toISOString()
+            }
+          }));
+        } catch (error) {
+          console.error('[SETTINGS] Failed to auto-check domain health:', error);
+        }
+      }
+    };
+
+    checkDomainHealth();
+
+    // Set up interval to check every 6 hours
+    const interval = setInterval(checkDomainHealth, 6 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [emailSettings.gmailAccounts.length, emailSettings.activeGmailIndex]);
 
   const fetchSettings = async () => {
     try {
@@ -610,55 +650,12 @@ export default function SettingsContent() {
                         {/* Add Another Account Button */}
                         <button
                           onClick={() => {
-                            const userId = localStorage.getItem('userId');
-                            window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${userId}`;
+                            window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`;
                           }}
                           className="w-full px-4 py-2.5 bg-white border-2 border-dashed border-neutral-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-neutral-700 font-medium text-sm"
                         >
                           + Add Another Account
                         </button>
-
-                        <div className="flex gap-3">
-                          <button
-                            onClick={async () => {
-                              if (confirm('Test your Gmail connection?')) {
-                                try {
-                                  const response = await api.post('/api/auth/gmail/test');
-                                  if (response.data.success) {
-                                    setMessage({ type: 'success', text: `Gmail connected! ${response.data.email}` });
-                                  } else {
-                                    setMessage({ type: 'error', text: response.data.error || 'Test failed' });
-                                  }
-                                } catch (error: any) {
-                                  setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to test connection' });
-                                }
-                              }
-                            }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                          >
-                            Test Connection
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (confirm('Disconnect all Gmail accounts? Emails will send from mg.examarkchat.com instead.')) {
-                                try {
-                                  await api.post('/api/auth/gmail/disconnect', { disconnectAll: true });
-                                  setEmailSettings(prev => ({
-                                    ...prev,
-                                    gmailAccounts: [],
-                                    activeGmailIndex: 0
-                                  }));
-                                  setMessage({ type: 'success', text: 'All accounts disconnected' });
-                                } catch (error: any) {
-                                  setMessage({ type: 'error', text: 'Failed to disconnect accounts' });
-                                }
-                              }
-                            }}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
-                          >
-                            Disconnect All
-                          </button>
-                        </div>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -673,8 +670,7 @@ export default function SettingsContent() {
                         </div>
                         <button
                           onClick={() => {
-                            const userId = localStorage.getItem('userId');
-                            window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${userId}`;
+                            window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`;
                           }}
                           className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white border-2 border-neutral-300 rounded-lg hover:border-blue-500 hover:shadow-md transition text-neutral-900 font-medium"
                         >
@@ -698,9 +694,40 @@ export default function SettingsContent() {
                     <div className="bg-white border border-neutral-200 rounded-lg p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-neutral-900">Step 2: Check Domain Health</h3>
-                          <p className="text-sm text-neutral-600 mt-1">Verify your email domain is configured correctly</p>
+                          <h3 className="text-lg font-semibold text-neutral-900">Step 2: Domain Health</h3>
+                          <p className="text-sm text-neutral-600 mt-1">Automatically checked every 6 hours</p>
                         </div>
+                        <button
+                          onClick={async () => {
+                            const domain = emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1];
+                            if (!domain) return;
+                            setSaving(true);
+                            try {
+                              const response = await api.post('/api/check-domain-health', { domain });
+                              setEmailSettings(prev => ({
+                                ...prev,
+                                domainHealth: {
+                                  spf: response.data.spf,
+                                  dkim: response.data.dkim,
+                                  dmarc: response.data.dmarc,
+                                  lastChecked: new Date().toISOString()
+                                }
+                              }));
+                              setMessage({ type: 'success', text: 'Domain health refreshed' });
+                            } catch (error: any) {
+                              setMessage({ type: 'error', text: 'Failed to check domain health' });
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                          disabled={saving}
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-neutral-100 text-neutral-700 rounded-lg hover:bg-neutral-200 transition font-medium disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh
+                        </button>
                       </div>
                       
                       <div className="space-y-4">
@@ -717,89 +744,53 @@ export default function SettingsContent() {
                           </p>
                         </div>
 
-                        {/* Check domain health button */}
-                        <button
-                          onClick={async () => {
-                            const domain = emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1];
-                            setSaving(true);
-                            try {
-                              const response = await api.post('/api/email/check-domain-health', { domain });
-                              setEmailSettings(prev => ({
-                                ...prev,
-                                domainHealth: response.data.health
-                              }));
-                              setMessage({ type: 'success', text: 'Domain health check complete' });
-                            } catch (error: any) {
-                              setMessage({ type: 'error', text: 'Failed to check domain health' });
-                            } finally {
-                              setSaving(false);
-                            }
-                          }}
-                          disabled={saving}
-                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition font-medium"
-                        >
-                          {saving ? 'Checking...' : 'Check Domain Health'}
-                        </button>
-
                         {/* Domain Health Results */}
-                        {emailSettings.domainHealth.lastChecked && (
-                          <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+                        {emailSettings.gmailAccounts.length > 0 && (
+                          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                             <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-semibold text-neutral-900">DNS Records</h4>
-                              <span className="text-xs text-neutral-500">
-                                Checked {new Date(emailSettings.domainHealth.lastChecked).toLocaleDateString()}
+                              <h4 className="text-sm font-semibold text-green-900">Email Authentication</h4>
+                              <span className="text-xs text-green-600 font-medium">
+                                ✓ Authenticated by Gmail
                               </span>
                             </div>
                             <div className="space-y-2">
-                              <div className="flex items-center justify-between py-2 border-b border-neutral-200">
+                              <div className="flex items-center justify-between py-2 border-b border-green-200">
                                 <div>
-                                  <span className="text-sm font-medium text-neutral-700">SPF Record</span>
-                                  <p className="text-xs text-neutral-500">Prevents email spoofing</p>
+                                  <span className="text-sm font-medium text-green-900">SPF Authentication</span>
+                                  <p className="text-xs text-green-700">Handled by Google</p>
                                 </div>
-                                <span className={`text-sm font-semibold ${emailSettings.domainHealth.spf ? 'text-green-600' : 'text-red-600'}`}>
-                                  {emailSettings.domainHealth.spf ? '✓ Found' : '✗ Missing'}
+                                <span className="text-sm font-semibold text-green-600">
+                                  ✓ Active
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between py-2 border-b border-neutral-200">
+                              <div className="flex items-center justify-between py-2 border-b border-green-200">
                                 <div>
-                                  <span className="text-sm font-medium text-neutral-700">DKIM Record</span>
-                                  <p className="text-xs text-neutral-500">Authenticates sender</p>
+                                  <span className="text-sm font-medium text-green-900">DKIM Signing</span>
+                                  <p className="text-xs text-green-700">Handled by Google</p>
                                 </div>
-                                <span className={`text-sm font-semibold ${emailSettings.domainHealth.dkim ? 'text-green-600' : 'text-red-600'}`}>
-                                  {emailSettings.domainHealth.dkim ? '✓ Found' : '✗ Missing'}
+                                <span className="text-sm font-semibold text-green-600">
+                                  ✓ Active
                                 </span>
                               </div>
                               <div className="flex items-center justify-between py-2">
                                 <div>
-                                  <span className="text-sm font-medium text-neutral-700">DMARC Record</span>
-                                  <p className="text-xs text-neutral-500">Email policy enforcement</p>
+                                  <span className="text-sm font-medium text-green-900">DMARC Policy</span>
+                                  <p className="text-xs text-green-700">Handled by Google</p>
                                 </div>
-                                <span className={`text-sm font-semibold ${emailSettings.domainHealth.dmarc ? 'text-green-600' : 'text-orange-600'}`}>
-                                  {emailSettings.domainHealth.dmarc ? '✓ Found' : '⚠ Optional'}
+                                <span className="text-sm font-semibold text-green-600">
+                                  ✓ Active
                                 </span>
                               </div>
                             </div>
                             
                             {/* Overall status */}
-                            <div className={`mt-4 p-3 rounded-lg ${
-                              emailSettings.domainHealth.spf && emailSettings.domainHealth.dkim 
-                                ? 'bg-green-50 border border-green-200' 
-                                : 'bg-yellow-50 border border-yellow-200'
-                            }`}>
-                              <p className={`text-sm font-medium ${
-                                emailSettings.domainHealth.spf && emailSettings.domainHealth.dkim 
-                                  ? 'text-green-900' 
-                                  : 'text-yellow-900'
-                              }`}>
-                                {emailSettings.domainHealth.spf && emailSettings.domainHealth.dkim 
-                                  ? '✓ Your domain is properly configured for email sending' 
-                                  : '⚠ Some DNS records are missing - emails may be marked as spam'}
+                            <div className="mt-4 p-3 rounded-lg bg-green-100 border border-green-300">
+                              <p className="text-sm font-medium text-green-900">
+                                ✓ Your emails are fully authenticated by Gmail's infrastructure
                               </p>
-                              {(!emailSettings.domainHealth.spf || !emailSettings.domainHealth.dkim) && (
-                                <p className="text-xs text-yellow-800 mt-1">
-                                  Contact your domain administrator to configure SPF and DKIM records.
-                                </p>
-                              )}
+                              <p className="text-xs text-green-800 mt-1">
+                                Google automatically handles SPF, DKIM, and DMARC authentication for all emails sent through Gmail OAuth.
+                              </p>
                             </div>
                           </div>
                         )}

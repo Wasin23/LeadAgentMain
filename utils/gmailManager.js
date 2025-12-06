@@ -119,9 +119,15 @@ class GmailManager {
       // Create Gmail API client
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
+      // Get company name from user settings for display name
+      let displayName = currentAccount.email.split('@')[0]; // Default to email username
+      if (userSettings?.companyProfile?.companyName) {
+        displayName = userSettings.companyProfile.companyName;
+      }
+
       // Build email message in RFC 2822 format
       const messageParts = [
-        `From: ${currentAccount.email}`,
+        `From: ${displayName} <${currentAccount.email}>`,
         `To: ${Array.isArray(to) ? to.join(', ') : to}`,
         `Subject: ${subject}`,
         'MIME-Version: 1.0',
@@ -200,7 +206,8 @@ class GmailManager {
       return {
         success: true,
         messageId: result.data.id,
-        provider: 'gmail'
+        provider: 'gmail',
+        fromAccount: currentAccount.email // Track which account sent the email
       };
     } catch (error) {
       console.error('❌ [GMAIL] Error sending email:', error);
@@ -220,27 +227,48 @@ class GmailManager {
   async testConnection(userId) {
     try {
       const userSettings = await awsManager.getUserSettings(userId);
-      if (!userSettings?.gmailAuth?.refreshToken) {
+      
+      // Support both new and old formats
+      let activeAccount = null;
+      
+      if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+        // New format - get active account
+        const activeIndex = userSettings.activeGmailIndex || 0;
+        activeAccount = userSettings.gmailAccounts[activeIndex];
+      } else if (userSettings?.gmailAuth?.refreshToken) {
+        // Old format - convert
+        activeAccount = {
+          email: userSettings.gmailAuth.email,
+          refreshToken: userSettings.gmailAuth.refreshToken
+        };
+      }
+      
+      if (!activeAccount || !activeAccount.refreshToken) {
         return { success: false, error: 'Gmail not connected' };
       }
 
+      console.log(`🧪 [GMAIL] Testing connection for: ${activeAccount.email}`);
+
       this.oauth2Client.setCredentials({
-        refresh_token: userSettings.gmailAuth.refreshToken
+        refresh_token: activeAccount.refreshToken
       });
 
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
       const profile = await gmail.users.getProfile({ userId: 'me' });
 
+      console.log(`✅ [GMAIL] Connection test successful: ${profile.data.emailAddress}`);
+
       return {
         success: true,
         email: profile.data.emailAddress,
-        messagesTotal: profile.data.messagesTotal
+        messagesTotal: profile.data.messagesTotal,
+        threadsTotal: profile.data.threadsTotal
       };
     } catch (error) {
       console.error('❌ [GMAIL] Test connection failed:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message || 'Connection test failed'
       };
     }
   }

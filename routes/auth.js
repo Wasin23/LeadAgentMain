@@ -1106,15 +1106,8 @@ router.get('/agents', authenticateToken, async (req, res) => {
         let settings = {};
         try {
           const agentSettings = await awsManagerInstance.getAgentSettings(userId, agent.agentId);
-          console.log(`[AUTH] Agent ${agent.name} raw settings from AWS:`, agentSettings);
           specialInstructions = agentSettings?.specialInstructions || '';
           settings = agentSettings || {};
-          console.log(`[AUTH] Agent ${agent.name} mapped settings:`, {
-            hasSettings: !!settings,
-            companyCriteria: settings.companyCriteria,
-            contactCriteria: settings.contactCriteria,
-            geographicSettings: settings.geographicSettings
-          });
         } catch (settingsError) {
           console.log(`[AUTH] Could not load settings for agent ${agent.name}:`, settingsError.message);
         }
@@ -1128,13 +1121,6 @@ router.get('/agents', authenticateToken, async (req, res) => {
           if (runningAgent && runningAgent.isRunning) {
             const status = await runningAgent.getStatus();
             nextCycleTime = status?.nextCycleIn || null;
-            console.log(`[AUTH] Agent ${agent.name} status from running instance:`, {
-              isActive: status?.isActive,
-              nextCycleIn: status?.nextCycleIn,
-              hasNextCycleTime: !!nextCycleTime
-            });
-          } else {
-            console.log(`[AUTH] Agent ${agent.name} is not running, no nextCycleTime available`);
           }
         } catch (agentError) {
           console.log(`[AUTH] Agent ${agent.name} not found in memory (not started yet)`);
@@ -1151,12 +1137,6 @@ router.get('/agents', authenticateToken, async (req, res) => {
         return agent;
       }
     }));
-    
-    console.log('[AUTH] Enriched agents:', enrichedAgents.map(a => ({
-      name: a.name,
-      agentId: a.agentId,
-      nextCycleTime: a.nextCycleTime
-    })));
     
     res.json({ 
       success: true, 
