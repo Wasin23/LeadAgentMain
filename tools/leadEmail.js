@@ -6,11 +6,57 @@ const awsManager = new AWSManager();
 const gmailManager = new GmailManager();
 
 /**
+ * Fix UTF-8 encoding issues in text
+ */
+function fixEncoding(text) {
+  if (!text) return text;
+  try {
+    // Common replacements for misencoded UTF-8 characters
+    const replacements = {
+      'Ã¢Â€Â™': ''',
+      'Ã¢Â€Âœ': '"',
+      'Ã¢Â€Â': '"',
+      'Ã¢Â€Â"': '–',
+      'Ã¢Â€Â"': '—',
+      'Ã¢Â€Â¢': '•',
+      'Ã¢Â‚Â¬': '€',
+      'Ã‚Â': ' ',
+      'Ã©': 'é',
+      'Ã¨': 'è',
+      'Ã ': 'à',
+      'Ã§': 'ç',
+      'Ãª': 'ê',
+      'Ã«': 'ë',
+      'Ã®': 'î',
+      'Ã¯': 'ï',
+      'Ã´': 'ô',
+      'Ã¶': 'ö',
+      'Ã»': 'û',
+      'Ã¼': 'ü',
+      'Ã±': 'ñ'
+    };
+    
+    let fixed = text;
+    for (const [wrong, right] of Object.entries(replacements)) {
+      fixed = fixed.replace(new RegExp(wrong, 'g'), right);
+    }
+    return fixed;
+  } catch (e) {
+    console.error('[LEAD EMAIL] Encoding fix failed:', e);
+    return text;
+  }
+}
+
+/**
  * Dedicated email tool for Lead Contact Agent
  * Handles email sending specifically for automated lead outreach
  * Prioritizes Gmail OAuth when available, falls back to Mailgun
  */
 export async function leadEmail(to, subject, body, personInfo = null, userId = null, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
+  // Fix encoding issues in subject and body
+  subject = fixEncoding(subject);
+  body = fixEncoding(body);
+  
   console.log('[LEAD EMAIL] Sending email via dedicated lead email tool');
   console.log('[LEAD EMAIL] To:', to);
   console.log('[LEAD EMAIL] Subject:', subject);
