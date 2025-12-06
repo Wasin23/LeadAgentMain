@@ -5,9 +5,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import AWSManager from '../utils/awsManager.js';
+import GmailManager from '../utils/gmailManager.js';
 
 // Initialize AWS Manager for API usage tracking
 const awsManager = new AWSManager();
+const gmailManager = new GmailManager();
 
 const mailgun = new Mailgun(FormData);
 const mg = mailgun.client({
@@ -91,7 +93,60 @@ function addTrackingToEmail(body, trackingId) {
   return trackedBody + trackingPixel;
 }
 
-export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail };
+// Function to build email signature with company logo
+async function buildEmailSignature(userId, userSettings) {
+  try {
+    let signature = '';
+    
+    // Check if user has enabled company logo in email settings
+    if (userSettings?.emailSettings?.useCompanyLogo) {
+      // Get company profile to access the logo
+      const companyProfile = userSettings?.companyProfile;
+      
+      if (companyProfile?.logo) {
+        console.log(`✅ [EMAIL SIGNATURE] Adding company logo for user ${userId}`);
+        
+        // Build signature HTML with logo
+        signature = `
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-family: Arial, sans-serif;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding-right: 15px; vertical-align: top;">
+                  <img src="${companyProfile.logo}" alt="${companyProfile.companyName || 'Company'} Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: contain;" />
+                </td>
+                <td style="vertical-align: top;">
+                  <div style="font-size: 14px; color: #111827; font-weight: 600; margin-bottom: 4px;">
+                    ${companyProfile.companyName || ''}
+                  </div>
+                  ${companyProfile.tagline ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">${companyProfile.tagline}</div>` : ''}
+                  ${companyProfile.website ? `<div style="font-size: 12px;"><a href="${companyProfile.website}" style="color: #2563eb; text-decoration: none;">${companyProfile.website}</a></div>` : ''}
+                  ${companyProfile.email ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.email}</div>` : ''}
+                  ${companyProfile.phone ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.phone}</div>` : ''}
+                </td>
+              </tr>
+            </table>
+          </div>
+        `;
+      }
+    }
+    
+    // Add custom signature if provided (appends after logo)
+    if (userSettings?.emailSettings?.signature) {
+      signature += `
+        <div style="margin-top: 15px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">
+          ${userSettings.emailSettings.signature.replace(/\n/g, '<br>')}
+        </div>
+      `;
+    }
+    
+    return signature;
+  } catch (error) {
+    console.error('❌ [EMAIL SIGNATURE] Error building signature:', error);
+    return '';
+  }
+}
+
+export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail, buildEmailSignature };
 
 export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
   try {
@@ -119,15 +174,124 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     // Use custom sender name if provided, otherwise default to "Meridian"
     const fromName = senderName || 'Meridian';
     
+    // Fetch user's settings from AWS if userId provided
+    let userSettings = null;
+    let gmailConnected = false;
+    
+    if (userId) {
+      try {
+        userSettings = await awsManager.getUserSettings(userId);
+        
+        // Build email signature with company logo
+        const emailSignature = await buildEmailSignature(userId, userSettings);
+        if (emailSignature) {
+          // Inject signature before closing body tag, or append if no body tag
+          if (htmlBody.includes('</body>')) {
+            htmlBody = htmlBody.replace('</body>', `${emailSignature}</body>`);
+          } else {
+            htmlBody += emailSignature;
+          }
+          console.log(`✅ [EMAIL SIGNATURE] Signature with logo injected into email`);
+        }
+        
+        // Check if Gmail is connected
+        if (userSettings?.gmailAuth?.refreshToken) {
+          gmailConnected = true;
+          console.log(`✅ [EMAIL ROUTING] Gmail connected for user ${userId} - will use Gmail API`);
+          
+          // Use Gmail to send the email
+          try {
+            const gmailResult = await gmailManager.sendEmail({
+              userId,
+              to,
+              subject,
+              htmlBody,
+              textBody: body,
+              ccEmails,
+              bccEmails,
+              replyTo: null
+            });
+            
+            // Log email to AWS tracking
+            if (enableTracking && trackingId) {
+              await awsManager.trackEmail({
+                trackingId,
+                userId,
+                agentId,
+                to,
+                subject,
+                body: htmlBody,
+                status: 'sent',
+                provider: 'gmail',
+                metadata: {
+                  messageId: gmailResult.messageId,
+                  sentFrom: userSettings.gmailAuth.email,
+                  personInfo: to
+                }
+              });
+              console.log(`✅ [AWS TRACKING] Email tracked with ID: ${trackingId}`);
+            }
+            
+            console.log(`✅ [GMAIL] Email sent successfully from ${userSettings.gmailAuth.email}`);
+            console.log(`✅ [GMAIL] Email will appear in user's Gmail Sent folder`);
+            
+            return {
+              success: true,
+              messageId: gmailResult.messageId,
+              trackingId: trackingId,
+              provider: 'gmail',
+              sentFrom: userSettings.gmailAuth.email
+            };
+          } catch (gmailError) {
+            console.error('❌ [GMAIL] Failed to send via Gmail:', gmailError.message);
+            console.log('⚠️ [EMAIL ROUTING] Falling back to Mailgun...');
+            // Continue to Mailgun fallback below
+            gmailConnected = false; // Fallback to Mailgun
+          }
+        }
+      } catch (err) {
+        console.log('⚠️ [EMAIL ROUTING] Could not fetch user settings:', err.message);
+      }
+    }
+    
+    // If Gmail not connected or failed, use Mailgun
+    if (!gmailConnected) {
+      console.log(`📧 [EMAIL ROUTING] Using Mailgun for delivery`);
+    }
+    
+    // Fetch custom domain settings for Mailgun
+    let fromDomain = process.env.MAILGUN_DOMAIN;
+    let fromEmail = `noreply@${fromDomain}`;
+    let replyToEmail = 'replies@mg.examarkchat.com';
+    
+    if (userId) {
+      try {
+        userSettings = await awsManager.getUserSettings(userId);
+        if (userSettings?.emailSettings?.customDomain && 
+            userSettings?.emailSettings?.domainVerified && 
+            userSettings?.emailSettings?.fromEmail) {
+          // Use custom domain and email if verified
+          fromEmail = userSettings.emailSettings.fromEmail;
+          fromDomain = userSettings.emailSettings.customDomain;
+          if (userSettings.emailSettings.replyTo) {
+            replyToEmail = userSettings.emailSettings.replyTo;
+          }
+          console.log(`📧 [MAILGUN] Using custom domain email: ${fromEmail}`);
+        }
+      } catch (err) {
+        console.log('⚠️ [MAILGUN] Could not fetch custom domain, using default:', err.message);
+      }
+    }
+    
     // Prepare email data
     const emailData = {
-      from: `${fromName} <noreply@${process.env.MAILGUN_DOMAIN}>`,
-      'h:Reply-To': 'replies@mg.examarkchat.com',
+      from: `${fromName} <${fromEmail}>`,
+      'h:Reply-To': replyToEmail,
       to,
       subject: subject,
       html: htmlBody,
       text: body,
-      'h:Message-ID': `<tracking-${trackingId || uuidv4()}@${process.env.MAILGUN_DOMAIN}>`,
+      'h:Message-ID': `<tracking-${trackingId || uuidv4()}@${fromDomain}>`,
       'h:X-Tracking-ID': trackingId || 'no-tracking',
       'o:tag': 'transactional', // Force classification as transactional email
       'o:require-tls': 'yes' // Require TLS for better deliverability

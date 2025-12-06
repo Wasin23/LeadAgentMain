@@ -81,16 +81,59 @@ export default function CompanyProfileInstagram({ onEdit }: Props) {
 
     setUploadingImage(true);
     try {
+      // Create image element to load and resize
+      const img = new Image();
       const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        setEditedProfile({ ...editedProfile, logo: base64 });
+
+      reader.onload = (event) => {
+        img.src = event.target?.result as string;
       };
+
+      img.onload = () => {
+        // Create canvas for resizing
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          alert('Failed to create canvas context');
+          setUploadingImage(false);
+          return;
+        }
+
+        // Calculate dimensions (max 800x800 to keep file size reasonable)
+        const maxSize = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (height / width) * maxSize;
+            width = maxSize;
+          } else {
+            width = (width / height) * maxSize;
+            height = maxSize;
+          }
+        }
+
+        // Set canvas size and draw resized image
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to base64 (JPEG with 0.9 quality for smaller file size)
+        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+        setEditedProfile({ ...editedProfile, logo: resizedBase64 });
+        setUploadingImage(false);
+      };
+
+      img.onerror = () => {
+        alert('Failed to load image');
+        setUploadingImage(false);
+      };
+
       reader.readAsDataURL(file);
     } catch (err) {
       console.error('Error uploading image:', err);
       alert('Failed to upload image');
-    } finally {
       setUploadingImage(false);
     }
   };

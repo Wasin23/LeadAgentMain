@@ -10,6 +10,7 @@ import {
   CogIcon,
   CalendarIcon,
   ShieldCheckIcon,
+  CheckBadgeIcon,
 } from '@heroicons/react/24/outline';
 import RateLimitSettings from './agents/RateLimitSettings';
 import CompanyProfileModal from './CompanyProfileModal';
@@ -22,11 +23,32 @@ interface UserProfile {
   createdAt?: string;
 }
 
+interface GmailAccount {
+  email: string;
+  refreshToken: string;
+  connectedAt: string;
+  profilePicture?: string;
+  isActive: boolean;
+}
+
 interface EmailSettings {
   fromName: string;
   fromEmail: string;
   replyTo: string;
   signature: string;
+  customDomain: string;
+  domainVerified: boolean;
+  domainHealth: {
+    spf: boolean;
+    dkim: boolean;
+    dmarc: boolean;
+    lastChecked: string | null;
+  };
+  useCompanyLogo: boolean;
+  calendarIntegrationEnabled: boolean;
+  aiAutoResponseEnabled: boolean;
+  gmailAccounts: GmailAccount[];
+  activeGmailIndex: number;
 }
 
 interface EmailResponseSettings {
@@ -68,7 +90,20 @@ export default function SettingsContent() {
     fromName: '',
     fromEmail: '',
     replyTo: '',
-    signature: ''
+    signature: '',
+    customDomain: '',
+    domainVerified: false,
+    domainHealth: {
+      spf: false,
+      dkim: false,
+      dmarc: false,
+      lastChecked: null
+    },
+    useCompanyLogo: false,
+    calendarIntegrationEnabled: false,
+    aiAutoResponseEnabled: false,
+    gmailAccounts: [],
+    activeGmailIndex: 0
   });
   const [emailResponseSettings, setEmailResponseSettings] = useState<EmailResponseSettings>({
     calendar_id: 'primary',
@@ -124,6 +159,48 @@ export default function SettingsContent() {
         // Extract email settings if available
         if (settings.emailSettings) {
           setEmailSettings(settings.emailSettings);
+        }
+
+        // Check Gmail connection status
+        try {
+          const gmailStatusResponse = await api.get('/api/auth/gmail/status');
+          if (gmailStatusResponse.data.accounts && gmailStatusResponse.data.accounts.length > 0) {
+            setEmailSettings(prev => ({
+              ...prev,
+              gmailAccounts: gmailStatusResponse.data.accounts,
+              activeGmailIndex: gmailStatusResponse.data.activeIndex || 0
+            }));
+          }
+        } catch (error) {
+          console.log('Gmail status not available');
+        }
+
+        // Check URL params for Gmail auth callback
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const gmailAuth = urlParams.get('gmailAuth');
+          const email = urlParams.get('email');
+          
+          if (gmailAuth === 'success' && email) {
+            setMessage({ type: 'success', text: `Gmail connected! ${decodeURIComponent(email)}` });
+            // Auto-switch to email tab
+            setActiveTab('email');
+            // Refresh Gmail status
+            const gmailRefreshResponse = await api.get('/api/auth/gmail/status');
+            if (gmailRefreshResponse.data.accounts) {
+              setEmailSettings(prev => ({
+                ...prev,
+                gmailAccounts: gmailRefreshResponse.data.accounts,
+                activeGmailIndex: gmailRefreshResponse.data.activeIndex || 0
+              }));
+            }
+            // Clean URL
+            window.history.replaceState({}, '', window.location.pathname);
+          } else if (gmailAuth === 'error') {
+            const reason = urlParams.get('reason');
+            setMessage({ type: 'error', text: `Gmail connection failed: ${reason || 'Unknown error'}` });
+            window.history.replaceState({}, '', window.location.pathname);
+          }
         }
 
         // Extract calendar settings if available
@@ -212,6 +289,38 @@ export default function SettingsContent() {
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save preferences' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCheckDomainHealth = async () => {
+    if (!emailSettings.customDomain) {
+      alert('Please enter a custom domain first');
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      const response = await api.post('/api/email/check-domain-health', {
+        domain: emailSettings.customDomain
+      });
+      
+      if (response.data.success) {
+        setEmailSettings({
+          ...emailSettings,
+          domainHealth: {
+            spf: response.data.health.spf || false,
+            dkim: response.data.health.dkim || false,
+            dmarc: response.data.health.dmarc || false,
+            lastChecked: new Date().toISOString()
+          },
+          domainVerified: response.data.health.spf && response.data.health.dkim
+        });
+        setMessage({ type: 'success', text: 'Domain health checked successfully!' });
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to check domain health' });
     } finally {
       setSaving(false);
     }
@@ -377,55 +486,339 @@ export default function SettingsContent() {
             {activeTab === 'email' && (
               <div>
                 <h2 className="text-xl font-semibold text-neutral-900 mb-2">Email Configuration</h2>
-                <p className="text-sm text-neutral-600 mb-6">Configure default email settings</p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">From Name</label>
-                    <input
-                      type="text"
-                      value={emailSettings.fromName}
-                      onChange={(e) => setEmailSettings({ ...emailSettings, fromName: e.target.value })}
-                      placeholder="Your Name"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                <p className="text-sm text-neutral-600 mb-6">Configure email sending, domain settings, and integrations</p>
+                
+                <div className="space-y-6">
+                  {/* Gmail OAuth Connection - STEP 1 */}
+                  <div className="bg-white border border-neutral-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-neutral-900">Step 1: Connect Your Gmail</h3>
+                        <p className="text-sm text-neutral-600 mt-1">Add multiple accounts for email cycling</p>
+                      </div>
+                      {emailSettings.gmailAccounts.length > 0 && (
+                        <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                          <CheckBadgeIcon className="w-4 h-4" />
+                          {emailSettings.gmailAccounts.length} Account{emailSettings.gmailAccounts.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    {emailSettings.gmailAccounts.length > 0 ? (
+                      <div className="space-y-4">
+                        {/* Connected Accounts List */}
+                        <div className="space-y-3">
+                          {emailSettings.gmailAccounts.map((account, index) => (
+                            <div 
+                              key={account.email}
+                              className={`p-4 border rounded-lg transition ${
+                                account.isActive 
+                                  ? 'bg-green-50 border-green-300 shadow-sm' 
+                                  : 'bg-neutral-50 border-neutral-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Profile Picture */}
+                                <div className="flex-shrink-0">
+                                  {account.profilePicture ? (
+                                    <img 
+                                      src={account.profilePicture} 
+                                      alt={account.email}
+                                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm">
+                                      {account.email.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Account Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-neutral-900 truncate">
+                                      {account.email}
+                                    </p>
+                                    {account.isActive && (
+                                      <span className="px-2 py-0.5 bg-green-600 text-white text-xs font-medium rounded-full">
+                                        Active
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-neutral-600">
+                                    Connected {new Date(account.connectedAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-2">
+                                  {!account.isActive && (
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          const response = await api.post('/api/auth/gmail/set-active', { accountIndex: index });
+                                          if (response.data.success) {
+                                            setEmailSettings(prev => ({
+                                              ...prev,
+                                              activeGmailIndex: index,
+                                              gmailAccounts: prev.gmailAccounts.map((acc, i) => ({
+                                                ...acc,
+                                                isActive: i === index
+                                              }))
+                                            }));
+                                            setMessage({ type: 'success', text: `Switched to ${account.email}` });
+                                          }
+                                        } catch (error: any) {
+                                          setMessage({ type: 'error', text: 'Failed to switch account' });
+                                        }
+                                      }}
+                                      className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                                    >
+                                      Set Active
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm(`Disconnect ${account.email}?`)) {
+                                        try {
+                                          await api.post('/api/auth/gmail/disconnect', { email: account.email });
+                                          const newAccounts = emailSettings.gmailAccounts.filter(a => a.email !== account.email);
+                                          setEmailSettings(prev => ({
+                                            ...prev,
+                                            gmailAccounts: newAccounts,
+                                            activeGmailIndex: account.isActive && newAccounts.length > 0 ? 0 : prev.activeGmailIndex
+                                          }));
+                                          if (newAccounts.length > 0 && account.isActive) {
+                                            newAccounts[0].isActive = true;
+                                          }
+                                          setMessage({ type: 'success', text: 'Account disconnected' });
+                                        } catch (error: any) {
+                                          setMessage({ type: 'error', text: 'Failed to disconnect account' });
+                                        }
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 text-xs bg-neutral-600 text-white rounded-lg hover:bg-neutral-700 transition font-medium"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add Another Account Button */}
+                        <button
+                          onClick={() => {
+                            const userId = localStorage.getItem('userId');
+                            window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${userId}`;
+                          }}
+                          className="w-full px-4 py-2.5 bg-white border-2 border-dashed border-neutral-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-neutral-700 font-medium text-sm"
+                        >
+                          + Add Another Account
+                        </button>
+
+                        <div className="flex gap-3">
+                          <button
+                            onClick={async () => {
+                              if (confirm('Test your Gmail connection?')) {
+                                try {
+                                  const response = await api.post('/api/auth/gmail/test');
+                                  if (response.data.success) {
+                                    setMessage({ type: 'success', text: `Gmail connected! ${response.data.email}` });
+                                  } else {
+                                    setMessage({ type: 'error', text: response.data.error || 'Test failed' });
+                                  }
+                                } catch (error: any) {
+                                  setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to test connection' });
+                                }
+                              }
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                          >
+                            Test Connection
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm('Disconnect all Gmail accounts? Emails will send from mg.examarkchat.com instead.')) {
+                                try {
+                                  await api.post('/api/auth/gmail/disconnect', { disconnectAll: true });
+                                  setEmailSettings(prev => ({
+                                    ...prev,
+                                    gmailAccounts: [],
+                                    activeGmailIndex: 0
+                                  }));
+                                  setMessage({ type: 'success', text: 'All accounts disconnected' });
+                                } catch (error: any) {
+                                  setMessage({ type: 'error', text: 'Failed to disconnect accounts' });
+                                }
+                              }
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                          >
+                            Disconnect All
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-900 font-medium mb-2">✨ Benefits:</p>
+                          <ul className="text-sm text-blue-800 space-y-1 ml-4 list-disc">
+                            <li>Send from your actual email (sales@yourcompany.com)</li>
+                            <li>One-click setup - no DNS configuration</li>
+                            <li>Best deliverability using your Gmail reputation</li>
+                            <li>Emails appear in your Sent folder</li>
+                          </ul>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const userId = localStorage.getItem('userId');
+                            window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${userId}`;
+                          }}
+                          className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white border-2 border-neutral-300 rounded-lg hover:border-blue-500 hover:shadow-md transition text-neutral-900 font-medium"
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#EA4335" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#4285F4" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#34A853" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                          </svg>
+                          Connect Gmail Account
+                        </button>
+                        <p className="text-xs text-neutral-500 text-center">
+                          Secure OAuth 2.0 • Only sends emails and reads reply status
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">From Email</label>
-                    <input
-                      type="email"
-                      value={emailSettings.fromEmail}
-                      onChange={(e) => setEmailSettings({ ...emailSettings, fromEmail: e.target.value })}
-                      placeholder="you@company.com"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Reply-To Email</label>
-                    <input
-                      type="email"
-                      value={emailSettings.replyTo}
-                      onChange={(e) => setEmailSettings({ ...emailSettings, replyTo: e.target.value })}
-                      placeholder="reply@company.com"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Email Signature</label>
-                    <textarea
-                      value={emailSettings.signature}
-                      onChange={(e) => setEmailSettings({ ...emailSettings, signature: e.target.value })}
-                      placeholder="Your email signature..."
-                      rows={4}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div className="pt-4">
+
+                  {/* Domain Health - STEP 2 (Auto-show when Gmail connected) */}
+                  {emailSettings.gmailAccounts.length > 0 && (
+                    <div className="bg-white border border-neutral-200 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-neutral-900">Step 2: Check Domain Health</h3>
+                          <p className="text-sm text-neutral-600 mt-1">Verify your email domain is configured correctly</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {/* Show current sending domain */}
+                        <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-neutral-700">Active Sending Domain</span>
+                            <span className="text-sm font-semibold text-neutral-900">
+                              {emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1] || 'N/A'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-neutral-500">
+                            Emails cycle through all {emailSettings.gmailAccounts.length} connected account{emailSettings.gmailAccounts.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+
+                        {/* Check domain health button */}
+                        <button
+                          onClick={async () => {
+                            const domain = emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1];
+                            setSaving(true);
+                            try {
+                              const response = await api.post('/api/email/check-domain-health', { domain });
+                              setEmailSettings(prev => ({
+                                ...prev,
+                                domainHealth: response.data.health
+                              }));
+                              setMessage({ type: 'success', text: 'Domain health check complete' });
+                            } catch (error: any) {
+                              setMessage({ type: 'error', text: 'Failed to check domain health' });
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                          disabled={saving}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition font-medium"
+                        >
+                          {saving ? 'Checking...' : 'Check Domain Health'}
+                        </button>
+
+                        {/* Domain Health Results */}
+                        {emailSettings.domainHealth.lastChecked && (
+                          <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-semibold text-neutral-900">DNS Records</h4>
+                              <span className="text-xs text-neutral-500">
+                                Checked {new Date(emailSettings.domainHealth.lastChecked).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between py-2 border-b border-neutral-200">
+                                <div>
+                                  <span className="text-sm font-medium text-neutral-700">SPF Record</span>
+                                  <p className="text-xs text-neutral-500">Prevents email spoofing</p>
+                                </div>
+                                <span className={`text-sm font-semibold ${emailSettings.domainHealth.spf ? 'text-green-600' : 'text-red-600'}`}>
+                                  {emailSettings.domainHealth.spf ? '✓ Found' : '✗ Missing'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between py-2 border-b border-neutral-200">
+                                <div>
+                                  <span className="text-sm font-medium text-neutral-700">DKIM Record</span>
+                                  <p className="text-xs text-neutral-500">Authenticates sender</p>
+                                </div>
+                                <span className={`text-sm font-semibold ${emailSettings.domainHealth.dkim ? 'text-green-600' : 'text-red-600'}`}>
+                                  {emailSettings.domainHealth.dkim ? '✓ Found' : '✗ Missing'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between py-2">
+                                <div>
+                                  <span className="text-sm font-medium text-neutral-700">DMARC Record</span>
+                                  <p className="text-xs text-neutral-500">Email policy enforcement</p>
+                                </div>
+                                <span className={`text-sm font-semibold ${emailSettings.domainHealth.dmarc ? 'text-green-600' : 'text-orange-600'}`}>
+                                  {emailSettings.domainHealth.dmarc ? '✓ Found' : '⚠ Optional'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Overall status */}
+                            <div className={`mt-4 p-3 rounded-lg ${
+                              emailSettings.domainHealth.spf && emailSettings.domainHealth.dkim 
+                                ? 'bg-green-50 border border-green-200' 
+                                : 'bg-yellow-50 border border-yellow-200'
+                            }`}>
+                              <p className={`text-sm font-medium ${
+                                emailSettings.domainHealth.spf && emailSettings.domainHealth.dkim 
+                                  ? 'text-green-900' 
+                                  : 'text-yellow-900'
+                              }`}>
+                                {emailSettings.domainHealth.spf && emailSettings.domainHealth.dkim 
+                                  ? '✓ Your domain is properly configured for email sending' 
+                                  : '⚠ Some DNS records are missing - emails may be marked as spam'}
+                              </p>
+                              {(!emailSettings.domainHealth.spf || !emailSettings.domainHealth.dkim) && (
+                                <p className="text-xs text-yellow-800 mt-1">
+                                  Contact your domain administrator to configure SPF and DKIM records.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Basic Email Settings - REMOVED (Gmail handles this) */}
+
+                  {/* Custom Domain Configuration - REMOVED (not needed with Gmail OAuth) */}
+
+                  {/* Save Button */}
+                  <div className="flex justify-end">
                     <button
                       onClick={handleSaveEmailSettings}
                       disabled={saving}
                       className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      {saving ? 'Saving...' : 'Save Email Settings'}
+                      {saving ? 'Saving...' : 'Save Email Configuration'}
                     </button>
                   </div>
                 </div>

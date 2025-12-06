@@ -72,6 +72,15 @@ try {
   authRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Gmail authentication routes
+let gmailAuthRoutes;
+try {
+  gmailAuthRoutes = (await import('./routes/gmailAuth.js')).default;
+} catch (e) {
+  console.error('[GMAIL AUTH] Routes not available:', e.message);
+  gmailAuthRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import lead agent routes
 let leadAgentRoutes;
 try {
@@ -385,6 +394,7 @@ app.get('/api/session', (req, res) => {
 app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking for polling - MUST BE FIRST
 app.use('/api', emailRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/gmail', gmailAuthRoutes); // Gmail OAuth routes
 app.use('/api/chat', chatRoutes);
 
 // Test route for deep research without authentication - with streaming

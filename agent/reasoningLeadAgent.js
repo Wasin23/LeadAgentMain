@@ -559,6 +559,33 @@ IMPORTANT RULES:
       // Create concise card message
       const cardMessage = this.translateToConciseCardMessage(activityData.operation, activityData.details);
       
+      // Extract location from current lead if available
+      let location = null;
+      const currentLead = this.memory?.currentCycle?.currentLead;
+      if (currentLead && currentLead.organization) {
+        // Try to get city and state/country for geocoding
+        const city = currentLead.organization.city || currentLead.organization.primary_city;
+        const state = currentLead.organization.state || currentLead.organization.primary_state;
+        const country = currentLead.organization.country || currentLead.organization.primary_country || 'United States';
+        
+        // Only create location if we have at least city or state (not just default country)
+        if (city || state) {
+          location = {
+            city: city || '',
+            state: state || '',
+            country: country,
+            companyName: currentLead.organization.name || currentLead.company || 'Unknown'
+          };
+          console.log(`📍 [LOCATION BROADCAST] ${location.city || 'Unknown'}, ${location.state} - ${location.companyName}`);
+        } else {
+          console.log(`⚠️ [NO LOCATION] Lead has no city/state data:`, {
+            name: currentLead.name,
+            company: currentLead.organization?.name || currentLead.company,
+            org: currentLead.organization
+          });
+        }
+      }
+      
       broadcastActivity({
         type: 'agent_activity',
         agentId: activityData.agentId,
@@ -566,7 +593,13 @@ IMPORTANT RULES:
         details: activityData.details, // Full details for activity logs
         cardMessage: cardMessage, // Concise message for cards
         status: activityData.status,
-        timestamp: activityData.timestamp
+        timestamp: activityData.timestamp,
+        location: location, // Include location data for globe positioning
+        targeting: currentLead ? {
+          company: currentLead.organization?.name || currentLead.company,
+          industry: currentLead.organization?.industry,
+          position: currentLead.title
+        } : null
       });
     } catch (error) {
       console.error('❌ [SSE BROADCAST] Error:', error);
@@ -1098,6 +1131,17 @@ Call the appropriate function to continue the workflow.`;
             this.memory.currentCycle.processingPhase = 'research';
             const domain = this.memory.currentCycle.currentLead.organization?.primary_domain;
             console.log(`📋 [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}${domain ? ` (${domain})` : ''}`);
+            
+            // Broadcast location update immediately when starting first lead
+            this.broadcastAgentActivity({
+              agentId: this.agentId,
+              operation: '💭 Agent Activity',
+              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              status: 'active',
+              timestamp: new Date()
+            }).catch(err => {
+              console.error('⚠️ [SSE] Failed to broadcast first lead activity:', err.message);
+            });
           }
         } else {
           // No new leads found - increment duplicate counter
@@ -1165,6 +1209,17 @@ Call the appropriate function to continue the workflow.`;
               this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
               this.memory.currentCycle.processingPhase = 'research';
               console.log(`📋 [QUEUE] Next lead from queue: ${this.memory.currentCycle.currentLead.name}`);
+              
+              // Broadcast location update for skipped lead replacement
+              this.broadcastAgentActivity({
+                agentId: this.agentId,
+                operation: '💭 Agent Activity',
+                details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+                status: 'active',
+                timestamp: new Date()
+              }).catch(err => {
+                console.error('⚠️ [SSE] Failed to broadcast skipped lead replacement:', err.message);
+              });
             } else {
               this.memory.currentCycle.processingPhase = 'search';
               console.log(`🔍 [CYCLE] Queue empty, searching for more leads`);
@@ -1221,6 +1276,17 @@ Call the appropriate function to continue the workflow.`;
               this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
               this.memory.currentCycle.processingPhase = 'research';
               console.log(`📋 [QUEUE] Next lead from queue: ${this.memory.currentCycle.currentLead.name}`);
+              
+              // Broadcast location update for disqualified lead replacement
+              this.broadcastAgentActivity({
+                agentId: this.agentId,
+                operation: '💭 Agent Activity',
+                details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+                status: 'active',
+                timestamp: new Date()
+              }).catch(err => {
+                console.error('⚠️ [SSE] Failed to broadcast disqualified lead replacement:', err.message);
+              });
             } else {
               this.memory.currentCycle.processingPhase = 'search';
               console.log(`🔍 [CYCLE] Queue empty, searching for more leads`);
@@ -1328,6 +1394,17 @@ Call the appropriate function to continue the workflow.`;
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
             console.log(`📋 [QUEUE] Processing next lead after failure: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+            
+            // Broadcast location update for lead after email unlock failure
+            this.broadcastAgentActivity({
+              agentId: this.agentId,
+              operation: '💭 Agent Activity',
+              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              status: 'active',
+              timestamp: new Date()
+            }).catch(err => {
+              console.error('⚠️ [SSE] Failed to broadcast lead after failure:', err.message);
+            });
           } else {
             // Queue empty, need to search for more leads
             this.memory.currentCycle.processingPhase = 'search';
@@ -1369,6 +1446,17 @@ Call the appropriate function to continue the workflow.`;
           const reviewNote = requiresReview ? ' ⚠️ MARKED FOR REVIEW (low confidence)' : '';
           console.log(`📧 [QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}${reviewNote}`);
           
+          // Broadcast email built event with location for white dot placement
+          this.broadcastAgentActivity({
+            agentId: this.agentId,
+            operation: 'Email Processing',
+            details: `✅ Email built for ${this.memory.currentCycle.currentLead?.company}`,
+            status: 'active',
+            timestamp: new Date()
+          }).catch(err => {
+            console.error('⚠️ [SSE] Failed to broadcast email built event:', err.message);
+          });
+          
           // Email built, lead complete - move to next lead
           this.memory.currentCycle.leadsProcessed++;
           this.memory.currentCycle.currentLead = null;
@@ -1379,6 +1467,17 @@ Call the appropriate function to continue the workflow.`;
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
             console.log(`📋 [QUEUE] Processing next lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+            
+            // Broadcast location update immediately when starting new lead
+            this.broadcastAgentActivity({
+              agentId: this.agentId,
+              operation: '💭 Agent Activity',
+              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              status: 'active',
+              timestamp: new Date()
+            }).catch(err => {
+              console.error('⚠️ [SSE] Failed to broadcast new lead activity:', err.message);
+            });
           } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
             // Need more leads - search again
             this.memory.currentCycle.processingPhase = 'search';
@@ -3675,6 +3774,20 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
       const rawLeads = data.people || [];
       console.log(`🔍 [APOLLO] Found ${rawLeads.length} raw leads, checking for duplicates...`);
+      
+      // Debug: Check location data in first lead
+      if (rawLeads.length > 0 && rawLeads[0].organization) {
+        console.log(`🗺️ [APOLLO LOCATION DEBUG] First lead location:`, {
+          name: rawLeads[0].name,
+          company: rawLeads[0].organization.name,
+          city: rawLeads[0].organization.city,
+          state: rawLeads[0].organization.state,
+          country: rawLeads[0].organization.country,
+          primary_city: rawLeads[0].organization.primary_city,
+          primary_state: rawLeads[0].organization.primary_state,
+          primary_country: rawLeads[0].organization.primary_country
+        });
+      }
 
       // Log Apollo search usage
       await this.awsManager.logApiUsage({

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import UserMenu from '@/components/UserMenu';
 import api from '@/lib/api';
 import { geoOrthographic, geoPath, geoGraticule, geoMercator, geoAlbersUsa } from 'd3-geo';
@@ -220,13 +221,232 @@ export default function InteractiveGlobe() {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
 
+  // Satellite and agent positioning
+  const [showIdleAgents, setShowIdleAgents] = useState(false);
+  const [satelliteBob, setSatelliteBob] = useState(0);
+  const [agentActivities, setAgentActivities] = useState<{[agentId: string]: any}>({});
+  
+  // Email location tracking with status (queued, sent, meeting)
+  const [emailDots, setEmailDots] = useState<Array<{
+    id: string;
+    location: { lat: number; lng: number; city?: string; state?: string; country?: string; companyName?: string };
+    subject: string;
+    to: string;
+    agentName: string;
+    timestamp: number;
+    status: 'queued' | 'sent' | 'meeting';
+  }>>([]);
+
+  // City and state geocoding function with detailed US city coordinates
+  const geocodeLocation = (location: any): { lat: number; lng: number } | null => {
+    if (!location) return null;
+    
+    const { city, state, country } = location;
+    
+    // Major US cities with accurate coordinates
+    const cityCenters: {[key: string]: {lat: number, lng: number}} = {
+      // California cities
+      'Irvine': {lat: 33.6846, lng: -117.8265},
+      'Los Angeles': {lat: 34.0522, lng: -118.2437},
+      'San Francisco': {lat: 37.7749, lng: -122.4194},
+      'San Diego': {lat: 32.7157, lng: -117.1611},
+      'San Jose': {lat: 37.3382, lng: -121.8863},
+      'Sacramento': {lat: 38.5816, lng: -121.4944},
+      'Oakland': {lat: 37.8044, lng: -122.2712},
+      'Fresno': {lat: 36.7378, lng: -119.7871},
+      'Long Beach': {lat: 33.7701, lng: -118.1937},
+      'Santa Clara': {lat: 37.3541, lng: -121.9552},
+      'Palo Alto': {lat: 37.4419, lng: -122.1430},
+      'Sunnyvale': {lat: 37.3688, lng: -122.0363},
+      'Mountain View': {lat: 37.3861, lng: -122.0839},
+      'Cupertino': {lat: 37.3230, lng: -122.0322},
+      
+      // Texas cities
+      'Houston': {lat: 29.7604, lng: -95.3698},
+      'Dallas': {lat: 32.7767, lng: -96.7970},
+      'Austin': {lat: 30.2672, lng: -97.7431},
+      'San Antonio': {lat: 29.4241, lng: -98.4936},
+      'Fort Worth': {lat: 32.7555, lng: -97.3308},
+      
+      // Other major cities
+      'New York': {lat: 40.7128, lng: -74.0060},
+      'Chicago': {lat: 41.8781, lng: -87.6298},
+      'Phoenix': {lat: 33.4484, lng: -112.0740},
+      'Philadelphia': {lat: 39.9526, lng: -75.1652},
+      'Miami': {lat: 25.7617, lng: -80.1918},
+      'Atlanta': {lat: 33.7490, lng: -84.3880},
+      'Boston': {lat: 42.3601, lng: -71.0589},
+      'Seattle': {lat: 47.6062, lng: -122.3321},
+      'Denver': {lat: 39.7392, lng: -104.9903},
+      'Washington': {lat: 38.9072, lng: -77.0369},
+      'Detroit': {lat: 42.3314, lng: -83.0458},
+      'Portland': {lat: 45.5152, lng: -122.6784},
+      'Las Vegas': {lat: 36.1699, lng: -115.1398},
+    };
+    
+    // Try to find city first (more accurate)
+    if (city && cityCenters[city]) {
+      return cityCenters[city];
+    }
+    
+    // Fall back to state centers
+    const stateCenters: {[key: string]: {lat: number, lng: number}} = {
+      'California': {lat: 36.7783, lng: -119.4179}, 'CA': {lat: 36.7783, lng: -119.4179},
+      'Texas': {lat: 31.9686, lng: -99.9018}, 'TX': {lat: 31.9686, lng: -99.9018},
+      'Florida': {lat: 27.6648, lng: -81.5158}, 'FL': {lat: 27.6648, lng: -81.5158},
+      'New York': {lat: 40.7128, lng: -74.0060}, 'NY': {lat: 40.7128, lng: -74.0060},
+      'Pennsylvania': {lat: 41.2033, lng: -77.1945}, 'PA': {lat: 41.2033, lng: -77.1945},
+      'Illinois': {lat: 40.6331, lng: -89.3985}, 'IL': {lat: 40.6331, lng: -89.3985},
+      'Ohio': {lat: 40.4173, lng: -82.9071}, 'OH': {lat: 40.4173, lng: -82.9071},
+      'Georgia': {lat: 32.1656, lng: -82.9001}, 'GA': {lat: 32.1656, lng: -82.9001},
+      'North Carolina': {lat: 35.7596, lng: -79.0193}, 'NC': {lat: 35.7596, lng: -79.0193},
+      'Michigan': {lat: 44.3148, lng: -85.6024}, 'MI': {lat: 44.3148, lng: -85.6024},
+      'Massachusetts': {lat: 42.4072, lng: -71.3824}, 'MA': {lat: 42.4072, lng: -71.3824},
+      'Washington': {lat: 47.7511, lng: -120.7401}, 'WA': {lat: 47.7511, lng: -120.7401},
+      'Colorado': {lat: 39.5501, lng: -105.7821}, 'CO': {lat: 39.5501, lng: -105.7821},
+      'Arizona': {lat: 34.0489, lng: -111.0937}, 'AZ': {lat: 34.0489, lng: -111.0937},
+      'Virginia': {lat: 37.4316, lng: -78.6569}, 'VA': {lat: 37.4316, lng: -78.6569},
+    };
+    
+    // Try state first
+    if (state && stateCenters[state]) {
+      return stateCenters[state];
+    }
+    
+    // Default to central US if no specific location
+    return { lat: 39.8283, lng: -98.5795 };
+  };
+
+  // Animate satellite bobbing
+  useEffect(() => {
+    let angle = 0;
+    const interval = setInterval(() => {
+      angle += 0.05;
+      setSatelliteBob(Math.sin(angle) * 10); // Bobs up and down 10px
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Connect to SSE for agent activities
+  useEffect(() => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const authToken = localStorage.getItem('authToken');
+    const eventSource = new EventSource(`${backendUrl}/api/monitoring/stream?token=${encodeURIComponent(authToken || '')}`);
+    
+    eventSource.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('📡 SSE Event received:', data);
+        const activityData = data.type === 'agent_activity' ? data : 
+                            (data.type === 'activity_added' && data.data?.type === 'agent_activity') ? data.data : 
+                            null;
+        
+        if (activityData && activityData.agentId) {
+          setAgentActivities(prev => ({
+            ...prev,
+            [activityData.agentId]: {
+              status: activityData.cardMessage || activityData.details,
+              timestamp: Date.now(),
+              location: activityData.location || null,
+              targeting: activityData.targeting || null,
+              isActive: true
+            }
+          }));
+
+          // Update agent in agents list
+          setAgents(prev => prev.map(agent => 
+            agent.agentId === activityData.agentId
+              ? { ...agent, currentActivity: activityData.cardMessage || activityData.details }
+              : agent
+          ));
+          
+          // Check if this is an email built activity - store location with status
+          if (activityData.operation === 'Email Processing' || 
+              activityData.cardMessage?.includes('✍️ Writing') || 
+              activityData.details?.includes('Email built') ||
+              activityData.details?.includes('✅ Email built')) {
+            console.log('📧 Email built detected!', {
+              operation: activityData.operation,
+              details: activityData.details,
+              hasLocation: !!activityData.location,
+              location: activityData.location
+            });
+            
+            if (activityData.location) {
+              const coords = geocodeLocation(activityData.location);
+              console.log('📍 Geocoded coordinates:', coords);
+              if (coords) {
+                const agent = agents.find(a => a.agentId === activityData.agentId);
+                console.log('📌 Adding email dot for agent:', agent?.name);
+                setEmailDots(prev => {
+                  const newDot = {
+                    id: `${activityData.agentId}_${Date.now()}`,
+                    location: {
+                      ...coords,
+                      city: activityData.location.city,
+                      state: activityData.location.state,
+                      country: activityData.location.country,
+                      companyName: activityData.location.companyName
+                    },
+                    subject: activityData.details || 'Email queued',
+                    to: activityData.targeting?.company || activityData.location.companyName || 'Unknown',
+                    agentName: agent?.name || 'Agent',
+                    timestamp: Date.now(),
+                    status: 'queued' as const
+                  };
+                  console.log('✅ New email dot:', newDot);
+                  return [...prev, newDot];
+                });
+              }
+            } else {
+              console.log('⚠️ No location data in activity');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
+      }
+    });
+
+    return () => eventSource.close();
+  }, [agents]);
+
+  // Debug idle agents
+  useEffect(() => {
+    console.log('All agents:', agents.map(a => ({
+      name: a.name,
+      status: a.status,
+      agentId: a.agentId,
+      hasActivity: !!agentActivities[a.agentId],
+      isActive: agentActivities[a.agentId]?.isActive,
+      shouldBeIdle: !agentActivities[a.agentId]?.isActive || a.status !== 'running'
+    })));
+    const idleAgents = agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running');
+    console.log('Idle agents count:', idleAgents.length);
+    console.log('Idle agents:', idleAgents.map(a => ({
+      name: a.name,
+      status: a.status,
+      hasActivity: !!agentActivities[a.agentId],
+      isActive: agentActivities[a.agentId]?.isActive
+    })));
+  }, [agents, agentActivities]);
+
   // Fetch agents list
   const fetchAgents = async () => {
     setLoadingAgents(true);
     try {
       const response = await api.get('/api/auth/agents');
       console.log('Fetched agents:', response.data.agents);
-      setAgents(response.data.agents || []);
+      console.log('Agent activities:', agentActivities);
+      const agents = response.data.agents || [];
+      console.log('Agents status check:', agents.map((a: any) => ({
+        name: a.name,
+        status: a.status,
+        agentId: a.agentId,
+        hasActivity: !!agentActivities[a.agentId],
+        isActive: agentActivities[a.agentId]?.isActive
+      })));
+      setAgents(agents);
     } catch (error) {
       console.error('Error fetching agents:', error);
       setAgents([]);
@@ -349,6 +569,11 @@ export default function InteractiveGlobe() {
     rotationRef.current = rotation;
   }, [rotation]);
 
+  // Fetch agents on mount
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
   // Fetch real world data
   useEffect(() => {
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
@@ -456,6 +681,27 @@ export default function InteractiveGlobe() {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+              });
+            }
+            
+            // Draw email dots for US (color-coded by status)
+            if (albersProjection && selectedFeature.properties?.name === 'United States') {
+              emailDots.forEach(email => {
+                const emailCoords = albersProjection([email.location.lng, email.location.lat]);
+                if (emailCoords) {
+                  // Color based on status: green = meeting, white = sent, yellow/orange = queued
+                  const dotColor = email.status === 'meeting' ? '#4ade80' : 
+                                  email.status === 'sent' ? '#ffffff' : 
+                                  '#fbbf24';
+                  
+                  ctx.beginPath();
+                  ctx.arc(emailCoords[0], emailCoords[1], 4, 0, Math.PI * 2);
+                  ctx.fillStyle = dotColor;
+                  ctx.fill();
+                  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                  ctx.lineWidth = 1;
+                  ctx.stroke();
+                }
               });
             }
           }
@@ -627,33 +873,39 @@ export default function InteractiveGlobe() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 relative overflow-hidden">
-      {/* Top Navigation Buttons */}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
-        <button
-          onClick={() => router.push('/agents')}
-          className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20"
-        >
-          Agents
-        </button>
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20"
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={() => router.push('/analytics')}
-          className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20"
-        >
-          Analytics
-        </button>
-        <button
-          onClick={() => router.push('/settings')}
-          className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20"
-        >
-          Settings
-        </button>
-      </div>
+      {/* Top Navigation Buttons - Hidden when country is expanded */}
+      {!isExpanded && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
+          <button
+            onClick={() => router.push('/agents')}
+            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
+          >
+            <UsersIcon className="w-5 h-5" />
+            Agents
+          </button>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
+          >
+            <ComputerDesktopIcon className="w-5 h-5" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => router.push('/analytics')}
+            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
+          >
+            <ChartPieIcon className="w-5 h-5" />
+            Analytics
+          </button>
+          <button
+            onClick={() => router.push('/settings')}
+            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
+          >
+            <Cog6ToothIcon className="w-5 h-5" />
+            Settings
+          </button>
+        </div>
+      )}
 
       {/* Meridian Logo */}
       <div className="fixed top-8 left-8 z-50">
@@ -755,6 +1007,468 @@ export default function InteractiveGlobe() {
         </div>
       </div>
 
+      {/* Animated Satellite */}
+      {!isExpanded && (
+        <div 
+          className="fixed right-[32rem] top-1/2 pointer-events-auto cursor-pointer z-50"
+          style={{
+            transform: `translateY(${satelliteBob - 50}%)`,
+            transition: 'transform 0.05s linear'
+          }}
+          onClick={() => setShowIdleAgents(!showIdleAgents)}
+        >
+          <div className="relative hover:scale-110 transition-transform">
+            {/* ISS Space Station Icon */}
+            <svg width="90" height="60" viewBox="0 0 60 40" fill="none" className="drop-shadow-2xl">
+              {/* Large Solar Panels - Left */}
+              <rect x="2" y="12" width="15" height="16" rx="1" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5"/>
+              <line x1="2" y1="16" x2="17" y2="16" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+              <line x1="2" y1="20" x2="17" y2="20" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+              <line x1="2" y1="24" x2="17" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+              
+              {/* Large Solar Panels - Right */}
+              <rect x="43" y="12" width="15" height="16" rx="1" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5"/>
+              <line x1="43" y1="16" x2="58" y2="16" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+              <line x1="43" y1="20" x2="58" y2="20" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+              <line x1="43" y1="24" x2="58" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+              
+              {/* Main Truss */}
+              <rect x="18" y="18" width="24" height="4" rx="1" fill="rgba(255,255,255,0.35)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+              
+              {/* Modules */}
+              <ellipse cx="25" cy="20" rx="4" ry="3" fill="rgba(255,255,255,0.4)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+              <ellipse cx="30" cy="20" rx="5" ry="4" fill="rgba(255,255,255,0.45)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+              <ellipse cx="35" cy="20" rx="4" ry="3" fill="rgba(255,255,255,0.4)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+              
+              {/* Small Solar Arrays */}
+              <rect x="27" y="8" width="6" height="8" rx="0.5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
+              <line x1="27" y1="10" x2="33" y2="10" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
+              <line x1="27" y1="12" x2="33" y2="12" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
+              <line x1="27" y1="14" x2="33" y2="14" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
+              
+              {/* Radiators */}
+              <rect x="22" y="24" width="3" height="8" rx="0.5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
+              <rect x="35" y="24" width="3" height="8" rx="0.5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
+            </svg>
+            
+            {/* Idle Agent Badge */}
+            {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length > 0 && (
+              <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full min-w-6 h-6 px-2 flex items-center justify-center font-bold shadow-lg">
+                {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Email Dots on Globe (color-coded by status) */}
+      {!isExpanded && emailDots.map((email) => {
+        // Project email location to screen coordinates
+        const projection = geoOrthographic()
+          .scale(500)
+          .rotate(rotation)
+          .translate([600, 600]);
+        
+        const coords = projection([email.location.lng, email.location.lat]);
+        if (!coords) return null;
+        
+        // Calculate screen position (same as agent positioning)
+        const canvasCenterX = window.innerWidth / 2;
+        const canvasCenterY = window.innerHeight;
+        const pointX = canvasCenterX + (coords[0] - 600);
+        const pointY = canvasCenterY + (coords[1] - 600);
+        
+        // Color based on status: green = meeting, white = sent, yellow/orange = queued
+        const dotColor = email.status === 'meeting' ? '#4ade80' : 
+                        email.status === 'sent' ? '#ffffff' : 
+                        '#fbbf24'; // yellow/orange for queued
+        
+        return (
+          <div key={email.id} className="fixed pointer-events-none" style={{ zIndex: 44 }}>
+            <svg className="fixed inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
+              <circle
+                cx={pointX}
+                cy={pointY}
+                r="3"
+                fill={dotColor}
+                stroke="rgba(255,255,255,0.5)"
+                strokeWidth="1"
+                opacity="0.8"
+                className="animate-pulse"
+              />
+            </svg>
+          </div>
+        );
+      })}
+
+      {/* Active Agents on Globe */}
+      {!isExpanded && agents.map((agent, index) => {
+        // Show agents that are running OR have activity
+        const activity = agentActivities[agent.agentId];
+        const isActive = agent.status === 'running' || activity?.isActive;
+        if (!isActive) return null;
+        
+        // Get real location from SSE activity data, or fall back to random US position
+        let lat, lng;
+        if (activity?.location) {
+          const coords = geocodeLocation(activity.location);
+          if (coords) {
+            lat = coords.lat;
+            lng = coords.lng;
+          } else {
+            // Fallback to random US position
+            const seed = index * 137.508;
+            lat = 25 + ((Math.abs(Math.sin(seed)) * 24));
+            lng = -125 + ((Math.abs(Math.cos(seed)) * 60));
+          }
+        } else {
+          // Fallback to random US position
+          const seed = index * 137.508;
+          lat = 25 + ((Math.abs(Math.sin(seed)) * 24));
+          lng = -125 + ((Math.abs(Math.cos(seed)) * 60));
+        }
+        
+        // Project to screen coordinates using same projection as canvas
+        const projection = geoOrthographic()
+          .scale(500)
+          .rotate(rotation)
+          .translate([600, 600]); // Canvas is 1200x1200, center at 600,600
+        
+        const coords = projection([lng, lat]);
+        if (!coords) return null;
+        
+        // Canvas position: centered horizontally, bottom-0 + translate-y-1/2
+        // This means the canvas bottom edge is at 50% viewport height
+        const canvasWidth = 1200;
+        const canvasHeight = 1200;
+        const canvasCenterX = window.innerWidth / 2;
+        const canvasCenterY = window.innerHeight; // Bottom edge
+        
+        // Point position relative to canvas center (600, 600)
+        const pointX = canvasCenterX + (coords[0] - 600);
+        const pointY = canvasCenterY + (coords[1] - 600);
+        
+        // Callout line extends out from the point
+        const calloutAngle = (index * 60) % 360; // Different angles for each agent
+        const lineLength = 60;
+        const horizontalLength = 80;
+        const slantEndX = pointX + Math.cos(calloutAngle * Math.PI / 180) * lineLength;
+        const slantEndY = pointY + Math.sin(calloutAngle * Math.PI / 180) * lineLength;
+        const horizontalEndX = slantEndX + horizontalLength;
+        const horizontalEndY = slantEndY;
+        
+        // Get current keywords from activity or agent settings
+        const industries = agent.settings?.companyCriteria?.companyIndustries || [];
+        const positions = agent.settings?.contactCriteria?.targetPositions || [];
+        const keywordText = industries.length > 0 
+          ? industries.slice(0, 2).join(', ') 
+          : positions.length > 0 
+          ? positions.slice(0, 2).join(', ')
+          : 'searching...';
+        
+        return (
+          <div 
+            key={agent.agentId} 
+            className="fixed pointer-events-none animate-fade-in" 
+            style={{ 
+              zIndex: 45,
+              animation: 'fadeIn 0.5s ease-out'
+            }}
+          >
+            {/* Callout line */}
+            <svg className="fixed inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
+              {/* Slant line from point to callout */}
+              <line
+                x1={pointX}
+                y1={pointY}
+                x2={slantEndX}
+                y2={slantEndY}
+                stroke="rgba(255,255,255,0.5)"
+                strokeWidth="2"
+                className="animate-draw-line"
+              />
+              {/* Horizontal line */}
+              <line
+                x1={slantEndX}
+                y1={slantEndY}
+                x2={horizontalEndX}
+                y2={horizontalEndY}
+                stroke="rgba(255,255,255,0.5)"
+                strokeWidth="2"
+                className="animate-draw-line"
+                style={{ animationDelay: '0.2s' }}
+              />
+              {/* Point marker on globe */}
+              <circle
+                cx={pointX}
+                cy={pointY}
+                r="4"
+                fill="rgb(74, 222, 128)"
+                stroke="white"
+                strokeWidth="2"
+                className="animate-scale-in"
+              />
+            </svg>
+            
+            {/* Agent info at end of horizontal line */}
+            <div
+              className="fixed pointer-events-auto transition-all duration-300"
+              style={{
+                left: `${horizontalEndX}px`,
+                top: `${horizontalEndY}px`,
+                transform: 'translateY(-50%)'
+              }}
+            >
+              {/* Agent name and search keywords above */}
+              <div className="text-white/90 text-xs font-medium mb-1 whitespace-nowrap">
+                <div className="font-bold">{agent.name}</div>
+                <div className="text-white/70 text-[10px]">{keywordText}</div>
+              </div>
+              
+              {/* Avatar and Stop button */}
+              <div className="flex items-center gap-2">
+                <div className="relative group">
+                  <img 
+                    src={agent.avatar || agent.personality?.avatar} 
+                    alt={agent.name}
+                    className="w-10 h-10 rounded-full border-2 border-green-400 shadow-lg transition-transform hover:scale-110"
+                  />
+                  
+                  {/* Tooltip on hover */}
+                  <div className="absolute left-12 top-0 bg-black/90 backdrop-blur-sm text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 min-w-[200px]">
+                    <div className="font-bold mb-1">
+                      {activity?.location?.companyName || 'Targeting:'}
+                    </div>
+                    <div className="text-white/80 text-[10px] space-y-0.5">
+                      {activity?.location && (
+                        <>
+                          {activity.location.city && <div>📍 {activity.location.city}, {activity.location.state || activity.location.country}</div>}
+                          {activity.targeting?.industry && <div>🏢 {activity.targeting.industry}</div>}
+                          {activity.targeting?.position && <div>👤 {activity.targeting.position}</div>}
+                        </>
+                      )}
+                      {!activity?.location && (
+                        <>
+                          {agent.settings?.companyCriteria?.companyIndustries && agent.settings.companyCriteria.companyIndustries.length > 0 && (
+                            <div>Industries: {agent.settings.companyCriteria.companyIndustries.slice(0, 3).join(', ')}</div>
+                          )}
+                          {agent.settings?.contactCriteria?.targetPositions && agent.settings.contactCriteria.targetPositions.length > 0 && (
+                            <div>Positions: {agent.settings.contactCriteria.targetPositions.slice(0, 3).join(', ')}</div>
+                          )}
+                          {agent.settings?.companyCriteria?.companySizeMin && agent.settings?.companyCriteria?.companySizeMax && (
+                            <div>Size: {agent.settings.companyCriteria.companySizeMin}-{agent.settings.companyCriteria.companySizeMax} emp</div>
+                          )}
+                        </>
+                      )}
+                      {(!activity?.location && (!agent.settings?.companyCriteria?.companyIndustries || agent.settings.companyCriteria.companyIndustries.length === 0) && 
+                       (!agent.settings?.contactCriteria?.targetPositions || agent.settings.contactCriteria.targetPositions.length === 0)) && (
+                        <div>General lead search</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
+                      // Immediately mark as inactive in local state
+                      setAgentActivities(prev => ({
+                        ...prev,
+                        [agent.agentId]: { ...prev[agent.agentId], isActive: false }
+                      }));
+                      setTimeout(() => fetchAgents(), 500);
+                    } catch (error) {
+                      console.error('Error stopping agent:', error);
+                    }
+                  }}
+                  className="px-2 py-1 bg-red-500/80 hover:bg-red-500 text-white text-xs rounded backdrop-blur-sm transition-all hover:scale-105"
+                >
+                  Stop
+                </button>
+              </div>
+              
+              {/* Activity info below */}
+              <div className="text-white/70 text-xs mt-1 whitespace-nowrap max-w-[200px] truncate">
+                {activity?.status || agent.currentActivity || 'Running...'}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Email Dots on Expanded Country View (color-coded by status) */}
+      {isExpanded && selectedFeature && emailDots.map((email) => {
+        // Calculate projection based on country
+        let emailCoords;
+        
+        if (selectedFeature.properties?.name === 'United States') {
+          const albersProjection = geoAlbersUsa()
+            .scale(1)
+            .translate([0, 0]);
+          
+          const canvas = canvasRef.current;
+          if (canvas) {
+            albersProjection.fitSize([canvas.width * 0.9, canvas.height * 0.9], selectedFeature);
+            const translate = albersProjection.translate();
+            albersProjection.translate([
+              translate[0] + (canvas.width - canvas.width * 0.9) / 2,
+              translate[1] + (canvas.height - canvas.height * 0.9) / 2
+            ]);
+            emailCoords = albersProjection([email.location.lng, email.location.lat]);
+          }
+        } else {
+          const flatProjection = geoMercator();
+          const canvas = canvasRef.current;
+          if (canvas) {
+            flatProjection.fitSize([canvas.width * 0.9, canvas.height * 0.9], selectedFeature);
+            const translate = flatProjection.translate();
+            flatProjection.translate([
+              translate[0] + (canvas.width - canvas.width * 0.9) / 2,
+              translate[1] + (canvas.height - canvas.height * 0.9) / 2
+            ]);
+            emailCoords = flatProjection([email.location.lng, email.location.lat]);
+          }
+        }
+        
+        if (!emailCoords) return null;
+        
+        // Calculate screen position
+        const canvasCenterX = window.innerWidth / 2;
+        const canvasCenterY = window.innerHeight;
+        const pointX = canvasCenterX + (emailCoords[0] - 600);
+        const pointY = canvasCenterY + (emailCoords[1] - 600);
+        
+        // Color and label based on status
+        const dotColor = email.status === 'meeting' ? 'bg-green-400' : 
+                        email.status === 'sent' ? 'bg-white' : 
+                        'bg-yellow-400'; // yellow for queued
+        const statusLabel = email.status === 'meeting' ? '✅ Meeting Booked' : 
+                           email.status === 'sent' ? '📧 Email Sent' : 
+                           '⏳ Queued';
+        const statusColor = email.status === 'meeting' ? 'text-green-400' : 
+                           email.status === 'sent' ? 'text-white' : 
+                           'text-yellow-400';
+        
+        return (
+          <div 
+            key={email.id} 
+            className="fixed group" 
+            style={{ 
+              left: `${pointX}px`, 
+              top: `${pointY}px`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 100 // Higher z-index to be above canvas
+            }}
+          >
+            {/* Colored dot based on status */}
+            <div className={`w-4 h-4 ${dotColor} rounded-full border-2 border-white/70 cursor-pointer hover:scale-150 transition-transform shadow-xl pointer-events-auto`} />
+            
+            {/* Tooltip on hover */}
+            <div className="absolute left-6 top-0 bg-black/95 backdrop-blur-sm text-white text-xs px-4 py-3 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[110] min-w-[250px] shadow-2xl border border-white/20">
+              <div className="font-bold text-sm mb-2">{email.location.companyName || 'Email Activity'}</div>
+              <div className="space-y-1 text-white/80">
+                <div className={`font-semibold ${statusColor}`}>{statusLabel}</div>
+                <div>📧 To: {email.to}</div>
+                <div>👤 Agent: {email.agentName}</div>
+                {email.location.city && <div>📍 {email.location.city}, {email.location.state || email.location.country}</div>}
+                <div className="text-[10px] text-white/60 mt-2">
+                  {new Date(email.timestamp).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Idle Agents Modal */}
+      {showIdleAgents && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+          <div className="bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[70vh] overflow-hidden flex flex-col border border-white/20">
+            <div className="p-6 border-b border-white/20 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Idle Agents</h2>
+              <button
+                onClick={() => setShowIdleAgents(false)}
+                className="text-white/70 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length === 0 ? (
+                <div className="text-center py-12 text-white/70">
+                  All agents are currently active
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').map(agent => (
+                    <div
+                      key={agent.agentId}
+                      className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 hover:border-white/40 transition-all"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        {(agent.avatar || agent.personality?.avatar) && (
+                          <img 
+                            src={agent.avatar || agent.personality?.avatar} 
+                            alt={agent.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <div className="font-bold text-white">{agent.name}</div>
+                          <div className="text-sm text-white/70">{agent.personality?.name || 'Agent'}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              if (agent.status === 'running') {
+                                await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
+                                // Immediately mark as inactive
+                                setAgentActivities(prev => ({
+                                  ...prev,
+                                  [agent.agentId]: { ...prev[agent.agentId], isActive: false }
+                                }));
+                              } else {
+                                await api.post('/api/lead-agent/start', { agentId: agent.agentId });
+                                // Immediately mark as active
+                                setAgentActivities(prev => ({
+                                  ...prev,
+                                  [agent.agentId]: { isActive: true, status: 'Starting...', timestamp: Date.now() }
+                                }));
+                              }
+                              // Wait a bit for status to update, then refresh
+                              setTimeout(() => fetchAgents(), 500);
+                            } catch (error) {
+                              console.error('Error updating agent status:', error);
+                            }
+                          }}
+                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            agent.status === 'running'
+                              ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40'
+                              : 'bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/40'
+                          }`}
+                        >
+                          {agent.status === 'running' ? 'Stop' : 'Start'}
+                        </button>
+                        <button
+                          onClick={() => router.push(`/agents/${agent.agentId}`)}
+                          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 transition-colors"
+                        >
+                          Dashboard
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Email Queue Modal */}
       {selectedQueue && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
@@ -800,30 +1514,37 @@ export default function InteractiveGlobe() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
-                    {agents.map((agent) => (
-                      <button
-                        key={agent.agentId}
-                        onClick={() => handleAgentSelect(agent)}
-                        className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all text-left"
-                      >
-                        <div className="flex items-center gap-3 mb-2">
-                          {agent.avatar && (
-                            <img 
-                              src={agent.avatar} 
-                              alt={agent.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          )}
-                          <div className="font-bold text-white text-lg">{agent.name}</div>
-                        </div>
-                        <div className="text-sm text-white/70">
-                          {agent.personality?.name || 'Agent'}
-                        </div>
-                        <div className="mt-3 text-xs text-white/50">
-                          Click to view {selectedQueue?.type} emails
-                        </div>
-                      </button>
-                    ))}
+                    {agents.map((agent) => {
+                      const avatarSrc = agent.avatar || agent.personality?.avatar;
+                      return (
+                        <button
+                          key={agent.agentId}
+                          onClick={() => handleAgentSelect(agent)}
+                          className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all text-left"
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            {avatarSrc && (
+                              <img 
+                                src={avatarSrc} 
+                                alt={agent.name}
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => {
+                                  console.log('Failed to load avatar:', avatarSrc);
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <div className="font-bold text-white text-lg">{agent.name}</div>
+                          </div>
+                          <div className="text-sm text-white/70">
+                            {agent.personality?.name || 'Agent'}
+                          </div>
+                          <div className="mt-3 text-xs text-white/50">
+                            Click to view {selectedQueue?.type} emails
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )
               ) : (
@@ -839,7 +1560,7 @@ export default function InteractiveGlobe() {
                 ) : (
                   <div className="space-y-4">
                     {queueEmails.map((email) => (
-                      <div key={email._id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
+                      <div key={email._id || email.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <div className="font-semibold text-white">{email.to}</div>
@@ -848,13 +1569,13 @@ export default function InteractiveGlobe() {
                           {selectedQueue.type === 'queued' && (
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleApproveEmail(email._id)}
+                                onClick={() => handleApproveEmail(email._id || email.id)}
                                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors"
                               >
                                 Approve
                               </button>
                               <button
-                                onClick={() => handleRejectEmail(email._id)}
+                                onClick={() => handleRejectEmail(email._id || email.id)}
                                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
                               >
                                 Reject
@@ -891,9 +1612,45 @@ export default function InteractiveGlobe() {
             transform: translateY(0);
           }
         }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+            transform: scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: scale(0.8);
+          }
+        }
+        
+        @keyframes scaleIn {
+          from {
+            transform: scale(0);
+          }
+          to {
+            transform: scale(1);
+          }
+        }
 
         .animate-fade-in {
           animation: fade-in 0.6s ease-out;
+        }
+        
+        .animate-scale-in {
+          animation: scaleIn 0.4s ease-out forwards;
+          transform-origin: center;
         }
       `}</style>
     </div>

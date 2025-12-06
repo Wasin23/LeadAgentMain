@@ -1,6 +1,6 @@
 import { DynamoDBClient, CreateTableCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand, QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses';
+import { SESClient, SendEmailCommand, SendRawEmailCommand, VerifyDomainIdentityCommand, GetIdentityVerificationAttributesCommand } from '@aws-sdk/client-ses';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
 class AWSManager {
@@ -861,12 +861,29 @@ class AWSManager {
   // EMAIL SES METHODS
   // =================
   
-  async sendEmail({ to, from, subject, htmlBody, textBody }) {
+  async sendEmail({ to, from, subject, htmlBody, textBody, userId = null }) {
     try {
       console.log('📧 [AWS SES] Sending email to:', to);
       
+      // If userId provided, try to fetch their custom domain settings
+      let fromAddress = from;
+      if (userId) {
+        try {
+          const userSettings = await this.getUserSettings(userId);
+          if (userSettings?.emailSettings?.customDomain && 
+              userSettings?.emailSettings?.domainVerified && 
+              userSettings?.emailSettings?.fromEmail) {
+            // Use custom domain if verified
+            fromAddress = userSettings.emailSettings.fromEmail;
+            console.log(`📧 [AWS SES] Using custom domain email: ${fromAddress}`);
+          }
+        } catch (err) {
+          console.log('⚠️ [AWS SES] Could not fetch custom domain, using default:', err.message);
+        }
+      }
+      
       const command = new SendEmailCommand({
-        Source: from,
+        Source: fromAddress,
         Destination: {
           ToAddresses: Array.isArray(to) ? to : [to]
         },
@@ -897,6 +914,71 @@ class AWSManager {
       };
     } catch (error) {
       console.error('❌ [AWS SES] Error sending email:', error);
+      throw error;
+    }
+  }
+
+  // Verify domain with AWS SES
+  async verifyDomainWithSES(domain) {
+    try {
+      console.log(`🔐 [AWS SES] Verifying domain: ${domain}`);
+      
+      const command = new VerifyDomainIdentityCommand({
+        Domain: domain
+      });
+      
+      const result = await this.ses.send(command);
+      
+      console.log('✅ [AWS SES] Domain verification initiated. Verification token:', result.VerificationToken);
+      
+      return {
+        success: true,
+        verificationToken: result.VerificationToken,
+        instructions: {
+          recordType: 'TXT',
+          recordName: `_amazonses.${domain}`,
+          recordValue: result.VerificationToken,
+          message: 'Add this TXT record to your DNS to complete verification'
+        }
+      };
+    } catch (error) {
+      console.error('❌ [AWS SES] Error verifying domain:', error);
+      throw error;
+    }
+  }
+
+  // Check domain verification status
+  async checkDomainVerificationStatus(domain) {
+    try {
+      console.log(`🔍 [AWS SES] Checking verification status for: ${domain}`);
+      
+      const command = new GetIdentityVerificationAttributesCommand({
+        Identities: [domain]
+      });
+      
+      const result = await this.ses.send(command);
+      const attributes = result.VerificationAttributes[domain];
+      
+      if (!attributes) {
+        return {
+          verified: false,
+          status: 'NotStarted',
+          message: 'Domain verification has not been initiated'
+        };
+      }
+      
+      return {
+        verified: attributes.VerificationStatus === 'Success',
+        status: attributes.VerificationStatus,
+        verificationToken: attributes.VerificationToken,
+        message: attributes.VerificationStatus === 'Success' 
+          ? 'Domain is verified and ready to send emails'
+          : attributes.VerificationStatus === 'Pending'
+          ? 'Verification pending - check your DNS records'
+          : 'Verification failed - please check your DNS records'
+      };
+    } catch (error) {
+      console.error('❌ [AWS SES] Error checking domain status:', error);
       throw error;
     }
   }

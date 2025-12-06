@@ -3,8 +3,25 @@ import { sendEmailTool } from '../lib/myEmailTool.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { authenticateToken } from '../middleware/jwt.js';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import dns from 'dns';
+import { promisify } from 'util';
 
 const router = express.Router();
+const resolveTxt = promisify(dns.resolveTxt);
+
+// AWS DynamoDB client setup
+const dynamoClient = new DynamoDBClient({
+  region: process.env.AWS_REGION || 'us-west-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+});
+
+const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
+const tableName = process.env.AWS_DYNAMODB_USERS_TABLE || 'meridian-users';
 
 router.post('/email', async (req, res) => {
   const { to, subject, body } = req.body;
@@ -187,6 +204,198 @@ router.post('/clear-search-cache', async (req, res) => {
       success: false,
       error: 'Failed to clear search cache',
       details: err.message
+    });
+  }
+});
+
+// POST /api/email/check-domain-health
+router.post('/check-domain-health', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { domain } = req.body;
+
+    if (!domain) {
+      return res.status(400).json({ error: 'Domain is required' });
+    }
+
+    console.log(`[DOMAIN HEALTH] Checking health for domain: ${domain}`);
+
+    const health = {
+      spf: false,
+      dkim: false,
+      dmarc: false
+    };
+
+    // Check SPF record
+    try {
+      const spfRecords = await resolveTxt(domain);
+      const spfRecord = spfRecords.find(record => 
+        record.join('').includes('v=spf1')
+      );
+      health.spf = !!spfRecord;
+      console.log(`[DOMAIN HEALTH] SPF: ${health.spf ? 'Found' : 'Not found'}`);
+    } catch (error) {
+      console.log(`[DOMAIN HEALTH] SPF check failed:`, error.message);
+    }
+
+    // Check DKIM record (check for default._domainkey subdomain)
+    try {
+      const dkimDomain = `default._domainkey.${domain}`;
+      const dkimRecords = await resolveTxt(dkimDomain);
+      health.dkim = dkimRecords.length > 0;
+      console.log(`[DOMAIN HEALTH] DKIM: ${health.dkim ? 'Found' : 'Not found'}`);
+    } catch (error) {
+      console.log(`[DOMAIN HEALTH] DKIM check failed:`, error.message);
+      // Try alternative DKIM selector
+      try {
+        const altDkimDomain = `ses._domainkey.${domain}`;
+        const altDkimRecords = await resolveTxt(altDkimDomain);
+        health.dkim = altDkimRecords.length > 0;
+      } catch (altError) {
+        console.log(`[DOMAIN HEALTH] Alternative DKIM check also failed`);
+      }
+    }
+
+    // Check DMARC record
+    try {
+      const dmarcDomain = `_dmarc.${domain}`;
+      const dmarcRecords = await resolveTxt(dmarcDomain);
+      const dmarcRecord = dmarcRecords.find(record =>
+        record.join('').includes('v=DMARC1')
+      );
+      health.dmarc = !!dmarcRecord;
+      console.log(`[DOMAIN HEALTH] DMARC: ${health.dmarc ? 'Found' : 'Not found'}`);
+    } catch (error) {
+      console.log(`[DOMAIN HEALTH] DMARC check failed:`, error.message);
+    }
+
+    // Store domain health in user settings
+    try {
+      const updateCommand = new UpdateCommand({
+        TableName: tableName,
+        Key: { userId },
+        UpdateExpression: 'SET emailSettings.domainHealth = :health, emailSettings.domainHealthLastChecked = :timestamp',
+        ExpressionAttributeValues: {
+          ':health': health,
+          ':timestamp': new Date().toISOString()
+        }
+      });
+      await dynamodb.send(updateCommand);
+    } catch (dbError) {
+      console.error('[DOMAIN HEALTH] Failed to store health status:', dbError);
+    }
+
+    res.json({
+      success: true,
+      domain,
+      health,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[DOMAIN HEALTH] Error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// POST /api/email/verify-domain-ses
+router.post('/verify-domain-ses', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { domain } = req.body;
+
+    if (!domain) {
+      return res.status(400).json({ error: 'Domain is required' });
+    }
+
+    console.log(`[AWS SES VERIFY] Initiating verification for domain: ${domain}`);
+
+    // Import AWSManager
+    const { default: AWSManager } = await import('../utils/awsManager.js');
+    const awsManager = new AWSManager();
+
+    // Start verification process
+    const verificationResult = await awsManager.verifyDomainWithSES(domain);
+
+    // Store in user settings
+    const updateCommand = new UpdateCommand({
+      TableName: tableName,
+      Key: { userId },
+      UpdateExpression: 'SET emailSettings.customDomain = :domain, emailSettings.sesVerificationToken = :token, emailSettings.sesVerificationStatus = :status',
+      ExpressionAttributeValues: {
+        ':domain': domain,
+        ':token': verificationResult.verificationToken,
+        ':status': 'Pending'
+      }
+    });
+    await dynamodb.send(updateCommand);
+
+    res.json({
+      success: true,
+      domain,
+      verificationToken: verificationResult.verificationToken,
+      instructions: verificationResult.instructions,
+      message: 'Domain verification initiated. Please add the DNS records to complete verification.'
+    });
+
+  } catch (error) {
+    console.error('[AWS SES VERIFY] Error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// GET /api/email/check-domain-verification
+router.get('/check-domain-verification', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { domain } = req.query;
+
+    if (!domain) {
+      return res.status(400).json({ error: 'Domain is required' });
+    }
+
+    console.log(`[AWS SES CHECK] Checking verification status for: ${domain}`);
+
+    // Import AWSManager
+    const { default: AWSManager } = await import('../utils/awsManager.js');
+    const awsManager = new AWSManager();
+
+    // Check verification status
+    const statusResult = await awsManager.checkDomainVerificationStatus(domain);
+
+    // Update user settings with current status
+    if (statusResult.verified) {
+      const updateCommand = new UpdateCommand({
+        TableName: tableName,
+        Key: { userId },
+        UpdateExpression: 'SET emailSettings.domainVerified = :verified, emailSettings.sesVerificationStatus = :status',
+        ExpressionAttributeValues: {
+          ':verified': true,
+          ':status': 'Success'
+        }
+      });
+      await dynamodb.send(updateCommand);
+    }
+
+    res.json({
+      success: true,
+      domain,
+      verified: statusResult.verified,
+      status: statusResult.status,
+      message: statusResult.message
+    });
+
+  } catch (error) {
+    console.error('[AWS SES CHECK] Error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
     });
   }
 });

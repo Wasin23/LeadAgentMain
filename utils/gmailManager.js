@@ -1,0 +1,302 @@
+import { google } from 'googleapis';
+import AWSManager from './awsManager.js';
+
+const awsManager = new AWSManager();
+
+class GmailManager {
+  constructor() {
+    this.oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:8080/api/auth/gmail/callback'
+    );
+  }
+
+  /**
+   * Generate OAuth authorization URL
+   */
+  getAuthUrl() {
+    const scopes = [
+      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/gmail.readonly',
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile'
+    ];
+
+    return this.oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: scopes,
+      prompt: 'consent' // Force consent screen to get refresh token
+    });
+  }
+
+  /**
+   * Exchange authorization code for tokens
+   */
+  async getTokensFromCode(code) {
+    try {
+      const { tokens } = await this.oauth2Client.getToken(code);
+      console.log('✅ [GMAIL] Got tokens:', {
+        hasAccessToken: !!tokens.access_token,
+        hasRefreshToken: !!tokens.refresh_token
+      });
+      return tokens;
+    } catch (error) {
+      console.error('❌ [GMAIL] Error getting tokens:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's Gmail address
+   */
+  async getUserEmail(tokens) {
+    try {
+      this.oauth2Client.setCredentials(tokens);
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+      const profile = await gmail.users.getProfile({ userId: 'me' });
+      return profile.data.emailAddress;
+    } catch (error) {
+      console.error('❌ [GMAIL] Error getting user email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's profile picture
+   */
+  async getProfilePicture(tokens) {
+    try {
+      this.oauth2Client.setCredentials(tokens);
+      const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
+      const userInfo = await oauth2.userinfo.get();
+      return userInfo.data.picture || null;
+    } catch (error) {
+      console.error('❌ [GMAIL] Error getting profile picture:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Send email via Gmail API (with account cycling)
+   */
+  async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null }) {
+    try {
+      console.log('📧 [GMAIL] Sending email via Gmail API to:', to);
+
+      // Get user's Gmail credentials from DynamoDB
+      const userSettings = await awsManager.getUserSettings(userId);
+      
+      // Support both old gmailAuth format and new gmailAccounts array
+      let gmailAccounts = [];
+      let currentAccountIndex = 0;
+      
+      if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+        // New multi-account format
+        gmailAccounts = userSettings.gmailAccounts;
+        currentAccountIndex = userSettings.activeGmailIndex || 0;
+      } else if (userSettings?.gmailAuth?.refreshToken) {
+        // Legacy single account format - convert to array
+        gmailAccounts = [{
+          email: userSettings.gmailAuth.email,
+          refreshToken: userSettings.gmailAuth.refreshToken,
+          isActive: true
+        }];
+        currentAccountIndex = 0;
+      } else {
+        throw new Error('Gmail not connected. Please connect your Gmail account in settings.');
+      }
+
+      // Get the current account for this email
+      const currentAccount = gmailAccounts[currentAccountIndex];
+      console.log(`📧 [GMAIL] Using account ${currentAccountIndex + 1}/${gmailAccounts.length}: ${currentAccount.email}`);
+
+      // Set credentials
+      this.oauth2Client.setCredentials({
+        refresh_token: currentAccount.refreshToken
+      });
+
+      // Create Gmail API client
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+      // Build email message in RFC 2822 format
+      const messageParts = [
+        `From: ${currentAccount.email}`,
+        `To: ${Array.isArray(to) ? to.join(', ') : to}`,
+        `Subject: ${subject}`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=utf-8',
+      ];
+
+      if (ccEmails) {
+        messageParts.push(`Cc: ${ccEmails}`);
+      }
+
+      if (bccEmails) {
+        messageParts.push(`Bcc: ${bccEmails}`);
+      }
+
+      if (replyTo) {
+        messageParts.push(`Reply-To: ${replyTo}`);
+      }
+
+      // Add blank line and body
+      messageParts.push('');
+      messageParts.push(htmlBody || textBody);
+
+      const message = messageParts.join('\r\n');
+
+      // Encode in base64url format
+      const encodedMessage = Buffer.from(message)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      // Send via Gmail API
+      const result = await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encodedMessage
+        }
+      });
+
+      console.log('✅ [GMAIL] Email sent successfully. MessageId:', result.data.id);
+      console.log('✅ [GMAIL] Email will appear in user\'s Gmail Sent folder');
+
+      // Cycle to next account for future emails (if multiple accounts)
+      if (gmailAccounts.length > 1) {
+        const nextIndex = (currentAccountIndex + 1) % gmailAccounts.length;
+        console.log(`🔄 [GMAIL] Cycling to account ${nextIndex + 1}/${gmailAccounts.length} for next email`);
+        
+        // Update active account
+        gmailAccounts.forEach((acc, i) => {
+          acc.isActive = (i === nextIndex);
+        });
+        
+        await awsManager.saveUserSettings(userId, {
+          ...userSettings,
+          gmailAccounts,
+          activeGmailIndex: nextIndex
+        });
+      }
+
+      // Log Gmail API usage
+      await awsManager.logApiUsage({
+        userId: userId,
+        service: 'gmail',
+        operation: 'send',
+        usage: 1,
+        cost: 0, // Gmail API is free
+        metadata: {
+          messageId: result.data.id,
+          to: to,
+          subject: subject,
+          fromAccount: currentAccount.email,
+          accountCycled: gmailAccounts.length > 1
+        }
+      });
+
+      return {
+        success: true,
+        messageId: result.data.id,
+        provider: 'gmail'
+      };
+    } catch (error) {
+      console.error('❌ [GMAIL] Error sending email:', error);
+      
+      // If refresh token expired, user needs to reconnect
+      if (error.message?.includes('invalid_grant') || error.message?.includes('Token has been expired')) {
+        throw new Error('Gmail connection expired. Please reconnect your Gmail account in settings.');
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Test Gmail connection
+   */
+  async testConnection(userId) {
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      if (!userSettings?.gmailAuth?.refreshToken) {
+        return { success: false, error: 'Gmail not connected' };
+      }
+
+      this.oauth2Client.setCredentials({
+        refresh_token: userSettings.gmailAuth.refreshToken
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+      const profile = await gmail.users.getProfile({ userId: 'me' });
+
+      return {
+        success: true,
+        email: profile.data.emailAddress,
+        messagesTotal: profile.data.messagesTotal
+      };
+    } catch (error) {
+      console.error('❌ [GMAIL] Test connection failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Check for new replies (optional feature)
+   */
+  async checkForReplies(userId, afterTimestamp = null) {
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      if (!userSettings?.gmailAuth?.refreshToken) {
+        return [];
+      }
+
+      this.oauth2Client.setCredentials({
+        refresh_token: userSettings.gmailAuth.refreshToken
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+      // Build query for unread messages in inbox
+      let query = 'is:unread in:inbox';
+      if (afterTimestamp) {
+        query += ` after:${Math.floor(afterTimestamp / 1000)}`;
+      }
+
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        q: query,
+        maxResults: 50
+      });
+
+      const messages = response.data.messages || [];
+      console.log(`📬 [GMAIL] Found ${messages.length} unread messages`);
+
+      return messages;
+    } catch (error) {
+      console.error('❌ [GMAIL] Error checking replies:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Revoke a specific refresh token
+   */
+  async revokeToken(refreshToken) {
+    try {
+      this.oauth2Client.setCredentials({ refresh_token: refreshToken });
+      await this.oauth2Client.revokeCredentials();
+      console.log('✅ [GMAIL] Token revoked successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [GMAIL] Error revoking token:', error);
+      throw error;
+    }
+  }
+}
+
+export default GmailManager;
