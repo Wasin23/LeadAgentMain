@@ -2,6 +2,24 @@ import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSManager from '../utils/awsManager.js';
 
+// Helper function to fix UTF-8 encoding issues
+function fixEncoding(text) {
+  if (!text) return text;
+  try {
+    // Common UTF-8 corruption patterns
+    return text
+      .replace(/Ã¢Â€Â™/g, "'") // Right single quotation mark
+      .replace(/Ã¢Â€Â"/g, '"')  // Left double quotation mark  
+      .replace(/Ã¢Â€Â�/g, '"')  // Right double quotation mark
+      .replace(/Ã¢Â€Â"/g, '–')  // En dash
+      .replace(/Ã¢Â€Â"/g, '—')  // Em dash
+      .replace(/Ã‚Â´/g, "'")     // Acute accent
+      .replace(/Ã‚Â /g, ' ');    // Non-breaking space
+  } catch (e) {
+    return text;
+  }
+}
+
 const router = express.Router();
 const awsManager = new AWSManager();
 
@@ -371,7 +389,7 @@ router.get('/viewed', async (req, res) => {
             leadName: event.leadName || 'Unknown',
             leadEmail: event.recipientEmail || event.email || 'unknown@email.com',
             company: event.company,
-            subject: event.subject,
+            subject: fixEncoding(event.subject),
             sentAt: event.timestamp,
             opened: false,
             openedAt: null,
@@ -386,9 +404,15 @@ router.get('/viewed', async (req, res) => {
         email.opened = true;
         email.openCount++;
         
-        // Update email details from open event if available
+        // Update email details from open event if available (with encoding fix)
         if (event.leadName && email.leadName === 'Unknown') {
           email.leadName = event.leadName;
+        }
+        if (event.recipientEmail && email.leadEmail === 'unknown@email.com') {
+          email.leadEmail = event.recipientEmail;
+        }
+        if (event.subject && !email.subject) {
+          email.subject = fixEncoding(event.subject);
         }
         if (event.recipientEmail && email.leadEmail === 'unknown@email.com') {
           email.leadEmail = event.recipientEmail;

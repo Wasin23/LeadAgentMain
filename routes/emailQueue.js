@@ -233,6 +233,19 @@ router.post('/:id/approve', async (req, res) => {
     const userId = approvedEmail.userId || null; // Get userId from queue data
     const effectiveAgentId = approvedEmail.agentId || req.body.agentId || null;
     
+    console.log('[EMAIL QUEUE] Person/Lead info for tracking:', {
+      personInfo: personInfo ? {
+        fullName: personInfo.fullName,
+        name: personInfo.name,
+        firstName: personInfo.firstName,
+        lastName: personInfo.lastName
+      } : null,
+      leadDetails: approvedEmail.leadDetails ? Object.keys(approvedEmail.leadDetails) : null,
+      recipientName: approvedEmail.recipientName,
+      leadName: approvedEmail.leadName,
+      to: finalRecipient
+    });
+    
     // Get CC, BCC emails and sender name from settings
     let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
     let bccEmails = approvedEmail.bcc || approvedEmail.emailData?.bcc || null;

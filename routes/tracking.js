@@ -52,12 +52,27 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
       
       const emailData = sentEmails.find(e => e.trackingId === trackingId);
       if (emailData) {
+        console.log(`[TRACKING PIXEL] Full email data keys:`, Object.keys(emailData));
+        console.log(`[TRACKING PIXEL] Email data sample:`, {
+          to: emailData.to,
+          leadName: emailData.leadName,
+          recipientName: emailData.recipientName,
+          personInfo: emailData.personInfo,
+          leadInfo: emailData.leadInfo,
+          lead: emailData.lead,
+          recipient: emailData.recipient
+        });
+        
         recipientEmail = emailData.to;
         leadName = emailData.leadName || 
                    emailData.personInfo?.fullName || 
                    emailData.personInfo?.name || 
                    emailData.leadInfo?.name || 
-                   emailData.recipientName;
+                   emailData.lead?.name ||
+                   emailData.lead?.fullName ||
+                   emailData.recipientName ||
+                   emailData.recipient?.name ||
+                   (emailData.to ? emailData.to.split('@')[0] : null);
         subject = emailData.subject || emailData.emailSubject;
         console.log(`[TRACKING PIXEL] Found email data: to=${recipientEmail}, leadName=${leadName}, subject=${subject}`);
       } else {
