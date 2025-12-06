@@ -1465,6 +1465,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const colors = getPersonalityColors(agentPersonality?.color);
 
+  // Get hex color for borders based on personality
+  const getHexColor = (color?: string) => {
+    switch (color) {
+      case 'red': return '#fecaca';
+      case 'blue': return '#bfdbfe';
+      case 'purple': return '#e9d5ff';
+      case 'green': return '#bbf7d0';
+      case 'indigo': return '#c7d2fe';
+      case 'pink': return '#fbcfe8';
+      case 'orange': return '#fed7aa';
+      case 'teal': return '#99f6e4';
+      default: return '#e5e7eb';
+    }
+  };
+
+  const borderColor = getHexColor(agentPersonality?.color);
+
   // Format time helpers
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
@@ -1557,7 +1574,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: '1px solid #fecaca',
+              border: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1576,7 +1593,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: '1px solid #fecaca',
+              border: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1595,7 +1612,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: '1px solid #fecaca',
+              border: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1614,7 +1631,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: '1px solid #fecaca',
+              border: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1634,19 +1651,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-neutral-50 border ${colors.border} flex flex-col`}
+            className="bg-neutral-50 border border-neutral-200 flex flex-col max-h-[800px]"
           >
-            <div className={`p-6 border-b ${colors.border} bg-white`}>
+            <div className="p-6 border-b border-neutral-200 bg-white flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className={`text-lg font-medium ${colors.primary}`}>Live Response Stream</h3>
+                  <h3 className="text-lg font-medium text-neutral-900">Live Response Stream</h3>
                   <p className="text-sm text-neutral-600 mt-1">Watch AI respond in real-time</p>
                 </div>
-                <PaperAirplaneIcon className={`h-5 w-5 ${colors.text}`} />
+                <PaperAirplaneIcon className="h-5 w-5 text-neutral-600" />
               </div>
             </div>
             
-            <div className="h-96 overflow-y-auto p-4 flex-1">{streamingResponses.length === 0 ? (
+            <div className="overflow-y-auto p-4 flex-1 min-h-0">{streamingResponses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-neutral-400">
                   <PaperAirplaneIcon className="h-12 w-12 mb-3 text-neutral-300" />
                   <p className="text-sm">No active responses</p>
@@ -1659,7 +1676,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       key={response.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`p-3 border rounded-lg ${colors.bgLight} ${colors.border}`}
+                      className="p-3 border border-neutral-200 rounded-lg bg-white"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>

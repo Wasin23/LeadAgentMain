@@ -1,3 +1,4 @@
+// LangChain-powered Email Automation Agent (ported from Netlify)
 import express from 'express';
 import { ChatOpenAI } from "@langchain/openai";
 import { DynamicStructuredTool } from "langchain/tools";
@@ -21,8 +22,8 @@ try {
   console.log('[WEBHOOK] Outreach broadcast not available (will work when loaded)');
 }
 
-// Deduplication cache (in-memory, could move to Redis later)
-const processedMessages = new Set();
+// === DEDUPLICATION SYSTEM ===
+const processedMessages = new Map(); // Store with timestamps
 const MESSAGE_CACHE_SIZE = 1000;
 
 // === UTILITY FUNCTIONS ===
@@ -65,16 +66,55 @@ function extractAgentIdFromTrackingId(trackingId) {
   return match ? match[1] : 'reasoning-lead-agent';
 }
 
+function getTimezoneOffset(timezone) {
+  const now = new Date();
+  
+  const checkDST = (tz) => {
+    const currentOffset = new Intl.DateTimeFormat('en', {
+      timeZoneName: 'longOffset',
+      timeZone: tz
+    }).formatToParts(now).find(part => part.type === 'timeZoneName').value;
+    
+    return currentOffset.replace('GMT', '');
+  };
+  
+  switch (timezone) {
+    case 'America/Los_Angeles':
+      return checkDST('America/Los_Angeles');
+    case 'America/New_York':
+      return checkDST('America/New_York');
+    case 'America/Chicago':
+      return checkDST('America/Chicago');
+    case 'America/Denver':
+      return checkDST('America/Denver');
+    default:
+      return checkDST('America/Los_Angeles');
+  }
+}
+
+function isBusinessHours(date, userTimezone) {
+  const hour = parseInt(date.toLocaleString("en-US", {
+    timeZone: userTimezone,
+    hour: 'numeric',
+    hour12: false
+  }));
+  return hour >= 8 && hour < 20; // 8am-8pm
+}
+
 function isMessageProcessed(messageId) {
   return processedMessages.has(messageId);
 }
 
 function markMessageProcessed(messageId) {
-  processedMessages.add(messageId);
-  // Keep cache size manageable
-  if (processedMessages.size > MESSAGE_CACHE_SIZE) {
-    const firstItem = processedMessages.values().next().value;
-    processedMessages.delete(firstItem);
+  if (messageId) {
+    processedMessages.set(messageId, Date.now());
+    // Clean up old entries
+    if (processedMessages.size > MESSAGE_CACHE_SIZE) {
+      const entries = Array.from(processedMessages.entries());
+      entries.sort((a, b) => b[1] - a[1]);
+      processedMessages.clear();
+      entries.slice(0, 500).forEach(([id, time]) => processedMessages.set(id, time));
+    }
   }
 }
 
@@ -664,24 +704,91 @@ router.post('/mailgun-reply', async (req, res) => {
       sendEmailTool
     ];
     
+    // Get user settings for comprehensive system prompt
+    let userSettings = null;
+    try {
+      const user = await awsManager.getUser(userId);
+      if (user?.emailResponseSettings) {
+        userSettings = user.emailResponseSettings;
+      }
+    } catch (error) {
+      console.error('[WEBHOOK] Failed to get user settings:', error);
+    }
+
     // Get personality for system prompt
     const personality = await getAgentPersonality(userId, agentId);
+    const emailResponsePrompt = agentSettings?.emailBuilder?.emailResponsePrompt || null;
     
-    const systemPrompt = `You are ${personality.name}, an AI email assistant that helps manage business communications.
+    // Create comprehensive system prompt - FULLY DRIVEN BY AI PERSONALITY
+    const systemPrompt = userSettings ? `You are ${personality.name}, ${personality.style || 'a professional'} AI assistant for ${userSettings.company_name || 'our company'}.
 
-YOUR COMMUNICATION STYLE:
+YOUR PERSONALITY & IDENTITY:
+- Name: ${personality.name}
+- Avatar: ${personality.avatar || '🤖'}
+- Style: ${personality.style || 'Professional and helpful'}
+- Traits: ${personality.traits?.join(', ') || 'Professional, helpful, efficient'}
+
+YOUR COMMUNICATION MANDATE (THIS IS WHO YOU ARE):
 ${personality.emailPrompt}
 
-CRITICAL INSTRUCTIONS:
-1. You must RESPOND DIRECTLY to emails using the send_email_reply tool
-2. DO NOT say "I will send..." or "I have sent..." - just send it
-3. When you use send_email_reply, that IS your response
-4. Always check conversation history first to maintain context
-5. If someone proposes a meeting, check availability and create the event
-6. Be helpful, professional, and match the sender's communication style
-7. Keep responses concise unless detail is required
+${emailResponsePrompt ? `SPECIFIC EMAIL RESPONSE GUIDELINES FOR THIS AGENT:\n${emailResponsePrompt}\n` : ''}
+COMPANY CONTEXT:
+- Company: ${userSettings.company_name}
+- Product: ${userSettings.product_name}
+- Value Props: ${userSettings.value_propositions?.join(', ') || 'Not specified'}
+- Your Role: Represent ${userSettings.company_name} with your unique ${personality.style} personality
+- Response Tone: ${userSettings.response_tone} (adapt to your personality)
+- Calendar ID: ${userSettings.calendar_id}
 
-Remember: YOU ARE THE RESPONDER. When you send an email with the tool, that completes your task.`;
+USER TIMEZONE: ${userSettings.timezone}
+- Current date: ${new Date().toISOString().split('T')[0]}
+- Tomorrow: ${new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]}
+- Date format for scheduling: "YYYY-MM-DDTHH:MM:SS${getTimezoneOffset(userSettings.timezone)}"
+
+YOUR OPERATIONAL PROTOCOL:
+1. ALWAYS use get_conversation_history tool first to understand context
+2. ALWAYS use get_user_settings tool to get current configuration
+3. CRITICAL SCHEDULING LOGIC:
+   - When prospect ASKS about availability: Use check_calendar_availability and LIST options, DON'T auto-schedule
+   - When prospect CONFIRMS a time: Check availability, then create event if free
+   - NEVER auto-schedule when prospect is just asking about availability
+4. MANDATORY: Use send_email_reply tool to actually send responses
+5. Use store_event tool only for significant events
+
+CALENDAR RULES:
+- Business hours: 8am-8pm in timezone ${userSettings.timezone}
+- Default duration: 30 minutes
+- ALWAYS check availability before scheduling
+- Timezone: ALWAYS use ${userSettings.timezone}
+
+WRITING STYLE (EMBODY YOUR PERSONALITY):
+- Write as ${personality.name} would write - let your ${personality.style} personality shine through
+- Your traits (${personality.traits?.join(', ') || 'professional, helpful'}) should be evident in every response
+- Respond DIRECTLY to the email sender as ${personality.name}
+- NEVER use bullet points or markdown - write natural, flowing paragraphs in YOUR voice
+- Be conversational and match their style while maintaining YOUR personality
+- After first exchange, always suggest meeting times (but in your personality's style)
+
+CRITICAL: YOU MUST SEND ACTUAL EMAIL REPLIES AS ${personality.name.toUpperCase()}
+- Use send_email_reply tool - don't just describe sending
+- When you send via tool, that IS your response as ${personality.name}
+- Write emails that sound like ${personality.name}, not a generic assistant
+- Include proper In-Reply-To and References headers for threading` : `You are ${personality.name}, an AI email assistant with a ${personality.style} personality.
+
+YOUR PERSONALITY:
+${personality.emailPrompt}
+- Traits: ${personality.traits?.join(', ') || 'Professional, helpful'}
+- Style: ${personality.style}
+
+${emailResponsePrompt ? `SPECIFIC EMAIL GUIDELINES:\n${emailResponsePrompt}\n` : ''}
+CRITICAL PROTOCOL:
+1. Use send_email_reply tool to actually send responses AS ${personality.name}
+2. Check conversation history first with get_conversation_history
+3. For meetings: check availability before scheduling
+4. Respond directly to the sender in YOUR personality's voice
+5. No markdown formatting - natural conversation that reflects ${personality.style} style
+
+Remember: You ARE ${personality.name}. Every email should sound like YOU, not a generic assistant.`;
 
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", systemPrompt],
