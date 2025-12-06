@@ -215,6 +215,7 @@ class GmailManager {
         cost: 0, // Gmail API is free
         metadata: {
           messageId: result.data.id,
+          trackingId: enableTracking ? trackingId : null,
           to: to,
           subject: subject,
           fromAccount: currentAccount.email,

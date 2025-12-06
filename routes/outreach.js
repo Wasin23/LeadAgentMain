@@ -275,11 +275,24 @@ router.delete('/viewed', async (req, res) => {
     // Get all tracking events for this agent
     const events = await awsManager.getEmailTrackingByUser(userId, agentId, 10000);
     console.log(`🗑️ [OUTREACH-VIEWED] Found ${events.length} events to delete`);
+    
+    if (events.length > 0) {
+      console.log(`🗑️ [OUTREACH-VIEWED] Sample event structure:`, {
+        PK: events[0].PK,
+        SK: events[0].SK,
+        eventId: events[0].eventId,
+        keys: Object.keys(events[0])
+      });
+    }
 
     // Delete each event
     let deletedCount = 0;
     for (const event of events) {
       try {
+        if (!event.PK || !event.SK) {
+          console.error(`❌ [OUTREACH-VIEWED] Event missing PK/SK:`, event);
+          continue;
+        }
         await awsManager.deleteEmailTrackingEvent(event.PK, event.SK);
         deletedCount++;
       } catch (err) {

@@ -2695,6 +2695,13 @@ class AWSManager {
       const events = result.Items || [];
       
       console.log(`✅ [EMAIL-TRACKING] Retrieved ${events.length} events for userId: ${userId}`);
+      
+      // Debug: Log first event structure
+      if (events.length > 0) {
+        console.log(`🔍 [EMAIL-TRACKING] First event keys:`, Object.keys(events[0]));
+        console.log(`🔍 [EMAIL-TRACKING] First event PK/SK:`, { PK: events[0].PK, SK: events[0].SK });
+      }
+      
       return events;
     } catch (error) {
       console.error('❌ [EMAIL-TRACKING] Error getting user email tracking:', error);
@@ -2704,6 +2711,7 @@ class AWSManager {
 
   async deleteEmailTrackingEvent(pk, sk) {
     try {
+      console.log(`🗑️ [EMAIL-TRACKING] Attempting to delete with PK: ${pk}, SK: ${sk}`);
       const command = new DeleteCommand({
         TableName: this.tables.emailTracking,
         Key: { PK: pk, SK: sk }

@@ -305,12 +305,12 @@ router.post('/:id/approve', async (req, res) => {
       console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);
       
       // Mark email as sent in AWS DynamoDB
-      if (sendResult.result && sendResult.result.trackingId) {
+      if (sendResult.result) {
         try {
           await userEmailQueue.markEmailAsSent(id, {
-            id: sendResult.result.mailgunId || null,
-            message: sendResult.result.trackingId,
-            trackingId: sendResult.result.trackingId,
+            id: sendResult.result.mailgunId || sendResult.result.messageId || null,
+            message: sendResult.result.messageId || sendResult.result.trackingId,
+            trackingId: sendResult.result.trackingId,  // This is the tracking pixel ID
             fromAccount: sendResult.result.fromAccount || null,
             method: sendResult.method || 'mailgun'
           });
