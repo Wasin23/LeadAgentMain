@@ -1651,9 +1651,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-neutral-50 border border-neutral-200 flex flex-col max-h-[800px]"
+            className={`bg-neutral-50 border ${colors.border} flex flex-col max-h-[800px]`}
           >
-            <div className="p-6 border-b border-neutral-200 bg-white flex-shrink-0">
+            <div className={`p-6 border-b ${colors.border} bg-white flex-shrink-0`}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-neutral-900">Live Response Stream</h3>
@@ -1671,12 +1671,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {streamingResponses.map((response) => (
+                  {streamingResponses.map((response) => {
+                    // Color code message borders by event type
+                    let borderColor = 'border-neutral-200'; // default for generating
+                    if (response.status === 'sent') borderColor = 'border-green-300';
+                    if (response.status === 'viewed') borderColor = 'border-blue-300';
+                    if (response.status === 'meeting_booked') borderColor = 'border-purple-300';
+                    
+                    return (
                     <motion.div
                       key={response.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-3 border border-neutral-200 rounded-lg bg-white"
+                      className={`p-3 border ${borderColor} rounded-lg bg-white`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -1711,7 +1718,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         </div>
                       )}
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1745,7 +1753,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     placeholder="Search by name, email, company..."
                     value={conversationSearch}
                     onChange={(e) => setConversationSearch(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-3 py-2 border ${colors.border} rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                 </div>
 
@@ -1783,7 +1791,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.02 }}
                       onClick={() => setSelectedConversation(conv)}
-                      className={`p-3 border border-neutral-200 rounded-lg hover:border-${colors.text.replace('text-', '')} cursor-pointer transition-all bg-white`}
+                      className={`p-3 border ${colors.border} rounded-lg hover:${colors.borderHover} cursor-pointer transition-all bg-white`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1 min-w-0">
@@ -1817,22 +1825,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'analytics' && (
-          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
+          <div className={`bg-white border ${colors.border} border-t-0 p-6 -mt-6`}>
             <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Analytics Overview</h3>
             <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 border border-neutral-200 rounded-lg">
+              <div className={`p-4 border ${colors.border} rounded-lg`}>
                 <p className="text-sm text-neutral-600">Messages Viewed</p>
                 <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.viewed}</p>
               </div>
-              <div className="p-4 border border-neutral-200 rounded-lg">
+              <div className={`p-4 border ${colors.border} rounded-lg`}>
                 <p className="text-sm text-neutral-600">Conversations</p>
                 <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.replied}</p>
               </div>
-              <div className="p-4 border border-neutral-200 rounded-lg">
+              <div className={`p-4 border ${colors.border} rounded-lg`}>
                 <p className="text-sm text-neutral-600">Meetings Booked</p>
                 <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.meetings}</p>
               </div>
-              <div className="p-4 border border-neutral-200 rounded-lg">
+              <div className={`p-4 border ${colors.border} rounded-lg`}>
                 <p className="text-sm text-neutral-600">Conversion Rate</p>
                 <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.conversionRate}%</p>
               </div>
@@ -1841,7 +1849,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'viewed' && (
-          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
+          <div className={`bg-white border ${colors.border} border-t-0 p-6 -mt-6`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${colors.primary}`}>Emails Viewed</h3>
               <div className="flex items-center gap-2">
@@ -1864,7 +1872,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               <>
                 <div className="space-y-3">
                   {paginateArray(viewedEmails, viewedEmailsPage).map((email) => (
-                    <div key={email.trackingId} className="p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-all">
+                    <div key={email.trackingId} className={`p-4 border ${colors.border} rounded-lg hover:${colors.borderHover} transition-all`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
