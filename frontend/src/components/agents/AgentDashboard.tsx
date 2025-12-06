@@ -1808,7 +1808,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <button
                   onClick={async () => {
                     const newValue = !outreachSettings.aiResponseEnabled;
-                    setOutreachSettings(prev => ({ ...prev, aiResponseEnabled: newValue }));
+                    setOutreachSettings((prev: any) => ({ ...prev, aiResponseEnabled: newValue }));
                     try {
                       await api.patch(`/api/agents/${agentId}/settings`, {
                         emailBuilder: { enableAutoResponse: newValue }
@@ -1816,7 +1816,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       showNotification(`AI Auto-Response ${newValue ? 'enabled' : 'disabled'}`, 'success');
                     } catch (error) {
                       showNotification('Failed to update setting', 'error');
-                      setOutreachSettings(prev => ({ ...prev, aiResponseEnabled: !newValue }));
+                      setOutreachSettings((prev: any) => ({ ...prev, aiResponseEnabled: !newValue }));
                     }
                   }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -1842,7 +1842,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <button
                   onClick={async () => {
                     const newValue = !outreachSettings.rebumpEnabled;
-                    setOutreachSettings(prev => ({ ...prev, rebumpEnabled: newValue }));
+                    setOutreachSettings((prev: any) => ({ ...prev, rebumpEnabled: newValue }));
                     try {
                       await api.patch(`/api/agents/${agentId}/settings`, {
                         emailBuilder: { rebumpEnabled: newValue }
@@ -1850,7 +1850,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       showNotification(`Auto-Rebump ${newValue ? 'enabled' : 'disabled'}`, 'success');
                     } catch (error) {
                       showNotification('Failed to update setting', 'error');
-                      setOutreachSettings(prev => ({ ...prev, rebumpEnabled: !newValue }));
+                      setOutreachSettings((prev: any) => ({ ...prev, rebumpEnabled: !newValue }));
                     }
                   }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -1898,7 +1898,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           await api.patch(`/api/agents/${agentId}/settings`, {
                             personality: { emailPrompt: tempSystemPrompt }
                           });
-                          setOutreachSettings(prev => ({ ...prev, systemPrompt: tempSystemPrompt }));
+                          setOutreachSettings((prev: any) => ({ ...prev, systemPrompt: tempSystemPrompt }));
                           setEditingSystemPrompt(false);
                           showNotification('System prompt updated', 'success');
                         } catch (error) {
@@ -1938,7 +1938,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 value={outreachSettings.gmailAccount || ''}
                 onChange={async (e) => {
                   const newAccount = e.target.value || null;
-                  setOutreachSettings(prev => ({ ...prev, gmailAccount: newAccount }));
+                  setOutreachSettings((prev: any) => ({ ...prev, gmailAccount: newAccount }));
                   try {
                     await api.patch(`/api/agents/${agentId}/settings`, {
                       emailSettings: { gmailAccount: newAccount }
@@ -1946,7 +1946,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     showNotification('Gmail account updated', 'success');
                   } catch (error) {
                     showNotification('Failed to update Gmail account', 'error');
-                    setOutreachSettings(prev => ({ ...prev, gmailAccount: outreachSettings.gmailAccount }));
+                    setOutreachSettings((prev: any) => ({ ...prev, gmailAccount: outreachSettings.gmailAccount }));
                   }
                 }}
                 className="w-full p-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
