@@ -1007,7 +1007,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       eventSource?.close();
       eventSourceRef.current = null;
     };
-  }, [showOutreach, outreachTab, agentId]);
+  }, [showOutreach, agentId]); // Removed outreachTab - keep connection alive across tabs
 
   // Fetch viewed emails when viewed tab is active
   useEffect(() => {
