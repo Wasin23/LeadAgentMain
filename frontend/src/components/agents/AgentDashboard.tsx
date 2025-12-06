@@ -248,6 +248,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     systemPrompt: '',
     gmailAccount: null
   });
+  
+  // Pagination state
+  const [emailQueuePage, setEmailQueuePage] = useState(1);
+  const [recentEmailsPage, setRecentEmailsPage] = useState(1);
+  const [viewedEmailsPage, setViewedEmailsPage] = useState(1);
+  const itemsPerPage = 20;
   const [editingSystemPrompt, setEditingSystemPrompt] = useState(false);
   const [tempSystemPrompt, setTempSystemPrompt] = useState('');
   const [userGmailAccounts, setUserGmailAccounts] = useState<any[]>([]);
@@ -266,6 +272,28 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
+
+  // Pagination helper functions
+  const paginateArray = (array: any[], page: number) => {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return array.slice(startIndex, endIndex);
+  };
+  
+  const getTotalPages = (total: number) => Math.ceil(total / itemsPerPage);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setEmailQueuePage(1);
+  }, [emailQueueSearch, emailQueueSort]);
+
+  useEffect(() => {
+    setRecentEmailsPage(1);
+  }, [recentEmailsSearch, recentEmailsFilter]);
+
+  useEffect(() => {
+    setViewedEmailsPage(1);
+  }, [viewedEmails.length]);
 
   // Filter and sort email queue
   const filteredAndSortedEmailQueue = React.useMemo(() => {
@@ -1798,14 +1826,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${colors.primary}`}>Emails Viewed</h3>
-              {viewedEmails.length > 0 && (
-                <button
-                  onClick={handleClearViewedEmails}
-                  className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg transition-colors"
-                >
-                  Clear All
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {viewedEmails.length > 0 && (
+                  <button
+                    onClick={handleClearViewedEmails}
+                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg transition-colors"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
             </div>
             {viewedEmails.length === 0 ? (
               <div className="text-center py-12">
@@ -1813,51 +1843,101 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <p className="text-neutral-500">No viewed emails yet</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {viewedEmails.map((email) => (
-                  <div key={email.trackingId} className="p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-all">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium text-neutral-900">{email.leadName}</h4>
-                          {email.replied && (
-                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Replied</span>
+              <>
+                <div className="space-y-3">
+                  {paginateArray(viewedEmails, viewedEmailsPage).map((email) => (
+                    <div key={email.trackingId} className="p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-all">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium text-neutral-900">{email.leadName}</h4>
+                            {email.replied && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Replied</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-neutral-600">{email.leadEmail}</p>
+                          {email.company && (
+                            <p className="text-sm text-neutral-500 mt-1">{email.company}</p>
+                          )}
+                          {email.subject && (
+                            <p className="text-sm text-neutral-600 mt-2 italic">"{email.subject}"</p>
+                          )}
+                          <button
+                            onClick={() => {
+                              setShowOutreach(false);
+                              setShowRecentContacts(true);
+                              setRecentEmailsFilter('all');
+                              setRecentEmailsSearch(email.leadEmail || '');
+                              setTimeout(() => {
+                                const element = document.getElementById(`email-${email.trackingId}`);
+                                if (element) {
+                                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  element.classList.add('ring-2', 'ring-blue-400', 'ring-offset-2');
+                                  setTimeout(() => {
+                                    element.classList.remove('ring-2', 'ring-blue-400', 'ring-offset-2');
+                                  }, 2000);
+                                }
+                              }, 100);
+                            }}
+                            className="mt-2 px-3 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors flex items-center gap-1"
+                          >
+                            <EnvelopeIcon className="h-3 w-3" />
+                            Take me to email
+                          </button>
+                        </div>
+                        <div className="text-right text-sm text-neutral-500">
+                          <div className="flex items-center gap-1 mb-1">
+                            <EyeIcon className="h-4 w-4" />
+                            <span>{email.openCount} {email.openCount === 1 ? 'view' : 'views'}</span>
+                          </div>
+                          <div className="text-xs">
+                            Opened: {new Date(email.openedAt).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-neutral-400">
+                            {new Date(email.openedAt).toLocaleTimeString()}
+                          </div>
+                          {email.ipAddress && (
+                            <div className="text-xs text-neutral-400 mt-1">
+                              IP: {email.ipAddress}
+                            </div>
+                          )}
+                          {email.userAgent && (
+                            <div className="text-xs text-neutral-400 mt-1 max-w-[200px] truncate" title={email.userAgent}>
+                              {email.userAgent.includes('Mobile') ? '📱' : '💻'} {email.userAgent.split(' ')[0]}
+                            </div>
                           )}
                         </div>
-                        <p className="text-sm text-neutral-600">{email.leadEmail}</p>
-                        {email.company && (
-                          <p className="text-sm text-neutral-500 mt-1">{email.company}</p>
-                        )}
-                        {email.subject && (
-                          <p className="text-sm text-neutral-600 mt-2 italic">"{email.subject}"</p>
-                        )}
-                      </div>
-                      <div className="text-right text-sm text-neutral-500">
-                        <div className="flex items-center gap-1 mb-1">
-                          <EyeIcon className="h-4 w-4" />
-                          <span>{email.openCount} {email.openCount === 1 ? 'view' : 'views'}</span>
-                        </div>
-                        <div className="text-xs">
-                          Opened: {new Date(email.openedAt).toLocaleDateString()}
-                        </div>
-                        <div className="text-xs text-neutral-400">
-                          {new Date(email.openedAt).toLocaleTimeString()}
-                        </div>
-                        {email.ipAddress && (
-                          <div className="text-xs text-neutral-400 mt-1">
-                            IP: {email.ipAddress}
-                          </div>
-                        )}
-                        {email.userAgent && (
-                          <div className="text-xs text-neutral-400 mt-1 max-w-[200px] truncate" title={email.userAgent}>
-                            {email.userAgent.includes('Mobile') ? '📱' : '💻'} {email.userAgent.split(' ')[0]}
-                          </div>
-                        )}
                       </div>
                     </div>
+                  ))}
+                </div>
+                
+                {/* Pagination controls for viewed emails */}
+                {getTotalPages(viewedEmails.length) > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-200">
+                    <button
+                      onClick={() => setViewedEmailsPage(prev => Math.max(1, prev - 1))}
+                      disabled={viewedEmailsPage === 1}
+                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      <ArrowLeftIcon className="h-4 w-4" />
+                      Previous
+                    </button>
+                    <span className="text-sm text-neutral-600">
+                      Page {viewedEmailsPage} of {getTotalPages(viewedEmails.length)} 
+                      <span className="text-neutral-400 ml-2">({viewedEmails.length} total)</span>
+                    </span>
+                    <button
+                      onClick={() => setViewedEmailsPage(prev => Math.min(getTotalPages(viewedEmails.length), prev + 1))}
+                      disabled={viewedEmailsPage === getTotalPages(viewedEmails.length)}
+                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      Next
+                      <ArrowPathIcon className="h-4 w-4 rotate-180" />
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -2662,45 +2742,74 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <p className="text-xs mt-1">Try adjusting your search terms or filters.</p>
               </div>
             ) : (
-              filteredRecentEmails.map((contact) => (
-                <motion.div
-                  key={contact.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="p-4 hover:bg-neutral-50 cursor-pointer transition-colors"
-                  onClick={() => console.log('Navigate to contact:', contact.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-neutral-200 rounded-full flex items-center justify-center text-neutral-600 font-medium">
-                        {contact.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-neutral-900">{contact.name}</h4>
-                        <div className="flex items-center gap-1 text-sm text-neutral-500">
-                          <BuildingOfficeIcon className="h-3 w-3" />
-                          {contact.company}
+              <>
+                {paginateArray(filteredRecentEmails, recentEmailsPage).map((contact) => (
+                  <motion.div
+                    key={contact.id}
+                    id={`email-${contact.trackingId || contact.id}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-4 hover:bg-neutral-50 cursor-pointer transition-all"
+                    onClick={() => console.log('Navigate to contact:', contact.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-neutral-200 rounded-full flex items-center justify-center text-neutral-600 font-medium">
+                          {contact.name.charAt(0).toUpperCase()}
                         </div>
-                        <p className="text-xs text-neutral-400">
-                          {new Date(contact.dateSent).toLocaleDateString()}
-                        </p>
+                        <div>
+                          <h4 className="font-medium text-neutral-900">{contact.name}</h4>
+                          <div className="flex items-center gap-1 text-sm text-neutral-500">
+                            <BuildingOfficeIcon className="h-3 w-3" />
+                            {contact.company}
+                          </div>
+                          <p className="text-xs text-neutral-400">
+                            {new Date(contact.dateSent).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs border ${
+                          contact.replied ? 'bg-green-50 text-green-600 border-green-200' :
+                          contact.opened ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                          'bg-neutral-50 text-neutral-600 border-neutral-200'
+                        }`}>
+                          {contact.replied && <CheckCircleIcon className="h-3 w-3" />}
+                          {contact.opened && !contact.replied && <EyeIcon className="h-3 w-3" />}
+                          {!contact.opened && !contact.replied && <ClockIcon className="h-3 w-3" />}
+                          {contact.replied ? 'Replied' : contact.opened ? 'Opened' : 'Sent'}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs border ${
-                        contact.replied ? 'bg-green-50 text-green-600 border-green-200' :
-                        contact.opened ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                        'bg-neutral-50 text-neutral-600 border-neutral-200'
-                      }`}>
-                        {contact.replied && <CheckCircleIcon className="h-3 w-3" />}
-                        {contact.opened && !contact.replied && <EyeIcon className="h-3 w-3" />}
-                        {!contact.opened && !contact.replied && <ClockIcon className="h-3 w-3" />}
-                        {contact.replied ? 'Replied' : contact.opened ? 'Opened' : 'Sent'}
-                      </div>
-                    </div>
+                  </motion.div>
+                ))}
+                
+                {/* Pagination controls for recent emails */}
+                {getTotalPages(filteredRecentEmails.length) > 1 && (
+                  <div className="flex items-center justify-between p-4 border-t border-neutral-200">
+                    <button
+                      onClick={() => setRecentEmailsPage(prev => Math.max(1, prev - 1))}
+                      disabled={recentEmailsPage === 1}
+                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      <ArrowLeftIcon className="h-4 w-4" />
+                      Previous
+                    </button>
+                    <span className="text-sm text-neutral-600">
+                      Page {recentEmailsPage} of {getTotalPages(filteredRecentEmails.length)}
+                      <span className="text-neutral-400 ml-2">({filteredRecentEmails.length} shown)</span>
+                    </span>
+                    <button
+                      onClick={() => setRecentEmailsPage(prev => Math.min(getTotalPages(filteredRecentEmails.length), prev + 1))}
+                      disabled={recentEmailsPage === getTotalPages(filteredRecentEmails.length)}
+                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      Next
+                      <ArrowPathIcon className="h-4 w-4 rotate-180" />
+                    </button>
                   </div>
-                </motion.div>
-              ))
+                )}
+              </>
             )}
           </div>
         </motion.div>
@@ -2870,83 +2979,111 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   )}
                 </div>
               ) : (
-                <div className="space-y-2 p-4">
-                  {filteredAndSortedEmailQueue.map((email, index) => (
-                    <div
-                      key={email.id || index}
-                      className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        {/* Left side - Email info */}
-                        <div 
-                          className="flex-1 cursor-pointer"
-                          onClick={() => setSelectedEmail(email)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium text-sm">
-                              {(email.leadData?.name || email.recipientName || email.leadData?.email || email.to || email.finalRecipient || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-neutral-900 text-sm">
-                                  {email.lead?.company || email.leadInfo?.company || email.leadData?.company || email.company || 'Unknown Company'}
-                                </span>
-                                {(email.leadData?.title || email.leadInfo?.title || email.lead?.title) && (
-                                  <span className="text-xs text-neutral-500 font-medium">
-                                    • {email.leadData?.title || email.leadInfo?.title || email.lead?.title}
-                                  </span>
-                                )}
-                                <span className="text-xs text-neutral-500">
-                                  • {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}
-                                </span>
-                                <span className="text-xs text-neutral-500">
-                                  • Queued {email.createdAt ? new Date(email.createdAt).toLocaleDateString() : 'today'}
-                                </span>
+                <>
+                  <div className="space-y-2 p-4">
+                    {paginateArray(filteredAndSortedEmailQueue, emailQueuePage).map((email, index) => (
+                      <div
+                        key={email.id || index}
+                        className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          {/* Left side - Email info */}
+                          <div 
+                            className="flex-1 cursor-pointer"
+                            onClick={() => setSelectedEmail(email)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium text-sm">
+                                {(email.leadData?.name || email.recipientName || email.leadData?.email || email.to || email.finalRecipient || 'U').charAt(0).toUpperCase()}
                               </div>
-                              <p className="text-xs text-neutral-600 truncate mt-1">
-                                {email.emailData?.subject || email.subject || email.finalSubject || 'No Subject'}
-                              </p>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-neutral-900 text-sm">
+                                    {email.lead?.company || email.leadInfo?.company || email.leadData?.company || email.company || 'Unknown Company'}
+                                  </span>
+                                  {(email.leadData?.title || email.leadInfo?.title || email.lead?.title) && (
+                                    <span className="text-xs text-neutral-500 font-medium">
+                                      • {email.leadData?.title || email.leadInfo?.title || email.lead?.title}
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-neutral-500">
+                                    • {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}
+                                  </span>
+                                  <span className="text-xs text-neutral-500">
+                                    • Queued {email.createdAt ? new Date(email.createdAt).toLocaleDateString() : 'today'}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-neutral-600 truncate mt-1">
+                                  {email.emailData?.subject || email.subject || email.finalSubject || 'No Subject'}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        {/* Right side - Action buttons */}
-                        <div className="flex items-center gap-2 ml-4">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditingEmail(email);
-                            }}
-                            className="p-2 text-neutral-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                            title="Edit email"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              approveEmail(email.id);
-                            }}
-                            className="p-2 text-neutral-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                            title="Approve & send"
-                          >
-                            <CheckIcon className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              rejectEmail(email.id, 'Rejected by user');
-                            }}
-                            className="p-2 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            title="Reject email"
-                          >
-                            <XMarkIcon className="h-4 w-4" />
-                          </button>
+                          
+                          {/* Right side - Action buttons */}
+                          <div className="flex items-center gap-2 ml-4">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditingEmail(email);
+                              }}
+                              className="p-2 text-neutral-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                              title="Edit email"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                approveEmail(email.id);
+                              }}
+                              className="p-2 text-neutral-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                              title="Approve & send"
+                            >
+                              <CheckIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                rejectEmail(email.id, 'Rejected by user');
+                              }}
+                              className="p-2 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              title="Reject email"
+                            >
+                              <XMarkIcon className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination controls for email queue */}
+                  {getTotalPages(filteredAndSortedEmailQueue.length) > 1 && (
+                    <div className="flex items-center justify-between px-4 pb-4 border-t border-neutral-200 pt-4">
+                      <button
+                        onClick={() => setEmailQueuePage(prev => Math.max(1, prev - 1))}
+                        disabled={emailQueuePage === 1}
+                        className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        <ArrowLeftIcon className="h-4 w-4" />
+                        Previous
+                      </button>
+                      <span className="text-sm text-neutral-600">
+                        Page {emailQueuePage} of {getTotalPages(filteredAndSortedEmailQueue.length)}
+                        <span className="text-neutral-400 ml-2">({filteredAndSortedEmailQueue.length} shown)</span>
+                      </span>
+                      <button
+                        onClick={() => setEmailQueuePage(prev => Math.min(getTotalPages(filteredAndSortedEmailQueue.length), prev + 1))}
+                        disabled={emailQueuePage === getTotalPages(filteredAndSortedEmailQueue.length)}
+                        className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        Next
+                        <ArrowPathIcon className="h-4 w-4 rotate-180" />
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </motion.div>

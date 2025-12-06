@@ -320,19 +320,32 @@ router.post('/:id/approve', async (req, res) => {
       // Mark email as sent in AWS DynamoDB
       if (sendResult.result) {
         try {
+          const leadNameForTracking = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName;
+          
+          console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {
+            emailId: id,
+            userId: approvedEmail.userId,
+            agentId: effectiveAgentId,
+            trackingId: sendResult.result.trackingId,
+            leadNameForTracking,
+            personInfo: personInfo ? { fullName: personInfo.fullName, name: personInfo.name } : null,
+            approvedEmail: { leadName: approvedEmail.leadName, recipientName: approvedEmail.recipientName }
+          });
+          
           await userEmailQueue.markEmailAsSent(id, {
             id: sendResult.result.mailgunId || sendResult.result.messageId || null,
             message: sendResult.result.messageId || sendResult.result.trackingId,
             trackingId: sendResult.result.trackingId,  // This is the tracking pixel ID
             fromAccount: sendResult.result.fromAccount || null,
             method: sendResult.method || 'mailgun',
-            leadName: personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName,
+            leadName: leadNameForTracking,
             subject: finalSubject,
             to: finalRecipient
           });
           console.log(`[EMAIL QUEUE] 💾 Marked email ${id} as sent in AWS with tracking ID ${sendResult.result.trackingId} from ${sendResult.result.fromAccount || 'Mailgun'}`);
         } catch (trackingError) {
           console.error('[EMAIL QUEUE] ⚠️ Failed to mark email as sent in AWS:', trackingError);
+          console.error('[EMAIL QUEUE] ⚠️ Error details:', trackingError.stack);
         }
       }
       
