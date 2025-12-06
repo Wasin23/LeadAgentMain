@@ -41,15 +41,32 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
       const sentEmails = await awsQueue.getSentEmails(userId, agentId);
       console.log(`[TRACKING PIXEL] Found ${sentEmails.length} sent emails`);
       
+      if (sentEmails.length > 0) {
+        console.log(`[TRACKING PIXEL] Sample email structure:`, {
+          trackingId: sentEmails[0].trackingId,
+          to: sentEmails[0].to,
+          subject: sentEmails[0].subject,
+          leadName: sentEmails[0].leadName
+        });
+      }
+      
       const emailData = sentEmails.find(e => e.trackingId === trackingId);
       if (emailData) {
         recipientEmail = emailData.to;
-        leadName = emailData.leadName;
-        subject = emailData.subject;
+        leadName = emailData.leadName || 
+                   emailData.personInfo?.fullName || 
+                   emailData.personInfo?.name || 
+                   emailData.leadInfo?.name || 
+                   emailData.recipientName;
+        subject = emailData.subject || emailData.emailSubject;
         console.log(`[TRACKING PIXEL] Found email data: to=${recipientEmail}, leadName=${leadName}, subject=${subject}`);
       } else {
         console.log(`[TRACKING PIXEL] No email found with trackingId: ${trackingId}`);
-        console.log(`[TRACKING PIXEL] Available tracking IDs: ${sentEmails.map(e => e.trackingId).join(', ')}`);
+        console.log(`[TRACKING PIXEL] Available tracking IDs:`, sentEmails.slice(0, 3).map(e => ({ 
+          trackingId: e.trackingId, 
+          id: e.id,
+          mailgunId: e.mailgunId 
+        })));
       }
     } catch (err) {
       console.error('[TRACKING PIXEL] Error fetching email details:', err);

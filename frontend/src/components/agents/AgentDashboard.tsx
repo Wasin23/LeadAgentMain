@@ -916,12 +916,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               console.log('📧 [TRACKING] Email opened in real-time:', data);
               
               // Add to streaming responses feed
-              if (data.data?.eventType === 'open') {
+              if (data.eventType === 'open') {
+                console.log('📧 [TRACKING] Adding to stream:', {
+                  leadName: data.leadName,
+                  recipientEmail: data.recipientEmail,
+                  subject: data.subject
+                });
                 setStreamingResponses(prev => [{
                   id: `view-${Date.now()}`,
-                  leadName: data.data.leadName || 'Unknown Lead',
-                  leadEmail: data.data.recipientEmail || 'unknown@email.com',
-                  content: `📧 Opened email: "${data.data.subject || 'No subject'}"`,
+                  leadName: data.leadName || 'Unknown Lead',
+                  leadEmail: data.recipientEmail || 'unknown@email.com',
+                  content: `📧 Opened email: "${data.subject || 'No subject'}"`,
                   status: 'viewed',
                   sentAt: new Date().toISOString(),
                   type: 'tracking'

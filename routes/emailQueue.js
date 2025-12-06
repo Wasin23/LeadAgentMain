@@ -312,7 +312,10 @@ router.post('/:id/approve', async (req, res) => {
             message: sendResult.result.messageId || sendResult.result.trackingId,
             trackingId: sendResult.result.trackingId,  // This is the tracking pixel ID
             fromAccount: sendResult.result.fromAccount || null,
-            method: sendResult.method || 'mailgun'
+            method: sendResult.method || 'mailgun',
+            leadName: personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName,
+            subject: finalSubject,
+            to: finalRecipient
           });
           console.log(`[EMAIL QUEUE] 💾 Marked email ${id} as sent in AWS with tracking ID ${sendResult.result.trackingId} from ${sendResult.result.fromAccount || 'Mailgun'}`);
         } catch (trackingError) {
