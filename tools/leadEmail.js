@@ -69,7 +69,9 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
           textBody: body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
           ccEmails,
           bccEmails,
-          replyTo: null
+          replyTo: null,
+          agentId: agentId, // Pass agentId for tracking
+          enableTracking: true // Enable open/reply tracking
         });
         
         if (gmailResult.success) {

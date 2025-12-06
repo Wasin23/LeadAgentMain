@@ -12,7 +12,7 @@ router.post('/manual-sync', authenticateToken, async (req, res) => {
     console.log(`🔄 [MANUAL SYNC] Starting manual sync for user ${userId}...`);
     
     // Get tracking events from Zilliz - filtered by user
-    const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
+    const apiBaseUrl = process.env.API_BASE_URL || 'https://meridian-kdew.onrender.com';
     const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/events?userId=${userId}`);
     const zillizData = await response.json();
     

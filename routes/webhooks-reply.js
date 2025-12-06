@@ -565,15 +565,23 @@ router.post('/mailgun-reply', async (req, res) => {
     // Extract or determine tracking ID
     let trackingId = null;
     
+    // First, try to extract from custom X-Meridian-Tracking-Id header
+    if (headers['x-meridian-tracking-id']) {
+      trackingId = headers['x-meridian-tracking-id'];
+      console.log(`[WEBHOOK] Found tracking ID in X-Meridian-Tracking-Id header: ${trackingId}`);
+    }
+    
     // Try to extract from In-Reply-To or References
-    if (inReplyTo && inReplyTo.includes('tracking-')) {
+    if (!trackingId && inReplyTo && inReplyTo.includes('tracking-')) {
       const match = inReplyTo.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
       if (match) trackingId = `tracking-${match[1]}`;
+      console.log(`[WEBHOOK] Found tracking ID in In-Reply-To: ${trackingId}`);
     }
     
     if (!trackingId && references && references.includes('tracking-')) {
       const match = references.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
       if (match) trackingId = `tracking-${match[1]}`;
+      console.log(`[WEBHOOK] Found tracking ID in References: ${trackingId}`);
     }
     
     // If no tracking ID found, create one (new conversation)

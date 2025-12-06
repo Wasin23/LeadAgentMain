@@ -118,10 +118,10 @@ router.get('/callback', async (req, res) => {
     console.log('✅ [GMAIL AUTH] Total accounts:', existingAccounts.length);
 
     // Redirect back to dashboard with success message
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?gmailAuth=success&email=${encodeURIComponent(gmailAddress)}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'https://meridianagent.xyz'}/dashboard?gmailAuth=success&email=${encodeURIComponent(gmailAddress)}`);
   } catch (error) {
     console.error('❌ [GMAIL AUTH] Error in callback:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?gmailAuth=error&reason=${encodeURIComponent(error.message)}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'https://meridianagent.xyz'}/dashboard?gmailAuth=error&reason=${encodeURIComponent(error.message)}`);
   }
 });
 

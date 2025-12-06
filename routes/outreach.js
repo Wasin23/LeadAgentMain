@@ -260,6 +260,114 @@ router.get('/conversations', async (req, res) => {
   }
 });
 
+// Get viewed/opened emails
+router.get('/viewed', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId, timeRange } = req.query;
+
+    console.log(`👁️ [OUTREACH-VIEWED] Fetching viewed emails for userId: ${userId}, agentId: ${agentId}`);
+
+    // Calculate time filter
+    let startTime = null;
+    if (timeRange === '24h') {
+      startTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    } else if (timeRange === '7d') {
+      startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    } else if (timeRange === '30d') {
+      startTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Get email tracking events
+    const events = await awsManager.getEmailTrackingByUser(userId, agentId !== 'all' ? agentId : null, 1000);
+
+    console.log(`👁️ [OUTREACH-VIEWED] Retrieved ${events.length} events`);
+
+    // Group by trackingId and filter for opened emails
+    const openedEmailsMap = {};
+    
+    events.forEach(event => {
+      const trackingId = event.trackingId;
+      
+      // Initialize email entry if we see a sent event
+      if (event.eventType === 'sent' || event.eventType === 'outbound') {
+        if (!openedEmailsMap[trackingId]) {
+          openedEmailsMap[trackingId] = {
+            trackingId,
+            leadName: event.leadName || 'Unknown',
+            leadEmail: event.recipientEmail || event.email || 'unknown@email.com',
+            company: event.company,
+            subject: event.subject,
+            sentAt: event.timestamp,
+            opened: false,
+            openedAt: null,
+            openCount: 0,
+            replied: false,
+            agentId: event.agentId,
+            agentName: event.agentName
+          };
+        }
+      }
+      
+      // Track opens
+      if (event.eventType === 'open') {
+        if (!openedEmailsMap[trackingId]) {
+          // Create entry even if we don't have sent event
+          openedEmailsMap[trackingId] = {
+            trackingId,
+            leadName: event.leadName || 'Unknown',
+            leadEmail: event.recipientEmail || event.email || 'unknown@email.com',
+            company: event.company,
+            subject: event.subject,
+            sentAt: event.timestamp,
+            opened: false,
+            openedAt: null,
+            openCount: 0,
+            replied: false,
+            agentId: event.agentId,
+            agentName: event.agentName
+          };
+        }
+        
+        const email = openedEmailsMap[trackingId];
+        email.opened = true;
+        email.openCount++;
+        
+        // Track first open time
+        if (!email.openedAt || new Date(event.timestamp) < new Date(email.openedAt)) {
+          email.openedAt = event.timestamp;
+          email.ipAddress = event.ipAddress;
+          email.userAgent = event.userAgent;
+        }
+      }
+      
+      // Track replies
+      if (event.eventType === 'reply' && openedEmailsMap[trackingId]) {
+        openedEmailsMap[trackingId].replied = true;
+      }
+    });
+
+    // Convert to array, filter for opened emails only, and apply time filter
+    const viewedEmails = Object.values(openedEmailsMap)
+      .filter(email => email.opened)
+      .filter(email => {
+        if (!startTime) return true;
+        return new Date(email.openedAt || email.sentAt) >= startTime;
+      })
+      .sort((a, b) => new Date(b.openedAt || b.sentAt) - new Date(a.openedAt || a.sentAt));
+
+    console.log(`✅ [OUTREACH-VIEWED] Processed ${viewedEmails.length} viewed emails`);
+
+    res.json({
+      success: true,
+      viewedEmails
+    });
+  } catch (error) {
+    console.error('❌ [OUTREACH-VIEWED] Error fetching viewed emails:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get timeline events
 router.get('/timeline', async (req, res) => {
   try {

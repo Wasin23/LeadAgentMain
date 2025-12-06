@@ -8,7 +8,7 @@ class GmailManager {
     this.oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:8080/api/auth/gmail/callback'
+      process.env.GOOGLE_REDIRECT_URI || 'https://meridian-kdew.onrender.com/api/auth/gmail/callback'
     );
   }
 
@@ -80,7 +80,7 @@ class GmailManager {
   /**
    * Send email via Gmail API (with account cycling)
    */
-  async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null }) {
+  async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true }) {
     try {
       console.log('📧 [GMAIL] Sending email via Gmail API to:', to);
 
@@ -125,6 +125,20 @@ class GmailManager {
         displayName = userSettings.companyProfile.companyName;
       }
 
+      // Generate tracking ID for open/reply tracking
+      const trackingId = `tracking-${userId}_${agentId || 'unknown'}_${Date.now()}`;
+      console.log(`📊 [GMAIL] Generated tracking ID: ${trackingId}`);
+
+      // Add tracking pixel to email body if enabled
+      let finalHtmlBody = htmlBody || textBody;
+      if (enableTracking) {
+        const trackingDomain = process.env.API_BASE_URL || 'https://meridian-kdew.onrender.com';
+        const trackingPixelUrl = `${trackingDomain}/api/tracking/pixel/${trackingId}.png`;
+        const trackingPixel = `<img src="${trackingPixelUrl}" width="1" height="1" border="0" alt="" style="display:block;">`;
+        finalHtmlBody = finalHtmlBody + trackingPixel;
+        console.log(`📊 [GMAIL] Added tracking pixel: ${trackingPixelUrl}`);
+      }
+
       // Build email message in RFC 2822 format
       const messageParts = [
         `From: ${displayName} <${currentAccount.email}>`,
@@ -146,9 +160,14 @@ class GmailManager {
         messageParts.push(`Reply-To: ${replyTo}`);
       }
 
+      // Add custom header for tracking (for reply detection)
+      if (enableTracking) {
+        messageParts.push(`X-Meridian-Tracking-Id: ${trackingId}`);
+      }
+
       // Add blank line and body
       messageParts.push('');
-      messageParts.push(htmlBody || textBody);
+      messageParts.push(finalHtmlBody);
 
       const message = messageParts.join('\r\n');
 
@@ -206,6 +225,7 @@ class GmailManager {
       return {
         success: true,
         messageId: result.data.id,
+        trackingId: trackingId, // Include tracking ID for downstream use
         provider: 'gmail',
         fromAccount: currentAccount.email // Track which account sent the email
       };

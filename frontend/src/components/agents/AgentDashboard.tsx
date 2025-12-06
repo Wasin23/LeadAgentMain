@@ -241,6 +241,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [agentConversations, setAgentConversations] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [outreachTab, setOutreachTab] = useState<'conversations' | 'analytics' | 'viewed' | 'settings'>('conversations');
+  const [viewedEmails, setViewedEmails] = useState<any[]>([]);
+  const [outreachSettings, setOutreachSettings] = useState<any>({
+    aiResponseEnabled: true,
+    rebumpEnabled: false,
+    systemPrompt: '',
+    gmailAccount: null
+  });
+  const [editingSystemPrompt, setEditingSystemPrompt] = useState(false);
+  const [tempSystemPrompt, setTempSystemPrompt] = useState('');
+  const [userGmailAccounts, setUserGmailAccounts] = useState<any[]>([]);
   
   // Real-time streaming state
   const [streamingResponses, setStreamingResponses] = useState<any[]>([]);
@@ -801,6 +811,43 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     }
   };
 
+  const fetchViewedEmails = async () => {
+    try {
+      const response = await api.get(`/api/outreach/viewed?agentId=${agentId}&timeRange=30d`);
+      if (response?.data?.viewedEmails) {
+        setViewedEmails(response.data.viewedEmails);
+        console.log(`👁️ [VIEWED] Fetched ${response.data.viewedEmails.length} viewed emails`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch viewed emails:', error);
+      setViewedEmails([]);
+    }
+  };
+
+  const fetchOutreachSettings = async () => {
+    try {
+      const response = await api.get(`/api/agents/${agentId}/settings`);
+      if (response?.data?.settings) {
+        const settings = response.data.settings;
+        setOutreachSettings({
+          aiResponseEnabled: settings.emailBuilder?.enableAutoResponse !== false,
+          rebumpEnabled: settings.emailBuilder?.rebumpEnabled || false,
+          systemPrompt: settings.personality?.emailPrompt || '',
+          gmailAccount: settings.emailSettings?.gmailAccount || null
+        });
+        setTempSystemPrompt(settings.personality?.emailPrompt || '');
+      }
+      
+      // Fetch user's Gmail accounts
+      const userResponse = await api.get('/api/auth/settings');
+      if (userResponse?.data?.settings?.gmailAccounts) {
+        setUserGmailAccounts(userResponse.data.settings.gmailAccounts);
+      }
+    } catch (error) {
+      console.error('Failed to fetch outreach settings:', error);
+    }
+  };
+
   // Establish SSE connection for real-time response streaming
   useEffect(() => {
     if (!showOutreach || outreachTab !== 'conversations') return;
@@ -889,6 +936,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       eventSource?.close();
       eventSourceRef.current = null;
     };
+  }, [showOutreach, outreachTab, agentId]);
+
+  // Fetch viewed emails when viewed tab is active
+  useEffect(() => {
+    if (showOutreach && outreachTab === 'viewed') {
+      fetchViewedEmails();
+    }
+  }, [showOutreach, outreachTab, agentId]);
+
+  // Fetch outreach settings when settings tab is active
+  useEffect(() => {
+    if (showOutreach && outreachTab === 'settings') {
+      fetchOutreachSettings();
+    }
   }, [showOutreach, outreachTab, agentId]);
 
   const fetchAgentLogs = async () => {
@@ -1688,14 +1749,228 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         {outreachTab === 'viewed' && (
           <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
             <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Emails Viewed</h3>
-            <p className="text-neutral-500">Coming soon...</p>
+            {viewedEmails.length === 0 ? (
+              <div className="text-center py-12">
+                <EyeIcon className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
+                <p className="text-neutral-500">No viewed emails yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {viewedEmails.map((email) => (
+                  <div key={email.trackingId} className="p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-all">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-medium text-neutral-900">{email.leadName}</h4>
+                          {email.replied && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Replied</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-neutral-600">{email.leadEmail}</p>
+                        {email.company && (
+                          <p className="text-sm text-neutral-500 mt-1">{email.company}</p>
+                        )}
+                        {email.subject && (
+                          <p className="text-sm text-neutral-600 mt-2 italic">"{email.subject}"</p>
+                        )}
+                      </div>
+                      <div className="text-right text-sm text-neutral-500">
+                        <div className="flex items-center gap-1 mb-1">
+                          <EyeIcon className="h-4 w-4" />
+                          <span>{email.openCount} {email.openCount === 1 ? 'view' : 'views'}</span>
+                        </div>
+                        <div className="text-xs">
+                          Opened: {new Date(email.openedAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs text-neutral-400">
+                          {new Date(email.openedAt).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {outreachTab === 'settings' && (
-          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
-            <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Settings</h3>
-            <p className="text-neutral-500">Coming soon...</p>
+          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6 space-y-6`}>
+            <h3 className={`text-lg font-semibold ${colors.primary} mb-6`}>Outreach Settings</h3>
+            
+            {/* AI Response Toggle */}
+            <div className="p-4 border border-neutral-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h4 className="font-medium text-neutral-900">AI Auto-Response</h4>
+                  <p className="text-sm text-neutral-600">Automatically respond to lead replies with AI-generated emails</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const newValue = !outreachSettings.aiResponseEnabled;
+                    setOutreachSettings(prev => ({ ...prev, aiResponseEnabled: newValue }));
+                    try {
+                      await api.patch(`/api/agents/${agentId}/settings`, {
+                        emailBuilder: { enableAutoResponse: newValue }
+                      });
+                      showNotification(`AI Auto-Response ${newValue ? 'enabled' : 'disabled'}`, 'success');
+                    } catch (error) {
+                      showNotification('Failed to update setting', 'error');
+                      setOutreachSettings(prev => ({ ...prev, aiResponseEnabled: !newValue }));
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    outreachSettings.aiResponseEnabled ? 'bg-green-500' : 'bg-neutral-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      outreachSettings.aiResponseEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Rebump Toggle */}
+            <div className="p-4 border border-neutral-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h4 className="font-medium text-neutral-900">Auto-Rebump</h4>
+                  <p className="text-sm text-neutral-600">Automatically send follow-up emails if no reply is received</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const newValue = !outreachSettings.rebumpEnabled;
+                    setOutreachSettings(prev => ({ ...prev, rebumpEnabled: newValue }));
+                    try {
+                      await api.patch(`/api/agents/${agentId}/settings`, {
+                        emailBuilder: { rebumpEnabled: newValue }
+                      });
+                      showNotification(`Auto-Rebump ${newValue ? 'enabled' : 'disabled'}`, 'success');
+                    } catch (error) {
+                      showNotification('Failed to update setting', 'error');
+                      setOutreachSettings(prev => ({ ...prev, rebumpEnabled: !newValue }));
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    outreachSettings.rebumpEnabled ? 'bg-blue-500' : 'bg-neutral-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      outreachSettings.rebumpEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* AI Response System Prompt */}
+            <div className="p-4 border border-neutral-200 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="font-medium text-neutral-900">AI Response System Prompt</h4>
+                  <p className="text-sm text-neutral-600">Customize how the AI responds to lead emails</p>
+                </div>
+                {!editingSystemPrompt && (
+                  <button
+                    onClick={() => setEditingSystemPrompt(true)}
+                    className="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-md text-sm flex items-center gap-2"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                    Edit
+                  </button>
+                )}
+              </div>
+              {editingSystemPrompt ? (
+                <div className="space-y-3">
+                  <textarea
+                    value={tempSystemPrompt}
+                    onChange={(e) => setTempSystemPrompt(e.target.value)}
+                    className="w-full p-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px]"
+                    placeholder="Enter system prompt for AI responses..."
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await api.patch(`/api/agents/${agentId}/settings`, {
+                            personality: { emailPrompt: tempSystemPrompt }
+                          });
+                          setOutreachSettings(prev => ({ ...prev, systemPrompt: tempSystemPrompt }));
+                          setEditingSystemPrompt(false);
+                          showNotification('System prompt updated', 'success');
+                        } catch (error) {
+                          showNotification('Failed to update system prompt', 'error');
+                        }
+                      }}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2"
+                    >
+                      <CheckIcon className="h-4 w-4" />
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTempSystemPrompt(outreachSettings.systemPrompt);
+                        setEditingSystemPrompt(false);
+                      }}
+                      className="px-4 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded-lg text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-neutral-600 bg-neutral-50 p-3 rounded-lg">
+                  {outreachSettings.systemPrompt || 'No system prompt set'}
+                </div>
+              )}
+            </div>
+
+            {/* Gmail Account Selection */}
+            <div className="p-4 border border-neutral-200 rounded-lg">
+              <h4 className="font-medium text-neutral-900 mb-3">Gmail Account for this Agent</h4>
+              <p className="text-sm text-neutral-600 mb-4">
+                Override the default Gmail account for this specific agent's outreach emails
+              </p>
+              <select
+                value={outreachSettings.gmailAccount || ''}
+                onChange={async (e) => {
+                  const newAccount = e.target.value || null;
+                  setOutreachSettings(prev => ({ ...prev, gmailAccount: newAccount }));
+                  try {
+                    await api.patch(`/api/agents/${agentId}/settings`, {
+                      emailSettings: { gmailAccount: newAccount }
+                    });
+                    showNotification('Gmail account updated', 'success');
+                  } catch (error) {
+                    showNotification('Failed to update Gmail account', 'error');
+                    setOutreachSettings(prev => ({ ...prev, gmailAccount: outreachSettings.gmailAccount }));
+                  }
+                }}
+                className="w-full p-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Use default account from settings</option>
+                {userGmailAccounts?.map((account: any) => (
+                  <option key={account.email} value={account.email}>
+                    {account.email}
+                    {account.isActive && ' (Default)'}
+                  </option>
+                ))}
+              </select>
+              
+              {/* Domain Health Display */}
+              {outreachSettings.gmailAccount && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">Authenticated by Gmail</span>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">This account is connected and healthy</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
