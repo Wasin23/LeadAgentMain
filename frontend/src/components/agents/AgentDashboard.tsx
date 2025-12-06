@@ -750,12 +750,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           };
         });
         
-        // Remove duplicates based on email address and sort by date
+        // Remove duplicates based on trackingId and sort by date
         const uniqueEmails = emailsWithStatus.filter((email: any, index: number, self: any[]) => 
-          index === self.findIndex((e: any) => e.email === email.email)
+          index === self.findIndex((e: any) => e.trackingId === email.trackingId || e.id === email.id)
         ).sort((a: any, b: any) => new Date(b.dateSent).getTime() - new Date(a.dateSent).getTime());
         
-        setRecentEmails(uniqueEmails.slice(0, 10));
+        console.log('📧 [RECENT EMAILS] After deduplication:', uniqueEmails.length, 'unique emails');
+        setRecentEmails(uniqueEmails);
       } else {
         setRecentEmails([]);
       }
