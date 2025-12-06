@@ -80,7 +80,7 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
             success: true, 
             result: { 
               ...gmailResult, 
-              trackingId: gmailResult.messageId,
+              mailgunId: gmailResult.messageId,
               fromAccount: gmailResult.fromAccount 
             }, 
             method: 'gmail' 
