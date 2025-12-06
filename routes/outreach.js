@@ -289,11 +289,11 @@ router.delete('/viewed', async (req, res) => {
     let deletedCount = 0;
     for (const event of events) {
       try {
-        if (!event.PK || !event.SK) {
-          console.error(`❌ [OUTREACH-VIEWED] Event missing PK/SK:`, event);
+        if (!event.trackingId || !event.eventId) {
+          console.error(`❌ [OUTREACH-VIEWED] Event missing trackingId/eventId:`, event);
           continue;
         }
-        await awsManager.deleteEmailTrackingEvent(event.PK, event.SK);
+        await awsManager.deleteEmailTrackingEvent(event);
         deletedCount++;
       } catch (err) {
         console.error(`❌ [OUTREACH-VIEWED] Failed to delete event ${event.eventId}:`, err.message);

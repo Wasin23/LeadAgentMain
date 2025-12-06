@@ -2709,15 +2709,22 @@ class AWSManager {
     }
   }
 
-  async deleteEmailTrackingEvent(pk, sk) {
+  async deleteEmailTrackingEvent(event) {
     try {
-      console.log(`🗑️ [EMAIL-TRACKING] Attempting to delete with PK: ${pk}, SK: ${sk}`);
-      const command = new DeleteCommand({
-        TableName: this.tables.emailTracking,
-        Key: { PK: pk, SK: sk }
+      console.log(`🗑️ [EMAIL-TRACKING] Attempting to delete event:`, {
+        trackingId: event.trackingId,
+        eventId: event.eventId
       });
       
-      await this.dynamodb.send(command);
+      // The table uses trackingId as the ONLY partition key
+      // Just delete by trackingId directly
+      const deleteCommand = new DeleteCommand({
+        TableName: this.tables.emailTracking,
+        Key: { trackingId: event.trackingId }
+      });
+      
+      await this.dynamodb.send(deleteCommand);
+      console.log(`✅ [EMAIL-TRACKING] Successfully deleted event with trackingId: ${event.trackingId}`);
       return { success: true };
     } catch (error) {
       console.error('❌ [EMAIL-TRACKING] Error deleting tracking event:', error);
