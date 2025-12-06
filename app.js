@@ -472,7 +472,7 @@ app.use('/api/settings', settingsRoutes); // Settings presets management
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking
-app.use('/track', trackingRoutes); // Desktop email tracking (safe, no external deps)
+app.use('/api/tracking', trackingRoutes); // Desktop email tracking (safe, no external deps)
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 app.use('/api/issues', issuesRoutes); // Issues and alerts tracking

@@ -1810,11 +1810,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     const newValue = !outreachSettings.aiResponseEnabled;
                     setOutreachSettings((prev: any) => ({ ...prev, aiResponseEnabled: newValue }));
                     try {
-                      await api.patch(`/api/agents/${agentId}/settings`, {
-                        emailBuilder: { enableAutoResponse: newValue }
+                      // Fetch current settings first
+                      const currentSettings = await api.get(`/api/agents/${agentId}/settings`);
+                      const settings = currentSettings?.data?.settings || {};
+                      
+                      // Update with new value
+                      await api.post('/api/lead-agent/settings', {
+                        ...settings,
+                        agentId,
+                        emailBuilder: { 
+                          ...(settings.emailBuilder || {}),
+                          enableAutoResponse: newValue 
+                        }
                       });
                       showNotification(`AI Auto-Response ${newValue ? 'enabled' : 'disabled'}`, 'success');
                     } catch (error) {
+                      console.error('Failed to update setting:', error);
                       showNotification('Failed to update setting', 'error');
                       setOutreachSettings((prev: any) => ({ ...prev, aiResponseEnabled: !newValue }));
                     }
@@ -1844,11 +1855,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     const newValue = !outreachSettings.rebumpEnabled;
                     setOutreachSettings((prev: any) => ({ ...prev, rebumpEnabled: newValue }));
                     try {
-                      await api.patch(`/api/agents/${agentId}/settings`, {
-                        emailBuilder: { rebumpEnabled: newValue }
+                      // Fetch current settings first
+                      const currentSettings = await api.get(`/api/agents/${agentId}/settings`);
+                      const settings = currentSettings?.data?.settings || {};
+                      
+                      // Update with new value
+                      await api.post('/api/lead-agent/settings', {
+                        ...settings,
+                        agentId,
+                        emailBuilder: { 
+                          ...(settings.emailBuilder || {}),
+                          rebumpEnabled: newValue 
+                        }
                       });
                       showNotification(`Auto-Rebump ${newValue ? 'enabled' : 'disabled'}`, 'success');
                     } catch (error) {
+                      console.error('Failed to update setting:', error);
                       showNotification('Failed to update setting', 'error');
                       setOutreachSettings((prev: any) => ({ ...prev, rebumpEnabled: !newValue }));
                     }
@@ -1895,8 +1917,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     <button
                       onClick={async () => {
                         try {
-                          await api.patch(`/api/agents/${agentId}/settings`, {
-                            personality: { emailPrompt: tempSystemPrompt }
+                          // Fetch current settings first
+                          const currentSettings = await api.get(`/api/agents/${agentId}/settings`);
+                          const settings = currentSettings?.data?.settings || {};
+                          
+                          // Update with new value
+                          await api.post('/api/lead-agent/settings', {
+                            ...settings,
+                            agentId,
+                            personality: { 
+                              ...(settings.personality || {}),
+                              emailPrompt: tempSystemPrompt 
+                            }
                           });
                           setOutreachSettings((prev: any) => ({ ...prev, systemPrompt: tempSystemPrompt }));
                           setEditingSystemPrompt(false);
@@ -1940,11 +1972,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   const newAccount = e.target.value || null;
                   setOutreachSettings((prev: any) => ({ ...prev, gmailAccount: newAccount }));
                   try {
-                    await api.patch(`/api/agents/${agentId}/settings`, {
-                      emailSettings: { gmailAccount: newAccount }
+                    // Fetch current settings first
+                    const currentSettings = await api.get(`/api/agents/${agentId}/settings`);
+                    const settings = currentSettings?.data?.settings || {};
+                    
+                    // Update with new value
+                    await api.post('/api/lead-agent/settings', {
+                      ...settings,
+                      agentId,
+                      emailSettings: { 
+                        ...(settings.emailSettings || {}),
+                        gmailAccount: newAccount 
+                      }
                     });
                     showNotification('Gmail account updated', 'success');
                   } catch (error) {
+                    console.error('Failed to update Gmail account:', error);
                     showNotification('Failed to update Gmail account', 'error');
                     setOutreachSettings((prev: any) => ({ ...prev, gmailAccount: outreachSettings.gmailAccount }));
                   }
