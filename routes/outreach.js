@@ -333,6 +333,20 @@ router.get('/viewed', async (req, res) => {
         email.opened = true;
         email.openCount++;
         
+        // Update email details from open event if available
+        if (event.leadName && email.leadName === 'Unknown') {
+          email.leadName = event.leadName;
+        }
+        if (event.recipientEmail && email.leadEmail === 'unknown@email.com') {
+          email.leadEmail = event.recipientEmail;
+        }
+        if (event.subject && !email.subject) {
+          email.subject = event.subject;
+        }
+        if (event.company && !email.company) {
+          email.company = event.company;
+        }
+        
         // Track first open time
         if (!email.openedAt || new Date(event.timestamp) < new Date(email.openedAt)) {
           email.openedAt = event.timestamp;

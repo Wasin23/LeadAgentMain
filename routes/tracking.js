@@ -2,9 +2,11 @@
 import express from 'express';
 import { desktopEmailTracker } from '../utils/desktopEmailTracker.js';
 import AWSManager from '../utils/awsManager.js';
+import AWSEmailQueue from '../utils/awsEmailQueue.js';
 
 const router = express.Router();
 const awsManager = new AWSManager();
+const awsQueue = new AWSEmailQueue();
 
 // Tracking pixel endpoint (1x1 transparent PNG)
 router.get('/pixel/:trackingId.png', async (req, res) => {
@@ -25,13 +27,56 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     const userId = trackingId.split('_')[0].replace('tracking-', ''); // Extract userId
     const agentId = trackingId.split('_')[1]; // Extract agentId
     
+    // Check if this is the first open
+    const existingEvents = await awsManager.getEmailTrackingByTracking(userId, trackingId);
+    const isFirstOpen = !existingEvents.some(e => e.eventType === 'open');
+    
+    // Get email details from queue to get recipient info
+    let recipientEmail = null;
+    let leadName = null;
+    let subject = null;
+    try {
+      const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      const emailData = sentEmails.find(e => e.trackingId === trackingId);
+      if (emailData) {
+        recipientEmail = emailData.to;
+        leadName = emailData.leadName;
+        subject = emailData.subject;
+      }
+    } catch (err) {
+      console.log('[TRACKING PIXEL] Could not fetch email details:', err.message);
+    }
+    
     await awsManager.logEmailTracking(userId, agentId, trackingId, {
       eventType: 'open',
+      recipientEmail,
+      leadName,
+      subject,
       ipAddress: ip,
       userAgent: userAgent,
       timestamp: new Date().toISOString()
     });
     console.log('✅ [TRACKING PIXEL] Logged to DynamoDB');
+    
+    // Log activity entry for first open
+    if (isFirstOpen && recipientEmail) {
+      try {
+        await awsManager.logActivity(userId, agentId, {
+          action: 'Email Viewed',
+          details: `${leadName || recipientEmail} opened email${subject ? `: "${subject}"` : ''}`,
+          metadata: {
+            trackingId,
+            recipientEmail,
+            leadName,
+            ipAddress: ip,
+            userAgent
+          }
+        });
+        console.log('✅ [TRACKING PIXEL] Activity logged for first open');
+      } catch (activityErr) {
+        console.error('[TRACKING PIXEL] Failed to log activity:', activityErr.message);
+      }
+    }
     
     // Broadcast to SSE clients for real-time UI updates
     try {
@@ -40,6 +85,9 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
         type: 'tracking_update',
         trackingId: trackingId,
         eventType: 'open',
+        recipientEmail,
+        leadName,
+        isFirstOpen,
         timestamp: new Date().toISOString()
       });
       console.log('✅ [TRACKING PIXEL] SSE broadcast sent');

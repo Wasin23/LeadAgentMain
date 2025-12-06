@@ -850,7 +850,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   // Establish SSE connection for real-time response streaming
   useEffect(() => {
-    if (!showOutreach || outreachTab !== 'conversations') return;
+    if (!showOutreach) return;
 
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const authToken = localStorage.getItem('authToken');
@@ -897,6 +897,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               ));
               // Refresh conversations list
               fetchAgentOutreach();
+            } else if (data.type === 'tracking_update') {
+              console.log('📧 [TRACKING] Email opened in real-time:', data);
+              // Refresh viewed emails if on viewed tab
+              if (outreachTab === 'viewed') {
+                fetchViewedEmails();
+              }
+              // Refresh activity logs
+              fetchAgentLogs();
             }
           } catch (error) {
             console.error('Failed to parse SSE data:', error);
@@ -1785,6 +1793,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         <div className="text-xs text-neutral-400">
                           {new Date(email.openedAt).toLocaleTimeString()}
                         </div>
+                        {email.ipAddress && (
+                          <div className="text-xs text-neutral-400 mt-1">
+                            IP: {email.ipAddress}
+                          </div>
+                        )}
+                        {email.userAgent && (
+                          <div className="text-xs text-neutral-400 mt-1 max-w-[200px] truncate" title={email.userAgent}>
+                            {email.userAgent.includes('Mobile') ? '📱' : '💻'} {email.userAgent.split(' ')[0]}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
