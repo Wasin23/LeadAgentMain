@@ -914,6 +914,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               fetchAgentOutreach();
             } else if (data.type === 'tracking_update') {
               console.log('📧 [TRACKING] Email opened in real-time:', data);
+              
+              // Add to streaming responses feed
+              if (data.data?.eventType === 'open') {
+                setStreamingResponses(prev => [{
+                  id: `view-${Date.now()}`,
+                  leadName: data.data.leadName || 'Unknown Lead',
+                  leadEmail: data.data.recipientEmail || 'unknown@email.com',
+                  content: `📧 Opened email: "${data.data.subject || 'No subject'}"`,
+                  status: 'viewed',
+                  sentAt: new Date().toISOString(),
+                  type: 'tracking'
+                }, ...prev].slice(0, 20)); // Keep last 20 items
+              }
+              
               // Refresh viewed emails if on viewed tab
               if (outreachTab === 'viewed') {
                 fetchViewedEmails();
@@ -1628,6 +1642,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           <div className="flex items-center gap-1 text-xs text-green-600">
                             <CheckIcon className="h-3 w-3" />
                             Sent
+                          </div>
+                        )}
+                        {response.status === 'viewed' && (
+                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                            <EyeIcon className="h-3 w-3" />
+                            Viewed
                           </div>
                         )}
                       </div>

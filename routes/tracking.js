@@ -95,6 +95,7 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
         eventType: 'open',
         recipientEmail,
         leadName,
+        subject,
         isFirstOpen,
         timestamp: new Date().toISOString()
       });
