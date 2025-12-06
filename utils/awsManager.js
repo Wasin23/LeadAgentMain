@@ -2657,7 +2657,7 @@ class AWSManager {
     }
   }
   
-  async getEmailTrackingByTracking(userId, trackingId) {
+  async getEmailTrackingByTracking(trackingId) {
     try {
       const command = new QueryCommand({
         TableName: this.tables.emailTracking,
@@ -2699,6 +2699,21 @@ class AWSManager {
     } catch (error) {
       console.error('❌ [EMAIL-TRACKING] Error getting user email tracking:', error);
       return [];
+    }
+  }
+
+  async deleteEmailTrackingEvent(pk, sk) {
+    try {
+      const command = new DeleteCommand({
+        TableName: this.tables.emailTracking,
+        Key: { PK: pk, SK: sk }
+      });
+      
+      await this.dynamodb.send(command);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [EMAIL-TRACKING] Error deleting tracking event:', error);
+      throw error;
     }
   }
 

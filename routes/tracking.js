@@ -28,23 +28,31 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     const agentId = trackingId.split('_')[1]; // Extract agentId
     
     // Check if this is the first open
-    const existingEvents = await awsManager.getEmailTrackingByTracking(userId, trackingId);
+    const existingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
     const isFirstOpen = !existingEvents.some(e => e.eventType === 'open');
+    console.log(`[TRACKING PIXEL] Existing events: ${existingEvents.length}, isFirstOpen: ${isFirstOpen}`);
     
     // Get email details from queue to get recipient info
     let recipientEmail = null;
     let leadName = null;
     let subject = null;
     try {
+      console.log(`[TRACKING PIXEL] Fetching sent emails for userId: ${userId}, agentId: ${agentId}`);
       const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      console.log(`[TRACKING PIXEL] Found ${sentEmails.length} sent emails`);
+      
       const emailData = sentEmails.find(e => e.trackingId === trackingId);
       if (emailData) {
         recipientEmail = emailData.to;
         leadName = emailData.leadName;
         subject = emailData.subject;
+        console.log(`[TRACKING PIXEL] Found email data: to=${recipientEmail}, leadName=${leadName}, subject=${subject}`);
+      } else {
+        console.log(`[TRACKING PIXEL] No email found with trackingId: ${trackingId}`);
+        console.log(`[TRACKING PIXEL] Available tracking IDs: ${sentEmails.map(e => e.trackingId).join(', ')}`);
       }
     } catch (err) {
-      console.log('[TRACKING PIXEL] Could not fetch email details:', err.message);
+      console.error('[TRACKING PIXEL] Error fetching email details:', err);
     }
     
     await awsManager.logEmailTracking(userId, agentId, trackingId, {

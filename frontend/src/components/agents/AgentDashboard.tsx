@@ -824,6 +824,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     }
   };
 
+  const handleClearViewedEmails = async () => {
+    if (!confirm('Are you sure you want to clear all tracking data for viewed emails? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/outreach/viewed?agentId=${agentId}`);
+      setViewedEmails([]);
+      console.log('✅ [VIEWED] Cleared all viewed email tracking');
+    } catch (error) {
+      console.error('Failed to clear viewed emails:', error);
+      alert('Failed to clear tracking data. Please try again.');
+    }
+  };
+
   const fetchOutreachSettings = async () => {
     try {
       const response = await api.get(`/api/agents/${agentId}/settings`);
@@ -1756,7 +1771,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
         {outreachTab === 'viewed' && (
           <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6`}>
-            <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Emails Viewed</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${colors.primary}`}>Emails Viewed</h3>
+              {viewedEmails.length > 0 && (
+                <button
+                  onClick={handleClearViewedEmails}
+                  className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg transition-colors"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
             {viewedEmails.length === 0 ? (
               <div className="text-center py-12">
                 <EyeIcon className="h-12 w-12 text-neutral-300 mx-auto mb-3" />

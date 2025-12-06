@@ -260,6 +260,46 @@ router.get('/conversations', async (req, res) => {
   }
 });
 
+// Clear viewed/opened email tracking data
+router.delete('/viewed', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId } = req.query;
+
+    console.log(`🗑️ [OUTREACH-VIEWED] Clearing tracking data for userId: ${userId}, agentId: ${agentId}`);
+
+    if (!agentId || agentId === 'all') {
+      return res.status(400).json({ success: false, error: 'Agent ID is required' });
+    }
+
+    // Get all tracking events for this agent
+    const events = await awsManager.getEmailTrackingByUser(userId, agentId, 10000);
+    console.log(`🗑️ [OUTREACH-VIEWED] Found ${events.length} events to delete`);
+
+    // Delete each event
+    let deletedCount = 0;
+    for (const event of events) {
+      try {
+        await awsManager.deleteEmailTrackingEvent(event.PK, event.SK);
+        deletedCount++;
+      } catch (err) {
+        console.error(`❌ [OUTREACH-VIEWED] Failed to delete event ${event.eventId}:`, err.message);
+      }
+    }
+
+    console.log(`✅ [OUTREACH-VIEWED] Deleted ${deletedCount}/${events.length} tracking events`);
+
+    res.json({
+      success: true,
+      deletedCount,
+      totalEvents: events.length
+    });
+  } catch (error) {
+    console.error('❌ [OUTREACH-VIEWED] Error clearing tracking data:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get viewed/opened emails
 router.get('/viewed', async (req, res) => {
   try {
