@@ -1,7 +1,7 @@
 // Gmail Reply Polling Service
 import cron from 'node-cron';
-import { GmailManager } from './gmailManager.js';
-import { AWSManager } from './awsManager.js';
+import GmailManager from './gmailManager.js';
+import AWSManager from './awsManager.js';
 
 const gmailManager = new GmailManager();
 const awsManager = new AWSManager();
