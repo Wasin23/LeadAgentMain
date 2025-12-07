@@ -144,18 +144,23 @@ class AWSEmailQueue {
    */
   async getQueuedEmails(userId, agentId) {
     try {
+      const pk = this._getPK(userId, agentId);
+      console.log(`[AWS EMAIL QUEUE] 🔍 getQueuedEmails - PK: ${pk}`);
+      
       const response = await this.dynamodb.send(new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
         ExpressionAttributeValues: {
-          ':pk': this._getPK(userId, agentId),
+          ':pk': pk,
           ':status': 'QUEUED#'
         }
       }));
 
+      console.log(`[AWS EMAIL QUEUE] ✅ Query returned ${response.Items?.length || 0} items`);
       return response.Items || [];
     } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error getting queued emails:', error);
+      console.error('[AWS EMAIL QUEUE] ❌ Error getting queued emails:', error);
+      console.error('[AWS EMAIL QUEUE] Stack:', error.stack);
       throw error;
     }
   }

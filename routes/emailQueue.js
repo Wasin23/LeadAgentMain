@@ -48,21 +48,27 @@ router.get('/', async (req, res) => {
 router.get('/queue', async (req, res) => {
   try {
     const agentId = req.query.agentId;
+    console.log(`📧 [EMAIL QUEUE] GET /queue - userId: ${req.user.userId}, agentId: ${agentId}`);
     
     // If agentId is 'all', fetch from all agents using AWS
     if (agentId === 'all') {
+      console.log(`📧 [EMAIL QUEUE] Fetching ALL queued emails for user ${req.user.userId}`);
       const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
       const awsQueue = getAWSEmailQueue();
       const emails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
+      console.log(`📧 [EMAIL QUEUE] Found ${emails.length} queued emails across all agents`);
       return res.json(emails);
     }
     
     // Otherwise, fetch for specific agent (or null for legacy)
+    console.log(`📧 [EMAIL QUEUE] Fetching for specific agent: ${agentId || 'null (legacy)'}`);
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
     const queue = await userEmailQueue.getQueue();
+    console.log(`📧 [EMAIL QUEUE] Found ${queue.length} emails in queue for agent ${agentId || 'null'}`);
     res.json(queue);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting queue:', error);
+    console.error('[EMAIL QUEUE API] Stack:', error.stack);
     res.status(500).json({ error: 'Failed to get email queue' });
   }
 });
