@@ -580,7 +580,16 @@ const server = app.listen(PORT, async () => {
   // Start grace period checker (hourly checks for suspensions/warnings)
   startGracePeriodChecker();
   
-  // Gmail reply polling disabled - too invasive
+  // Start Gmail watch auto-renewal (runs daily)
+  try {
+    const { gmailWatchRenewer } = await import('./utils/gmailWatchRenewer.js');
+    gmailWatchRenewer.start();
+    console.log('✅ [GMAIL WATCH] Auto-renewal service started');
+  } catch (error) {
+    console.error('❌ [GMAIL WATCH] Failed to start auto-renewal:', error.message);
+  }
+  
+  // Gmail reply polling disabled - using Pub/Sub instead
   // TODO: Implement webhook-based reply detection or user-initiated manual sync
 });
 
