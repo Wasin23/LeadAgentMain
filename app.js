@@ -496,6 +496,16 @@ app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conver
 // Webhook routes for email response agent (replaces Netlify function)
 app.use('/api/webhooks', webhooksReplyRoutes); // Mailgun email response webhooks
 
+// Gmail Pub/Sub push notification webhooks
+let gmailPubSubRoutes;
+try {
+  gmailPubSubRoutes = (await import('./routes/gmail-pubsub.js')).default;
+  app.use('/api/gmail-pubsub', gmailPubSubRoutes);
+  console.log('[APP] Gmail Pub/Sub routes loaded successfully');
+} catch (error) {
+  console.warn('[WARNING] Gmail Pub/Sub routes not available:', error.message);
+}
+
 // Admin routes
 let adminRoutes;
 try {
@@ -570,14 +580,8 @@ const server = app.listen(PORT, async () => {
   // Start grace period checker (hourly checks for suspensions/warnings)
   startGracePeriodChecker();
   
-  // Start Gmail reply polling (every 40 seconds)
-  try {
-    const { gmailReplyPoller } = await import('./utils/gmailReplyPoller.js');
-    gmailReplyPoller.start();
-    console.log('✅ [GMAIL POLLER] Started - checking for replies every 40 seconds');
-  } catch (error) {
-    console.error('❌ [GMAIL POLLER] Failed to start:', error.message);
-  }
+  // Gmail reply polling disabled - too invasive
+  // TODO: Implement webhook-based reply detection or user-initiated manual sync
 });
 
 // Graceful shutdown handling

@@ -19,8 +19,10 @@ class GmailManager {
     const scopes = [
       'https://www.googleapis.com/auth/gmail.send',
       'https://www.googleapis.com/auth/gmail.readonly',
+      'https://www.googleapis.com/auth/gmail.modify', // For Pub/Sub watch
       'https://www.googleapis.com/auth/userinfo.email',
-      'https://www.googleapis.com/auth/userinfo.profile'
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/calendar' // For calendar integration
     ];
 
     return this.oauth2Client.generateAuthUrl({
@@ -406,6 +408,115 @@ class GmailManager {
       return { success: true };
     } catch (error) {
       console.error('❌ [GMAIL] Error revoking token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set up Gmail push notifications via Pub/Sub
+   */
+  async setupPushNotifications(userId) {
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      if (!userSettings?.gmailAuth?.refreshToken) {
+        throw new Error('No Gmail refresh token found');
+      }
+
+      this.oauth2Client.setCredentials({
+        refresh_token: userSettings.gmailAuth.refreshToken
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+      // Your Google Cloud Pub/Sub topic (format: projects/YOUR_PROJECT_ID/topics/YOUR_TOPIC_NAME)
+      const topicName = process.env.GOOGLE_PUBSUB_TOPIC || 'projects/YOUR_PROJECT_ID/topics/gmail-notifications';
+
+      const response = await gmail.users.watch({
+        userId: 'me',
+        requestBody: {
+          topicName: topicName,
+          labelIds: ['INBOX'], // Only watch inbox
+          labelFilterAction: 'include'
+        }
+      });
+
+      console.log('✅ [GMAIL] Push notifications set up:', response.data);
+      
+      // Store the watch info to renew it later (expires in ~7 days)
+      await awsManager.saveUserSettings(userId, {
+        ...userSettings,
+        gmailWatch: {
+          historyId: response.data.historyId,
+          expiration: response.data.expiration,
+          setupAt: Date.now()
+        }
+      });
+
+      return {
+        success: true,
+        historyId: response.data.historyId,
+        expiration: response.data.expiration
+      };
+    } catch (error) {
+      console.error('❌ [GMAIL] Error setting up push notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stop Gmail push notifications
+   */
+  async stopPushNotifications(userId) {
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      if (!userSettings?.gmailAuth?.refreshToken) {
+        throw new Error('No Gmail refresh token found');
+      }
+
+      this.oauth2Client.setCredentials({
+        refresh_token: userSettings.gmailAuth.refreshToken
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+      await gmail.users.stop({
+        userId: 'me'
+      });
+
+      console.log('✅ [GMAIL] Push notifications stopped');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [GMAIL] Error stopping push notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get history of changes since a specific historyId
+   */
+  async getHistory(userId, startHistoryId) {
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      if (!userSettings?.gmailAuth?.refreshToken) {
+        throw new Error('No Gmail refresh token found');
+      }
+
+      this.oauth2Client.setCredentials({
+        refresh_token: userSettings.gmailAuth.refreshToken
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+      const response = await gmail.users.history.list({
+        userId: 'me',
+        startHistoryId: startHistoryId,
+        historyTypes: ['messageAdded'], // Only care about new messages
+        labelId: 'INBOX'
+      });
+
+      return response.data.history || [];
+    } catch (error) {
+      console.error('❌ [GMAIL] Error getting history:', error);
       throw error;
     }
   }
