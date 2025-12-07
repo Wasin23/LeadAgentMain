@@ -33,10 +33,20 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     }
     
     const hasBeenOpenedBefore = existingEvents.some(e => e.eventType === 'open');
+    const hasProxyHit = existingEvents.some(e => e.eventType === 'proxy');
     
-    if (!hasBeenOpenedBefore) {
-      console.log('🤖 [TRACKING PIXEL] First hit detected (proxy) - not recording, waiting for subsequent hits');
-      // Send the pixel but don't record the event
+    if (!hasProxyHit) {
+      console.log('🤖 [TRACKING PIXEL] First hit detected (proxy) - recording as proxy, not as open');
+      
+      // Record the proxy hit so we know subsequent hits are real
+      await awsManager.logEmailTracking(userId, agentId, trackingId, {
+        eventType: 'proxy',
+        ipAddress: ip,
+        userAgent: userAgent,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Send the pixel but don't record as open
       const pixel = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
         'base64'
@@ -120,7 +130,7 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     console.log('✅ [TRACKING PIXEL] Logged to DynamoDB');
     
     // Log activity entry for first open
-    if (isFirstOpen && recipientEmail) {
+    if (!hasBeenOpenedBefore && recipientEmail) {
       try {
         await awsManager.logActivity(userId, agentId, {
           action: 'Email Viewed',

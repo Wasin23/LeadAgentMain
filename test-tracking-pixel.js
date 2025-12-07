@@ -1,5 +1,8 @@
 // Test tracking pixel functionality
+import dotenv from 'dotenv';
 import AWSManager from './utils/awsManager.js';
+
+dotenv.config();
 
 const awsManager = new AWSManager();
 
