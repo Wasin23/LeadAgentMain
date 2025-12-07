@@ -258,8 +258,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [tempSystemPrompt, setTempSystemPrompt] = useState('');
   const [userGmailAccounts, setUserGmailAccounts] = useState<any[]>([]);
   
-  // Real-time streaming state
-  const [streamingResponses, setStreamingResponses] = useState<any[]>([]);
+  // Real-time streaming state - persist in localStorage
+  const [streamingResponses, setStreamingResponses] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem(`streamingResponses_${agentId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [conversationSearch, setConversationSearch] = useState('');
   const [conversationFilter, setConversationFilter] = useState<'all' | 'active' | 'replied' | 'waiting'>('all');
   const [aiResponseControl, setAiResponseControl] = useState<Record<string, boolean>>({});
@@ -272,6 +279,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
+
+  // Persist streaming responses to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`streamingResponses_${agentId}`, JSON.stringify(streamingResponses));
+    } catch (err) {
+      console.error('Failed to save streaming responses to localStorage:', err);
+    }
+  }, [streamingResponses, agentId]);
 
   // Pagination helper functions
   const paginateArray = (array: any[], page: number) => {
