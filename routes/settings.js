@@ -95,6 +95,17 @@ router.post('/presets', async (req, res) => {
     console.log('💾 [SETTINGS] Saving preset to AWS:', JSON.stringify(newPreset, null, 2));
     await awsManager.saveUserSettings(userId, userSettings);
     
+    // Set up Gmail watch if auto-response is enabled
+    if (enableAutoResponse !== undefined ? enableAutoResponse : true) {
+      try {
+        const gmailManager = (await import('../utils/gmailManager.js')).default;
+        const result = await gmailManager.setupPushNotifications(userId);
+        console.log('✅ [SETTINGS] Gmail watch set up for auto-response:', result);
+      } catch (error) {
+        console.error('⚠️ [SETTINGS] Failed to setup Gmail watch:', error.message);
+      }
+    }
+    
     console.log('✅ [SETTINGS] Returning preset to frontend:', JSON.stringify(newPreset, null, 2));
     res.json({
       success: true,
@@ -202,6 +213,17 @@ router.put('/presets/:id', async (req, res) => {
     userSettings.settingsPresets[presetIndex] = updatedPreset;
     
     await awsManager.saveUserSettings(userId, userSettings);
+    
+    // Set up Gmail watch if auto-response is being enabled
+    if (enableAutoResponse) {
+      try {
+        const gmailManager = (await import('../utils/gmailManager.js')).default;
+        const result = await gmailManager.setupPushNotifications(userId);
+        console.log('✅ [SETTINGS] Gmail watch set up for auto-response:', result);
+      } catch (error) {
+        console.error('⚠️ [SETTINGS] Failed to setup Gmail watch:', error.message);
+      }
+    }
     
     res.json({
       success: true,

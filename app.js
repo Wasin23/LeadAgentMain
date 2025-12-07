@@ -589,6 +589,33 @@ const server = app.listen(PORT, async () => {
     console.error('❌ [GMAIL WATCH] Failed to start auto-renewal:', error.message);
   }
   
+  // Set up Gmail watches for users with auto-response enabled
+  try {
+    const AWSManager = (await import('./utils/awsManager.js')).default;
+    const GmailManager = (await import('./utils/gmailManager.js')).default;
+    const awsManager = new AWSManager();
+    const gmailManager = new GmailManager();
+    
+    const users = await awsManager.getAllUsersWithGmail();
+    console.log(`🔍 [GMAIL WATCH] Checking ${users.length} users with Gmail connected`);
+    
+    for (const user of users) {
+      try {
+        const settings = await awsManager.getUserSettings(user.userId);
+        const hasAutoResponseEnabled = settings?.settingsPresets?.some(p => p.enableAutoResponse);
+        
+        if (hasAutoResponseEnabled) {
+          console.log(`✅ [GMAIL WATCH] Setting up watch for user ${user.userId} (auto-response enabled)`);
+          await gmailManager.setupPushNotifications(user.userId);
+        }
+      } catch (error) {
+        console.error(`⚠️ [GMAIL WATCH] Failed to setup watch for user ${user.userId}:`, error.message);
+      }
+    }
+  } catch (error) {
+    console.error('❌ [GMAIL WATCH] Failed to setup watches on startup:', error.message);
+  }
+  
   // Gmail reply polling disabled - using Pub/Sub instead
   // TODO: Implement webhook-based reply detection or user-initiated manual sync
 });

@@ -46,6 +46,20 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
         timestamp: new Date().toISOString()
       });
       
+      // Broadcast proxy hit to SSE
+      try {
+        const { broadcastAIResponse } = await import('./outreach.js');
+        broadcastAIResponse(userId, agentId, {
+          type: 'tracking_update',
+          trackingId: trackingId,
+          eventType: 'proxy',
+          timestamp: new Date().toISOString()
+        });
+        console.log('✅ [TRACKING PIXEL] SSE broadcast sent for proxy hit');
+      } catch (sseError) {
+        console.error('[TRACKING PIXEL] SSE broadcast failed:', sseError.message);
+      }
+      
       // Send the pixel but don't record as open
       const pixel = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
@@ -129,29 +143,10 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     });
     console.log('✅ [TRACKING PIXEL] Logged to DynamoDB');
     
-    // Log activity entry for first open
-    if (!hasBeenOpenedBefore && recipientEmail) {
-      try {
-        await awsManager.logActivity(userId, agentId, {
-          action: 'Email Viewed',
-          details: `${leadName || recipientEmail} opened email${subject ? `: "${subject}"` : ''}`,
-          metadata: {
-            trackingId,
-            recipientEmail,
-            leadName,
-            ipAddress: ip,
-            userAgent
-          }
-        });
-        console.log('✅ [TRACKING PIXEL] Activity logged for first open');
-      } catch (activityErr) {
-        console.error('[TRACKING PIXEL] Failed to log activity:', activityErr.message);
-      }
-    }
-    
     // Broadcast to SSE clients for real-time UI updates
     try {
       const { broadcastAIResponse } = await import('./outreach.js');
+      const isFirstOpen = !hasBeenOpenedBefore;
       broadcastAIResponse(userId, agentId, {
         type: 'tracking_update',
         trackingId: trackingId,
@@ -162,7 +157,7 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
         isFirstOpen,
         timestamp: new Date().toISOString()
       });
-      console.log('✅ [TRACKING PIXEL] SSE broadcast sent');
+      console.log('✅ [TRACKING PIXEL] SSE broadcast sent for open event');
     } catch (sseError) {
       console.error('[TRACKING PIXEL] SSE broadcast failed:', sseError.message);
     }
