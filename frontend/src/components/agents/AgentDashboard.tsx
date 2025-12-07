@@ -2572,9 +2572,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`bg-white border ${colors.border}`}
+          className={`border ${colors.border} overflow-hidden bg-neutral-50 self-start`}
         >
-          <div className={`p-6 border-b ${colors.border}`}>
+          <div className={`p-6 border-b ${colors.border} bg-white`}>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className={`text-lg font-medium ${colors.primary}`}>Activity Logs</h3>
@@ -2649,9 +2649,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
           </div>
           
-          <div className="h-96 overflow-y-auto p-4 bg-neutral-50 font-mono text-sm">
+          <div className="h-[475px] overflow-y-auto bg-neutral-50 font-mono text-sm">
             {agentLogs.length === 0 ? (
-              <div className="text-center text-neutral-500 py-16">
+              <div className="text-center text-neutral-500 py-16 px-4">
                 <p>No agent activity logs yet.</p>
                 <p className="text-xs mt-1">Start the agent to see detailed operations.</p>
               </div>
@@ -2662,7 +2662,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     key={log.id || index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-xs leading-relaxed p-2 border-b border-neutral-200"
+                    className="text-xs leading-relaxed px-4 py-2 border-b border-neutral-200"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
