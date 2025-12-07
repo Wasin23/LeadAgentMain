@@ -6,7 +6,7 @@ import { createOpenAIFunctionsAgent, AgentExecutor } from "langchain/agents";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { z } from "zod";
 import crypto from 'crypto';
-import { AWSManager } from '../utils/awsManager.js';
+import AWSManager from '../utils/awsManager.js';
 import fetch from 'node-fetch';
 
 const router = express.Router();

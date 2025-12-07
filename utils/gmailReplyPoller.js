@@ -125,8 +125,18 @@ export class GmailReplyPoller {
         const fullMessage = await gmailManager.getMessage(userId, message.id);
         
         if (fullMessage) {
-          // Process the reply through webhook logic
-          await this.processReplyMessage(userId, fullMessage);
+          // Only process if this is a reply to one of our tracked emails
+          const hasTrackingId = 
+            (fullMessage.inReplyTo && fullMessage.inReplyTo.includes('tracking-')) ||
+            (fullMessage.references && fullMessage.references.includes('tracking-'));
+          
+          if (hasTrackingId) {
+            console.log(`📧 [GMAIL POLLER] Message is a reply to tracked email, processing...`);
+            // Process the reply through webhook logic
+            await this.processReplyMessage(userId, fullMessage);
+          } else {
+            console.log(`📭 [GMAIL POLLER] Message is not a reply to tracked email, skipping: ${fullMessage.from}`);
+          }
         }
       }
     } catch (error) {
