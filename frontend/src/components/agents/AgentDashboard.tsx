@@ -1590,7 +1590,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
+              borderTop: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
+              borderLeft: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
+              borderRight: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1609,7 +1611,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
+              borderTop: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
+              borderLeft: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
+              borderRight: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1628,7 +1632,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
+              borderTop: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
+              borderLeft: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
+              borderRight: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1647,7 +1653,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 : 'bg-white hover:bg-neutral-50'
             }`}
             style={{ 
-              border: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
+              borderTop: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
+              borderLeft: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
+              borderRight: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
               borderBottom: 'none'
             }}
           >
@@ -1667,7 +1675,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-neutral-50 border ${colors.border} flex flex-col max-h-[800px]`}
+            className={`bg-neutral-50 border ${colors.border} rounded-lg overflow-hidden`}
+            style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
             <div className={`p-6 border-b ${colors.border} bg-white flex-shrink-0`}>
               <div className="flex items-center justify-between">
@@ -1679,7 +1688,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
             </div>
             
-            <div className="overflow-y-auto p-4 flex-1 min-h-0">{streamingResponses.length === 0 ? (
+            <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
+              {streamingResponses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-neutral-400">
                   <PaperAirplaneIcon className="h-12 w-12 mb-3 text-neutral-300" />
                   <p className="text-sm">No active responses</p>
@@ -1745,7 +1755,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-white border ${colors.border}`}
+            className={`bg-white border ${colors.border} rounded-lg overflow-hidden`}
+            style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
             <div className={`p-6 border-b ${colors.border}`}>
               <div className="flex items-center justify-between">

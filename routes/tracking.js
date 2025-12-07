@@ -19,6 +19,34 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
   console.log('[TRACKING PIXEL] User Agent:', userAgent);
   console.log('[TRACKING PIXEL] IP:', ip);
   
+  // Detect email service image proxies (Gmail, Outlook, Yahoo, etc.)
+  const isImageProxy = 
+    userAgent.includes('GoogleImageProxy') ||
+    userAgent.includes('Microsoft Office') ||
+    userAgent.includes('YahooMailProxy') ||
+    userAgent.includes('OutlookProxy') ||
+    userAgent.includes('Thunderbird') ||
+    userAgent.includes('via ggpht.com');
+  
+  if (isImageProxy) {
+    console.log('🤖 [TRACKING PIXEL] Image proxy detected - not recording as open');
+    // Return pixel immediately without recording
+    const pixel = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64'
+    );
+    
+    res.set({
+      'Content-Type': 'image/png',
+      'Content-Length': pixel.length,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    return res.send(pixel);
+  }
+  
   // Record the open in old desktop tracker (for backwards compatibility)
   await desktopEmailTracker.recordOpen(trackingId, userAgent, ip);
   
