@@ -849,4 +849,212 @@ Analyze this email and respond appropriately. First check the conversation histo
   }
 });
 
+// Export function for Gmail polling
+export async function processGmailReply(userId, message) {
+  try {
+    console.log(`[GMAIL REPLY] Processing Gmail reply from ${message.from}`);
+    
+    // Extract tracking ID from message headers
+    let trackingId = null;
+    
+    // Try to extract from In-Reply-To or References
+    if (message.inReplyTo && message.inReplyTo.includes('tracking-')) {
+      const match = message.inReplyTo.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
+      if (match) trackingId = `tracking-${match[1]}`;
+      console.log(`[GMAIL REPLY] Found tracking ID in In-Reply-To: ${trackingId}`);
+    }
+    
+    if (!trackingId && message.references && message.references.includes('tracking-')) {
+      const match = message.references.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
+      if (match) trackingId = `tracking-${match[1]}`;
+      console.log(`[GMAIL REPLY] Found tracking ID in References: ${trackingId}`);
+    }
+    
+    // If no tracking ID found, create one (new conversation)
+    if (!trackingId) {
+      const timestamp = Date.now();
+      const hash = crypto.randomBytes(4).toString('hex');
+      const shortUserId = userId.substring(0, 8);
+      trackingId = `tracking-${shortUserId}_reasoning-lead-agent_${timestamp}_${hash}`;
+      console.log(`[GMAIL REPLY] Created new tracking ID: ${trackingId}`);
+    }
+    
+    // Extract userId and agentId for logging
+    const extractedUserId = extractUserIdFromTrackingId(trackingId);
+    const agentId = extractAgentIdFromTrackingId(trackingId);
+    
+    // Store the incoming message
+    await storeConversationEvent(trackingId, 'lead_message', {
+      from: message.from,
+      to: message.to,
+      subject: message.subject,
+      content: message.body,
+      messageId: message.messageId
+    });
+    
+    // Log reply event to DynamoDB for Outreach dashboard
+    console.log(`📊 [OUTREACH] Logging Gmail reply event to DynamoDB`, { userId: extractedUserId, agentId, trackingId, from: message.from });
+    try {
+      await awsManager.logEmailTracking(extractedUserId || userId, agentId, trackingId, {
+        eventType: 'reply',
+        recipientEmail: message.from,
+        messagePreview: message.body.substring(0, 200),
+        timestamp: new Date().toISOString()
+      });
+      console.log(`✅ [OUTREACH] Reply event logged successfully`);
+      
+      // Broadcast to SSE clients for real-time UI updates
+      if (broadcastAIResponse) {
+        broadcastAIResponse(extractedUserId || userId, agentId, {
+          type: 'tracking_update',
+          trackingId: trackingId,
+          eventType: 'reply',
+          recipientEmail: message.from,
+          messagePreview: message.body.substring(0, 200),
+          timestamp: new Date().toISOString()
+        });
+        console.log(`✅ [OUTREACH] SSE broadcast sent for Gmail reply event`);
+      }
+    } catch (dbError) {
+      console.error('❌ [OUTREACH] DynamoDB logging failed:', dbError);
+    }
+    
+    // Get agent settings to check if auto-response is enabled
+    const agentSettings = await getAgentSettings(extractedUserId || userId, agentId);
+    
+    if (agentSettings?.emailBuilder?.enableAutoResponse === false) {
+      console.log('[GMAIL REPLY] Auto-response is DISABLED for this agent, skipping AI response');
+      return { success: true, message: 'Email logged, auto-response disabled' };
+    }
+    
+    // Set up the LangChain agent
+    console.log('[GMAIL REPLY] Initializing LangChain agent...');
+    
+    const model = new ChatOpenAI({
+      temperature: 0.1,
+      modelName: "gpt-4o-mini",
+      openAIApiKey: process.env.OPENAI_API_KEY
+    });
+    
+    const tools = [
+      getConversationTool,
+      sendEmailTool,
+      getAvailabilityTool,
+      researchCompanyTool,
+      searchInternetTool,
+      getBusinessHoursTool
+    ];
+    
+    // Get user timezone
+    const userSettings = await getUserSettings(extractedUserId || userId);
+    const userTimezone = userSettings?.timezone || 'America/Los_Angeles';
+    
+    // Get AI personality
+    const aiPersonality = agentSettings?.aiPersonality || 'Professional';
+    
+    // Build personality-specific system prompt
+    let personalityTraits = '';
+    let toneGuidance = '';
+    
+    switch (aiPersonality) {
+      case 'Professional':
+        personalityTraits = 'You are professional, polished, and business-focused';
+        toneGuidance = 'Use formal language, clear structure, and maintain a respectful, corporate tone';
+        break;
+      case 'Friendly':
+        personalityTraits = 'You are warm, approachable, and personable';
+        toneGuidance = 'Use conversational language, show enthusiasm, and build rapport naturally';
+        break;
+      case 'Casual':
+        personalityTraits = 'You are relaxed, informal, and down-to-earth';
+        toneGuidance = 'Use simple language, short sentences, and a conversational style';
+        break;
+      case 'Formal':
+        personalityTraits = 'You are highly formal, precise, and diplomatic';
+        toneGuidance = 'Use sophisticated vocabulary, complex sentences, and maintain strict professionalism';
+        break;
+      default:
+        personalityTraits = 'You are professional and courteous';
+        toneGuidance = 'Use clear, respectful language';
+    }
+    
+    const prompt = ChatPromptTemplate.fromMessages([
+      ["system", `You are an AI sales assistant helping to manage email conversations with potential leads.
+${personalityTraits}. ${toneGuidance}.
+
+Your timezone is ${userTimezone} (UTC${getTimezoneOffset(userTimezone)}).
+
+IMPORTANT INSTRUCTIONS:
+1. ALWAYS check conversation history FIRST using get_conversation_history
+2. Read their message carefully and understand the context
+3. If they're asking about availability or meetings:
+   - Use get_business_hours to see when you're available
+   - Use get_availability to check specific dates/times
+   - Suggest 2-3 specific time options if they haven't proposed times
+4. Keep responses concise (2-3 paragraphs max)
+5. End with a clear call-to-action or question
+6. Use send_email_reply to send your response
+7. If you need to research their company, use research_company
+8. For general questions, use search_internet
+
+MEETING SCHEDULING RULES:
+- Only suggest times during business hours (9 AM - 5 PM in your timezone)
+- When proposing times, give specific dates and times (e.g., "Tuesday, March 15th at 2:00 PM ${userTimezone}")
+- If they propose a time outside business hours, politely suggest an alternative
+- Always confirm timezone when scheduling
+
+Remember: You represent the user professionally. Be helpful, responsive, and clear in all communications.`],
+      ["human", "{input}"],
+      new MessagesPlaceholder("agent_scratchpad")
+    ]);
+    
+    const agent = await createOpenAIFunctionsAgent({
+      llm: model,
+      tools,
+      prompt
+    });
+    
+    const agentExecutor = new AgentExecutor({
+      agent,
+      tools,
+      verbose: true,
+      maxIterations: 10
+    });
+    
+    // Prepare input for agent
+    const agentInput = `You received an email from Gmail:
+
+From: ${message.from}
+Subject: ${message.subject}
+Message:
+${message.body}
+
+Tracking ID: ${trackingId}
+In-Reply-To: ${message.inReplyTo || 'N/A'}
+
+Analyze this email and respond appropriately. First check the conversation history, then respond using send_email_reply.`;
+    
+    console.log('[GMAIL REPLY] Executing agent...');
+    
+    // Execute agent
+    const agentResponse = await agentExecutor.invoke({
+      input: agentInput
+    });
+    
+    console.log('[GMAIL REPLY] Agent processing completed successfully');
+    
+    return {
+      success: true,
+      processed: true,
+      tracking_id: trackingId,
+      agent_response: agentResponse.output || 'Agent executed successfully'
+    };
+    
+  } catch (error) {
+    console.error('[GMAIL REPLY] Error processing Gmail reply:', error);
+    console.error('[GMAIL REPLY] Error stack:', error.stack);
+    throw error;
+  }
+}
+
 export default router;

@@ -333,6 +333,69 @@ class GmailManager {
   }
 
   /**
+   * Get full message details by message ID
+   */
+  async getMessage(userId, messageId) {
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      if (!userSettings?.gmailAuth?.refreshToken) {
+        throw new Error('No Gmail refresh token found');
+      }
+
+      this.oauth2Client.setCredentials({
+        refresh_token: userSettings.gmailAuth.refreshToken
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+      const response = await gmail.users.messages.get({
+        userId: 'me',
+        id: messageId,
+        format: 'full'
+      });
+
+      const message = response.data;
+      const headers = {};
+      
+      // Parse headers
+      if (message.payload?.headers) {
+        message.payload.headers.forEach(header => {
+          headers[header.name.toLowerCase()] = header.value;
+        });
+      }
+
+      // Extract body
+      let body = '';
+      if (message.payload?.parts) {
+        // Multipart message
+        const textPart = message.payload.parts.find(part => part.mimeType === 'text/plain');
+        if (textPart?.body?.data) {
+          body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+        }
+      } else if (message.payload?.body?.data) {
+        // Simple message
+        body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
+      }
+
+      return {
+        id: message.id,
+        threadId: message.threadId,
+        from: headers['from'] || '',
+        to: headers['to'] || '',
+        subject: headers['subject'] || '',
+        body: body,
+        messageId: headers['message-id'] || '',
+        inReplyTo: headers['in-reply-to'] || '',
+        references: headers['references'] || '',
+        date: headers['date'] || ''
+      };
+    } catch (error) {
+      console.error('❌ [GMAIL] Error getting message:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Revoke a specific refresh token
    */
   async revokeToken(refreshToken) {

@@ -204,6 +204,27 @@ class AWSManager {
       throw error;
     }
   }
+
+  async getAllUsersWithGmail() {
+    try {
+      console.log('📋 [AWS] Getting all users with Gmail configured');
+      
+      // Scan user settings table for users with Gmail auth
+      const params = {
+        TableName: this.tables.userSettings,
+        FilterExpression: 'attribute_exists(gmailAuth.refreshToken)'
+      };
+      
+      const result = await this.dynamodb.send(new ScanCommand(params));
+      const users = result.Items || [];
+      
+      console.log(`✅ [AWS] Found ${users.length} user(s) with Gmail configured`);
+      return users;
+    } catch (error) {
+      console.error('❌ [AWS] Error getting users with Gmail:', error);
+      throw error;
+    }
+  }
   
   async createUser(userData) {
     try {

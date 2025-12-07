@@ -559,7 +559,7 @@ function validateDeploymentMode() {
 validateDeploymentMode();
 
 const PORT = process.env.PORT || process.env.API_PORT || 8080;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`🚀 Server is live on port ${PORT} (${DEPLOYMENT_MODE.toUpperCase()} mode)`);
   logger.info(`Meridian server started on port ${PORT}`, {
     environment: process.env.NODE_ENV || 'development',
@@ -569,11 +569,30 @@ const server = app.listen(PORT, () => {
   
   // Start grace period checker (hourly checks for suspensions/warnings)
   startGracePeriodChecker();
+  
+  // Start Gmail reply polling (every 40 seconds)
+  try {
+    const { gmailReplyPoller } = await import('./utils/gmailReplyPoller.js');
+    gmailReplyPoller.start();
+    console.log('✅ [GMAIL POLLER] Started - checking for replies every 40 seconds');
+  } catch (error) {
+    console.error('❌ [GMAIL POLLER] Failed to start:', error.message);
+  }
 });
 
 // Graceful shutdown handling
 function gracefulShutdown(signal) {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
+  
+  // Stop Gmail poller
+  try {
+    import('./utils/gmailReplyPoller.js').then(({ gmailReplyPoller }) => {
+      gmailReplyPoller.stop();
+      console.log('✅ [GMAIL POLLER] Stopped');
+    });
+  } catch (error) {
+    // Ignore if not started
+  }
   
   server.close((err) => {
     if (err) {

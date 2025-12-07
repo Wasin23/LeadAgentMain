@@ -8,6 +8,9 @@ const router = express.Router();
 const awsManager = new AWSManager();
 const awsQueue = new AWSEmailQueue();
 
+// Track which tracking IDs have seen proxy requests (to allow real opens after)
+const proxySeenCache = new Map(); // trackingId -> timestamp
+
 // Tracking pixel endpoint (1x1 transparent PNG)
 router.get('/pixel/:trackingId.png', async (req, res) => {
   const { trackingId } = req.params;
@@ -28,8 +31,24 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     userAgent.includes('Thunderbird') ||
     userAgent.includes('via ggpht.com');
   
+  // Check if we've already seen a proxy request for this tracking ID
+  const hasSeenProxy = proxySeenCache.has(trackingId);
+  
   if (isImageProxy) {
-    console.log('🤖 [TRACKING PIXEL] Image proxy detected - not recording as open');
+    // Mark that we've seen the proxy for this tracking ID
+    proxySeenCache.set(trackingId, Date.now());
+    
+    // Clean up old entries (keep last 1000, older than 24 hours)
+    if (proxySeenCache.size > 1000) {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      for (const [id, timestamp] of proxySeenCache.entries()) {
+        if (timestamp < oneDayAgo) {
+          proxySeenCache.delete(id);
+        }
+      }
+    }
+    
+    console.log('🤖 [TRACKING PIXEL] Image proxy detected - not recording as open (waiting for real browser)');
     // Return pixel immediately without recording
     const pixel = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -46,6 +65,9 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     
     return res.send(pixel);
   }
+  
+  // This is a real browser request (not a proxy)
+  console.log('✅ [TRACKING PIXEL] Real browser detected - recording as open');
   
   // Record the open in old desktop tracker (for backwards compatibility)
   await desktopEmailTracker.recordOpen(trackingId, userAgent, ip);
