@@ -2680,13 +2680,13 @@ class AWSManager {
   
   async getEmailTrackingByTracking(trackingId) {
     try {
-      const command = new QueryCommand({
+      // Use Scan instead of Query since table schema uses PK/SK, not trackingId as key
+      const command = new ScanCommand({
         TableName: this.tables.emailTracking,
-        KeyConditionExpression: 'PK = :pk',
+        FilterExpression: 'trackingId = :trackingId',
         ExpressionAttributeValues: {
-          ':pk': `TRACKING#${trackingId}`
-        },
-        ScanIndexForward: true // Ascending order by SK (timestamp)
+          ':trackingId': trackingId
+        }
       });
       
       const result = await this.dynamodb.send(command);
