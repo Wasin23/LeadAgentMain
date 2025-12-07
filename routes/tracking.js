@@ -25,7 +25,13 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     const agentId = trackingId.split('_')[1]; // Extract agentId
     
     // Check if this is the first hit (proxy hit) - if so, skip recording
-    const existingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
+    let existingEvents = [];
+    try {
+      existingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
+    } catch (queryError) {
+      console.error('⚠️ [TRACKING PIXEL] Error querying existing events, assuming first hit:', queryError.message);
+    }
+    
     const hasBeenOpenedBefore = existingEvents.some(e => e.eventType === 'open');
     
     if (!hasBeenOpenedBefore) {
