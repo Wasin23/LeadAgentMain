@@ -1,9 +1,7 @@
 import { sendEmailMailgun } from './emailMailgun.js';
 import AWSManager from '../utils/awsManager.js';
-import GmailManager from '../utils/gmailManager.js';
 
 const awsManager = new AWSManager();
-const gmailManager = new GmailManager();
 
 /**
  * Fix UTF-8 encoding issues in text
@@ -49,22 +47,21 @@ function fixEncoding(text) {
 
 /**
  * Dedicated email tool for Lead Contact Agent
- * Handles email sending specifically for automated lead outreach
- * Prioritizes Gmail OAuth when available, falls back to Mailgun
+ * Sends emails via Mailgun with tracking enabled
  */
 export async function leadEmail(to, subject, body, personInfo = null, userId = null, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
   // Fix encoding issues in subject and body
   subject = fixEncoding(subject);
   body = fixEncoding(body);
   
-  console.log('[LEAD EMAIL] Sending email via dedicated lead email tool');
+  console.log('[LEAD EMAIL] Sending email via Mailgun');
   console.log('[LEAD EMAIL] To:', to);
   console.log('[LEAD EMAIL] Subject:', subject);
   console.log('[LEAD EMAIL] Body length:', body?.length || 0);
   console.log('[LEAD EMAIL] Person Info:', personInfo ? `${personInfo.fullName} (${personInfo.currentPosition})` : 'Not provided');
   console.log('[LEAD EMAIL] CC:', ccEmails || 'None');
   console.log('[LEAD EMAIL] BCC:', bccEmails || 'None');
-  console.log('[LEAD EMAIL] Sender Name:', senderName || 'Default (Meridian)');
+  console.log('[LEAD EMAIL] Sender Name:', senderName || 'Default');
   
   if (!to || !subject || !body) {
     const error = 'Missing required fields: to, subject, or body';
@@ -72,7 +69,7 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
     return { success: false, error };
   }
   
-  // Check if email is unsubscribed (skip if table doesn't exist)
+  // Check if email is unsubscribed
   try {
     const isUnsubscribed = await awsManager.isUnsubscribed(to);
     if (isUnsubscribed) {
@@ -85,7 +82,6 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
       };
     }
   } catch (unsubError) {
-    // If table doesn't exist, just proceed with sending
     if (unsubError.name === 'ResourceNotFoundException') {
       console.log('[LEAD EMAIL] Unsubscribe table not found, proceeding with send');
     } else {
@@ -94,52 +90,24 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
   }
   
   try {
-    // Try Gmail first if user has it connected
-    if (userId) {
+    // Get company profile for sender name
+    let fromName = senderName;
+    if (!fromName && userId) {
       try {
-        console.log('[LEAD EMAIL] Attempting to send via Gmail OAuth...');
-        
-        // Prepare HTML body
-        let htmlBody = body;
-        if (!body.includes('<html>') && !body.includes('<body>') && !body.includes('<p>')) {
-          htmlBody = `<html><body><p>${body.replace(/\n/g, '<br>')}</p></body></html>`;
-        } else {
-          htmlBody = body.replace(/\n/g, '<br>');
+        const userSettings = await awsManager.getUserSettings(userId);
+        const companyProfile = userSettings?.companyProfile;
+        if (companyProfile?.companyName) {
+          fromName = companyProfile.companyName;
+          console.log('[LEAD EMAIL] Using company name as sender:', fromName);
         }
-        
-        const gmailResult = await gmailManager.sendEmail({
-          userId,
-          to,
-          subject,
-          htmlBody: htmlBody,
-          textBody: body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
-          ccEmails,
-          bccEmails,
-          replyTo: null,
-          agentId: agentId, // Pass agentId for tracking
-          enableTracking: true // Enable open/reply tracking
-        });
-        
-        if (gmailResult.success) {
-          console.log('[LEAD EMAIL] ✅ Email sent successfully via Gmail OAuth from:', gmailResult.fromAccount);
-          return { 
-            success: true, 
-            result: { 
-              ...gmailResult, 
-              mailgunId: gmailResult.messageId,
-              fromAccount: gmailResult.fromAccount 
-            }, 
-            method: 'gmail' 
-          };
-        }
-      } catch (gmailError) {
-        console.warn('[LEAD EMAIL] Gmail send failed, falling back to Mailgun:', gmailError.message);
+      } catch (error) {
+        console.warn('[LEAD EMAIL] Could not fetch company profile:', error.message);
       }
     }
     
-    // Fallback to Mailgun with tracking
-    console.log('[LEAD EMAIL] Sending via Mailgun fallback...');
-    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId, ccEmails, bccEmails, senderName);
+    // Send via Mailgun with tracking
+    console.log('[LEAD EMAIL] Sending via Mailgun...');
+    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId, ccEmails, bccEmails, fromName);
     console.log('[LEAD EMAIL] Mailgun result:', result);
     
     if (result.success) {

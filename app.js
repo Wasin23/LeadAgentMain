@@ -496,15 +496,7 @@ app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conver
 // Webhook routes for email response agent (replaces Netlify function)
 app.use('/api/webhooks', webhooksReplyRoutes); // Mailgun email response webhooks
 
-// Gmail Pub/Sub push notification webhooks
-let gmailPubSubRoutes;
-try {
-  gmailPubSubRoutes = (await import('./routes/gmail-pubsub.js')).default;
-  app.use('/api/gmail-pubsub', gmailPubSubRoutes);
-  console.log('[APP] Gmail Pub/Sub routes loaded successfully');
-} catch (error) {
-  console.warn('[WARNING] Gmail Pub/Sub routes not available:', error.message);
-}
+// Gmail Pub/Sub removed - using Mailgun webhooks only
 
 // Admin routes
 let adminRoutes;
@@ -582,42 +574,10 @@ const server = app.listen(PORT, async () => {
   
   // Start Gmail watch auto-renewal (runs daily)
   try {
-    const { gmailWatchRenewer } = await import('./utils/gmailWatchRenewer.js');
-    gmailWatchRenewer.start();
-    console.log('✅ [GMAIL WATCH] Auto-renewal service started');
+    console.log('✅ [EMAIL] Using Mailgun webhooks for reply detection');
   } catch (error) {
-    console.error('❌ [GMAIL WATCH] Failed to start auto-renewal:', error.message);
+    console.error('❌ [EMAIL] Failed to initialize email system:', error.message);
   }
-  
-  // Set up Gmail watches for users with auto-response enabled
-  try {
-    const AWSManager = (await import('./utils/awsManager.js')).default;
-    const GmailManager = (await import('./utils/gmailManager.js')).default;
-    const awsManager = new AWSManager();
-    const gmailManager = new GmailManager();
-    
-    const users = await awsManager.getAllUsersWithGmail();
-    console.log(`🔍 [GMAIL WATCH] Checking ${users.length} users with Gmail connected`);
-    
-    for (const user of users) {
-      try {
-        const settings = await awsManager.getUserSettings(user.userId);
-        const hasAutoResponseEnabled = settings?.settingsPresets?.some(p => p.enableAutoResponse);
-        
-        if (hasAutoResponseEnabled) {
-          console.log(`✅ [GMAIL WATCH] Setting up watch for user ${user.userId} (auto-response enabled)`);
-          await gmailManager.setupPushNotifications(user.userId);
-        }
-      } catch (error) {
-        console.error(`⚠️ [GMAIL WATCH] Failed to setup watch for user ${user.userId}:`, error.message);
-      }
-    }
-  } catch (error) {
-    console.error('❌ [GMAIL WATCH] Failed to setup watches on startup:', error.message);
-  }
-  
-  // Gmail reply polling disabled - using Pub/Sub instead
-  // TODO: Implement webhook-based reply detection or user-initiated manual sync
 });
 
 // Graceful shutdown handling
