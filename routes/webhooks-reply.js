@@ -521,6 +521,8 @@ const sendEmailTool = new DynamicStructuredTool({
         subject,
         to,
         body,
+        content: body,
+        messagePreview: body?.substring(0, 200),
         messageId,
         mailgunId: result.id
       });
@@ -682,6 +684,7 @@ router.post('/mailgun-reply', async (req, res) => {
       to: emailData.to,
       subject: emailData.subject,
       content: emailData.body,
+      messagePreview: emailData.body?.substring(0, 200),
       messageId: inboundMessageId
     });
     

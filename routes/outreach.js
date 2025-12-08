@@ -261,10 +261,17 @@ router.get('/conversations', async (req, res) => {
       }
     });
 
+    console.log(`💬 [OUTREACH-CONVERSATIONS] Grouped into ${Object.keys(conversationMap).length} conversations`);
+    
     // Convert to array and filter conversations with replies
-    const conversations = Object.values(conversationMap)
+    const allConversations = Object.values(conversationMap);
+    console.log(`💬 [OUTREACH-CONVERSATIONS] Sample conversation:`, JSON.stringify(allConversations[0], null, 2));
+    
+    const conversations = allConversations
       .filter(conv => conv.messages.some(m => m.type === 'reply' || m.type === 'ai_response'))
       .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
+
+    console.log(`💬 [OUTREACH-CONVERSATIONS] After filtering: ${conversations.length} conversations with replies`);
 
     // Load AI control state for each conversation (default to enabled)
     for (const conv of conversations) {
@@ -471,8 +478,8 @@ router.get('/viewed', async (req, res) => {
         }
       }
       
-      // Track replies
-      if (event.eventType === 'reply' && openedEmailsMap[trackingId]) {
+      // Track replies (check both 'reply' and 'lead_message' event types)
+      if ((event.eventType === 'reply' || event.eventType === 'lead_message') && openedEmailsMap[trackingId]) {
         openedEmailsMap[trackingId].replied = true;
       }
     });
