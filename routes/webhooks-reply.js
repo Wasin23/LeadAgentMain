@@ -716,16 +716,16 @@ router.post('/mailgun-reply', async (req, res) => {
       });
     }
 
-    // Check if AI is paused for this specific conversation
-    const aiEnabled = await awsManager.getConversationAIControl(userId, agentId, trackingId);
-    if (!aiEnabled) {
-      console.log(`[WEBHOOK] AI auto-response is PAUSED for conversation ${trackingId}`);
-      return res.json({ 
-        success: true, 
-        processed: false, 
-        reason: 'AI paused for this conversation'
-      });
-    }
+    // TODO: Re-enable conversation-level AI control after fixing DynamoDB schema
+    // const aiEnabled = await awsManager.getConversationAIControl(userId, agentId, trackingId);
+    // if (!aiEnabled) {
+    //   console.log(`[WEBHOOK] AI auto-response is PAUSED for conversation ${trackingId}`);
+    //   return res.json({ 
+    //     success: true, 
+    //     processed: false, 
+    //     reason: 'AI paused for this conversation'
+    //   });
+    // }
     
     // Set up the LangChain agent
     console.log('[WEBHOOK] Initializing LangChain agent...');
@@ -871,11 +871,12 @@ This is mandatory - complete both steps.`;
     
     console.log('[WEBHOOK] Executing agent...');
     
-    // Execute agent
-    const agentResponse = await agentExecutor.invoke({
+    // Execute agent - use call() to ensure tools are executed
+    const agentResponse = await agentExecutor.call({
       input: agentInput
     });
     
+    console.log('[WEBHOOK] Agent response:', agentResponse);
     console.log('[WEBHOOK] Agent processing completed successfully');
     
     return res.json({
@@ -1089,11 +1090,12 @@ This is mandatory - complete both steps.`;
     
     console.log('[GMAIL REPLY] Executing agent...');
     
-    // Execute agent
-    const agentResponse = await agentExecutor.invoke({
+    // Execute agent - use call() to ensure tools are executed
+    const agentResponse = await agentExecutor.call({
       input: agentInput
     });
     
+    console.log('[GMAIL REPLY] Agent response:', agentResponse);
     console.log('[GMAIL REPLY] Agent processing completed successfully');
     
     return {
