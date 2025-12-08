@@ -236,7 +236,7 @@ router.get('/conversations', async (req, res) => {
           content: event.messagePreview || event.content || 'Email sent',
           timestamp: event.timestamp
         });
-      } else if (event.eventType === 'reply') {
+      } else if (event.eventType === 'reply' || event.eventType === 'lead_message') {
         conv.messageCount++;
         conv.status = 'awaiting_ai';
         conv.messages.push({
@@ -244,12 +244,12 @@ router.get('/conversations', async (req, res) => {
           content: event.messagePreview || event.content || 'Lead replied',
           timestamp: event.timestamp
         });
-      } else if (event.eventType === 'ai_response') {
+      } else if (event.eventType === 'ai_response' || event.eventType === 'ai_reply') {
         conv.messageCount++;
         conv.status = 'ai_responded';
         conv.messages.push({
           type: 'ai_response',
-          content: event.aiResponsePreview || event.content || 'AI responded',
+          content: event.aiResponsePreview || event.content || event.messagePreview || 'AI responded',
           timestamp: event.timestamp
         });
       } else if (event.eventType === 'meeting_booked') {
@@ -266,9 +266,14 @@ router.get('/conversations', async (req, res) => {
       .filter(conv => conv.messages.some(m => m.type === 'reply' || m.type === 'ai_response'))
       .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
 
-    // Load AI control state for each conversation
+    // Load AI control state for each conversation (default to enabled)
     for (const conv of conversations) {
-      conv.aiEnabled = await awsManager.getConversationAIControl(userId, agentId, conv.trackingId);
+      try {
+        conv.aiEnabled = await awsManager.getConversationAIControl(userId, agentId, conv.trackingId);
+      } catch (error) {
+        console.log(`⚠️ [OUTREACH-CONVERSATIONS] Could not get AI control for ${conv.trackingId}, defaulting to enabled`);
+        conv.aiEnabled = true; // Default to enabled
+      }
     }
 
     console.log(`✅ [OUTREACH-CONVERSATIONS] Processed ${conversations.length} conversations with replies`);
