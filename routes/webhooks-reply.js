@@ -164,7 +164,7 @@ async function getAgentPersonality(userId, agentId) {
       };
     }
 
-    const settings = await awsManager.getAgentSettings(agentId);
+    const settings = await awsManager.getAgentSettings(userId, agentId);
     if (settings?.personality) {
       return {
         emailPrompt: settings.personality.emailPrompt || 'Write professional email responses.',
@@ -847,7 +847,8 @@ Remember: You ARE ${personality.name}. Every email should sound like YOU, not a 
       agent,
       tools,
       verbose: true,
-      maxIterations: 10
+      maxIterations: 10,
+      returnIntermediateSteps: true
     });
     
     // Prepare input for agent
@@ -1064,7 +1065,8 @@ Remember: You represent the user professionally. Be helpful, responsive, and cle
       agent,
       tools,
       verbose: true,
-      maxIterations: 10
+      maxIterations: 10,
+      returnIntermediateSteps: true
     });
     
     // Prepare input for agent

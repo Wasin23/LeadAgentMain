@@ -2801,14 +2801,12 @@ class AWSManager {
   async setConversationAIControl(userId, agentId, conversationId, enabled) {
     try {
       const command = new PutCommand({
-        TableName: this.tables.agentSettings,
+        TableName: this.tables.agentState,
         Item: {
-          PK: `USER#${userId}#AGENT#${agentId}`,
-          SK: `AI_CONTROL#${conversationId}`,
           userId,
-          agentId,
-          conversationId,
+          agentId: `AI_CONTROL#${conversationId}`,
           aiEnabled: enabled,
+          conversationId,
           timestamp: new Date().toISOString()
         }
       });
@@ -2826,10 +2824,10 @@ class AWSManager {
   async getConversationAIControl(userId, agentId, conversationId) {
     try {
       const command = new GetCommand({
-        TableName: this.tables.agentSettings,
+        TableName: this.tables.agentState,
         Key: {
-          PK: `USER#${userId}#AGENT#${agentId}`,
-          SK: `AI_CONTROL#${conversationId}`
+          userId,
+          agentId: `AI_CONTROL#${conversationId}`
         }
       });
 
