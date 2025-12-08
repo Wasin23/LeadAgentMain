@@ -2796,6 +2796,53 @@ class AWSManager {
       return { success: false, error: error.message };
     }
   }
+
+  // Set AI control state for a specific conversation
+  async setConversationAIControl(userId, agentId, conversationId, enabled) {
+    try {
+      const command = new PutCommand({
+        TableName: this.tables.agentSettings,
+        Item: {
+          PK: `USER#${userId}#AGENT#${agentId}`,
+          SK: `AI_CONTROL#${conversationId}`,
+          userId,
+          agentId,
+          conversationId,
+          aiEnabled: enabled,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      await this.dynamodb.send(command);
+      console.log(`✅ [AWS] AI control set for conversation ${conversationId}: ${enabled ? 'ENABLED' : 'PAUSED'}`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [AWS] Error setting AI control:', error);
+      throw error;
+    }
+  }
+
+  // Get AI control state for a specific conversation
+  async getConversationAIControl(userId, agentId, conversationId) {
+    try {
+      const command = new GetCommand({
+        TableName: this.tables.agentSettings,
+        Key: {
+          PK: `USER#${userId}#AGENT#${agentId}`,
+          SK: `AI_CONTROL#${conversationId}`
+        }
+      });
+
+      const result = await this.dynamodb.send(command);
+      if (result.Item) {
+        return result.Item.aiEnabled !== false; // Default to enabled if not found
+      }
+      return true; // Default to enabled
+    } catch (error) {
+      console.error('❌ [AWS] Error getting AI control:', error);
+      return true; // Default to enabled on error
+    }
+  }
 }
 
 export default AWSManager;

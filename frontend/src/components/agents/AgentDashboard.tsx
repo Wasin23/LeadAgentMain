@@ -847,7 +847,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       const convResponse = await api.get(`/api/outreach/conversations?agentId=${agentId}&timeRange=7d`).catch(() => null);
       if (convResponse?.data?.success) {
-        setAgentConversations(convResponse.data.conversations || []);
+        const conversations = convResponse.data.conversations || [];
+        setAgentConversations(conversations);
+        
+        // Initialize AI control state from server data
+        const controlState: Record<string, boolean> = {};
+        conversations.forEach((conv: any) => {
+          controlState[conv.trackingId] = conv.aiEnabled !== false;
+        });
+        setAiResponseControl(controlState);
+        console.log(`🤖 [AI-CONTROL] Loaded AI control state for ${conversations.length} conversations`);
       }
     } catch (error) {
       console.error('Failed to fetch agent outreach:', error);
@@ -1542,6 +1551,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   // Toggle AI response for a conversation
   const toggleAIResponse = async (conversationId: string, enabled: boolean) => {
+    // Optimistically update UI
     setAiResponseControl(prev => ({ ...prev, [conversationId]: !enabled }));
     
     try {
@@ -1550,10 +1560,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         enabled: !enabled,
         agentId
       });
+      console.log(`✅ [AI-CONTROL] AI ${!enabled ? 'enabled' : 'paused'} for conversation ${conversationId}`);
+      
+      // Reload conversations to get updated state
+      await fetchAgentOutreach();
     } catch (error) {
       console.error('Failed to toggle AI response:', error);
       // Revert on error
       setAiResponseControl(prev => ({ ...prev, [conversationId]: enabled }));
+      showNotification('Failed to toggle AI response', 'error');
     }
   };
 
@@ -2016,7 +2031,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       const settings = currentSettings?.data?.settings || {};
                       
                       // Update with new value
-                      await api.post('/api/lead-agent/settings', {
+                      const response = await api.post('/api/lead-agent/settings', {
                         ...settings,
                         agentId,
                         emailBuilder: { 
@@ -2024,9 +2039,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           enableAutoResponse: newValue 
                         }
                       });
+                      
+                      console.log('[TOGGLE] AI Auto-Response API response:', response.data);
+                      
+                      // Reload settings to confirm
+                      await fetchOutreachSettings();
                       showNotification(`AI Auto-Response ${newValue ? 'enabled' : 'disabled'}`, 'success');
                     } catch (error) {
-                      console.error('Failed to update setting:', error);
+                      console.error('Failed to update AI Auto-Response setting:', error);
                       showNotification('Failed to update setting', 'error');
                       setOutreachSettings((prev: any) => ({ ...prev, aiResponseEnabled: !newValue }));
                     }
@@ -2061,7 +2081,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       const settings = currentSettings?.data?.settings || {};
                       
                       // Update with new value
-                      await api.post('/api/lead-agent/settings', {
+                      const response = await api.post('/api/lead-agent/settings', {
                         ...settings,
                         agentId,
                         emailBuilder: { 
@@ -2069,9 +2089,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           rebumpEnabled: newValue 
                         }
                       });
+                      
+                      console.log('[TOGGLE] Auto-Rebump API response:', response.data);
+                      
+                      // Reload settings to confirm
+                      await fetchOutreachSettings();
                       showNotification(`Auto-Rebump ${newValue ? 'enabled' : 'disabled'}`, 'success');
                     } catch (error) {
-                      console.error('Failed to update setting:', error);
+                      console.error('Failed to update Auto-Rebump setting:', error);
                       showNotification('Failed to update setting', 'error');
                       setOutreachSettings((prev: any) => ({ ...prev, rebumpEnabled: !newValue }));
                     }

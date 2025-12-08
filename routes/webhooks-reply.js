@@ -708,10 +708,22 @@ router.post('/mailgun-reply', async (req, res) => {
     const agentSettings = await getAgentSettings(userId, agentId);
     
     if (agentSettings?.emailBuilder?.enableAutoResponse === false) {
-      console.log('[WEBHOOK] Auto-response is DISABLED for this agent, skipping AI response');
-      return res.json({
-        success: true,
-        message: 'Email logged, auto-response disabled'
+      console.log('[WEBHOOK] Auto-response is disabled globally for this agent');
+      return res.json({ 
+        success: true, 
+        processed: false, 
+        reason: 'Auto-response disabled globally'
+      });
+    }
+
+    // Check if AI is paused for this specific conversation
+    const aiEnabled = await awsManager.getConversationAIControl(userId, agentId, trackingId);
+    if (!aiEnabled) {
+      console.log(`[WEBHOOK] AI auto-response is PAUSED for conversation ${trackingId}`);
+      return res.json({ 
+        success: true, 
+        processed: false, 
+        reason: 'AI paused for this conversation'
       });
     }
     
@@ -821,8 +833,8 @@ Remember: You ARE ${personality.name}. Every email should sound like YOU, not a 
 
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", systemPrompt],
-      new MessagesPlaceholder("agent_scratchpad"),
-      ["human", "{input}"]
+      ["human", "{input}"],
+      new MessagesPlaceholder("agent_scratchpad")
     ]);
     
     const agent = await createOpenAIFunctionsAgent({

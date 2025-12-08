@@ -266,6 +266,11 @@ router.get('/conversations', async (req, res) => {
       .filter(conv => conv.messages.some(m => m.type === 'reply' || m.type === 'ai_response'))
       .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
 
+    // Load AI control state for each conversation
+    for (const conv of conversations) {
+      conv.aiEnabled = await awsManager.getConversationAIControl(userId, agentId, conv.trackingId);
+    }
+
     console.log(`✅ [OUTREACH-CONVERSATIONS] Processed ${conversations.length} conversations with replies`);
 
     res.json({
@@ -274,6 +279,35 @@ router.get('/conversations', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [OUTREACH-CONVERSATIONS] Error fetching conversations:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Control AI auto-response for specific conversation
+router.post('/control-ai', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { conversationId, enabled, agentId } = req.body;
+
+    console.log(`🤖 [AI-CONTROL] Setting AI for conversation ${conversationId} to ${enabled ? 'ENABLED' : 'PAUSED'}`);
+
+    if (!conversationId || !agentId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'conversationId and agentId are required' 
+      });
+    }
+
+    // Store AI control state in DynamoDB
+    await awsManager.setConversationAIControl(userId, agentId, conversationId, enabled);
+
+    res.json({
+      success: true,
+      conversationId,
+      aiEnabled: enabled
+    });
+  } catch (error) {
+    console.error('❌ [AI-CONTROL] Error controlling AI:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
