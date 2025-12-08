@@ -124,8 +124,8 @@ async function getAgentSettings(userId, agentId) {
   try {
     if (!userId || !agentId) return null;
     
-    const settings = await awsManager.getAgentSettings(agentId);
-    if (settings && settings.userId === userId) {
+    const settings = await awsManager.getAgentSettings(userId, agentId);
+    if (settings) {
       console.log('[AWS] Found agent settings:', { agentId, enableAutoResponse: settings.emailBuilder?.enableAutoResponse });
       return settings;
     }
