@@ -86,8 +86,31 @@ router.get('/track/open/:trackingId', async (req, res) => {
         const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
         const agentId = parts[1]; // Extract agentId
         
+        // Get email details from queue to enrich tracking event
+        let recipientEmail = null;
+        let leadName = null;
+        let subject = null;
+        try {
+          const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+          const emailData = sentEmails.find(e => e.trackingId === trackingId);
+          if (emailData) {
+            recipientEmail = emailData.to;
+            leadName = emailData.leadName || 
+                       emailData.personInfo?.fullName || 
+                       emailData.personInfo?.name || 
+                       (emailData.to ? emailData.to.split('@')[0] : null);
+            subject = emailData.subject || emailData.emailSubject;
+            console.log(`[EMAIL TRACKING] Enriched event: to=${recipientEmail}, leadName=${leadName}, subject=${subject}`);
+          }
+        } catch (err) {
+          console.error('[EMAIL TRACKING] Error fetching email details:', err);
+        }
+        
         await awsManager.logEmailTracking(userId, agentId, trackingId, {
           eventType: 'open',
+          recipientEmail,
+          leadName,
+          subject,
           ipAddress: req.ip,
           userAgent: userAgent,
           timestamp: new Date().toISOString()
@@ -100,6 +123,9 @@ router.get('/track/open/:trackingId', async (req, res) => {
             type: 'tracking_update',
             trackingId: trackingId,
             eventType: 'open',
+            recipientEmail,
+            leadName,
+            subject,
             timestamp: new Date().toISOString()
           });
           console.log('[EMAIL TRACKING] ✅ SSE broadcast sent for open event');
@@ -155,9 +181,32 @@ router.get('/track/click/:trackingId', async (req, res) => {
       const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
       const agentId = parts[1]; // Extract agentId
       
+      // Get email details from queue to enrich tracking event
+      let recipientEmail = null;
+      let leadName = null;
+      let subject = null;
+      try {
+        const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+        const emailData = sentEmails.find(e => e.trackingId === trackingId);
+        if (emailData) {
+          recipientEmail = emailData.to;
+          leadName = emailData.leadName || 
+                     emailData.personInfo?.fullName || 
+                     emailData.personInfo?.name || 
+                     (emailData.to ? emailData.to.split('@')[0] : null);
+          subject = emailData.subject || emailData.emailSubject;
+          console.log(`[EMAIL TRACKING] Enriched click event: to=${recipientEmail}, leadName=${leadName}, subject=${subject}`);
+        }
+      } catch (err) {
+        console.error('[EMAIL TRACKING] Error fetching email details:', err);
+      }
+      
       await awsManager.logEmailTracking(userId, agentId, trackingId, {
         eventType: 'click',
         url: url,
+        recipientEmail,
+        leadName,
+        subject,
         timestamp: new Date().toISOString()
       });
       
@@ -169,6 +218,9 @@ router.get('/track/click/:trackingId', async (req, res) => {
           trackingId: trackingId,
           eventType: 'click',
           url: url,
+          recipientEmail,
+          leadName,
+          subject,
           timestamp: new Date().toISOString()
         });
         console.log('[EMAIL TRACKING] ✅ SSE broadcast sent for click event');
