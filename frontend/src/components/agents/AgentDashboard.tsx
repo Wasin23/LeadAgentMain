@@ -1825,38 +1825,75 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <p className="text-xs mt-1">Try adjusting your filters</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {filteredConversations.map((conv, idx) => (
                     <motion.div
                       key={idx}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.02 }}
-                      onClick={() => setSelectedConversation(conv)}
-                      className={`p-3 border ${colors.border} rounded-lg hover:${colors.borderHover} cursor-pointer transition-all bg-white`}
+                      className={`border ${colors.border} rounded-lg bg-white overflow-hidden`}
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-neutral-900 truncate">{conv.leadName}</div>
-                          <div className="text-xs text-neutral-600 truncate">{conv.leadEmail}</div>
-                          {conv.company && (
-                            <div className="text-xs text-neutral-500 truncate mt-0.5">{conv.company}</div>
+                      {/* Conversation Header */}
+                      <div 
+                        onClick={() => setSelectedConversation(conv)}
+                        className={`p-3 cursor-pointer hover:bg-neutral-50 transition-all border-b ${colors.border}`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-neutral-900 truncate">{conv.leadName}</div>
+                            <div className="text-xs text-neutral-600 truncate">{conv.leadEmail}</div>
+                            {conv.company && (
+                              <div className="text-xs text-neutral-500 truncate mt-0.5">{conv.company}</div>
+                            )}
+                          </div>
+                          <div className="text-xs text-neutral-500 whitespace-nowrap ml-2">{formatTimeAgo(conv.lastActivity)}</div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-neutral-500">{conv.messageCount} msgs</span>
+                          {conv.status === 'meeting_booked' && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">Meeting</span>
+                          )}
+                          {conv.status === 'ai_responded' && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">Replied</span>
+                          )}
+                          {conv.status === 'waiting_response' && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">Waiting</span>
                           )}
                         </div>
-                        <div className="text-xs text-neutral-500 whitespace-nowrap ml-2">{formatTimeAgo(conv.lastActivity)}</div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-neutral-500">{conv.messageCount} msgs</span>
-                        {conv.status === 'meeting_booked' && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">Meeting</span>
-                        )}
-                        {conv.status === 'ai_responded' && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">Replied</span>
-                        )}
-                        {conv.status === 'waiting_response' && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">Waiting</span>
-                        )}
-                      </div>
+
+                      {/* Full Message Thread */}
+                      {conv.messages && conv.messages.length > 0 && (
+                        <div className="p-3 space-y-2 bg-neutral-50">
+                          {conv.messages.map((msg: any, msgIdx: number) => (
+                            <div
+                              key={msgIdx}
+                              className={`p-2 rounded text-xs ${
+                                msg.type === 'outbound'
+                                  ? 'bg-blue-50 border border-blue-200 ml-4'
+                                  : msg.type === 'reply'
+                                  ? 'bg-white border border-neutral-300 mr-4'
+                                  : 'bg-green-50 border border-green-200 ml-4'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className={`font-medium ${
+                                  msg.type === 'outbound' ? 'text-blue-700' : 
+                                  msg.type === 'reply' ? 'text-neutral-700' : 
+                                  'text-green-700'
+                                }`}>
+                                  {msg.type === 'outbound' ? '🤖 AI Agent' : 
+                                   msg.type === 'reply' ? '👤 Lead Reply' : 
+                                   '🤖 AI Response'}
+                                </span>
+                                <span className="text-neutral-500 text-[10px]">{formatTimeAgo(msg.timestamp)}</span>
+                              </div>
+                              <p className="text-neutral-700 line-clamp-2">{msg.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </div>
