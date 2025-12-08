@@ -2,8 +2,12 @@
 import express from 'express';
 import { ChatOpenAI } from "@langchain/openai";
 import { DynamicStructuredTool } from "langchain/tools";
-import { createOpenAIFunctionsAgent, AgentExecutor } from "langchain/agents";
+import { AgentExecutor } from "langchain/agents";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { convertToOpenAIFunction } from "@langchain/core/utils/function_calling";
+import { RunnableSequence } from "@langchain/core/runnables";
+import { AgentStep } from "@langchain/core/agents";
+import { AIMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import crypto from 'crypto';
 import AWSManager from '../utils/awsManager.js';
@@ -879,38 +883,60 @@ REQUIRED ACTIONS (you MUST complete all steps):
 
 This is mandatory - complete both steps.`;
     
-    console.log('\n🚀 [WEBHOOK] ========== EXECUTING AGENT ==========');
-    console.log(`   Max Iterations: 10`);
-    console.log(`   Return Intermediate Steps: true`);
-    console.log(`   Tools available: ${tools.length}`);
-    tools.forEach(t => console.log(`     - ${t.name}`));
+    console.log('\n🚀 [WEBHOOK] ========== EXECUTING AI RESPONSE ==========');
+    console.log(`   Strategy: Manual tool execution (bypassing broken AgentExecutor)`);
+    console.log(`   Step 1: Get conversation history`);
+    console.log(`   Step 2: Generate and send reply`);
     console.log('=' .repeat(50) + '\n');
     
-    // Execute agent - use call() to ensure tools are executed
-    const agentResponse = await agentExecutor.call({
-      input: agentInput
+    // WORKAROUND: Manually execute tools since OpenAIFunctionsAgent is broken
+    // Step 1: Get conversation history
+    console.log('🔧 [STEP 1] Getting conversation history...');
+    const historyResult = await getConversationTool.func({ tracking_id: trackingId });
+    const history = JSON.parse(historyResult);
+    console.log(`✅ [STEP 1] Retrieved ${history.history?.length || 0} messages\n`);
+    
+    // Step 2: Generate response using LLM
+    console.log('🔧 [STEP 2] Generating AI response...');
+    const responsePrompt = `You received an email from ${emailData.from}:
+
+Subject: ${emailData.subject}
+Message: ${emailData.body}
+
+Conversation history: ${history.message || 'First message in thread'}
+
+Write a ${personality.style} response email as ${personality.name}. Keep it brief and action-oriented. Focus on moving toward a meeting.
+
+Response:`;
+
+    const llmResponse = await model.invoke([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: responsePrompt }
+    ]);
+    
+    const responseBody = llmResponse.content;
+    console.log(`✅ [STEP 2] Generated ${responseBody.length} char response\n`);
+    
+    // Step 3: Send the email
+    console.log('🔧 [STEP 3] Sending email reply...');
+    const sendResult = await sendEmailTool.func({
+      tracking_id: trackingId,
+      to: emailData.from,
+      subject: `Re: ${emailData.subject.replace(/^Re:\s*/i, '')}`,
+      body: responseBody,
+      in_reply_to: emailData.inReplyTo,
+      references: emailData.references
     });
     
-    console.log('\n🏁 [WEBHOOK] ========== AGENT COMPLETED ==========');
-    console.log(`   Output: "${agentResponse.output}"`);
-    console.log(`   Intermediate Steps: ${agentResponse.intermediateSteps?.length || 0}`);
-    
-    if (agentResponse.intermediateSteps && agentResponse.intermediateSteps.length > 0) {
-      console.log('\n   📋 Steps taken:');
-      agentResponse.intermediateSteps.forEach((step, i) => {
-        console.log(`      ${i + 1}. Tool: ${step.action?.tool || 'unknown'}`);
-        console.log(`         Result: ${step.observation?.substring(0, 80) || 'none'}...`);
-      });
-    } else {
-      console.log('\n   ⚠️  WARNING: No tools were executed!');
-    }
-    console.log('=' .repeat(50) + '\n');
+    const sendData = JSON.parse(sendResult);
+    console.log(`✅ [STEP 3] Email sent successfully!`);
+    console.log('\n🏁 [WEBHOOK] ========== AI RESPONSE COMPLETE ==========\n');
     
     return res.json({
       success: true,
       processed: true,
       tracking_id: trackingId,
-      agent_response: agentResponse.output || 'Agent executed successfully'
+      agent_response: 'Email reply sent successfully'
     });
     
   } catch (error) {
