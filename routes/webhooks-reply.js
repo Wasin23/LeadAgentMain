@@ -249,8 +249,11 @@ const getConversationTool = new DynamicStructuredTool({
   }),
   func: async ({ tracking_id }) => {
     try {
-      console.log(`[TOOL] Getting conversation history for: ${tracking_id}`);
+      console.log(`\n🔧 [TOOL START] get_conversation_history`);
+      console.log(`   Tracking ID: ${tracking_id}`);
       const history = await getConversationHistory(tracking_id);
+      console.log(`   Found ${history.length} messages in history`);
+      console.log(`✅ [TOOL END] get_conversation_history completed\n`);
       
       if (history.length === 0) {
         return JSON.stringify({
@@ -415,7 +418,11 @@ const sendEmailTool = new DynamicStructuredTool({
   }),
   func: async ({ tracking_id, to, subject, body, in_reply_to, references }) => {
     try {
-      console.log(`[TOOL] Sending email to: ${to}`);
+      console.log(`\n🔧 [TOOL START] send_email_reply`);
+      console.log(`   To: ${to}`);
+      console.log(`   Subject: ${subject}`);
+      console.log(`   Body length: ${body.length} chars`);
+      console.log(`   Tracking ID: ${tracking_id}`);
       
       const userId = extractUserIdFromTrackingId(tracking_id);
       const agentId = extractAgentIdFromTrackingId(tracking_id);
@@ -535,11 +542,14 @@ const sendEmailTool = new DynamicStructuredTool({
       });
       
     } catch (error) {
-      console.error('[TOOL] Error sending email:', error);
+      console.error(`\n❌ [TOOL ERROR] send_email_reply failed:`, error.message);
+      console.error(error.stack);
       return JSON.stringify({
         success: false,
         error: error.message
       });
+    } finally {
+      console.log(`✅ [TOOL END] send_email_reply completed\n`);
     }
   }
 });
@@ -869,15 +879,32 @@ REQUIRED ACTIONS (you MUST complete all steps):
 
 This is mandatory - complete both steps.`;
     
-    console.log('[WEBHOOK] Executing agent...');
+    console.log('\n🚀 [WEBHOOK] ========== EXECUTING AGENT ==========');
+    console.log(`   Max Iterations: 10`);
+    console.log(`   Return Intermediate Steps: true`);
+    console.log(`   Tools available: ${tools.length}`);
+    tools.forEach(t => console.log(`     - ${t.name}`));
+    console.log('=' .repeat(50) + '\n');
     
     // Execute agent - use call() to ensure tools are executed
     const agentResponse = await agentExecutor.call({
       input: agentInput
     });
     
-    console.log('[WEBHOOK] Agent response:', agentResponse);
-    console.log('[WEBHOOK] Agent processing completed successfully');
+    console.log('\n🏁 [WEBHOOK] ========== AGENT COMPLETED ==========');
+    console.log(`   Output: "${agentResponse.output}"`);
+    console.log(`   Intermediate Steps: ${agentResponse.intermediateSteps?.length || 0}`);
+    
+    if (agentResponse.intermediateSteps && agentResponse.intermediateSteps.length > 0) {
+      console.log('\n   📋 Steps taken:');
+      agentResponse.intermediateSteps.forEach((step, i) => {
+        console.log(`      ${i + 1}. Tool: ${step.action?.tool || 'unknown'}`);
+        console.log(`         Result: ${step.observation?.substring(0, 80) || 'none'}...`);
+      });
+    } else {
+      console.log('\n   ⚠️  WARNING: No tools were executed!');
+    }
+    console.log('=' .repeat(50) + '\n');
     
     return res.json({
       success: true,
