@@ -56,14 +56,16 @@ function extractMessageId(headers, field) {
 
 function extractUserIdFromTrackingId(trackingId) {
   if (!trackingId) return null;
-  const match = trackingId.match(/tracking-([a-f0-9]{8})/);
+  // Format: tracking-UUID_AGENTID_TIMESTAMP_HASH
+  const match = trackingId.match(/tracking-([a-f0-9-]+)_/);
   return match ? match[1] : null;
 }
 
 function extractAgentIdFromTrackingId(trackingId) {
   if (!trackingId) return null;
-  const match = trackingId.match(/tracking-[a-f0-9]{8}_([^_]+)_/);
-  return match ? match[1] : 'reasoning-lead-agent';
+  // Format: tracking-UUID_AGENTID_TIMESTAMP_HASH
+  const match = trackingId.match(/tracking-[a-f0-9-]+_([^_]+)_/);
+  return match ? match[1] : null;
 }
 
 function getTimezoneOffset(timezone) {
@@ -139,7 +141,8 @@ async function getUserCalendarSettings(userId) {
   try {
     if (!userId) return { calendarId: 'primary' };
     
-    const user = await awsManager.getUser(userId);
+    const { getUserById } = await import('../lib/userManager.js');
+    const user = await getUserById(userId);
     if (user?.settings?.calendarSettings) {
       return user.settings.calendarSettings;
     }
@@ -612,15 +615,16 @@ router.post('/mailgun-reply', async (req, res) => {
     }
     
     // Try to extract from In-Reply-To or References
+    // Format: <tracking-tracking-UUID_AGENTID_TIMESTAMP_HASH@domain>
     if (!trackingId && inReplyTo && inReplyTo.includes('tracking-')) {
-      const match = inReplyTo.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
-      if (match) trackingId = `tracking-${match[1]}`;
+      const match = inReplyTo.match(/tracking-(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/);
+      if (match) trackingId = match[1];
       console.log(`[WEBHOOK] Found tracking ID in In-Reply-To: ${trackingId}`);
     }
     
     if (!trackingId && references && references.includes('tracking-')) {
-      const match = references.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
-      if (match) trackingId = `tracking-${match[1]}`;
+      const match = references.match(/tracking-(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/);
+      if (match) trackingId = match[1];
       console.log(`[WEBHOOK] Found tracking ID in References: ${trackingId}`);
     }
     
@@ -707,7 +711,8 @@ router.post('/mailgun-reply', async (req, res) => {
     // Get user settings for comprehensive system prompt
     let userSettings = null;
     try {
-      const user = await awsManager.getUser(userId);
+      const { getUserById } = await import('../lib/userManager.js');
+      const user = await getUserById(userId);
       if (user?.emailResponseSettings) {
         userSettings = user.emailResponseSettings;
       }

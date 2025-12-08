@@ -2,11 +2,13 @@ import express from 'express';
 import { updateEmailAnalytics } from '../tools/emailMailgun.js';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSManager from '../utils/awsManager.js';
+import AWSEmailQueue from '../utils/awsEmailQueue.js';
 import fs from 'fs/promises';
 import path from 'path';
 
 const router = express.Router();
 const awsManager = new AWSManager();
+const awsQueue = new AWSEmailQueue();
 
 // Debug endpoint to test tracking pixel HTML generation
 router.get('/debug/email-html/:trackingId', async (req, res) => {
