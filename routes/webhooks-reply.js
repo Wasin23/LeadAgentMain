@@ -2,12 +2,7 @@
 import express from 'express';
 import { ChatOpenAI } from "@langchain/openai";
 import { DynamicStructuredTool } from "langchain/tools";
-import { AgentExecutor } from "langchain/agents";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
-import { convertToOpenAIFunction } from "@langchain/core/utils/function_calling";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { AgentStep } from "@langchain/core/agents";
-import { AIMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import crypto from 'crypto';
 import AWSManager from '../utils/awsManager.js';
@@ -844,44 +839,6 @@ CRITICAL PROTOCOL:
 5. No markdown formatting - natural conversation that reflects ${personality.style} style
 
 Remember: You ARE ${personality.name}. Every email should sound like YOU, not a generic assistant.`;
-
-    const prompt = ChatPromptTemplate.fromMessages([
-      ["system", systemPrompt],
-      ["human", "{input}"],
-      new MessagesPlaceholder("agent_scratchpad")
-    ]);
-    
-    const agent = await createOpenAIFunctionsAgent({
-      llm: model,
-      tools,
-      prompt
-    });
-    
-    const agentExecutor = new AgentExecutor({
-      agent,
-      tools,
-      verbose: true,
-      maxIterations: 10,
-      returnIntermediateSteps: true
-    });
-    
-    // Prepare input for agent
-    const agentInput = `You received an email:
-
-From: ${emailData.from}
-Subject: ${emailData.subject}
-Message:
-${emailData.body}
-
-Tracking ID: ${trackingId}
-In-Reply-To: ${emailData.inReplyTo || 'N/A'}
-
-REQUIRED ACTIONS (you MUST complete all steps):
-1. Use get_conversation_history tool with tracking_id: ${trackingId}
-2. After reviewing history, you MUST use send_email_reply tool to send your response
-3. Do NOT stop after checking history - you MUST send a reply
-
-This is mandatory - complete both steps.`;
     
     console.log('\n🚀 [WEBHOOK] ========== EXECUTING AI RESPONSE ==========');
     console.log(`   Strategy: Manual tool execution (bypassing broken AgentExecutor)`);
