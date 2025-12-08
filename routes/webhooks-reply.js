@@ -641,6 +641,26 @@ router.post('/mailgun-reply', async (req, res) => {
     const userId = extractUserIdFromTrackingId(trackingId);
     const agentId = extractAgentIdFromTrackingId(trackingId);
     
+    // Get original email metadata for enrichment
+    let leadName = null;
+    let originalSubject = null;
+    try {
+      const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
+      const queueInstance = new awsQueue();
+      const sentEmails = await queueInstance.getSentEmails(userId, agentId);
+      const emailData_original = sentEmails.find(e => e.trackingId === trackingId);
+      if (emailData_original) {
+        leadName = emailData_original.leadName || 
+                   emailData_original.personInfo?.fullName || 
+                   emailData_original.personInfo?.name || 
+                   (emailData.from ? emailData.from.split('@')[0] : null);
+        originalSubject = emailData_original.subject || emailData_original.emailSubject;
+        console.log(`[WEBHOOK] Enriched reply metadata: leadName=${leadName}, subject=${originalSubject}`);
+      }
+    } catch (err) {
+      console.error('[WEBHOOK] Error fetching original email metadata:', err.message);
+    }
+    
     // Store the incoming message
     await storeConversationEvent(trackingId, 'lead_message', {
       from: emailData.from,
@@ -656,6 +676,8 @@ router.post('/mailgun-reply', async (req, res) => {
       await awsManager.logEmailTracking(userId, agentId, trackingId, {
         eventType: 'reply',
         recipientEmail: emailData.from,
+        leadName: leadName,
+        subject: originalSubject || emailData.subject,
         messagePreview: emailData.body.substring(0, 200),
         timestamp: new Date().toISOString()
       });
@@ -669,6 +691,8 @@ router.post('/mailgun-reply', async (req, res) => {
           trackingId: trackingId,
           eventType: 'reply',
           recipientEmail: emailData.from,
+          leadName: leadName,
+          subject: originalSubject || emailData.subject,
           messagePreview: emailData.body.substring(0, 200),
           timestamp: new Date().toISOString()
         });
@@ -825,7 +849,12 @@ ${emailData.body}
 Tracking ID: ${trackingId}
 In-Reply-To: ${emailData.inReplyTo || 'N/A'}
 
-Analyze this email and respond appropriately. First check the conversation history, then respond using send_email_reply.`;
+REQUIRED ACTIONS (you MUST complete all steps):
+1. Use get_conversation_history tool with tracking_id: ${trackingId}
+2. After reviewing history, you MUST use send_email_reply tool to send your response
+3. Do NOT stop after checking history - you MUST send a reply
+
+This is mandatory - complete both steps.`;
     
     console.log('[WEBHOOK] Executing agent...');
     
@@ -1037,7 +1066,12 @@ ${message.body}
 Tracking ID: ${trackingId}
 In-Reply-To: ${message.inReplyTo || 'N/A'}
 
-Analyze this email and respond appropriately. First check the conversation history, then respond using send_email_reply.`;
+REQUIRED ACTIONS (you MUST complete all steps):
+1. Use get_conversation_history tool with tracking_id: ${trackingId}
+2. After reviewing history, you MUST use send_email_reply tool to send your response
+3. Do NOT stop after checking history - you MUST send a reply
+
+This is mandatory - complete both steps.`;
     
     console.log('[GMAIL REPLY] Executing agent...');
     
