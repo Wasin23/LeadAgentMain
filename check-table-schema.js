@@ -13,7 +13,7 @@ const ddbClient = new DynamoDBClient({
 });
 
 const docClient = DynamoDBDocumentClient.from(ddbClient);
-const tableName = 'meridian-email-tracking';
+const tableName = process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'meridian-email-tracking-v2';
 
 async function checkTableSchema() {
   try {
