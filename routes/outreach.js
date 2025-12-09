@@ -248,6 +248,14 @@ router.get('/conversations', async (req, res) => {
     events.forEach(event => {
       const trackingId = event.trackingId;
       
+      console.log(`🔍 [EVENT] Processing event:`, {
+        trackingId,
+        eventType: event.eventType,
+        eventId: event.eventId,
+        timestamp: event.timestamp,
+        leadEmail: event.recipientEmail
+      });
+      
       if (!conversationMap[trackingId]) {
         conversationMap[trackingId] = {
           trackingId,
@@ -302,6 +310,15 @@ router.get('/conversations', async (req, res) => {
     });
 
     console.log(`💬 [OUTREACH-CONVERSATIONS] Grouped into ${Object.keys(conversationMap).length} conversations`);
+    
+    // Log some conversation details for debugging
+    Object.entries(conversationMap).slice(0, 3).forEach(([trackingId, conv]) => {
+      console.log(`🔍 [CONVERSATION] ${trackingId}:`, {
+        leadEmail: conv.leadEmail,
+        messageCount: conv.messageCount,
+        messages: conv.messages.map(m => ({ type: m.type, timestamp: m.timestamp }))
+      });
+    });
     
     // Convert to array and filter conversations with replies
     const allConversations = Object.values(conversationMap);
@@ -514,12 +531,46 @@ router.get('/viewed', async (req, res) => {
       }
       
       // Track replies (check both 'reply' and 'lead_message' event types)
-      if ((event.eventType === 'reply' || event.eventType === 'lead_message') && openedEmailsMap[trackingId]) {
+      if (event.eventType === 'reply' || event.eventType === 'lead_message') {
+        if (!openedEmailsMap[trackingId]) {
+          // Create entry if doesn't exist
+          openedEmailsMap[trackingId] = {
+            trackingId,
+            leadName: event.leadName || 'Unknown',
+            leadEmail: event.recipientEmail || event.email || 'unknown@email.com',
+            company: event.company,
+            subject: fixEncoding(event.subject),
+            sentAt: event.timestamp,
+            opened: true,
+            openedAt: event.timestamp,
+            openCount: 1,
+            replied: false,
+            agentId: event.agentId,
+            agentName: event.agentName
+          };
+        }
         openedEmailsMap[trackingId].replied = true;
       }
       
       // Also mark as replied if there's an AI response (means there was a reply)
-      if ((event.eventType === 'ai_response' || event.eventType === 'ai_reply') && openedEmailsMap[trackingId]) {
+      if (event.eventType === 'ai_response' || event.eventType === 'ai_reply') {
+        if (!openedEmailsMap[trackingId]) {
+          // Create entry if doesn't exist
+          openedEmailsMap[trackingId] = {
+            trackingId,
+            leadName: event.leadName || 'Unknown',
+            leadEmail: event.recipientEmail || event.email || 'unknown@email.com',
+            company: event.company,
+            subject: fixEncoding(event.subject),
+            sentAt: event.timestamp,
+            opened: true,
+            openedAt: event.timestamp,
+            openCount: 1,
+            replied: false,
+            agentId: event.agentId,
+            agentName: event.agentName
+          };
+        }
         openedEmailsMap[trackingId].replied = true;
       }
     });

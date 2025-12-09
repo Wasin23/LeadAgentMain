@@ -965,9 +965,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   : r
               ));
               // Refresh conversations list
-              fetchAgentOutreach();
+              setTimeout(() => fetchAgentOutreach(), 500); // Delay to let backend process
             } else if (data.type === 'tracking_update') {
-              console.log('📧 [TRACKING] Email opened in real-time:', data);
+              console.log('📧 [TRACKING] Tracking update received:', data.eventType, data);
               
               // Add to streaming responses feed
               if (data.eventType === 'open') {
