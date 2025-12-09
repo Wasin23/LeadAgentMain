@@ -2831,47 +2831,77 @@ class AWSManager {
   }
 
   // Set AI control state for a specific conversation
-  async setConversationAIControl(userId, agentId, conversationId, enabled) {
+  async setConversationAIControl(userId, agentId, trackingId, enabled) {
     try {
+      console.log(`🔧 [AI-CONTROL] Setting AI control:`, {
+        userId,
+        agentId,
+        trackingId,
+        enabled
+      });
+      
+      // Store in email tracking table as a special event
+      const pk = `USER#${userId}#AGENT#${agentId}`;
+      const sk = `AI_CONTROL#${trackingId}`;
+      
       const command = new PutCommand({
-        TableName: this.tables.agentState,
+        TableName: this.tables.emailTracking,
         Item: {
+          PK: pk,
+          SK: sk,
           userId,
-          agentId: `AI_CONTROL#${conversationId}`,
+          agentId,
+          trackingId,
+          eventType: 'ai_control',
           aiEnabled: enabled,
-          conversationId,
           timestamp: new Date().toISOString()
         }
       });
 
       await this.dynamodb.send(command);
-      console.log(`✅ [AWS] AI control set for conversation ${conversationId}: ${enabled ? 'ENABLED' : 'PAUSED'}`);
+      console.log(`✅ [AI-CONTROL] AI control set for trackingId ${trackingId}: ${enabled ? 'ENABLED' : 'PAUSED'}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ [AWS] Error setting AI control:', error);
+      console.error('❌ [AI-CONTROL] Error setting AI control:', error);
       throw error;
     }
   }
 
   // Get AI control state for a specific conversation
-  async getConversationAIControl(userId, agentId, conversationId) {
+  async getConversationAIControl(userId, agentId, trackingId) {
     try {
+      const pk = `USER#${userId}#AGENT#${agentId}`;
+      const sk = `AI_CONTROL#${trackingId}`;
+      
+      console.log(`🔍 [AI-CONTROL] Getting AI state for:`, {
+        userId,
+        agentId,
+        trackingId,
+        PK: pk,
+        SK: sk
+      });
+      
       const command = new GetCommand({
-        TableName: this.tables.agentState,
+        TableName: this.tables.emailTracking,
         Key: {
-          userId,
-          agentId: `AI_CONTROL#${conversationId}`
+          PK: pk,
+          SK: sk
         }
       });
 
       const result = await this.dynamodb.send(command);
+      console.log(`📊 [AI-CONTROL] DynamoDB result:`, {
+        hasItem: !!result.Item,
+        aiEnabled: result.Item?.aiEnabled
+      });
+      
       if (result.Item) {
-        return result.Item.aiEnabled !== false; // Default to enabled if not found
+        return result.Item.aiEnabled !== false;
       }
-      return true; // Default to enabled
+      return true; // Default to enabled if not found
     } catch (error) {
-      // Silently default to enabled - schema mismatch is expected until feature is properly implemented
-      return true;
+      console.error(`❌ [AI-CONTROL] Error getting AI control state:`, error);
+      return true; // Default to enabled on error
     }
   }
 }
