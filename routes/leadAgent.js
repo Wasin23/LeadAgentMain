@@ -752,13 +752,28 @@ router.delete('/agent-data', async (req, res) => {
     const cycleResult = await awsManager.deleteCycleLogs(userId, agentId);
     console.log(`✅ Deleted ${cycleResult.deletedCount} cycle logs`);
     
+    // Delete email tracking/conversations
+    console.log(`🗑️ Clearing email tracking for agent ${agentId}...`);
+    const events = await awsManager.getEmailTrackingByUser(userId, agentId, 10000);
+    let trackingDeleted = 0;
+    for (const event of events) {
+      try {
+        await awsManager.deleteEmailTrackingEvent(event.eventId);
+        trackingDeleted++;
+      } catch (err) {
+        console.error(`Failed to delete tracking event:`, err.message);
+      }
+    }
+    console.log(`✅ Deleted ${trackingDeleted} tracking events`);
+    
     res.json({
       success: true,
       message: 'Agent data cleared successfully',
       deleted: {
         state: true,
         searchHistory: searchResult.deletedCount,
-        cycleLogs: cycleResult.deletedCount
+        cycleLogs: cycleResult.deletedCount,
+        trackingEvents: trackingDeleted
       }
     });
   } catch (error) {

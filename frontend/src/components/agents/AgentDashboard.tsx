@@ -1783,6 +1783,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
                     {filteredConversations.length} conversations
                   </span>
+                  <button
+                    onClick={async () => {
+                      if (confirm('Clear all conversation data? This cannot be undone.')) {
+                        try {
+                          await api.delete(`/api/outreach/conversations?agentId=${agentId}`);
+                          await fetchAgentOutreach();
+                          alert('Conversations cleared successfully');
+                        } catch (error) {
+                          console.error('Failed to clear conversations:', error);
+                          alert('Failed to clear conversations');
+                        }
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  >
+                    Clear All
+                  </button>
                 </div>
               </div>
 

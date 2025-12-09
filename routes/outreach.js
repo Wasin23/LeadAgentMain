@@ -192,6 +192,40 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// Clear all conversations for an agent
+router.delete('/conversations', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId } = req.query;
+
+    console.log(`🗑️ [OUTREACH-CONVERSATIONS] Clearing conversations for userId: ${userId}, agentId: ${agentId}`);
+
+    // Get all events for this agent
+    const events = await awsManager.getEmailTrackingByUser(userId, agentId !== 'all' ? agentId : null, 10000);
+    
+    // Delete all tracking events
+    let deletedCount = 0;
+    for (const event of events) {
+      try {
+        await awsManager.deleteEmailTrackingEvent(event.eventId);
+        deletedCount++;
+      } catch (err) {
+        console.error(`Failed to delete event ${event.eventId}:`, err.message);
+      }
+    }
+
+    console.log(`✅ [OUTREACH-CONVERSATIONS] Cleared ${deletedCount} events`);
+
+    res.json({
+      success: true,
+      deletedCount
+    });
+  } catch (error) {
+    console.error('❌ [OUTREACH-CONVERSATIONS] Error clearing conversations:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get active conversations
 router.get('/conversations', async (req, res) => {
   try {
@@ -480,6 +514,11 @@ router.get('/viewed', async (req, res) => {
       
       // Track replies (check both 'reply' and 'lead_message' event types)
       if ((event.eventType === 'reply' || event.eventType === 'lead_message') && openedEmailsMap[trackingId]) {
+        openedEmailsMap[trackingId].replied = true;
+      }
+      
+      // Also mark as replied if there's an AI response (means there was a reply)
+      if ((event.eventType === 'ai_response' || event.eventType === 'ai_reply') && openedEmailsMap[trackingId]) {
         openedEmailsMap[trackingId].replied = true;
       }
     });

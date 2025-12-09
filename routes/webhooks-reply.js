@@ -468,11 +468,12 @@ const sendEmailTool = new DynamicStructuredTool({
       // Prepare Mailgun request
       const formData = new URLSearchParams();
       
-      // Get personality and user info for from name
+      // Get personality and company info for from name
       const personality = await getAgentPersonality(userId, agentId);
-      const userInfo = await awsManager.getUserById(userId);
+      const userSettings = await awsManager.getUserSettings(userId);
+      const companyName = userSettings?.companyProfile?.companyName;
       
-      const fromName = userInfo?.company_name || personality.name || 'AI Assistant';
+      const fromName = companyName || personality.name || 'AI Assistant';
       formData.append('from', `${fromName} <replies@mg.examarkchat.com>`);
       formData.append('to', to);
       formData.append('subject', subject);
