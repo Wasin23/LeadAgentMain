@@ -2149,11 +2149,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         }
                       });
                       
-                      console.log('[TOGGLE] AI Auto-Response API response:', response.data);
-                      
-                      // Reload settings to confirm
-                      await fetchOutreachSettings();
+                      console.log('[TOGGLE] AI Auto-Response saved:', response.data);
                       showNotification(`AI Auto-Response ${newValue ? 'enabled' : 'disabled'}`, 'success');
+                      
+                      // Don't refetch - trust the local state to avoid race conditions
                     } catch (error) {
                       console.error('Failed to update AI Auto-Response setting:', error);
                       showNotification('Failed to update setting', 'error');
@@ -2199,11 +2198,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         }
                       });
                       
-                      console.log('[TOGGLE] Auto-Rebump API response:', response.data);
-                      
-                      // Reload settings to confirm
-                      await fetchOutreachSettings();
+                      console.log('[TOGGLE] Auto-Rebump saved:', response.data);
                       showNotification(`Auto-Rebump ${newValue ? 'enabled' : 'disabled'}`, 'success');
+                      
+                      // Don't refetch - trust the local state to avoid race conditions
                     } catch (error) {
                       console.error('Failed to update Auto-Rebump setting:', error);
                       showNotification('Failed to update setting', 'error');

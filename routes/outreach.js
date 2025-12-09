@@ -817,10 +817,28 @@ router.post('/manual-reply', async (req, res) => {
       });
     }
 
+    console.log(`🔍 [MANUAL-REPLY] From email: ${fromEmail}, Company: ${companyName}`);
+
     // Get original email subject from tracking events
-    const trackingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
-    const sentEvent = trackingEvents.find(e => e.eventType === 'sent' || e.eventType === 'outbound');
-    const originalSubject = sentEvent?.subject || 'Conversation';
+    let originalSubject = 'Conversation';
+    try {
+      console.log(`🔍 [MANUAL-REPLY] Fetching tracking events for trackingId: ${trackingId}`);
+      const trackingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
+      console.log(`🔍 [MANUAL-REPLY] Retrieved ${trackingEvents.length} tracking events`);
+      
+      const sentEvent = trackingEvents.find(e => e.eventType === 'sent' || e.eventType === 'outbound');
+      if (sentEvent?.subject) {
+        originalSubject = sentEvent.subject;
+        console.log(`📋 [MANUAL-REPLY] Found original subject: ${originalSubject}`);
+      } else {
+        console.log(`⚠️ [MANUAL-REPLY] No subject found in tracking events, using default`);
+      }
+    } catch (error) {
+      console.error(`❌ [MANUAL-REPLY] Error fetching tracking events:`, error);
+      // Continue with default subject
+    }
+
+    console.log(`📨 [MANUAL-REPLY] Preparing email data...`);
 
     // Send email via Mailgun
     const emailData = {
@@ -896,7 +914,11 @@ router.post('/manual-reply', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [MANUAL-REPLY] Error sending manual reply:', error);
+    console.error('❌ [MANUAL-REPLY] Error sending manual reply:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
       error: error.message
