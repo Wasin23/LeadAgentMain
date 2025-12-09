@@ -368,23 +368,26 @@ router.get('/conversations', async (req, res) => {
 router.post('/control-ai', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { conversationId, enabled, agentId } = req.body;
+    const { trackingId, conversationId, enabled, agentId } = req.body;
 
-    console.log(`🤖 [AI-CONTROL] Setting AI for conversation ${conversationId} to ${enabled ? 'ENABLED' : 'PAUSED'}`);
+    // Support both trackingId (new) and conversationId (legacy)
+    const id = trackingId || conversationId;
 
-    if (!conversationId || !agentId) {
+    console.log(`🤖 [AI-CONTROL] Setting AI for trackingId ${id} to ${enabled ? 'ENABLED' : 'PAUSED'}`);
+
+    if (!id || !agentId) {
       return res.status(400).json({ 
         success: false, 
-        error: 'conversationId and agentId are required' 
+        error: 'trackingId and agentId are required' 
       });
     }
 
     // Store AI control state in DynamoDB
-    await awsManager.setConversationAIControl(userId, agentId, conversationId, enabled);
+    await awsManager.setConversationAIControl(userId, agentId, id, enabled);
 
     res.json({
       success: true,
-      conversationId,
+      trackingId: id,
       aiEnabled: enabled
     });
   } catch (error) {
@@ -807,11 +810,16 @@ router.post('/manual-reply', async (req, res) => {
       });
     }
 
+    // Get original email subject from tracking events
+    const trackingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
+    const sentEvent = trackingEvents.find(e => e.eventType === 'sent' || e.eventType === 'outbound');
+    const originalSubject = sentEvent?.subject || 'Conversation';
+
     // Send email via Mailgun
     const emailData = {
       from: `${companyName} <${fromEmail}>`,
       to: leadEmail,
-      subject: `Re: Conversation`,
+      subject: `Re: ${originalSubject}`,
       text: message,
       html: message.replace(/\n/g, '<br>')
     };

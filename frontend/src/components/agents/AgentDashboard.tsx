@@ -1552,24 +1552,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   });
 
   // Toggle AI response for a conversation
-  const toggleAIResponse = async (conversationId: string, enabled: boolean) => {
+  const toggleAIResponse = async (trackingId: string, enabled: boolean) => {
     // Optimistically update UI
-    setAiResponseControl(prev => ({ ...prev, [conversationId]: !enabled }));
+    setAiResponseControl(prev => ({ ...prev, [trackingId]: !enabled }));
     
     try {
       await api.post('/api/outreach/control-ai', {
-        conversationId,
+        trackingId,
         enabled: !enabled,
         agentId
       });
-      console.log(`✅ [AI-CONTROL] AI ${!enabled ? 'enabled' : 'paused'} for conversation ${conversationId}`);
+      console.log(`✅ [AI-CONTROL] AI ${!enabled ? 'enabled' : 'paused'} for trackingId ${trackingId}`);
       
       // Reload conversations to get updated state
       await fetchAgentOutreach();
     } catch (error) {
       console.error('Failed to toggle AI response:', error);
       // Revert on error
-      setAiResponseControl(prev => ({ ...prev, [conversationId]: enabled }));
+      setAiResponseControl(prev => ({ ...prev, [trackingId]: enabled }));
       showNotification('Failed to toggle AI response', 'error');
     }
   };
@@ -1614,7 +1614,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         }));
         
         // Update AI control state to paused
-        setAiResponseControl(prev => ({ ...prev, [selectedConversation.id]: false }));
+        setAiResponseControl(prev => ({ ...prev, [selectedConversation.trackingId]: false }));
         
         // Refresh conversations
         await fetchAgentOutreach();
@@ -2380,20 +2380,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 {/* AI Control Panel */}
                 <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
                   <div className="flex items-center gap-2 flex-1">
-                    <div className={`w-2 h-2 rounded-full ${aiResponseControl[selectedConversation.id] === false ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${aiResponseControl[selectedConversation.trackingId] === false ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
                     <span className="text-sm font-medium text-neutral-700">
-                      AI Auto-Response: {aiResponseControl[selectedConversation.id] === false ? 'PAUSED' : 'ACTIVE'}
+                      AI Auto-Response: {aiResponseControl[selectedConversation.trackingId] === false ? 'PAUSED' : 'ACTIVE'}
                     </span>
                   </div>
                   <button
-                    onClick={() => toggleAIResponse(selectedConversation.id, aiResponseControl[selectedConversation.id] !== false)}
+                    onClick={() => toggleAIResponse(selectedConversation.trackingId, aiResponseControl[selectedConversation.trackingId] !== false)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                      aiResponseControl[selectedConversation.id] === false
+                      aiResponseControl[selectedConversation.trackingId] === false
                         ? 'bg-green-500 text-white hover:bg-green-600'
                         : 'bg-red-500 text-white hover:bg-red-600'
                     }`}
                   >
-                    {aiResponseControl[selectedConversation.id] === false ? (
+                    {aiResponseControl[selectedConversation.trackingId] === false ? (
                       <>
                         <PlayIcon className="h-4 w-4" />
                         Enable AI

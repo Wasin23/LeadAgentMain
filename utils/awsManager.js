@@ -2758,19 +2758,27 @@ class AWSManager {
   async deleteEmailTrackingEvent(event) {
     try {
       console.log(`🗑️ [EMAIL-TRACKING] Attempting to delete event:`, {
+        userId: event.userId,
+        agentId: event.agentId,
         trackingId: event.trackingId,
-        eventId: event.eventId
+        eventId: event.eventId,
+        timestamp: event.timestamp
       });
       
-      // The table uses trackingId as the ONLY partition key
-      // Just delete by trackingId directly
+      // V2 table uses compound key: PK (USER#...#AGENT#...) + SK (EVENT#timestamp#eventId)
+      const pk = `USER#${event.userId}#AGENT#${event.agentId}`;
+      const sk = `EVENT#${event.timestamp}#${event.eventId}`;
+      
       const deleteCommand = new DeleteCommand({
         TableName: this.tables.emailTracking,
-        Key: { trackingId: event.trackingId }
+        Key: { 
+          PK: pk,
+          SK: sk
+        }
       });
       
       await this.dynamodb.send(deleteCommand);
-      console.log(`✅ [EMAIL-TRACKING] Successfully deleted event with trackingId: ${event.trackingId}`);
+      console.log(`✅ [EMAIL-TRACKING] Successfully deleted event with PK: ${pk}, SK: ${sk}`);
       return { success: true };
     } catch (error) {
       console.error('❌ [EMAIL-TRACKING] Error deleting tracking event:', error);
