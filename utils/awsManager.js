@@ -2706,17 +2706,22 @@ class AWSManager {
       
       // Paginate through all results
       do {
-        const command = new ScanCommand({
+        const commandParams = {
           TableName: this.tables.emailTracking,
           FilterExpression: agentId 
             ? 'userId = :userId AND agentId = :agentId'
             : 'userId = :userId',
           ExpressionAttributeValues: agentId
             ? { ':userId': userId, ':agentId': agentId }
-            : { ':userId': userId },
-          ExclusiveStartKey: lastEvaluatedKey
-        });
+            : { ':userId': userId }
+        };
         
+        // Only add ExclusiveStartKey if it's not null
+        if (lastEvaluatedKey) {
+          commandParams.ExclusiveStartKey = lastEvaluatedKey;
+        }
+        
+        const command = new ScanCommand(commandParams);
         const result = await this.dynamodb.send(command);
         const events = result.Items || [];
         allEvents = allEvents.concat(events);
