@@ -2697,15 +2697,18 @@ class AWSManager {
     }
   }
   
-  async getEmailTrackingByUser(userId, agentId = null, limit = 100) {
+  async getEmailTrackingByUser(userId, agentId = null, limit = 1000) {
     try {
       console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
       
       let allEvents = [];
       let lastEvaluatedKey = null;
+      let pageCount = 0;
+      const maxPages = 10; // Safety limit
       
       // Paginate through all results
       do {
+        pageCount++;
         const commandParams = {
           TableName: this.tables.emailTracking,
           FilterExpression: agentId 
@@ -2727,21 +2730,29 @@ class AWSManager {
         allEvents = allEvents.concat(events);
         lastEvaluatedKey = result.LastEvaluatedKey;
         
-        console.log(`🔍 [EMAIL-TRACKING] Retrieved ${events.length} events in this page, total so far: ${allEvents.length}`);
+        console.log(`🔍 [EMAIL-TRACKING] Page ${pageCount}: Retrieved ${events.length} events, total so far: ${allEvents.length}, hasMore: ${!!lastEvaluatedKey}`);
         
         // Stop if we've reached the limit
         if (allEvents.length >= limit) {
           allEvents = allEvents.slice(0, limit);
+          console.log(`🔍 [EMAIL-TRACKING] Reached limit of ${limit} events, stopping scan`);
+          break;
+        }
+        
+        // Safety check
+        if (pageCount >= maxPages) {
+          console.log(`⚠️ [EMAIL-TRACKING] Reached max pages (${maxPages}), stopping scan`);
           break;
         }
       } while (lastEvaluatedKey);
       
-      console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events for userId: ${userId}`);
+      console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events for userId: ${userId} in ${pageCount} page(s)`);
       
       // Debug: Log first event structure
       if (allEvents.length > 0) {
         console.log(`🔍 [EMAIL-TRACKING] First event keys:`, Object.keys(allEvents[0]));
         console.log(`🔍 [EMAIL-TRACKING] First event PK/SK:`, { PK: allEvents[0].PK, SK: allEvents[0].SK });
+        console.log(`🔍 [EMAIL-TRACKING] Event types in result:`, allEvents.map(e => e.eventType).join(', '));
       }
       
       return allEvents;
