@@ -347,10 +347,17 @@ router.get('/conversations', async (req, res) => {
 
     console.log(`💬 [OUTREACH-CONVERSATIONS] After filtering: ${conversations.length} conversations with replies`);
 
-    // Set all conversations to AI enabled by default (AI control feature disabled)
-    conversations.forEach(conv => {
-      conv.aiEnabled = true;
-    });
+    // Load AI control state for each conversation
+    for (const conv of conversations) {
+      try {
+        const aiEnabled = await awsManager.getConversationAIControl(userId, agentId, conv.trackingId);
+        conv.aiEnabled = aiEnabled;
+        console.log(`🤖 [AI-CONTROL] Loaded state for ${conv.trackingId}: ${aiEnabled ? 'ENABLED' : 'PAUSED'}`);
+      } catch (error) {
+        console.error(`⚠️ [AI-CONTROL] Failed to load state for ${conv.trackingId}, defaulting to enabled`);
+        conv.aiEnabled = true; // Default to enabled on error
+      }
+    }
 
     console.log(`✅ [OUTREACH-CONVERSATIONS] Processed ${conversations.length} conversations with replies`);
 
@@ -845,8 +852,17 @@ router.post('/manual-reply', async (req, res) => {
     );
 
     if (!mailgunResponse.ok) {
-      throw new Error(`Mailgun error: ${mailgunResponse.statusText}`);
+      const errorText = await mailgunResponse.text();
+      console.error(`❌ [MANUAL-REPLY] Mailgun error:`, {
+        status: mailgunResponse.status,
+        statusText: mailgunResponse.statusText,
+        body: errorText
+      });
+      throw new Error(`Mailgun error: ${mailgunResponse.statusText} - ${errorText}`);
     }
+
+    const mailgunResult = await mailgunResponse.json();
+    console.log(`✅ [MANUAL-REPLY] Mailgun response:`, mailgunResult);
 
     // Log the manual reply event
     await awsManager.logEmailTracking({
@@ -863,8 +879,13 @@ router.post('/manual-reply', async (req, res) => {
     // If pauseAI flag is set, disable AI for this conversation
     if (pauseAI) {
       console.log(`⏸️ [MANUAL-REPLY] Pausing AI for trackingId: ${trackingId}`);
-      // Note: AI control logic would go here if we had a separate table for it
-      // For now, the frontend will handle this state
+      try {
+        await awsManager.setConversationAIControl(userId, agentId, trackingId, false);
+        console.log(`✅ [MANUAL-REPLY] AI paused successfully for trackingId: ${trackingId}`);
+      } catch (error) {
+        console.error(`⚠️ [MANUAL-REPLY] Failed to pause AI:`, error);
+        // Don't fail the whole request if AI control fails
+      }
     }
 
     console.log(`✅ [MANUAL-REPLY] Manual reply sent successfully`);

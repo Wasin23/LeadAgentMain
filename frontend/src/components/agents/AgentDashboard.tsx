@@ -2513,7 +2513,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <label className="text-sm font-medium text-neutral-700 mb-2 block">
                     💬 Send Manual Reply (AI will be paused)
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-end">
                     <textarea
                       value={manualReplyMessage}
                       onChange={(e) => setManualReplyMessage(e.target.value)}
@@ -2529,7 +2529,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     <button
                       onClick={sendManualReply}
                       disabled={!manualReplyMessage.trim() || isSendingManualReply}
-                      className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 self-end ${
+                      className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 h-fit ${
                         !manualReplyMessage.trim() || isSendingManualReply
                           ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                           : `${colors.button} text-white hover:opacity-90`
