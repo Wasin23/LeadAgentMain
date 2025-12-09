@@ -1885,7 +1885,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         <div className="p-3 space-y-2 bg-neutral-50">
                           {conv.messages.map((msg: any, msgIdx: number) => (
                             <div
-                              key={msgIdx}
+                              key={msg.id || msgIdx}
                               className={`p-2 rounded text-xs ${
                                 msg.type === 'outbound'
                                   ? 'bg-blue-50 border border-blue-200 ml-4'

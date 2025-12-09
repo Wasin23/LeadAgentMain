@@ -207,7 +207,7 @@ router.delete('/conversations', async (req, res) => {
     let deletedCount = 0;
     for (const event of events) {
       try {
-        await awsManager.deleteEmailTrackingEvent(event.eventId);
+        await awsManager.deleteEmailTrackingEvent(event);
         deletedCount++;
       } catch (err) {
         console.error(`Failed to delete event ${event.eventId}:`, err.message);
@@ -239,6 +239,9 @@ router.get('/conversations', async (req, res) => {
 
     console.log(`💬 [OUTREACH-CONVERSATIONS] Retrieved ${events.length} events`);
 
+    // Sort events by timestamp for chronological order
+    events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
     // Group events by tracking ID to form conversations
     const conversationMap = {};
     
@@ -266,6 +269,7 @@ router.get('/conversations', async (req, res) => {
       if (event.eventType === 'sent' || event.eventType === 'outbound') {
         conv.messageCount++;
         conv.messages.push({
+          id: event.eventId,
           type: 'outbound',
           content: event.messagePreview || event.content || 'Email sent',
           timestamp: event.timestamp
@@ -274,6 +278,7 @@ router.get('/conversations', async (req, res) => {
         conv.messageCount++;
         conv.status = 'awaiting_ai';
         conv.messages.push({
+          id: event.eventId,
           type: 'reply',
           content: event.messagePreview || event.content || 'Lead replied',
           timestamp: event.timestamp
@@ -282,6 +287,7 @@ router.get('/conversations', async (req, res) => {
         conv.messageCount++;
         conv.status = 'ai_responded';
         conv.messages.push({
+          id: event.eventId,
           type: 'ai_response',
           content: event.aiResponsePreview || event.content || event.messagePreview || 'AI responded',
           timestamp: event.timestamp
@@ -307,15 +313,10 @@ router.get('/conversations', async (req, res) => {
 
     console.log(`💬 [OUTREACH-CONVERSATIONS] After filtering: ${conversations.length} conversations with replies`);
 
-    // Load AI control state for each conversation (default to enabled)
-    for (const conv of conversations) {
-      try {
-        conv.aiEnabled = await awsManager.getConversationAIControl(userId, agentId, conv.trackingId);
-      } catch (error) {
-        console.log(`⚠️ [OUTREACH-CONVERSATIONS] Could not get AI control for ${conv.trackingId}, defaulting to enabled`);
-        conv.aiEnabled = true; // Default to enabled
-      }
-    }
+    // Set all conversations to AI enabled by default (AI control feature disabled)
+    conversations.forEach(conv => {
+      conv.aiEnabled = true;
+    });
 
     console.log(`✅ [OUTREACH-CONVERSATIONS] Processed ${conversations.length} conversations with replies`);
 

@@ -758,7 +758,7 @@ router.delete('/agent-data', async (req, res) => {
     let trackingDeleted = 0;
     for (const event of events) {
       try {
-        await awsManager.deleteEmailTrackingEvent(event.eventId);
+        await awsManager.deleteEmailTrackingEvent(event);
         trackingDeleted++;
       } catch (err) {
         console.error(`Failed to delete tracking event:`, err.message);
