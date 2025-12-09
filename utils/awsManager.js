@@ -2701,29 +2701,45 @@ class AWSManager {
     try {
       console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
       
-      const command = new ScanCommand({
-        TableName: this.tables.emailTracking,
-        FilterExpression: agentId 
-          ? 'userId = :userId AND agentId = :agentId'
-          : 'userId = :userId',
-        ExpressionAttributeValues: agentId
-          ? { ':userId': userId, ':agentId': agentId }
-          : { ':userId': userId },
-        Limit: limit
-      });
+      let allEvents = [];
+      let lastEvaluatedKey = null;
       
-      const result = await this.dynamodb.send(command);
-      const events = result.Items || [];
+      // Paginate through all results
+      do {
+        const command = new ScanCommand({
+          TableName: this.tables.emailTracking,
+          FilterExpression: agentId 
+            ? 'userId = :userId AND agentId = :agentId'
+            : 'userId = :userId',
+          ExpressionAttributeValues: agentId
+            ? { ':userId': userId, ':agentId': agentId }
+            : { ':userId': userId },
+          ExclusiveStartKey: lastEvaluatedKey
+        });
+        
+        const result = await this.dynamodb.send(command);
+        const events = result.Items || [];
+        allEvents = allEvents.concat(events);
+        lastEvaluatedKey = result.LastEvaluatedKey;
+        
+        console.log(`🔍 [EMAIL-TRACKING] Retrieved ${events.length} events in this page, total so far: ${allEvents.length}`);
+        
+        // Stop if we've reached the limit
+        if (allEvents.length >= limit) {
+          allEvents = allEvents.slice(0, limit);
+          break;
+        }
+      } while (lastEvaluatedKey);
       
-      console.log(`✅ [EMAIL-TRACKING] Retrieved ${events.length} events for userId: ${userId}`);
+      console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events for userId: ${userId}`);
       
       // Debug: Log first event structure
-      if (events.length > 0) {
-        console.log(`🔍 [EMAIL-TRACKING] First event keys:`, Object.keys(events[0]));
-        console.log(`🔍 [EMAIL-TRACKING] First event PK/SK:`, { PK: events[0].PK, SK: events[0].SK });
+      if (allEvents.length > 0) {
+        console.log(`🔍 [EMAIL-TRACKING] First event keys:`, Object.keys(allEvents[0]));
+        console.log(`🔍 [EMAIL-TRACKING] First event PK/SK:`, { PK: allEvents[0].PK, SK: allEvents[0].SK });
       }
       
-      return events;
+      return allEvents;
     } catch (error) {
       console.error('❌ [EMAIL-TRACKING] Error getting user email tracking:', error);
       return [];
