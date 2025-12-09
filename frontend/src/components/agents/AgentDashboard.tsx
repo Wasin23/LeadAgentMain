@@ -248,6 +248,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     systemPrompt: '',
     gmailAccount: null
   });
+  const [manualReplyMessage, setManualReplyMessage] = useState('');
+  const [isSendingManualReply, setIsSendingManualReply] = useState(false);
   
   // Pagination state
   const [emailQueuePage, setEmailQueuePage] = useState(1);
@@ -1578,6 +1580,53 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     window.location.href = `/agents?tab=sent&emailId=${emailId}`;
   };
 
+  // Send manual reply
+  const sendManualReply = async () => {
+    if (!manualReplyMessage.trim() || !selectedConversation) return;
+    
+    setIsSendingManualReply(true);
+    try {
+      const response = await api.post('/api/outreach/manual-reply', {
+        trackingId: selectedConversation.trackingId,
+        leadEmail: selectedConversation.leadEmail,
+        leadName: selectedConversation.leadName,
+        agentId: selectedConversation.agentId,
+        message: manualReplyMessage,
+        pauseAI: true // Auto-pause AI when sending manual reply
+      });
+
+      if (response.data.success) {
+        showNotification('✓ Reply sent successfully', 'success');
+        setManualReplyMessage('');
+        
+        // Add message to conversation optimistically
+        setSelectedConversation((prev: any) => ({
+          ...prev,
+          messages: [
+            ...prev.messages,
+            {
+              id: Date.now().toString(),
+              type: 'manual',
+              content: manualReplyMessage,
+              timestamp: new Date().toISOString()
+            }
+          ]
+        }));
+        
+        // Update AI control state to paused
+        setAiResponseControl(prev => ({ ...prev, [selectedConversation.id]: false }));
+        
+        // Refresh conversations
+        await fetchAgentOutreach();
+      }
+    } catch (error) {
+      console.error('Failed to send manual reply:', error);
+      showNotification('Failed to send reply', 'error');
+    } finally {
+      setIsSendingManualReply(false);
+    }
+  };
+
   // Outreach View
   if (showOutreach) {
     return (
@@ -1851,10 +1900,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       transition={{ delay: idx * 0.02 }}
                       className={`border ${colors.border} rounded-lg bg-white overflow-hidden`}
                     >
-                      {/* Conversation Header */}
+                      {/* Conversation Card - Click to open full thread */}
                       <div 
                         onClick={() => setSelectedConversation(conv)}
-                        className={`p-3 cursor-pointer hover:bg-neutral-50 transition-all border-b ${colors.border}`}
+                        className={`p-3 cursor-pointer hover:bg-neutral-50 transition-all`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
@@ -1866,7 +1915,44 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           </div>
                           <div className="text-xs text-neutral-500 whitespace-nowrap ml-2">{formatTimeAgo(conv.lastActivity)}</div>
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap">
+                        
+                        {/* Latest Message Preview */}
+                        {conv.messages && conv.messages.length > 0 && (
+                          <div className="mt-2">
+                            {(() => {
+                              const latestMsg = conv.messages[conv.messages.length - 1];
+                              return (
+                                <div className={`p-2 rounded text-xs ${
+                                  latestMsg.type === 'outbound' || latestMsg.type === 'manual'
+                                    ? 'bg-blue-50 border border-blue-200'
+                                    : latestMsg.type === 'reply'
+                                    ? 'bg-white border border-neutral-300'
+                                    : 'bg-orange-50 border border-orange-200'
+                                }`}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className={`font-medium ${
+                                      latestMsg.type === 'outbound' || latestMsg.type === 'manual' ? 'text-blue-700' : 
+                                      latestMsg.type === 'reply' ? 'text-neutral-700' : 
+                                      'text-orange-700'
+                                    }`}>
+                                      {latestMsg.type === 'outbound' || latestMsg.type === 'manual' ? '🤖 AI Agent' : 
+                                       latestMsg.type === 'reply' ? '👤 Lead Reply' : 
+                                       '🤖 AI Response'}
+                                    </span>
+                                    {latestMsg.type === 'manual' && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                        sent manually
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-neutral-700 line-clamp-2">{latestMsg.content}</p>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center gap-2 flex-wrap mt-2">
                           <span className="text-xs text-neutral-500">{conv.messageCount} msgs</span>
                           {conv.status === 'meeting_booked' && (
                             <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">Meeting</span>
@@ -1877,40 +1963,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           {conv.status === 'waiting_response' && (
                             <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">Waiting</span>
                           )}
+                          <span className="text-xs text-neutral-400 ml-auto">Click to view full conversation →</span>
                         </div>
                       </div>
-
-                      {/* Full Message Thread */}
-                      {conv.messages && conv.messages.length > 0 && (
-                        <div className="p-3 space-y-2 bg-neutral-50">
-                          {conv.messages.map((msg: any, msgIdx: number) => (
-                            <div
-                              key={msg.id || msgIdx}
-                              className={`p-2 rounded text-xs ${
-                                msg.type === 'outbound'
-                                  ? 'bg-blue-50 border border-blue-200 ml-4'
-                                  : msg.type === 'reply'
-                                  ? 'bg-white border border-neutral-300 mr-4'
-                                  : 'bg-green-50 border border-green-200 ml-4'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className={`font-medium ${
-                                  msg.type === 'outbound' ? 'text-blue-700' : 
-                                  msg.type === 'reply' ? 'text-neutral-700' : 
-                                  'text-green-700'
-                                }`}>
-                                  {msg.type === 'outbound' ? '🤖 AI Agent' : 
-                                   msg.type === 'reply' ? '👤 Lead Reply' : 
-                                   '🤖 AI Response'}
-                                </span>
-                                <span className="text-neutral-500 text-[10px]">{formatTimeAgo(msg.timestamp)}</span>
-                              </div>
-                              <p className="text-neutral-700 line-clamp-2">{msg.content}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </motion.div>
                   ))}
                 </div>
@@ -2362,6 +2417,29 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
               {/* Message Thread */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-neutral-50">
+                {isSendingManualReply && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="ml-8"
+                  >
+                    <div className={`rounded-lg p-4 ${colors.bgLight} border ${colors.border}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-medium text-neutral-600">📤 Sent by Agent</div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                            sent manually
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-blue-600">
+                          <div className="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                          Sending...
+                        </div>
+                      </div>
+                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{manualReplyMessage}</p>
+                    </div>
+                  </motion.div>
+                )}
                 {selectedConversation.messages?.map((msg: any, idx: number) => (
                   <motion.div
                     key={idx}
@@ -2371,16 +2449,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     className={`${msg.type === 'outbound' || msg.type === 'ai_response' ? 'ml-8' : 'mr-8'}`}
                   >
                     <div className={`rounded-lg p-4 ${
-                      msg.type === 'outbound' ? `${colors.bgLight} border ${colors.border}` :
+                      msg.type === 'outbound' || msg.type === 'manual' ? `${colors.bgLight} border ${colors.border}` :
                       msg.type === 'reply' ? 'bg-white border border-neutral-200' :
                       'bg-orange-50 border border-orange-200'
                     }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs font-medium text-neutral-600">
-                          {msg.type === 'outbound' ? '📤 Sent by Agent' : 
-                           msg.type === 'reply' ? `💬 ${selectedConversation.leadName}` : 
-                           '🤖 AI Response'}
-                          {' • '}{formatTimeAgo(msg.timestamp)}
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-medium text-neutral-600">
+                            {msg.type === 'outbound' ? '📤 Sent by Agent' : 
+                             msg.type === 'reply' ? `💬 ${selectedConversation.leadName}` : 
+                             msg.type === 'manual' ? '📤 Sent by Agent' :
+                             '🤖 AI Response'}
+                            {' • '}{formatTimeAgo(msg.timestamp)}
+                          </div>
+                          {msg.type === 'manual' && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                              sent manually
+                            </span>
+                          )}
                         </div>
                         {msg.type === 'ai_response' && msg.status === 'generating' && (
                           <div className="flex items-center gap-1 text-xs text-blue-600">
@@ -2412,17 +2498,61 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       )}
                     </div>
                   </motion.div>
-                )) || (
+                ))}
+                {!selectedConversation.messages || selectedConversation.messages.length === 0 ? (
                   <div className="text-center py-12 text-neutral-500">
                     <ChatBubbleLeftRightIcon className="h-12 w-12 mx-auto mb-3 text-neutral-300" />
                     <p>No messages in this conversation</p>
                   </div>
-                )}
+                ) : null}
               </div>
 
-              {/* Conversation Stats Footer */}
+              {/* Manual Reply Composer */}
               <div className="p-4 border-t border-neutral-200 bg-white">
-                <div className="flex items-center gap-6 text-sm">
+                <div className="mb-3">
+                  <label className="text-sm font-medium text-neutral-700 mb-2 block">
+                    💬 Send Manual Reply (AI will be paused)
+                  </label>
+                  <div className="flex gap-2">
+                    <textarea
+                      value={manualReplyMessage}
+                      onChange={(e) => setManualReplyMessage(e.target.value)}
+                      placeholder="Type your reply here..."
+                      rows={3}
+                      className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                          sendManualReply();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={sendManualReply}
+                      disabled={!manualReplyMessage.trim() || isSendingManualReply}
+                      className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 self-end ${
+                        !manualReplyMessage.trim() || isSendingManualReply
+                          ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                          : `${colors.button} text-white hover:opacity-90`
+                      }`}
+                    >
+                      {isSendingManualReply ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <PaperAirplaneIcon className="h-4 w-4" />
+                          Send
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-1">Press Cmd/Ctrl + Enter to send</p>
+                </div>
+
+                {/* Conversation Stats */}
+                <div className="flex items-center gap-6 text-sm pt-3 border-t border-neutral-100">
                   <div className="flex items-center gap-2">
                     <EnvelopeIcon className="h-4 w-4 text-neutral-400" />
                     <span className="text-neutral-600">{selectedConversation.messageCount || 0} messages</span>

@@ -244,9 +244,17 @@ router.get('/conversations', async (req, res) => {
 
     // Group events by tracking ID to form conversations
     const conversationMap = {};
+    const processedEventIds = new Set(); // Track processed events to prevent duplicates
     
     events.forEach(event => {
       const trackingId = event.trackingId;
+      
+      // Skip if we've already processed this eventId (deduplication)
+      if (processedEventIds.has(event.eventId)) {
+        console.log(`⚠️ [DUPLICATE] Skipping duplicate eventId: ${event.eventId}`);
+        return;
+      }
+      processedEventIds.add(event.eventId);
       
       console.log(`🔍 [EVENT] Processing event:`, {
         trackingId,
@@ -298,6 +306,15 @@ router.get('/conversations', async (req, res) => {
           id: event.eventId,
           type: 'ai_response',
           content: event.aiResponsePreview || event.content || event.messagePreview || 'AI responded',
+          timestamp: event.timestamp
+        });
+      } else if (event.eventType === 'manual') {
+        conv.messageCount++;
+        conv.status = 'manual_replied';
+        conv.messages.push({
+          id: event.eventId,
+          type: 'manual',
+          content: event.messagePreview || event.content || 'Manual reply sent',
           timestamp: event.timestamp
         });
       } else if (event.eventType === 'meeting_booked') {
@@ -763,5 +780,99 @@ export function broadcastAIResponse(userId, agentId, eventData) {
   
   console.log(`✅ [OUTREACH-SSE] Broadcast complete. Sent to ${successCount}/${clients.length} client(s)`);
 }
+
+// Manual reply endpoint
+router.post('/manual-reply', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { trackingId, leadEmail, leadName, agentId, message, pauseAI } = req.body;
+
+    console.log(`📧 [MANUAL-REPLY] Sending manual reply:`, {
+      userId,
+      trackingId,
+      leadEmail,
+      agentId,
+      pauseAI
+    });
+
+    // Get user settings for from address
+    const userSettings = await awsManager.getUserSettings(userId);
+    const fromEmail = userSettings?.companyProfile?.fromEmail || userSettings?.email;
+    const companyName = userSettings?.companyProfile?.companyName || 'Your Company';
+
+    if (!fromEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'No from email configured'
+      });
+    }
+
+    // Send email via Mailgun
+    const emailData = {
+      from: `${companyName} <${fromEmail}>`,
+      to: leadEmail,
+      subject: `Re: Conversation`,
+      text: message,
+      html: message.replace(/\n/g, '<br>')
+    };
+
+    const mailgunDomain = process.env.MAILGUN_DOMAIN;
+    const mailgunKey = process.env.MAILGUN_API_KEY;
+
+    const formData = new URLSearchParams();
+    Object.keys(emailData).forEach(key => {
+      formData.append(key, emailData[key]);
+    });
+
+    const mailgunResponse = await fetch(
+      `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`api:${mailgunKey}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
+      }
+    );
+
+    if (!mailgunResponse.ok) {
+      throw new Error(`Mailgun error: ${mailgunResponse.statusText}`);
+    }
+
+    // Log the manual reply event
+    await awsManager.logEmailTracking({
+      userId,
+      agentId,
+      trackingId,
+      eventType: 'manual',
+      recipientEmail: leadEmail,
+      leadName,
+      messagePreview: message.substring(0, 200),
+      content: message
+    });
+
+    // If pauseAI flag is set, disable AI for this conversation
+    if (pauseAI) {
+      console.log(`⏸️ [MANUAL-REPLY] Pausing AI for trackingId: ${trackingId}`);
+      // Note: AI control logic would go here if we had a separate table for it
+      // For now, the frontend will handle this state
+    }
+
+    console.log(`✅ [MANUAL-REPLY] Manual reply sent successfully`);
+
+    res.json({
+      success: true,
+      message: 'Reply sent successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ [MANUAL-REPLY] Error sending manual reply:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 export default router;
