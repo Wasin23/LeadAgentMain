@@ -27,7 +27,7 @@ class AWSManager {
       userSettings: process.env.AWS_DYNAMODB_USER_SETTINGS_TABLE || 'meridian-user-settings',
       agentSettings: process.env.AWS_DYNAMODB_AGENT_SETTINGS_TABLE || 'meridian-agent-settings',
       leadData: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'meridian-lead-data',
-      emailTracking: process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'meridian-email-tracking',
+      emailTracking: process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'meridian-email-tracking-v2',
       agentState: process.env.AWS_DYNAMODB_AGENT_STATE_TABLE || 'meridian-agent-state',
       contactedLeads: process.env.AWS_DYNAMODB_CONTACTED_LEADS_TABLE || 'meridian-contacted-leads',
       cycleLogs: process.env.AWS_DYNAMODB_CYCLE_LOGS_TABLE || 'meridian-cycle-logs',
@@ -2658,8 +2658,8 @@ class AWSManager {
       const command = new PutCommand({
         TableName: this.tables.emailTracking,
         Item: {
-          PK: `TRACKING#${trackingId}`,
-          SK: `EVENT#${timestamp}#${eventId}`,
+          PK: `USER#${userId}#AGENT#${agentId}`,  // Efficient querying by user/agent
+          SK: `EVENT#${timestamp}#${eventId}`,     // Chronological ordering
           userId,
           agentId,
           trackingId,
@@ -2680,10 +2680,11 @@ class AWSManager {
   
   async getEmailTrackingByTracking(trackingId) {
     try {
-      // Use Scan instead of Query since table schema uses PK/SK, not trackingId as key
-      const command = new ScanCommand({
+      // Use GSI for efficient querying by trackingId
+      const command = new QueryCommand({
         TableName: this.tables.emailTracking,
-        FilterExpression: 'trackingId = :trackingId',
+        IndexName: 'TrackingIdIndex',
+        KeyConditionExpression: 'trackingId = :trackingId',
         ExpressionAttributeValues: {
           ':trackingId': trackingId
         }
@@ -2701,30 +2702,33 @@ class AWSManager {
     try {
       console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
       
+      if (!agentId) {
+        console.log(`⚠️ [EMAIL-TRACKING] agentId required for efficient query, falling back to scan`);
+        return [];
+      }
+      
+      const pk = `USER#${userId}#AGENT#${agentId}`;
       let allEvents = [];
       let lastEvaluatedKey = null;
       let pageCount = 0;
-      const maxPages = 10; // Safety limit
       
-      // Paginate through all results
+      // Use Query instead of Scan - much more efficient!
       do {
         pageCount++;
         const commandParams = {
           TableName: this.tables.emailTracking,
-          FilterExpression: agentId 
-            ? 'userId = :userId AND agentId = :agentId'
-            : 'userId = :userId',
-          ExpressionAttributeValues: agentId
-            ? { ':userId': userId, ':agentId': agentId }
-            : { ':userId': userId }
+          KeyConditionExpression: 'PK = :pk',
+          ExpressionAttributeValues: {
+            ':pk': pk
+          },
+          Limit: limit
         };
         
-        // Only add ExclusiveStartKey if it's not null
         if (lastEvaluatedKey) {
           commandParams.ExclusiveStartKey = lastEvaluatedKey;
         }
         
-        const command = new ScanCommand(commandParams);
+        const command = new QueryCommand(commandParams);
         const result = await this.dynamodb.send(command);
         const events = result.Items || [];
         allEvents = allEvents.concat(events);
@@ -2732,27 +2736,16 @@ class AWSManager {
         
         console.log(`🔍 [EMAIL-TRACKING] Page ${pageCount}: Retrieved ${events.length} events, total so far: ${allEvents.length}, hasMore: ${!!lastEvaluatedKey}`);
         
-        // Stop if we've reached the limit
         if (allEvents.length >= limit) {
           allEvents = allEvents.slice(0, limit);
-          console.log(`🔍 [EMAIL-TRACKING] Reached limit of ${limit} events, stopping scan`);
-          break;
-        }
-        
-        // Safety check
-        if (pageCount >= maxPages) {
-          console.log(`⚠️ [EMAIL-TRACKING] Reached max pages (${maxPages}), stopping scan`);
           break;
         }
       } while (lastEvaluatedKey);
       
-      console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events for userId: ${userId} in ${pageCount} page(s)`);
+      console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events in ${pageCount} page(s)`);
       
-      // Debug: Log first event structure
       if (allEvents.length > 0) {
-        console.log(`🔍 [EMAIL-TRACKING] First event keys:`, Object.keys(allEvents[0]));
-        console.log(`🔍 [EMAIL-TRACKING] First event PK/SK:`, { PK: allEvents[0].PK, SK: allEvents[0].SK });
-        console.log(`🔍 [EMAIL-TRACKING] Event types in result:`, allEvents.map(e => e.eventType).join(', '));
+        console.log(`🔍 [EMAIL-TRACKING] Event types found:`, [...new Set(allEvents.map(e => e.eventType))].join(', '));
       }
       
       return allEvents;
