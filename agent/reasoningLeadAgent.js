@@ -3239,18 +3239,18 @@ MAKE THE CONNECTION EXPLICIT:
 
 TONE RULES:
 ✅ Use contractions (I'm, we're, you're, can't, won't)
-✅ Simple words (avoid: "leverage," "synergy," "paramount," "strategic alignment")
+✅ Simple, everyday words - write like you're texting a colleague
 ✅ Short sentences
-✅ Sound like a human colleague
+✅ Sound like a real human, not a corporate robot
 ✅ Match your personality traits
 ✅ ALWAYS explain WHY you're relevant to THEIR situation
 
 ❌ NEVER DO:
-- "Your company's focus on X is impressive"
-- Multiple paragraphs
-- Corporate buzzwords and jargon
-- Generic template phrases
-- Failing to connect YOUR solution to THEIR specific situation
+- Sound like you're writing a formal business proposal
+- Use multiple paragraphs
+- Write sentences longer than 20 words
+- Fail to connect YOUR solution to THEIR specific situation
+- Sign with your personality name (you're NOT "The Hunter", you're the agent's actual name)
 
 EXAMPLES OF GOOD EMAILS (notice the explicit connection):
 
@@ -3267,7 +3267,15 @@ Networker: "We're helping Stripe and Deel with contractor payments at scale. Fig
 FORMATTING:
 Opening: Hello ${leadData.first_name},
 Body: [one paragraph, 3-4 sentences with explicit WHY connection]
-Signature: Best regards,\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}
+
+SIGNATURE (CRITICAL - READ CAREFULLY):
+You are NOT signing as "${personality.name || 'your personality'}". 
+You are signing as: ${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}
+
+Signature format:
+Best regards,
+${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || '') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}
+${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}
 
 Format as:
 SUBJECT: [subject line]
@@ -3411,22 +3419,22 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       console.log('🎯 [CONFIDENCE LEVEL]', confidenceLevel);
       
-      // Add legal compliance footer
-      const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
-      const unsubscribeToken = generateUnsubscribeToken(leadData.email);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
+      // TESTING: Comment out footer to test Primary inbox placement
+      // const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
+      // const unsubscribeToken = generateUnsubscribeToken(leadData.email);
+      // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      // const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
       
       // Get company address from settings (use user settings)
-      const companyAddress = this.memory.userSettings?.companyAddress || 
-                            emailSettings.companyBranding?.companyAddress ||
-                            'Your Company Address';
+      // const companyAddress = this.memory.userSettings?.companyAddress || 
+      //                       emailSettings.companyBranding?.companyAddress ||
+      //                       'Your Company Address';
       
       // Minimal compliance footer - less promotional looking
-      const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
-        `<a href="${unsubscribeUrl}">Unsubscribe</a>`;
+      // const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
+      //   `<a href="${unsubscribeUrl}">Unsubscribe</a>`;
       
-      body = body + footer;
+      // body = body + footer;
       
       console.log('✅ [EMAIL BUILDER] Personalized email created with legal compliance footer');
       
