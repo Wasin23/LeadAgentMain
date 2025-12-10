@@ -3150,12 +3150,14 @@ YOUR TASK - WRITE A HIGHLY PERSONALIZED EMAIL:
 You have access to deep research about ${companyName}. Use these SPECIFIC FACTS to write a personalized email that shows you've done real homework.
 
 REQUIREMENTS:
-1. SUBJECT LINE: Create a highly personalized, curiosity-driven subject line that:
-   - References a SPECIFIC insight from the research (their recent funding, partnership, hiring, market position, or growth)
-   - Sounds natural and conversational (NOT corporate jargon or salesy)
-   - Creates curiosity and relevance without being clickbait
-   - Keep it under 60 characters
-   - Examples: "Quick thought on [Company]'s expansion into [Market]" OR "[First Name] - noticed [specific achievement]" OR "Helping [Company] with [specific challenge]"
+1. SUBJECT LINE: Write a casual, person-to-person subject line that sounds like you're reaching out about something specific:
+   - NEVER use their name followed by a dash (NO "Filip - ..." or "Stig - ...")
+   - NO promotional language or pitches in subject line
+   - Sound like a colleague or peer reaching out, not a salesperson
+   - Reference something specific about their company/situation casually
+   - Keep it under 50 characters and lowercase-friendly
+   - GOOD examples: "quick question about [their company]" OR "saw your work with [specific thing]" OR "thought about [their recent news]" OR "re: [specific challenge in their industry]"
+   - BAD examples: "Your Next Strategic Move..." OR "Transforming operations with..." OR "[Name] - [Pitch]"
 2. Opening: "Hello ${leadData.first_name}," (first name only, no last name)
 3. First paragraph: Reference a SPECIFIC fact from the research above and connect it to their business challenges
 4. Second paragraph: Explain how ${emailSettings.companyBranding?.companyName || 'our company'} specifically addresses that challenge
