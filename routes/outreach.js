@@ -843,19 +843,28 @@ router.post('/manual-reply', async (req, res) => {
       const trackingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
       console.log(`🔍 [MANUAL-REPLY] Retrieved ${trackingEvents.length} tracking events`);
       
-      const sentEvent = trackingEvents.find(e => e.eventType === 'sent' || e.eventType === 'outbound');
-      if (sentEvent) {
-        if (sentEvent.subject) {
-          originalSubject = sentEvent.subject;
-          console.log(`📋 [MANUAL-REPLY] Found original subject: ${originalSubject}`);
+      // Log all event types to debug
+      const eventTypes = trackingEvents.map(e => e.eventType);
+      console.log(`🔍 [MANUAL-REPLY] Event types found:`, eventTypes);
+      
+      // Look for the most recent message in the thread (sent, outbound, ai_response, OR reply)
+      const latestMessage = trackingEvents
+        .filter(e => ['sent', 'outbound', 'ai_response', 'reply'].includes(e.eventType))
+        .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())[0];
+        
+      if (latestMessage) {
+        if (latestMessage.subject) {
+          originalSubject = latestMessage.subject;
+          console.log(`📋 [MANUAL-REPLY] Found original subject: ${originalSubject} (from ${latestMessage.eventType})`);
         }
-        if (sentEvent.messageId) {
-          originalMessageId = sentEvent.messageId;
+        if (latestMessage.messageId) {
+          originalMessageId = latestMessage.messageId;
           references = originalMessageId;
-          console.log(`📋 [MANUAL-REPLY] Found Message-ID: ${originalMessageId}`);
+          console.log(`📋 [MANUAL-REPLY] Found Message-ID: ${originalMessageId} (from ${latestMessage.eventType})`);
         }
+        console.log(`✅ [MANUAL-REPLY] Threading with most recent ${latestMessage.eventType} event`);
       } else {
-        console.log(`⚠️ [MANUAL-REPLY] No sent event found in tracking events`);
+        console.log(`⚠️ [MANUAL-REPLY] No threadable events found in tracking events`);
       }
     } catch (error) {
       console.error(`❌ [MANUAL-REPLY] Error fetching tracking events:`, error);
