@@ -28,7 +28,7 @@ const authenticateToken = (req, res, next) => {
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:8080/api/calendar/oauth-callback'
+  'https://meridianagent.xyz/api/calendar/oauth-callback'
 );
 
 // Get Google OAuth URL
