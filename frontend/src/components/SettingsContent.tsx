@@ -7,8 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   UserCircleIcon, 
   CurrencyDollarIcon, 
-  EnvelopeIcon,
-  CogIcon,
   CalendarIcon,
   ShieldCheckIcon,
   CheckBadgeIcon,
@@ -16,7 +14,7 @@ import {
 import RateLimitSettings from './agents/RateLimitSettings';
 import CompanyProfileModal from './CompanyProfileModal';
 
-type TabType = 'profile' | 'budget' | 'email' | 'emailResponse' | 'calendar' | 'privacy';
+type TabType = 'profile' | 'budget' | 'calendar' | 'privacy';
 
 interface UserProfile {
   username: string;
@@ -68,6 +66,8 @@ interface EmailResponseSettings {
 interface CalendarSettings {
   calendarId: string;
   serviceAccountEmail: string;
+  googleConnected?: boolean;
+  calendlyLink?: string;
 }
 
 interface Preferences {
@@ -259,17 +259,18 @@ export default function SettingsContent() {
         console.log('Email response settings not available or error fetching');
       }
 
-      // Fetch service account email from environment (for display only)
+      // Fetch calendar status (OAuth and Calendly)
       try {
-        const envResponse = await api.get('/api/system/calendar-config');
-        if (envResponse.data.serviceAccountEmail) {
+        const calendarStatusResponse = await api.get('/api/calendar/status');
+        if (calendarStatusResponse.data) {
           setCalendarSettings(prev => ({
             ...prev,
-            serviceAccountEmail: envResponse.data.serviceAccountEmail
+            googleConnected: calendarStatusResponse.data.googleConnected || false,
+            calendlyLink: calendarStatusResponse.data.calendlyLink || ''
           }));
         }
       } catch (error) {
-        console.log('Service account email not available');
+        console.log('Calendar status not available');
       }
 
     } catch (error: any) {
@@ -387,8 +388,6 @@ export default function SettingsContent() {
   const tabs = [
     { id: 'profile' as TabType, label: 'Profile', icon: UserCircleIcon },
     { id: 'budget' as TabType, label: 'Budget & Limits', icon: CurrencyDollarIcon },
-    { id: 'email' as TabType, label: 'Email Configuration', icon: EnvelopeIcon },
-    { id: 'emailResponse' as TabType, label: 'Email Response Settings', icon: CogIcon },
     { id: 'calendar' as TabType, label: 'Calendar Integration', icon: CalendarIcon },
     { id: 'privacy' as TabType, label: 'Privacy Policy', icon: ShieldCheckIcon },
   ];
@@ -1008,30 +1007,75 @@ export default function SettingsContent() {
                         <p className="text-sm text-neutral-600 mb-4">
                           AI creates events directly in your calendar when meetings are confirmed
                         </p>
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Connected
-                          </span>
-                          <button
-                            onClick={async () => {
-                              if (confirm('Are you sure you want to disconnect Google Calendar?')) {
-                                try {
-                                  await api.post('/api/calendar/disconnect-google');
-                                  setMessage({ type: 'success', text: 'Google Calendar disconnected' });
-                                  setTimeout(() => window.location.reload(), 1000);
-                                } catch (error) {
-                                  setMessage({ type: 'error', text: 'Failed to disconnect' });
+                        {calendarSettings.googleConnected ? (
+                          <div className="flex items-center gap-3">
+                            <span className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Connected
+                            </span>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Are you sure you want to disconnect Google Calendar?')) {
+                                  try {
+                                    await api.post('/api/calendar/disconnect-google');
+                                    setCalendarSettings({ ...calendarSettings, googleConnected: false });
+                                    setMessage({ type: 'success', text: 'Google Calendar disconnected' });
+                                  } catch (error: any) {
+                                    console.error('Disconnect error:', error);
+                                    setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to disconnect' });
+                                  }
                                 }
-                              }
-                            }}
-                            className="text-sm text-red-600 hover:text-red-700 hover:underline"
-                          >
-                            Disconnect
-                          </button>
-                        </div>
+                              }}
+                              className="text-sm text-red-600 hover:text-red-700 hover:underline"
+                            >
+                              Disconnect
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <span className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Not Connected
+                            </span>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await api.get('/api/calendar/google-oauth-url');
+                                  const width = 600;
+                                  const height = 700;
+                                  const left = window.screenX + (window.outerWidth - width) / 2;
+                                  const top = window.screenY + (window.outerHeight - height) / 2;
+                                  const popup = window.open(
+                                    response.data.authUrl,
+                                    'Google Calendar OAuth',
+                                    `width=${width},height=${height},left=${left},top=${top}`
+                                  );
+                                  const checkPopup = setInterval(() => {
+                                    if (popup?.closed) {
+                                      clearInterval(checkPopup);
+                                      // Recheck status
+                                      api.get('/api/calendar/status').then(statusRes => {
+                                        if (statusRes.data.googleConnected) {
+                                          setCalendarSettings({ ...calendarSettings, googleConnected: true });
+                                          setMessage({ type: 'success', text: 'Google Calendar connected!' });
+                                        }
+                                      });
+                                    }
+                                  }, 500);
+                                } catch (error: any) {
+                                  setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to connect' });
+                                }
+                              }}
+                              className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                            >
+                              Connect Now
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
