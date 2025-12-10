@@ -21,26 +21,30 @@ export class GmailReplyPoller {
 
   /**
    * Start polling for Gmail replies every 40 seconds
+   * DISABLED: Using Mailgun webhooks instead of Gmail polling
    */
   start() {
-    if (this.isRunning) {
-      console.log('⏰ [GMAIL POLLER] Already running');
-      return;
-    }
-
-    // Run every 40 seconds (*/40 * * * * * would be seconds, but node-cron doesn't support that)
-    // So we'll use setInterval for 40 seconds
-    console.log('⏰ [GMAIL POLLER] Starting Gmail reply polling (every 40 seconds)');
+    console.log('⏰ [GMAIL POLLER] DISABLED - Using Mailgun webhooks for reply tracking');
+    return; // Disabled - no longer polling Gmail
     
-    // Run immediately on start
-    this.checkAllUsers();
-    
-    // Then run every 40 seconds
-    this.intervalId = setInterval(() => {
-      this.checkAllUsers();
-    }, 40000); // 40 seconds
+    // if (this.isRunning) {
+    //   console.log('⏰ [GMAIL POLLER] Already running');
+    //   return;
+    // }
 
-    this.isRunning = true;
+    // // Run every 40 seconds (*/40 * * * * * would be seconds, but node-cron doesn't support that)
+    // // So we'll use setInterval for 40 seconds
+    // console.log('⏰ [GMAIL POLLER] Starting Gmail reply polling (every 40 seconds)');
+    
+    // // Run immediately on start
+    // this.checkAllUsers();
+    
+    // // Then run every 40 seconds
+    // this.intervalId = setInterval(() => {
+    //   this.checkAllUsers();
+    // }, 40000); // 40 seconds
+
+    // this.isRunning = true;
   }
 
   /**

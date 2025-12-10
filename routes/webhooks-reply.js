@@ -164,9 +164,41 @@ async function getAgentPersonality(userId, agentId) {
     }
 
     const settings = await awsManager.getAgentSettings(userId, agentId);
+    const userSettings = await awsManager.getUserSettings(userId);
+    const companyProfile = userSettings?.companyProfile || {};
+    
+    // Build context-aware system prompt from company profile
+    let systemPrompt = '';
+    
+    if (settings?.personality?.emailPrompt) {
+      // Use custom prompt if set
+      systemPrompt = settings.personality.emailPrompt;
+    } else {
+      // Generate from company profile
+      systemPrompt = `You are an AI assistant representing ${companyProfile.companyName || 'the company'}.`;
+      
+      if (companyProfile.industry) {
+        systemPrompt += `\n\nIndustry: ${companyProfile.industry}`;
+      }
+      
+      if (companyProfile.valueProposition) {
+        systemPrompt += `\n\nValue Proposition: ${companyProfile.valueProposition}`;
+      }
+      
+      if (companyProfile.targetMarket) {
+        systemPrompt += `\n\nTarget Market: ${companyProfile.targetMarket}`;
+      }
+      
+      if (companyProfile.keyProducts) {
+        systemPrompt += `\n\nKey Products/Services: ${companyProfile.keyProducts}`;
+      }
+      
+      systemPrompt += '\n\nWrite professional, helpful email responses that address the sender\'s needs directly while showcasing our value proposition.';
+    }
+    
     if (settings?.personality) {
       return {
-        emailPrompt: settings.personality.emailPrompt || 'Write professional email responses.',
+        emailPrompt: systemPrompt,
         name: settings.personality.name || 'AI Assistant',
         style: settings.personality.emailStyle || 'Professional',
         avatar: settings.personality.avatar || '🤖',
@@ -175,7 +207,7 @@ async function getAgentPersonality(userId, agentId) {
     }
 
     return {
-      emailPrompt: 'Write professional, helpful email responses that address the sender\'s needs directly.',
+      emailPrompt: systemPrompt,
       name: 'AI Assistant',
       style: 'Professional and helpful'
     };
@@ -517,17 +549,6 @@ const sendEmailTool = new DynamicStructuredTool({
         });
       }
       
-      // Log the sent email
-      await storeConversationEvent(tracking_id, 'ai_reply', {
-        subject,
-        to,
-        body,
-        content: body,
-        messagePreview: body?.substring(0, 200),
-        messageId,
-        mailgunId: result.id
-      });
-      
       // Log AI response to DynamoDB for Outreach dashboard
       console.log(`📊 [OUTREACH] Logging AI response event to DynamoDB`, { userId, agentId, tracking_id, to });
       try {
@@ -535,6 +556,8 @@ const sendEmailTool = new DynamicStructuredTool({
           eventType: 'ai_response',
           recipientEmail: to,
           aiResponsePreview: body.substring(0, 200),
+          content: body,
+          subject,
           timestamp: new Date().toISOString(),
           leadName: to.split('@')[0]
         });
@@ -679,16 +702,6 @@ router.post('/mailgun-reply', async (req, res) => {
       console.error('[WEBHOOK] Error fetching original email metadata:', err.message);
     }
     
-    // Store the incoming message
-    await storeConversationEvent(trackingId, 'lead_message', {
-      from: emailData.from,
-      to: emailData.to,
-      subject: emailData.subject,
-      content: emailData.body,
-      messagePreview: emailData.body?.substring(0, 200),
-      messageId: inboundMessageId
-    });
-    
     // Log reply event to DynamoDB for Outreach dashboard
     console.log(`📊 [OUTREACH] Logging reply event to DynamoDB`, { userId, agentId, trackingId, from: emailData.from });
     try {
@@ -698,6 +711,7 @@ router.post('/mailgun-reply', async (req, res) => {
         leadName: leadName,
         subject: originalSubject || emailData.subject,
         messagePreview: emailData.body.substring(0, 200),
+        content: emailData.body,
         timestamp: new Date().toISOString()
       });
       console.log(`✅ [OUTREACH] Reply event logged successfully`);

@@ -897,7 +897,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   const fetchOutreachSettings = async () => {
     try {
-      const response = await api.get(`/api/agents/${agentId}/settings`);
+      const response = await api.get(`/api/lead-agent/settings?agentId=${agentId}`);
       if (response?.data?.settings) {
         const settings = response.data.settings;
         setOutreachSettings({
@@ -1582,18 +1582,36 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
   // Send manual reply
   const sendManualReply = async () => {
-    if (!manualReplyMessage.trim() || !selectedConversation) return;
+    if (!manualReplyMessage.trim() || !selectedConversation) {
+      console.log('❌ [MANUAL-REPLY] Validation failed:', {
+        hasMessage: !!manualReplyMessage.trim(),
+        hasConversation: !!selectedConversation
+      });
+      return;
+    }
     
     setIsSendingManualReply(true);
     try {
-      const response = await api.post('/api/outreach/manual-reply', {
+      const requestData = {
         trackingId: selectedConversation.trackingId,
         leadEmail: selectedConversation.leadEmail,
         leadName: selectedConversation.leadName,
         agentId: selectedConversation.agentId,
         message: manualReplyMessage,
-        pauseAI: true // Auto-pause AI when sending manual reply
+        pauseAI: true
+      };
+
+      console.log('📧 [MANUAL-REPLY] Sending request:', {
+        url: '/api/outreach/manual-reply',
+        data: {
+          ...requestData,
+          message: requestData.message.substring(0, 50) + '...'
+        }
       });
+
+      const response = await api.post('/api/outreach/manual-reply', requestData);
+
+      console.log('✅ [MANUAL-REPLY] Response received:', response.data);
 
       if (response.data.success) {
         showNotification('✓ Reply sent successfully', 'success');
@@ -1619,9 +1637,31 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         // Refresh conversations
         await fetchAgentOutreach();
       }
-    } catch (error) {
-      console.error('Failed to send manual reply:', error);
-      showNotification('Failed to send reply', 'error');
+    } catch (error: any) {
+      console.error('❌ [MANUAL-REPLY] Full error object:', error);
+      console.error('❌ [MANUAL-REPLY] Response data:', error?.response?.data);
+      console.error('❌ [MANUAL-REPLY] Response status:', error?.response?.status);
+      console.error('❌ [MANUAL-REPLY] Error details:', {
+        name: error?.name,
+        message: error?.message,
+        response: {
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          headers: error?.response?.headers
+        },
+        request: {
+          url: error?.config?.url,
+          method: error?.config?.method,
+          baseURL: error?.config?.baseURL
+        },
+        isAxiosError: error?.isAxiosError,
+        code: error?.code
+      });
+      
+      const errorMsg = error?.response?.data?.error || error?.message || 'Unknown error occurred';
+      console.error('❌ [MANUAL-REPLY] Error message to show:', errorMsg);
+      showNotification(`❌ Failed: ${errorMsg}`, 'error');
     } finally {
       setIsSendingManualReply(false);
     }
@@ -2136,7 +2176,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     setOutreachSettings((prev: any) => ({ ...prev, aiResponseEnabled: newValue }));
                     try {
                       // Fetch current settings first
-                      const currentSettings = await api.get(`/api/agents/${agentId}/settings`);
+                      const currentSettings = await api.get(`/api/lead-agent/settings?agentId=${agentId}`);
                       const settings = currentSettings?.data?.settings || {};
                       
                       // Update with new value
@@ -2185,7 +2225,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     setOutreachSettings((prev: any) => ({ ...prev, rebumpEnabled: newValue }));
                     try {
                       // Fetch current settings first
-                      const currentSettings = await api.get(`/api/agents/${agentId}/settings`);
+                      const currentSettings = await api.get(`/api/lead-agent/settings?agentId=${agentId}`);
                       const settings = currentSettings?.data?.settings || {};
                       
                       // Update with new value
@@ -2251,7 +2291,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       onClick={async () => {
                         try {
                           // Fetch current settings first
-                          const currentSettings = await api.get(`/api/agents/${agentId}/settings`);
+                          const currentSettings = await api.get(`/api/lead-agent/settings?agentId=${agentId}`);
                           const settings = currentSettings?.data?.settings || {};
                           
                           // Update with new value
@@ -2530,7 +2570,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 h-fit ${
                         !manualReplyMessage.trim() || isSendingManualReply
                           ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                          : `${colors.button} text-white hover:opacity-90`
+                          : `bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-sm`
                       }`}
                     >
                       {isSendingManualReply ? (

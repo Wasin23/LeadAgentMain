@@ -177,7 +177,7 @@ class AWSEmailQueue {
 
       // Fetch tracking events for this user/agent
       const trackingEvents = await awsManager.getEmailTrackingByUser(userId, agentId);
-      console.log(`📊 [AWS ENRICHMENT] Found ${trackingEvents.length} tracking events for ${emails.length} emails`);
+      // console.log(`📊 [AWS ENRICHMENT] Found ${trackingEvents.length} tracking events for ${emails.length} emails`);
 
       // Create a map of tracking events by trackingId
       const trackingMap = new Map();
@@ -218,7 +218,7 @@ class AWSEmailQueue {
         return email;
       });
 
-      console.log(`✅ [AWS ENRICHMENT] Enriched ${enrichedEmails.filter(e => e.analytics).length} emails with tracking data`);
+      // console.log(`✅ [AWS ENRICHMENT] Enriched ${enrichedEmails.filter(e => e.analytics).length} emails with tracking data`);
       return enrichedEmails;
       
     } catch (error) {

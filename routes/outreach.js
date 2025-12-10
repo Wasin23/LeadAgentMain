@@ -805,42 +805,67 @@ router.post('/manual-reply', async (req, res) => {
       pauseAI
     });
 
-    // Get user settings for from address
-    const userSettings = await awsManager.getUserSettings(userId);
-    const fromEmail = userSettings?.companyProfile?.fromEmail || userSettings?.email;
-    const companyName = userSettings?.companyProfile?.companyName || 'Your Company';
-
-    if (!fromEmail) {
+    // Validate required fields
+    if (!trackingId || !leadEmail || !agentId || !message) {
+      console.error(`❌ [MANUAL-REPLY] Missing required fields:`, {
+        hasTrackingId: !!trackingId,
+        hasLeadEmail: !!leadEmail,
+        hasAgentId: !!agentId,
+        hasMessage: !!message
+      });
       return res.status(400).json({
         success: false,
-        error: 'No from email configured'
+        error: 'Missing required fields: trackingId, leadEmail, agentId, and message are required'
       });
     }
 
+    // Get user settings for from address
+    const userSettings = await awsManager.getUserSettings(userId);
+    
+    // Try multiple sources for from email, in order of preference
+    const fromEmail = userSettings?.emailSettings?.fromEmail || 
+                     userSettings?.companyProfile?.fromEmail || 
+                     userSettings?.email ||
+                     `noreply@${process.env.MAILGUN_DOMAIN}`;
+    
+    const companyName = userSettings?.companyProfile?.companyName || 
+                       userSettings?.emailSettings?.fromName ||
+                       'Your Company';
+
     console.log(`🔍 [MANUAL-REPLY] From email: ${fromEmail}, Company: ${companyName}`);
 
-    // Get original email subject from tracking events
-    let originalSubject = 'Conversation';
+    // Get original email subject and message ID from tracking events
+    let originalSubject = 'your inquiry';
+    let originalMessageId = null;
+    let references = null;
+    
     try {
       console.log(`🔍 [MANUAL-REPLY] Fetching tracking events for trackingId: ${trackingId}`);
       const trackingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
       console.log(`🔍 [MANUAL-REPLY] Retrieved ${trackingEvents.length} tracking events`);
       
       const sentEvent = trackingEvents.find(e => e.eventType === 'sent' || e.eventType === 'outbound');
-      if (sentEvent?.subject) {
-        originalSubject = sentEvent.subject;
-        console.log(`📋 [MANUAL-REPLY] Found original subject: ${originalSubject}`);
+      if (sentEvent) {
+        if (sentEvent.subject) {
+          originalSubject = sentEvent.subject;
+          console.log(`📋 [MANUAL-REPLY] Found original subject: ${originalSubject}`);
+        }
+        if (sentEvent.messageId) {
+          originalMessageId = sentEvent.messageId;
+          references = originalMessageId;
+          console.log(`📋 [MANUAL-REPLY] Found Message-ID: ${originalMessageId}`);
+        }
       } else {
-        console.log(`⚠️ [MANUAL-REPLY] No subject found in tracking events, using default`);
+        console.log(`⚠️ [MANUAL-REPLY] No sent event found in tracking events`);
       }
     } catch (error) {
       console.error(`❌ [MANUAL-REPLY] Error fetching tracking events:`, error);
-      // Continue with default subject
+      // Continue with defaults
     }
 
     console.log(`📨 [MANUAL-REPLY] Preparing email data...`);
 
-    // Send email via Mailgun
+    // Send email via Mailgun with proper reply headers
     const emailData = {
       from: `${companyName} <${fromEmail}>`,
       to: leadEmail,
@@ -848,14 +873,29 @@ router.post('/manual-reply', async (req, res) => {
       text: message,
       html: message.replace(/\n/g, '<br>')
     };
+    
+    // Add reply headers if we have the original message ID
+    if (originalMessageId) {
+      emailData['h:In-Reply-To'] = originalMessageId;
+      emailData['h:References'] = references;
+      console.log(`📧 [MANUAL-REPLY] Adding reply headers for threading`);
+    }
 
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
     const mailgunKey = process.env.MAILGUN_API_KEY;
+
+    console.log(`📧 [MANUAL-REPLY] Mailgun config:`, {
+      domain: mailgunDomain,
+      hasKey: !!mailgunKey,
+      url: `https://api.mailgun.net/v3/${mailgunDomain}/messages`
+    });
 
     const formData = new URLSearchParams();
     Object.keys(emailData).forEach(key => {
       formData.append(key, emailData[key]);
     });
+
+    console.log(`📤 [MANUAL-REPLY] Sending to Mailgun...`);
 
     const mailgunResponse = await fetch(
       `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
@@ -868,6 +908,8 @@ router.post('/manual-reply', async (req, res) => {
         body: formData
       }
     );
+
+    console.log(`📬 [MANUAL-REPLY] Mailgun response status:`, mailgunResponse.status);
 
     if (!mailgunResponse.ok) {
       const errorText = await mailgunResponse.text();
@@ -883,10 +925,7 @@ router.post('/manual-reply', async (req, res) => {
     console.log(`✅ [MANUAL-REPLY] Mailgun response:`, mailgunResult);
 
     // Log the manual reply event
-    await awsManager.logEmailTracking({
-      userId,
-      agentId,
-      trackingId,
+    await awsManager.logEmailTracking(userId, agentId, trackingId, {
       eventType: 'manual',
       recipientEmail: leadEmail,
       leadName,

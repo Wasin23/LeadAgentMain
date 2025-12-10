@@ -2734,7 +2734,7 @@ class AWSManager {
         allEvents = allEvents.concat(events);
         lastEvaluatedKey = result.LastEvaluatedKey;
         
-        console.log(`🔍 [EMAIL-TRACKING] Page ${pageCount}: Retrieved ${events.length} events, total so far: ${allEvents.length}, hasMore: ${!!lastEvaluatedKey}`);
+        // console.log(`🔍 [EMAIL-TRACKING] Page ${pageCount}: Retrieved ${events.length} events, total so far: ${allEvents.length}, hasMore: ${!!lastEvaluatedKey}`);
         
         if (allEvents.length >= limit) {
           allEvents = allEvents.slice(0, limit);
@@ -2742,11 +2742,11 @@ class AWSManager {
         }
       } while (lastEvaluatedKey);
       
-      console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events in ${pageCount} page(s)`);
+      // console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events in ${pageCount} page(s)`);
       
-      if (allEvents.length > 0) {
-        console.log(`🔍 [EMAIL-TRACKING] Event types found:`, [...new Set(allEvents.map(e => e.eventType))].join(', '));
-      }
+      // if (allEvents.length > 0) {
+      //   console.log(`🔍 [EMAIL-TRACKING] Event types found:`, [...new Set(allEvents.map(e => e.eventType))].join(', '));
+      // }
       
       return allEvents;
     } catch (error) {
