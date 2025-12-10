@@ -3150,12 +3150,15 @@ YOUR TASK - WRITE A HIGHLY PERSONALIZED EMAIL:
 You have access to deep research about ${companyName}. Use these SPECIFIC FACTS to write a personalized email that shows you've done real homework.
 
 REQUIREMENTS:
-1. Subject line that references a SPECIFIC insight from the research (e.g., their recent funding, partnership, growth)
+1. SUBJECT LINE: Create a highly personalized, curiosity-driven subject line that:
+   - References a SPECIFIC insight from the research (their recent funding, partnership, hiring, market position, or growth)
+   - Sounds natural and conversational (NOT corporate jargon or salesy)
+   - Creates curiosity and relevance without being clickbait
+   - Keep it under 60 characters
+   - Examples: "Quick thought on [Company]'s expansion into [Market]" OR "[First Name] - noticed [specific achievement]" OR "Helping [Company] with [specific challenge]"
 2. Opening: "Hello ${leadData.first_name}," (first name only, no last name)
 3. First paragraph: Reference a SPECIFIC fact from the research above and connect it to their business challenges
 4. Second paragraph: Explain how ${emailSettings.companyBranding?.companyName || 'our company'} specifically addresses that challenge
-5. Call-to-action that's relevant to their situation
-6. Signature: "Best regards,\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}"
 5. Professional call-to-action
 6. Simple signature: "Best regards,\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}"
 

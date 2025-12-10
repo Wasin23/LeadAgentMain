@@ -258,8 +258,8 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     
     // Fetch custom domain settings for Mailgun
     let fromDomain = process.env.MAILGUN_DOMAIN;
-    let fromEmail = `noreply@${fromDomain}`;
-    let replyToEmail = 'replies@mg.meridianagent.xyz';
+    let fromEmail = `replies@${fromDomain}`;
+    let replyToEmail = `replies@${fromDomain}`;
     
     if (userId) {
       try {
