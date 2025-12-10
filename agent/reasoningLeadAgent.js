@@ -3337,12 +3337,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                             emailSettings.companyBranding?.companyAddress ||
                             'Your Company Address';
       
-      const footer = `\n\n---\n\n` +
-        `You're receiving this email because you match our target audience. ` +
-        `If you'd prefer not to receive future emails, you can <a href="${unsubscribeUrl}">unsubscribe here</a>.\n\n` +
-        `${emailSettings.companyBranding?.companyName || 'Our Company'}\n` +
-        `${companyAddress}\n` +
-        `<a href="${frontendUrl}/privacy">Privacy Policy</a> | <a href="${frontendUrl}/terms">Terms of Service</a>`;
+      // Minimal compliance footer - less promotional looking
+      const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
+        `Unsubscribe: ${unsubscribeUrl}`;
       
       body = body + footer;
       
