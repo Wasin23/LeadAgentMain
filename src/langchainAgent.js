@@ -741,7 +741,7 @@ You are the master of a sophisticated AI-powered business automation platform wi
 
 📧 **EMAIL QUEUE & CAMPAIGN MANAGEMENT:**
 - Professional email approval and delivery infrastructure with manual review workflow
-- Mailgun integration for reliable delivery (meridian@mg.examarkchat.com)
+- Mailgun integration for reliable delivery (meridian@mg.meridianagent.xyz)
 - Real-time email editing before approval (modify subject, body, recipient)
 - Batch operations for efficient email management (approve/reject multiple emails)
 - Complete audit trail with delivery status tracking (sent/delivered/failed/error)

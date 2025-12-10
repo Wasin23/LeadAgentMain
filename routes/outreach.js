@@ -876,7 +876,7 @@ router.post('/manual-reply', async (req, res) => {
     // Generate a unique message ID for tracking
     const timestamp = Date.now();
     const hash = Math.random().toString(36).substring(2, 10);
-    const messageId = `<manual_${trackingId}_${timestamp}_${hash}@mg.examarkchat.com>`;
+    const messageId = `<manual_${trackingId}_${timestamp}_${hash}@mg.meridianagent.xyz>`;
 
     // Send email via Mailgun with proper reply headers
     const emailData = {

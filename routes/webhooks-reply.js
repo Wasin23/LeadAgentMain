@@ -397,35 +397,43 @@ const createCalendarEventTool = new DynamicStructuredTool({
       console.log(`[TOOL] Creating calendar event: ${summary}`);
       
       const userId = extractUserIdFromTrackingId(tracking_id);
-      const calendarSettings = await getUserCalendarSettings(userId);
+      const userSettings = await awsManager.getUserSettings(userId);
       
-      // Import calendar manager dynamically
-      const { createCalendarEvent } = await import('../utils/calendarIntegrationManager.js');
+      // Import calendar manager
+      const { CalendarIntegrationManager } = await import('../utils/calendarIntegrationManager.js');
+      const calendarManager = new CalendarIntegrationManager();
       
-      const event = await createCalendarEvent(
-        calendarSettings.calendarId || 'primary',
-        {
+      const result = await calendarManager.createGoogleCalendarEvent({
+        title: summary,
+        description: description || `Meeting with ${attendee_email}`,
+        startTime: start_time,
+        endTime: end_time,
+        timeZone: timezone,
+        attendees: [{ email: attendee_email, displayName: attendee_email.split('@')[0] }]
+      }, userSettings);
+      
+      if (result.success) {
+        // Log calendar event creation
+        await awsManager.logEmailTracking(userId, extractAgentIdFromTrackingId(tracking_id), attendee_email, tracking_id, 'calendar_created', {
           summary,
-          description: description || '',
-          start: { dateTime: start_time, timeZone: timezone },
-          end: { dateTime: end_time, timeZone: timezone },
-          attendees: [{ email: attendee_email }]
-        }
-      );
-      
-      // Log calendar event creation
-      await storeConversationEvent(tracking_id, 'calendar_created', {
-        summary,
-        start_time,
-        attendee_email,
-        event_id: event.id
-      });
-      
-      return JSON.stringify({
-        success: true,
-        event_id: event.id,
-        event_link: event.htmlLink
-      });
+          start_time,
+          attendee_email,
+          event_id: result.event_id,
+          event_link: result.event_link
+        });
+        
+        return JSON.stringify({
+          success: true,
+          event_id: result.event_id,
+          event_link: result.event_link,
+          message: 'Calendar event created successfully. Calendar invite sent to attendee.'
+        });
+      } else {
+        return JSON.stringify({
+          success: false,
+          error: result.error || 'Failed to create calendar event'
+        });
+      }
     } catch (error) {
       console.error('[TOOL] Error creating calendar event:', error);
       return JSON.stringify({
@@ -495,7 +503,7 @@ const sendEmailTool = new DynamicStructuredTool({
       // Generate message ID with tracking
       const timestamp = Date.now();
       const hash = crypto.randomBytes(4).toString('hex');
-      const messageId = `<${tracking_id}_${timestamp}_${hash}@mg.examarkchat.com>`;
+      const messageId = `<${tracking_id}_${timestamp}_${hash}@mg.meridianagent.xyz>`;
       
       // Prepare Mailgun request
       const formData = new URLSearchParams();
@@ -512,7 +520,7 @@ const sendEmailTool = new DynamicStructuredTool({
       
       console.log(`📧 [SEND-EMAIL] Using from name: "${fromName}" for userId: ${userId}`);
       
-      formData.append('from', `${fromName} <replies@mg.examarkchat.com>`);
+      formData.append('from', `${fromName} <replies@mg.meridianagent.xyz>`);
       formData.append('to', to);
       formData.append('subject', subject);
       formData.append('text', body);
@@ -859,8 +867,12 @@ YOUR OPERATIONAL PROTOCOL:
 2. ALWAYS use get_user_settings tool to get current configuration
 3. CRITICAL SCHEDULING LOGIC:
    - When prospect ASKS about availability: Use check_calendar_availability and LIST options, DON'T auto-schedule
-   - When prospect CONFIRMS a time: Check availability, then create event if free
+   - When prospect CONFIRMS a specific time (e.g., "tomorrow at 4pm", "Wednesday at 2pm"): 
+     * IMMEDIATELY use create_calendar_event tool to create the meeting
+     * Include the prospect's email as attendee
+     * Send confirmation in your reply mentioning the calendar invite
    - NEVER auto-schedule when prospect is just asking about availability
+   - ALWAYS create calendar events when a specific time is agreed upon
 4. MANDATORY: Use send_email_reply tool to actually send responses
 5. Use store_event tool only for significant events
 

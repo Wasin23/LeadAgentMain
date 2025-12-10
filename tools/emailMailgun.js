@@ -259,7 +259,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     // Fetch custom domain settings for Mailgun
     let fromDomain = process.env.MAILGUN_DOMAIN;
     let fromEmail = `noreply@${fromDomain}`;
-    let replyToEmail = 'replies@mg.examarkchat.com';
+    let replyToEmail = 'replies@mg.meridianagent.xyz';
     
     if (userId) {
       try {
@@ -419,7 +419,7 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
     // Prepare email data
     const emailData = {
       from: `${fromName} <noreply@${process.env.MAILGUN_DOMAIN}>`,
-      'h:Reply-To': 'replies@mg.examarkchat.com',
+      'h:Reply-To': 'replies@mg.meridianagent.xyz',
       to,
       subject: subject,
       html: finalHtmlBody,
