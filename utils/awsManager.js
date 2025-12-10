@@ -1488,7 +1488,7 @@ class AWSManager {
 
       return { success: true, stats };
     } catch (error) {
-      console.error('❌ [SUMMARY] Failed to get user summary:', error.message);
+      // console.error('❌ [SUMMARY] Failed to get user summary:', error.message);
       return {
         success: false,
         error: error.message,

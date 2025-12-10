@@ -822,11 +822,10 @@ router.post('/manual-reply', async (req, res) => {
     // Get user settings for from address
     const userSettings = await awsManager.getUserSettings(userId);
     
-    // Try multiple sources for from email, in order of preference
+    // Use replies@ domain (same as AI responses) for better deliverability
     const fromEmail = userSettings?.emailSettings?.fromEmail || 
                      userSettings?.companyProfile?.fromEmail || 
-                     userSettings?.email ||
-                     `noreply@${process.env.MAILGUN_DOMAIN}`;
+                     `replies@${process.env.MAILGUN_DOMAIN}`;
     
     const companyName = userSettings?.companyProfile?.companyName || 
                        userSettings?.emailSettings?.fromName ||

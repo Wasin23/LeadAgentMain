@@ -773,16 +773,16 @@ router.post('/mailgun-reply', async (req, res) => {
       });
     }
 
-    // TODO: Re-enable conversation-level AI control after fixing DynamoDB schema
-    // const aiEnabled = await awsManager.getConversationAIControl(userId, agentId, trackingId);
-    // if (!aiEnabled) {
-    //   console.log(`[WEBHOOK] AI auto-response is PAUSED for conversation ${trackingId}`);
-    //   return res.json({ 
-    //     success: true, 
-    //     processed: false, 
-    //     reason: 'AI paused for this conversation'
-    //   });
-    // }
+    // Check conversation-level AI control (pause state)
+    const aiEnabled = await awsManager.getConversationAIControl(userId, agentId, trackingId);
+    if (!aiEnabled) {
+      console.log(`[WEBHOOK] AI auto-response is PAUSED for conversation ${trackingId}`);
+      return res.json({ 
+        success: true, 
+        processed: false, 
+        reason: 'AI paused for this conversation'
+      });
+    }
     
     // Set up the LangChain agent
     console.log('[WEBHOOK] Initializing LangChain agent...');
@@ -821,14 +821,21 @@ router.post('/mailgun-reply', async (req, res) => {
     const calendarLink = userSettings?.calendar_link || userSettings?.calendly_link || 'https://calendly.com/your-link';
     const personalityPrompt = personality.emailPrompt?.replace(/\[SCHEDULING_LINK\]/g, calendarLink) || personality.emailPrompt;
     
+    // Get sender name for signature (same logic as email from field)
+    const senderName = userSettings?.emailSettings?.fromName ||
+                      userSettings?.companyProfile?.companyName || 
+                      personality.name || 
+                      'AI Assistant';
+    
     // Create comprehensive system prompt - FULLY DRIVEN BY AI PERSONALITY
-    const systemPrompt = userSettings ? `You are ${personality.name}, ${personality.style || 'a professional'} AI assistant for ${userSettings.company_name || 'our company'}.
+    const systemPrompt = userSettings ? `You are an AI assistant with a ${personality.style || 'professional'} personality representing ${userSettings.company_name || 'our company'}.
 
 YOUR PERSONALITY & IDENTITY:
-- Name: ${personality.name}
+- Internal Codename: ${personality.name}
 - Avatar: ${personality.avatar || '🤖'}
 - Style: ${personality.style || 'Professional and helpful'}
 - Traits: ${personality.traits?.join(', ') || 'Professional, helpful, efficient'}
+- Sign Emails As: ${senderName}
 
 YOUR COMMUNICATION MANDATE (THIS IS WHO YOU ARE):
 ${personalityPrompt}
@@ -864,18 +871,19 @@ CALENDAR RULES:
 - Timezone: ALWAYS use ${userSettings.timezone}
 
 WRITING STYLE (EMBODY YOUR PERSONALITY):
-- Write as ${personality.name} would write - let your ${personality.style} personality shine through
+- Write with your ${personality.style} personality - let your traits shine through
 - Your traits (${personality.traits?.join(', ') || 'professional, helpful'}) should be evident in every response
-- Respond DIRECTLY to the email sender as ${personality.name}
+- Respond DIRECTLY to the email sender with YOUR personality
 - NEVER use bullet points or markdown - write natural, flowing paragraphs in YOUR voice
 - Be conversational and match their style while maintaining YOUR personality
 - After first exchange, always suggest meeting times (but in your personality's style)
+- ALWAYS sign emails as: ${senderName}
 
-CRITICAL: YOU MUST SEND ACTUAL EMAIL REPLIES AS ${personality.name.toUpperCase()}
+CRITICAL: YOU MUST SEND ACTUAL EMAIL REPLIES
 - Use send_email_reply tool - don't just describe sending
-- When you send via tool, that IS your response as ${personality.name}
-- Write emails that sound like ${personality.name}, not a generic assistant
-- Include proper In-Reply-To and References headers for threading` : `You are ${personality.name}, an AI email assistant with a ${personality.style} personality.
+- When you send via tool, that IS your response
+- Write emails in your personality's voice, but sign as ${senderName}
+- Include proper In-Reply-To and References headers for threading` : `You are an AI email assistant with a ${personality.style} personality.
 
 YOUR PERSONALITY:
 ${personalityPrompt}
@@ -907,12 +915,6 @@ Remember: You ARE ${personality.name}. Every email should sound like YOU, not a 
     
     // Step 2: Generate response using LLM
     // console.log('🔧 [STEP 2] Generating AI response...');
-    
-    // Get sender name for signature (same logic as email from field)
-    const senderName = userSettings?.emailSettings?.fromName ||
-                      userSettings?.companyProfile?.companyName || 
-                      personality.name || 
-                      'AI Assistant';
     
     const responsePrompt = `You received an email from ${emailData.from}:
 
