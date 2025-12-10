@@ -88,13 +88,155 @@ router.get('/oauth-callback', async (req, res) => {
 
     console.log(`[CALENDAR] Google Calendar connected for user ${userId}`);
 
-    // Redirect back to frontend with success message
-    const frontendUrl = 'https://meridianagent.xyz';
-    res.redirect(`${frontendUrl}?calendar-connected=true`);
+    // Show success page that auto-closes
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Calendar Connected</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .container {
+              text-align: center;
+              background: white;
+              padding: 40px;
+              border-radius: 20px;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            .checkmark {
+              width: 80px;
+              height: 80px;
+              border-radius: 50%;
+              background: #10b981;
+              margin: 0 auto 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              animation: scaleIn 0.3s ease-out;
+            }
+            .checkmark svg {
+              width: 50px;
+              height: 50px;
+              stroke: white;
+              stroke-width: 3;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              fill: none;
+              animation: drawCheck 0.5s ease-out 0.2s forwards;
+              stroke-dasharray: 100;
+              stroke-dashoffset: 100;
+            }
+            @keyframes scaleIn {
+              from { transform: scale(0); }
+              to { transform: scale(1); }
+            }
+            @keyframes drawCheck {
+              to { stroke-dashoffset: 0; }
+            }
+            h1 { color: #1f2937; margin: 0 0 10px; font-size: 28px; }
+            p { color: #6b7280; margin: 0; font-size: 16px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="checkmark">
+              <svg viewBox="0 0 52 52">
+                <polyline points="14 27 22 35 38 17"/>
+              </svg>
+            </div>
+            <h1>Calendar Connected!</h1>
+            <p>This window will close automatically...</p>
+          </div>
+          <script>
+            // Close window after 2 seconds
+            setTimeout(() => {
+              window.close();
+              // Fallback if window.close() doesn't work
+              if (!window.closed) {
+                document.querySelector('p').textContent = 'You can close this window now.';
+              }
+            }, 2000);
+          </script>
+        </body>
+      </html>
+    `);
   } catch (error) {
     console.error('Error in OAuth callback:', error);
-    const frontendUrl = 'https://meridianagent.xyz';
-    res.redirect(`${frontendUrl}?calendar-error=${encodeURIComponent(error.message)}`);
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Connection Failed</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+            }
+            .container {
+              text-align: center;
+              background: white;
+              padding: 40px;
+              border-radius: 20px;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+              max-width: 400px;
+            }
+            .error-icon {
+              width: 80px;
+              height: 80px;
+              border-radius: 50%;
+              background: #ef4444;
+              margin: 0 auto 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .error-icon svg {
+              width: 50px;
+              height: 50px;
+              stroke: white;
+              stroke-width: 3;
+            }
+            h1 { color: #1f2937; margin: 0 0 10px; font-size: 28px; }
+            p { color: #6b7280; margin: 0 0 20px; font-size: 14px; }
+            button {
+              background: #3b82f6;
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-size: 16px;
+              cursor: pointer;
+            }
+            button:hover { background: #2563eb; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="error-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </div>
+            <h1>Connection Failed</h1>
+            <p>${error.message}</p>
+            <button onclick="window.close()">Close Window</button>
+          </div>
+        </body>
+      </html>
+    `);
   }
 });
 
