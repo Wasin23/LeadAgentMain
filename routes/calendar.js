@@ -71,8 +71,12 @@ router.get('/oauth-callback', async (req, res) => {
     // Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
     
+    // Get existing user settings
+    const userSettings = await awsManager.getUserSettings(userId) || {};
+    
     // Store tokens in user settings
-    await awsManager.updateUserSettings(userId, {
+    await awsManager.saveUserSettings(userId, {
+      ...userSettings,
       calendarTokens: {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
@@ -85,12 +89,12 @@ router.get('/oauth-callback', async (req, res) => {
     console.log(`[CALENDAR] Google Calendar connected for user ${userId}`);
 
     // Redirect back to frontend with success message
-    const frontendUrl = process.env.FRONTEND_URL || 'https://meridianagent.xyz';
-    res.redirect(`${frontendUrl}/settings?calendar-connected=true`);
+    const frontendUrl = 'https://meridianagent.xyz';
+    res.redirect(`${frontendUrl}?calendar-connected=true`);
   } catch (error) {
     console.error('Error in OAuth callback:', error);
-    const frontendUrl = process.env.FRONTEND_URL || 'https://meridianagent.xyz';
-    res.redirect(`${frontendUrl}/settings?calendar-error=${encodeURIComponent(error.message)}`);
+    const frontendUrl = 'https://meridianagent.xyz';
+    res.redirect(`${frontendUrl}?calendar-error=${encodeURIComponent(error.message)}`);
   }
 });
 
@@ -120,8 +124,12 @@ router.get('/status', authenticateToken, async (req, res) => {
 router.post('/calendly-link', authenticateToken, async (req, res) => {
   try {
     const { calendlyLink } = req.body;
+    
+    // Get existing settings
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
 
-    await awsManager.updateUserSettings(req.user.userId, {
+    await awsManager.saveUserSettings(req.user.userId, {
+      ...userSettings,
       calendlyLink: calendlyLink || ''
     });
 
@@ -154,10 +162,11 @@ router.post('/disconnect-google', authenticateToken, async (req, res) => {
       }
     }
 
-    // Remove tokens from user settings
-    await awsManager.updateUserSettings(req.user.userId, {
-      calendarTokens: null
-    });
+    // Get existing settings and remove tokens
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    delete userSettings.calendarTokens;
+    
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
 
     console.log(`[CALENDAR] Google Calendar disconnected for user ${req.user.userId}`);
 

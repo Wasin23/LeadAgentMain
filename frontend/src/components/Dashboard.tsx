@@ -78,6 +78,16 @@ export default function Dashboard() {
   useEffect(() => {
     const checkCompanyProfile = async () => {
       try {
+        // Check for calendar connection from OAuth redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('calendar-connected') === 'true') {
+          console.log('✅ Calendar connected successfully!');
+          window.history.replaceState({}, '', '/');
+        } else if (urlParams.get('calendar-error')) {
+          console.error('❌ Calendar connection failed:', urlParams.get('calendar-error'));
+          window.history.replaceState({}, '', '/');
+        }
+
         const response = await api.get('/api/company-profile/check');
         setHasCompanyProfile(response.data.hasProfile);
         setHasSeenOnboarding(response.data.hasCompletedOnboarding || false);
