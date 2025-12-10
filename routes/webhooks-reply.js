@@ -655,39 +655,55 @@ router.post('/mailgun-reply', async (req, res) => {
     // Extract or determine tracking ID
     let trackingId = null;
     
-    // First, try to extract from custom X-Meridian-Tracking-Id header
-    if (headers['x-meridian-tracking-id']) {
+    // First, try to extract from Mailgun custom variables
+    if (formData['X-Mailgun-Variables']) {
+      const vars = formData['X-Mailgun-Variables'];
+      const trackingMatch = vars.match(/tracking_id[=:]([^,}\s]+)/);
+      if (trackingMatch) {
+        trackingId = trackingMatch[1];
+        console.log(`[WEBHOOK] Found tracking ID in X-Mailgun-Variables: ${trackingId}`);
+      }
+    }
+    
+    // Try custom X-Meridian-Tracking-Id header
+    if (!trackingId && headers['x-meridian-tracking-id']) {
       trackingId = headers['x-meridian-tracking-id'];
       console.log(`[WEBHOOK] Found tracking ID in X-Meridian-Tracking-Id header: ${trackingId}`);
     }
     
     // Try to extract from In-Reply-To or References
-    // Format: <tracking-tracking-UUID_AGENTID_TIMESTAMP_HASH@domain>
+    // Format: <tracking-UUID_AGENTID_TIMESTAMP_HASH@domain>
     if (!trackingId && inReplyTo && inReplyTo.includes('tracking-')) {
-      const match = inReplyTo.match(/tracking-(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/);
+      const match = inReplyTo.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/);
       if (match) trackingId = match[1];
       console.log(`[WEBHOOK] Found tracking ID in In-Reply-To: ${trackingId}`);
     }
     
     if (!trackingId && references && references.includes('tracking-')) {
-      const match = references.match(/tracking-(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/);
+      const match = references.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/);
       if (match) trackingId = match[1];
       console.log(`[WEBHOOK] Found tracking ID in References: ${trackingId}`);
     }
     
-    console.log(`[WEBHOOK] Using tracking ID: ${trackingId}`);
+    console.log(`[WEBHOOK] Using tracking ID: ${trackingId || 'NOT FOUND'}`);
     
-    // Extract userId and agentId for logging
-    const userId = extractUserIdFromTrackingId(trackingId);
-    const agentId = extractAgentIdFromTrackingId(trackingId);
+    // Extract userId and agentId
+    let userId = extractUserIdFromTrackingId(trackingId);
+    let agentId = extractAgentIdFromTrackingId(trackingId);
     
-    // If no tracking ID found, create one (new conversation)
-    if (!trackingId) {
-      const timestamp = Date.now();
-      const hash = crypto.randomBytes(4).toString('hex');
-      // Extract userId from the recipient email domain or use a default
-      const userIdFromEmail = emailData.recipientEmail?.split('@')[0] || 'unknown';
-      trackingId = `tracking-${userIdFromEmail}_${agentId}_${timestamp}_${hash}`;
+    // If no tracking ID found, we cannot process this reply
+    if (!trackingId || !userId || !agentId) {
+      console.error(`[WEBHOOK] ❌ Cannot process reply - missing tracking context. trackingId: ${trackingId}, userId: ${userId}, agentId: ${agentId}`);
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cannot determine conversation context - no tracking ID found',
+        details: {
+          hasInReplyTo: !!inReplyTo,
+          hasReferences: !!references,
+          hasMailgunVars: !!formData['X-Mailgun-Variables'],
+          from: emailData.from
+        }
+      });
     }
     
     // Get original email metadata for enrichment
@@ -887,19 +903,33 @@ Remember: You ARE ${personality.name}. Every email should sound like YOU, not a 
     
     // Step 2: Generate response using LLM
     // console.log('🔧 [STEP 2] Generating AI response...');
+    
+    // Get sender name for signature (same logic as email from field)
+    const senderName = userSettings?.emailSettings?.fromName ||
+                      userSettings?.companyProfile?.companyName || 
+                      personality.name || 
+                      'AI Assistant';
+    
     const responsePrompt = `You received an email from ${emailData.from}:
 
 Message: ${emailData.body}
 
 Conversation history: ${history.message || 'First message in thread'}
 
-Write a ${personality.style} response email as ${personality.name}. Keep it brief and action-oriented. Focus on moving toward a meeting.
+Write a ${personality.style} response email. Keep it brief and action-oriented. Focus on moving toward a meeting.
 
-IMPORTANT: Write ONLY the email body content. Do NOT include:
-- Subject line
-- "Subject:" header
-- Email headers
-- Signatures (unless specified in personality)
+COMPANY CONTEXT - USE THESE SPECIFIC DETAILS:
+- You represent: ${userSettings?.company_name || userSettings?.companyProfile?.companyName || 'our company'}
+- Product/Service: ${userSettings?.product_name || 'our solutions'}
+- Value Props: ${userSettings?.value_propositions?.join(', ') || userSettings?.companyProfile?.valuePropositions?.join(', ') || 'our services'}
+
+IMPORTANT: 
+- Use the SPECIFIC company details above - NO placeholders like [briefly mention] or [specific area]
+- Sign the email as "${senderName}" (not ${personality.name})
+- Write ONLY the email body content. Do NOT include:
+  * Subject line
+  * "Subject:" header  
+  * Email headers
 
 Just write the actual message content that will be sent in reply.
 
