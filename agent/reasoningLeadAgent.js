@@ -3137,8 +3137,6 @@ Score: ${this.memory.currentQualification.score}/100`;
       
       // Common ruleset for email structure - ALWAYS include lead details and context
       const commonRuleset = `
-You are ${emailSettings.companyBranding?.agentName || 'AI Assistant'}, the AI assistant for ${emailSettings.companyBranding?.companyName || 'Our Company'}.
-
 PROSPECT INFORMATION:
 Company: ${companyName}
 Contact: ${leadData.first_name} ${leadData.last_name}
@@ -3146,49 +3144,136 @@ Title: ${contactTitle}
 Industry: ${industry}
 Employee Count: ${employeeCount} employees${fullResearchContext}${qualificationInsights}${campaignStrategy}
 
-YOUR TASK - WRITE A HIGHLY PERSONALIZED EMAIL:
-You have access to deep research about ${companyName}. Use these SPECIFIC FACTS to write a personalized email that shows you've done real homework.
+YOUR SOLUTION:
+Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
+Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
+Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}
 
-REQUIREMENTS:
-1. SUBJECT LINE: Write ONE of these proven high-open-rate patterns with proper capitalization and grammar:
-   
-   Pattern A - Value/Urgency: "Save [X]% on [their specific challenge]" OR "Cut [process] time by [X]%" OR "Reduce [their pain point] costs"
-   Pattern B - Direct question: "Have time for a quick call?" OR "Quick chat this week?" OR "15 minutes to discuss [specific topic]?"
-   Pattern C - Personal research: "Quick question about [specific thing from research]" OR "Saw [their recent news/achievement]" OR "Question about [their company]'s [specific initiative]"
-   Pattern D - Name drop: "Working with [similar company] on [relevant topic]" OR "[Competitor/peer company] mentioned you"
-   
-   RULES:
-   - Use proper Title Case or Sentence case (NO all lowercase)
-   - Keep under 50 characters
-   - NO generic pitches like "Transforming X with Y" or "Your Next Strategic Move"
-   - NO name followed by dash format
-   - Be specific using research data, not vague
-   - The email body MUST match what the subject line promises
-   
-2. Opening: "Hello ${leadData.first_name}," (first name only, no last name)
-3. First paragraph: Reference a SPECIFIC fact from the research above and connect it to their business challenges
-4. Second paragraph: Explain how ${emailSettings.companyBranding?.companyName || 'our company'} specifically addresses that challenge
-5. Professional call-to-action
-6. Simple signature: "Best regards,\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PERSONALITY-DRIVEN EMAIL STRATEGY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CRITICAL RULES:
-- Use ONLY "Hello ${leadData.first_name}," (first name only)
-- NO generic phrases like "prolific standing in the business industry"
-- DO NOT use "becomes paramount" or corporate jargon
-- Reference specific research insights when available
-- Focus on business value connected to their specific situation
-- Keep it concise (under 200 words), professional, and data-driven
-${this.campaignPlan ? '- LEAD with the campaign strategy and qualification insights above' : ''}
+Based on YOUR personality above, adapt your approach:
 
-SOLUTION DETAILS:
-- Primary Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
-- Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
+🎯 THE HUNTER (high-energy, results-driven):
+- Lead with ROI/savings when financial data available
+- Subject lines: "Save X% on [specific thing]" or "Quick call this week?"
+- Get straight to value in sentence 1
+- Use direct CTAs: "Worth 15 minutes?" not "Would you be interested in exploring..."
+- Create urgency without being pushy
 
-Show you understand their business and connect it logically to communication challenges.
+💙 RELATIONSHIP BUILDER (warm, consultative):
+- Ask questions instead of pitching immediately  
+- Subject lines: "Question about [their company]'s [initiative]" or "Curious about your approach to [X]"
+- Show genuine interest in their work
+- Softer CTAs: "Curious if this fits your strategy?" or "Would love to learn more about..."
+- Build rapport first, sell second
+
+📊 ANALYST (data-driven, research-heavy):
+- Lead with specific data/insights from research
+- Subject lines: "Quick insight on [their industry]" or "Data on [specific challenge]"
+- Use numbers and concrete findings
+- Evidence-based recommendations
+- CTA should feel consultative: "Happy to share the research" or "Can walk you through the data"
+
+🧠 CONSULTANT (advisory, solution-focused):
+- Position as strategic peer, not vendor
+- Subject lines: "Strategic thought on [their challenge]" or "Solving [specific problem]"
+- Frame from their business perspective
+- Offer insights/guidance tone
+- CTA: "Happy to outline the approach" or "Can share how others solved this"
+
+🌐 NETWORKER (social, connection-based):
+- Reference connections, social proof, community
+- Subject lines: "Working with [similar company]" or "[Mutual connection] suggested I reach out"
+- Use conversational, friendly tone
+- Leverage LinkedIn, mutual contacts
+- CTA: "Mind if I share what's working?" or "Quick intro?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESEARCH-DRIVEN APPROACH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1 - ANALYZE YOUR RESEARCH DATA:
+Look at the research above. What's your BEST hook?
+
+Priority order:
+1. 💰 Financial data (revenue, funding, growth %) → Lead with ROI/savings angle
+2. 🔥 Pain point/challenge mentioned → Open with the problem
+3. 📰 Recent news (funding, hiring, expansion) → Timely relevance
+4. 🛠️ Tech stack/process info → Consultative insight
+5. 📈 Growth indicators → Scale/efficiency angle
+6. 🤷 Nothing specific? → Direct value prop
+
+STEP 2 - CRAFT SUBJECT LINE:
+Choose ONE of these proven high-open-rate patterns with proper capitalization and grammar:
+
+Pattern A - Value/Urgency: "Save [X]% on [their specific challenge]" OR "Cut [process] time by [X]%" OR "Reduce [their pain point] costs"
+Pattern B - Direct question: "Have time for a quick call?" OR "Quick chat this week?" OR "15 minutes to discuss [specific topic]?"
+Pattern C - Personal research: "Quick question about [specific thing from research]" OR "Saw [their recent news/achievement]" OR "Question about [their company]'s [specific initiative]"
+Pattern D - Name drop: "Working with [similar company] on [relevant topic]" OR "[Competitor/peer company] mentioned you"
+
+SUBJECT LINE RULES:
+- Use proper Title Case or Sentence case (NO all lowercase)
+- Keep under 50 characters
+- NO generic pitches like "Transforming X with Y" or "Your Next Strategic Move"
+- NO name followed by dash format (NO "Filip - ...")
+- Be specific using research data, not vague
+- The email body MUST match what the subject line promises
+
+STEP 3 - WRITE ONE SHORT PARAGRAPH (4-5 SENTENCES MAX):
+
+Structure (CRITICAL - FOLLOW THIS):
+Sentence 1: Specific hook from research (NOT "your company is impressive")
+Sentence 2: WHY your solution fits their specific situation based on what you found
+Sentence 3: Simple ask matching your personality style
+
+Example flow:
+"Saw [specific thing from research]. We [what you do] which directly helps with [their specific challenge/situation]. [Simple CTA]"
+
+MAKE THE CONNECTION EXPLICIT:
+- If they're growing fast → "We help scaling companies with [X]"
+- If they raised funding → "Post-funding companies typically need [X]"
+- If they're in specific industry → "We work with [industry] companies on [their challenge]"
+- If they have pain point → "That usually means [problem], which is exactly what we solve"
+
+TONE RULES:
+✅ Use contractions (I'm, we're, you're, can't, won't)
+✅ Simple words (avoid: "leverage," "synergy," "paramount," "strategic alignment")
+✅ Short sentences
+✅ Sound like a human colleague
+✅ Match your personality traits
+✅ ALWAYS explain WHY you're relevant to THEIR situation
+
+❌ NEVER DO:
+- "Your company's focus on X is impressive"
+- Multiple paragraphs
+- Corporate buzzwords and jargon
+- Generic template phrases
+- Failing to connect YOUR solution to THEIR specific situation
+
+EXAMPLES OF GOOD EMAILS (notice the explicit connection):
+
+Hunter: "Saw Codebridge raised Series B and is hiring 50+ people. Fast-growing tech companies usually hit cash flow gaps with contractor payments - we solve that with [solution]. Worth a quick call?"
+
+Relationship Builder: "Noticed you're expanding into EU markets. Most companies at that stage struggle with multi-currency invoicing - curious if you're seeing that? We've helped a few at your stage navigate it."
+
+Analyst: "Your Q3 report showed 200% growth in contract work. That growth rate typically creates 25-35% cash flow timing issues - we've tracked this across 100+ companies. Here's the pattern we're seeing."
+
+Consultant: "Most Series B companies hit compliance bottlenecks around 75 employees - Codebridge is right at that threshold. We've mapped how companies like yours navigate this. Want the playbook?"
+
+Networker: "We're helping Stripe and Deel with contractor payments at scale. Figured Codebridge might be tackling similar challenges given your growth. Mind a quick intro?"
+
+FORMATTING:
+Opening: Hello ${leadData.first_name},
+Body: [one paragraph, 3-4 sentences with explicit WHY connection]
+Signature: Best regards,\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}\\n${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}
 
 Format as:
 SUBJECT: [subject line]
-BODY: [email body with proper greeting and signature]`;
+BODY: [complete email with greeting, paragraph, and signature]
+
+NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connecting why your solution fits their situation.`;
 
       // ALWAYS combine personality prompt with common ruleset containing lead details
       const emailPrompt = `${customPrompt}\n${commonRuleset}`;
@@ -3339,7 +3424,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       // Minimal compliance footer - less promotional looking
       const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
-        `Unsubscribe: ${unsubscribeUrl}`;
+        `<a href="${unsubscribeUrl}">Unsubscribe</a>`;
       
       body = body + footer;
       
