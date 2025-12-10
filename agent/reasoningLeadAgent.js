@@ -3150,14 +3150,21 @@ YOUR TASK - WRITE A HIGHLY PERSONALIZED EMAIL:
 You have access to deep research about ${companyName}. Use these SPECIFIC FACTS to write a personalized email that shows you've done real homework.
 
 REQUIREMENTS:
-1. SUBJECT LINE: Write a casual, person-to-person subject line that sounds like you're reaching out about something specific:
-   - NEVER use their name followed by a dash (NO "Filip - ..." or "Stig - ...")
-   - NO promotional language or pitches in subject line
-   - Sound like a colleague or peer reaching out, not a salesperson
-   - Reference something specific about their company/situation casually
-   - Keep it under 50 characters and lowercase-friendly
-   - GOOD examples: "quick question about [their company]" OR "saw your work with [specific thing]" OR "thought about [their recent news]" OR "re: [specific challenge in their industry]"
-   - BAD examples: "Your Next Strategic Move..." OR "Transforming operations with..." OR "[Name] - [Pitch]"
+1. SUBJECT LINE: Write ONE of these proven high-open-rate patterns with proper capitalization and grammar:
+   
+   Pattern A - Value/Urgency: "Save [X]% on [their specific challenge]" OR "Cut [process] time by [X]%" OR "Reduce [their pain point] costs"
+   Pattern B - Direct question: "Have time for a quick call?" OR "Quick chat this week?" OR "15 minutes to discuss [specific topic]?"
+   Pattern C - Personal research: "Quick question about [specific thing from research]" OR "Saw [their recent news/achievement]" OR "Question about [their company]'s [specific initiative]"
+   Pattern D - Name drop: "Working with [similar company] on [relevant topic]" OR "[Competitor/peer company] mentioned you"
+   
+   RULES:
+   - Use proper Title Case or Sentence case (NO all lowercase)
+   - Keep under 50 characters
+   - NO generic pitches like "Transforming X with Y" or "Your Next Strategic Move"
+   - NO name followed by dash format
+   - Be specific using research data, not vague
+   - The email body MUST match what the subject line promises
+   
 2. Opening: "Hello ${leadData.first_name}," (first name only, no last name)
 3. First paragraph: Reference a SPECIFIC fact from the research above and connect it to their business challenges
 4. Second paragraph: Explain how ${emailSettings.companyBranding?.companyName || 'our company'} specifically addresses that challenge
