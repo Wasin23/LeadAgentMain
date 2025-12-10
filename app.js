@@ -199,8 +199,17 @@ let emailResponseSettingsRoutes;
 try {
   emailResponseSettingsRoutes = (await import('./routes/emailResponseSettings.js')).default;
 } catch (e) {
-  console.log('Email response settings routes not available:', e.message);
+  console.log('Email Response Settings routes not available:', e.message);
   emailResponseSettingsRoutes = (req, res, next) => next(); // No-op if not present
+}
+
+// Import Calendar routes
+let calendarRoutes;
+try {
+  calendarRoutes = (await import('./routes/calendar.js')).default;
+} catch (e) {
+  console.log('Calendar routes not available:', e.message);
+  calendarRoutes = (req, res, next) => next(); // No-op if not present
 }
 
 // Import Company Profile routes
@@ -469,6 +478,7 @@ app.use('/api/email-queue', emailQueueRoutes);
 app.use('/api/email-response-settings', emailResponseSettingsRoutes);
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
 app.use('/api/settings', settingsRoutes); // Settings presets management
+app.use('/api/calendar', calendarRoutes); // Calendar OAuth and integration
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking
