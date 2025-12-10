@@ -151,7 +151,7 @@ router.post('/calendly-link', authenticateToken, async (req, res) => {
 // Disconnect Google Calendar
 router.post('/disconnect-google', authenticateToken, async (req, res) => {
   try {
-    const userSettings = await awsManager.getUserSettings(req.user.userId);
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
     
     if (userSettings?.calendarTokens?.access_token) {
       // Revoke token with Google
@@ -162,8 +162,7 @@ router.post('/disconnect-google', authenticateToken, async (req, res) => {
       }
     }
 
-    // Get existing settings and remove tokens
-    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    // Remove tokens from settings
     delete userSettings.calendarTokens;
     
     await awsManager.saveUserSettings(req.user.userId, userSettings);

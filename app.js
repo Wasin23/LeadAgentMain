@@ -207,8 +207,10 @@ try {
 let calendarRoutes;
 try {
   calendarRoutes = (await import('./routes/calendar.js')).default;
+  console.log('[APP] ✅ Calendar routes loaded successfully');
 } catch (e) {
-  console.log('Calendar routes not available:', e.message);
+  console.error('[APP] ❌ Calendar routes failed to load:', e.message);
+  console.error(e.stack);
   calendarRoutes = (req, res, next) => next(); // No-op if not present
 }
 
