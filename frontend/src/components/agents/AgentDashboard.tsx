@@ -974,33 +974,47 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             } else if (data.type === 'tracking_update') {
               console.log('📧 [TRACKING] Tracking update received:', data.eventType, data);
               
-              // Add to streaming responses feed with deduplication for open events
-              if (data.eventType === 'open') {
+              // Auto-refresh conversations for reply, ai_response, and manual events
+              if (['reply', 'ai_response', 'manual'].includes(data.eventType)) {
+                console.log('🔄 [TRACKING] Auto-refreshing conversations due to', data.eventType);
+                fetchAgentOutreach();
+                
+                // If viewing this conversation, refresh it
+                if (selectedConversation?.trackingId === data.trackingId) {
+                  console.log('🔄 [TRACKING] Refreshing selected conversation');
+                  // The fetchAgentOutreach will update the conversation list, which will update the selected one
+                }
+              }
+              
+              // Add events to live response stream
+              if (data.eventType === 'reply') {
+                // Lead replied
+                setStreamingResponses(prev => [{
+                  id: `reply-${Date.now()}`,
+                  leadName: data.leadName || 'Unknown Lead',
+                  leadEmail: data.recipientEmail || 'unknown@email.com',
+                  content: `💬 Lead replied: "${data.messagePreview || data.subject || 'New message'}"`,
+                  status: 'replied',
+                  sentAt: new Date().toISOString(),
+                  type: 'tracking'
+                }, ...prev].slice(0, 20));
+              } else if (data.eventType === 'open') {
+                // Email opened - show only once per email
                 const emailKey = `${data.recipientEmail}_${data.subject}`;
-                const currentCount = emailOpenCountsRef.current[emailKey] || 0;
-                const newCount = currentCount + 1;
-                emailOpenCountsRef.current[emailKey] = newCount;
                 
-                // Show first open always, then every 3rd subsequent open
-                const shouldShow = newCount === 1 || newCount % 3 === 0;
-                
-                console.log('📧 [TRACKING] Email open:', {
-                  leadName: data.leadName,
-                  subject: data.subject,
-                  openCount: newCount,
-                  willShow: shouldShow
-                });
-                
-                if (shouldShow) {
+                // Only show if not already shown
+                if (!emailOpenCountsRef.current[emailKey]) {
+                  emailOpenCountsRef.current[emailKey] = 1;
+                  
                   setStreamingResponses(prev => [{
                     id: `view-${Date.now()}`,
                     leadName: data.leadName || 'Unknown Lead',
                     leadEmail: data.recipientEmail || 'unknown@email.com',
-                    content: `📧 Opened email: "${data.subject || 'No subject'}"${newCount > 1 ? ` (${newCount}x)` : ''}`,
+                    content: `📧 Opened email: "${data.subject || 'No subject'}"`,
                     status: 'viewed',
                     sentAt: new Date().toISOString(),
                     type: 'tracking'
-                  }, ...prev].slice(0, 20)); // Keep last 20 items
+                  }, ...prev].slice(0, 20));
                 }
               }
               

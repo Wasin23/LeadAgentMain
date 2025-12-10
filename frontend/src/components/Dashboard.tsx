@@ -23,6 +23,7 @@ import AgentDashboard from '@/components/agents/AgentDashboard';
 import AgentDirectorDashboard from '@/components/agents/AgentDirectorDashboard';
 import SettingsContent from '@/components/SettingsContent';
 import CompanyProfileOnboarding from '@/components/CompanyProfileOnboarding';
+import CalendarSetup from '@/components/CalendarSetup';
 import AgentOnboarding from '@/components/agents/AgentOnboarding';
 import CompanyProfileCard from '@/components/CompanyProfileCard';
 import CompanyProfileInstagram from '@/components/CompanyProfileInstagram';
@@ -41,6 +42,7 @@ export default function Dashboard() {
   const [activeView, setActiveView] = useState('director');
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [hasCompanyProfile, setHasCompanyProfile] = useState<boolean | null>(null);
+  const [hasCalendarSetup, setHasCalendarSetup] = useState<boolean | null>(null);
   const [showAgentOnboarding, setShowAgentOnboarding] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
@@ -137,6 +139,13 @@ export default function Dashboard() {
         <div className="min-h-screen">
           <CompanyProfileOnboarding onComplete={() => {
             setHasCompanyProfile(true);
+            setHasCalendarSetup(false); // Show calendar setup next
+          }} />
+        </div>
+      ) : hasCalendarSetup === false ? (
+        <div className="min-h-screen">
+          <CalendarSetup onComplete={() => {
+            setHasCalendarSetup(true);
             setShowAgentOnboarding(true);
           }} />
         </div>
