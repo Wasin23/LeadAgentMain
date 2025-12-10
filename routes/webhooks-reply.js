@@ -817,6 +817,10 @@ router.post('/mailgun-reply', async (req, res) => {
     const personality = await getAgentPersonality(userId, agentId);
     const emailResponsePrompt = agentSettings?.emailBuilder?.emailResponsePrompt || null;
     
+    // Replace scheduling link placeholder with actual calendar link
+    const calendarLink = userSettings?.calendar_link || userSettings?.calendly_link || 'https://calendly.com/your-link';
+    const personalityPrompt = personality.emailPrompt?.replace(/\[SCHEDULING_LINK\]/g, calendarLink) || personality.emailPrompt;
+    
     // Create comprehensive system prompt - FULLY DRIVEN BY AI PERSONALITY
     const systemPrompt = userSettings ? `You are ${personality.name}, ${personality.style || 'a professional'} AI assistant for ${userSettings.company_name || 'our company'}.
 
@@ -827,7 +831,7 @@ YOUR PERSONALITY & IDENTITY:
 - Traits: ${personality.traits?.join(', ') || 'Professional, helpful, efficient'}
 
 YOUR COMMUNICATION MANDATE (THIS IS WHO YOU ARE):
-${personality.emailPrompt}
+${personalityPrompt}
 
 ${emailResponsePrompt ? `SPECIFIC EMAIL RESPONSE GUIDELINES FOR THIS AGENT:\n${emailResponsePrompt}\n` : ''}
 COMPANY CONTEXT:
@@ -874,7 +878,7 @@ CRITICAL: YOU MUST SEND ACTUAL EMAIL REPLIES AS ${personality.name.toUpperCase()
 - Include proper In-Reply-To and References headers for threading` : `You are ${personality.name}, an AI email assistant with a ${personality.style} personality.
 
 YOUR PERSONALITY:
-${personality.emailPrompt}
+${personalityPrompt}
 - Traits: ${personality.traits?.join(', ') || 'Professional, helpful'}
 - Style: ${personality.style}
 

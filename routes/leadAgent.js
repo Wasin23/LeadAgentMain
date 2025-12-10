@@ -934,7 +934,7 @@ router.get('/api-usage/timeseries', async (req, res) => {
     const cacheKey = `${userId}-${days}-${interval}`;
     const cached = apiUsageTimeSeriesCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('[LEAD AGENT API] Returning cached API usage time series');
+      // console.log('[LEAD AGENT API] Returning cached API usage time series');
       return res.json({
         success: true,
         ...cached.data,

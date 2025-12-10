@@ -2700,7 +2700,7 @@ class AWSManager {
   
   async getEmailTrackingByUser(userId, agentId = null, limit = 1000) {
     try {
-      console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
+      // console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
       
       if (!agentId) {
         console.log(`⚠️ [EMAIL-TRACKING] agentId required for efficient query, falling back to scan`);
