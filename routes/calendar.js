@@ -1,9 +1,10 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { google } from 'googleapis';
-import awsManager from '../utils/awsManager.js';
+import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
+const awsManager = new AWSManager();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Middleware to verify JWT token
@@ -28,12 +29,15 @@ const authenticateToken = (req, res, next) => {
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  'https://meridianagent.xyz/api/calendar/oauth-callback'
+  'https://meridian-kdew.onrender.com/api/calendar/oauth-callback'
 );
 
 // Get Google OAuth URL
 router.get('/google-oauth-url', authenticateToken, async (req, res) => {
   try {
+    console.log('[CALENDAR] Generating OAuth URL with redirect:', oauth2Client.redirectUri);
+    console.log('[CALENDAR] Client ID:', process.env.GOOGLE_CLIENT_ID);
+    
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: [
@@ -44,6 +48,7 @@ router.get('/google-oauth-url', authenticateToken, async (req, res) => {
       prompt: 'consent' // Force consent screen to get refresh token
     });
 
+    console.log('[CALENDAR] Generated auth URL:', authUrl);
     res.json({ success: true, authUrl });
   } catch (error) {
     console.error('Error generating OAuth URL:', error);
