@@ -675,6 +675,12 @@ router.post('/mailgun-reply', async (req, res) => {
       console.log(`[WEBHOOK] Found tracking ID in References: ${trackingId}`);
     }
     
+    console.log(`[WEBHOOK] Using tracking ID: ${trackingId}`);
+    
+    // Extract userId and agentId for logging
+    const userId = extractUserIdFromTrackingId(trackingId);
+    const agentId = extractAgentIdFromTrackingId(trackingId);
+    
     // If no tracking ID found, create one (new conversation)
     if (!trackingId) {
       const timestamp = Date.now();
@@ -683,12 +689,6 @@ router.post('/mailgun-reply', async (req, res) => {
       const userIdFromEmail = emailData.recipientEmail?.split('@')[0] || 'unknown';
       trackingId = `tracking-${userIdFromEmail}_${agentId}_${timestamp}_${hash}`;
     }
-    
-    console.log(`[WEBHOOK] Using tracking ID: ${trackingId}`);
-    
-    // Extract userId and agentId for logging
-    const userId = extractUserIdFromTrackingId(trackingId);
-    const agentId = extractAgentIdFromTrackingId(trackingId);
     
     // Get original email metadata for enrichment
     let leadName = null;

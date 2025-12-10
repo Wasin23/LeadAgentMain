@@ -287,7 +287,7 @@ router.get('/conversations', async (req, res) => {
         conv.messages.push({
           id: event.eventId,
           type: 'outbound',
-          content: event.messagePreview || event.content || 'Email sent',
+          content: event.content || event.messagePreview || 'Email sent',
           timestamp: event.timestamp
         });
       } else if (event.eventType === 'reply' || event.eventType === 'lead_message') {
@@ -296,7 +296,7 @@ router.get('/conversations', async (req, res) => {
         conv.messages.push({
           id: event.eventId,
           type: 'reply',
-          content: event.messagePreview || event.content || 'Lead replied',
+          content: event.content || event.messagePreview || 'Lead replied',
           timestamp: event.timestamp
         });
       } else if (event.eventType === 'ai_response' || event.eventType === 'ai_reply') {
@@ -305,7 +305,7 @@ router.get('/conversations', async (req, res) => {
         conv.messages.push({
           id: event.eventId,
           type: 'ai_response',
-          content: event.aiResponsePreview || event.content || event.messagePreview || 'AI responded',
+          content: event.content || event.aiResponsePreview || event.messagePreview || 'AI responded',
           timestamp: event.timestamp
         });
       } else if (event.eventType === 'manual') {
@@ -314,7 +314,7 @@ router.get('/conversations', async (req, res) => {
         conv.messages.push({
           id: event.eventId,
           type: 'manual',
-          content: event.messagePreview || event.content || 'Manual reply sent',
+          content: event.content || event.messagePreview || 'Manual reply sent',
           timestamp: event.timestamp
         });
       } else if (event.eventType === 'meeting_booked') {
