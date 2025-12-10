@@ -278,6 +278,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [hasShownStarting, setHasShownStarting] = useState(false);
   const [lastCycleTime, setLastCycleTime] = useState<Date | null>(null);
   const [cycleTriggered, setCycleTriggered] = useState(false);
+  
+  // Track email open counts for deduplication (first open always shows, then every 3rd)
+  const emailOpenCountsRef = useRef<Record<string, number>>({});
   const logsEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const logCounterRef = useRef<number>(0);
@@ -971,22 +974,34 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             } else if (data.type === 'tracking_update') {
               console.log('📧 [TRACKING] Tracking update received:', data.eventType, data);
               
-              // Add to streaming responses feed
+              // Add to streaming responses feed with deduplication for open events
               if (data.eventType === 'open') {
-                console.log('📧 [TRACKING] Adding to stream:', {
+                const emailKey = `${data.recipientEmail}_${data.subject}`;
+                const currentCount = emailOpenCountsRef.current[emailKey] || 0;
+                const newCount = currentCount + 1;
+                emailOpenCountsRef.current[emailKey] = newCount;
+                
+                // Show first open always, then every 3rd subsequent open
+                const shouldShow = newCount === 1 || newCount % 3 === 0;
+                
+                console.log('📧 [TRACKING] Email open:', {
                   leadName: data.leadName,
-                  recipientEmail: data.recipientEmail,
-                  subject: data.subject
+                  subject: data.subject,
+                  openCount: newCount,
+                  willShow: shouldShow
                 });
-                setStreamingResponses(prev => [{
-                  id: `view-${Date.now()}`,
-                  leadName: data.leadName || 'Unknown Lead',
-                  leadEmail: data.recipientEmail || 'unknown@email.com',
-                  content: `📧 Opened email: "${data.subject || 'No subject'}"`,
-                  status: 'viewed',
-                  sentAt: new Date().toISOString(),
-                  type: 'tracking'
-                }, ...prev].slice(0, 20)); // Keep last 20 items
+                
+                if (shouldShow) {
+                  setStreamingResponses(prev => [{
+                    id: `view-${Date.now()}`,
+                    leadName: data.leadName || 'Unknown Lead',
+                    leadEmail: data.recipientEmail || 'unknown@email.com',
+                    content: `📧 Opened email: "${data.subject || 'No subject'}"${newCount > 1 ? ` (${newCount}x)` : ''}`,
+                    status: 'viewed',
+                    sentAt: new Date().toISOString(),
+                    type: 'tracking'
+                  }, ...prev].slice(0, 20)); // Keep last 20 items
+                }
               }
               
               // Refresh viewed emails if on viewed tab
