@@ -916,6 +916,8 @@ Remember: You ARE ${personality.name}. Every email should sound like YOU, not a 
     // Step 2: Generate response using LLM
     // console.log('🔧 [STEP 2] Generating AI response...');
     
+    console.log(`📝 [AI-SIGNATURE] Sender name being used: "${senderName}" (NOT ${personality.name})`);
+    
     const responsePrompt = `You received an email from ${emailData.from}:
 
 Message: ${emailData.body}
@@ -929,9 +931,11 @@ COMPANY CONTEXT - USE THESE SPECIFIC DETAILS:
 - Product/Service: ${userSettings?.product_name || 'our solutions'}
 - Value Props: ${userSettings?.value_propositions?.join(', ') || userSettings?.companyProfile?.valuePropositions?.join(', ') || 'our services'}
 
-IMPORTANT: 
+CRITICAL SIGNATURE INSTRUCTION: 
+- You MUST sign the email as: ${senderName}
+- DO NOT sign as "${personality.name}" or "The Hunter" or any personality name
+- The signature line should be exactly: "${senderName}"
 - Use the SPECIFIC company details above - NO placeholders like [briefly mention] or [specific area]
-- Sign the email as "${senderName}" (not ${personality.name})
 - Write ONLY the email body content. Do NOT include:
   * Subject line
   * "Subject:" header  

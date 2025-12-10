@@ -895,6 +895,15 @@ router.post('/manual-reply', async (req, res) => {
     });
 
     console.log(`📤 [MANUAL-REPLY] Sending to Mailgun...`);
+    console.log(`📝 [MANUAL-REPLY] Email data:`, JSON.stringify({
+      from: emailData.from,
+      to: emailData.to,
+      subject: emailData.subject,
+      messageLength: message.length,
+      hasInReplyTo: !!emailData['h:In-Reply-To'],
+      hasReferences: !!emailData['h:References']
+    }, null, 2));
+    console.log(`💬 [MANUAL-REPLY] Message content:`, message);
 
     const mailgunResponse = await fetch(
       `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
@@ -922,6 +931,12 @@ router.post('/manual-reply', async (req, res) => {
 
     const mailgunResult = await mailgunResponse.json();
     console.log(`✅ [MANUAL-REPLY] Mailgun response:`, mailgunResult);
+    console.log(`📨 [MANUAL-REPLY] Email queued for delivery:`, {
+      id: mailgunResult.id,
+      message: mailgunResult.message,
+      recipient: leadEmail,
+      from: emailData.from
+    });
 
     // Log the manual reply event
     await awsManager.logEmailTracking(userId, agentId, trackingId, {

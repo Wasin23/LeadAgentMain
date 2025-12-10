@@ -2750,7 +2750,7 @@ class AWSManager {
       
       return allEvents;
     } catch (error) {
-      console.error('❌ [EMAIL-TRACKING] Error getting user email tracking:', error);
+      // console.error('❌ [EMAIL-TRACKING] Error getting user email tracking:', error);
       return [];
     }
   }
