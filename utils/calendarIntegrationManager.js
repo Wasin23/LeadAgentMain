@@ -141,17 +141,24 @@ Looking forward to our conversation!`;
     /**
      * Create a Google Calendar event (if API configured)
      */
-    async createGoogleCalendarEvent(eventDetails) {
-        if (!this.googleServiceAccountEmail || !this.googlePrivateKey || !this.googleCalendarId) {
-            console.warn('⚠️ [CALENDAR] Google Calendar Service Account not configured');
-            return { success: false, error: 'Google Calendar Service Account not configured' };
+    async createGoogleCalendarEvent(eventDetails, userSettings) {
+        // Check if user has OAuth tokens
+        if (!userSettings?.calendarTokens?.access_token) {
+            console.warn('⚠️ [CALENDAR] User has not connected Google Calendar');
+            return { success: false, error: 'Google Calendar not connected. Please connect in Settings.' };
         }
 
-        console.log('📅 [CALENDAR] Creating Google Calendar event...');
+        console.log('📅 [CALENDAR] Creating Google Calendar event with user OAuth...');
         
         try {
-            // Create JWT token for service account authentication
-            const jwt = await this.createJWT();
+            // Use user's access token
+            let accessToken = userSettings.calendarTokens.access_token;
+            
+            // Check if token is expired and refresh if needed
+            if (userSettings.calendarTokens.expiry_date && Date.now() > userSettings.calendarTokens.expiry_date) {
+                console.log('🔄 [CALENDAR] Access token expired, refreshing...');
+                accessToken = await this.refreshAccessToken(userSettings.calendarTokens.refresh_token);
+            }
             
             const event = {
                 summary: eventDetails.title || 'Sales Discussion',
@@ -173,12 +180,17 @@ Looking forward to our conversation!`;
                 // }
             };
 
+            // Add attendees if provided
+            if (eventDetails.attendees && eventDetails.attendees.length > 0) {
+                event.attendees = eventDetails.attendees.map(a => ({ email: a.email }));
+            }
+
             const response = await fetch(
-                `https://www.googleapis.com/calendar/v3/calendars/${this.googleCalendarId}/events`,
+                `https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1`,
                 {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${jwt}`,
+                        'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(event)
@@ -208,50 +220,40 @@ Looking forward to our conversation!`;
     }
 
     /**
-     * Create JWT token for service account authentication
+     * Refresh expired OAuth access token
      */
-    async createJWT() {
-        const header = {
-            alg: 'RS256',
-            typ: 'JWT'
-        };
+    async refreshAccessToken(refreshToken) {
+        console.log('🔄 [CALENDAR] Refreshing access token...');
+        
+        try {
+            const response = await fetch('https://oauth2.googleapis.com/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    client_id: process.env.GOOGLE_CLIENT_ID,
+                    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                    refresh_token: refreshToken,
+                    grant_type: 'refresh_token'
+                })
+            });
 
-        const now = Math.floor(Date.now() / 1000);
-        const payload = {
-            iss: this.googleServiceAccountEmail,
-            scope: 'https://www.googleapis.com/auth/calendar',
-            aud: 'https://oauth2.googleapis.com/token',
-            exp: now + 3600,
-            iat: now
-        };
+            if (!response.ok) {
+                throw new Error('Failed to refresh token');
+            }
 
-        // Simple JWT creation (in production, use a proper JWT library)
-        const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-        const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-        
-        const signatureInput = `${encodedHeader}.${encodedPayload}`;
-        
-        // Create signature using private key
-        const crypto = await import('crypto');
-        const signature = crypto.sign('RSA-SHA256', Buffer.from(signatureInput), this.googlePrivateKey);
-        const encodedSignature = signature.toString('base64url');
-        
-        const jwt = `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
-        
-        // Exchange JWT for access token
-        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-                assertion: jwt
-            })
-        });
-
-        const tokenData = await tokenResponse.json();
-        return tokenData.access_token;
+            const data = await response.json();
+            console.log('✅ [CALENDAR] Access token refreshed successfully');
+            
+            // TODO: Update user settings with new access token and expiry
+            // This should be handled by the caller
+            
+            return data.access_token;
+        } catch (error) {
+            console.error('❌ [CALENDAR] Error refreshing access token:', error);
+            throw error;
+        }
     }
 
     /**

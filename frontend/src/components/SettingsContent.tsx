@@ -132,6 +132,23 @@ export default function SettingsContent() {
 
   useEffect(() => {
     fetchSettings();
+
+    // Check for calendar connection success/error from OAuth redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('calendar-connected') === 'true') {
+      setMessage({ type: 'success', text: 'Google Calendar connected successfully!' });
+      // Refresh calendar status
+      api.get('/api/calendar/status').then(response => {
+        if (response.data.googleConnected) {
+          setCalendarSettings(prev => ({ ...prev, googleConnected: true }));
+        }
+      }).catch(err => console.error('Failed to refresh calendar status:', err));
+      // Clean up URL
+      window.history.replaceState({}, '', '/settings');
+    } else if (urlParams.get('calendar-error')) {
+      setMessage({ type: 'error', text: `Calendar connection failed: ${urlParams.get('calendar-error')}` });
+      window.history.replaceState({}, '', '/settings');
+    }
   }, []);
 
   // Auto-check domain health when Gmail accounts are connected

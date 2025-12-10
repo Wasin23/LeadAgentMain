@@ -79,44 +79,13 @@ router.get('/oauth-callback', async (req, res) => {
 
     console.log(`[CALENDAR] Google Calendar connected for user ${userId}`);
 
-    // Close popup and redirect parent
-    res.send(`
-      <html>
-        <head>
-          <title>Calendar Connected</title>
-        </head>
-        <body>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({ type: 'calendar-connected' }, '*');
-              window.close();
-            } else {
-              window.location.href = '/?calendar-connected=true';
-            }
-          </script>
-          <div style="font-family: system-ui; padding: 40px; text-align: center;">
-            <h2 style="color: #10b981;">✓ Calendar Connected!</h2>
-            <p>You can close this window now.</p>
-          </div>
-        </body>
-      </html>
-    `);
+    // Redirect back to frontend with success message
+    const frontendUrl = process.env.FRONTEND_URL || 'https://meridianagent.xyz';
+    res.redirect(`${frontendUrl}/settings?calendar-connected=true`);
   } catch (error) {
     console.error('Error in OAuth callback:', error);
-    res.status(500).send(`
-      <html>
-        <head>
-          <title>Connection Failed</title>
-        </head>
-        <body>
-          <div style="font-family: system-ui; padding: 40px; text-align: center;">
-            <h2 style="color: #ef4444;">✗ Connection Failed</h2>
-            <p>${error.message}</p>
-            <button onclick="window.close()" style="margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
-          </div>
-        </body>
-      </html>
-    `);
+    const frontendUrl = process.env.FRONTEND_URL || 'https://meridianagent.xyz';
+    res.redirect(`${frontendUrl}/settings?calendar-error=${encodeURIComponent(error.message)}`);
   }
 });
 
