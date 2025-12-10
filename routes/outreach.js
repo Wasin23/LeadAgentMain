@@ -864,20 +864,31 @@ router.post('/manual-reply', async (req, res) => {
 
     console.log(`📨 [MANUAL-REPLY] Preparing email data...`);
 
+    // Generate a unique message ID for tracking
+    const timestamp = Date.now();
+    const hash = Math.random().toString(36).substring(2, 10);
+    const messageId = `<manual_${trackingId}_${timestamp}_${hash}@mg.examarkchat.com>`;
+
     // Send email via Mailgun with proper reply headers
     const emailData = {
       from: `${companyName} <${fromEmail}>`,
       to: leadEmail,
       subject: `Re: ${originalSubject}`,
       text: message,
-      html: message.replace(/\n/g, '<br>')
+      html: message.replace(/\n/g, '<br>'),
+      'h:Message-ID': messageId,
+      'v:tracking_id': trackingId
     };
+    
+    console.log(`📧 [MANUAL-REPLY] Generated Message-ID: ${messageId}`);
     
     // Add reply headers if we have the original message ID
     if (originalMessageId) {
       emailData['h:In-Reply-To'] = originalMessageId;
       emailData['h:References'] = references;
       console.log(`📧 [MANUAL-REPLY] Adding reply headers for threading`);
+    } else {
+      console.log(`⚠️ [MANUAL-REPLY] No original message ID - email will not thread properly`);
     }
 
     const mailgunDomain = process.env.MAILGUN_DOMAIN;
@@ -932,11 +943,14 @@ router.post('/manual-reply', async (req, res) => {
     const mailgunResult = await mailgunResponse.json();
     console.log(`✅ [MANUAL-REPLY] Mailgun response:`, mailgunResult);
     console.log(`📨 [MANUAL-REPLY] Email queued for delivery:`, {
-      id: mailgunResult.id,
+      mailgunId: mailgunResult.id,
       message: mailgunResult.message,
       recipient: leadEmail,
       from: emailData.from
     });
+    
+    console.log(`⚠️ [MANUAL-REPLY] IMPORTANT: Check Mailgun logs at https://app.mailgun.com/mg/logs`);
+    console.log(`⚠️ [MANUAL-REPLY] Search for recipient: ${leadEmail} or Mailgun ID: ${mailgunResult.id}`);
 
     // Log the manual reply event
     await awsManager.logEmailTracking(userId, agentId, trackingId, {
