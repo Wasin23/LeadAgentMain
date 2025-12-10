@@ -760,7 +760,7 @@ export function broadcastAIResponse(userId, agentId, eventData) {
   const clients = global.outreachSSEClients.get(clientKey);
   
   if (!clients || clients.length === 0) {
-    console.log(`⚠️ [OUTREACH-SSE] No connected clients for ${clientKey}`);
+    // console.log(`⚠️ [OUTREACH-SSE] No connected clients for ${clientKey}`);
     return;
   }
   
