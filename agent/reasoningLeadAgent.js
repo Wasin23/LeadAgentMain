@@ -3443,7 +3443,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       // Minimal compliance footer - less promotional looking
       const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
-        `<a href="${unsubscribeUrl}">Unsubscribe</a>`;
+        `<a href="${unsubscribeUrl}">Stop emails</a>`;
       
       body = body + footer;
       
