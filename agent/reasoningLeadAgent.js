@@ -3224,18 +3224,29 @@ SUBJECT LINE RULES:
 STEP 3 - WRITE ONE SHORT PARAGRAPH (4-5 SENTENCES MAX):
 
 Structure (CRITICAL - FOLLOW THIS):
-Sentence 1: Specific hook from research (NOT "your company is impressive")
-Sentence 2: WHY your solution fits their specific situation based on what you found
+Sentence 1: SPECIFIC NUMBERS/FACTS from research about THEIR company (NOT generic praise)
+Sentence 2: WHY your solution fits based on THOSE SPECIFIC NUMBERS
 Sentence 3: Simple ask matching your personality style
 
-Example flow:
-"Saw [specific thing from research]. We [what you do] which directly helps with [their specific challenge/situation]. [Simple CTA]"
+MANDATORY: USE NUMBERS FROM RESEARCH
+Look at the research data above. Find and USE:
+- Their revenue/funding amount: "Intact Technology raised $15M last quarter"
+- Their employee count: "You're at 250 employees"
+- Their growth rate: "You grew 200% YoY"
+- Their recent news with numbers: "You just hired 50 engineers"
+- Industry benchmarks: "Companies at $10M ARR typically face X"
 
-MAKE THE CONNECTION EXPLICIT:
-- If they're growing fast → "We help scaling companies with [X]"
-- If they raised funding → "Post-funding companies typically need [X]"
-- If they're in specific industry → "We work with [industry] companies on [their challenge]"
-- If they have pain point → "That usually means [problem], which is exactly what we solve"
+Example flow:
+"Saw [THEIR specific number/metric]. Companies at [that number] usually [specific challenge] - we solve that with [specific solution]. [Simple CTA]"
+
+MAKE THE CONNECTION EXPLICIT WITH NUMBERS:
+- If they're growing fast → "At 200% growth, you're likely hitting [specific issue]. We help companies scale from [X] to [Y]."
+- If they raised funding → "Post-Series B companies typically burn 30-40% on [X]. We cut that by [Y]%."
+- If they're in specific industry → "We work with [industry] companies at [their size] on [challenge]. Saved [Company] [X]%."
+- If they have pain point → "At [their size], that usually costs [X] per month. We reduce it to [Y]."
+
+IF YOU DON'T HAVE NUMBERS: Don't make vague claims. Ask a question instead:
+"How are you handling [specific challenge] at [their company size]? We've helped [similar companies] cut costs by [X]%."
 
 TONE RULES:
 ✅ Use contractions (I'm, we're, you're, can't, won't)
@@ -3419,22 +3430,22 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       console.log('🎯 [CONFIDENCE LEVEL]', confidenceLevel);
       
-      // TESTING: Comment out footer to test Primary inbox placement
-      // const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
-      // const unsubscribeToken = generateUnsubscribeToken(leadData.email);
-      // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      // const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
+      // Add legal compliance footer
+      const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
+      const unsubscribeToken = generateUnsubscribeToken(leadData.email);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
       
       // Get company address from settings (use user settings)
-      // const companyAddress = this.memory.userSettings?.companyAddress || 
-      //                       emailSettings.companyBranding?.companyAddress ||
-      //                       'Your Company Address';
+      const companyAddress = this.memory.userSettings?.companyAddress || 
+                            emailSettings.companyBranding?.companyAddress ||
+                            'Your Company Address';
       
       // Minimal compliance footer - less promotional looking
-      // const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
-      //   `<a href="${unsubscribeUrl}">Unsubscribe</a>`;
+      const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
+        `<a href="${unsubscribeUrl}">Unsubscribe</a>`;
       
-      // body = body + footer;
+      body = body + footer;
       
       console.log('✅ [EMAIL BUILDER] Personalized email created with legal compliance footer');
       
