@@ -218,8 +218,14 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
               textBody: body,
               ccEmails,
               bccEmails,
-              replyTo: null
+              replyTo: null,
+              trackingId: trackingId
             });
+            
+            // Get the email address for logging
+            const gmailEmail = userSettings?.gmailAuth?.email || 
+                              gmailResult.sentFrom || 
+                              'gmail';
             
             // Log email to AWS tracking
             if (enableTracking && trackingId) {
@@ -234,22 +240,23 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
                 provider: 'gmail',
                 metadata: {
                   messageId: gmailResult.messageId,
-                  sentFrom: userSettings.gmailAuth.email,
+                  sentFrom: gmailEmail,
                   personInfo: to
                 }
               });
               console.log(`✅ [AWS TRACKING] Email tracked with ID: ${trackingId}`);
             }
             
-            console.log(`✅ [GMAIL] Email sent successfully from ${userSettings.gmailAuth.email}`);
+            console.log(`✅ [GMAIL] Email sent successfully from ${gmailEmail}`);
             console.log(`✅ [GMAIL] Email will appear in user's Gmail Sent folder`);
+            console.log(`🚀 [EMAIL ROUTING] RETURNING FROM GMAIL - SHOULD NOT CONTINUE TO MAILGUN`);
             
             return {
               success: true,
               messageId: gmailResult.messageId,
               trackingId: trackingId,
               provider: 'gmail',
-              sentFrom: userSettings.gmailAuth.email
+              sentFrom: gmailEmail
             };
           } catch (gmailError) {
             console.error('❌ [GMAIL] Failed to send via Gmail:', gmailError.message);
@@ -266,7 +273,11 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     // If Gmail not connected or failed, use Mailgun
     if (!gmailConnected) {
       console.log(`📧 [EMAIL ROUTING] Using Mailgun for delivery`);
+    } else {
+      console.log(`⚠️ [EMAIL ROUTING] BUG: gmailConnected=true but still reached Mailgun code!`);
     }
+    
+    console.log(`🔧 [DEBUG] About to prepare Mailgun email data. gmailConnected=${gmailConnected}`);
     
     // Fetch custom domain settings for Mailgun
     let fromDomain = process.env.MAILGUN_DOMAIN;

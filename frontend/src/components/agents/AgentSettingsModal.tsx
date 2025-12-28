@@ -214,7 +214,8 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
       tone: 'professional',
       length: 'medium',
       callToAction: 'meeting',
-      personalization: 'high'
+      personalization: 'high',
+      useGmail: false
     }
   });
 
@@ -1330,6 +1331,36 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                           <span
                             className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
                               (settings.emailBuilder?.enableAutoResponse !== false) ? 'translate-x-7' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Gmail Sending Toggle */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">
+                            Send Emails via Gmail
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {settings.emailBuilder?.useGmail 
+                              ? '✓ Sending from your Gmail account (better deliverability, Primary inbox)' 
+                              : 'Sending via Mailgun (replies@mg.meridianagent.xyz)'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateField('emailBuilder', 'useGmail', !settings.emailBuilder?.useGmail)}
+                          className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
+                          style={{
+                            backgroundColor: settings.emailBuilder?.useGmail ? '#4ade80' : '#52525b'
+                          }}
+                        >
+                          <span
+                            className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                              settings.emailBuilder?.useGmail ? 'translate-x-7' : 'translate-x-1'
                             }`}
                           />
                         </button>

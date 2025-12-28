@@ -3221,63 +3221,115 @@ SUBJECT LINE RULES:
 - Be specific using research data, not vague
 - The email body MUST match what the subject line promises
 
-STEP 3 - WRITE ONE SHORT PARAGRAPH (4-5 SENTENCES MAX):
+STEP 3 - WRITE EMAIL BODY (7 SENTENCES - MAKE EVERY WORD COUNT):
 
-Structure (CRITICAL - FOLLOW THIS):
-Sentence 1: SPECIFIC NUMBERS/FACTS from research about THEIR company (NOT generic praise)
-Sentence 2: WHY your solution fits based on THOSE SPECIFIC NUMBERS
-Sentence 3: Simple ask matching your personality style
+Write a natural, flowing email that feels like a real person researched them and has something genuinely valuable to say. Don't follow a rigid formula - let the conversation flow based on what you learned about them.
 
-MANDATORY: USE NUMBERS FROM RESEARCH
-Look at the research data above. Find and USE:
-- Their revenue/funding amount: "Intact Technology raised $15M last quarter"
-- Their employee count: "You're at 250 employees"
-- Their growth rate: "You grew 200% YoY"
-- Their recent news with numbers: "You just hired 50 engineers"
-- Industry benchmarks: "Companies at $10M ARR typically face X"
+YOUR MISSION: Use the research to show you understand their business, then explain how your solution solves their specific problem with concrete proof.
 
-Example flow:
-"Saw [THEIR specific number/metric]. Companies at [that number] usually [specific challenge] - we solve that with [specific solution]. [Simple CTA]"
+OPENING (1-2 sentences):
+Start with something that proves you did homework. Use a specific number, recent news, or insight about their company. Make it conversational, not robotic.
 
-MAKE THE CONNECTION EXPLICIT WITH NUMBERS:
-- If they're growing fast → "At 200% growth, you're likely hitting [specific issue]. We help companies scale from [X] to [Y]."
-- If they raised funding → "Post-Series B companies typically burn 30-40% on [X]. We cut that by [Y]%."
-- If they're in specific industry → "We work with [industry] companies at [their size] on [challenge]. Saved [Company] [X]%."
-- If they have pain point → "At [their size], that usually costs [X] per month. We reduce it to [Y]."
+Examples of good openings:
+- "Noticed you just crossed $50M ARR - congrats. At that scale, most SaaS companies start drowning in contractor payments."
+- "Saw you're hiring 3 product managers this quarter. That's when coordination overhead usually kills velocity."
+- "You're in the sweet spot at 150 employees where manual expense tracking costs about 40 hours a week."
 
-IF YOU DON'T HAVE NUMBERS: Don't make vague claims. Ask a question instead:
-"How are you handling [specific challenge] at [their company size]? We've helped [similar companies] cut costs by [X]%."
+TRANSITION TO PROBLEM (1-2 sentences):
+Connect their situation to a specific pain point. Use numbers to show the real cost. Don't guess - either cite research or use industry benchmarks.
 
-TONE RULES:
-✅ Use contractions (I'm, we're, you're, can't, won't)
-✅ Simple, everyday words - write like you're texting a colleague
-✅ Short sentences
-✅ Sound like a real human, not a corporate robot
-✅ Match your personality traits
-✅ ALWAYS explain WHY you're relevant to THEIR situation
+Examples:
+- "Companies at your size typically waste 35% of finance bandwidth just processing contractor invoices."
+- "Teams your scale report 15-20 hours weekly lost to process bottlenecks between departments."
+- "At 150 people, expense approval loops average 4.2 days - that's killing your burn rate visibility."
 
-❌ NEVER DO:
-- Sound like you're writing a formal business proposal
-- Use multiple paragraphs
-- Write sentences longer than 20 words
-- Fail to connect YOUR solution to THEIR specific situation
-- Sign with your personality name (you're NOT "The Hunter", you're the agent's actual name)
+VALUE PROPOSITION (2-3 sentences):
+Explain HOW your solution fixes this. Be specific about the mechanism and the outcome. Include social proof with real numbers.
 
-EXAMPLES OF GOOD EMAILS (notice the explicit connection):
+Examples:
+- "We automate the entire contractor payment workflow. TechCorp processed 500 contractors without adding finance headcount, cutting processing time from 3 days to 4 hours."
+- "Our coordination layer sits between your tools and eliminates 90% of the back-and-forth. Notion went from 2-week feature cycles to 4-day sprints."
+- "Real-time expense tracking dashboard cuts approval time to under 6 hours. Stripe reduced month-end close from 12 days to 3."
 
-Hunter: "Saw Codebridge raised Series B and is hiring 50+ people. Fast-growing tech companies usually hit cash flow gaps with contractor payments - we solve that with [solution]. Worth a quick call?"
+CLOSE WITH TIMING + CTA (1-2 sentences):
+Connect to their current situation (growth, funding, expansion, hiring) and why acting now matters. End with a simple, personality-appropriate ask.
 
-Relationship Builder: "Noticed you're expanding into EU markets. Most companies at that stage struggle with multi-currency invoicing - curious if you're seeing that? We've helped a few at your stage navigate it."
+Examples:
+- "Given your hiring pace, this gets more painful every quarter. Worth 15 minutes to walk through the numbers?"
+- "Post-Series B is when this typically becomes a board-level concern. Want to see how others solved it?"
+- "You'll hit 200 people in Q2 based on your job posts - that's when this breaks completely. Quick call to map it out?"
+
+WRITING GUIDELINES:
+
+DO:
+✅ Write like you're explaining to a smart friend over coffee
+✅ Use specific numbers from research or industry benchmarks
+✅ Name drop similar companies with real outcomes
+✅ Connect their current stage/situation to the solution timing
+✅ Make the value proposition crystal clear: "We do X, which saves Y, proven by Z"
+✅ Let sentences flow naturally into each other
+
+DON'T:
+❌ Follow a rigid sentence formula (this makes it sound like AI)
+❌ Use generic praise ("impressive company", "innovative work")
+❌ Include buzzwords without meaning ("transformative", "revolutionary", "cutting-edge")
+❌ Make vague claims ("we can help you", "solutions for your needs")
+❌ Sound like you're reading a script
+❌ Repeat the same sentence structure over and over
+
+RESEARCH-DRIVEN PRIORITY:
+1. Financial data (revenue, funding, growth rate) → Lead with ROI angle
+2. Pain point from tech stack/process → Open with the problem
+3. Recent news (funding round, expansion, hiring) → Timely relevance hook
+4. Company stage/size benchmarks → Industry insight angle
+5. Nothing specific? → Direct value prop with social proof
+
+VALUE PROPOSITION DEPTH:
+Don't just say "we help with X" - explain the mechanism and prove the outcome:
+
+Shallow: "We help companies manage contractors better."
+Deep: "We automate contractor payment workflows. TechCorp processes 500 contractors monthly without finance headcount, cutting 3-day cycles to 4 hours. That's 120 hours back per month."
+
+Shallow: "We improve team coordination."
+Deep: "Our system eliminates 90% of tool-switching overhead. Notion's product team went from 2-week feature cycles to 4-day sprints by connecting their scattered tools into one workflow."
+
+Shallow: "We provide expense tracking solutions."
+Deep: "Real-time expense dashboard with instant approval flows. Stripe cut month-end close from 12 days to 3 by catching issues as they happen instead of reconciling 30 days later."
+
+MAKE THE CONNECTION OBVIOUS:
+Always connect three dots:
+1. Their current state (from research)
+2. The specific problem that causes
+3. How your solution fixes it (with proof)
+
+Example full email flow:
+"You're at 250 employees based on LinkedIn - that's exactly when contractor payments start consuming 35% of finance team bandwidth. Most companies your size process 200-300 contractor invoices monthly, and each one takes 45 minutes on average with all the back-and-forth.
+
+We built an automation layer that handles the entire workflow. Stripe scaled from 100 to 500 contractors without adding finance headcount, cutting processing time from 3 days to under 4 hours per batch. They're saving about 120 hours monthly.
+
+Given your growth rate (30% YoY based on funding), you'll add another 75 people by Q3. That pushes you into the 300+ contractor range where this becomes a board-level concern. Worth 15 minutes to walk through how they did it?"
+
+LENGTH: Target 7 sentences, but let it flow naturally. If you need 6 or 8 to make your point clearly, that's fine. Quality beats formula.
+- Talking about yourself instead of their problems
+- Wasting sentences on fluff
+
+EXAMPLES OF VALUE-DRIVEN 7-SENTENCE EMAILS:
+
+Hunter: "Saw Codebridge raised $15M Series B and is scaling from 50 to 150 employees. At that growth rate, contractor payments typically become a 20-hour/week bottleneck for finance teams. We automate the entire workflow - approval, payment, compliance, and reconciliation in one system. Stripe scaled from 100 to 500 contractors without adding finance headcount using our platform. You're hiring 50+ people right now according to LinkedIn - that's exactly when this becomes critical. Most companies wait until it breaks, then spend 6 months fixing it. Worth a 15-minute call this week?"
+
+Relationship Builder: "Noticed you're expanding into EU markets with your Q4 announcement. Companies making that move typically hit multi-currency compliance issues around month 3-4 that cost $50K-100K to sort out retroactively. We've built tools specifically for US companies entering EU that handle VAT, GDPR, and multi-currency automatically. One of your competitors avoided that entire mess by setting this up during expansion planning. You're about 2-3 months from when this usually becomes urgent based on your timeline. Happy to share the playbook we've built from 20+ companies doing exactly this. Quick chat to walk through it?"
+
+Analyst: "Your Q3 report showed 200% revenue growth with a 35-person team. That ratio typically creates 25-30% cash flow gaps due to payment timing mismatches. We've analyzed this pattern across 150+ companies at your stage - the average impact is $200K-500K in working capital tied up unnecessarily. Our system cuts that by 60-70% by optimizing payment cycles and automating reconciliation. Given your growth velocity, you're likely 4-6 weeks from this becoming a board-level discussion. Want to see the financial model we've built? 20-minute call?"
 
 Analyst: "Your Q3 report showed 200% growth in contract work. That growth rate typically creates 25-35% cash flow timing issues - we've tracked this across 100+ companies. Here's the pattern we're seeing."
 
-Consultant: "Most Series B companies hit compliance bottlenecks around 75 employees - Codebridge is right at that threshold. We've mapped how companies like yours navigate this. Want the playbook?"
+Consultant: "Most Series B companies hit compliance bottlenecks around 75 employees - Codebridge is right at that threshold. The typical cost is $150K-300K in consulting fees plus 4-6 months of management distraction. We've mapped the exact pattern across 40+ companies at your stage and built automated compliance infrastructure. Two of your competitors used this to skip the entire mess and deploy resources elsewhere. You're about 8-12 weeks from when boards typically flag this as urgent. Want the compliance roadmap? It's a 25-minute walkthrough."
 
-Networker: "We're helping Stripe and Deel with contractor payments at scale. Figured Codebridge might be tackling similar challenges given your growth. Mind a quick intro?"
+Networker: "We're helping Stripe and Deel with contractor payments at scale - they mentioned companies like Codebridge might be facing similar challenges. At 50+ contractors, the typical pain point is payment reconciliation eating 15-20 hours/week. We've built integrations that cut that to under 2 hours while handling 10x more volume. Given your growth trajectory, this becomes critical in the next quarter. Mind a quick intro to compare notes?"
 
 FORMATTING:
 Opening: Hello ${leadData.first_name},
-Body: [one paragraph, 3-4 sentences with explicit WHY connection]
+Body: [7 sentences - every word must demonstrate value and connection to their situation]
 
 SIGNATURE (CRITICAL - READ CAREFULLY):
 You are NOT signing as "${personality.name || 'your personality'}". 

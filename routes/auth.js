@@ -931,6 +931,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         rebumpIntervalDays: 7,
         ccEmails: '',
         bccEmails: '',
+        useGmail: useGmail || false,
         emailResponsePrompt: getEmailResponsePromptForPersonality(agentData.personality)
       },
       // Initialize targeting criteria structures

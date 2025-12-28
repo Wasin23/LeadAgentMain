@@ -100,7 +100,7 @@ class GmailManager {
   /**
    * Send email via Gmail API (with account cycling)
    */
-  async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true }) {
+  async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true, trackingId = null }) {
     try {
       console.log('📧 [GMAIL] Sending email via Gmail API to:', to);
 
@@ -156,15 +156,15 @@ class GmailManager {
         displayName = userSettings.companyProfile.companyName;
       }
 
-      // Generate tracking ID for open/reply tracking
-      const trackingId = `tracking-${userId}_${agentId || 'unknown'}_${Date.now()}`;
-      console.log(`📊 [GMAIL] Generated tracking ID: ${trackingId}`);
+      // Use provided tracking ID or generate new one
+      const finalTrackingId = trackingId || `tracking-${userId}_${agentId || 'unknown'}_${Date.now()}`;
+      console.log(`📊 [GMAIL] Using tracking ID: ${finalTrackingId}`);
 
       // Add tracking pixel to email body if enabled
       let finalHtmlBody = htmlBody || textBody;
       if (enableTracking) {
         const trackingDomain = process.env.API_BASE_URL || 'https://meridian-kdew.onrender.com';
-        const trackingPixelUrl = `${trackingDomain}/api/tracking/pixel/${trackingId}.png`;
+        const trackingPixelUrl = `${trackingDomain}/api/tracking/pixel/${finalTrackingId}.png`;
         const trackingPixel = `<img src="${trackingPixelUrl}" width="1" height="1" border="0" alt="" style="display:block;">`;
         finalHtmlBody = finalHtmlBody + trackingPixel;
         console.log(`📊 [GMAIL] Added tracking pixel: ${trackingPixelUrl}`);
@@ -175,6 +175,7 @@ class GmailManager {
         `From: ${displayName} <${currentAccount.email}>`,
         `To: ${Array.isArray(to) ? to.join(', ') : to}`,
         `Subject: ${subject}`,
+        `Message-ID: <${finalTrackingId}@gmail.com>`,
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=utf-8',
       ];
@@ -193,7 +194,7 @@ class GmailManager {
 
       // Add custom header for tracking (for reply detection)
       if (enableTracking) {
-        messageParts.push(`X-Meridian-Tracking-Id: ${trackingId}`);
+        messageParts.push(`X-Meridian-Tracking-Id: ${finalTrackingId}`);
       }
 
       // Add blank line and body
@@ -246,7 +247,7 @@ class GmailManager {
         cost: 0, // Gmail API is free
         metadata: {
           messageId: result.data.id,
-          trackingId: enableTracking ? trackingId : null,
+          trackingId: enableTracking ? finalTrackingId : null,
           to: to,
           subject: subject,
           fromAccount: currentAccount.email,
@@ -257,9 +258,9 @@ class GmailManager {
       return {
         success: true,
         messageId: result.data.id,
-        trackingId: trackingId, // Include tracking ID for downstream use
-        provider: 'gmail',
-        fromAccount: currentAccount.email // Track which account sent the email
+        trackingId: finalTrackingId,
+        sentFrom: currentAccount.email,
+        provider: 'gmail'
       };
     } catch (error) {
       console.error('❌ [GMAIL] Error sending email:', error);
