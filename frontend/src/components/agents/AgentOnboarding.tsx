@@ -22,7 +22,7 @@ interface AgentOnboardingProps {
   onSkip: () => void;
 }
 
-type OnboardingStep = 'intro' | 'select-personality' | 'name-agent' | 'choose-preset' | 'name-preset' | 'review' | 'creating';
+type OnboardingStep = 'intro' | 'select-personality' | 'name-agent' | 'choose-preset' | 'name-preset' | 'gmail-setup' | 'review' | 'creating';
 
 const PERSONALITY_TYPES = [
   {
@@ -159,11 +159,13 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [presetName, setPresetName] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [useGmail, setUseGmail] = useState(false);
+  const [gmailConnected, setGmailConnected] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'review', 'creating'];
+  const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'gmail-setup', 'review', 'creating'];
   const currentStepIndex = steps.indexOf(currentStep);
 
   const createAgent = async () => {
@@ -206,6 +208,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         name: agentName,
         type: 'reasoning-lead-agent',
         specialInstructions: specialInstructions,
+        useGmail: useGmail,
         personality: {
           type: selectedPersonality.id,
           name: selectedPersonality.name,
@@ -367,6 +370,17 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               onBack={prevStep}
             />
           )}
+          {currentStep === 'gmail-setup' && (
+            <GmailSetupStep 
+              key="gmail-setup"
+              useGmail={useGmail}
+              gmailConnected={gmailConnected}
+              onToggle={setUseGmail}
+              onConnect={() => window.open('/api/calendar/google-oauth-url', '_blank')}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
           {currentStep === 'review' && (
             <ReviewStep 
               key="review"
@@ -375,6 +389,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               presetName={presetName}
               preset={selectedPreset}
               instructions={specialInstructions}
+              useGmail={useGmail}
               onNext={nextStep}
               onBack={prevStep}
             />
@@ -1426,7 +1441,8 @@ function ReviewStep({
   name,
   presetName,
   preset,
-  instructions, 
+  instructions,
+  useGmail,
   onNext, 
   onBack 
 }: { 
@@ -1434,7 +1450,8 @@ function ReviewStep({
   name: string;
   presetName: string;
   preset: string;
-  instructions?: string; 
+  instructions?: string;
+  useGmail?: boolean;
   onNext: () => void; 
   onBack: () => void;
 }) {
@@ -1587,6 +1604,21 @@ function ReviewStep({
               }
             })()}
           </div>
+          
+          <div>
+            <p className="text-sm text-neutral-500 mb-2">Email Sending</p>
+            <div className="flex items-center gap-2">
+              <EnvelopeIcon className="w-5 h-5 text-neutral-600" />
+              <span className="font-semibold text-neutral-900">
+                {useGmail ? 'Gmail (Primary inbox, better deliverability)' : 'Mailgun (Standard sending)'}
+              </span>
+              {useGmail && (
+                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                  RECOMMENDED
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1607,6 +1639,130 @@ function ReviewStep({
         >
           <CheckIcon className="w-6 h-6" />
           Create Agent
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// Gmail Setup Step
+function GmailSetupStep({
+  useGmail,
+  gmailConnected,
+  onToggle,
+  onConnect,
+  onNext,
+  onBack
+}: {
+  useGmail: boolean;
+  gmailConnected: boolean;
+  onToggle: (value: boolean) => void;
+  onConnect: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="w-full max-w-2xl"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-4xl font-bold text-white mb-3">Gmail Integration</h2>
+        <p className="text-xl text-white/90">
+          Send emails from your Gmail for better deliverability
+        </p>
+      </div>
+
+      <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
+        <div className="space-y-6">
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <EnvelopeIcon className="w-8 h-8 text-blue-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-bold text-blue-900 text-lg mb-2">Why use Gmail?</h3>
+                <ul className="space-y-2 text-sm text-blue-800">
+                  <li>✓ Better inbox placement (Primary vs Promotions)</li>
+                  <li>✓ Automatic reply tracking via push notifications</li>
+                  <li>✓ Emails appear in your sent folder</li>
+                  <li>✓ Uses your domain reputation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl">
+            <div>
+              <p className="font-bold text-neutral-900">Use Gmail for sending</p>
+              <p className="text-sm text-neutral-600">Toggle to enable Gmail integration</p>
+            </div>
+            <button
+              onClick={() => onToggle(!useGmail)}
+              className={`relative w-16 h-8 rounded-full transition-colors ${
+                useGmail ? 'bg-green-500' : 'bg-neutral-300'
+              }`}
+            >
+              <div
+                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
+                  useGmail ? 'translate-x-8' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          {useGmail && !gmailConnected && (
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+              <p className="text-sm text-yellow-800 mb-3">
+                Gmail not connected. Click below to connect your Google account.
+              </p>
+              <button
+                onClick={onConnect}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Connect Gmail
+              </button>
+            </div>
+          )}
+
+          {useGmail && gmailConnected && (
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <CheckIcon className="w-6 h-6 text-green-600" />
+                <p className="text-sm text-green-800 font-semibold">
+                  Gmail connected successfully!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!useGmail && (
+            <div className="bg-neutral-50 border-2 border-neutral-200 rounded-xl p-4">
+              <p className="text-sm text-neutral-600">
+                Will use Mailgun for sending. Replies will be tracked via webhooks.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+        >
+          ← Back
+        </button>
+        <button
+          onClick={onNext}
+          className="px-10 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-xl hover:scale-105 inline-flex items-center gap-2"
+          style={{
+            backgroundColor: 'white',
+            color: 'rgb(147, 51, 234)'
+          }}
+        >
+          Continue
+          <ArrowRightIcon className="w-5 h-5" />
         </button>
       </div>
     </motion.div>

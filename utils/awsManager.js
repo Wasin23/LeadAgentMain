@@ -225,6 +225,90 @@ class AWSManager {
       throw error;
     }
   }
+
+  // =====================
+  // GMAIL WATCH METHODS
+  // =====================
+
+  async getGmailLastHistoryId(userId) {
+    try {
+      const settings = await this.getUserSettings(userId);
+      return settings?.gmailWatch?.historyId || null;
+    } catch (error) {
+      console.error('❌ [AWS] Error getting Gmail history ID:', error);
+      return null;
+    }
+  }
+
+  async saveGmailLastHistoryId(userId, historyId) {
+    try {
+      const settings = await this.getUserSettings(userId) || {};
+      await this.saveUserSettings(userId, {
+        ...settings,
+        gmailWatch: {
+          ...settings.gmailWatch,
+          historyId: historyId,
+          lastUpdated: new Date().toISOString()
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error saving Gmail history ID:', error);
+      throw error;
+    }
+  }
+
+  async getConversationReplyCount(userId, agentId, trackingId) {
+    try {
+      const tracking = await this.getEmailTracking(userId, agentId, trackingId);
+      return tracking?.replyCount || 0;
+    } catch (error) {
+      console.error('❌ [AWS] Error getting reply count:', error);
+      return 0;
+    }
+  }
+
+  async incrementConversationReplyCount(userId, agentId, trackingId) {
+    try {
+      const command = new UpdateCommand({
+        TableName: this.tables.emailTracking,
+        Key: {
+          trackingId: `${userId}#${agentId}#${trackingId}`,
+          timestamp: 'METADATA'
+        },
+        UpdateExpression: 'ADD replyCount :inc',
+        ExpressionAttributeValues: {
+          ':inc': 1
+        }
+      });
+      await this.dynamodb.send(command);
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error incrementing reply count:', error);
+      return false;
+    }
+  }
+
+  async markAsUnsubscribed(userId, agentId, email) {
+    try {
+      const command = new PutCommand({
+        TableName: this.tables.unsubscribes,
+        Item: {
+          email: email.toLowerCase(),
+          userId: userId,
+          agentId: agentId,
+          unsubscribedAt: new Date().toISOString(),
+          reason: 'user_request'
+        }
+      });
+      await this.dynamodb.send(command);
+      console.log(`✅ [AWS] Marked ${email} as unsubscribed`);
+      return true;
+    } catch (error) {
+      console.error('❌ [AWS] Error marking as unsubscribed:', error);
+      throw error;
+    }
+  }
   
   async createUser(userData) {
     try {

@@ -214,6 +214,16 @@ try {
   calendarRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Gmail Pub/Sub routes
+let gmailPubSubRoutes;
+try {
+  gmailPubSubRoutes = (await import('./routes/gmail-pubsub.js')).default;
+  console.log('[APP] ✅ Gmail Pub/Sub routes loaded successfully');
+} catch (e) {
+  console.error('[APP] ❌ Gmail Pub/Sub routes failed to load:', e.message);
+  gmailPubSubRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import Company Profile routes
 let companyProfileRoutes;
 try {
@@ -481,6 +491,7 @@ app.use('/api/email-response-settings', emailResponseSettingsRoutes);
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
 app.use('/api/settings', settingsRoutes); // Settings presets management
 app.use('/api/calendar', calendarRoutes); // Calendar OAuth and integration
+app.use('/api/gmail-pubsub', gmailPubSubRoutes); // Gmail Pub/Sub push notifications
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking

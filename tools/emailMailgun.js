@@ -191,10 +191,22 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
           console.log(`✅ [EMAIL SIGNATURE] Signature with logo injected into email`);
         }
         
-        // Check if Gmail is connected
-        if (userSettings?.gmailAuth?.refreshToken) {
+        // Check if Gmail is connected and agent has Gmail enabled
+        let useGmailForAgent = false;
+        if (agentId) {
+          const agentSettings = await awsManager.getAgentSettings(userId, agentId);
+          useGmailForAgent = agentSettings?.emailBuilder?.useGmail === true;
+          console.log(`[EMAIL ROUTING] Agent ${agentId} useGmail setting:`, useGmailForAgent);
+        }
+        
+        // Check if Gmail is connected (either legacy or new calendar tokens with Gmail scopes)
+        const hasGmailTokens = userSettings?.gmailAuth?.refreshToken || 
+                              (userSettings?.calendarTokens?.refresh_token && 
+                               userSettings?.calendarTokens?.scope?.includes('gmail'));
+        
+        if (hasGmailTokens && useGmailForAgent) {
           gmailConnected = true;
-          console.log(`✅ [EMAIL ROUTING] Gmail connected for user ${userId} - will use Gmail API`);
+          console.log(`✅ [EMAIL ROUTING] Gmail enabled for agent ${agentId} - will use Gmail API`);
           
           // Use Gmail to send the email
           try {

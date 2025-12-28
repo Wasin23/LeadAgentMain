@@ -80,6 +80,24 @@ class GmailManager {
   }
 
   /**
+   * Get user's email from tokens (helper for calendar OAuth)
+   */
+  async getUserEmailFromTokens(tokens) {
+    try {
+      this.oauth2Client.setCredentials({
+        refresh_token: tokens.refresh_token,
+        access_token: tokens.access_token
+      });
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+      const profile = await gmail.users.getProfile({ userId: 'me' });
+      return profile.data.emailAddress;
+    } catch (error) {
+      console.error('❌ [GMAIL] Error getting email from tokens:', error);
+      return 'unknown@gmail.com';
+    }
+  }
+
+  /**
    * Send email via Gmail API (with account cycling)
    */
   async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true }) {
@@ -89,7 +107,7 @@ class GmailManager {
       // Get user's Gmail credentials from DynamoDB
       const userSettings = await awsManager.getUserSettings(userId);
       
-      // Support both old gmailAuth format and new gmailAccounts array
+      // Support both old gmailAuth format, new gmailAccounts array, and calendarTokens with Gmail scopes
       let gmailAccounts = [];
       let currentAccountIndex = 0;
       
@@ -105,6 +123,17 @@ class GmailManager {
           isActive: true
         }];
         currentAccountIndex = 0;
+      } else if (userSettings?.calendarTokens?.refresh_token && 
+                 userSettings?.calendarTokens?.scope?.includes('gmail')) {
+        // Calendar OAuth includes Gmail scopes
+        const emailAddress = await this.getUserEmailFromTokens(userSettings.calendarTokens);
+        gmailAccounts = [{
+          email: emailAddress,
+          refreshToken: userSettings.calendarTokens.refresh_token,
+          isActive: true
+        }];
+        currentAccountIndex = 0;
+        console.log('[GMAIL] Using calendarTokens for Gmail sending');
       } else {
         throw new Error('Gmail not connected. Please connect your Gmail account in settings.');
       }

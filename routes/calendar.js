@@ -42,7 +42,10 @@ router.get('/google-oauth-url', authenticateToken, async (req, res) => {
       access_type: 'offline',
       scope: [
         'https://www.googleapis.com/auth/calendar.events',
-        'https://www.googleapis.com/auth/calendar.readonly'
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.send',
+        'https://www.googleapis.com/auth/gmail.modify'
       ],
       state: req.user.userId, // Pass userId in state to identify user after OAuth
       prompt: 'consent' // Force consent screen to get refresh token
@@ -87,6 +90,17 @@ router.get('/oauth-callback', async (req, res) => {
     });
 
     console.log(`[CALENDAR] Google Calendar connected for user ${userId}`);
+    
+    // Setup Gmail push notifications if user has enabled Gmail sending
+    try {
+      const { default: GmailManager } = await import('../utils/gmailManager.js');
+      const gmailManager = new GmailManager();
+      await gmailManager.setupPushNotifications(userId);
+      console.log(`[CALENDAR] Gmail watch notifications enabled for user ${userId}`);
+    } catch (watchError) {
+      console.error('[CALENDAR] Failed to setup Gmail watch:', watchError.message);
+      // Don't fail the OAuth flow if watch setup fails
+    }
 
     // Show success page that auto-closes
     res.send(`
