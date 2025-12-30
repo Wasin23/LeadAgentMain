@@ -12,7 +12,8 @@ import {
   Cog6ToothIcon,
   ChatBubbleLeftRightIcon,
   XMarkIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  FunnelIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import AgentPersonalitySelector, { PersonalityType } from '@/components/agents/AgentPersonalitySelector';
@@ -229,6 +230,19 @@ export default function AgentsOverview() {
     return () => {
       eventSource.close();
     };
+  }, []);
+
+  // Refetch agents when page becomes visible (when user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Agents page became visible, refetching agents...');
+        fetchAgents();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const fetchAgents = async () => {
@@ -541,8 +555,9 @@ export default function AgentsOverview() {
                   {agent.preset && (
                     <div className="mb-2">
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/20 rounded-lg border border-cyan-500/40">
+                        <FunnelIcon className="h-3.5 w-3.5 text-cyan-300" />
                         <span className="text-xs font-medium text-cyan-300">
-                          🎯 Active Preset: {agent.preset.name || 'Custom Preset'}
+                          Active Preset: {agent.preset.name || 'Custom Preset'}
                         </span>
                       </div>
                     </div>

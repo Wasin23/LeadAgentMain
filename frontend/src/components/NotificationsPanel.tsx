@@ -39,8 +39,8 @@ export default function NotificationsPanel() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // Fetch issues
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/issues`, {
+      // Fetch unified notifications (includes replies, views, meetings, failed sends, billing, etc)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -49,11 +49,11 @@ export default function NotificationsPanel() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setIssues(data.issues);
+          setIssues(data.notifications || []);
         }
       }
 
-      // Fetch trial credits
+      // Fetch trial credits separately for the trial banner
       try {
         const creditsResponse = await api.get('/api/billing/trial-credits');
         if (creditsResponse.data.success) {
@@ -197,8 +197,14 @@ export default function NotificationsPanel() {
   };
 
   const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'billing':
+    switch (type) {      case 'reply':
+        return <Mail className="h-4 w-4" />;
+      case 'view':
+        return <Mail className="h-4 w-4" />;
+      case 'meeting':
+        return <Bot className="h-4 w-4" />;
+      case 'failed_send':
+        return <Mail className="h-4 w-4" />;      case 'billing':
         return <DollarSign className="h-4 w-4" />;
       case 'agent':
         return <Bot className="h-4 w-4" />;

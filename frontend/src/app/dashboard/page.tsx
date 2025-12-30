@@ -224,6 +224,8 @@ export default function InteractiveGlobe() {
   const [agents, setAgents] = useState<any[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
+  const [currentEmailPage, setCurrentEmailPage] = useState(1);
+  const EMAILS_PER_PAGE = 20;
   
   // Modal drag and resize states
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
@@ -253,6 +255,7 @@ export default function InteractiveGlobe() {
   
   // Canvas size state to prevent hydration mismatch
   const [canvasSize, setCanvasSize] = useState(1200); // Default size for SSR
+  const [isMounted, setIsMounted] = useState(false);
 
   // City and state geocoding function with detailed US city coordinates
   const geocodeLocation = (location: any): { lat: number; lng: number } | null => {
@@ -360,6 +363,7 @@ export default function InteractiveGlobe() {
           size = Math.min(950, width * 0.5);
         }
         setCanvasSize(size);
+        setIsMounted(true);
       }
     };
     
@@ -509,6 +513,7 @@ export default function InteractiveGlobe() {
   // Fetch queue emails when agent is selected
   const fetchQueueEmails = async (agentId: string, type: 'queued' | 'sent' | 'replied') => {
     setLoadingQueue(true);
+    setCurrentEmailPage(1); // Reset to first page when fetching new emails
     try {
       let endpoint = '';
       if (type === 'queued') endpoint = `/api/email-queue/queue?agentId=${agentId}`;
@@ -743,6 +748,19 @@ export default function InteractiveGlobe() {
   // Fetch agents on mount
   useEffect(() => {
     fetchAgents();
+  }, []);
+
+  // Refetch agents when page becomes visible (when user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, refetching agents...');
+        fetchAgents();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   // Fetch real world data
@@ -1053,9 +1071,9 @@ export default function InteractiveGlobe() {
 
       {/* Top Navigation Buttons - Hidden when country is expanded */}
       {!isExpanded && (
-        <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 sm:gap-3">
-          {/* Primary Navigation - Larger */}
-          <div className="flex gap-2 sm:gap-4">
+        <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50">
+          {/* All Navigation - Same size, single line */}
+          <div className="flex gap-2 sm:gap-3 flex-wrap justify-center">
             <button
               onClick={() => { 
                 setNavigating(true); 
@@ -1074,16 +1092,12 @@ export default function InteractiveGlobe() {
             >
               Outreach
             </button>
-          </div>
-          
-          {/* Secondary Navigation - Smaller, hidden on very small screens */}
-          <div className="hidden sm:flex gap-2">
             <button
               onClick={() => { 
                 setNavigating(true); 
                 setTimeout(() => router.push('/profile'), 0);
               }}
-              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-base rounded-lg backdrop-blur-sm transition-all border border-white/20"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
             >
               Profile
             </button>
@@ -1092,7 +1106,7 @@ export default function InteractiveGlobe() {
                 setNavigating(true); 
                 setTimeout(() => router.push('/analytics'), 0);
               }}
-              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-base rounded-lg backdrop-blur-sm transition-all border border-white/20"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
             >
               Analytics
             </button>
@@ -1101,9 +1115,9 @@ export default function InteractiveGlobe() {
                 setNavigating(true); 
                 setTimeout(() => router.push('/settings'), 0);
               }}
-              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-base rounded-lg backdrop-blur-sm transition-all border border-white/20 flex items-center gap-1.5"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
             >
-              <Cog6ToothIcon className="w-4 h-4" />
+              <Cog6ToothIcon className="w-5 h-5 sm:w-6 sm:h-6" />
               Settings
             </button>
           </div>
@@ -1125,8 +1139,18 @@ export default function InteractiveGlobe() {
 
       {/* Meridian Logo */}
       <div className="fixed top-4 sm:top-8 left-4 sm:left-8 z-50">
-        <div className="text-white text-xl sm:text-2xl font-bold">
-          Meridian
+        <div className="flex items-center gap-2 sm:gap-3">
+          <svg width="32" height="32" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-10 sm:h-10">
+            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
+          </svg>
+          <div className="text-white text-xl sm:text-2xl font-bold">
+            Meridian
+          </div>
         </div>
       </div>
 
@@ -1199,11 +1223,12 @@ export default function InteractiveGlobe() {
       )}
 
       {/* Globe - Hidden on mobile */}
-      <div 
-        className={`hidden sm:block fixed left-1/2 -translate-x-1/2 transition-all duration-700 ease-out ${
-          isExpanded ? 'top-1/2 -translate-y-1/2' : 'bottom-0 translate-y-1/2'
-        }`}
-      >
+      {isMounted && (
+        <div 
+          className={`hidden sm:block fixed left-1/2 -translate-x-1/2 transition-all duration-700 ease-out ${
+            isExpanded ? 'top-1/2 -translate-y-1/2' : 'bottom-0 translate-y-1/2'
+          }`}
+        >
         <div className="text-center">
           {!isExpanded && (
             <div className="mb-4 md:mb-6 animate-fade-in px-4">
@@ -1223,6 +1248,7 @@ export default function InteractiveGlobe() {
           />
         </div>
       </div>
+      )}
 
       {/* Animated Satellite - Hidden on mobile and medium screens */}
       {!isExpanded && (
@@ -1454,7 +1480,7 @@ export default function InteractiveGlobe() {
                     <img 
                       src={agent.avatar || agent.personality?.avatar} 
                       alt={agent.name}
-                      className="w-10 h-10 rounded-full border-2 border-green-400 shadow-lg transition-transform hover:scale-110 cursor-pointer"
+                      className="w-10 h-10 rounded-full border-2 border-green-400 shadow-lg transition-transform hover:scale-110 cursor-pointer object-cover"
                     />
                   </button>
                   
@@ -1685,6 +1711,8 @@ export default function InteractiveGlobe() {
                               } else {
                                 await api.post('/api/lead-agent/start', { agentId: agent.agentId });
                               }
+                              // Refetch agents to sync with backend database
+                              await fetchAgents();
                             } catch (error) {
                               console.error('Error updating agent status:', error);
                               // Revert on error
@@ -1720,16 +1748,19 @@ export default function InteractiveGlobe() {
 
       {/* Email Queue Modal */}
       {selectedQueue && !navigating && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]">
+        <div className="fixed inset-0 bg-black/50 z-[100]">
           <div 
             className="bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-white/20 absolute"
             style={{
               width: `${modalSize.width}px`,
               height: `${modalSize.height}px`,
-              transform: `translate3d(${modalPosition.x}px, ${modalPosition.y}px, 0)`,
+              left: `${Math.round(modalPosition.x)}px`,
+              top: `${Math.round(modalPosition.y)}px`,
               cursor: isDraggingModal ? 'grabbing' : 'default',
               maxWidth: '90vw',
               maxHeight: '90vh',
+              backfaceVisibility: 'hidden',
+              WebkitFontSmoothing: 'antialiased',
               willChange: isDraggingModal || isResizing ? 'transform, width, height' : 'auto'
             }}
           >
@@ -1857,8 +1888,34 @@ export default function InteractiveGlobe() {
                     <div className="text-white/70">No emails found</div>
                   </div>
                 ) : (
-                  <div className="space-y-2 will-change-transform">
-                    {queueEmails.map((email) => {
+                  <>
+                    {/* Pagination Info */}
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/20">
+                      <div className="text-white/70 text-sm">
+                        Showing {((currentEmailPage - 1) * EMAILS_PER_PAGE) + 1}-{Math.min(currentEmailPage * EMAILS_PER_PAGE, queueEmails.length)} of {queueEmails.length}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCurrentEmailPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentEmailPage === 1}
+                          className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:text-white/30 text-white rounded text-sm transition-all"
+                        >
+                          ← Previous
+                        </button>
+                        <button
+                          onClick={() => setCurrentEmailPage(prev => Math.min(Math.ceil(queueEmails.length / EMAILS_PER_PAGE), prev + 1))}
+                          disabled={currentEmailPage >= Math.ceil(queueEmails.length / EMAILS_PER_PAGE)}
+                          className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:text-white/30 text-white rounded text-sm transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 will-change-transform">
+                      {queueEmails
+                        .slice((currentEmailPage - 1) * EMAILS_PER_PAGE, currentEmailPage * EMAILS_PER_PAGE)
+                        .map((email) => {
                       const emailId = email._id || email.id;
                       const isExpanded = expandedEmailId === emailId;
                       const isEditing = editingEmail?.id === emailId;
@@ -2091,7 +2148,8 @@ export default function InteractiveGlobe() {
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </>
                 )
               )}
             </div>
@@ -2151,6 +2209,51 @@ export default function InteractiveGlobe() {
           transform-origin: center;
         }
       `}</style>
+
+      {/* Active Agents Bar - Bottom Right */}
+      {!isExpanded && agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 && (
+        <div className="fixed bottom-4 right-4 z-50 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-white text-sm font-semibold whitespace-nowrap">Active Agents</span>
+            <div className="flex -space-x-2">
+              {agents
+                .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
+                .slice(0, 10)
+                .map((agent) => {
+                  const avatarSrc = agent.avatar || agent.personality?.avatar;
+                  return (
+                    <div
+                      key={agent.agentId}
+                      className="relative group"
+                      title={agent.name}
+                    >
+                      {avatarSrc ? (
+                        <img
+                          src={avatarSrc}
+                          alt={agent.name}
+                          className="w-8 h-8 rounded-full border-2 border-white/30 object-cover hover:scale-110 transition-transform cursor-pointer"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full border-2 border-white/30 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold hover:scale-110 transition-transform cursor-pointer">
+                          {agent.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      {/* Pulsing indicator */}
+                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border border-white/50 animate-pulse" />
+                      {/* Tooltip on hover */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        {agent.name}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -36,7 +36,7 @@ function AgentsPageContent() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600">
         {selectedAgent ? (
           <AgentDashboard 
             agentId={selectedAgent} 
@@ -54,8 +54,8 @@ function AgentsPageContent() {
 export default function AgentsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600">
+        <div className="text-white">Loading...</div>
       </div>
     }>
       <AgentsPageContent />

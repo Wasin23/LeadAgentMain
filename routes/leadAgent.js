@@ -38,6 +38,30 @@ router.post('/start', async (req, res) => {
     const result = await userAgent.start(minutes, userId);
     console.log('✅ [LEAD AGENT API] Start result:', result);
     
+    // Update agent status in database if start was successful
+    if (result.success || result.isActive) {
+      try {
+        const { getUserById } = await import('../lib/userManager.js');
+        const user = await getUserById(userId);
+        
+        if (user && user.activeAgents) {
+          const updatedAgents = user.activeAgents.map(agent => 
+            agent.agentId === agentId 
+              ? { ...agent, status: 'running', lastRun: new Date().toISOString() }
+              : agent
+          );
+          
+          const awsManager = (await import('../utils/awsManager.js')).default;
+          const awsManagerInstance = new awsManager();
+          await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
+          console.log('✅ [LEAD AGENT API] Updated agent status to running in database');
+        }
+      } catch (dbError) {
+        console.error('⚠️ [LEAD AGENT API] Failed to update agent status in database:', dbError);
+        // Continue anyway - agent is running even if DB update failed
+      }
+    }
+    
     return res.json({
       success: result.success,
       message: result.message,
@@ -140,6 +164,30 @@ router.post('/stop', async (req, res) => {
     
     const result = await userAgent.stop();
     console.log('✅ [LEAD AGENT API] Stop result:', result);
+    
+    // Update agent status in database if stop was successful
+    if (result.success || !result.isActive) {
+      try {
+        const { getUserById } = await import('../lib/userManager.js');
+        const user = await getUserById(userId);
+        
+        if (user && user.activeAgents) {
+          const updatedAgents = user.activeAgents.map(agent => 
+            agent.agentId === agentId 
+              ? { ...agent, status: 'idle' }
+              : agent
+          );
+          
+          const awsManager = (await import('../utils/awsManager.js')).default;
+          const awsManagerInstance = new awsManager();
+          await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
+          console.log('✅ [LEAD AGENT API] Updated agent status to idle in database');
+        }
+      } catch (dbError) {
+        console.error('⚠️ [LEAD AGENT API] Failed to update agent status in database:', dbError);
+        // Continue anyway - agent is stopped even if DB update failed
+      }
+    }
     
     res.json({
       success: result.success,

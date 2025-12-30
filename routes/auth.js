@@ -836,6 +836,16 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     const user = await getUserById(userId);
     console.log('[AUTH CREATE-AGENT] User agents:', user.activeAgents?.length || 0);
     
+    // Check agent limit (max 10 agents per account)
+    const MAX_AGENTS = 10;
+    if (user.activeAgents && user.activeAgents.length >= MAX_AGENTS) {
+      console.log('[AUTH CREATE-AGENT] ❌ Agent limit reached:', user.activeAgents.length);
+      return res.status(400).json({ 
+        error: 'Agent limit reached',
+        message: `You have reached the maximum limit of ${MAX_AGENTS} agents per account. Please delete an existing agent to create a new one.` 
+      });
+    }
+    
     const existingAgent = user.activeAgents?.find(
       agent => agent.name.toLowerCase() === name.trim().toLowerCase()
     );

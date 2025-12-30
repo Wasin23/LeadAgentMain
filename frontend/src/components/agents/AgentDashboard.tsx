@@ -1719,8 +1719,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             onClick={() => setOutreachTab('conversations')}
             className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'conversations'
-                ? 'bg-white shadow-sm'
-                : 'bg-white hover:bg-neutral-50'
+                ? 'bg-white/20 backdrop-blur-md shadow-sm'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
             }`}
             style={{ 
               borderTop: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
@@ -1740,8 +1740,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             onClick={() => setOutreachTab('analytics')}
             className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'analytics'
-                ? 'bg-white shadow-sm'
-                : 'bg-white hover:bg-neutral-50'
+                ? 'bg-white/20 backdrop-blur-md shadow-sm'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
             }`}
             style={{ 
               borderTop: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
@@ -1761,8 +1761,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             onClick={() => setOutreachTab('viewed')}
             className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'viewed'
-                ? 'bg-white shadow-sm'
-                : 'bg-white hover:bg-neutral-50'
+                ? 'bg-white/20 backdrop-blur-md shadow-sm'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
             }`}
             style={{ 
               borderTop: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
@@ -1782,8 +1782,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             onClick={() => setOutreachTab('settings')}
             className={`p-6 rounded-t-lg transition-all ${
               outreachTab === 'settings'
-                ? 'bg-white shadow-sm'
-                : 'bg-white hover:bg-neutral-50'
+                ? 'bg-white/20 backdrop-blur-md shadow-sm'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
             }`}
             style={{ 
               borderTop: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
@@ -1808,10 +1808,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-neutral-50 border ${colors.border} rounded-lg overflow-hidden`}
+            className={`bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden shadow-xl`}
             style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
-            <div className={`p-6 border-b ${colors.border} bg-white flex-shrink-0`}>
+            <div className="p-6 border-b border-white/20 bg-white/5 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-neutral-900">Live Response Stream</h3>
@@ -1842,7 +1842,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       key={response.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`p-3 border ${borderColor} rounded-lg bg-white`}
+                      className={`p-3 border ${borderColor} rounded-lg bg-white/20 backdrop-blur-sm`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -1888,7 +1888,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-white border ${colors.border} rounded-lg overflow-hidden`}
+            className={`bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden shadow-xl`}
             style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
             <div className={`p-6 border-b ${colors.border}`}>
@@ -1967,7 +1967,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.02 }}
-                      className={`border ${colors.border} rounded-lg bg-white overflow-hidden`}
+                      className={`border border-white/20 rounded-lg bg-white/20 backdrop-blur-sm overflow-hidden`}
                     >
                       {/* Conversation Card - Click to open full thread */}
                       <div 
@@ -2189,7 +2189,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'settings' && (
-          <div className={`bg-white border border-neutral-200 border-t-0 p-6 -mt-6 space-y-6`}>
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-b-2xl p-6 -mt-6 space-y-6 shadow-xl">
             <h3 className={`text-lg font-semibold ${colors.primary} mb-6`}>Outreach Settings</h3>
             
             {/* AI Response Toggle */}
@@ -2426,7 +2426,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-lg max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+              className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
               {/* Modal Header */}
@@ -2517,7 +2517,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   >
                     <div className={`rounded-lg p-4 ${
                       msg.type === 'outbound' || msg.type === 'manual' ? `${colors.bgLight} border ${colors.border}` :
-                      msg.type === 'reply' ? 'bg-white border border-neutral-200' :
+                      msg.type === 'reply' ? 'bg-white/20 backdrop-blur-sm border border-white/30' :
                       'bg-orange-50 border border-orange-200'
                     }`}>
                       <div className="flex items-center justify-between mb-2">
@@ -2575,7 +2575,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
 
               {/* Manual Reply Composer */}
-              <div className="p-4 border-t border-neutral-200 bg-white">
+              <div className="p-4 border-t border-white/20 bg-white/5 backdrop-blur-sm">
                 <div className="mb-3">
                   <label className="text-sm font-medium text-neutral-700 mb-2 block">
                     💬 Send Manual Reply (AI will be paused)
@@ -2659,19 +2659,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 max-w-md ${
+            className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-xl shadow-2xl border flex items-center gap-3 max-w-md backdrop-blur-md ${
               notification.type === 'success'
-                ? 'bg-green-50 border-green-200 text-green-800'
-                : 'bg-red-50 border-red-200 text-red-800'
+                ? 'bg-green-500/20 border-green-400/40 text-green-200'
+                : 'bg-red-500/20 border-red-400/40 text-red-200'
             }`}
           >
             <div className={`w-2 h-2 rounded-full ${
-              notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+              notification.type === 'success' ? 'bg-green-400 animate-pulse' : 'bg-red-400 animate-pulse'
             }`}></div>
             <span className="text-sm font-medium">{notification.message}</span>
             <button
               onClick={() => setNotification(null)}
-              className="ml-auto text-neutral-400 hover:text-neutral-600"
+              className="ml-auto text-white/60 hover:text-white"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
@@ -2680,28 +2680,28 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       </AnimatePresence>
 
       {/* Header */}
-      <div className="bg-white border border-neutral-200 p-6">
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onBack}
-            className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 transition-colors rounded-lg"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </motion.button>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-6">
-              <h1 className={`text-2xl font-semibold flex-1 min-w-0 truncate ${colors.primary}`}>{getAgentDisplayName()}</h1>
+              <h1 className="text-2xl font-semibold flex-1 min-w-0 truncate text-white">{getAgentDisplayName()}</h1>
               <div className="flex items-center gap-4 flex-shrink-0">
-                <div className={`inline-flex items-center gap-2 text-sm whitespace-nowrap ${getStatusColor()}`}>
-                  <div className={`h-2 w-2 rounded-full ${status?.isActive ? 'bg-green-500' : 'bg-neutral-400'}`}></div>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${status?.isActive ? 'bg-green-500/20 text-green-300 border border-green-500/40' : 'bg-white/10 text-white/70 border border-white/20'}`}>
+                  <div className={`h-2 w-2 rounded-full ${status?.isActive ? 'bg-green-400 animate-pulse' : 'bg-white/40'}`}></div>
                   {status?.isActive ? 'Running' : 'Stopped'}
                 </div>
                 {status?.lastRun && (
-                  <span className="text-sm text-neutral-500 whitespace-nowrap">
+                  <span className="text-sm text-white/60 whitespace-nowrap">
                     Last run: {new Date(status.lastRun).toLocaleString()}
                   </span>
                 )}
@@ -2712,7 +2712,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
         <div className="flex items-center gap-3">
           {error && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 text-sm border border-red-200">
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-300 text-sm border border-red-500/40 rounded-lg backdrop-blur-sm">
               <ExclamationTriangleIcon className="h-4 w-4" />
               {error}
             </div>
@@ -2722,7 +2722,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowSettings(true)}
-            className={`flex items-center gap-2 px-4 py-2 text-neutral-600 hover:text-neutral-900 transition-colors ${colors.bgLight} border ${colors.border}`}
+            className="flex items-center gap-2 px-4 py-2 text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg"
           >
             <CogIcon className="h-4 w-4" />
             Settings
@@ -2732,7 +2732,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={resetAgent}
-            className={`flex items-center gap-2 px-4 py-2 text-neutral-600 transition-colors border ${colors.border} ${colors.bgLight}`}
+            className="flex items-center gap-2 px-4 py-2 text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg"
           >
             <ArrowPathIcon className="h-4 w-4" />
             Reset
@@ -2742,10 +2742,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={toggleAgent}
-            className={`flex items-center gap-2 px-4 py-2 transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 transition-colors rounded-lg border-2 font-medium ${
               status?.isActive 
-                ? 'bg-red-50 text-red-600 hover:bg-red-100' 
-                : 'bg-green-50 text-green-600 hover:bg-green-100'
+                ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border-red-500/40' 
+                : 'bg-green-500/30 text-green-200 hover:bg-green-500/40 border-green-400/50'
             }`}
           >
             {status?.isActive ? (
@@ -2769,16 +2769,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
+          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
           onClick={() => setShowEmailQueue(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-600 flex items-center gap-2">
+              <p className="text-sm text-white/80 flex items-center gap-2">
                 Emails Queued
-                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to view</span>
+                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
               </p>
-              <p className="text-2xl font-semibold text-neutral-900 mt-1">{emailQueue.length}</p>
+              <p className="text-3xl font-bold text-white mt-1">{emailQueue.length}</p>
             </div>
             <EnvelopeIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
@@ -2788,15 +2788,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
+          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
           onClick={() => setShowOutreach(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-600 flex items-center gap-2">
-                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to view</span>
+              <p className="text-sm text-white/70 flex items-center gap-2">
+                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
               </p>
-              <p className="text-2xl font-semibold text-neutral-900 mt-1">Outreach</p>
+              <p className="text-2xl font-semibold text-white mt-1">Outreach</p>
             </div>
             <EnvelopeIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
@@ -2807,16 +2807,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
+          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
           onClick={() => setShowRecentContacts(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-600 flex items-center gap-2">
+              <p className="text-sm text-white/80 flex items-center gap-2">
                 Recent Contacts
-                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to view</span>
+                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
               </p>
-              <p className="text-2xl font-semibold text-neutral-900 mt-1">{recentEmails.length}</p>
+              <p className="text-3xl font-bold text-white mt-1">{recentEmails.length}</p>
             </div>
             <UserIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
@@ -2827,16 +2827,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className={`bg-white border p-6 cursor-pointer transition-all duration-200 ${colors.border} hover:${colors.bgHover} hover:${colors.borderHover}`}
+          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
           onClick={() => setShowIntervalModal(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-600 flex items-center gap-2">
+              <p className="text-sm text-white/80 flex items-center gap-2">
                 Cycle Interval
-                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight}`}>click to change</span>
+                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to change</span>
               </p>
-              <p className="text-2xl font-semibold text-neutral-900 mt-1">{status?.currentInterval || 30}m</p>
+              <p className="text-3xl font-bold text-white mt-1">{status?.currentInterval || 30}m</p>
             </div>
             <ClockIcon className={`h-8 w-8 ${colors.text}`} />
           </div>
@@ -2849,13 +2849,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`border ${colors.border} overflow-hidden bg-neutral-50 self-start`}
+          className="border border-white/20 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-md self-start shadow-xl"
         >
-          <div className={`p-6 border-b ${colors.border} bg-white`}>
+          <div className="p-6 border-b border-white/20 bg-white/5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className={`text-lg font-medium ${colors.primary}`}>Activity Logs</h3>
-                <p className="text-sm text-neutral-600 mt-1">Real-time agent operations</p>
+                <h3 className="text-lg font-medium text-white">Activity Logs</h3>
+                <p className="text-sm text-white/60 mt-1">Real-time agent operations</p>
               </div>
               
               {/* Countdown Timer */}
@@ -3000,24 +3000,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`bg-white border ${colors.border}`}
+          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl"
         >
-          <div className={`p-6 border-b ${colors.border}`}>
+          <div className="p-6 border-b border-white/20 bg-white/5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className={`text-lg font-medium ${colors.primary}`}>Recently Contacted</h3>
-                <p className="text-sm text-neutral-600 mt-1">Latest outreach attempts</p>
+                <h3 className="text-lg font-medium text-white">Recently Contacted</h3>
+                <p className="text-sm text-white/60 mt-1">Latest outreach attempts</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => fetchRecentEmails()}
-                  className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors"
+                  className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
                   title="Reload recent emails"
                 >
                   <ArrowPathIcon className="h-4 w-4" />
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-white/60">
                     Showing {filteredRecentEmails.length} of {recentEmails.length}
                   </span>
                   <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
@@ -3159,7 +3159,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl"
+            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-neutral-900">Change Cycle Interval</h3>
@@ -3221,7 +3221,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[98vh] overflow-hidden mx-4 flex flex-col"
+            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-7xl h-[98vh] overflow-hidden mx-4 flex flex-col"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -3695,7 +3695,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[95vh] overflow-hidden mx-4"
+            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-5xl h-[95vh] overflow-hidden mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
@@ -4081,7 +4081,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-blue-300 cursor-pointer transition-colors"
+                      className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:border-blue-300 cursor-pointer transition-colors"
                       onClick={() => setSelectedScheduledEvent(event)}
                     >
                       <div className="flex items-start justify-between">
@@ -4132,7 +4132,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4"
+            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-4xl mx-4"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
