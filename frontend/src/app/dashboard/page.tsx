@@ -338,9 +338,27 @@ export default function InteractiveGlobe() {
   useEffect(() => {
     const updateCanvasSize = () => {
       if (typeof window !== 'undefined') {
-        const isMobile = window.innerWidth < 640;
-        const isTablet = window.innerWidth < 1024;
-        const size = isMobile ? 700 : isTablet ? 900 : 1000; // Smaller sizes
+        const width = window.innerWidth;
+        let size;
+        if (width < 640) {
+          // Mobile: Use 90% of screen width or max 450px
+          size = Math.min(width * 0.9, 450);
+        } else if (width < 768) {
+          // Small tablet
+          size = 500;
+        } else if (width < 1024) {
+          // Tablet
+          size = 600;
+        } else if (width < 1280) {
+          // Small laptop (mom's Mac) - scale down proportionally
+          size = Math.min(700, width * 0.6);
+        } else if (width < 1536) {
+          // Medium desktop
+          size = Math.min(800, width * 0.55);
+        } else {
+          // Large desktop
+          size = Math.min(950, width * 0.5);
+        }
         setCanvasSize(size);
       }
     };
@@ -1018,10 +1036,18 @@ export default function InteractiveGlobe() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 relative overflow-hidden">
-      {/* Notifications Panel - Right Side, hidden on small screens */}
+      {/* Notifications Panel - Right Side, hidden until lg screens */}
       {!isExpanded && (
         <div className="hidden lg:block">
           <NotificationsPanel />
+        </div>
+      )}
+
+      {/* Mobile Welcome - Shown only on small screens */}
+      {!isExpanded && (
+        <div className="sm:hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center px-6">
+          <h1 className="text-3xl font-bold text-white mb-3">Meridian Agent</h1>
+          <p className="text-white/80 mb-8">Use the navigation above to access your dashboard features</p>
         </div>
       )}
 
@@ -1172,16 +1198,17 @@ export default function InteractiveGlobe() {
         </div>
       )}
 
+      {/* Globe - Hidden on mobile */}
       <div 
-        className={`fixed left-1/2 -translate-x-1/2 transition-all duration-700 ease-out ${
+        className={`hidden sm:block fixed left-1/2 -translate-x-1/2 transition-all duration-700 ease-out ${
           isExpanded ? 'top-1/2 -translate-y-1/2' : 'bottom-0 translate-y-1/2'
         }`}
       >
         <div className="text-center">
           {!isExpanded && (
-            <div className="mb-4 sm:mb-6 animate-fade-in px-4">
-              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">Your Outreach Network</h1>
-              <p className="text-sm sm:text-base text-white/80">Click the satellite to manage agents • Drag to explore countries</p>
+            <div className="mb-4 md:mb-6 animate-fade-in px-4">
+              <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">Your Outreach Network</h1>
+              <p className="text-sm md:text-base text-white/80">Click the satellite to manage agents • Drag to explore countries</p>
             </div>
           )}
           
@@ -1197,10 +1224,10 @@ export default function InteractiveGlobe() {
         </div>
       </div>
 
-      {/* Animated Satellite - Adjusted position for notifications panel */}
+      {/* Animated Satellite - Hidden on mobile and medium screens */}
       {!isExpanded && (
         <div 
-          className="fixed right-[calc(50%+22rem)] lg:right-[28rem] xl:right-[32rem] top-1/2 pointer-events-auto cursor-pointer z-50 hidden sm:block"
+          className="fixed right-[calc(50%+18rem)] lg:right-[22rem] xl:right-[26rem] top-1/2 pointer-events-auto cursor-pointer z-50 hidden lg:block"
           style={{
             transform: `translateY(${satelliteBob - 50}%)`,
             transition: 'transform 0.05s linear'
