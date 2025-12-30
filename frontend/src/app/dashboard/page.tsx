@@ -1021,7 +1021,7 @@ export default function InteractiveGlobe() {
     const runningAgents = agents.filter(a => a.status === 'running' || agentActivities[a.agentId]?.isActive);
     
     // Only recalculate when agents start running (not every activity update)
-    if (runningAgents.length === 0 || isExpanded || isAnimatingToAgent) return;
+    if (runningAgents.length === 0 || isExpanded) return;
     
     // Collect all agent locations
     const agentLocations: Array<{lat: number, lng: number}> = [];
@@ -1047,16 +1047,24 @@ export default function InteractiveGlobe() {
       const targetLng = -avgLng;
       const targetLat = rotation[1]; // Keep current tilt
       
+      console.log('🎯 Centering globe on agents:', {
+        runningAgents: runningAgents.length,
+        locations: agentLocations.length,
+        avgLng,
+        targetLng,
+        currentRotation: rotation
+      });
+      
       // Only update if significantly different from current position
       const currentLng = rotation[0];
-      const currentLat = rotation[1];
       
       if (Math.abs(targetLng - currentLng) > 10) {
+        console.log('🔄 Starting rotation animation to:', [targetLng, targetLat]);
         setTargetRotation([targetLng, targetLat]);
         setIsAnimatingToAgent(true);
       }
     }
-  }, [agents.length, agents.filter(a => a.status === 'running').length, isExpanded, isAnimatingToAgent]);
+  }, [agents, agentActivities, isExpanded]);
 
   // Animate to target rotation when agent is clicked
   useEffect(() => {
