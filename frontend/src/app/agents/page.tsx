@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AgentManager from '@/components/agents/AgentManager';
 import AgentDashboard from '@/components/agents/AgentDashboard';
 import AdminChatbot from '@/components/AdminChatbot';
 
-export default function AgentsPage() {
+function AgentsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const agentIdFromUrl = searchParams.get('agent');
@@ -48,5 +48,17 @@ export default function AgentsPage() {
       </div>
       <AdminChatbot />
     </>
+  );
+}
+
+export default function AgentsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    }>
+      <AgentsPageContent />
+    </Suspense>
   );
 }
