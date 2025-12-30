@@ -231,7 +231,7 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
@@ -242,12 +242,12 @@ export default function SignInPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10"
+        className="bg-[#1B2F52]/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-[#4FD1FF]/20 w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10"
       >
         {/* Back to Home Button */}
         <button
           onClick={() => router.push('/')}
-          className="absolute top-6 left-6 text-neutral-500 hover:text-neutral-700 transition-colors z-20"
+          className="absolute top-6 left-6 text-[#A3B4CC] hover:text-white transition-colors z-20"
           title="Back to Home"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -281,18 +281,18 @@ export default function SignInPage() {
             </svg>
           </motion.div>
           <motion.h1 
-            className="text-4xl font-bold bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-700 bg-clip-text text-transparent mb-2"
+            className="text-4xl font-bold text-white mb-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
             Meridian
           </motion.h1>
-          <p className="text-neutral-600 text-sm font-medium">AI-Powered Lead Research & Automation</p>
+          <p className="text-[#A3B4CC] text-sm font-medium">AI-Powered Lead Research & Automation</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex mx-10 mb-8 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-1.5">
+        <div className="flex mx-10 mb-8 bg-[#12213B] rounded-2xl p-1.5 border border-[#4FD1FF]/20">
           {(['signin', 'signup'] as const).map((tab) => (
             <button
               key={tab}
@@ -302,8 +302,8 @@ export default function SignInPage() {
               }}
               className={`flex-1 py-3 px-4 text-sm font-semibold rounded-xl transition-all ${
                 activeTab === tab
-                  ? 'bg-white text-purple-700 shadow-lg'
-                  : 'text-neutral-600 hover:text-neutral-900'
+                  ? 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] shadow-lg'
+                  : 'text-[#8FA6C1] hover:text-white'
               }`}
             >
               {tab === 'signin' ? 'Sign In' : 'Sign Up'}
@@ -351,7 +351,7 @@ export default function SignInPage() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-white mb-2">
                     Email
                   </label>
                   <input
@@ -359,12 +359,12 @@ export default function SignInPage() {
                     required
                     value={signInForm.username}
                     onChange={(e) => setSignInForm({ ...signInForm, username: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
+                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-white mb-2">
                     Password
                   </label>
                   <div className="relative">
@@ -373,12 +373,12 @@ export default function SignInPage() {
                       required
                       value={signInForm.password}
                       onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
+                      className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8FA6C1] hover:text-white"
                     >
                       {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                     </button>
@@ -387,7 +387,7 @@ export default function SignInPage() {
                     <button
                       type="button"
                       onClick={() => setShowForgotModal(true)}
-                      className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                      className="text-sm text-[#4FD1FF] hover:text-[#6BE3FF] font-medium transition-colors"
                     >
                       Forgot Password?
                     </button>
@@ -397,7 +397,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 text-white font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                   style={{
                     background: isLoading ? 'rgb(107, 114, 128)' : 'linear-gradient(to right, rgb(59, 130, 246), rgb(147, 51, 234))'
                   }}
@@ -421,7 +421,7 @@ export default function SignInPage() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-white mb-2">
                     Username
                   </label>
                   <input
@@ -430,12 +430,12 @@ export default function SignInPage() {
                     minLength={3}
                     value={signUpForm.username}
                     onChange={(e) => setSignUpForm({ ...signUpForm, username: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
+                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-white mb-2">
                     Email
                   </label>
                   <input
@@ -443,12 +443,12 @@ export default function SignInPage() {
                     required
                     value={signUpForm.email}
                     onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
+                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-white mb-2">
                     Password
                   </label>
                   <input
@@ -457,7 +457,7 @@ export default function SignInPage() {
                     minLength={6}
                     value={signUpForm.password}
                     onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
+                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                   {signUpForm.password && (
                     <div className="mt-2">
@@ -484,7 +484,7 @@ export default function SignInPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-white mb-2">
                     Confirm Password
                   </label>
                   <input
@@ -493,7 +493,7 @@ export default function SignInPage() {
                     minLength={6}
                     value={signUpForm.confirmPassword}
                     onChange={(e) => setSignUpForm({ ...signUpForm, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl bg-white text-sm text-neutral-900 transition-all focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
+                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                   {signUpForm.confirmPassword && (
                     <p className={`text-xs mt-1 font-medium ${
@@ -509,10 +509,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}
-                  className="w-full py-3.5 px-4 text-white font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
-                  style={{
-                    background: (isLoading || signUpForm.password !== signUpForm.confirmPassword) ? 'rgb(107, 114, 128)' : 'linear-gradient(to right, rgb(168, 85, 247), rgb(219, 39, 119))'
-                  }}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isLoading && (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -538,21 +535,21 @@ export default function SignInPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-neutral-200 w-full max-w-md p-8"
+              className="bg-[#1B2F52]/95 backdrop-blur-xl border border-[#4FD1FF]/20 rounded-2xl w-full max-w-md p-8"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               onMouseUp={(e) => e.stopPropagation()}
             >
-              <h2 className="text-xl font-semibold text-neutral-900 mb-2">
+              <h2 className="text-xl font-semibold text-white mb-2">
                 Reset Your Password
               </h2>
-              <p className="text-neutral-500 text-sm mb-6">
+              <p className="text-[#A3B4CC] text-sm mb-6">
                 Enter your email address and we'll send you a reset code.
               </p>
 
               <form onSubmit={handleForgotPassword} className="space-y-6">
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-medium text-white uppercase tracking-wider mb-2">
                     Email Address
                   </label>
                   <input
@@ -560,7 +557,7 @@ export default function SignInPage() {
                     required
                     value={forgotForm.email}
                     onChange={(e) => setForgotForm({ ...forgotForm, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="w-full px-4 py-3 border border-[#4FD1FF]/30 bg-[#12213B] text-sm text-white transition-colors focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                     placeholder="Enter your email address"
                   />
                 </div>
@@ -569,19 +566,14 @@ export default function SignInPage() {
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(false)}
-                    className="flex-1 py-3 px-4 text-sm font-medium text-neutral-600 border border-neutral-200 transition-colors hover:bg-neutral-50"
+                    className="flex-1 py-3 px-4 text-sm font-medium text-[#A3B4CC] border border-[#4FD1FF]/30 rounded-xl transition-colors hover:bg-white/10"
                   >
                     Back to Sign In
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 py-3 px-4 text-sm transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    style={{
-                      background: isLoading ? '#a3a3a3 !important' : '#3b82f6 !important',
-                      color: '#ffffff !important',
-                      fontWeight: '500 !important'
-                    }}
+                    className="flex-1 py-3 px-4 text-sm bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {isLoading && (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

@@ -427,7 +427,7 @@ export default function InteractiveGlobe() {
           // Update agent in agents list
           setAgents(prev => prev.map(agent => 
             agent.agentId === activityData.agentId
-              ? { ...agent, currentActivity: activityData.cardMessage || activityData.details }
+              ? { ...agent, currentActivity: activityData.cardMessage || activityData.details, status: 'running' }
               : agent
           ));
           
@@ -999,16 +999,64 @@ export default function InteractiveGlobe() {
     };
   }, [worldGeoData, isExpanded, selectedFeature, provinceData, selectedCountry, canvasSize]);
 
-  // Auto-rotation effect
+// Auto-rotation effect - stops when agents are running
   useEffect(() => {
     if (isExpanded || isAnimatingToAgent) return;
     
+    // Get all running agents
+    const runningAgents = agents.filter(a => a.status === 'running' || agentActivities[a.agentId]?.isActive);
+    
+    // If agents are running, stop rotation
+    if (runningAgents.length > 0) return;
+    
     const interval = setInterval(() => {
-      setRotation(prev => [prev[0] + 0.1, prev[1]]);
+      setRotation(prev => [prev[0] + 0.1, prev[1]]);  
     }, 50);
     
     return () => clearInterval(interval);
-  }, [isExpanded, isAnimatingToAgent]);
+  }, [isExpanded, isAnimatingToAgent, agents, agentActivities]);
+
+  // When agents start, spin to center on their locations
+  useEffect(() => {
+    const runningAgents = agents.filter(a => a.status === 'running' || agentActivities[a.agentId]?.isActive);
+    
+    // Only recalculate when agents start running (not every activity update)
+    if (runningAgents.length === 0 || isExpanded || isAnimatingToAgent) return;
+    
+    // Collect all agent locations
+    const agentLocations: Array<{lat: number, lng: number}> = [];
+    
+    runningAgents.forEach(agent => {
+      const activity = agentActivities[agent.agentId];
+      const location = activity?.location || agent.targeting?.location;
+      
+      if (location) {
+        const coords = geocodeLocation(location);
+        if (coords) {
+          agentLocations.push(coords);
+        }
+      }
+    });
+    
+    // Calculate center point (average of all locations)
+    if (agentLocations.length > 0) {
+      const avgLat = agentLocations.reduce((sum, loc) => sum + loc.lat, 0) / agentLocations.length;
+      const avgLng = agentLocations.reduce((sum, loc) => sum + loc.lng, 0) / agentLocations.length;
+      
+      // Set target rotation to center on this location (keep same tilt/latitude)
+      const targetLng = -avgLng;
+      const targetLat = rotation[1]; // Keep current tilt
+      
+      // Only update if significantly different from current position
+      const currentLng = rotation[0];
+      const currentLat = rotation[1];
+      
+      if (Math.abs(targetLng - currentLng) > 10) {
+        setTargetRotation([targetLng, targetLat]);
+        setIsAnimatingToAgent(true);
+      }
+    }
+  }, [agents.length, agents.filter(a => a.status === 'running').length, isExpanded, isAnimatingToAgent]);
 
   // Animate to target rotation when agent is clicked
   useEffect(() => {
@@ -1293,6 +1341,8 @@ export default function InteractiveGlobe() {
                           )
                         );
                         setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+                        // Clear agent activities
+                        setAgentActivities({});
                         await fetchAgents();
                       } catch (error) {
                         console.error('Error stopping agents:', error);
@@ -1308,12 +1358,32 @@ export default function InteractiveGlobe() {
                     }
                     
                     try {
+                      // Immediately set agents as running and create activities
+                      const newActivities: {[key: string]: any} = {};
+                      idleAgents.forEach(agent => {
+                        newActivities[agent.agentId] = {
+                          status: 'Starting...',
+                          timestamp: Date.now(),
+                          location: agent.targeting?.location || null,
+                          targeting: agent.targeting || null,
+                          isActive: true
+                        };
+                      });
+                      
+                      setAgentActivities(prev => ({ ...prev, ...newActivities }));
+                      setAgents(prev => prev.map(a => 
+                        idleAgents.find(idle => idle.agentId === a.agentId)
+                          ? { ...a, status: 'running' }
+                          : a
+                      ));
+                      
+                      // Then make the API calls
                       await Promise.all(
                         idleAgents.map(agent => 
                           api.post('/api/lead-agent/start', { agentId: agent.agentId })
                         )
                       );
-                      setAgents(prev => prev.map(a => ({ ...a, status: 'running' })));
+                      
                       await fetchAgents();
                     } catch (error) {
                       console.error('Error starting agents:', error);
@@ -1794,7 +1864,13 @@ export default function InteractiveGlobe() {
                             } else {
                               setAgentActivities(prev => ({
                                 ...prev,
-                                [agent.agentId]: { isActive: true, status: 'Starting...', timestamp: Date.now() }
+                                [agent.agentId]: { 
+                                  isActive: true, 
+                                  status: 'Starting...', 
+                                  timestamp: Date.now(),
+                                  location: agent.targeting?.location || null,
+                                  targeting: agent.targeting || null
+                                }
                               }));
                             }
                             
@@ -1843,7 +1919,7 @@ export default function InteractiveGlobe() {
       {selectedQueue && !navigating && (
         <div className="fixed inset-0 bg-black/50 z-[100]">
           <div 
-            className="bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-white/20 absolute"
+            className="bg-gradient-to-br from-[#1B2F52] via-[#223A63] to-[#2A4570] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-[#4FD1FF]/30 absolute"
             style={{
               width: `${modalSize.width}px`,
               height: `${modalSize.height}px`,
@@ -1859,7 +1935,7 @@ export default function InteractiveGlobe() {
           >
             {/* Modal Header */}
             <div 
-              className="p-6 border-b border-white/20 flex items-center justify-between cursor-grab active:cursor-grabbing"
+              className="p-6 border-b border-[#4FD1FF]/30 flex items-center justify-between cursor-grab active:cursor-grabbing"
               onMouseDown={handleModalMouseDown}
             >
               <div className="flex items-center gap-3">
