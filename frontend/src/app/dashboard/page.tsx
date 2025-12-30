@@ -233,7 +233,7 @@ export default function InteractiveGlobe() {
   const [resizeDirection, setResizeDirection] = useState<string>('');
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, posX: 0, posY: 0 });
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
 
   // Satellite and agent positioning
   const [showIdleAgents, setShowIdleAgents] = useState(false);
