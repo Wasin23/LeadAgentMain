@@ -1,7 +1,7 @@
 # Meridian Agent - Technical Documentation
 
-**Last Updated:** December 29, 2025  
-**Status:** Gmail Pub/Sub integration complete, orphan email system active, UI redesigned with cyan-blue theme
+**Last Updated:** December 30, 2025  
+**Status:** Outreach tracking page launched, Gmail OAuth popup implemented, navigation redesigned
 
 ---
 
@@ -825,6 +825,7 @@ AWS_SES_SENDER=
 - `/dashboard` - Main hub with globe visualization, email queue, analytics overview
 - `/agents-overview` - Tabbed interface for managing agents and presets
 - `/agents?agent={id}` - Individual agent dashboard with full settings
+- `/outreach` - Outreach tracking with meeting management
 - `/analytics` - Performance metrics and charts
 - `/profile` - Company profile and user settings
 - `/settings` - Account settings, billing, API keys
@@ -834,14 +835,25 @@ AWS_SES_SENDER=
 - Agent detail pages return to `/agents-overview` when closed
 - Consistent back button in top-left with ArrowLeftIcon
 - UserMenu in top-right with gradient avatar and settings access
+- **Dashboard Navigation:** 5-button layout with Agents/Outreach prominent (larger), Profile/Analytics/Settings secondary (smaller)
 
 ### Page-Specific Features
 
 **Dashboard:**
-- 3D globe showing sent email locations
+- 3D globe showing sent email locations with "Your Outreach Network" header
+- Interactive satellites representing active agents
 - Real-time email queue with status badges
 - Orphaned emails highlighted with red "ORPHANED" badge
 - Quick stats cards (agents, emails sent, meetings scheduled, active campaigns)
+- Enhanced navigation with prominent Agents and Outreach buttons
+
+**Outreach Page:**
+- **Meeting Tracking:** Log manually scheduled meetings with localStorage persistence
+- **Stats Cards:** Emails viewed (coming soon), Responses (coming soon), Meetings booked (active)
+- **Meeting Details:** Lead name, email, date/time, associated agent, notes
+- **Chronological Sorting:** Meetings displayed in upcoming order
+- **CRUD Operations:** Add new meetings, delete existing meetings
+- **Agent Association:** Link meetings to specific agents for tracking
 
 **Agents Overview:**
 - **Tabs:** Switch between "Agents" and "Presets" sections

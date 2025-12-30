@@ -647,7 +647,24 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                         </div>
                         <button
                           onClick={() => {
-                            window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`;
+                            const width = 600;
+                            const height = 700;
+                            const left = window.screen.width / 2 - width / 2;
+                            const top = window.screen.height / 2 - height / 2;
+                            const popup = window.open(
+                              `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`,
+                              'Gmail Authorization',
+                              `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+                            );
+                            
+                            // Listen for OAuth completion
+                            const checkPopup = setInterval(() => {
+                              if (popup?.closed) {
+                                clearInterval(checkPopup);
+                                // Reload page to refresh Gmail connection status
+                                window.location.reload();
+                              }
+                            }, 1000);
                           }}
                           className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-lg hover:border-blue-500 hover:shadow-md transition text-white font-medium"
                         >

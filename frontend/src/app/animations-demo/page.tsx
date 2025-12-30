@@ -1032,8 +1032,8 @@ export default function InteractiveGlobe() {
         <div className="text-center">
           {!isExpanded && (
             <div className="mb-6 animate-fade-in">
-              <h1 className="text-4xl font-bold text-white mb-2">Global Reach</h1>
-              <p className="text-white/80">Drag to explore • Click a country to zoom in</p>
+              <h1 className="text-4xl font-bold text-white mb-2">Your Outreach Network</h1>
+              <p className="text-white/80">Click the satellite to manage agents • Drag to explore countries</p>
             </div>
           )}
           

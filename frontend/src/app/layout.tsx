@@ -5,7 +5,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import QueryProvider from "@/components/QueryProvider";
 import ScrollRestoration from "@/components/ScrollRestoration";
-import TrialCreditBanner from "@/components/TrialCreditBanner";
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -27,10 +26,9 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthProvider>
               <Suspense fallback={null}>
-                <TrialCreditBanner />
+                <ScrollRestoration />
+                {children}
               </Suspense>
-              <ScrollRestoration />
-              {children}
             </AuthProvider>
           </ThemeProvider>
         </QueryProvider>

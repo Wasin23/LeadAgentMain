@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   UserCircleIcon,
@@ -17,8 +17,30 @@ interface UserMenuProps {
 
 export default function UserMenu({ onSettingsClick }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
+
+  // Set mounted on client side only
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Debug: Log user object
+  useEffect(() => {
+    console.log('UserMenu - User object:', user);
+  }, [user]);
+
+  // Memoize display values to ensure they update when user changes
+  const userInitial = useMemo(() => {
+    if (!isMounted) return 'U'; // Show U during SSR and initial render
+    return user?.username?.charAt(0).toUpperCase() || 'U';
+  }, [user?.username, isMounted]);
+
+  const displayName = useMemo(() => {
+    if (!isMounted) return ''; // Show nothing during SSR and initial render
+    return user?.username || '';
+  }, [user?.username, isMounted]);
 
   const handleLogout = () => {
     logout();
@@ -42,10 +64,10 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
       >
         <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
           <span className="text-white text-sm font-medium">
-            {user?.username?.charAt(0).toUpperCase() || 'U'}
+            {userInitial}
           </span>
         </div>
-        <span className="hidden sm:inline">{user?.username}</span>
+        <span className="hidden sm:inline">{displayName}</span>
         <ChevronDownIcon className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

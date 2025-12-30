@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 import UserMenu from '@/components/UserMenu';
+import NotificationsPanel from '@/components/NotificationsPanel';
 import api from '@/lib/api';
 import { geoOrthographic, geoPath, geoGraticule, geoMercator, geoAlbersUsa } from 'd3-geo';
 import { feature } from 'topojson-client';
@@ -223,6 +224,16 @@ export default function InteractiveGlobe() {
   const [agents, setAgents] = useState<any[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
+  
+  // Modal drag and resize states
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const [modalSize, setModalSize] = useState({ width: 896, height: 600 }); // max-w-4xl = 896px
+  const [isDraggingModal, setIsDraggingModal] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeDirection, setResizeDirection] = useState<string>('');
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, posX: 0, posY: 0 });
+  const rafRef = useRef<number>();
 
   // Satellite and agent positioning
   const [showIdleAgents, setShowIdleAgents] = useState(false);
@@ -239,6 +250,9 @@ export default function InteractiveGlobe() {
     timestamp: number;
     status: 'queued' | 'sent' | 'meeting';
   }>>([]);
+  
+  // Canvas size state to prevent hydration mismatch
+  const [canvasSize, setCanvasSize] = useState(1200); // Default size for SSR
 
   // City and state geocoding function with detailed US city coordinates
   const geocodeLocation = (location: any): { lat: number; lng: number } | null => {
@@ -319,6 +333,22 @@ export default function InteractiveGlobe() {
     // Default to central US if no specific location
     return { lat: 39.8283, lng: -98.5795 };
   };
+
+  // Set canvas size on mount to prevent hydration mismatch
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (typeof window !== 'undefined') {
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth < 1024;
+        const size = isMobile ? 700 : isTablet ? 900 : 1000; // Smaller sizes
+        setCanvasSize(size);
+      }
+    };
+    
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, []);
 
   // Animate satellite bobbing
   useEffect(() => {
@@ -477,9 +507,112 @@ export default function InteractiveGlobe() {
     }
   };
 
+  // Modal drag handlers
+  const handleModalMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.resize-handle')) return;
+    setIsDraggingModal(true);
+    setDragStart({ x: e.clientX - modalPosition.x, y: e.clientY - modalPosition.y });
+  };
+
+  const handleModalMouseMove = (e: MouseEvent) => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    
+    rafRef.current = requestAnimationFrame(() => {
+      if (isDraggingModal) {
+        const newX = e.clientX - dragStart.x;
+        const newY = e.clientY - dragStart.y;
+        
+        // Constrain to viewport boundaries (8px padding)
+        const maxX = window.innerWidth - modalSize.width - 8;
+        const maxY = window.innerHeight - modalSize.height - 8;
+        
+        setModalPosition({
+          x: Math.max(8, Math.min(maxX, newX)),
+          y: Math.max(8, Math.min(maxY, newY))
+        });
+      }
+      if (isResizing && resizeDirection) {
+        const deltaX = e.clientX - resizeStart.x;
+        const deltaY = e.clientY - resizeStart.y;
+        
+        let newWidth = resizeStart.width;
+        let newHeight = resizeStart.height;
+        let newX = resizeStart.posX;
+        let newY = resizeStart.posY;
+        
+        // Resize based on direction - only change dimensions in the direction being dragged
+        if (resizeDirection.includes('e')) {
+          // Right edge: only increase width to the right
+          const maxWidth = window.innerWidth - resizeStart.posX - 8;
+          newWidth = Math.max(400, Math.min(maxWidth, resizeStart.width + deltaX));
+        }
+        if (resizeDirection.includes('w')) {
+          // Left edge: increase width to the left by moving position
+          const maxLeftMove = resizeStart.posX - 8;
+          const actualDelta = Math.max(-maxLeftMove, deltaX);
+          newWidth = Math.max(400, Math.min(window.innerWidth - 16, resizeStart.width - actualDelta));
+          newX = resizeStart.posX + resizeStart.width - newWidth;
+        }
+        if (resizeDirection.includes('s')) {
+          // Bottom edge: only increase height downward
+          const maxHeight = window.innerHeight - resizeStart.posY - 8;
+          newHeight = Math.max(300, Math.min(maxHeight, resizeStart.height + deltaY));
+        }
+        if (resizeDirection.includes('n')) {
+          // Top edge: increase height upward by moving position
+          const maxUpMove = resizeStart.posY - 8;
+          const actualDelta = Math.max(-maxUpMove, deltaY);
+          newHeight = Math.max(300, Math.min(window.innerHeight - 16, resizeStart.height - actualDelta));
+          newY = resizeStart.posY + resizeStart.height - newHeight;
+        }
+        
+        setModalSize({ width: newWidth, height: newHeight });
+        setModalPosition({ x: newX, y: newY });
+      }
+    });
+  };
+
+  const handleModalMouseUp = () => {
+    setIsDraggingModal(false);
+    setIsResizing(false);
+  };
+
+  const handleResizeMouseDown = (direction: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeDirection(direction);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: modalSize.width,
+      height: modalSize.height,
+      posX: modalPosition.x,
+      posY: modalPosition.y
+    });
+  };
+
+  // Add global mouse event listeners for dragging
+  useEffect(() => {
+    if (isDraggingModal || isResizing) {
+      window.addEventListener('mousemove', handleModalMouseMove);
+      window.addEventListener('mouseup', handleModalMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleModalMouseMove);
+        window.removeEventListener('mouseup', handleModalMouseUp);
+      };
+    }
+  }, [isDraggingModal, isResizing, dragStart, resizeStart, modalPosition, modalSize, resizeDirection]);
+
   const handleQueueClick = (type: 'queued' | 'sent' | 'replied', label: string) => {
     setSelectedQueue({ agentId: 'all', type, agentName: label });
     setSelectedAgent(null);
+    // Reset modal position and size when opening - center it on screen
+    const centerX = (window.innerWidth - 896) / 2;
+    const centerY = (window.innerHeight - 600) / 2;
+    setModalPosition({ x: Math.max(8, centerX), y: Math.max(8, centerY) });
+    setModalSize({ width: 896, height: 600 });
     fetchAgents();
   };
 
@@ -647,14 +780,17 @@ export default function InteractiveGlobe() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = 1200;
-    canvas.height = 1200;
+    // Use state-based canvas size to prevent hydration issues
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
 
     const drawGlobe = () => {
       const currentRotation = rotationRef.current;
       
+      // Adjust scale based on canvas size - larger globe
+      const baseScale = canvasSize / 2.0; // Increased from 2.4 for larger globe
       const projection = geoOrthographic()
-        .scale(isExpanded && selectedFeature ? 800 : 500)
+        .scale(isExpanded && selectedFeature ? baseScale * 1.6 : baseScale)
         .translate([canvas.width / 2, canvas.height / 2])
         .rotate(currentRotation);
 
@@ -794,17 +930,6 @@ export default function InteractiveGlobe() {
           ctx.lineWidth = isSelected ? 2 : 1;
           ctx.stroke();
         });
-
-        // Outer glow
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const gradient = ctx.createRadialGradient(centerX, centerY, 480, centerX, centerY, 510);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 505, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
-        ctx.fill();
       }
     };
     
@@ -820,7 +945,7 @@ export default function InteractiveGlobe() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [worldGeoData, isExpanded, selectedFeature, provinceData, selectedCountry]);
+  }, [worldGeoData, isExpanded, selectedFeature, provinceData, selectedCountry, canvasSize]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -893,46 +1018,69 @@ export default function InteractiveGlobe() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 relative overflow-hidden">
+      {/* Notifications Panel - Right Side, hidden on small screens */}
+      {!isExpanded && (
+        <div className="hidden lg:block">
+          <NotificationsPanel />
+        </div>
+      )}
+
       {/* Top Navigation Buttons - Hidden when country is expanded */}
       {!isExpanded && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
-          <button
-            onClick={() => { 
-              setNavigating(true); 
-              setTimeout(() => router.push('/agents-overview'), 0);
-            }}
-            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
-          >
-            Agents
-          </button>
-          <button
-            onClick={() => { 
-              setNavigating(true); 
-              setTimeout(() => router.push('/profile'), 0);
-            }}
-            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
-          >
-            Profile
-          </button>
-          <button
-            onClick={() => { 
-              setNavigating(true); 
-              setTimeout(() => router.push('/analytics'), 0);
-            }}
-            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
-          >
-            Analytics
-          </button>
-          <button
-            onClick={() => { 
-              setNavigating(true); 
-              setTimeout(() => router.push('/settings'), 0);
-            }}
-            className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
-          >
-            <Cog6ToothIcon className="w-5 h-5" />
-            Settings
-          </button>
+        <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 sm:gap-3">
+          {/* Primary Navigation - Larger */}
+          <div className="flex gap-2 sm:gap-4">
+            <button
+              onClick={() => { 
+                setNavigating(true); 
+                setTimeout(() => router.push('/agents-overview'), 0);
+              }}
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
+            >
+              Agents
+            </button>
+            <button
+              onClick={() => { 
+                setNavigating(true); 
+                setTimeout(() => router.push('/outreach'), 0);
+              }}
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
+            >
+              Outreach
+            </button>
+          </div>
+          
+          {/* Secondary Navigation - Smaller, hidden on very small screens */}
+          <div className="hidden sm:flex gap-2">
+            <button
+              onClick={() => { 
+                setNavigating(true); 
+                setTimeout(() => router.push('/profile'), 0);
+              }}
+              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-base rounded-lg backdrop-blur-sm transition-all border border-white/20"
+            >
+              Profile
+            </button>
+            <button
+              onClick={() => { 
+                setNavigating(true); 
+                setTimeout(() => router.push('/analytics'), 0);
+              }}
+              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-base rounded-lg backdrop-blur-sm transition-all border border-white/20"
+            >
+              Analytics
+            </button>
+            <button
+              onClick={() => { 
+                setNavigating(true); 
+                setTimeout(() => router.push('/settings'), 0);
+              }}
+              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-base rounded-lg backdrop-blur-sm transition-all border border-white/20 flex items-center gap-1.5"
+            >
+              <Cog6ToothIcon className="w-4 h-4" />
+              Settings
+            </button>
+          </div>
         </div>
       )}
 
@@ -950,55 +1098,55 @@ export default function InteractiveGlobe() {
       )}
 
       {/* Meridian Logo */}
-      <div className="fixed top-8 left-8 z-50">
-        <div className="text-white text-2xl font-bold">
+      <div className="fixed top-4 sm:top-8 left-4 sm:left-8 z-50">
+        <div className="text-white text-xl sm:text-2xl font-bold">
           Meridian
         </div>
       </div>
 
       {/* User Menu */}
-      <div className="fixed top-8 right-8 z-50">
+      <div className="fixed top-4 sm:top-8 right-4 sm:right-8 z-50">
         <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
           <UserMenu />
         </div>
       </div>
 
-      {/* Stats Panel - Left Side */}
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-4">
+      {/* Stats Panel - Left Side, hidden on small/medium screens */}
+      <div className="hidden xl:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-3 xl:gap-4">
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="bg-white/15 rounded-2xl p-8 border border-white/20 w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
+          className="bg-white/15 rounded-2xl p-4 xl:p-8 border border-white/20 w-[180px] xl:w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
         >
-          <div className="text-white/70 text-base mb-2">Email Queue</div>
-          <div className="text-6xl font-bold text-white">{stats.emailsQueued}</div>
+          <div className="text-white/70 text-sm xl:text-base mb-1 xl:mb-2">Email Queue</div>
+          <div className="text-4xl xl:text-6xl font-bold text-white">{stats.emailsQueued}</div>
         </button>
 
         {/* Emails Sent */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="bg-white/15 rounded-2xl p-8 border border-white/20 w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
+          className="bg-white/15 rounded-2xl p-4 xl:p-8 border border-white/20 w-[180px] xl:w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
         >
-          <div className="text-white/70 text-base mb-2">Sent</div>
-          <div className="text-6xl font-bold text-white">{stats.emailsSent}</div>
+          <div className="text-white/70 text-sm xl:text-base mb-1 xl:mb-2">Sent</div>
+          <div className="text-4xl xl:text-6xl font-bold text-white">{stats.emailsSent}</div>
         </button>
 
         {/* Emails Viewed */}
         <button
           onClick={() => handleQueueClick('replied', 'Viewed Emails')}
-          className="bg-white/15 rounded-2xl p-8 border border-white/20 w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
+          className="bg-white/15 rounded-2xl p-4 xl:p-8 border border-white/20 w-[180px] xl:w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
         >
-          <div className="text-white/70 text-base mb-2">Viewed</div>
-          <div className="text-6xl font-bold text-white">{stats.emailsViewed}</div>
+          <div className="text-white/70 text-sm xl:text-base mb-1 xl:mb-2">Viewed</div>
+          <div className="text-4xl xl:text-6xl font-bold text-white">{stats.emailsViewed}</div>
         </button>
 
         {/* Alerts */}
-        <div className="bg-white/15 rounded-2xl p-6 border border-white/20 w-[180px]">
-          <div className="text-white/70 text-sm mb-1">Alerts</div>
-          <div className="text-4xl font-bold text-white flex items-center gap-2">
+        <div className="bg-white/15 rounded-2xl p-3 xl:p-6 border border-white/20 w-[140px] xl:w-[180px]">
+          <div className="text-white/70 text-xs xl:text-sm mb-1">Alerts</div>
+          <div className="text-2xl xl:text-4xl font-bold text-white flex items-center gap-2">
             {stats.alerts}
             {stats.alerts > 0 && (
-              <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="w-2 h-2 xl:w-3 xl:h-3 bg-red-500 rounded-full animate-pulse"></span>
             )}
           </div>
         </div>
@@ -1031,9 +1179,9 @@ export default function InteractiveGlobe() {
       >
         <div className="text-center">
           {!isExpanded && (
-            <div className="mb-6 animate-fade-in">
-              <h1 className="text-4xl font-bold text-white mb-2">Global Reach</h1>
-              <p className="text-white/80">Drag to explore • Click a country to zoom in</p>
+            <div className="mb-4 sm:mb-6 animate-fade-in px-4">
+              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">Your Outreach Network</h1>
+              <p className="text-sm sm:text-base text-white/80">Click the satellite to manage agents • Drag to explore countries</p>
             </div>
           )}
           
@@ -1049,10 +1197,10 @@ export default function InteractiveGlobe() {
         </div>
       </div>
 
-      {/* Animated Satellite */}
+      {/* Animated Satellite - Adjusted position for notifications panel */}
       {!isExpanded && (
         <div 
-          className="fixed right-[32rem] top-1/2 pointer-events-auto cursor-pointer z-50"
+          className="fixed right-[calc(50%+22rem)] lg:right-[28rem] xl:right-[32rem] top-1/2 pointer-events-auto cursor-pointer z-50 hidden sm:block"
           style={{
             transform: `translateY(${satelliteBob - 50}%)`,
             transition: 'transform 0.05s linear'
@@ -1095,7 +1243,7 @@ export default function InteractiveGlobe() {
             
             {/* Idle Agent Badge */}
             {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length > 0 && (
-              <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full min-w-6 h-6 px-2 flex items-center justify-center font-bold shadow-lg">
+              <div className="absolute -top-2 -right-2 bg-white text-black text-xs rounded-full min-w-6 h-6 px-2 flex items-center justify-center font-bold shadow-lg">
                 {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length}
               </div>
             )}
@@ -1106,19 +1254,21 @@ export default function InteractiveGlobe() {
       {/* Email Dots on Globe (color-coded by status) */}
       {!isExpanded && emailDots.map((email) => {
         // Project email location to screen coordinates
+        const baseScale = canvasSize / 2.0;
+        const centerPos = canvasSize / 2;
         const projection = geoOrthographic()
-          .scale(500)
+          .scale(baseScale)
           .rotate(rotation)
-          .translate([600, 600]);
+          .translate([centerPos, centerPos]);
         
         const coords = projection([email.location.lng, email.location.lat]);
         if (!coords) return null;
         
         // Calculate screen position (same as agent positioning)
-        const canvasCenterX = window.innerWidth / 2;
-        const canvasCenterY = window.innerHeight;
-        const pointX = canvasCenterX + (coords[0] - 600);
-        const pointY = canvasCenterY + (coords[1] - 600);
+        const canvasCenterX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+        const canvasCenterY = typeof window !== 'undefined' ? window.innerHeight : 0;
+        const pointX = canvasCenterX + (coords[0] - centerPos);
+        const pointY = canvasCenterY + (coords[1] - centerPos);
         
         // Color based on status: green = meeting, white = sent, yellow/orange = queued
         const dotColor = email.status === 'meeting' ? '#4ade80' : 
@@ -1171,24 +1321,24 @@ export default function InteractiveGlobe() {
         }
         
         // Project to screen coordinates using same projection as canvas
+        const baseScale = canvasSize / 2.0;
+        const centerPos = canvasSize / 2;
         const projection = geoOrthographic()
-          .scale(500)
+          .scale(baseScale)
           .rotate(rotation)
-          .translate([600, 600]); // Canvas is 1200x1200, center at 600,600
+          .translate([centerPos, centerPos]);
         
         const coords = projection([lng, lat]);
         if (!coords) return null;
         
         // Canvas position: centered horizontally, bottom-0 + translate-y-1/2
         // This means the canvas bottom edge is at 50% viewport height
-        const canvasWidth = 1200;
-        const canvasHeight = 1200;
-        const canvasCenterX = window.innerWidth / 2;
-        const canvasCenterY = window.innerHeight; // Bottom edge
+        const canvasCenterX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+        const canvasCenterY = typeof window !== 'undefined' ? window.innerHeight : 0;
         
-        // Point position relative to canvas center (600, 600)
-        const pointX = canvasCenterX + (coords[0] - 600);
-        const pointY = canvasCenterY + (coords[1] - 600);
+        // Point position relative to canvas center
+        const pointX = canvasCenterX + (coords[0] - centerPos);
+        const pointY = canvasCenterY + (coords[1] - centerPos);
         
         // Callout line extends out from the point
         const calloutAngle = (index * 60) % 360; // Different angles for each agent
@@ -1543,10 +1693,24 @@ export default function InteractiveGlobe() {
 
       {/* Email Queue Modal */}
       {selectedQueue && !navigating && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col border border-white/20">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]">
+          <div 
+            className="bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-white/20 absolute"
+            style={{
+              width: `${modalSize.width}px`,
+              height: `${modalSize.height}px`,
+              transform: `translate3d(${modalPosition.x}px, ${modalPosition.y}px, 0)`,
+              cursor: isDraggingModal ? 'grabbing' : 'default',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              willChange: isDraggingModal || isResizing ? 'transform, width, height' : 'auto'
+            }}
+          >
             {/* Modal Header */}
-            <div className="p-6 border-b border-white/20 flex items-center justify-between">
+            <div 
+              className="p-6 border-b border-white/20 flex items-center justify-between cursor-grab active:cursor-grabbing"
+              onMouseDown={handleModalMouseDown}
+            >
               <div className="flex items-center gap-3">
                 {selectedAgent && (
                   <button
@@ -1571,6 +1735,42 @@ export default function InteractiveGlobe() {
                 ×
               </button>
             </div>
+
+            {/* Resize Handles - Edges */}
+            <div 
+              className="resize-handle absolute top-0 left-0 right-0 h-2 cursor-n-resize hover:bg-white/20 transition-colors z-10"
+              onMouseDown={handleResizeMouseDown('n')}
+            />
+            <div 
+              className="resize-handle absolute right-0 top-0 bottom-0 w-2 cursor-e-resize hover:bg-white/20 transition-colors z-10"
+              onMouseDown={handleResizeMouseDown('e')}
+            />
+            <div 
+              className="resize-handle absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-white/20 transition-colors z-10"
+              onMouseDown={handleResizeMouseDown('s')}
+            />
+            <div 
+              className="resize-handle absolute left-0 top-0 bottom-0 w-2 cursor-w-resize hover:bg-white/20 transition-colors z-10"
+              onMouseDown={handleResizeMouseDown('w')}
+            />
+            
+            {/* Resize Handles - Corners */}
+            <div 
+              className="resize-handle absolute top-0 right-0 w-4 h-4 cursor-ne-resize"
+              onMouseDown={handleResizeMouseDown('ne')}
+            />
+            <div 
+              className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+              onMouseDown={handleResizeMouseDown('se')}
+            />
+            <div 
+              className="resize-handle absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize"
+              onMouseDown={handleResizeMouseDown('sw')}
+            />
+            <div 
+              className="resize-handle absolute top-0 left-0 w-4 h-4 cursor-nw-resize"
+              onMouseDown={handleResizeMouseDown('nw')}
+            />
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6" style={{transform: 'translateZ(0)', willChange: 'scroll-position'}}>
