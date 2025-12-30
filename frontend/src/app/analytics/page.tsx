@@ -154,8 +154,8 @@ export default function AnalyticsPage() {
 
   if (isLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#4FD1FF]/30 border-t-[#4FD1FF] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -196,7 +196,7 @@ export default function AnalyticsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-6">
       <div className="max-w-[1800px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

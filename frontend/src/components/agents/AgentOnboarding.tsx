@@ -280,7 +280,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]">
       {/* Header with Logo and Skip */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-6 z-10">
         {/* Meridian Logo + Title */}
@@ -288,9 +288,9 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
     ``          <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
             <defs>
               <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
-                <stop offset="50%" style={{ stopColor: 'rgb(168, 85, 247)', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: 'rgb(236, 72, 153)', stopOpacity: 1 }} />
+                <stop offset="0%" style={{ stopColor: '#4FD1FF', stopOpacity: 1 }} />
+                <stop offset="50%" style={{ stopColor: '#55C7F7', stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: '#6BE3FF', stopOpacity: 1 }} />
               </linearGradient>
             </defs>
             
@@ -314,7 +314,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         <div className="flex items-center gap-3">
           <button
             onClick={onSkip}
-            className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl font-semibold transition-all backdrop-blur-sm"
+            className="px-6 py-3 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white border border-[#4FD1FF]/30 rounded-xl font-semibold transition-all backdrop-blur-sm"
           >
             Skip Tutorial
           </button>
@@ -422,19 +422,19 @@ function IntroStep({ onNext }: { onNext: () => void }) {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.2, type: "spring" }}
-        className="w-32 h-32 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl"
+        className="w-32 h-32 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[#4FD1FF]/20"
       >
-        <UserPlusIcon className="w-16 h-16 text-purple-600" />
+        <UserPlusIcon className="w-16 h-16 text-[#0F1E35]" />
       </motion.div>
 
       <h1 className="text-5xl font-bold text-white mb-4">Create Your First AI Agent</h1>
-      <p className="text-xl text-white/90 mb-8">
+      <p className="text-xl text-[#A3B4CC] mb-8">
         Let's build your automated sales assistant together. It only takes a minute!
       </p>
 
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8 text-left">
+      <div className="bg-[#1B2F52]/60 backdrop-blur-lg border border-[#4FD1FF]/20 rounded-2xl p-8 mb-8 text-left">
         <h3 className="text-xl font-bold text-white mb-4">Your agent will:</h3>
-        <ul className="space-y-3 text-white/90 text-lg">
+        <ul className="space-y-3 text-[#A3B4CC] text-lg">
           <li className="flex items-start gap-3">
             <MagnifyingGlassIcon className="w-6 h-6 flex-shrink-0 mt-0.5" />
             <span>Find qualified leads based on your criteria</span>
@@ -456,11 +456,7 @@ function IntroStep({ onNext }: { onNext: () => void }) {
 
       <button
         onClick={onNext}
-        className="px-12 py-5 rounded-2xl font-bold text-xl hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-3"
-        style={{
-          backgroundColor: 'white',
-          color: 'rgb(147, 51, 234)'
-        }}
+        className="px-12 py-5 rounded-2xl font-bold text-xl bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all inline-flex items-center gap-3"
       >
         <SparklesIcon className="w-6 h-6" />
         Let's Create Your Agent
@@ -515,19 +511,16 @@ function SelectPersonalityStep({
               whileHover={{ scale: 1.05, y: -5 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onSelect(personality)}
-              className={`relative p-6 rounded-2xl text-center transition-all ${
+              className={`relative p-6 rounded-2xl text-center transition-all bg-[#1B2F52]/90 backdrop-blur-md border ${
                 isSelected
-                  ? 'shadow-2xl ring-2 ring-green-500 scale-105'
-                  : 'shadow-lg hover:shadow-xl'
+                  ? 'shadow-2xl shadow-[#4FD1FF]/20 border-[#4FD1FF] ring-2 ring-[#4FD1FF] scale-105'
+                  : 'shadow-lg hover:shadow-xl border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60'
               }`}
-              style={{
-                backgroundColor: 'white'
-              }}
             >
               {/* Checkmark Badge - Outside Card */}
               {isSelected && (
-                <div className="absolute -top-3 -right-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10">
-                  <CheckIcon className="w-5 h-5 text-white font-bold" />
+                <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#4FD1FF] rounded-full flex items-center justify-center shadow-lg shadow-[#4FD1FF]/50 z-10">
+                  <CheckIcon className="w-5 h-5 text-[#0F1E35] font-bold" />
                 </div>
               )}
 
@@ -546,13 +539,13 @@ function SelectPersonalityStep({
 
               {/* Name */}
               <h3 className={`text-lg font-bold mb-2 ${
-                isSelected ? 'text-purple-600' : 'text-neutral-900'
+                isSelected ? 'text-[#4FD1FF]' : 'text-white'
               }`}>
                 {personality.name}
               </h3>
 
               {/* Description */}
-              <p className="text-xs mb-3 leading-relaxed text-neutral-700">
+              <p className="text-xs mb-3 leading-relaxed text-[#A3B4CC]">
                 {personality.description}
               </p>
 
@@ -589,18 +582,14 @@ function SelectPersonalityStep({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+          className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
           disabled={!selected}
-          className="px-8 py-3 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-          style={{
-            backgroundColor: !selected ? 'rgba(255, 255, 255, 0.5)' : 'white',
-            color: 'rgb(147, 51, 234)'
-          }}
+          className="px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] hover:shadow-xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 transition-all"
         >
           Continue <ArrowRightIcon className="w-5 h-5" />
         </button>
@@ -647,12 +636,12 @@ function NameAgentStep({
           </div>
         </div>
         <h2 className="text-4xl font-bold text-white mb-3">Name Your Agent</h2>
-        <p className="text-xl text-white/90">
+        <p className="text-xl text-[#A3B4CC]">
           Give it a memorable name to identify this campaign
         </p>
       </div>
 
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
+      <div className="bg-[#1B2F52]/60 backdrop-blur-lg border border-[#4FD1FF]/20 rounded-2xl p-8 mb-8">
         <label className="block text-white font-semibold mb-3 text-lg">
           Agent Name
         </label>
@@ -661,10 +650,10 @@ function NameAgentStep({
           value={name}
           onChange={(e) => onChange(e.target.value)}
           placeholder="e.g., Enterprise Outreach Agent"
-          className="w-full px-6 py-4 rounded-xl text-lg border-2 border-white/20 focus:border-white focus:ring-4 focus:ring-white/20 bg-white/90 text-neutral-900"
+          className="w-full px-6 py-4 rounded-xl text-lg border-2 border-[#4FD1FF]/30 focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 bg-[#12213B] text-white placeholder-[#8FA6C1]"
           autoFocus
         />
-        <p className="text-white/70 text-sm mt-3">
+        <p className="text-[#A3B4CC] text-sm mt-3">
           💡 Tip: Use descriptive names like "SMB Campaign" or "Series A Startups"
         </p>
       </div>
@@ -672,18 +661,14 @@ function NameAgentStep({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+          className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
           disabled={!name.trim()}
-          className="px-8 py-3 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-          style={{
-            backgroundColor: !name.trim() ? 'rgba(255, 255, 255, 0.5)' : 'white',
-            color: 'rgb(147, 51, 234)'
-          }}
+          className="px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] hover:shadow-xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 transition-all"
         >
           Continue <ArrowRightIcon className="w-5 h-5" />
         </button>
@@ -712,16 +697,16 @@ function NamePresetStep({
       className="w-full max-w-2xl"
     >
       <div className="text-center mb-8">
-        <div className="w-24 h-24 mx-auto mb-6 bg-white/10 backdrop-blur-lg rounded-full flex items-center justify-center">
-          <SparklesIcon className="w-12 h-12 text-white" />
+        <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] backdrop-blur-lg rounded-full flex items-center justify-center shadow-lg shadow-[#4FD1FF]/20">
+          <SparklesIcon className="w-12 h-12 text-[#0F1E35]" />
         </div>
         <h2 className="text-4xl font-bold text-white mb-3">Save Your Settings</h2>
-        <p className="text-xl text-white/90">
+        <p className="text-xl text-[#A3B4CC]">
           Name this preset so you can reuse these settings for future agents
         </p>
       </div>
 
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
+      <div className="bg-[#1B2F52]/60 backdrop-blur-lg border border-[#4FD1FF]/20 rounded-2xl p-8 mb-8">
         <label className="block text-white font-semibold mb-3 text-lg">
           Preset Name
         </label>
@@ -730,10 +715,10 @@ function NamePresetStep({
           value={name}
           onChange={(e) => onChange(e.target.value)}
           placeholder="e.g., SaaS Executives, Tech Startups, Enterprise Sales"
-          className="w-full px-6 py-4 rounded-xl text-lg border-2 border-white/20 focus:border-white focus:ring-4 focus:ring-white/20 bg-white/90 text-neutral-900"
+          className="w-full px-6 py-4 rounded-xl text-lg border-2 border-[#4FD1FF]/30 focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 bg-[#12213B] text-white placeholder-[#8FA6C1]"
           autoFocus
         />
-        <p className="text-white/70 text-sm mt-3">
+        <p className="text-[#A3B4CC] text-sm mt-3">
           💡 Tip: Use descriptive names like "SaaS Executives" or "Healthcare Decision Makers"
         </p>
       </div>
@@ -741,18 +726,14 @@ function NamePresetStep({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+          className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
           disabled={!name.trim()}
-          className="px-8 py-3 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-          style={{
-            backgroundColor: !name.trim() ? 'rgba(255, 255, 255, 0.5)' : 'white',
-            color: 'rgb(147, 51, 234)'
-          }}
+          className="px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] hover:shadow-xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 transition-all"
         >
           Continue <ArrowRightIcon className="w-5 h-5" />
         </button>

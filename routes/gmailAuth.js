@@ -117,11 +117,108 @@ router.get('/callback', async (req, res) => {
     console.log('✅ [GMAIL AUTH] Gmail connected successfully for user:', userId);
     console.log('✅ [GMAIL AUTH] Total accounts:', existingAccounts.length);
 
-    // Redirect back to dashboard with success message
-    res.redirect(`${process.env.FRONTEND_URL || 'https://meridianagent.xyz'}/dashboard?gmailAuth=success&email=${encodeURIComponent(gmailAddress)}`);
+    // Send HTML that closes the popup and signals parent
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Gmail Connected</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            .message {
+              text-align: center;
+              padding: 2rem;
+              background: rgba(255, 255, 255, 0.1);
+              border-radius: 1rem;
+              backdrop-filter: blur(10px);
+            }
+            .checkmark {
+              font-size: 4rem;
+              animation: scale 0.5s ease-out;
+            }
+            @keyframes scale {
+              0% { transform: scale(0); }
+              100% { transform: scale(1); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="message">
+            <div class="checkmark">✓</div>
+            <h2>Gmail Connected!</h2>
+            <p>${gmailAddress}</p>
+            <p style="opacity: 0.7; font-size: 0.9rem;">This window will close automatically...</p>
+          </div>
+          <script>
+            // Store success in localStorage so parent can detect it
+            try {
+              if (window.opener) {
+                localStorage.setItem('gmailConnected', JSON.stringify({
+                  email: '${gmailAddress}',
+                  timestamp: Date.now()
+                }));
+              }
+            } catch (e) {
+              console.log('Could not access localStorage:', e);
+            }
+            // Close popup after 2 seconds
+            setTimeout(() => {
+              window.close();
+            }, 2000);
+          </script>
+        </body>
+      </html>
+    `);
   } catch (error) {
     console.error('❌ [GMAIL AUTH] Error in callback:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'https://meridianagent.xyz'}/dashboard?gmailAuth=error&reason=${encodeURIComponent(error.message)}`);
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Gmail Connection Error</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+              color: white;
+            }
+            .message {
+              text-align: center;
+              padding: 2rem;
+              background: rgba(255, 255, 255, 0.1);
+              border-radius: 1rem;
+              backdrop-filter: blur(10px);
+            }
+          </style>
+        </head>
+        <body>
+          <div class="message">
+            <h2>❌ Connection Failed</h2>
+            <p>${error.message}</p>
+            <p style="opacity: 0.7; font-size: 0.9rem;">This window will close automatically...</p>
+          </div>
+          <script>
+            setTimeout(() => {
+              window.close();
+            }, 3000);
+          </script>
+        </body>
+      </html>
+    `);
   }
 });
 

@@ -1706,104 +1706,80 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowOutreach(false)}
-            className="p-3 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors rounded"
+            className="p-3 text-white/80 hover:text-white hover:bg-white/20 transition-colors rounded-lg border border-white/20"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </motion.button>
-          <h1 className={`text-2xl font-semibold ${colors.primary}`}>{getAgentDisplayName()}'s Outreach</h1>
+          <h1 className="text-2xl font-semibold text-white">{getAgentDisplayName()}'s Outreach</h1>
         </div>
 
         {/* Tabs - Styled like main dashboard */}
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-4 gap-6 mb-8">
           <button
             onClick={() => setOutreachTab('conversations')}
-            className={`p-6 rounded-t-lg transition-all ${
+            className={`p-6 rounded-2xl transition-all border ${
               outreachTab === 'conversations'
-                ? 'bg-white/20 backdrop-blur-md shadow-sm'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
+                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
             }`}
-            style={{ 
-              borderTop: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
-              borderLeft: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
-              borderRight: `1px solid ${outreachTab === 'conversations' ? borderColor : '#e5e7eb'}`,
-              borderBottom: 'none'
-            }}
           >
             <div className="flex flex-col items-center gap-2">
-              <EnvelopeIcon className={`h-6 w-6 ${outreachTab === 'conversations' ? colors.text : 'text-neutral-600'}`} />
-              <span className={`text-sm font-semibold ${outreachTab === 'conversations' ? colors.text : 'text-neutral-700'}`}>
+              <EnvelopeIcon className={`h-6 w-6 ${outreachTab === 'conversations' ? 'text-white' : 'text-white/60'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'conversations' ? 'text-white' : 'text-white/70'}`}>
                 Active Conversations
               </span>
             </div>
           </button>
           <button
             onClick={() => setOutreachTab('analytics')}
-            className={`p-6 rounded-t-lg transition-all ${
+            className={`p-6 rounded-2xl transition-all border ${
               outreachTab === 'analytics'
-                ? 'bg-white/20 backdrop-blur-md shadow-sm'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
+                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
             }`}
-            style={{ 
-              borderTop: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
-              borderLeft: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
-              borderRight: `1px solid ${outreachTab === 'analytics' ? borderColor : '#e5e7eb'}`,
-              borderBottom: 'none'
-            }}
           >
             <div className="flex flex-col items-center gap-2">
-              <ChartBarIcon className={`h-6 w-6 ${outreachTab === 'analytics' ? colors.text : 'text-neutral-600'}`} />
-              <span className={`text-sm font-semibold ${outreachTab === 'analytics' ? colors.text : 'text-neutral-700'}`}>
+              <ChartBarIcon className={`h-6 w-6 ${outreachTab === 'analytics' ? 'text-white' : 'text-white/60'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'analytics' ? 'text-white' : 'text-white/70'}`}>
                 Analytics
               </span>
             </div>
           </button>
           <button
             onClick={() => setOutreachTab('viewed')}
-            className={`p-6 rounded-t-lg transition-all ${
+            className={`p-6 rounded-2xl transition-all border ${
               outreachTab === 'viewed'
-                ? 'bg-white/20 backdrop-blur-md shadow-sm'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
+                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
             }`}
-            style={{ 
-              borderTop: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
-              borderLeft: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
-              borderRight: `1px solid ${outreachTab === 'viewed' ? borderColor : '#e5e7eb'}`,
-              borderBottom: 'none'
-            }}
           >
             <div className="flex flex-col items-center gap-2">
-              <EyeIcon className={`h-6 w-6 ${outreachTab === 'viewed' ? colors.text : 'text-neutral-600'}`} />
-              <span className={`text-sm font-semibold ${outreachTab === 'viewed' ? colors.text : 'text-neutral-700'}`}>
+              <EyeIcon className={`h-6 w-6 ${outreachTab === 'viewed' ? 'text-white' : 'text-white/60'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'viewed' ? 'text-white' : 'text-white/70'}`}>
                 Emails Viewed
               </span>
             </div>
           </button>
           <button
             onClick={() => setOutreachTab('settings')}
-            className={`p-6 rounded-t-lg transition-all ${
+            className={`p-6 rounded-2xl transition-all border ${
               outreachTab === 'settings'
-                ? 'bg-white/20 backdrop-blur-md shadow-sm'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15'
+                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
+                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
             }`}
-            style={{ 
-              borderTop: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
-              borderLeft: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
-              borderRight: `1px solid ${outreachTab === 'settings' ? borderColor : '#e5e7eb'}`,
-              borderBottom: 'none'
-            }}
           >
             <div className="flex flex-col items-center gap-2">
-              <CogIcon className={`h-6 w-6 ${outreachTab === 'settings' ? colors.text : 'text-neutral-600'}`} />
-              <span className={`text-sm font-semibold ${outreachTab === 'settings' ? colors.text : 'text-neutral-700'}`}>
+              <CogIcon className={`h-6 w-6 ${outreachTab === 'settings' ? 'text-white' : 'text-white/60'}`} />
+              <span className={`text-sm font-semibold ${outreachTab === 'settings' ? 'text-white' : 'text-white/70'}`}>
                 Settings
               </span>
             </div>
           </button>
         </div>
 
-        {/* Tab Content - Connected */}
+        {/* Tab Content - Separated */}
         {outreachTab === 'conversations' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 -mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LEFT: Live Response Stream */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -1814,17 +1790,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="p-6 border-b border-white/20 bg-white/5 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-neutral-900">Live Response Stream</h3>
-                  <p className="text-sm text-neutral-600 mt-1">Watch AI respond in real-time</p>
+                  <h3 className="text-lg font-medium text-white">Live Response Stream</h3>
+                  <p className="text-sm text-white/60 mt-1">Watch AI respond in real-time</p>
                 </div>
-                <PaperAirplaneIcon className="h-5 w-5 text-neutral-600" />
+                <PaperAirplaneIcon className="h-5 w-5 text-white/60" />
               </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
               {streamingResponses.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-neutral-400">
-                  <PaperAirplaneIcon className="h-12 w-12 mb-3 text-neutral-300" />
+                <div className="flex flex-col items-center justify-center h-full text-white/60">
+                  <PaperAirplaneIcon className="h-12 w-12 mb-3 text-white/40" />
                   <p className="text-sm">No active responses</p>
                   <p className="text-xs mt-1">AI responses will stream here</p>
                 </div>
@@ -1846,8 +1822,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <div className="font-medium text-sm text-neutral-900">{response.leadName}</div>
-                          <div className="text-xs text-neutral-600">{response.leadEmail}</div>
+                          <div className="font-medium text-sm text-white">{response.leadName}</div>
+                          <div className="text-xs text-white/70">{response.leadEmail}</div>
                         </div>
                         {response.status === 'generating' && (
                           <div className="flex items-center gap-1 text-xs text-blue-600">
@@ -1868,11 +1844,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           </div>
                         )}
                       </div>
-                      <div className="text-sm text-neutral-700 mt-2 whitespace-pre-wrap">
-                        {response.content || <span className="text-neutral-400 animate-pulse">Generating response...</span>}
+                      <div className="text-sm text-white/90 mt-2 whitespace-pre-wrap">
+                        {response.content || <span className="text-white/60 animate-pulse">Generating response...</span>}
                       </div>
                       {response.status === 'sent' && (
-                        <div className="text-xs text-neutral-500 mt-2">
+                        <div className="text-xs text-white/60 mt-2">
                           Sent {formatTimeAgo(response.sentAt)}
                         </div>
                       )}
@@ -1891,11 +1867,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             className={`bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden shadow-xl`}
             style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
-            <div className={`p-6 border-b ${colors.border}`}>
+            <div className="p-6 border-b border-white/20 bg-white/5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className={`text-lg font-medium ${colors.primary}`}>All Conversations</h3>
-                  <p className="text-sm text-neutral-600 mt-1">Ongoing threads with leads</p>
+                  <h3 className="text-lg font-medium text-white">All Conversations</h3>
+                  <p className="text-sm text-white/60 mt-1">Ongoing threads with leads</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
@@ -1924,13 +1900,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               {/* Search and Filter Controls */}
               <div className="mt-4 space-y-3">
                 <div className="relative">
-                  <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+                  <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
                   <input
                     type="text"
                     placeholder="Search by name, email, company..."
                     value={conversationSearch}
                     onChange={(e) => setConversationSearch(e.target.value)}
-                    className={`w-full pl-10 pr-3 py-2 border ${colors.border} rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className="w-full pl-10 pr-3 py-2 bg-white/10 border border-white/20 rounded-md text-sm text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-white/40"
                   />
                 </div>
 
@@ -2045,33 +2021,33 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'analytics' && (
-          <div className={`bg-white border ${colors.border} border-t-0 p-6 -mt-6`}>
-            <h3 className={`text-lg font-semibold ${colors.primary} mb-4`}>Analytics Overview</h3>
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl">
+            <h3 className="text-lg font-semibold text-white mb-4">Analytics Overview</h3>
             <div className="grid grid-cols-4 gap-4">
-              <div className={`p-4 border ${colors.border} rounded-lg`}>
-                <p className="text-sm text-neutral-600">Messages Viewed</p>
-                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.viewed}</p>
+              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
+                <p className="text-sm text-white/70">Messages Viewed</p>
+                <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.viewed}</p>
               </div>
-              <div className={`p-4 border ${colors.border} rounded-lg`}>
-                <p className="text-sm text-neutral-600">Conversations</p>
-                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.replied}</p>
+              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
+                <p className="text-sm text-white/70">Conversations</p>
+                <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.replied}</p>
               </div>
-              <div className={`p-4 border ${colors.border} rounded-lg`}>
-                <p className="text-sm text-neutral-600">Meetings Booked</p>
-                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.meetings}</p>
+              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
+                <p className="text-sm text-white/70">Meetings Booked</p>
+                <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.meetings}</p>
               </div>
-              <div className={`p-4 border ${colors.border} rounded-lg`}>
-                <p className="text-sm text-neutral-600">Conversion Rate</p>
-                <p className="text-3xl font-bold text-neutral-900 mt-2">{agentOutreachStats.conversionRate}%</p>
+              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
+                <p className="text-sm text-white/70">Conversion Rate</p>
+                <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.conversionRate}%</p>
               </div>
             </div>
           </div>
         )}
 
         {outreachTab === 'viewed' && (
-          <div className={`bg-white border ${colors.border} border-t-0 p-6 -mt-6`}>
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-semibold ${colors.primary}`}>Emails Viewed</h3>
+              <h3 className="text-lg font-semibold text-white">Emails Viewed</h3>
               <div className="flex items-center gap-2">
                 {viewedEmails.length > 0 && (
                   <button
@@ -2085,28 +2061,28 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
             {viewedEmails.length === 0 ? (
               <div className="text-center py-12">
-                <EyeIcon className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
-                <p className="text-neutral-500">No viewed emails yet</p>
+                <EyeIcon className="h-12 w-12 text-white/40 mx-auto mb-3" />
+                <p className="text-white/60">No viewed emails yet</p>
               </div>
             ) : (
               <>
                 <div className="space-y-3">
                   {paginateArray(viewedEmails, viewedEmailsPage).map((email) => (
-                    <div key={email.trackingId} className={`p-4 border ${colors.border} rounded-lg hover:${colors.borderHover} transition-all`}>
+                    <div key={email.trackingId} className="p-4 bg-white/5 border border-white/20 rounded-lg hover:border-white/30 transition-all">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-medium text-neutral-900">{email.leadName}</h4>
+                            <h4 className="font-medium text-white">{email.leadName}</h4>
                             {email.replied && (
                               <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Replied</span>
                             )}
                           </div>
-                          <p className="text-sm text-neutral-600">{email.leadEmail}</p>
+                          <p className="text-sm text-white/70">{email.leadEmail}</p>
                           {email.company && (
-                            <p className="text-sm text-neutral-500 mt-1">{email.company}</p>
+                            <p className="text-sm text-white/60 mt-1">{email.company}</p>
                           )}
                           {email.subject && (
-                            <p className="text-sm text-neutral-600 mt-2 italic">"{email.subject}"</p>
+                            <p className="text-sm text-white/70 mt-2 italic">"{email.subject}"</p>
                           )}
                           <button
                             onClick={() => {
@@ -2722,7 +2698,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-4 py-2 text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg"
+            className="flex items-center gap-2 px-4 py-2 text-white hover:text-white transition-colors bg-[#1B2F52]/90 hover:bg-[#2A4472] border border-[#4FD1FF]/30 rounded-lg"
           >
             <CogIcon className="h-4 w-4" />
             Settings
@@ -2732,7 +2708,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={resetAgent}
-            className="flex items-center gap-2 px-4 py-2 text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg"
+            className="flex items-center gap-2 px-4 py-2 text-white hover:text-white transition-colors bg-[#1B2F52]/90 hover:bg-[#2A4472] border border-[#4FD1FF]/30 rounded-lg"
           >
             <ArrowPathIcon className="h-4 w-4" />
             Reset
@@ -2764,7 +2740,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6 mb-8">
         {/* Clickable Emails Queued */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -2926,11 +2902,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
           </div>
           
-          <div className="h-[475px] overflow-y-auto bg-neutral-50 font-mono text-sm">
+          <div className="h-[475px] overflow-y-auto bg-gradient-to-br from-blue-50/90 via-cyan-50/80 to-indigo-50/70 font-mono text-sm">
             {agentLogs.length === 0 ? (
-              <div className="text-center text-neutral-500 py-16 px-4">
+              <div className="text-center text-neutral-700 py-16 px-4">
                 <p>No agent activity logs yet.</p>
-                <p className="text-xs mt-1">Start the agent to see detailed operations.</p>
+                <p className="text-xs mt-1 text-neutral-600">Start the agent to see detailed operations.</p>
               </div>
             ) : (
               <div className="space-y-0">
@@ -2939,7 +2915,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     key={log.id || index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-xs leading-relaxed px-4 py-2 border-b border-neutral-200"
+                    className="text-xs leading-relaxed px-4 py-2 border-b border-blue-100/50"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
@@ -3030,13 +3006,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             {/* Search and Filter Controls */}
             <div className="mt-4 space-y-3">
               <div className="relative">
-                <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+                <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
                 <input
                   type="text"
                   placeholder="Search contacts..."
                   value={recentEmailsSearch}
                   onChange={(e) => setRecentEmailsSearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-3 py-2 bg-white/10 border border-white/20 text-white placeholder-white/50 rounded-md text-sm focus:ring-2 focus:ring-white/30 focus:border-white/40"
                 />
               </div>
               
@@ -3058,18 +3034,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
           </div>
           
-          <div className="divide-y divide-neutral-100 max-h-96 overflow-y-auto">
+          <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
             {recentEmails.length === 0 ? (
-              <div className="p-8 text-center text-neutral-500">
-                <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
+              <div className="p-8 text-center text-white/70">
+                <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-white/40" />
                 <p>No recent emails found.</p>
-                <p className="text-xs mt-1">Start the agent to begin outreach.</p>
+                <p className="text-xs mt-1 text-white/60">Start the agent to begin outreach.</p>
               </div>
             ) : filteredRecentEmails.length === 0 ? (
-              <div className="p-8 text-center text-neutral-500">
-                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
+              <div className="p-8 text-center text-white/70">
+                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-4 text-white/40" />
                 <p>No contacts match your search or filter.</p>
-                <p className="text-xs mt-1">Try adjusting your search terms or filters.</p>
+                <p className="text-xs mt-1 text-white/60">Try adjusting your search terms or filters.</p>
               </div>
             ) : (
               <>
@@ -3079,21 +3055,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     id={`email-${contact.trackingId || contact.id}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="p-4 hover:bg-neutral-50 cursor-pointer transition-all"
+                    className="p-4 hover:bg-white/10 cursor-pointer transition-all"
                     onClick={() => console.log('Navigate to contact:', contact.id)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-neutral-200 rounded-full flex items-center justify-center text-neutral-600 font-medium">
+                        <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center text-white font-medium">
                           {contact.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h4 className="font-medium text-neutral-900">{contact.name}</h4>
-                          <div className="flex items-center gap-1 text-sm text-neutral-500">
+                          <h4 className="font-medium text-white">{contact.name}</h4>
+                          <div className="flex items-center gap-1 text-sm text-white/70">
                             <BuildingOfficeIcon className="h-3 w-3" />
                             {contact.company}
                           </div>
-                          <p className="text-xs text-neutral-400">
+                          <p className="text-xs text-white/60">
                             {new Date(contact.dateSent).toLocaleDateString()}
                           </p>
                         </div>

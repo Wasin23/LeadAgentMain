@@ -265,7 +265,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex flex-col overflow-hidden">
       {/* Header - Fixed */}
       <div className="border-b border-white/20 bg-black/20 backdrop-blur-sm flex-shrink-0">
         <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">

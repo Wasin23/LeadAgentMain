@@ -658,11 +658,45 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                             );
                             
                             // Listen for OAuth completion
-                            const checkPopup = setInterval(() => {
+                            const checkPopup = setInterval(async () => {
                               if (popup?.closed) {
                                 clearInterval(checkPopup);
-                                // Reload page to refresh Gmail connection status
-                                window.location.reload();
+                                console.log('Gmail popup closed, refreshing status...');
+                                // Wait a moment for backend to process, then refresh Gmail status
+                                setTimeout(async () => {
+                                  try {
+                                    // Check localStorage for success flag
+                                    const gmailConnectedData = localStorage.getItem('gmailConnected');
+                                    if (gmailConnectedData) {
+                                      const { email } = JSON.parse(gmailConnectedData);
+                                      localStorage.removeItem('gmailConnected'); // Clean up
+                                      setMessage({ type: 'success', text: `Gmail connected! ${email}` });
+                                    }
+                                    
+                                    // Refresh Gmail accounts from database
+                                    const gmailRefreshResponse = await api.get('/api/auth/gmail/status');
+                                    if (gmailRefreshResponse.data.accounts && gmailRefreshResponse.data.accounts.length > 0) {
+                                      setEmailSettings(prev => ({
+                                        ...prev,
+                                        gmailAccounts: gmailRefreshResponse.data.accounts,
+                                        activeGmailIndex: gmailRefreshResponse.data.activeIndex || 0
+                                      }));
+                                      
+                                      // If no success message from localStorage, show generic one
+                                      if (!gmailConnectedData) {
+                                        setMessage({ type: 'success', text: `Gmail connected successfully!` });
+                                      }
+                                    } else {
+                                      // No accounts found - connection may have failed
+                                      if (!gmailConnectedData) {
+                                        setMessage({ type: 'error', text: 'Gmail connection failed. Please try again.' });
+                                      }
+                                    }
+                                  } catch (error) {
+                                    console.error('Failed to refresh Gmail status:', error);
+                                    setMessage({ type: 'error', text: 'Failed to refresh Gmail status. Please reload the page.' });
+                                  }
+                                }, 1500);
                               }
                             }, 1000);
                           }}

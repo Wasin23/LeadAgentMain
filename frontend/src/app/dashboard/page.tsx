@@ -194,11 +194,10 @@ const worldData = {
 export default function InteractiveGlobe() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [hasDragged, setHasDragged] = useState(false);
-  const [rotation, setRotation] = useState<[number, number]>([-100, -10]);
-  const rotationRef = useRef<[number, number]>([-100, -10]);
-  const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState<[number, number]>([95, -15]);
+  const rotationRef = useRef<[number, number]>([95, -15]);
+  const [targetRotation, setTargetRotation] = useState<[number, number] | null>(null);
+  const [isAnimatingToAgent, setIsAnimatingToAgent] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const animationRef = useRef<number | undefined>(undefined);
   const [worldGeoData, setWorldGeoData] = useState<any>(null);
@@ -256,6 +255,21 @@ export default function InteractiveGlobe() {
   // Canvas size state to prevent hydration mismatch
   const [canvasSize, setCanvasSize] = useState(1200); // Default size for SSR
   const [isMounted, setIsMounted] = useState(false);
+
+  // Track mount to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Track mount to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Mount effect to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // City and state geocoding function with detailed US city coordinates
   const geocodeLocation = (location: any): { lat: number; lng: number } | null => {
@@ -384,6 +398,8 @@ export default function InteractiveGlobe() {
 
   // Connect to SSE for agent activities
   useEffect(() => {
+    if (!isMounted) return;
+    
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const authToken = localStorage.getItem('authToken');
     const eventSource = new EventSource(`${backendUrl}/api/monitoring/stream?token=${encodeURIComponent(authToken || '')}`);
@@ -464,7 +480,7 @@ export default function InteractiveGlobe() {
     });
 
     return () => eventSource.close();
-  }, [agents]);
+  }, [agents, isMounted]);
 
   // Debug idle agents
   useEffect(() => {
@@ -983,39 +999,46 @@ export default function InteractiveGlobe() {
     };
   }, [worldGeoData, isExpanded, selectedFeature, provinceData, selectedCountry, canvasSize]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setHasDragged(false);
-    setLastMouse({ x: e.clientX, y: e.clientY });
-  };
+  // Auto-rotation effect
+  useEffect(() => {
+    if (isExpanded || isAnimatingToAgent) return;
+    
+    const interval = setInterval(() => {
+      setRotation(prev => [prev[0] + 0.1, prev[1]]);
+    }, 50);
+    
+    return () => clearInterval(interval);
+  }, [isExpanded, isAnimatingToAgent]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-
-    const deltaX = e.clientX - lastMouse.x;
-    const deltaY = e.clientY - lastMouse.y;
-
-    // Mark as dragged if there's significant movement
-    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
-      setHasDragged(true);
-    }
-
-    setRotation(prev => [
-      prev[0] + deltaX * 0.25,
-      Math.max(-90, Math.min(90, prev[1] - deltaY * 0.25))
-    ]);
-
-    setLastMouse({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  // Animate to target rotation when agent is clicked
+  useEffect(() => {
+    if (!targetRotation || !isAnimatingToAgent) return;
+    
+    const animate = () => {
+      setRotation(prev => {
+        const deltaLng = targetRotation[0] - prev[0];
+        const deltaLat = targetRotation[1] - prev[1];
+        
+        // If close enough, snap to target and stop animating
+        if (Math.abs(deltaLng) < 0.5 && Math.abs(deltaLat) < 0.5) {
+          setIsAnimatingToAgent(false);
+          setTargetRotation(null);
+          return targetRotation;
+        }
+        
+        // Move towards target
+        return [
+          prev[0] + deltaLng * 0.1,
+          prev[1] + deltaLat * 0.1
+        ];
+      });
+    };
+    
+    const interval = setInterval(animate, 16);
+    return () => clearInterval(interval);
+  }, [targetRotation, isAnimatingToAgent]);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
-    // Only allow selection if user didn't drag
-    if (hasDragged) return;
-    
     // Don't handle clicks when already expanded (in country detail view)
     if (isExpanded) return;
     
@@ -1052,8 +1075,23 @@ export default function InteractiveGlobe() {
     }
   };
 
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <div className="text-2xl font-semibold text-white">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] relative overflow-hidden">
       {/* Notifications Panel - Right Side, hidden until lg screens */}
       {!isExpanded && (
         <div className="hidden lg:block">
@@ -1065,7 +1103,7 @@ export default function InteractiveGlobe() {
       {!isExpanded && (
         <div className="sm:hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center px-6">
           <h1 className="text-3xl font-bold text-white mb-3">Meridian Agent</h1>
-          <p className="text-white/80 mb-8">Use the navigation above to access your dashboard features</p>
+          <p className="text-[#A3B4CC] mb-8">Use the navigation above to access your dashboard features</p>
         </div>
       )}
 
@@ -1079,7 +1117,7 @@ export default function InteractiveGlobe() {
                 setNavigating(true); 
                 setTimeout(() => router.push('/agents-overview'), 0);
               }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
             >
               Agents
             </button>
@@ -1088,7 +1126,7 @@ export default function InteractiveGlobe() {
                 setNavigating(true); 
                 setTimeout(() => router.push('/outreach'), 0);
               }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
             >
               Outreach
             </button>
@@ -1097,7 +1135,7 @@ export default function InteractiveGlobe() {
                 setNavigating(true); 
                 setTimeout(() => router.push('/profile'), 0);
               }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
             >
               Profile
             </button>
@@ -1106,7 +1144,7 @@ export default function InteractiveGlobe() {
                 setNavigating(true); 
                 setTimeout(() => router.push('/analytics'), 0);
               }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
             >
               Analytics
             </button>
@@ -1115,7 +1153,7 @@ export default function InteractiveGlobe() {
                 setNavigating(true); 
                 setTimeout(() => router.push('/settings'), 0);
               }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-white/15 hover:bg-white/25 text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-white/30 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg"
+              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
             >
               <Cog6ToothIcon className="w-5 h-5 sm:w-6 sm:h-6" />
               Settings
@@ -1126,11 +1164,11 @@ export default function InteractiveGlobe() {
 
       {/* Loading Overlay */}
       {navigating && (
-        <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] z-[9999] flex items-center justify-center">
           <div className="text-center">
             <div className="relative w-20 h-20 mx-auto mb-6">
-              <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
             </div>
             <p className="text-2xl font-semibold text-white">Loading...</p>
           </div>
@@ -1162,44 +1200,51 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Stats Panel - Left Side, hidden on small/medium screens */}
-      <div className="hidden xl:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-3 xl:gap-4">
+      <div className="hidden xl:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-3">
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="bg-white/15 rounded-2xl p-4 xl:p-8 border border-white/20 w-[180px] xl:w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
+          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
         >
-          <div className="text-white/70 text-sm xl:text-base mb-1 xl:mb-2">Email Queue</div>
-          <div className="text-4xl xl:text-6xl font-bold text-white">{stats.emailsQueued}</div>
+          <div className="text-[#A3B4CC] text-sm mb-1">Email Queue</div>
+          <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsQueued}</div>
+          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
         </button>
 
         {/* Emails Sent */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="bg-white/15 rounded-2xl p-4 xl:p-8 border border-white/20 w-[180px] xl:w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
+          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
         >
-          <div className="text-white/70 text-sm xl:text-base mb-1 xl:mb-2">Sent</div>
-          <div className="text-4xl xl:text-6xl font-bold text-white">{stats.emailsSent}</div>
+          <div className="text-[#A3B4CC] text-sm mb-1">Sent</div>
+          <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsSent}</div>
+          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
         </button>
 
         {/* Emails Viewed */}
         <button
           onClick={() => handleQueueClick('replied', 'Viewed Emails')}
-          className="bg-white/15 rounded-2xl p-4 xl:p-8 border border-white/20 w-[180px] xl:w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
+          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
         >
-          <div className="text-white/70 text-sm xl:text-base mb-1 xl:mb-2">Viewed</div>
-          <div className="text-4xl xl:text-6xl font-bold text-white">{stats.emailsViewed}</div>
+          <div className="text-[#A3B4CC] text-sm mb-1">Viewed</div>
+          <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsViewed}</div>
+          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
         </button>
 
         {/* Alerts */}
-        <div className="bg-white/15 rounded-2xl p-3 xl:p-6 border border-white/20 w-[140px] xl:w-[180px]">
-          <div className="text-white/70 text-xs xl:text-sm mb-1">Alerts</div>
-          <div className="text-2xl xl:text-4xl font-bold text-white flex items-center gap-2">
+        <button
+          onClick={() => {/* Add alert click handler if needed */}}
+          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
+        >
+          <div className="text-[#A3B4CC] text-sm mb-1">Alerts</div>
+          <div className="text-3xl xl:text-5xl font-bold text-white mb-1 flex items-center gap-2">
             {stats.alerts}
             {stats.alerts > 0 && (
-              <span className="w-2 h-2 xl:w-3 xl:h-3 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="w-2 h-2 xl:w-3 xl:h-3 bg-[#4FD1FF] rounded-full animate-pulse shadow-lg shadow-[#4FD1FF]/50"></span>
             )}
           </div>
-        </div>
+          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
+        </button>
       </div>
 
       {/* Back Button - Fixed at top center when expanded */}
@@ -1214,7 +1259,7 @@ export default function InteractiveGlobe() {
                 setSelectedFeature(null);
                 setProvinceData(null);
               }}
-              className="px-6 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl backdrop-blur-sm transition-all"
+              className="px-6 py-2 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-xl backdrop-blur-sm transition-all border border-[#4FD1FF]/30"
             >
               ← Back to Globe
             </button>
@@ -1226,24 +1271,72 @@ export default function InteractiveGlobe() {
       {isMounted && (
         <div 
           className={`hidden sm:block fixed left-1/2 -translate-x-1/2 transition-all duration-700 ease-out ${
-            isExpanded ? 'top-1/2 -translate-y-1/2' : 'bottom-0 translate-y-1/2'
+            isExpanded ? 'top-1/2 -translate-y-1/2' : 'bottom-[-40%] translate-y-0'
           }`}
         >
         <div className="text-center">
           {!isExpanded && (
-            <div className="mb-4 md:mb-6 animate-fade-in px-4">
+            <div className="mb-8 md:mb-12 animate-fade-in px-4">
+              {/* Start/Stop All Agents Button */}
+              <div className="flex flex-col items-center mb-8">
+                <button
+                  onClick={async () => {
+                    const runningAgents = agents.filter(a => a.status === 'running');
+                    const idleAgents = agents.filter(a => a.status !== 'running');
+                    
+                    // If all agents are running, stop them all
+                    if (idleAgents.length === 0 && runningAgents.length > 0) {
+                      try {
+                        await Promise.all(
+                          runningAgents.map(agent => 
+                            api.post('/api/lead-agent/stop', { agentId: agent.agentId })
+                          )
+                        );
+                        setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+                        await fetchAgents();
+                      } catch (error) {
+                        console.error('Error stopping agents:', error);
+                        alert('Failed to stop some agents. Please try again.');
+                      }
+                      return;
+                    }
+                    
+                    // Otherwise, start all idle agents
+                    if (idleAgents.length === 0) {
+                      alert('All agents are already running!');
+                      return;
+                    }
+                    
+                    try {
+                      await Promise.all(
+                        idleAgents.map(agent => 
+                          api.post('/api/lead-agent/start', { agentId: agent.agentId })
+                        )
+                      );
+                      setAgents(prev => prev.map(a => ({ ...a, status: 'running' })));
+                      await fetchAgents();
+                    } catch (error) {
+                      console.error('Error starting agents:', error);
+                      alert('Failed to start some agents. Please try again.');
+                    }
+                  }}
+                  className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all active:scale-95"
+                >
+                  {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
+                    ? 'Stop All Agents'
+                    : 'Start All Agents'
+                  }
+                </button>
+              </div>
+              
               <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">Your Outreach Network</h1>
-              <p className="text-sm md:text-base text-white/80">Click the satellite to manage agents • Drag to explore countries</p>
+              <p className="text-sm md:text-base text-white/80">Click the satellite to manage agents • Watch your network grow</p>
             </div>
           )}
           
           <canvas
             ref={canvasRef}
-            className="cursor-grab active:cursor-grabbing"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            className="cursor-default"
             onClick={handleCanvasClick}
           />
         </div>
@@ -2221,11 +2314,27 @@ export default function InteractiveGlobe() {
                 .slice(0, 10)
                 .map((agent) => {
                   const avatarSrc = agent.avatar || agent.personality?.avatar;
+                  const agentActivity = agentActivities[agent.agentId];
+                  const agentLocation = agentActivity?.location;
+                  
                   return (
                     <div
                       key={agent.agentId}
                       className="relative group"
                       title={agent.name}
+                      onClick={() => {
+                        if (agentLocation) {
+                          const coords = geocodeLocation(agentLocation);
+                          if (coords) {
+                            // Calculate rotation to center on this location
+                            // Convert lat/lng to rotation values
+                            const targetLng = -coords.lng; // Negative for rotation direction
+                            const targetLat = -coords.lat;
+                            setTargetRotation([targetLng, targetLat]);
+                            setIsAnimatingToAgent(true);
+                          }
+                        }
+                      }}
                     >
                       {avatarSrc ? (
                         <img

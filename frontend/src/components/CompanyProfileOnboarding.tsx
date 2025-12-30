@@ -327,9 +327,9 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
         <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
           <defs>
             <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
-              <stop offset="50%" style={{ stopColor: 'rgb(168, 85, 247)', stopOpacity: 1 }} />
-              <stop offset="100%" style={{ stopColor: 'rgb(236, 72, 153)', stopOpacity: 1 }} />
+              <stop offset="0%" style={{ stopColor: '#4FD1FF', stopOpacity: 1 }} />
+              <stop offset="50%" style={{ stopColor: '#55C7F7', stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: '#6BE3FF', stopOpacity: 1 }} />
             </linearGradient>
           </defs>
           
@@ -356,19 +356,19 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
         </div>
       </div>
       
-      <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header with big colorful title */}
           <div className="text-center mb-12 animate-fade-in">
-            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-              <BuildingOfficeIcon className="w-12 h-12 text-purple-600" />
+            <div className="w-20 h-20 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-[#4FD1FF]/20">
+              <BuildingOfficeIcon className="w-12 h-12 text-[#0F1E35]" />
             </div>
             <h1 className="text-5xl font-bold text-white mb-4">Let's Build Your Profile!</h1>
-            <p className="text-xl text-white/90">Tell us about your awesome company</p>
+            <p className="text-xl text-[#A3B4CC]">Tell us about your awesome company</p>
           </div>
 
           {/* Progress bar - colorful and prominent */}
-          <div className="mb-12 bg-white/20 backdrop-blur-lg rounded-3xl p-6 shadow-2xl animate-fade-in">
+          <div className="mb-12 bg-[#1B2F52]/60 backdrop-blur-lg rounded-3xl p-6 shadow-2xl border border-[#4FD1FF]/20 animate-fade-in">
             <div className="flex items-center justify-center gap-3">
               {steps.map((step, index) => {
                 const currentStep = questions[currentQuestionIndex].step;
@@ -381,22 +381,22 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       <div 
                         className={`w-16 h-16 rounded-full flex items-center justify-center font-bold transition-all ${
                           isCurrent 
-                            ? 'bg-white text-purple-600 scale-110 shadow-lg' 
+                            ? 'bg-[#4FD1FF] text-[#0F1E35] scale-110 shadow-lg shadow-[#4FD1FF]/50' 
                             : isCompleted 
-                            ? 'bg-green-400 text-white' 
-                            : 'bg-white/30 text-white/60'
+                            ? 'bg-[#4FD1FF]/60 text-white' 
+                            : 'bg-[#2A4472] text-[#8FA6C1]'
                         }`}
                       >
                         {isCompleted ? '✓' : step.number}
                       </div>
-                      <span className={`text-xs mt-2 font-semibold ${isCurrent || isCompleted ? 'text-white' : 'text-white/60'}`}>
+                      <span className={`text-xs mt-2 font-semibold ${isCurrent || isCompleted ? 'text-white' : 'text-[#8FA6C1]'}`}>
                         {step.title}
                       </span>
                     </div>
                     {index < steps.length - 1 && (
                       <div 
                         className={`w-12 h-1 mx-2 rounded transition-all ${
-                          isCompleted ? 'bg-green-400' : 'bg-white/30'
+                          isCompleted ? 'bg-[#4FD1FF]' : 'bg-[#2A4472]'
                         }`}
                       />
                     )}
@@ -412,20 +412,20 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
               <div className="grid grid-cols-[1fr_auto_1fr] gap-6 items-stretch">
                 {/* Upload Document */}
                 <div 
-                  className="bg-white rounded-3xl p-8 text-center hover:scale-105 transition-transform cursor-pointer shadow-2xl flex flex-col justify-between"
+                  className="bg-[#1B2F52]/90 backdrop-blur-md border border-[#4FD1FF]/30 rounded-3xl p-8 text-center hover:scale-105 hover:shadow-lg hover:shadow-[#4FD1FF]/20 transition-all cursor-pointer shadow-xl flex flex-col justify-between"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <div>
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <CloudArrowUpIcon className="w-10 h-10 text-white" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#4FD1FF]/20">
+                      <CloudArrowUpIcon className="w-10 h-10 text-[#0F1E35]" />
                     </div>
-                    <h3 className="text-xl font-bold text-neutral-900 mb-2">Upload Company Document</h3>
-                    <p className="text-neutral-600 mb-4">Whitepaper, Pitch Deck, or Company Overview</p>
+                    <h3 className="text-xl font-bold text-white mb-2">Upload Company Document</h3>
+                    <p className="text-[#A3B4CC] mb-4">Whitepaper, Pitch Deck, or Company Overview</p>
                   </div>
                   {uploadedFileName ? (
-                    <div className="text-sm text-green-600 font-semibold">✓ {uploadedFileName}</div>
+                    <div className="text-sm text-[#4FD1FF] font-semibold">✓ {uploadedFileName}</div>
                   ) : (
-                    <div className="text-sm text-neutral-400">Click to choose file</div>
+                    <div className="text-sm text-[#8FA6C1]">Click to choose file</div>
                   )}
                   <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
                 </div>
@@ -436,13 +436,13 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 </div>
 
                 {/* Website Scraper */}
-                <div className="bg-white rounded-3xl p-8 shadow-2xl text-center flex flex-col justify-between">
+                <div className="bg-[#1B2F52]/90 backdrop-blur-md border border-[#4FD1FF]/30 rounded-3xl p-8 shadow-xl text-center flex flex-col justify-between">
                   <div>
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <GlobeAltIcon className="w-10 h-10 text-white" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#6BE3FF] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#4FD1FF]/20">
+                      <GlobeAltIcon className="w-10 h-10 text-[#0F1E35]" />
                     </div>
-                    <h3 className="text-xl font-bold text-neutral-900 mb-2">Extract from Website</h3>
-                    <p className="text-neutral-600 mb-4">Paste your company URL</p>
+                    <h3 className="text-xl font-bold text-white mb-2">Extract from Website</h3>
+                    <p className="text-[#A3B4CC] mb-4">Paste your company URL</p>
                   </div>
                   <div>
                     <input 
@@ -455,12 +455,12 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                         }
                       }}
                       placeholder="https://yourcompany.com"
-                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl text-sm mb-3 text-center focus:outline-none focus:border-purple-500 transition-colors"
+                      className="w-full px-4 py-3 bg-[#12213B] border-2 border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-xl text-sm mb-3 text-center focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all"
                     />
                     <button 
                       onClick={handleWebsiteScrape} 
                       disabled={isProcessing}
-                      className="w-full px-4 py-3 text-purple-600 font-semibold hover:bg-purple-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border-2 border-purple-200"
+                      className="w-full px-4 py-3 bg-[#4FD1FF]/10 text-[#4FD1FF] font-semibold hover:bg-[#4FD1FF]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border-2 border-[#4FD1FF]/40"
                     >
                       {isProcessing && (
                         <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -487,22 +487,22 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
 
           {/* Review Screen - Show all fields for editing */}
           {showReview && (
-            <div className="bg-white rounded-3xl p-10 shadow-2xl animate-slide-in">
+            <div className="bg-[#1B2F52]/90 backdrop-blur-md border border-[#4FD1FF]/30 rounded-3xl p-10 shadow-2xl animate-slide-in">
               <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-                  <CheckCircleIcon className="w-12 h-12 text-white" />
+                <div className="w-20 h-20 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-[#4FD1FF]/20">
+                  <CheckCircleIcon className="w-12 h-12 text-[#0F1E35]" />
                 </div>
-                <h2 className="text-4xl font-bold text-neutral-900 mb-2">Review Your Profile</h2>
-                <p className="text-lg text-neutral-600">Make any final edits before saving</p>
+                <h2 className="text-4xl font-bold text-white mb-2">Review Your Profile</h2>
+                <p className="text-lg text-[#A3B4CC]">Make any final edits before saving</p>
               </div>
 
               {/* Warning Message */}
-              <div className="bg-yellow-50 border-2 border-yellow-400 rounded-2xl p-6 mb-8">
+              <div className="bg-[#4FD1FF]/10 border-2 border-[#4FD1FF]/40 rounded-2xl p-6 mb-8">
                 <div className="flex items-start gap-4">
                   <span className="text-3xl">⚠️</span>
                   <div>
-                    <h3 className="text-lg font-bold text-yellow-900 mb-2">Please Review Carefully!</h3>
-                    <p className="text-yellow-800">
+                    <h3 className="text-lg font-bold text-[#4FD1FF] mb-2">Please Review Carefully!</h3>
+                    <p className="text-[#A3B4CC]">
                       Double-check all fields below and fill out any that are empty. Some fields may not have been extracted automatically. 
                       Make sure all important information is accurate and complete before saving.
                     </p>
@@ -517,10 +517,10 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                   
                   return (
                     <div key={question.id} className="text-left">
-                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      <label className="block text-sm font-semibold text-white mb-2">
                         {question.question}
-                        {question.required && <span className="text-red-500 ml-1">*</span>}
-                        {isEmpty && <span className="text-orange-500 ml-2 text-xs">(Empty - Please fill)</span>}
+                        {question.required && <span className="text-[#4FD1FF] ml-1">*</span>}
+                        {isEmpty && <span className="text-[#4FD1FF] ml-2 text-xs">(Empty - Please fill)</span>}
                       </label>
                       {question.type === 'textarea' ? (
                         <textarea
@@ -531,8 +531,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                             e.target.style.height = 'auto';
                             e.target.style.height = e.target.scrollHeight + 'px';
                           }}
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all resize-none overflow-hidden ${
-                            isEmpty ? 'border-orange-400 bg-orange-50' : 'border-neutral-200'
+                          className={`w-full px-4 py-3 bg-[#12213B] text-white placeholder-[#8FA6C1] border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all resize-none overflow-hidden ${
+                            isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
                           }`}
                           rows={4}
                           style={{ minHeight: '100px' }}
@@ -542,8 +542,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                           type={question.type}
                           value={String(profile[question.id as keyof CompanyProfile] || '')}
                           onChange={(e) => setProfile({ ...profile, [question.id]: e.target.value })}
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all ${
-                            isEmpty ? 'border-orange-400 bg-orange-50' : 'border-neutral-200'
+                          className={`w-full px-4 py-3 bg-[#12213B] text-white placeholder-[#8FA6C1] border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all ${
+                            isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
                           }`}
                         />
                       )}
@@ -553,7 +553,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
               </div>
               
               {/* Terms and Privacy Consent */}
-              <div className="mt-8 p-6 bg-neutral-50 rounded-2xl border-2 border-neutral-200">
+              <div className="mt-8 p-6 bg-[#12213B]/60 rounded-2xl border-2 border-[#4FD1FF]/20">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -565,15 +565,15 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                         termsAcceptedAt: e.target.checked ? new Date().toISOString() : undefined
                       });
                     }}
-                    className="mt-1 w-5 h-5 text-purple-600 border-neutral-300 rounded focus:ring-purple-500 focus:ring-2"
+                    className="mt-1 w-5 h-5 text-[#4FD1FF] bg-[#12213B] border-[#4FD1FF]/30 rounded focus:ring-[#4FD1FF] focus:ring-2"
                   />
-                  <span className="text-sm text-neutral-700">
+                  <span className="text-sm text-[#A3B4CC]">
                     I agree to the{' '}
-                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline font-medium">
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#4FD1FF] hover:underline font-medium">
                       Terms of Service
                     </a>
                     {' '}and{' '}
-                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline font-medium">
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#4FD1FF] hover:underline font-medium">
                       Privacy Policy
                     </a>
                     , and I consent to Meridian processing my company data to provide AI-powered lead generation services.
@@ -584,14 +584,14 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
               <div className="flex items-center justify-between mt-8">
                 <button
                   onClick={() => setShowReview(false)}
-                  className="px-8 py-4 text-lg font-bold text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-2xl transition-all"
+                  className="px-8 py-4 text-lg font-bold text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-2xl transition-all"
                 >
                   ← Back to Questions
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isProcessing || !profile.termsAccepted}
-                  className="px-10 py-4 text-lg font-bold text-white !bg-gradient-to-r !from-green-500 !via-blue-500 !to-purple-500 rounded-2xl hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="px-10 py-4 text-lg font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-2xl hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isProcessing ? 'Saving...' : 'Save Profile ✓'}
                 </button>
@@ -601,15 +601,15 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
 
           {/* Main Question Area - Big and colorful */}
           {!showUploadOptions && !showReview && (
-            <div className="bg-white rounded-3xl p-10 shadow-2xl animate-slide-in text-center">
+            <div className="bg-[#1B2F52]/90 backdrop-blur-md border border-[#4FD1FF]/30 rounded-3xl p-10 shadow-2xl animate-slide-in text-center">
               {/* Question */}
               <div className="mb-8">
-                <div className="inline-block px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-sm font-semibold mb-4">
+                <div className="inline-block px-4 py-2 bg-gradient-to-r from-[#4FD1FF] to-[#55C7F7] text-[#0F1E35] rounded-full text-sm font-semibold mb-4">
                   Question {currentQuestionIndex + 1}
                 </div>
-                <h2 className="text-4xl font-bold text-neutral-900 mb-2">
+                <h2 className="text-4xl font-bold text-white mb-2">
                   {currentQuestion.question}
-                  {currentQuestion.required && <span className="text-red-500 ml-2">*</span>}
+                  {currentQuestion.required && <span className="text-[#4FD1FF] ml-2">*</span>}
                 </h2>
               </div>
 
@@ -623,7 +623,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     placeholder={currentQuestion.placeholder}
                     disabled={isAnimating}
                     rows={6}
-                    className="w-full px-6 py-4 text-xl text-neutral-900 placeholder-neutral-400 border-3 border-neutral-200 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all disabled:opacity-50 resize-none text-center overflow-y-auto"
+                    className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 resize-none text-center overflow-y-auto"
                   />
                 ) : currentQuestion.type === 'select' ? (
                   <select
@@ -631,7 +631,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
                     onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
                     disabled={isAnimating}
-                    className="w-full px-6 py-4 text-xl text-neutral-900 border-3 border-neutral-200 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all disabled:opacity-50 text-center"
+                    className="w-full px-6 py-4 text-xl text-white bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 text-center"
                   >
                     <option value="">Select an option...</option>
                     {currentQuestion.options?.map(opt => (
@@ -646,7 +646,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
                     placeholder={currentQuestion.placeholder}
                     disabled={isAnimating}
-                    className="w-full px-6 py-4 text-xl text-neutral-900 placeholder-neutral-400 border-3 border-neutral-200 rounded-2xl focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all disabled:opacity-50 text-center"
+                    className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 text-center"
                   />
                 )}
               </div>
@@ -656,7 +656,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 <button
                   onClick={handleBack}
                   disabled={isAnimating}
-                  className="px-8 py-4 text-lg font-bold text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="px-8 py-4 text-lg font-bold text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   ← Back
                 </button>
@@ -666,7 +666,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     <button
                       onClick={handleSkip}
                       disabled={isAnimating}
-                      className="px-8 py-4 text-lg font-bold text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-2xl disabled:opacity-30 transition-all"
+                      className="px-8 py-4 text-lg font-bold text-[#8FA6C1] hover:text-[#A3B4CC] hover:bg-[#2A4472] rounded-2xl disabled:opacity-30 transition-all"
                     >
                       Skip for now
                     </button>
@@ -675,7 +675,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                   <button
                     onClick={handleNext}
                     disabled={isAnimating || isProcessing}
-                    className="px-10 py-4 text-lg font-bold text-white !bg-gradient-to-r !from-blue-500 !via-purple-500 !to-pink-500 rounded-2xl hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-10 py-4 text-lg font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-2xl hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {currentQuestionIndex === questions.length - 1 ? (
                       isProcessing ? (

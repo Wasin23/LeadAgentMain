@@ -63,57 +63,60 @@ export default function CompanyProfileModal({ open, onClose, onSaved }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl z-10 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-          <h3 className="text-lg font-semibold">Edit Company Profile</h3>
-          <button onClick={onClose} className="p-2 rounded hover:bg-neutral-100">
-            <XMarkIcon className="w-5 h-5 text-neutral-600" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="bg-[#1B2F52]/95 backdrop-blur-md border border-[#4FD1FF]/30 rounded-xl shadow-2xl shadow-[#4FD1FF]/10 w-full max-w-2xl z-10 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#4FD1FF]/20">
+          <h3 className="text-lg font-semibold text-white">Edit Company Profile</h3>
+          <button onClick={onClose} className="p-2 rounded hover:bg-[#2A4472] transition-colors">
+            <XMarkIcon className="w-5 h-5 text-[#A3B4CC] hover:text-white" />
           </button>
         </div>
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 border-t-blue-600"></div>
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+              </div>
             </div>
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Company Name</label>
-                <input className="w-full px-3 py-2 border rounded-lg" value={profile.companyName || ''} onChange={(e)=>setProfile({...profile, companyName: e.target.value})} />
+                <label className="block text-sm font-medium text-white mb-1">Company Name</label>
+                <input className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" value={profile.companyName || ''} onChange={(e)=>setProfile({...profile, companyName: e.target.value})} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Industry</label>
-                <input className="w-full px-3 py-2 border rounded-lg" value={profile.industry || ''} onChange={(e)=>setProfile({...profile, industry: e.target.value})} />
+                <label className="block text-sm font-medium text-white mb-1">Industry</label>
+                <input className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" value={profile.industry || ''} onChange={(e)=>setProfile({...profile, industry: e.target.value})} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Services / Products</label>
-                <textarea className="w-full px-3 py-2 border rounded-lg" rows={3} value={profile.services || ''} onChange={(e)=>setProfile({...profile, services: e.target.value})} />
+                <label className="block text-sm font-medium text-white mb-1">Services / Products</label>
+                <textarea className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" rows={3} value={profile.services || ''} onChange={(e)=>setProfile({...profile, services: e.target.value})} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">Target Market</label>
-                  <input className="w-full px-3 py-2 border rounded-lg" value={profile.targetMarket || ''} onChange={(e)=>setProfile({...profile, targetMarket: e.target.value})} />
+                  <label className="block text-sm font-medium text-white mb-1">Target Market</label>
+                  <input className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" value={profile.targetMarket || ''} onChange={(e)=>setProfile({...profile, targetMarket: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">Company Size</label>
-                  <input className="w-full px-3 py-2 border rounded-lg" value={profile.companySize || ''} onChange={(e)=>setProfile({...profile, companySize: e.target.value})} />
+                  <label className="block text-sm font-medium text-white mb-1">Company Size</label>
+                  <input className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" value={profile.companySize || ''} onChange={(e)=>setProfile({...profile, companySize: e.target.value})} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Short Description</label>
-                <textarea className="w-full px-3 py-2 border rounded-lg" rows={4} value={profile.description || ''} onChange={(e)=>setProfile({...profile, description: e.target.value})} />
+                <label className="block text-sm font-medium text-white mb-1">Short Description</label>
+                <textarea className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" rows={4} value={profile.description || ''} onChange={(e)=>setProfile({...profile, description: e.target.value})} />
               </div>
             </>
           )}
         </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-200">
-          <button onClick={onClose} className="px-4 py-2 bg-neutral-100 rounded-lg">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#4FD1FF]/20">
+          <button onClick={onClose} className="px-4 py-2 bg-[#2A4472] text-[#A3B4CC] hover:text-white rounded-lg transition-colors">Cancel</button>
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all flex items-center gap-2 disabled:opacity-50">
             {saving ? 'Saving...' : (
               <>
                 <CheckIcon className="w-4 h-4" />

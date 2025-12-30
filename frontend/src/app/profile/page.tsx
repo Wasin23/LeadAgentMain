@@ -18,9 +18,9 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-8 h-8 border-4 border-[#4FD1FF]/30 border-t-[#4FD1FF] rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading...</p>
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-8">
       {/* Back Button */}
       <button
         onClick={() => router.push('/dashboard')}
@@ -52,34 +52,34 @@ export default function ProfilePage() {
         {/* CRM Integration Panel - Takes 1 column */}
         <div className="lg:col-span-1 space-y-6">
           {/* CRM Integrations */}
-          <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-neutral-200">
-              <h2 className="text-xl font-semibold text-neutral-900">CRM Integrations</h2>
-              <p className="text-xs text-neutral-600 mt-1">Connected systems</p>
+          <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20 overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#4FD1FF]/20">
+              <h2 className="text-xl font-semibold text-white">CRM Integrations</h2>
+              <p className="text-xs text-[#A3B4CC] mt-1">Connected systems</p>
             </div>
             <div className="p-4 space-y-3">
               {/* Salesforce */}
-              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">SF</div>
                   <div>
-                    <div className="text-sm font-medium text-neutral-900">Salesforce</div>
-                    <div className="text-xs text-neutral-600">Not connected</div>
+                    <div className="text-sm font-medium text-white">Salesforce</div>
+                    <div className="text-xs text-[#8FA6C1]">Not connected</div>
                   </div>
                 </div>
-                <button className="text-xs text-blue-600 hover:text-blue-700">Connect</button>
+                <button className="text-xs text-[#4FD1FF] hover:text-[#6BE3FF]">Connect</button>
               </div>
 
               {/* HubSpot */}
-              <div className="flex items-center justify-between p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-white text-xs font-bold">HS</div>
                   <div>
-                    <div className="text-sm font-medium text-neutral-900">HubSpot</div>
-                    <div className="text-xs text-neutral-600">Not connected</div>
+                    <div className="text-sm font-medium text-white">HubSpot</div>
+                    <div className="text-xs text-[#8FA6C1]">Not connected</div>
                   </div>
                 </div>
-                <button className="text-xs text-blue-600 hover:text-blue-700">Connect</button>
+                <button className="text-xs text-[#4FD1FF] hover:text-[#6BE3FF]">Connect</button>
               </div>
             </div>
           </div>

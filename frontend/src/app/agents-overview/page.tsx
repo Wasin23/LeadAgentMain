@@ -403,8 +403,14 @@ export default function AgentsOverview() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-neutral-400">Loading agents...</div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <div className="text-xl text-[#A3B4CC]">Loading agents...</div>
+        </div>
       </div>
     );
   }
@@ -412,7 +418,7 @@ export default function AgentsOverview() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Gradient Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700" />
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]" />
       
       {/* Content */}
       <div className="relative z-10 p-8">
@@ -420,13 +426,13 @@ export default function AgentsOverview() {
         <div className="mb-6 flex items-center gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="p-2 rounded-lg bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all border border-white/20"
+            className="p-2 rounded-lg bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all border border-[#4FD1FF]/30"
           >
             <ArrowLeftIcon className="w-5 h-5 text-white" />
           </button>
           <div>
             <h1 className="text-3xl font-bold text-white">Agent Management</h1>
-            <p className="text-white/70 text-sm mt-1">Manage your agents and presets</p>
+            <p className="text-[#A3B4CC] text-sm mt-1">Manage your agents and presets</p>
           </div>
         </div>
 
@@ -437,8 +443,8 @@ export default function AgentsOverview() {
               onClick={() => setActiveTab('agents')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
                 activeTab === 'agents'
-                  ? 'bg-white/20 text-white border-2 border-white/40'
-                  : 'bg-white/10 text-white/70 border-2 border-white/10 hover:bg-white/15 hover:text-white'
+                  ? 'bg-[#2A4472] text-white border-2 border-[#4FD1FF]/60 shadow-lg shadow-[#4FD1FF]/20'
+                  : 'bg-[#1B2F52]/70 text-[#A3B4CC] border-2 border-[#4FD1FF]/20 hover:bg-[#1B2F52] hover:text-white hover:border-[#4FD1FF]/40'
               }`}
             >
               Agents
@@ -447,8 +453,8 @@ export default function AgentsOverview() {
               onClick={() => setActiveTab('presets')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
                 activeTab === 'presets'
-                  ? 'bg-white/20 text-white border-2 border-white/40'
-                  : 'bg-white/10 text-white/70 border-2 border-white/10 hover:bg-white/15 hover:text-white'
+                  ? 'bg-[#2A4472] text-white border-2 border-[#4FD1FF]/60 shadow-lg shadow-[#4FD1FF]/20'
+                  : 'bg-[#1B2F52]/70 text-[#A3B4CC] border-2 border-[#4FD1FF]/20 hover:bg-[#1B2F52] hover:text-white hover:border-[#4FD1FF]/40'
               }`}
             >
               Presets
@@ -458,7 +464,7 @@ export default function AgentsOverview() {
           {activeTab === 'agents' && (
             <button
               onClick={() => setShowPersonalitySelector(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all rounded-lg border border-white/20 text-white font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all rounded-lg border border-[#4FD1FF]/30 text-white font-medium shadow-lg shadow-[#4FD1FF]/10"
             >
               <PlusIcon className="w-5 h-5" />
               New Agent
@@ -491,11 +497,11 @@ export default function AgentsOverview() {
                 key={agent.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 overflow-hidden hover:border-white/40 transition-all cursor-pointer"
+                className="bg-[#1B2F52]/60 backdrop-blur-md rounded-2xl border border-[#4FD1FF]/20 overflow-hidden hover:border-[#4FD1FF]/50 hover:shadow-lg hover:shadow-[#4FD1FF]/10 transition-all cursor-pointer"
                 onClick={() => router.push(`/agents?agent=${agent.id}&returnTo=/agents-overview`)}
               >
                 {/* Header with personality avatar and name */}
-                <div className="p-4 border-b border-white/10">
+                <div className="p-4 border-b border-[#4FD1FF]/10">
                   <div className="flex items-center gap-3 mb-3">
                     {agent.personality?.avatar ? (
                       <img 
@@ -504,7 +510,7 @@ export default function AgentsOverview() {
                         className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl bg-white/10">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl bg-[#2A4472]">
                         🤖
                       </div>
                     )}
@@ -512,7 +518,7 @@ export default function AgentsOverview() {
                       <h3 className="font-semibold text-white truncate">
                         {agent.name}
                       </h3>
-                      <p className="text-xs text-white/60 truncate">
+                      <p className="text-xs text-[#A3B4CC] truncate">
                         {agent.personality?.name || 'AI Agent'}
                       </p>
                     </div>
@@ -817,21 +823,21 @@ export default function AgentsOverview() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" 
-            style={{ backgroundColor: 'rgba(23, 23, 23, 0.65)' }}
+            style={{ backgroundColor: 'rgba(15, 30, 53, 0.8)' }}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+              className="bg-[#1B2F52]/95 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg shadow-xl shadow-[#4FD1FF]/10 max-w-2xl w-full max-h-[90vh] flex flex-col"
             >
               {/* Header */}
-              <div className="p-6 border-b">
+              <div className="p-6 border-b border-[#4FD1FF]/20">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-semibold text-neutral-900">General Instructions</h2>
-                    <p className="text-sm text-neutral-600 mt-1">
+                    <h2 className="text-xl font-semibold text-white">General Instructions</h2>
+                    <p className="text-sm text-[#A3B4CC] mt-1">
                       Tell {selectedAgentForInstructions.personality?.name || selectedAgentForInstructions.name} how to approach this campaign
                     </p>
                   </div>
@@ -841,7 +847,7 @@ export default function AgentsOverview() {
                       setSelectedAgentForInstructions(null);
                       setInstructionsText('');
                     }}
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="text-[#A3B4CC] hover:text-white transition-colors"
                   >
                     <XMarkIcon className="w-6 h-6" />
                   </button>
@@ -852,29 +858,29 @@ export default function AgentsOverview() {
               <div className="p-6 flex-1 overflow-y-auto">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       Campaign Instructions
                     </label>
                     <textarea
                       value={instructionsText}
                       onChange={(e) => setInstructionsText(e.target.value)}
                       placeholder="Example: Target CTOs at Series A startups in healthcare tech. Focus on pain points around scaling engineering teams and infrastructure costs. Keep tone professional but friendly."
-                      className="w-full h-48 px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full h-48 px-4 py-3 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:ring-2 focus:ring-[#4FD1FF]/20 focus:border-[#4FD1FF] resize-none"
                       maxLength={1000}
                     />
-                    <div className="mt-2 text-xs text-neutral-500 text-right">
+                    <div className="mt-2 text-xs text-[#8FA6C1] text-right">
                       {instructionsText.length}/1000 characters
                     </div>
                   </div>
 
-                  <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', borderWidth: '1px' }}>
+                  <div className="rounded-lg p-4 bg-[#4FD1FF]/10 border border-[#4FD1FF]/30">
                     <div className="flex gap-3">
-                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'rgb(37, 99, 235)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#4FD1FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div>
-                        <h4 className="text-sm font-medium mb-1" style={{ color: 'rgb(30, 64, 175)' }}>How this works</h4>
-                        <p className="text-xs" style={{ color: 'rgb(29, 78, 216)' }}>
+                        <h4 className="text-sm font-medium mb-1 text-[#4FD1FF]">How this works</h4>
+                        <p className="text-xs text-[#A3B4CC]">
                           The AI will analyze your instructions and convert them into actionable goals. 
                           It will adjust its search strategy, research focus, and email messaging to match your campaign objectives.
                         </p>
@@ -885,14 +891,14 @@ export default function AgentsOverview() {
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t bg-neutral-50 flex items-center justify-end gap-3">
+              <div className="p-6 border-t border-[#4FD1FF]/20 bg-[#12213B]/50 flex items-center justify-end gap-3">
                 <button
                   onClick={() => {
                     setShowInstructionsModal(false);
                     setSelectedAgentForInstructions(null);
                     setInstructionsText('');
                   }}
-                  className="px-4 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors font-medium"
+                  className="px-4 py-2 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-lg transition-colors font-medium"
                 >
                   Cancel
                 </button>
@@ -923,8 +929,7 @@ export default function AgentsOverview() {
                     }
                   }}
                   disabled={savingInstructions}
-                  style={{ backgroundColor: savingInstructions ? '#93c5fd' : '#2563eb' }}
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingInstructions ? 'Saving...' : 'Save Instructions'}
                 </button>
@@ -941,7 +946,7 @@ export default function AgentsOverview() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={cancelDelete}
           >
             <motion.div
@@ -949,25 +954,25 @@ export default function AgentsOverview() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+              className="bg-[#1B2F52]/95 backdrop-blur-md border border-[#4FD1FF]/30 rounded-2xl shadow-2xl shadow-[#4FD1FF]/10 w-full max-w-md overflow-hidden"
             >
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <TrashIcon className="h-5 w-5 text-red-600" />
+                  <div className="h-10 w-10 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center">
+                    <TrashIcon className="h-5 w-5 text-red-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900">Delete Agent</h3>
-                    <p className="text-sm text-neutral-600">This action cannot be undone</p>
+                    <h3 className="text-lg font-semibold text-white">Delete Agent</h3>
+                    <p className="text-sm text-[#A3B4CC]">This action cannot be undone</p>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <p className="text-sm text-neutral-700 mb-3">
-                    Are you sure you want to delete <strong>{agentToDelete.name}</strong>? 
+                  <p className="text-sm text-[#A3B4CC] mb-3">
+                    Are you sure you want to delete <strong className="text-white">{agentToDelete.name}</strong>? 
                     All agent data, including email history and targeting settings, will be permanently removed.
                   </p>
-                  <p className="text-sm text-neutral-600 mb-2">
+                  <p className="text-sm text-[#8FA6C1] mb-2">
                     Type <strong>delete</strong> to confirm:
                   </p>
                   <input
@@ -975,7 +980,7 @@ export default function AgentsOverview() {
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                     placeholder="delete"
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500/50"
                     autoFocus
                   />
                 </div>
@@ -983,7 +988,7 @@ export default function AgentsOverview() {
                 <div className="flex gap-3">
                   <button
                     onClick={cancelDelete}
-                    className="flex-1 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg font-medium transition-colors"
+                    className="flex-1 px-4 py-2 bg-[#2A4472] hover:bg-[#223A63] text-[#A3B4CC] hover:text-white rounded-lg font-medium transition-colors"
                   >
                     Cancel
                   </button>
@@ -1009,21 +1014,21 @@ export default function AgentsOverview() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            style={{ backgroundColor: 'rgba(23, 23, 23, 0.65)' }}
+            style={{ backgroundColor: 'rgba(15, 30, 53, 0.8)' }}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col"
+              className="bg-[#1B2F52]/95 backdrop-blur-md border border-[#4FD1FF]/30 rounded-2xl shadow-2xl shadow-[#4FD1FF]/10 max-w-4xl w-full max-h-[85vh] flex flex-col"
             >
               {/* Header */}
-              <div className="p-6 border-b border-white/50 bg-white/50 backdrop-blur-sm rounded-t-2xl">
+              <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#12213B]/50 backdrop-blur-sm rounded-t-2xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-neutral-900">Agent Settings</h2>
-                    <p className="text-sm text-neutral-600 mt-1">
+                    <h2 className="text-2xl font-bold text-white">Agent Settings</h2>
+                    <p className="text-sm text-[#A3B4CC] mt-1">
                       Manage settings for {selectedAgentForSettings.name}
                     </p>
                   </div>
@@ -1032,7 +1037,7 @@ export default function AgentsOverview() {
                       setShowSettingsModal(false);
                       setSelectedAgentForSettings(null);
                     }}
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="text-[#A3B4CC] hover:text-white transition-colors"
                   >
                     <XMarkIcon className="w-6 h-6" />
                   </button>
@@ -1046,15 +1051,15 @@ export default function AgentsOverview() {
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       onClick={() => router.push(`/agents?agent=${selectedAgentForSettings.id}&returnTo=/agents-overview`)}
-                      className="p-4 bg-white/70 hover:bg-white/90 backdrop-blur-sm rounded-xl border border-white/50 transition-all duration-150 active:scale-95 text-left"
+                      className="p-4 bg-[#2A4472]/70 hover:bg-[#2A4472] backdrop-blur-sm border border-[#4FD1FF]/30 rounded-xl transition-all duration-150 active:scale-95 text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg">
-                          <ChartBarIcon className="w-5 h-5 text-white" />
+                        <div className="p-2 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-lg shadow-lg shadow-[#4FD1FF]/20">
+                          <ChartBarIcon className="w-5 h-5 text-[#0F1E35]" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-neutral-900">View Dashboard</h3>
-                          <p className="text-xs text-neutral-600">See detailed metrics & activity</p>
+                          <h3 className="font-semibold text-white">View Dashboard</h3>
+                          <p className="text-xs text-[#A3B4CC]">See detailed metrics & activity</p>
                         </div>
                       </div>
                     </button>
@@ -1064,23 +1069,23 @@ export default function AgentsOverview() {
                         setShowSettingsModal(false);
                         handleInstructionsClick(selectedAgentForSettings);
                       }}
-                      className="p-4 bg-white/70 hover:bg-white/90 backdrop-blur-sm rounded-xl border border-white/50 transition-all duration-150 active:scale-95 text-left"
+                      className="p-4 bg-[#2A4472]/70 hover:bg-[#2A4472] backdrop-blur-sm border border-[#4FD1FF]/30 rounded-xl transition-all duration-150 active:scale-95 text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-                          <ChatBubbleLeftRightIcon className="w-5 h-5 text-white" />
+                        <div className="p-2 bg-gradient-to-br from-[#4FD1FF] to-[#6BE3FF] rounded-lg shadow-lg shadow-[#4FD1FF]/20">
+                          <ChatBubbleLeftRightIcon className="w-5 h-5 text-[#0F1E35]" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-neutral-900">General Instructions</h3>
-                          <p className="text-xs text-neutral-600">Campaign-specific guidance</p>
+                          <h3 className="font-semibold text-white">General Instructions</h3>
+                          <p className="text-xs text-[#A3B4CC]">Campaign-specific guidance</p>
                         </div>
                       </div>
                     </button>
                   </div>
 
                   {/* Current Settings Display */}
-                  <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-white/50">
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-4">Current Configuration</h3>
+                  <div className="bg-[#12213B]/70 backdrop-blur-sm border border-[#4FD1FF]/20 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Current Configuration</h3>
                     
                     <div className="space-y-4">
                       {/* Industries */}

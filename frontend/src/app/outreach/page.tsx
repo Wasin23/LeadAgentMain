@@ -96,7 +96,7 @@ export default function OutreachPage() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Gradient Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700" />
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]" />
       
       {/* Content */}
       <div className="relative z-10 p-8">
@@ -234,27 +234,27 @@ export default function OutreachPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="bg-white rounded-xl shadow-2xl max-w-lg w-full"
+              className="bg-[#1B2F52]/95 backdrop-blur-xl rounded-xl shadow-2xl border border-[#4FD1FF]/20 max-w-lg w-full"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <div className="p-6 border-b border-[#4FD1FF]/20 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-neutral-900">Add Meeting</h2>
-                  <p className="text-sm text-neutral-600 mt-1">Log a manually scheduled meeting</p>
+                  <h2 className="text-2xl font-bold text-white">Add Meeting</h2>
+                  <p className="text-sm text-[#A3B4CC] mt-1">Log a manually scheduled meeting</p>
                 </div>
                 <button
                   onClick={() => setShowAddMeetingModal(false)}
-                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                 >
-                  <XMarkIcon className="w-6 h-6 text-neutral-500" />
+                  <XMarkIcon className="w-6 h-6 text-[#A3B4CC]" />
                 </button>
               </div>
 
               {/* Content */}
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     Lead Name *
                   </label>
                   <input
@@ -262,12 +262,12 @@ export default function OutreachPage() {
                     value={meetingForm.leadName}
                     onChange={(e) => setMeetingForm({ ...meetingForm, leadName: e.target.value })}
                     placeholder="John Doe"
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    className="w-full px-4 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] outline-none text-white placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     Lead Email *
                   </label>
                   <input
@@ -275,53 +275,53 @@ export default function OutreachPage() {
                     value={meetingForm.leadEmail}
                     onChange={(e) => setMeetingForm({ ...meetingForm, leadEmail: e.target.value })}
                     placeholder="john@company.com"
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    className="w-full px-4 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] outline-none text-white placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       Meeting Date *
                     </label>
                     <input
                       type="date"
                       value={meetingForm.meetingDate}
                       onChange={(e) => setMeetingForm({ ...meetingForm, meetingDate: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                      className="w-full px-4 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] outline-none text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       Meeting Time *
                     </label>
                     <input
                       type="time"
                       value={meetingForm.meetingTime}
                       onChange={(e) => setMeetingForm({ ...meetingForm, meetingTime: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                      className="w-full px-4 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] outline-none text-white"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     Associated Agent (Optional)
                   </label>
                   <select
                     value={meetingForm.agentId}
                     onChange={(e) => setMeetingForm({ ...meetingForm, agentId: e.target.value })}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    className="w-full px-4 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] outline-none text-white"
                   >
-                    <option value="">Select an agent</option>
+                    <option value="" className="bg-[#12213B]">Select an agent</option>
                     {agents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>{agent.name}</option>
+                      <option key={agent.id} value={agent.id} className="bg-[#12213B]">{agent.name}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     Notes (Optional)
                   </label>
                   <textarea
@@ -329,23 +329,23 @@ export default function OutreachPage() {
                     onChange={(e) => setMeetingForm({ ...meetingForm, notes: e.target.value })}
                     placeholder="Any additional notes about this meeting..."
                     rows={3}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-none"
+                    className="w-full px-4 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] outline-none resize-none text-white placeholder-[#8FA6C1]"
                   />
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t bg-neutral-50 flex items-center justify-end gap-3">
+              <div className="p-6 border-t border-[#4FD1FF]/20 bg-[#12213B]/50 flex items-center justify-end gap-3">
                 <button
                   onClick={() => setShowAddMeetingModal(false)}
-                  className="px-6 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors font-medium"
+                  className="px-6 py-2 text-[#A3B4CC] hover:bg-white/10 rounded-lg transition-colors font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAddMeeting}
                   disabled={!meetingForm.leadName || !meetingForm.leadEmail || !meetingForm.meetingDate || !meetingForm.meetingTime}
-                  className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Meeting
                 </button>

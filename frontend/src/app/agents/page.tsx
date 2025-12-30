@@ -36,7 +36,7 @@ function AgentsPageContent() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600">
+      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]">
         {selectedAgent ? (
           <AgentDashboard 
             agentId={selectedAgent} 
