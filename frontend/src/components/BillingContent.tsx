@@ -25,11 +25,28 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   const [error, setError] = useState<string | null>(null);
   const [cardholderName, setCardholderName] = useState('');
   const [cardReady, setCardReady] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  // Get fresh setup intent when component mounts
+  useEffect(() => {
+    const fetchSetupIntent = async () => {
+      try {
+        const { data } = await api.post('/api/billing/setup-intent');
+        setClientSecret(data.clientSecret);
+        console.log('✅ [BILLING] Fresh setup intent created');
+      } catch (err) {
+        console.error('❌ [BILLING] Error creating setup intent:', err);
+        setError('Failed to initialize payment form. Please try again.');
+      }
+    };
+    
+    fetchSetupIntent();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!stripe || !elements) {
+    if (!stripe || !elements || !clientSecret) {
       return;
     }
 
@@ -37,9 +54,6 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
     setError(null);
 
     try {
-      // Get setup intent from backend
-      const { data } = await api.post('/api/billing/setup-intent');
-      const { clientSecret } = data;
 
       // Confirm card setup
       const { error: stripeError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
@@ -81,7 +95,7 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Cardholder Name */}
       <div>
-        <label className="block text-sm font-semibold text-neutral-900 mb-2">
+        <label className="block text-sm font-semibold text-white mb-2">
           Cardholder Name
         </label>
         <input
@@ -90,16 +104,16 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
           onChange={(e) => setCardholderName(e.target.value)}
           placeholder="John Doe"
           required
-          className="w-full px-4 py-3 border-2 border-neutral-200 rounded-lg bg-white text-neutral-900 placeholder-neutral-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+          className="w-full px-4 py-3 border-2 border-white/20 rounded-lg bg-white/10 backdrop-blur-md text-white placeholder-white/60 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
         />
       </div>
 
       {/* Card Details */}
       <div>
-        <label className="block text-sm font-semibold text-neutral-900 mb-2">
+        <label className="block text-sm font-semibold text-white mb-2">
           Card Details
         </label>
-        <div className="p-4 border-2 border-neutral-200 rounded-lg bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all" style={{ minHeight: '44px' }}>
+        <div className="p-4 border-2 border-white/20 rounded-lg bg-white/10 backdrop-blur-md focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all" style={{ minHeight: '44px' }}>
           <CardElement
             onReady={() => {
               console.log('✅ Stripe CardElement ready');
@@ -118,10 +132,10 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
                 base: {
                   fontSize: '16px',
                   fontFamily: 'system-ui, -apple-system, sans-serif',
-                  color: '#171717',
+                  color: '#ffffff',
                   lineHeight: '24px',
                   '::placeholder': {
-                    color: '#a3a3a3',
+                    color: 'rgba(255, 255, 255, 0.6)',
                   },
                 },
                 invalid: {
@@ -132,7 +146,7 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
             }}
           />
         </div>
-        <p className="text-xs text-neutral-500 mt-2">
+        <p className="text-xs text-white/70 mt-2">
           💳 All card fields appear in the box above (card number • expiry • CVC)
         </p>
       </div>
@@ -146,13 +160,18 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          disabled={!stripe || !elements || loading || !cardholderName.trim() || !cardReady}
+          disabled={!stripe || !elements || loading || !cardholderName.trim() || !cardReady || !clientSecret}
           className="flex-1 px-6 py-3.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-base transition-colors shadow-sm hover:shadow-md"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               Adding Card...
+            </span>
+          ) : !clientSecret ? (
+            <span className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Loading...
             </span>
           ) : (
             'Add Card'
@@ -162,14 +181,14 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
           type="button"
           onClick={onCancel}
           disabled={loading}
-          className="px-6 py-3.5 border-2 border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 font-semibold text-base transition-colors disabled:opacity-50"
+          className="px-6 py-3.5 border-2 border-white/20 text-white/90 rounded-lg hover:bg-white/5 font-semibold text-base transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
       </div>
 
-      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-        <p className="text-xs text-neutral-600 leading-relaxed">
+      <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+        <p className="text-xs text-white/80 leading-relaxed">
           🔒 <strong>Secure Payment:</strong> Your card details are encrypted and processed securely by Stripe. We never store your full card information.
         </p>
       </div>
@@ -246,7 +265,7 @@ function BillingContentInner() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
       </div>
     );
   }
@@ -311,8 +330,8 @@ function BillingContentInner() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-neutral-900">Payment Methods</h2>
-          <p className="text-sm text-neutral-600 mt-1">Manage your credit cards for API usage billing</p>
+          <h2 className="text-xl font-semibold text-white">Payment Methods</h2>
+          <p className="text-sm text-white/80 mt-1">Manage your credit cards for API usage billing</p>
         </div>
         {!showAddCard && (
           <button
@@ -347,12 +366,12 @@ function BillingContentInner() {
 
       {/* Add Card Form */}
       {showAddCard && (
-        <div className="bg-white border-2 border-blue-200 rounded-xl p-8 shadow-lg">
+        <div className="bg-white/10 backdrop-blur-md border-2 border-white/30 rounded-xl p-8 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
               <CreditCardIcon className="w-6 h-6 text-blue-600" />
             </div>
-            <h3 className="text-xl font-bold text-neutral-900">Add Payment Method</h3>
+            <h3 className="text-xl font-bold text-white">Add Payment Method</h3>
           </div>
           <AddCardForm
             onSuccess={() => {
@@ -372,28 +391,28 @@ function BillingContentInner() {
       {/* Payment Methods List */}
       <div className="space-y-3">
         {paymentMethods.length === 0 ? (
-          <div className="text-center py-12 bg-neutral-50 border border-neutral-200 rounded-lg">
-            <CreditCardIcon className="w-12 h-12 text-neutral-400 mx-auto mb-3" />
-            <p className="text-neutral-600 font-medium">No payment methods added yet</p>
-            <p className="text-sm text-neutral-500 mt-1">Add a card to start using API services</p>
+          <div className="text-center py-12 bg-white/5 border border-white/20 rounded-lg">
+            <CreditCardIcon className="w-12 h-12 text-white/60 mx-auto mb-3" />
+            <p className="text-white/80 font-medium">No payment methods added yet</p>
+            <p className="text-sm text-white/70 mt-1">Add a card to start using API services</p>
           </div>
         ) : (
           paymentMethods.map((pm) => (
             <div
               key={pm.id}
-              className={`bg-white border rounded-lg p-4 flex items-center justify-between ${
-                pm.isDefault ? 'border-blue-500 bg-blue-50' : 'border-neutral-200'
+              className={`bg-white/10 backdrop-blur-md border rounded-lg p-4 flex items-center justify-between ${
+                pm.isDefault ? 'border-blue-500 bg-blue-50' : 'border-white/20'
               }`}
             >
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  pm.isDefault ? 'bg-blue-600' : 'bg-neutral-100'
+                  pm.isDefault ? 'bg-blue-600' : 'bg-white/5'
                 }`}>
-                  <CreditCardIcon className={`w-6 h-6 ${pm.isDefault ? 'text-white' : 'text-neutral-600'}`} />
+                  <CreditCardIcon className={`w-6 h-6 ${pm.isDefault ? 'text-white' : 'text-white/80'}`} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-neutral-900 capitalize">
+                    <p className="font-medium text-white capitalize">
                       {pm.brand} •••• {pm.last4}
                     </p>
                     {pm.isDefault && (
@@ -402,7 +421,7 @@ function BillingContentInner() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-white/80">
                     Expires {pm.expMonth}/{pm.expYear}
                   </p>
                 </div>
@@ -412,14 +431,14 @@ function BillingContentInner() {
                 {!pm.isDefault && (
                   <button
                     onClick={() => handleSetDefault(pm.id)}
-                    className="px-3 py-1.5 text-sm border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 font-medium transition-colors"
+                    className="px-3 py-1.5 text-sm border border-white/20 text-white/90 rounded-lg hover:bg-white/5 font-medium transition-colors"
                   >
                     Set Default
                   </button>
                 )}
                 <button
                   onClick={() => handleRemoveCard(pm.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-2 text-red-600 bg-red-50/50 hover:bg-red-50 rounded-lg transition-colors"
                   title="Remove card"
                 >
                   <TrashIcon className="w-5 h-5" />
@@ -429,15 +448,6 @@ function BillingContentInner() {
           ))
         )}
       </div>
-
-      {/* Test Mode Notice */}
-      {process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.includes('_test_') && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-xs text-yellow-800">
-            <strong>Test Mode:</strong> Use test card 4242 4242 4242 4242 with any future expiry date and any CVC.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -445,16 +455,7 @@ function BillingContentInner() {
 export default function BillingContent() {
   return (
     <Elements stripe={stripePromise}>
-      <div className="space-y-8">
-        {/* Payment Methods Section */}
-        <BillingContentInner />
-        
-        {/* Payment History Section */}
-        <div className="border-t border-gray-200 pt-8">
-          <h2 className="text-xl font-semibold text-neutral-900 mb-6">Payment History</h2>
-          <PaymentHistory />
-        </div>
-      </div>
+      <BillingContentInner />
     </Elements>
   );
 }

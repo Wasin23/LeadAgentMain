@@ -832,6 +832,76 @@ class AWSEmailQueue {
       throw error;
     }
   }
+
+  /**
+   * Reassign an email from one agent to another
+   */
+  async reassignEmailToAgent(userId, oldAgentId, emailId, newAgentId) {
+    try {
+      console.log(`📧 [AWS EMAIL QUEUE] Reassigning email ${emailId} from ${oldAgentId} to ${newAgentId}`);
+      
+      // Find the email with any status
+      const statuses = ['QUEUED', 'APPROVED', 'SENT', 'REPLIED'];
+      let foundItem = null;
+      let foundStatus = null;
+      
+      for (const status of statuses) {
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+          ExpressionAttributeValues: {
+            ':pk': this._getPK(userId, oldAgentId),
+            ':status': `${status}#`
+          }
+        }));
+        
+        const item = (response.Items || []).find(i => i.id === emailId);
+        if (item) {
+          foundItem = item;
+          foundStatus = status;
+          break;
+        }
+      }
+      
+      if (!foundItem) {
+        console.log(`⚠️ [AWS EMAIL QUEUE] Email ${emailId} not found for agent ${oldAgentId}`);
+        return { success: false, message: 'Email not found' };
+      }
+      
+      // Delete old item
+      await this.dynamodb.send(new DeleteCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: foundItem.PK,
+          SK: foundItem.SK
+        }
+      }));
+      
+      // Create new item with new agentId
+      const timestamp = foundItem.timestamp || new Date().toISOString();
+      const newItem = {
+        ...foundItem,
+        PK: this._getPK(userId, newAgentId),
+        SK: this._getSK(foundStatus, timestamp, emailId),
+        GSIPK: this._getGSIPK(userId, foundStatus),
+        GSISK: this._getGSISK(timestamp, emailId),
+        agentId: newAgentId,
+        originalAgentId: oldAgentId, // Store original agent for tracking
+        reassignedAt: new Date().toISOString()
+      };
+      
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tableName,
+        Item: newItem
+      }));
+      
+      console.log(`✅ [AWS EMAIL QUEUE] Successfully reassigned email ${emailId} to ${newAgentId}`);
+      return { success: true, message: 'Email reassigned' };
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error reassigning email:', error);
+      throw error;
+    }
+  }
 }
 
 // Singleton instance

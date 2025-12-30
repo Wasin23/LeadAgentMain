@@ -356,7 +356,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
         </div>
       </div>
       
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header with big colorful title */}
           <div className="text-center mb-12 animate-fade-in">

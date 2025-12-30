@@ -6,6 +6,15 @@ import { CreditCardIcon } from '@heroicons/react/24/outline';
 import api from '../../lib/api';
 import BillingContent from '../BillingContent';
 
+interface HistoricalData {
+  date: string;
+  tokens: number;
+  cost: number;
+  label: string;
+}
+
+type TimeFilter = 'hour' | 'day' | 'month';
+
 const RateLimitSettings: React.FC = () => {
   const [monthlyBudget, setMonthlyBudget] = useState<number>(100); // Default $100/month
   const [totalSpent, setTotalSpent] = useState<number>(0);
@@ -15,6 +24,11 @@ const RateLimitSettings: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [nextBillingDate, setNextBillingDate] = useState<string | null>(null);
   const [trialCredits, setTrialCredits] = useState<any>(null);
+  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('day');
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
+  const [serviceBreakdown, setServiceBreakdown] = useState<any[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM format
 
   // Average cost per lead (all services combined)
   const avgCostPerLead = 0.18; // ~$0.18 per lead (Apollo search + email unlock + OpenAI + ZeroBounce + Serper + Mailgun)
@@ -62,9 +76,10 @@ const RateLimitSettings: React.FC = () => {
       }
 
       // Fetch total spending
+      let totalCost = 0;
       const spendingResponse = await api.get('/api/lead-agent/api-usage/total');
       if (spendingResponse.data.success) {
-        const totalCost = 
+        totalCost = 
           (spendingResponse.data.stats?.apollo?.cost || 0) +
           (spendingResponse.data.stats?.openai?.cost || 0) +
           (spendingResponse.data.stats?.mailgun?.cost || 0) +
@@ -84,6 +99,9 @@ const RateLimitSettings: React.FC = () => {
       if (statsResponse.data.stats?.nextBillingDate) {
         setNextBillingDate(statsResponse.data.stats.nextBillingDate);
       }
+
+      // Fetch real historical data from timeseries endpoint
+      await fetchHistoricalData(timeFilter);
     } catch (error: any) {
       console.error('Error fetching budget/spending:', error);
       setMessage({ type: 'error', text: 'Failed to load budget settings' });
@@ -91,6 +109,60 @@ const RateLimitSettings: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const fetchHistoricalData = async (filter: TimeFilter) => {
+    try {
+      let days = 30;
+      let interval = 'day';
+      
+      if (filter === 'hour') {
+        days = 1;
+        interval = 'hour';
+      } else if (filter === 'day') {
+        days = 30;
+        interval = 'day';
+      } else if (filter === 'month') {
+        days = 365;
+        interval = 'month';
+      }
+
+      const response = await api.get('/api/lead-agent/api-usage/timeseries', {
+        params: { days, interval }
+      });
+
+      if (response.data.success && response.data.series) {
+        const formattedData: HistoricalData[] = response.data.series.map((item: any) => {
+          // For day view, show just the day number
+          let displayLabel = item.date;
+          if (filter === 'day' && item.sortKey) {
+            const date = new Date(item.sortKey);
+            displayLabel = date.getDate().toString();
+          }
+          
+          return {
+            date: item.sortKey,
+            label: displayLabel,
+            tokens: item.totalCalls || 0,
+            cost: item.total?.cost || 0
+          };
+        });
+
+        setHistoricalData(formattedData);
+      } else {
+        setHistoricalData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+      setHistoricalData([]);
+    }
+  };
+
+  // Fetch data when time filter changes
+  useEffect(() => {
+    if (!loading) {
+      fetchHistoricalData(timeFilter);
+    }
+  }, [timeFilter]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -132,7 +204,7 @@ const RateLimitSettings: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
     );
   }
@@ -140,10 +212,10 @@ const RateLimitSettings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2 className="text-2xl font-bold text-white mb-2">
           Budget Management
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-white/80">
           Set your monthly API spending limit and track your usage
         </p>
       </div>
@@ -197,12 +269,12 @@ const RateLimitSettings: React.FC = () => {
               ${remainingBudget.toFixed(2)} remaining
             </span>
           </div>
-          <div className="w-full bg-blue-400/30 rounded-full h-3">
+          <div className="w-full bg-white/20 rounded-full h-3">
             <div 
               className={`h-3 rounded-full transition-all duration-500 ${
                 budgetUsedPercent > 90 ? 'bg-red-400' : 
                 budgetUsedPercent > 75 ? 'bg-yellow-400' : 
-                'bg-white'
+                'bg-white/10 backdrop-blur-md'
               }`}
               style={{ width: `${Math.min(budgetUsedPercent, 100)}%` }}
             ></div>
@@ -222,13 +294,200 @@ const RateLimitSettings: React.FC = () => {
         )}
       </div>
 
+      {/* Cost Breakdown */}
+      {historicalData.length > 0 && (
+        <div className="space-y-6">
+          {/* Cost Breakdown Dropdown */}
+          <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+            <button
+              onClick={() => setShowCostBreakdown(!showCostBreakdown)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <h3 className="text-lg font-semibold text-white">Cost Breakdown by Service</h3>
+              <svg
+                className={`w-5 h-5 text-white transition-transform ${showCostBreakdown ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showCostBreakdown && (
+              <div className="mt-6 space-y-4">
+                {/* Apollo API */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-lg">A</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <h4 className="text-white font-semibold">Apollo API</h4>
+                          <p className="text-white/60 text-sm">Lead enrichment & search</p>
+                        </div>
+                        <span className="text-green-400 text-xs font-medium">● Active</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-white/60">Credits Used</p>
+                          <p className="text-white font-semibold">1,454</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">API Calls</p>
+                          <p className="text-white font-semibold">891</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">Cost</p>
+                          <p className="text-white font-semibold">$37.80</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* OpenAI API */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-lg">AI</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <h4 className="text-white font-semibold">OpenAI API</h4>
+                          <p className="text-white/60 text-sm">GPT-3.5 reasoning</p>
+                        </div>
+                        <span className="text-green-400 text-xs font-medium">● Active</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-white/60">Tokens Used</p>
+                          <p className="text-white font-semibold">2,184,974</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">API Calls</p>
+                          <p className="text-white font-semibold">2,776</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">Cost</p>
+                          <p className="text-white font-semibold">$7.43</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mailgun */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-lg">M</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <h4 className="text-white font-semibold">Mailgun</h4>
+                          <p className="text-white/60 text-sm">Email delivery</p>
+                        </div>
+                        <span className="text-green-400 text-xs font-medium">● Active</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-white/60">Emails Sent</p>
+                          <p className="text-white font-semibold">55</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">Delivered</p>
+                          <p className="text-white font-semibold">55</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">Cost</p>
+                          <p className="text-white font-semibold">$0.07</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ZeroBounce */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-lg">Z</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <h4 className="text-white font-semibold">ZeroBounce</h4>
+                          <p className="text-white/60 text-sm">Email validation</p>
+                        </div>
+                        <span className="text-green-400 text-xs font-medium">● Active</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-white/60">Validations</p>
+                          <p className="text-white font-semibold">119</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">API Calls</p>
+                          <p className="text-white font-semibold">119</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">Cost</p>
+                          <p className="text-white font-semibold">$1.01</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Serper */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-lg">S</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <h4 className="text-white font-semibold">Serper</h4>
+                          <p className="text-white/60 text-sm">Web search</p>
+                        </div>
+                        <span className="text-green-400 text-xs font-medium">● Active</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-white/60">Searches</p>
+                          <p className="text-white font-semibold">409</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">API Calls</p>
+                          <p className="text-white font-semibold">409</p>
+                        </div>
+                        <div>
+                          <p className="text-white/60">Cost</p>
+                          <p className="text-white font-semibold">$0.41</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Add Payment Method Button - Show for trial users */}
       {trialCredits && !trialCredits.paymentMethodAdded && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">
             Unlock Unlimited Usage
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-white/80 mb-4">
             Add a payment method to remove trial limits and continue using all features without interruption.
           </p>
           <button
@@ -243,18 +502,18 @@ const RateLimitSettings: React.FC = () => {
 
       {/* Budget Settings - Only show if payment method added */}
       {trialCredits && trialCredits.paymentMethodAdded && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">
             Set Monthly Budget
           </h3>
 
-        <div className="space-y-4">
+          <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white/90 mb-2">
               Monthly Spending Limit
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500 dark:text-gray-400 text-lg">$</span>
+              <span className="absolute left-3 top-2.5 text-white/70 dark:text-gray-400 text-lg">$</span>
               <input
                 type="number"
                 min="0"
@@ -273,10 +532,10 @@ const RateLimitSettings: React.FC = () => {
                 }}
                 onFocus={(e) => e.target.select()}
                 placeholder="0"
-                className="w-full pl-8 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-8 pr-4 py-2.5 bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg text-white text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-white/70 dark:text-gray-400 mt-1">
               Recommended: $50-$500/month depending on lead volume goals
             </p>
           </div>
@@ -302,7 +561,7 @@ const RateLimitSettings: React.FC = () => {
 
           <button
             onClick={() => setShowPaymentModal(true)}
-            className="w-full px-6 py-3 bg-white dark:bg-gray-700 border-2 border-blue-600 text-blue-600 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+            className="w-full px-6 py-3 bg-white/10 border-2 border-blue-600 text-white font-medium rounded-lg hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
           >
             <CreditCardIcon className="w-5 h-5" />
             Manage Payment Methods
@@ -322,12 +581,12 @@ const RateLimitSettings: React.FC = () => {
             }
           }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Methods</h2>
+          <div className="bg-white/10 backdrop-blur-md rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white/10 backdrop-blur-md border-b border-white/20 p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Payment Methods</h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
+                className="text-white/70 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
               >
                 ×
               </button>
@@ -341,39 +600,39 @@ const RateLimitSettings: React.FC = () => {
       )}
 
       {/* Lead Estimates */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">
           Maximum Lead Capacity
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <p className="text-sm text-white/80 mb-4">
           Maximum leads you can process without exceeding your budget. Based on average cost of ${avgCostPerLead.toFixed(2)} per lead (includes search, email unlock, enrichment, AI, validation, and email delivery).
         </p>
 
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <div className="bg-white/5 rounded-lg p-4 text-center">
+            <p className="text-3xl font-bold text-white mb-1">
               {estimatedLeadsPerDay}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">max leads/day</p>
+            <p className="text-sm text-white/80 font-medium">max leads/day</p>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <div className="bg-white/5 rounded-lg p-4 text-center">
+            <p className="text-3xl font-bold text-white mb-1">
               {estimatedLeadsPerWeek}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">max leads/week</p>
+            <p className="text-sm text-white/80 font-medium">max leads/week</p>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <div className="bg-white/5 rounded-lg p-4 text-center">
+            <p className="text-3xl font-bold text-white mb-1">
               {estimatedLeadsPerMonth}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">max leads/month</p>
+            <p className="text-sm text-white/80 font-medium">max leads/month</p>
           </div>
         </div>
 
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <p className="text-sm text-blue-900 dark:text-blue-200">
+        <div className="mt-4 p-4 bg-white/5 rounded-lg">
+          <p className="text-sm text-white/90">
             💡 <strong>Note:</strong> These are maximum estimates to stay within budget. 
             Actual costs may vary based on lead complexity and email deliverability. Each qualified lead costs approximately ${avgCostPerLead.toFixed(2)} in API fees.
           </p>

@@ -280,7 +280,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600">
       {/* Header with Logo and Skip */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-6 z-10">
         {/* Meridian Logo + Title */}

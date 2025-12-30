@@ -195,7 +195,7 @@ export default function CompanyProfileInstagram({ onEdit }: Props) {
     <>
       <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 overflow-hidden">
         {/* Header/Cover Image */}
-        <div className="relative h-48 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
+        <div className="relative h-48 bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600">
           <div className="absolute inset-0 bg-black/20"></div>
           <button
             onClick={() => setIsEditing(true)}

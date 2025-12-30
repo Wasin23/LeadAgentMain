@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 import UserMenu from '@/components/UserMenu';
 import api from '@/lib/api';
 import { geoOrthographic, geoPath, geoGraticule, geoMercator, geoAlbersUsa } from 'd3-geo';
@@ -216,6 +216,9 @@ export default function InteractiveGlobe() {
   // Modal states
   const [selectedQueue, setSelectedQueue] = useState<{agentId: string | 'all', type: 'queued' | 'sent' | 'replied', agentName: string} | null>(null);
   const [queueEmails, setQueueEmails] = useState<any[]>([]);
+  const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
+  const [editingEmail, setEditingEmail] = useState<{id: string, subject: string, body: string, to: string, cc?: string, bcc?: string} | null>(null);
+  const [navigating, setNavigating] = useState(false);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
@@ -493,12 +496,23 @@ export default function InteractiveGlobe() {
 
   const handleApproveEmail = async (emailId: string) => {
     if (!selectedQueue || !selectedAgent) return;
+    
+    // Optimistic update - remove email immediately
+    setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
+    setStats(prev => ({
+      ...prev,
+      emailsQueued: Math.max(0, prev.emailsQueued - 1),
+      emailsSent: prev.emailsSent + 1
+    }));
+    
     try {
       await api.post(`/api/email-queue/${emailId}/approve`, {
         agentId: selectedAgent.agentId
       });
+    } catch (error) {
+      console.error('Error approving email:', error);
+      // Revert on error
       fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
-      // Refresh stats
       const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
       const sentResponse = await api.get('/api/email-queue/sent?agentId=all');
       setStats(prev => ({
@@ -506,26 +520,32 @@ export default function InteractiveGlobe() {
         emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0,
         emailsSent: Array.isArray(sentResponse.data) ? sentResponse.data.length : 0
       }));
-    } catch (error) {
-      console.error('Error approving email:', error);
     }
   };
 
   const handleRejectEmail = async (emailId: string) => {
     if (!selectedQueue || !selectedAgent) return;
+    
+    // Optimistic update - remove email immediately
+    setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
+    setStats(prev => ({
+      ...prev,
+      emailsQueued: Math.max(0, prev.emailsQueued - 1)
+    }));
+    
     try {
       await api.delete(`/api/email-queue/${emailId}`, {
         data: { agentId: selectedAgent.agentId }
       });
+    } catch (error) {
+      console.error('Error rejecting email:', error);
+      // Revert on error
       fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
-      // Refresh stats
       const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
       setStats(prev => ({
         ...prev,
         emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0
       }));
-    } catch (error) {
-      console.error('Error rejecting email:', error);
     }
   };
 
@@ -872,38 +892,60 @@ export default function InteractiveGlobe() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 relative overflow-hidden">
       {/* Top Navigation Buttons - Hidden when country is expanded */}
       {!isExpanded && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
           <button
-            onClick={() => router.push('/agents')}
+            onClick={() => { 
+              setNavigating(true); 
+              setTimeout(() => router.push('/agents-overview'), 0);
+            }}
             className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
           >
-            <UsersIcon className="w-5 h-5" />
             Agents
           </button>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => { 
+              setNavigating(true); 
+              setTimeout(() => router.push('/profile'), 0);
+            }}
             className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
           >
-            <ComputerDesktopIcon className="w-5 h-5" />
-            Dashboard
+            Profile
           </button>
           <button
-            onClick={() => router.push('/analytics')}
+            onClick={() => { 
+              setNavigating(true); 
+              setTimeout(() => router.push('/analytics'), 0);
+            }}
             className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
           >
-            <ChartPieIcon className="w-5 h-5" />
             Analytics
           </button>
           <button
-            onClick={() => router.push('/settings')}
+            onClick={() => { 
+              setNavigating(true); 
+              setTimeout(() => router.push('/settings'), 0);
+            }}
             className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
           >
             <Cog6ToothIcon className="w-5 h-5" />
             Settings
           </button>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {navigating && (
+        <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 z-[9999] flex items-center justify-center">
+          <div className="text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p className="text-2xl font-semibold text-white">Loading...</p>
+          </div>
         </div>
       )}
 
@@ -926,32 +968,32 @@ export default function InteractiveGlobe() {
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 w-[180px] hover:bg-white/20 transition-all cursor-pointer text-left"
+          className="bg-white/15 rounded-2xl p-8 border border-white/20 w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
         >
-          <div className="text-white/70 text-sm mb-1">Email Queue</div>
-          <div className="text-4xl font-bold text-white">{stats.emailsQueued}</div>
+          <div className="text-white/70 text-base mb-2">Email Queue</div>
+          <div className="text-6xl font-bold text-white">{stats.emailsQueued}</div>
         </button>
 
         {/* Emails Sent */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 w-[180px] hover:bg-white/20 transition-all cursor-pointer text-left"
+          className="bg-white/15 rounded-2xl p-8 border border-white/20 w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
         >
-          <div className="text-white/70 text-sm mb-1">Sent</div>
-          <div className="text-4xl font-bold text-white">{stats.emailsSent}</div>
+          <div className="text-white/70 text-base mb-2">Sent</div>
+          <div className="text-6xl font-bold text-white">{stats.emailsSent}</div>
         </button>
 
         {/* Emails Viewed */}
         <button
           onClick={() => handleQueueClick('replied', 'Viewed Emails')}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 w-[180px] hover:bg-white/20 transition-all cursor-pointer text-left"
+          className="bg-white/15 rounded-2xl p-8 border border-white/20 w-[220px] hover:bg-white/20 transition-colors cursor-pointer text-left active:scale-95"
         >
-          <div className="text-white/70 text-sm mb-1">Viewed</div>
-          <div className="text-4xl font-bold text-white">{stats.emailsViewed}</div>
+          <div className="text-white/70 text-base mb-2">Viewed</div>
+          <div className="text-6xl font-bold text-white">{stats.emailsViewed}</div>
         </button>
 
         {/* Alerts */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 w-[180px]">
+        <div className="bg-white/15 rounded-2xl p-6 border border-white/20 w-[180px]">
           <div className="text-white/70 text-sm mb-1">Alerts</div>
           <div className="text-4xl font-bold text-white flex items-center gap-2">
             {stats.alerts}
@@ -1228,11 +1270,16 @@ export default function InteractiveGlobe() {
               {/* Avatar and Stop button */}
               <div className="flex items-center gap-2">
                 <div className="relative group">
-                  <img 
-                    src={agent.avatar || agent.personality?.avatar} 
-                    alt={agent.name}
-                    className="w-10 h-10 rounded-full border-2 border-green-400 shadow-lg transition-transform hover:scale-110"
-                  />
+                  <button
+                    onClick={() => router.push(`/agents?agent=${agent.agentId}&returnTo=/animations-demo`)}
+                    className="block"
+                  >
+                    <img 
+                      src={agent.avatar || agent.personality?.avatar} 
+                      alt={agent.name}
+                      className="w-10 h-10 rounded-full border-2 border-green-400 shadow-lg transition-transform hover:scale-110 cursor-pointer"
+                    />
+                  </button>
                   
                   {/* Tooltip on hover */}
                   <div className="absolute left-12 top-0 bg-black/90 backdrop-blur-sm text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 min-w-[200px]">
@@ -1270,19 +1317,26 @@ export default function InteractiveGlobe() {
                 
                 <button
                   onClick={async () => {
+                    // Optimistic update - hide agent immediately
+                    setAgentActivities(prev => ({
+                      ...prev,
+                      [agent.agentId]: { ...prev[agent.agentId], isActive: false }
+                    }));
+                    setAgents(prev => prev.map(a => 
+                      a.agentId === agent.agentId 
+                        ? { ...a, status: 'idle' }
+                        : a
+                    ));
+                    
                     try {
                       await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
-                      // Immediately mark as inactive in local state
-                      setAgentActivities(prev => ({
-                        ...prev,
-                        [agent.agentId]: { ...prev[agent.agentId], isActive: false }
-                      }));
-                      setTimeout(() => fetchAgents(), 500);
                     } catch (error) {
                       console.error('Error stopping agent:', error);
+                      // Revert on error
+                      fetchAgents();
                     }
                   }}
-                  className="px-2 py-1 bg-red-500/80 hover:bg-red-500 text-white text-xs rounded backdrop-blur-sm transition-all hover:scale-105"
+                  className="px-2 py-1 bg-red-500/80 hover:bg-red-500 active:bg-red-600 active:scale-95 text-white text-xs rounded transition-all"
                 >
                   Stop
                 </button>
@@ -1394,7 +1448,7 @@ export default function InteractiveGlobe() {
                 ×
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6" style={{transform: 'translateZ(0)', willChange: 'scroll-position'}}>
               {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length === 0 ? (
                 <div className="text-center py-12 text-white/70">
                   All agents are currently active
@@ -1423,41 +1477,59 @@ export default function InteractiveGlobe() {
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
+                            
+                            // Optimistic update - update UI immediately
+                            const isCurrentlyRunning = agent.status === 'running';
+                            const updatedStatus = isCurrentlyRunning ? 'idle' : 'running';
+                            
+                            // Update agents list immediately
+                            setAgents(prev => prev.map(a => 
+                              a.agentId === agent.agentId 
+                                ? { ...a, status: updatedStatus }
+                                : a
+                            ));
+                            
+                            // Update activity state
+                            if (isCurrentlyRunning) {
+                              setAgentActivities(prev => ({
+                                ...prev,
+                                [agent.agentId]: { ...prev[agent.agentId], isActive: false }
+                              }));
+                            } else {
+                              setAgentActivities(prev => ({
+                                ...prev,
+                                [agent.agentId]: { isActive: true, status: 'Starting...', timestamp: Date.now() }
+                              }));
+                            }
+                            
                             try {
-                              if (agent.status === 'running') {
+                              if (isCurrentlyRunning) {
                                 await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
-                                // Immediately mark as inactive
-                                setAgentActivities(prev => ({
-                                  ...prev,
-                                  [agent.agentId]: { ...prev[agent.agentId], isActive: false }
-                                }));
                               } else {
                                 await api.post('/api/lead-agent/start', { agentId: agent.agentId });
-                                // Immediately mark as active
-                                setAgentActivities(prev => ({
-                                  ...prev,
-                                  [agent.agentId]: { isActive: true, status: 'Starting...', timestamp: Date.now() }
-                                }));
                               }
-                              // Wait a bit for status to update, then refresh
-                              setTimeout(() => fetchAgents(), 500);
                             } catch (error) {
                               console.error('Error updating agent status:', error);
+                              // Revert on error
+                              fetchAgents();
                             }
                           }}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all active:scale-95 ${
                             agent.status === 'running'
-                              ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40'
-                              : 'bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/40'
+                              ? 'bg-red-500/20 hover:bg-red-500/30 active:bg-red-500/40 text-red-300 border border-red-500/40'
+                              : 'bg-green-500/20 hover:bg-green-500/30 active:bg-green-500/40 text-green-300 border border-green-500/40'
                           }`}
                         >
                           {agent.status === 'running' ? 'Stop' : 'Start'}
                         </button>
                         <button
-                          onClick={() => router.push(`/agents/${agent.agentId}`)}
-                          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/agents?agent=${agent.agentId}&returnTo=/animations-demo`);
+                          }}
+                          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 active:bg-blue-500/40 active:scale-95 text-blue-300 border border-blue-500/40 transition-all"
                         >
-                          Dashboard
+                          View Agent
                         </button>
                       </div>
                     </div>
@@ -1470,7 +1542,7 @@ export default function InteractiveGlobe() {
       )}
 
       {/* Email Queue Modal */}
-      {selectedQueue && (
+      {selectedQueue && !navigating && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
           <div className="bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col border border-white/20">
             {/* Modal Header */}
@@ -1501,7 +1573,7 @@ export default function InteractiveGlobe() {
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6" style={{transform: 'translateZ(0)', willChange: 'scroll-position'}}>
               {!selectedAgent ? (
                 // Show agents list
                 loadingAgents ? (
@@ -1520,7 +1592,7 @@ export default function InteractiveGlobe() {
                         <button
                           key={agent.agentId}
                           onClick={() => handleAgentSelect(agent)}
-                          className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all text-left"
+                          className="bg-white/15 rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-colors text-left"
                         >
                           <div className="flex items-center gap-3 mb-2">
                             {avatarSrc && (
@@ -1558,41 +1630,227 @@ export default function InteractiveGlobe() {
                     <div className="text-white/70">No emails found</div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {queueEmails.map((email) => (
-                      <div key={email._id || email.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <div className="font-semibold text-white">{email.to}</div>
-                            <div className="text-sm text-white/70">{email.subject}</div>
-                          </div>
-                          {selectedQueue.type === 'queued' && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleApproveEmail(email._id || email.id)}
-                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors"
+                  <div className="space-y-2 will-change-transform">
+                    {queueEmails.map((email) => {
+                      const emailId = email._id || email.id;
+                      const isExpanded = expandedEmailId === emailId;
+                      const isEditing = editingEmail?.id === emailId;
+                      
+                      return (
+                        <div key={emailId} className="bg-white/15 border border-white/20 rounded-xl overflow-hidden">
+                          {/* Email Title Row - Always Visible */}
+                          <button
+                            onClick={() => {
+                              if (isExpanded) {
+                                setExpandedEmailId(null);
+                                setEditingEmail(null);
+                              } else {
+                                setExpandedEmailId(emailId);
+                              }
+                            }}
+                            className="w-full p-4 hover:bg-white/5 text-left flex items-center justify-between group"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-white truncate">{email.subject || 'No Subject'}</div>
+                              <div className="text-sm text-white/60 truncate">To: {email.to}</div>
+                            </div>
+                            <div className="flex items-center gap-3 ml-4">
+                              {email.scheduledFor && (
+                                <div className="text-xs text-white/50">
+                                  {new Date(email.scheduledFor).toLocaleDateString()}
+                                </div>
+                              )}
+                              <svg 
+                                className={`w-5 h-5 text-white/70 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
                               >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleRejectEmail(email._id || email.id)}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
-                              >
-                                Reject
-                              </button>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </button>
+
+                          {/* Expanded Email Content */}
+                          {isExpanded && (
+                            <div className="border-t border-white/20 p-4 space-y-4">
+                              {isEditing ? (
+                                // Edit Mode
+                                <>
+                                  <div>
+                                    <label className="block text-sm font-medium text-white/70 mb-2">To</label>
+                                    <input
+                                      type="text"
+                                      value={editingEmail?.to || ''}
+                                      onChange={(e) => editingEmail && setEditingEmail({...editingEmail, to: e.target.value})}
+                                      className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      placeholder="recipient@example.com"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-sm font-medium text-white/70 mb-2">CC (optional)</label>
+                                      <input
+                                        type="text"
+                                        value={editingEmail?.cc || ''}
+                                        onChange={(e) => editingEmail && setEditingEmail({...editingEmail, cc: e.target.value})}
+                                        className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="cc@example.com"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-white/70 mb-2">BCC (optional)</label>
+                                      <input
+                                        type="text"
+                                        value={editingEmail?.bcc || ''}
+                                        onChange={(e) => editingEmail && setEditingEmail({...editingEmail, bcc: e.target.value})}
+                                        className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="bcc@example.com"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-white/70 mb-2">Subject</label>
+                                    <input
+                                      type="text"
+                                      value={editingEmail?.subject || ''}
+                                      onChange={(e) => editingEmail && setEditingEmail({...editingEmail, subject: e.target.value})}
+                                      className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-white/70 mb-2">Body</label>
+                                    <textarea
+                                      value={editingEmail?.body || ''}
+                                      onChange={(e) => editingEmail && setEditingEmail({...editingEmail, body: e.target.value})}
+                                      rows={12}
+                                      className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2 justify-end">
+                                    <button
+                                      onClick={() => setEditingEmail(null)}
+                                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (!editingEmail) return;
+                                        try {
+                                          // Include agentId from email object or selectedQueue
+                                          const agentId = email.agentId || selectedQueue?.agentId;
+                                          await api.put(`/api/email-queue/${emailId}`, {
+                                            to: editingEmail.to,
+                                            cc: editingEmail.cc,
+                                            bcc: editingEmail.bcc,
+                                            subject: editingEmail.subject,
+                                            body: editingEmail.body,
+                                            agentId: agentId,
+                                            // Update emailData nested object for approval process
+                                            emailData: {
+                                              ...(email.emailData || {}),
+                                              subject: editingEmail.subject,
+                                              body: editingEmail.body,
+                                              cc: editingEmail.cc,
+                                              bcc: editingEmail.bcc,
+                                              finalRecipient: editingEmail.to,
+                                              finalSubject: editingEmail.subject,
+                                              finalBody: editingEmail.body
+                                            }
+                                          });
+                                          setQueueEmails(prev => prev.map(e => 
+                                            (e._id || e.id) === emailId 
+                                              ? {...e, to: editingEmail.to, cc: editingEmail.cc, bcc: editingEmail.bcc, subject: editingEmail.subject, body: editingEmail.body}
+                                              : e
+                                          ));
+                                          setEditingEmail(null);
+                                        } catch (error) {
+                                          console.error('Error saving email:', error);
+                                          alert('Failed to save email changes');
+                                        }
+                                      }}
+                                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                                    >
+                                      Save Changes
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                // View Mode
+                                <>
+                                  <div className="space-y-2 mb-4">
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <span className="font-semibold text-white/70 min-w-[60px]">To:</span>
+                                      <span className="text-white">{email.to}</span>
+                                    </div>
+                                    {email.cc && (
+                                      <div className="flex items-start gap-2 text-sm">
+                                        <span className="font-semibold text-white/70 min-w-[60px]">CC:</span>
+                                        <span className="text-white/80">{email.cc}</span>
+                                      </div>
+                                    )}
+                                    {email.bcc && (
+                                      <div className="flex items-start gap-2 text-sm">
+                                        <span className="font-semibold text-white/70 min-w-[60px]">BCC:</span>
+                                        <span className="text-white/80">{email.bcc}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <span className="font-semibold text-white/70 min-w-[60px]">Subject:</span>
+                                      <span className="text-white">{email.subject || 'No Subject'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="bg-white/5 rounded-lg p-4">
+                                    <div className="text-sm text-white/90 whitespace-pre-wrap font-mono leading-relaxed">
+                                      {email.body}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    {email.scheduledFor && (
+                                      <div className="text-xs text-white/50">
+                                        Scheduled: {new Date(email.scheduledFor).toLocaleString()}
+                                      </div>
+                                    )}
+                                    <div className="flex gap-2 ml-auto">
+                                      <button
+                                        onClick={() => setEditingEmail({
+                                          id: emailId, 
+                                          to: email.to,
+                                          cc: email.cc || '',
+                                          bcc: email.bcc || '',
+                                          subject: email.subject, 
+                                          body: email.body
+                                        })}
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-95 text-white rounded-lg text-sm transition-all duration-150"
+                                      >
+                                        Edit
+                                      </button>
+                                      {selectedQueue.type === 'queued' && (
+                                        <>
+                                          <button
+                                            onClick={() => handleApproveEmail(emailId)}
+                                            className="px-4 py-2 bg-green-600 hover:bg-green-700 active:bg-green-800 active:scale-95 text-white rounded-lg text-sm transition-all duration-150"
+                                          >
+                                            Approve
+                                          </button>
+                                          <button
+                                            onClick={() => handleRejectEmail(emailId)}
+                                            className="px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 active:scale-95 text-white rounded-lg text-sm transition-all duration-150"
+                                          >
+                                            Reject
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
-                        <div className="text-sm text-white/90 whitespace-pre-wrap bg-white/5 rounded-lg p-3">
-                          {email.body}
-                        </div>
-                        {email.scheduledFor && (
-                          <div className="text-xs text-white/50 mt-2">
-                            Scheduled: {new Date(email.scheduledFor).toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )
               )}

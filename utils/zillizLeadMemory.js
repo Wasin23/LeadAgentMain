@@ -449,9 +449,9 @@ export class ZillizLeadMemory {
             const total = results.data?.length || 0;
             const exhausted = results.data?.filter(r => r.is_exhausted).length || 0;
             const avgDuplicateRate = total > 0 
-                ? results.data.reduce((sum, r) => sum + r.cumulative_duplicate_rate, 0) / total 
+                ? results.data.reduce((sum, r) => sum + (parseFloat(r.cumulative_duplicate_rate) || 0), 0) / total 
                 : 0;
-            const totalAttempts = results.data?.reduce((sum, r) => sum + r.total_attempts, 0) || 0;
+            const totalAttempts = results.data?.reduce((sum, r) => sum + (parseInt(r.total_attempts) || 0), 0) || 0;
 
             return {
                 success: true,

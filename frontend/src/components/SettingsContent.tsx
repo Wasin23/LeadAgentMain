@@ -14,7 +14,7 @@ import {
 import RateLimitSettings from './agents/RateLimitSettings';
 import CompanyProfileModal from './CompanyProfileModal';
 
-type TabType = 'profile' | 'budget' | 'calendar' | 'privacy';
+type TabType = 'profile' | 'budget' | 'calendar' | 'privacy' | 'email' | 'emailResponse' | 'emailPreferences';
 
 interface UserProfile {
   username: string;
@@ -75,12 +75,13 @@ interface Preferences {
   emailSignature: string;
   defaultLeadLimit: number;
   autoSaveInterval: number;
+  defaultRebumpEnabled?: boolean;
 }
 
-export default function SettingsContent() {
+export default function SettingsContent({ initialTab = 'profile', calendarSection }: { initialTab?: TabType; calendarSection?: 'google' | 'calendly' | 'both' }) {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -412,7 +413,7 @@ export default function SettingsContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
       </div>
     );
   }
@@ -428,66 +429,35 @@ export default function SettingsContent() {
         </div>
       )}
 
-      {/* Top Tabs Navigation */}
-      <div className="bg-white rounded-lg border border-neutral-200 shadow-sm mb-6">
-        <div className="border-b border-neutral-200">
-          <nav className="flex flex-wrap px-2">
-            {tabs.map((tab, index) => {
-              const Icon = tab.icon;
-              return (
-                <div key={tab.id} className="flex items-center">
-                  <button
-                    onClick={() => setActiveTab(tab.id)}
-                    data-tab={tab.id}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-                      activeTab === tab.id
-                        ? 'text-blue-600 border-blue-600'
-                        : 'text-neutral-600 border-transparent hover:text-neutral-900 hover:border-neutral-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                  {index < tabs.length - 1 && (
-                    <div className="h-8 w-px bg-neutral-200"></div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-6">
-            {/* Profile Tab */}
+      {/* Content Area - No tabs */}
+      <div className="space-y-6">
+            {/* Profile Section */}
             {activeTab === 'profile' && (
-              <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-6">User Profile</h2>
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Username</label>
+                    <label className="block text-sm font-medium text-white/90 mb-2">Username</label>
                     <input
                       type="text"
                       value={userProfile.username}
                       disabled
-                      className="w-full px-4 py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-neutral-900 cursor-not-allowed"
+                      className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white cursor-not-allowed"
                     />
-                    <p className="text-xs text-neutral-500 mt-1">Username cannot be changed</p>
+                    <p className="text-xs text-white/60 mt-1">Username cannot be changed</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Email</label>
+                    <label className="block text-sm font-medium text-white/90 mb-2">Email</label>
                     <input
                       type="email"
                       value={userProfile.email}
                       disabled
-                      className="w-full px-4 py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-neutral-900 cursor-not-allowed"
+                      className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white cursor-not-allowed"
                     />
-                    <p className="text-xs text-neutral-500 mt-1">Email cannot be changed</p>
+                    <p className="text-xs text-white/60 mt-1">Email cannot be changed</p>
                   </div>
                   {userProfile.createdAt && (
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">Account Created</label>
+                      <label className="block text-sm font-medium text-white/90 mb-2">Account Created</label>
                       <input
                         type="text"
                         value={new Date(userProfile.createdAt).toLocaleDateString('en-US', {
@@ -496,24 +466,25 @@ export default function SettingsContent() {
                           day: 'numeric'
                         })}
                         disabled
-                        className="w-full px-4 py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-neutral-900 cursor-not-allowed"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white cursor-not-allowed"
                       />
                     </div>
                   )}
                   
                   {/* Danger Zone */}
-                  <div className="mt-8 pt-6 border-t border-neutral-200">
+                  <div className="mt-8 pt-6 border-t border-white/20">
                     <h3 className="text-lg font-semibold text-red-600 mb-2">Danger Zone</h3>
-                    <p className="text-sm text-neutral-600 mb-4">
+                    <p className="text-sm text-white/80 mb-4">
                       Reset your account data and restart the onboarding process. This will clear your company profile and force you to go through setup again.
                     </p>
+                    
                     <button
                       onClick={async () => {
-                        if (window.confirm('Are you sure you want to reset your account data? This will clear your company profile and restart onboarding. This action cannot be undone.')) {
+                        if (window.confirm('Are you sure you want to reset your account data? This will clear ALL data including agents, emails, analytics, and company profile. You will be redirected to onboarding. This action cannot be undone.')) {
                           try {
                             await api.delete('/api/company-profile');
-                            alert('Account data reset successfully. Redirecting to onboarding...');
-                            window.location.reload();
+                            // Redirect to setup page which will show full onboarding flow
+                            window.location.href = '/setup';
                           } catch (error) {
                             console.error('Failed to reset account data:', error);
                             alert('Failed to reset account data. Please try again.');
@@ -529,28 +500,22 @@ export default function SettingsContent() {
               </div>
             )}
 
-            {/* Budget & Limits Tab */}
+            {/* Budget & Limits Section */}
             {activeTab === 'budget' && (
               <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Budget & Rate Limits</h2>
-                <p className="text-sm text-neutral-600 mb-6">Set monthly budget limits and track API spending</p>
                 <RateLimitSettings />
               </div>
             )}
 
-            {/* Email Configuration Tab */}
+            {/* Email Configuration Section */}
             {activeTab === 'email' && (
-              <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Email Configuration</h2>
-                <p className="text-sm text-neutral-600 mb-6">Configure email sending, domain settings, and integrations</p>
-                
-                <div className="space-y-6">
-                  {/* Gmail OAuth Connection - STEP 1 */}
-                  <div className="bg-white border border-neutral-200 rounded-lg p-6">
+              <div className="space-y-6">
+                {/* Gmail OAuth Connection - STEP 1 */}
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-neutral-900">Step 1: Connect Your Gmail</h3>
-                        <p className="text-sm text-neutral-600 mt-1">Add multiple accounts for email cycling</p>
+                        <h3 className="text-lg font-semibold text-white">Step 1: Connect Your Gmail</h3>
+                        <p className="text-sm text-white/80 mt-1">Add multiple accounts for email cycling</p>
                       </div>
                       {emailSettings.gmailAccounts.length > 0 && (
                         <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
@@ -570,7 +535,7 @@ export default function SettingsContent() {
                               className={`p-4 border rounded-lg transition ${
                                 account.isActive 
                                   ? 'bg-green-50 border-green-300 shadow-sm' 
-                                  : 'bg-neutral-50 border-neutral-200'
+                                  : 'bg-white/5 border-white/20'
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -592,7 +557,7 @@ export default function SettingsContent() {
                                 {/* Account Info */}
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <p className="text-sm font-semibold text-neutral-900 truncate">
+                                    <p className="text-sm font-semibold text-white truncate">
                                       {account.email}
                                     </p>
                                     {account.isActive && (
@@ -601,7 +566,7 @@ export default function SettingsContent() {
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-xs text-neutral-600">
+                                  <p className="text-xs text-white/80">
                                     Connected {new Date(account.connectedAt).toLocaleDateString()}
                                   </p>
                                 </div>
@@ -668,7 +633,7 @@ export default function SettingsContent() {
                           onClick={() => {
                             window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`;
                           }}
-                          className="w-full px-4 py-2.5 bg-white border-2 border-dashed border-neutral-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-neutral-700 font-medium text-sm"
+                          className="w-full px-4 py-2.5 bg-white/10 backdrop-blur-md border-2 border-dashed border-white/20 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-white/90 font-medium text-sm"
                         >
                           + Add Another Account
                         </button>
@@ -676,19 +641,15 @@ export default function SettingsContent() {
                     ) : (
                       <div className="space-y-4">
                         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-sm text-blue-900 font-medium mb-2">✨ Benefits:</p>
-                          <ul className="text-sm text-blue-800 space-y-1 ml-4 list-disc">
-                            <li>Send from your actual email (sales@yourcompany.com)</li>
-                            <li>One-click setup - no DNS configuration</li>
-                            <li>Best deliverability using your Gmail reputation</li>
-                            <li>Emails appear in your Sent folder</li>
-                          </ul>
+                          <p className="text-sm text-blue-900">
+                            This will allow the agent to send emails from the email of your choosing instead of the default service email address.
+                          </p>
                         </div>
                         <button
                           onClick={() => {
                             window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`;
                           }}
-                          className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white border-2 border-neutral-300 rounded-lg hover:border-blue-500 hover:shadow-md transition text-neutral-900 font-medium"
+                          className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-lg hover:border-blue-500 hover:shadow-md transition text-white font-medium"
                         >
                           <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path fill="#EA4335" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -698,7 +659,7 @@ export default function SettingsContent() {
                           </svg>
                           Connect Gmail Account
                         </button>
-                        <p className="text-xs text-neutral-500 text-center">
+                        <p className="text-xs text-white/70 text-center">
                           Secure OAuth 2.0 • Only sends emails and reads reply status
                         </p>
                       </div>
@@ -707,11 +668,11 @@ export default function SettingsContent() {
 
                   {/* Domain Health - STEP 2 (Auto-show when Gmail connected) */}
                   {emailSettings.gmailAccounts.length > 0 && (
-                    <div className="bg-white border border-neutral-200 rounded-lg p-6">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-neutral-900">Step 2: Domain Health</h3>
-                          <p className="text-sm text-neutral-600 mt-1">Automatically checked every 6 hours</p>
+                          <h3 className="text-lg font-semibold text-white">Step 2: Domain Health</h3>
+                          <p className="text-sm text-white/80 mt-1">Automatically checked every 6 hours</p>
                         </div>
                         <button
                           onClick={async () => {
@@ -737,7 +698,7 @@ export default function SettingsContent() {
                             }
                           }}
                           disabled={saving}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-neutral-100 text-neutral-700 rounded-lg hover:bg-neutral-200 transition font-medium disabled:opacity-50"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white/5 text-white/90 rounded-lg hover:bg-neutral-200 transition font-medium disabled:opacity-50"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -748,14 +709,14 @@ export default function SettingsContent() {
                       
                       <div className="space-y-4">
                         {/* Show current sending domain */}
-                        <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+                        <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-neutral-700">Active Sending Domain</span>
-                            <span className="text-sm font-semibold text-neutral-900">
+                            <span className="text-sm font-medium text-white/90">Active Sending Domain</span>
+                            <span className="text-sm font-semibold text-white">
                               {emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1] || 'N/A'}
                             </span>
                           </div>
-                          <p className="text-xs text-neutral-500">
+                          <p className="text-xs text-white/70">
                             Emails cycle through all {emailSettings.gmailAccounts.length} connected account{emailSettings.gmailAccounts.length !== 1 ? 's' : ''}
                           </p>
                         </div>
@@ -828,57 +789,52 @@ export default function SettingsContent() {
                       {saving ? 'Saving...' : 'Save Email Configuration'}
                     </button>
                   </div>
-                </div>
               </div>
             )}
 
-            {/* Email Response Settings Tab */}
+            {/* Email Response Settings Section */}
             {activeTab === 'emailResponse' && (
-              <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Email Response Settings</h2>
-                <p className="text-sm text-neutral-600 mb-6">Configure how the AI responds to incoming emails</p>
-                
-                <div className="space-y-6">
-                  {/* Company Information */}
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-neutral-900 mb-4">Company Information</h3>
+              <div className="space-y-6">
+                {/* Company Information */}
+                <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-white mb-4">Company Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Company Name</label>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Company Name</label>
                         <input
                           type="text"
                           value={emailResponseSettings.company_name}
                           onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, company_name: e.target.value })}
                           placeholder="Your Company"
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Product Name</label>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Product Name</label>
                         <input
                           type="text"
                           value={emailResponseSettings.product_name}
                           onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, product_name: e.target.value })}
                           placeholder="Your Product"
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">AI Assistant Name</label>
+                        <label className="block text-sm font-medium text-white/90 mb-2">AI Assistant Name</label>
                         <input
                           type="text"
                           value={emailResponseSettings.ai_assistant_name}
                           onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, ai_assistant_name: e.target.value })}
                           placeholder="Assistant Name"
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Timezone</label>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Timezone</label>
                         <select
                           value={emailResponseSettings.timezone}
                           onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, timezone: e.target.value })}
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="America/Los_Angeles">Pacific Time (PT)</option>
                           <option value="America/Denver">Mountain Time (MT)</option>
@@ -891,15 +847,15 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Response Style */}
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-neutral-900 mb-4">Response Style</h3>
+                  <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-white mb-4">Response Style</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Response Tone</label>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Response Tone</label>
                         <select
                           value={emailResponseSettings.response_tone}
                           onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, response_tone: e.target.value })}
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="professional_friendly">Professional & Friendly</option>
                           <option value="formal">Formal</option>
@@ -908,11 +864,11 @@ export default function SettingsContent() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Meeting Pushiness</label>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Meeting Pushiness</label>
                         <select
                           value={emailResponseSettings.meeting_pushiness}
                           onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, meeting_pushiness: e.target.value })}
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="low">Low - Mention if relevant</option>
                           <option value="balanced">Balanced - Suggest when appropriate</option>
@@ -920,11 +876,11 @@ export default function SettingsContent() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Technical Depth</label>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Technical Depth</label>
                         <select
                           value={emailResponseSettings.technical_depth}
                           onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, technical_depth: e.target.value })}
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="basic">Basic - Simple explanations</option>
                           <option value="medium">Medium - Balanced detail</option>
@@ -935,9 +891,9 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Value Propositions */}
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-neutral-900 mb-2">Value Propositions</h3>
-                    <p className="text-xs text-neutral-600 mb-3">Enter key benefits, one per line</p>
+                  <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-white mb-2">Value Propositions</h3>
+                    <p className="text-xs text-white/80 mb-3">Enter key benefits, one per line</p>
                     <textarea
                       value={emailResponseSettings.value_propositions.join('\n')}
                       onChange={(e) => setEmailResponseSettings({
@@ -946,44 +902,44 @@ export default function SettingsContent() {
                       })}
                       placeholder="Increase efficiency by 50%&#10;Reduce costs significantly&#10;Easy integration"
                       rows={5}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                      className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                     />
                   </div>
 
                   {/* Calendar ID */}
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-neutral-900 mb-4">Calendar Integration</h3>
+                  <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-white mb-4">Calendar Integration</h3>
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">Calendar ID</label>
+                      <label className="block text-sm font-medium text-white/90 mb-2">Calendar ID</label>
                       <input
                         type="text"
                         value={emailResponseSettings.calendar_id}
                         onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, calendar_id: e.target.value })}
                         placeholder="primary or your-email@gmail.com"
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
-                      <p className="text-xs text-neutral-500 mt-1">
+                      <p className="text-xs text-white/70 mt-1">
                         Calendar ID for scheduling meetings (configure sharing in Calendar Integration tab)
                       </p>
                     </div>
                   </div>
 
                   {/* AI Disclaimer */}
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-neutral-900 mb-4">Transparency</h3>
+                  <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-white mb-4">Transparency</h3>
                     <div className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         id="show_ai_disclaimer"
                         checked={emailResponseSettings.show_ai_disclaimer}
                         onChange={(e) => setEmailResponseSettings({ ...emailResponseSettings, show_ai_disclaimer: e.target.checked })}
-                        className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-2 focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 border-white/20 rounded focus:ring-2 focus:ring-blue-500"
                       />
-                      <label htmlFor="show_ai_disclaimer" className="text-sm text-neutral-700">
+                      <label htmlFor="show_ai_disclaimer" className="text-sm text-white/90">
                         Show AI disclaimer in email responses
                       </label>
                     </div>
-                    <p className="text-xs text-neutral-500 mt-2 ml-7">
+                    <p className="text-xs text-white/70 mt-2 ml-7">
                       Adds a note indicating the response was AI-generated
                     </p>
                   </div>
@@ -997,6 +953,130 @@ export default function SettingsContent() {
                       {saving ? 'Saving...' : 'Save Email Response Settings'}
                     </button>
                   </div>
+              </div>
+            )}
+
+            {/* Email Preferences Section */}
+            {activeTab === 'emailPreferences' && (
+              <div className="space-y-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-white mb-6">Email Settings</h3>
+                  
+                  <div className="space-y-6">
+                    {/* AI Auto Response Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-white/5 border border-white/20 rounded-lg">
+                      <div>
+                        <h4 className="text-sm font-semibold text-white">AI Auto Response</h4>
+                        <p className="text-xs text-white/70 mt-1">Enable AI-powered automatic email responses</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={emailSettings.aiAutoResponseEnabled}
+                          onChange={(e) => setEmailSettings({ ...emailSettings, aiAutoResponseEnabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Default Email Source */}
+                    <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
+                      <h4 className="text-sm font-semibold text-white mb-4">Default Email Source</h4>
+                      <p className="text-xs text-white/70 mb-4">Choose which email to use for sending by default</p>
+                      
+                      <div className="space-y-3">
+                        <label className="flex items-center p-3 bg-white/5 border border-white/20 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                          <input
+                            type="radio"
+                            name="emailSource"
+                            value="mailgun"
+                            checked={emailSettings.customDomain === 'mg.meridian'}
+                            onChange={() => setEmailSettings({ ...emailSettings, customDomain: 'mg.meridian' })}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-white">Meridian Email (mg.meridian)</p>
+                            <p className="text-xs text-white/70">Use our managed email service</p>
+                          </div>
+                        </label>
+                        
+                        <label className="flex items-center p-3 bg-white/5 border border-white/20 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                          <input
+                            type="radio"
+                            name="emailSource"
+                            value="gmail"
+                            checked={emailSettings.customDomain !== 'mg.meridian'}
+                            onChange={() => setEmailSettings({ ...emailSettings, customDomain: '' })}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-white">Connected Gmail</p>
+                            <p className="text-xs text-white/70">
+                              {emailSettings.gmailAccounts.length > 0 
+                                ? `Send from: ${emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email || 'Not connected'}`
+                                : 'No Gmail accounts connected'}
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Default Rebump Setting */}
+                    <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
+                      <h4 className="text-sm font-semibold text-white mb-4">Default Rebump Behavior</h4>
+                      <p className="text-xs text-white/70 mb-4">Automatically send follow-up emails to non-responders</p>
+                      
+                      <div className="space-y-3">
+                        <label className="flex items-center p-3 bg-white/5 border border-white/20 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                          <input
+                            type="radio"
+                            name="rebumpBehavior"
+                            value="enabled"
+                            checked={preferences.defaultRebumpEnabled !== false}
+                            onChange={() => setPreferences({ ...preferences, defaultRebumpEnabled: true })}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-white">Rebump Enabled</p>
+                            <p className="text-xs text-white/70">Send follow-up emails after no response</p>
+                          </div>
+                        </label>
+                        
+                        <label className="flex items-center p-3 bg-white/5 border border-white/20 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                          <input
+                            type="radio"
+                            name="rebumpBehavior"
+                            value="disabled"
+                            checked={preferences.defaultRebumpEnabled === false}
+                            onChange={() => setPreferences({ ...preferences, defaultRebumpEnabled: false })}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-white">Rebump Disabled</p>
+                            <p className="text-xs text-white/70">No automatic follow-up emails</p>
+                          </div>
+                        </label>
+                      </div>
+                      <p className="text-xs text-white/60 mt-3 italic">
+                        Note: This is the default setting for new agents. You can override this per-agent in individual agent settings.
+                      </p>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="pt-4">
+                      <button
+                        onClick={async () => {
+                          await handleSaveEmailSettings();
+                          await handleSavePreferences();
+                        }}
+                        disabled={saving}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {saving ? 'Saving...' : 'Save Email Preferences'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1004,15 +1084,16 @@ export default function SettingsContent() {
             {/* Calendar Integration Tab */}
             {activeTab === 'calendar' && (
               <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Calendar Integration</h2>
-                <p className="text-sm text-neutral-600 mb-6">Manage your calendar connections for automated meeting scheduling</p>
+                <h2 className="text-xl font-semibold text-white mb-2">Calendar Integration</h2>
+                <p className="text-sm text-white/80 mb-6">Manage your calendar connections for automated meeting scheduling</p>
                 
                 <div className="space-y-6">
                   {/* Google Calendar OAuth Status */}
-                  <div className="bg-white border border-neutral-200 rounded-lg p-6">
+                  {(!calendarSection || calendarSection === 'both' || calendarSection === 'google') && (
+                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-neutral-900 mb-2 flex items-center gap-3">
+                        <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-3">
                           <svg className="w-6 h-6" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1021,7 +1102,7 @@ export default function SettingsContent() {
                           </svg>
                           Google Calendar
                         </h3>
-                        <p className="text-sm text-neutral-600 mb-4">
+                        <p className="text-sm text-white/80 mb-4">
                           AI creates events directly in your calendar when meetings are confirmed
                         </p>
                         {calendarSettings.googleConnected ? (
@@ -1096,16 +1177,18 @@ export default function SettingsContent() {
                       </div>
                     </div>
                   </div>
+                  )}
 
                   {/* Calendly Link */}
-                  <div className="bg-white border border-neutral-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2 flex items-center gap-3">
+                  {(!calendarSection || calendarSection === 'both' || calendarSection === 'calendly') && (
+                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-3">
                       <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                       Calendly Link
                     </h3>
-                    <p className="text-sm text-neutral-600 mb-4">
+                    <p className="text-sm text-white/80 mb-4">
                       AI sends this link to leads who prefer to self-schedule
                     </p>
                     <div className="flex gap-3">
@@ -1114,7 +1197,7 @@ export default function SettingsContent() {
                         value={calendarSettings.calendlyLink || ''}
                         onChange={(e) => setCalendarSettings({ ...calendarSettings, calendlyLink: e.target.value })}
                         placeholder="https://calendly.com/yourname/30min"
-                        className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg text-neutral-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="flex-1 px-4 py-2 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                       <button
                         onClick={async () => {
@@ -1132,10 +1215,11 @@ export default function SettingsContent() {
                         Save
                       </button>
                     </div>
-                    <p className="text-xs text-neutral-500 mt-2">
+                    <p className="text-xs text-white/70 mt-2">
                       Get your link from <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">calendly.com</a>
                     </p>
                   </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1143,8 +1227,8 @@ export default function SettingsContent() {
             {/* Privacy Policy Tab */}
             {activeTab === 'privacy' && (
               <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Privacy Policy</h2>
-                <p className="text-sm text-neutral-600 mb-6">Our commitment to protecting your data</p>
+                <h2 className="text-xl font-semibold text-white mb-2">Privacy Policy</h2>
+                <p className="text-sm text-white/80 mb-6">Our commitment to protecting your data</p>
                 
                 <div className="prose prose-sm max-w-none space-y-6">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1154,9 +1238,9 @@ export default function SettingsContent() {
                   </div>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">1. Information We Collect</h3>
-                    <p className="text-sm text-neutral-700 mb-2">We collect information you provide directly:</p>
-                    <ul className="list-disc list-inside text-sm text-neutral-700 space-y-1 ml-4">
+                    <h3 className="text-lg font-semibold text-white mb-2">1. Information We Collect</h3>
+                    <p className="text-sm text-white/90 mb-2">We collect information you provide directly:</p>
+                    <ul className="list-disc list-inside text-sm text-white/90 space-y-1 ml-4">
                       <li>Account information (username, email, password)</li>
                       <li>Company profile details (name, industry, services, target market)</li>
                       <li>Lead research data (company names, contact information)</li>
@@ -1166,8 +1250,8 @@ export default function SettingsContent() {
                   </section>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">2. How We Use Your Information</h3>
-                    <ul className="list-disc list-inside text-sm text-neutral-700 space-y-1 ml-4">
+                    <h3 className="text-lg font-semibold text-white mb-2">2. How We Use Your Information</h3>
+                    <ul className="list-disc list-inside text-sm text-white/90 space-y-1 ml-4">
                       <li>Provide AI-powered lead research and qualification</li>
                       <li>Generate personalized outreach emails</li>
                       <li>Track email engagement and campaign performance</li>
@@ -1177,44 +1261,44 @@ export default function SettingsContent() {
                   </section>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">3. Third-Party Services</h3>
-                    <p className="text-sm text-neutral-700 mb-2">We use the following third-party services:</p>
-                    <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 space-y-2">
+                    <h3 className="text-lg font-semibold text-white mb-2">3. Third-Party Services</h3>
+                    <p className="text-sm text-white/90 mb-2">We use the following third-party services:</p>
+                    <div className="bg-white/5 border border-white/20 rounded-lg p-4 space-y-2">
                       <div>
-                        <strong className="text-sm text-neutral-900">OpenAI:</strong>
-                        <span className="text-sm text-neutral-700"> AI analysis and email generation</span>
+                        <strong className="text-sm text-white">OpenAI:</strong>
+                        <span className="text-sm text-white/90"> AI analysis and email generation</span>
                       </div>
                       <div>
-                        <strong className="text-sm text-neutral-900">Apollo.io:</strong>
-                        <span className="text-sm text-neutral-700"> Lead data enrichment</span>
+                        <strong className="text-sm text-white">Apollo.io:</strong>
+                        <span className="text-sm text-white/90"> Lead data enrichment</span>
                       </div>
                       <div>
-                        <strong className="text-sm text-neutral-900">Mailgun:</strong>
-                        <span className="text-sm text-neutral-700"> Email delivery service</span>
+                        <strong className="text-sm text-white">Mailgun:</strong>
+                        <span className="text-sm text-white/90"> Email delivery service</span>
                       </div>
                       <div>
-                        <strong className="text-sm text-neutral-900">Serper:</strong>
-                        <span className="text-sm text-neutral-700"> Web search capabilities</span>
+                        <strong className="text-sm text-white">Serper:</strong>
+                        <span className="text-sm text-white/90"> Web search capabilities</span>
                       </div>
                       <div>
-                        <strong className="text-sm text-neutral-900">AWS:</strong>
-                        <span className="text-sm text-neutral-700"> Cloud infrastructure and data storage</span>
+                        <strong className="text-sm text-white">AWS:</strong>
+                        <span className="text-sm text-white/90"> Cloud infrastructure and data storage</span>
                       </div>
                       <div>
-                        <strong className="text-sm text-neutral-900">Zilliz:</strong>
-                        <span className="text-sm text-neutral-700"> Vector database for AI operations</span>
+                        <strong className="text-sm text-white">Zilliz:</strong>
+                        <span className="text-sm text-white/90"> Vector database for AI operations</span>
                       </div>
                     </div>
                   </section>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">4. Data Storage & Security</h3>
-                    <p className="text-sm text-neutral-700">Your data is stored securely using AWS DynamoDB and Zilliz vector databases with encryption at rest and in transit. We implement industry-standard security measures to protect your information.</p>
+                    <h3 className="text-lg font-semibold text-white mb-2">4. Data Storage & Security</h3>
+                    <p className="text-sm text-white/90">Your data is stored securely using AWS DynamoDB and Zilliz vector databases with encryption at rest and in transit. We implement industry-standard security measures to protect your information.</p>
                   </section>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">5. Your Rights</h3>
-                    <ul className="list-disc list-inside text-sm text-neutral-700 space-y-1 ml-4">
+                    <h3 className="text-lg font-semibold text-white mb-2">5. Your Rights</h3>
+                    <ul className="list-disc list-inside text-sm text-white/90 space-y-1 ml-4">
                       <li><strong>Access:</strong> Request a copy of your data</li>
                       <li><strong>Correction:</strong> Update inaccurate information</li>
                       <li><strong>Deletion:</strong> Request account and data deletion</li>
@@ -1224,22 +1308,22 @@ export default function SettingsContent() {
                   </section>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">6. CAN-SPAM Compliance</h3>
-                    <p className="text-sm text-neutral-700">All emails sent through Meridian include unsubscribe links, accurate sender information, and comply with CAN-SPAM Act requirements. Recipients can opt-out at any time.</p>
+                    <h3 className="text-lg font-semibold text-white mb-2">6. CAN-SPAM Compliance</h3>
+                    <p className="text-sm text-white/90">All emails sent through Meridian include unsubscribe links, accurate sender information, and comply with CAN-SPAM Act requirements. Recipients can opt-out at any time.</p>
                   </section>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">7. Data Retention</h3>
-                    <p className="text-sm text-neutral-700">We retain your data as long as your account is active. Upon account deletion, we remove all personal data within 30 days, except where required by law.</p>
+                    <h3 className="text-lg font-semibold text-white mb-2">7. Data Retention</h3>
+                    <p className="text-sm text-white/90">We retain your data as long as your account is active. Upon account deletion, we remove all personal data within 30 days, except where required by law.</p>
                   </section>
 
                   <section>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">8. Contact Us</h3>
-                    <p className="text-sm text-neutral-700">For privacy concerns or data requests, contact us through the support section or email our privacy team.</p>
+                    <h3 className="text-lg font-semibold text-white mb-2">8. Contact Us</h3>
+                    <p className="text-sm text-white/90">For privacy concerns or data requests, contact us through the support section or email our privacy team.</p>
                   </section>
 
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 mt-6">
-                    <p className="text-xs text-neutral-600">
+                  <div className="bg-white/5 border border-white/20 rounded-lg p-4 mt-6">
+                    <p className="text-xs text-white/80">
                       For the complete Privacy Policy, visit{' '}
                       <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                         /privacy

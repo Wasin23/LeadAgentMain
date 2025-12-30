@@ -127,7 +127,7 @@ export default function KeywordMemoryPanel() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-neutral-500">Loading keyword memory...</div>
+        <div className="text-white/70">Loading keyword memory...</div>
       </div>
     );
   }
@@ -135,11 +135,11 @@ export default function KeywordMemoryPanel() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-neutral-900">🧠 Keyword Learning Memory</h2>
+        <h2 className="text-xl font-semibold text-white">🧠 Keyword Learning Memory</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchMemory}
-            className="px-3 py-1.5 text-sm border border-neutral-300 rounded hover:bg-neutral-50 flex items-center gap-2"
+            className="px-3 py-1.5 text-sm border border-neutral-300 rounded hover:bg-white/5 flex items-center gap-2"
           >
             <ArrowPathIcon className="w-4 h-4" />
             Refresh
@@ -160,21 +160,21 @@ export default function KeywordMemoryPanel() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg border border-neutral-200 p-4">
-            <div className="text-xs text-neutral-600 mb-1">Total Keywords</div>
-            <div className="text-2xl font-bold text-neutral-900">{stats.totalKeywords}</div>
+          <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-4">
+            <div className="text-xs text-white/80 mb-1">Total Keywords</div>
+            <div className="text-2xl font-bold text-white">{stats.totalKeywords}</div>
           </div>
-          <div className="bg-white rounded-lg border border-neutral-200 p-4">
-            <div className="text-xs text-neutral-600 mb-1">Exhausted</div>
+          <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-4">
+            <div className="text-xs text-white/80 mb-1">Exhausted</div>
             <div className="text-2xl font-bold text-red-600">{stats.exhaustedKeywords}</div>
           </div>
-          <div className="bg-white rounded-lg border border-neutral-200 p-4">
-            <div className="text-xs text-neutral-600 mb-1">Avg Duplicate Rate</div>
+          <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-4">
+            <div className="text-xs text-white/80 mb-1">Avg Duplicate Rate</div>
             <div className="text-2xl font-bold text-orange-600">{stats.avgDuplicateRate.toFixed(1)}%</div>
           </div>
-          <div className="bg-white rounded-lg border border-neutral-200 p-4">
-            <div className="text-xs text-neutral-600 mb-1">Total Searches</div>
-            <div className="text-2xl font-bold text-blue-600">{stats.totalSearchAttempts}</div>
+          <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-4">
+            <div className="text-xs text-white/80 mb-1">Total Searches</div>
+            <div className="text-2xl font-bold text-white">{stats.totalSearchAttempts}</div>
           </div>
         </div>
       )}
@@ -186,7 +186,7 @@ export default function KeywordMemoryPanel() {
           className={`px-3 py-1.5 text-sm rounded transition-colors ${
             filter === 'all'
               ? 'bg-blue-600 text-white'
-              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              : 'bg-white/10 text-white/90 hover:bg-white/20'
           }`}
         >
           All ({keywords.length})
@@ -196,7 +196,7 @@ export default function KeywordMemoryPanel() {
           className={`px-3 py-1.5 text-sm rounded transition-colors ${
             filter === 'exhausted'
               ? 'bg-red-600 text-white'
-              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              : 'bg-white/10 text-white/90 hover:bg-white/20'
           }`}
         >
           Exhausted ({keywords.filter(k => k.isExhausted).length})
@@ -206,7 +206,7 @@ export default function KeywordMemoryPanel() {
           className={`px-3 py-1.5 text-sm rounded transition-colors ${
             filter === 'good'
               ? 'bg-green-600 text-white'
-              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              : 'bg-white/10 text-white/90 hover:bg-white/20'
           }`}
         >
           Good ({keywords.filter(k => !k.isExhausted).length})
@@ -215,67 +215,67 @@ export default function KeywordMemoryPanel() {
 
       {/* Keywords Table */}
       {filteredKeywords.length === 0 ? (
-        <div className="bg-white rounded-lg border border-neutral-200 p-12 text-center">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-12 text-center">
           <div className="text-neutral-400 text-lg mb-2">🧠</div>
-          <p className="text-neutral-600">No keyword memory yet</p>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-white/80">No keyword memory yet</p>
+          <p className="text-sm text-white/70 mt-1">
             {filter === 'all' 
               ? 'Start running agents to build learning history'
               : `No ${filter} keywords found`}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-neutral-200">
-            <thead className="bg-neutral-50">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 overflow-hidden">
+          <table className="min-w-full divide-y divide-white/20">
+            <thead className="bg-white/5">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                   Keyword + Position
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                   Source
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                   Attempts
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                   Duplicates
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                   Rate
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-neutral-200">
+            <tbody className="bg-white/10 backdrop-blur-md divide-y divide-white/20">
               {filteredKeywords.map((keyword) => (
-                <tr key={keyword.searchCombo} className="hover:bg-neutral-50">
+                <tr key={keyword.searchCombo} className="hover:bg-white/5">
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium text-neutral-900">{keyword.keyword}</div>
-                    <div className="text-xs text-neutral-500">{keyword.position}</div>
+                    <div className="text-sm font-medium text-white">{keyword.keyword}</div>
+                    <div className="text-xs text-white/70">{keyword.position}</div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded ${getSourceBadge(keyword.keywordSource).color}`}>
                       {getSourceBadge(keyword.keywordSource).text}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-900">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
                     {keyword.totalAttempts}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-900">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
                     {keyword.totalDuplicates}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className="text-sm font-medium text-neutral-900">
+                      <div className="text-sm font-medium text-white">
                         {keyword.cumulativeDuplicateRate.toFixed(1)}%
                       </div>
-                      <div className="w-24 bg-neutral-200 rounded-full h-2">
+                      <div className="w-24 bg-white/20 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${
                             keyword.cumulativeDuplicateRate > 70

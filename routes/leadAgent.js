@@ -1132,4 +1132,95 @@ router.delete('/memory/reset-all', async (req, res) => {
   }
 });
 
+// Delete agent completely
+router.delete('/:agentId', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId } = req.params;
+    
+    console.log(`🗑️ [DELETE AGENT] Starting deletion for agent: ${agentId}, user: ${userId}`);
+    
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+    
+    // 1. Reassign orphaned emails to "orphan" agent FIRST
+    console.log(`📧 [DELETE AGENT] Reassigning emails from ${agentId} to orphan agent...`);
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    
+    const [queuedEmails, sentEmails, repliedEmails] = await Promise.all([
+      awsQueue.getQueuedEmails(userId, agentId),
+      awsQueue.getSentEmails(userId, agentId),
+      awsQueue.getRepliedEmails(userId, agentId)
+    ]);
+    
+    let reassignedCount = 0;
+    const orphanAgentId = 'orphan';
+    
+    for (const email of [...queuedEmails, ...sentEmails, ...repliedEmails]) {
+      try {
+        await awsQueue.reassignEmailToAgent(userId, agentId, email.id, orphanAgentId);
+        reassignedCount++;
+      } catch (error) {
+        console.error(`Failed to reassign email ${email.id}:`, error);
+      }
+    }
+    
+    console.log(`✅ [DELETE AGENT] Reassigned ${reassignedCount} emails to orphan agent`);
+    
+    // 2. Delete agent state
+    await awsManager.deleteAgentState(userId, agentId);
+    console.log(`✅ [DELETE AGENT] Deleted agent state`);
+    
+    // 3. Delete search history
+    const searchResult = await awsManager.deleteSearchHistory(userId, agentId);
+    console.log(`✅ [DELETE AGENT] Deleted ${searchResult.deletedCount} search history entries`);
+    
+    // 4. Delete cycle logs
+    const cycleResult = await awsManager.deleteCycleLogs(userId, agentId);
+    console.log(`✅ [DELETE AGENT] Deleted ${cycleResult.deletedCount} cycle logs`);
+    
+    // 5. Delete email tracking/conversations
+    const events = await awsManager.getEmailTrackingByUser(userId, agentId, 10000);
+    let trackingDeleted = 0;
+    for (const event of events) {
+      try {
+        await awsManager.deleteEmailTrackingEvent(event);
+        trackingDeleted++;
+      } catch (err) {
+        console.error(`Failed to delete tracking event:`, err.message);
+      }
+    }
+    console.log(`✅ [DELETE AGENT] Deleted ${trackingDeleted} tracking events`);
+    
+    // 6. Delete agent settings
+    await awsManager.deleteAgentSettings(userId, agentId);
+    console.log(`✅ [DELETE AGENT] Deleted agent settings`);
+    
+    // 7. Remove agent from user's activeAgents
+    const { removeAgentFromUser } = await import('../lib/userManager.js');
+    await removeAgentFromUser(userId, agentId);
+    console.log(`✅ [DELETE AGENT] Removed agent from user's activeAgents`);
+    
+    res.json({
+      success: true,
+      message: 'Agent deleted successfully',
+      deleted: {
+        state: true,
+        searchHistory: searchResult.deletedCount,
+        cycleLogs: cycleResult.deletedCount,
+        trackingEvents: trackingDeleted,
+        settings: true,
+        emailsReassigned: reassignedCount
+      }
+    });
+  } catch (error) {
+    console.error('[DELETE AGENT] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;

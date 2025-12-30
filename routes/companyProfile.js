@@ -558,7 +558,7 @@ router.delete('/', async (req, res) => {
     const userId = req.user.userId;
     const awsManager = new AWSManager();
     
-    console.log(`[COMPANY PROFILE] Resetting account data for user ${userId}`);
+    console.log(`[COMPANY PROFILE] Resetting ALL account data for user ${userId}`);
     
     // Get user settings
     const userSettings = await awsManager.getUserSettings(userId);
@@ -568,14 +568,41 @@ router.delete('/', async (req, res) => {
       delete userSettings.companyProfile;
       delete userSettings.recommendedAgentPreset;
       
-      // Save updated settings
+      // Clear agents
+      if (userSettings.agents) {
+        userSettings.agents = [];
+      }
+      
+      // Clear email queue data
+      if (userSettings.emailQueue) {
+        userSettings.emailQueue = [];
+      }
+      
+      // Clear analytics and campaign data
+      delete userSettings.lastSyncTime;
+      delete userSettings.analytics;
+      delete userSettings.campaigns;
+      
+      // IMPORTANT: Preserve billing data - do NOT clear:
+      // - userSettings.stripeCustomerId
+      // - userSettings.subscription
+      // - userSettings.billingHistory
+      // - userSettings.paymentMethod
+      
+      // Save updated (cleared) settings
       await awsManager.saveUserSettings(userId, userSettings);
       
-      console.log(`[COMPANY PROFILE] Account data reset successfully for user ${userId}`);
+      // Clear activeAgents from the user record (this is where agents are actually stored!)
+      await awsManager.updateUser(userId, { 
+        activeAgents: [],
+        hasCompletedOnboarding: false 
+      });
+      
+      console.log(`[COMPANY PROFILE] All account data reset successfully for user ${userId}`);
       
       res.json({
         success: true,
-        message: 'Account data reset successfully'
+        message: 'All account data reset successfully'
       });
     } else {
       res.status(404).json({
