@@ -1331,31 +1331,9 @@ export default function InteractiveGlobe() {
           }`}
         >
         <div className="text-center relative">
-          {/* Info Icon with Tooltip */}
+          {/* Start/Stop All Agents Button - Above Globe */}
           {!isExpanded && (
-            <div className="absolute top-4 right-4 z-50 group">
-              <button className="w-8 h-8 bg-[#1B2F52]/90 backdrop-blur-md border border-[#4FD1FF]/30 rounded-full flex items-center justify-center text-[#4FD1FF] hover:bg-[#2A4472] transition-all">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
-              {/* Tooltip */}
-              <div className="absolute right-0 top-10 w-64 bg-[#1B2F52]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-xl p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl">
-                <h3 className="text-white font-bold text-sm mb-2">Your Outreach Network</h3>
-                <p className="text-[#A3B4CC] text-xs">Click the satellite to manage agents • Watch your network grow</p>
-              </div>
-            </div>
-          )}
-          
-          <canvas
-            ref={canvasRef}
-            className="cursor-default"
-            onClick={handleCanvasClick}
-          />
-          
-          {/* Start/Stop All Agents Button - Below Globe */}
-          {!isExpanded && (
-            <div className="mt-8 animate-fade-in">
+            <div className="mb-8 animate-fade-in relative inline-block">
               <button
                 onClick={async () => {
                   const runningAgents = agents.filter(a => a.status === 'running');
@@ -1428,6 +1406,12 @@ export default function InteractiveGlobe() {
               </button>
             </div>
           )}
+          
+          <canvas
+            ref={canvasRef}
+            className="cursor-default"
+            onClick={handleCanvasClick}
+          />
         </div>
       </div>
       )}
