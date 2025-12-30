@@ -26,6 +26,7 @@ router.get('/authorize', (req, res) => {
     const stateParam = Buffer.from(JSON.stringify({ userId })).toString('base64');
     const fullAuthUrl = `${authUrl}&state=${stateParam}`;
 
+    console.log('🔐 [GMAIL AUTH] Generated auth URL:', fullAuthUrl);
     console.log('🔐 [GMAIL AUTH] Redirecting to Google OAuth consent screen');
     res.redirect(fullAuthUrl);
   } catch (error) {

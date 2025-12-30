@@ -1330,85 +1330,20 @@ export default function InteractiveGlobe() {
             isExpanded ? 'top-1/2 -translate-y-1/2' : 'bottom-[-40%] translate-y-0'
           }`}
         >
-        <div className="text-center">
+        <div className="text-center relative">
+          {/* Info Icon with Tooltip */}
           {!isExpanded && (
-            <div className="mb-8 md:mb-12 animate-fade-in px-4">
-              {/* Start/Stop All Agents Button */}
-              <div className="flex flex-col items-center mb-8">
-                <button
-                  onClick={async () => {
-                    const runningAgents = agents.filter(a => a.status === 'running');
-                    const idleAgents = agents.filter(a => a.status !== 'running');
-                    
-                    // If all agents are running, stop them all
-                    if (idleAgents.length === 0 && runningAgents.length > 0) {
-                      try {
-                        await Promise.all(
-                          runningAgents.map(agent => 
-                            api.post('/api/lead-agent/stop', { agentId: agent.agentId })
-                          )
-                        );
-                        setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
-                        // Clear agent activities
-                        setAgentActivities({});
-                        await fetchAgents();
-                      } catch (error) {
-                        console.error('Error stopping agents:', error);
-                        alert('Failed to stop some agents. Please try again.');
-                      }
-                      return;
-                    }
-                    
-                    // Otherwise, start all idle agents
-                    if (idleAgents.length === 0) {
-                      alert('All agents are already running!');
-                      return;
-                    }
-                    
-                    try {
-                      // Immediately set agents as running and create activities
-                      const newActivities: {[key: string]: any} = {};
-                      idleAgents.forEach(agent => {
-                        newActivities[agent.agentId] = {
-                          status: 'Starting...',
-                          timestamp: Date.now(),
-                          location: agent.targeting?.location || null,
-                          targeting: agent.targeting || null,
-                          isActive: true
-                        };
-                      });
-                      
-                      setAgentActivities(prev => ({ ...prev, ...newActivities }));
-                      setAgents(prev => prev.map(a => 
-                        idleAgents.find(idle => idle.agentId === a.agentId)
-                          ? { ...a, status: 'running' }
-                          : a
-                      ));
-                      
-                      // Then make the API calls
-                      await Promise.all(
-                        idleAgents.map(agent => 
-                          api.post('/api/lead-agent/start', { agentId: agent.agentId })
-                        )
-                      );
-                      
-                      await fetchAgents();
-                    } catch (error) {
-                      console.error('Error starting agents:', error);
-                      alert('Failed to start some agents. Please try again.');
-                    }
-                  }}
-                  className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all active:scale-95"
-                >
-                  {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
-                    ? 'Stop All Agents'
-                    : 'Start All Agents'
-                  }
-                </button>
+            <div className="absolute top-4 right-4 z-50 group">
+              <button className="w-8 h-8 bg-[#1B2F52]/90 backdrop-blur-md border border-[#4FD1FF]/30 rounded-full flex items-center justify-center text-[#4FD1FF] hover:bg-[#2A4472] transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              {/* Tooltip */}
+              <div className="absolute right-0 top-10 w-64 bg-[#1B2F52]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-xl p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl">
+                <h3 className="text-white font-bold text-sm mb-2">Your Outreach Network</h3>
+                <p className="text-[#A3B4CC] text-xs">Click the satellite to manage agents • Watch your network grow</p>
               </div>
-              
-              <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">Your Outreach Network</h1>
-              <p className="text-sm md:text-base text-white/80">Click the satellite to manage agents • Watch your network grow</p>
             </div>
           )}
           
@@ -1417,6 +1352,82 @@ export default function InteractiveGlobe() {
             className="cursor-default"
             onClick={handleCanvasClick}
           />
+          
+          {/* Start/Stop All Agents Button - Below Globe */}
+          {!isExpanded && (
+            <div className="mt-8 animate-fade-in">
+              <button
+                onClick={async () => {
+                  const runningAgents = agents.filter(a => a.status === 'running');
+                  const idleAgents = agents.filter(a => a.status !== 'running');
+                  
+                  // If all agents are running, stop them all
+                  if (idleAgents.length === 0 && runningAgents.length > 0) {
+                    try {
+                      await Promise.all(
+                        runningAgents.map(agent => 
+                          api.post('/api/lead-agent/stop', { agentId: agent.agentId })
+                        )
+                      );
+                      setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+                      // Clear agent activities
+                      setAgentActivities({});
+                      await fetchAgents();
+                    } catch (error) {
+                      console.error('Error stopping agents:', error);
+                      alert('Failed to stop some agents. Please try again.');
+                    }
+                    return;
+                  }
+                  
+                  // Otherwise, start all idle agents
+                  if (idleAgents.length === 0) {
+                    alert('All agents are already running!');
+                    return;
+                  }
+                  
+                  try {
+                    // Immediately set agents as running and create activities
+                    const newActivities: {[key: string]: any} = {};
+                    idleAgents.forEach(agent => {
+                      newActivities[agent.agentId] = {
+                        status: 'Starting...',
+                        timestamp: Date.now(),
+                        location: agent.targeting?.location || null,
+                        targeting: agent.targeting || null,
+                        isActive: true
+                      };
+                    });
+                    
+                    setAgentActivities(prev => ({ ...prev, ...newActivities }));
+                    setAgents(prev => prev.map(a => 
+                      idleAgents.find(idle => idle.agentId === a.agentId)
+                        ? { ...a, status: 'running' }
+                        : a
+                    ));
+                    
+                    // Then make the API calls
+                    await Promise.all(
+                      idleAgents.map(agent => 
+                        api.post('/api/lead-agent/start', { agentId: agent.agentId })
+                      )
+                    );
+                    
+                    await fetchAgents();
+                  } catch (error) {
+                    console.error('Error starting agents:', error);
+                    alert('Failed to start some agents. Please try again.');
+                  }
+                }}
+                className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all active:scale-95"
+              >
+                {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
+                  ? 'Stop All Agents'
+                  : 'Start All Agents'
+                }
+              </button>
+            </div>
+          )}
         </div>
       </div>
       )}
