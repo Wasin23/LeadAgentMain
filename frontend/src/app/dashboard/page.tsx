@@ -662,6 +662,7 @@ export default function InteractiveGlobe() {
 
   const handleAgentSelect = (agent: any) => {
     if (!selectedQueue) return;
+    setLoadingQueue(true); // Set loading immediately
     setSelectedAgent(agent);
     fetchQueueEmails(agent.agentId, selectedQueue.type);
   };

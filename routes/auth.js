@@ -21,6 +21,12 @@ const router = express.Router();
 
 // Helper function to generate personality-themed email response prompts
 function getEmailResponsePromptForPersonality(personality) {
+  // If personality has an emailPrompt field, use it directly
+  if (personality?.emailPrompt) {
+    return personality.emailPrompt;
+  }
+  
+  // Fallback to type-based lookup if no emailPrompt provided
   const personalityType = personality?.type || 'hunter';
   
   const prompts = {
