@@ -1142,7 +1142,7 @@ export default function InteractiveGlobe() {
   // Prevent hydration mismatch by not rendering until mounted
   if (!isMounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
+      <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
@@ -1155,7 +1155,7 @@ export default function InteractiveGlobe() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] relative overflow-hidden">
+    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] relative overflow-hidden">
       {/* Info Dashboard - Right Side, hidden until lg screens */}
       {!isExpanded && (
         <div className="hidden lg:block">
@@ -1651,10 +1651,7 @@ export default function InteractiveGlobe() {
                   <button
                     onClick={() => {
                       setLoadingQueue(true);
-                      // Small delay to ensure loading screen renders before navigation
-                      setTimeout(() => {
-                        router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
-                      }, 50);
+                      router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
                     }}
                     className="block transition-all duration-150 active:scale-90"
                   >
@@ -1918,10 +1915,7 @@ export default function InteractiveGlobe() {
                           onClick={(e) => {
                             e.stopPropagation();
                             setLoadingQueue(true);
-                            // Small delay to ensure loading screen renders before navigation
-                            setTimeout(() => {
-                              router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
-                            }, 50);
+                            router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
                           }}
                           className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 active:bg-blue-500/50 active:scale-[0.95] text-blue-300 border border-blue-500/40 active:border-blue-400 transition-all duration-150"
                         >
@@ -2041,7 +2035,7 @@ export default function InteractiveGlobe() {
                         <button
                           key={agent.agentId}
                           onClick={() => handleAgentSelect(agent)}
-                          className="bg-white/15 rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-colors text-left"
+                          className="bg-white/15 rounded-xl p-6 border border-white/20 hover:bg-white/20 active:bg-white/25 active:scale-[0.98] transition-all duration-150 text-left"
                         >
                           <div className="flex items-center gap-3 mb-2">
                             {avatarSrc && (
@@ -2071,8 +2065,14 @@ export default function InteractiveGlobe() {
               ) : (
                 // Show emails for selected agent
                 loadingQueue ? (
-                  <div className="text-center py-12">
-                    <div className="text-white/70">Loading emails...</div>
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="relative w-20 h-20 mx-auto mb-6">
+                        <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <div className="text-2xl font-semibold text-white">Loading...</div>
+                    </div>
                   </div>
                 ) : queueEmails.length === 0 ? (
                   <div className="text-center py-12">
