@@ -242,28 +242,28 @@ export default function SignInPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#1B2F52]/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-[#4FD1FF]/20 w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10"
+        className="bg-[#1B2F52]/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-[#4FD1FF]/20 w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10"
       >
         {/* Back to Home Button */}
         <button
           onClick={() => router.push('/')}
-          className="absolute top-6 left-6 text-[#A3B4CC] hover:text-white transition-colors z-20"
+          className="absolute top-4 left-4 sm:top-6 sm:left-6 text-[#A3B4CC] hover:text-white transition-colors z-20"
           title="Back to Home"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
         </button>
 
         {/* Header with Logo */}
-        <div className="text-center p-10 pb-6">
+        <div className="text-center p-6 sm:p-10 pb-4 sm:pb-6">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", duration: 0.6 }}
-            className="inline-block mb-6"
+            className="inline-block mb-4 sm:mb-6"
           >
-            <svg width="80" height="80" viewBox="0 0 48 48" className="drop-shadow-lg">
+            <svg width="64" height="64" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-20 sm:h-20">
               <defs>
                 <linearGradient id="globeGradientSignIn" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
@@ -281,18 +281,18 @@ export default function SignInPage() {
             </svg>
           </motion.div>
           <motion.h1 
-            className="text-4xl font-bold text-white mb-2"
+            className="text-3xl sm:text-4xl font-bold text-white mb-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
             Meridian
           </motion.h1>
-          <p className="text-[#A3B4CC] text-sm font-medium">AI-Powered Lead Research & Automation</p>
+          <p className="text-[#A3B4CC] text-xs sm:text-sm font-medium">AI-Powered Lead Research & Automation</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex mx-10 mb-8 bg-[#12213B] rounded-2xl p-1.5 border border-[#4FD1FF]/20">
+        <div className="flex mx-6 sm:mx-10 mb-6 sm:mb-8 bg-[#12213B] rounded-2xl p-1.5 border border-[#4FD1FF]/20">
           {(['signin', 'signup'] as const).map((tab) => (
             <button
               key={tab}
@@ -300,7 +300,7 @@ export default function SignInPage() {
                 setActiveTab(tab);
                 clearMessages();
               }}
-              className={`flex-1 py-3 px-4 text-sm font-semibold rounded-xl transition-all ${
+              className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold rounded-xl transition-all ${
                 activeTab === tab
                   ? 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] shadow-lg'
                   : 'text-[#8FA6C1] hover:text-white'
@@ -318,9 +318,9 @@ export default function SignInPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mx-10 mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-sm flex items-center gap-3 shadow-sm"
+              className="mx-6 sm:mx-10 mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-xs sm:text-sm flex items-center gap-2 sm:gap-3 shadow-sm"
             >
-              <ExclamationCircleIcon className="w-5 h-5 flex-shrink-0" />
+              <ExclamationCircleIcon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
               <span className="font-medium">{error}</span>
             </motion.div>
           )}
@@ -329,16 +329,16 @@ export default function SignInPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mx-10 mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-2xl text-green-700 text-sm flex items-center gap-3 shadow-sm"
+              className="mx-6 sm:mx-10 mb-4 sm:mb-6 p-3 sm:p-4 bg-green-50 border-2 border-green-200 rounded-2xl text-green-700 text-xs sm:text-sm flex items-center gap-2 sm:gap-3 shadow-sm"
             >
-              <CheckCircleIcon className="w-5 h-5 flex-shrink-0" />
+              <CheckCircleIcon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
               <span className="font-medium">{success}</span>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Forms */}
-        <div className="px-10 pb-10">
+        <div className="px-6 sm:px-10 pb-6 sm:pb-10">
           <AnimatePresence mode="wait">
             {activeTab === 'signin' && (
               <motion.form
@@ -351,7 +351,7 @@ export default function SignInPage() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-white mb-2">
                     Email
                   </label>
                   <input
@@ -359,12 +359,12 @@ export default function SignInPage() {
                     required
                     value={signInForm.username}
                     onChange={(e) => setSignInForm({ ...signInForm, username: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-xs sm:text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-white mb-2">
                     Password
                   </label>
                   <div className="relative">
@@ -373,7 +373,7 @@ export default function SignInPage() {
                       required
                       value={signInForm.password}
                       onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-xs sm:text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                     />
                     <button
                       type="button"
@@ -387,7 +387,7 @@ export default function SignInPage() {
                     <button
                       type="button"
                       onClick={() => setShowForgotModal(true)}
-                      className="text-sm text-[#4FD1FF] hover:text-[#6BE3FF] font-medium transition-colors"
+                      className="text-xs sm:text-sm text-[#4FD1FF] hover:text-[#6BE3FF] font-medium transition-colors"
                     >
                       Forgot Password?
                     </button>
@@ -397,7 +397,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] text-sm sm:text-base font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                   style={{
                     background: isLoading ? 'rgb(107, 114, 128)' : 'linear-gradient(to right, rgb(59, 130, 246), rgb(147, 51, 234))'
                   }}
@@ -421,7 +421,7 @@ export default function SignInPage() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-white mb-2">
                     Username
                   </label>
                   <input
@@ -430,12 +430,12 @@ export default function SignInPage() {
                     minLength={3}
                     value={signUpForm.username}
                     onChange={(e) => setSignUpForm({ ...signUpForm, username: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-xs sm:text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-white mb-2">
                     Email
                   </label>
                   <input
@@ -443,12 +443,12 @@ export default function SignInPage() {
                     required
                     value={signUpForm.email}
                     onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-xs sm:text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-white mb-2">
                     Password
                   </label>
                   <input
@@ -457,7 +457,7 @@ export default function SignInPage() {
                     minLength={6}
                     value={signUpForm.password}
                     onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-xs sm:text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                   {signUpForm.password && (
                     <div className="mt-2">
@@ -484,7 +484,7 @@ export default function SignInPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-white mb-2">
                     Confirm Password
                   </label>
                   <input
@@ -493,7 +493,7 @@ export default function SignInPage() {
                     minLength={6}
                     value={signUpForm.confirmPassword}
                     onChange={(e) => setSignUpForm({ ...signUpForm, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#4FD1FF]/30 rounded-xl bg-[#12213B] text-xs sm:text-sm text-white transition-all focus:outline-none focus:border-[#4FD1FF] focus:ring-4 focus:ring-[#4FD1FF]/20 placeholder-[#8FA6C1]"
                   />
                   {signUpForm.confirmPassword && (
                     <p className={`text-xs mt-1 font-medium ${
@@ -509,7 +509,7 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] text-sm sm:text-base font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isLoading && (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -535,15 +535,15 @@ export default function SignInPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#1B2F52]/95 backdrop-blur-xl border border-[#4FD1FF]/20 rounded-2xl w-full max-w-md p-8"
+              className="bg-[#1B2F52]/95 backdrop-blur-xl border border-[#4FD1FF]/20 rounded-2xl w-full max-w-md p-6 sm:p-8 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               onMouseUp={(e) => e.stopPropagation()}
             >
-              <h2 className="text-xl font-semibold text-white mb-2">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">
                 Reset Your Password
               </h2>
-              <p className="text-[#A3B4CC] text-sm mb-6">
+              <p className="text-[#A3B4CC] text-xs sm:text-sm mb-4 sm:mb-6">
                 Enter your email address and we'll send you a reset code.
               </p>
 
