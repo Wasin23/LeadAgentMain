@@ -5,7 +5,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import QueryProvider from "@/components/QueryProvider";
 import ScrollRestoration from "@/components/ScrollRestoration";
-import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,15 +19,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className} suppressHydrationWarning={true}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider>
             <AuthProvider>
-              <Suspense fallback={null}>
-                <ScrollRestoration />
-                {children}
-              </Suspense>
+              <ScrollRestoration />
+              {children}
             </AuthProvider>
           </ThemeProvider>
         </QueryProvider>
