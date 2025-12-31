@@ -625,7 +625,7 @@ export default function InfoDashboard() {
                     try {
                       const agentData: any = {
                         name: agentName,
-                        type: 'lead-agent',
+                        type: 'reasoning-lead-agent',
                         personality: {
                           type: personality?.id,
                           name: personality?.name,

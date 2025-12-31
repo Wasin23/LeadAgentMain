@@ -598,6 +598,114 @@ router.delete('/', async (req, res) => {
         hasCompletedOnboarding: false 
       });
       
+      // Clear all AWS database tables for this user (except billing)
+      console.log(`[COMPANY PROFILE] Clearing AWS database tables for user ${userId}...`);
+      
+      try {
+        // Clear contacted leads database
+        const contactsResult = await awsManager.clearContactedLeads(userId);
+        console.log(`[COMPANY PROFILE] Cleared ${contactsResult.deleted || 0} contacted leads`);
+        
+        // Clear issues and alerts
+        const issuesResult = await awsManager.clearAllIssues(userId);
+        console.log(`[COMPANY PROFILE] Cleared ${issuesResult.deleted || 0} issues`);
+        
+        // Clear cycle logs
+        const cyclesResult = await awsManager.clearAllCycleLogs(userId);
+        console.log(`[COMPANY PROFILE] Cleared ${cyclesResult.deleted || 0} cycle logs`);
+        
+        // Clear agent settings for all agents
+        if (userSettings.agents) {
+          for (const agent of userSettings.agents) {
+            if (agent.agentId) {
+              await awsManager.deleteAgentSettings(userId, agent.agentId);
+              await awsManager.deleteAgentState(userId, agent.agentId);
+              await awsManager.deleteSearchHistory(userId, agent.agentId);
+              await awsManager.deleteCycleLogs(userId, agent.agentId);
+            }
+          }
+          console.log(`[COMPANY PROFILE] Cleared agent-specific data for ${userSettings.agents.length} agents`);
+        }
+        
+        // Clear email tracking events from DynamoDB
+        const emailTrackingEvents = await awsManager.getEmailTrackingByUser(userId);
+        if (emailTrackingEvents && emailTrackingEvents.length > 0) {
+          for (const event of emailTrackingEvents) {
+            await awsManager.deleteEmailTrackingEvent(event);
+          }
+          console.log(`[COMPANY PROFILE] Cleared ${emailTrackingEvents.length} email tracking events`);
+        }
+        
+      } catch (dbError) {
+        console.error('[COMPANY PROFILE] Error clearing AWS database tables:', dbError);
+        // Continue execution - don't fail the whole reset if database cleanup has issues
+      }
+      
+      // Clear email queue files (local JSON files)
+      console.log(`[COMPANY PROFILE] Clearing email queue files for user ${userId}...`);
+      try {
+        const { promises: fs } = await import('fs');
+        const path = await import('path');
+        
+        const userLogPath = path.join(process.cwd(), `email_logs_${userId}.json`);
+        const userApprovedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
+        const userQueuePath = path.join(process.cwd(), `email_queue_${userId}.json`);
+        
+        const emptyArray = [];
+        
+        try {
+          await fs.writeFile(userLogPath, JSON.stringify(emptyArray, null, 2), 'utf8');
+          console.log(`[COMPANY PROFILE] Cleared email logs file`);
+        } catch (e) { /* File may not exist */ }
+        
+        try {
+          await fs.writeFile(userApprovedPath, JSON.stringify(emptyArray, null, 2), 'utf8');
+          console.log(`[COMPANY PROFILE] Cleared approved emails file`);
+        } catch (e) { /* File may not exist */ }
+        
+        try {
+          await fs.writeFile(userQueuePath, JSON.stringify(emptyArray, null, 2), 'utf8');
+          console.log(`[COMPANY PROFILE] Cleared email queue file`);
+        } catch (e) { /* File may not exist */ }
+        
+      } catch (fileError) {
+        console.error('[COMPANY PROFILE] Error clearing email queue files:', fileError);
+        // Continue execution
+      }
+      
+      // Clear Zilliz tracking data
+      try {
+        console.log(`[COMPANY PROFILE] Clearing Zilliz tracking data...`);
+        const authHeader = req.headers.authorization;
+        const token = authHeader && authHeader.split(' ')[1];
+        const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
+        
+        const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/clear`, {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          console.log(`[COMPANY PROFILE] Zilliz tracking data cleared successfully`);
+        }
+      } catch (zillizError) {
+        console.error('[COMPANY PROFILE] Error clearing Zilliz tracking data:', zillizError.message);
+        // Continue execution
+      }
+      
+      // Clear desktop tracking data
+      try {
+        const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
+        desktopEmailTracker.clearUserTrackingData(userId);
+        console.log(`[COMPANY PROFILE] Desktop tracking data cleared successfully`);
+      } catch (desktopError) {
+        console.error('[COMPANY PROFILE] Error clearing desktop tracking data:', desktopError.message);
+        // Continue execution
+      }
+      
       console.log(`[COMPANY PROFILE] All account data reset successfully for user ${userId}`);
       
       res.json({
