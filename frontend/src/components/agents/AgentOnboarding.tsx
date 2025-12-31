@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -41,6 +41,22 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
 
   const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'gmail-setup', 'review', 'creating'];
   const currentStepIndex = steps.indexOf(currentStep);
+
+  // Load user's default Gmail preference on mount
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const response = await api.get('/api/auth/settings');
+        if (response.data?.preferences?.defaultUseGmail) {
+          setUseGmail(true);
+          console.log('[ONBOARDING] Loaded default Gmail preference: true');
+        }
+      } catch (error) {
+        console.error('[ONBOARDING] Failed to load user preferences:', error);
+      }
+    };
+    loadUserPreferences();
+  }, []);
 
   const createAgent = async () => {
     setIsCreating(true);
@@ -249,7 +265,18 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               key="gmail-setup"
               useGmail={useGmail}
               gmailConnected={gmailConnected}
-              onToggle={setUseGmail}
+              onToggle={async (value) => {
+                setUseGmail(value);
+                // Save as default preference for future agents
+                try {
+                  await api.post('/api/auth/settings/preferences', {
+                    preferences: { defaultUseGmail: value }
+                  });
+                  console.log('[ONBOARDING] Default Gmail preference saved:', value);
+                } catch (error) {
+                  console.error('[ONBOARDING] Failed to save Gmail preference:', error);
+                }
+              }}
               onConnect={() => window.open('/api/calendar/google-oauth-url', '_blank')}
               onNext={nextStep}
               onBack={prevStep}

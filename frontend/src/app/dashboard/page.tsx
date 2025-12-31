@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon } from '@heroicons/react/24/outline';
+import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import UserMenu from '@/components/UserMenu';
 import HelpChat from '@/components/HelpChat';
 import api from '@/lib/api';
@@ -1919,14 +1919,14 @@ export default function InteractiveGlobe() {
       {/* Idle Agents Modal */}
       {showIdleAgents && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[70vh] overflow-hidden flex flex-col border border-white/20">
+          <div className="bg-gradient-to-br from-[#1B2F52] via-[#223A63] to-[#2A4570] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[70vh] overflow-hidden flex flex-col border border-[#4FD1FF]/30">
             <div className="p-6 border-b border-white/20 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-white">Idle Agents</h2>
               <button
                 onClick={() => setShowIdleAgents(false)}
-                className="text-white/70 hover:text-white text-2xl"
+                className="text-white/70 hover:text-white transition-colors"
               >
-                ×
+                <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6" style={{transform: 'translateZ(0)', willChange: 'scroll-position'}}>
@@ -1939,7 +1939,7 @@ export default function InteractiveGlobe() {
                   {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').map(agent => (
                     <div
                       key={agent.agentId}
-                      className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 hover:border-white/40 transition-all"
+                      className="bg-[#1B2F52]/50 backdrop-blur-md rounded-xl p-4 border border-white/10 hover:border-[#4FD1FF]/30 transition-all"
                     >
                       <div className="flex items-center gap-3 mb-3">
                         {(agent.avatar || agent.personality?.avatar) && (

@@ -76,6 +76,7 @@ interface Preferences {
   defaultLeadLimit: number;
   autoSaveInterval: number;
   defaultRebumpEnabled?: boolean;
+  defaultUseGmail?: boolean;
 }
 
 export default function SettingsContent({ initialTab = 'profile', calendarSection }: { initialTab?: TabType; calendarSection?: 'google' | 'calendly' | 'both' }) {
@@ -128,7 +129,8 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
     theme: 'dark',
     emailSignature: '',
     defaultLeadLimit: 10,
-    autoSaveInterval: 300000
+    autoSaveInterval: 300000,
+    defaultUseGmail: false
   });
 
   useEffect(() => {
@@ -779,6 +781,49 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                       </div>
                     )}
                   </div>
+
+                  {/* Default Gmail Sending Toggle */}
+                  {emailSettings.gmailAccounts.length > 0 && (
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-2">Default Gmail Sending</h3>
+                          <p className="text-sm text-white/80">
+                            When enabled, new agents will automatically use Gmail for sending instead of Mailgun. 
+                            You can override this setting per agent in their individual settings.
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const newValue = !preferences.defaultUseGmail;
+                            setPreferences(prev => ({ ...prev, defaultUseGmail: newValue }));
+                            try {
+                              await api.post('/api/auth/settings/preferences', {
+                                preferences: { defaultUseGmail: newValue }
+                              });
+                              setMessage({ 
+                                type: 'success', 
+                                text: `Default Gmail sending ${newValue ? 'enabled' : 'disabled'} for new agents` 
+                              });
+                            } catch (error) {
+                              console.error('Failed to save preference:', error);
+                              setPreferences(prev => ({ ...prev, defaultUseGmail: !newValue }));
+                              setMessage({ type: 'error', text: 'Failed to save preference' });
+                            }
+                          }}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            preferences.defaultUseGmail ? 'bg-blue-600' : 'bg-white/20'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              preferences.defaultUseGmail ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Basic Email Settings - REMOVED (Gmail handles this) */}
 

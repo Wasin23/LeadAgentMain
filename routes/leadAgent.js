@@ -1239,7 +1239,7 @@ router.delete('/:agentId', async (req, res) => {
         cycleLogs: cycleResult.deletedCount,
         trackingEvents: trackingDeleted,
         settings: true,
-        emailsReassigned: reassignedCount
+        emailsReassigned: 0 // Emails are kept as orphaned, not reassigned
       }
     });
   } catch (error) {

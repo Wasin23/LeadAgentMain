@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Info, Bot, Plus, ExternalLink, Power, Target, Mail, Clock, AlertCircle, Send, X } from 'lucide-react';
+import { Info, Bot, Plus, ExternalLink, Power, Target, Mail, Clock, AlertCircle, Send, X, Pencil as PencilIcon, User } from 'lucide-react';
 import api from '@/lib/api';
 import { PERSONALITY_TYPES } from './agents/AgentPersonalitySelector';
 
@@ -23,6 +23,12 @@ interface Agent {
   settings?: {
     emailBuilder?: {
       useGmail?: boolean;
+    };
+    targeting?: {
+      leadLimit?: number;
+    };
+    geographicSettings?: {
+      leadLimit?: number;
     };
   };
 }
@@ -57,6 +63,8 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
   const [presets, setPresets] = useState<any[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<any>(null);
   const [loadingPresets, setLoadingPresets] = useState(false);
+  const [editingLeadLimit, setEditingLeadLimit] = useState<{ agentId: string; currentLimit: number } | null>(null);
+  const [newLeadLimit, setNewLeadLimit] = useState<number | string>(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -145,8 +153,14 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
           try {
             // Fetch queued and sent emails separately
             const [queuedRes, sentRes] = await Promise.all([
-              api.get(`/api/email-queue/queue?agentId=${normalizedAgent.agentId}`),
-              api.get(`/api/email-queue/sent?agentId=${normalizedAgent.agentId}`)
+              api.get(`/api/email-queue/queue?agentId=${normalizedAgent.agentId}`).catch(err => {
+                console.error(`Failed to fetch queue for ${normalizedAgent.agentId}:`, err);
+                return { data: [] };
+              }),
+              api.get(`/api/email-queue/sent?agentId=${normalizedAgent.agentId}`).catch(err => {
+                console.error(`Failed to fetch sent for ${normalizedAgent.agentId}:`, err);
+                return { data: [] };
+              })
             ]);
             
             const queuedEmails = Array.isArray(queuedRes.data) ? queuedRes.data : (queuedRes.data.emails || []);
@@ -163,7 +177,15 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             };
           } catch (error) {
             console.error(`Error fetching stats for ${normalizedAgent.agentId}:`, error);
-            return normalizedAgent;
+            // Always return emailStats even on error to prevent disappearing
+            return {
+              ...normalizedAgent,
+              emailStats: {
+                built: 0,
+                queued: 0,
+                sent: 0
+              }
+            };
           }
         })
       );
@@ -331,12 +353,126 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                           </span>
                         ) : null}
                       </div>
-                      {!isOrphaned && (
-                        <ExternalLink className="w-3.5 h-3.5 text-[#4FD1FF] flex-shrink-0 ml-2" />
-                      )}
-                      {isOrphaned && (
-                        <AlertCircle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 ml-2" />
-                      )}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Lead Limit per Cycle */}
+                        {!isOrphaned && (agent.settings?.targeting?.leadLimit || agent.settings?.geographicSettings?.leadLimit) && (
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const currentLimit = agent.settings?.targeting?.leadLimit || agent.settings?.geographicSettings?.leadLimit || 10;
+                                setEditingLeadLimit({ agentId: agent.agentId, currentLimit });
+                                setNewLeadLimit(currentLimit);
+                              }}
+                              className="flex items-center gap-1 text-[10px] text-[#4FD1FF] hover:text-[#6BE3FF] transition-colors group"
+                            >
+                              <User className="w-3 h-3" />
+                              <span>{agent.settings?.targeting?.leadLimit || agent.settings?.geographicSettings?.leadLimit}/cycle</span>
+                              <PencilIcon className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                            
+                            {/* Inline Edit Modal */}
+                            {editingLeadLimit?.agentId === agent.agentId && (
+                              <div className="absolute top-full right-0 mt-1 bg-[#1B2F52] rounded-lg shadow-xl border border-[#4FD1FF]/30 p-3 z-50 w-48">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  value={newLeadLimit}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                      setNewLeadLimit('');
+                                    } else {
+                                      const num = parseInt(val);
+                                      setNewLeadLimit(isNaN(num) ? '' : num);
+                                    }
+                                  }}
+                                  className="w-full px-2 py-1 bg-[#0F1F3A] border border-[#1B2F52] rounded text-white text-xs focus:outline-none focus:border-[#4FD1FF] mb-2"
+                                  autoFocus
+                                  placeholder="1-100"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingLeadLimit(null);
+                                    }}
+                                    className="flex-1 px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition-all"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      
+                                      // Validate input
+                                      const limitValue = typeof newLeadLimit === 'string' ? parseInt(newLeadLimit) : newLeadLimit;
+                                      if (isNaN(limitValue) || limitValue < 1 || limitValue > 100) {
+                                        alert('Please enter a valid lead limit between 1 and 100');
+                                        return;
+                                      }
+
+                                      // Get current settings
+                                      const currentAgent = agents.find(a => a.agentId === editingLeadLimit.agentId);
+                                      if (!currentAgent) {
+                                        alert('Agent not found');
+                                        return;
+                                      }
+
+                                      const updatedSettings = {
+                                        ...currentAgent.settings,
+                                        geographicSettings: {
+                                          ...currentAgent.settings?.geographicSettings,
+                                          leadLimit: limitValue
+                                        }
+                                      };
+
+                                      // Optimistic update - update UI immediately
+                                      setAgents(prev => prev.map(a => 
+                                        a.agentId === editingLeadLimit.agentId
+                                          ? {
+                                              ...a,
+                                              settings: updatedSettings
+                                            }
+                                          : a
+                                      ));
+                                      
+                                      setEditingLeadLimit(null);
+
+                                      // API call in background
+                                      api.post('/api/lead-agent/settings', {
+                                        agentId: editingLeadLimit.agentId,
+                                        ...updatedSettings
+                                      }).catch((error: any) => {
+                                        console.error('Error updating lead limit:', error);
+                                        // Revert on error
+                                        setAgents(prev => prev.map(a => 
+                                          a.agentId === editingLeadLimit.agentId
+                                            ? currentAgent
+                                            : a
+                                        ));
+                                        alert('Failed to update lead limit: ' + (error.response?.data?.message || error.message));
+                                      });
+                                    }}
+                                    disabled={!newLeadLimit || (typeof newLeadLimit === 'number' && (newLeadLimit < 1 || newLeadLimit > 100))}
+                                    className="flex-1 px-2 py-1 bg-[#4FD1FF] hover:bg-[#6BE3FF] disabled:bg-gray-600 disabled:cursor-not-allowed text-[#0F1E35] font-semibold rounded text-xs transition-all"
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {!isOrphaned && (
+                          <ExternalLink className="w-3.5 h-3.5 text-[#4FD1FF] flex-shrink-0" />
+                        )}
+                        {isOrphaned && (
+                          <AlertCircle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                        )}
+                      </div>
                     </div>
 
                     {/* Targeting Info */}
@@ -352,29 +488,35 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                     )}
 
                     {/* Email Stats */}
-                    {agent.emailStats && (
-                      <div className="flex items-center gap-3 text-xs mb-2">
-                        <div className="flex items-center gap-1 group relative">
-                          <Mail className="w-3 h-3 text-[#8FA6C1]" />
-                          <span className="text-[#8FA6C1]">{agent.emailStats.built}</span>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1B2F52] text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Emails Built
-                          </div>
+                    <div className="flex items-center gap-3 text-xs mb-2">
+                      <div className="flex items-center gap-1 group relative">
+                        <Mail className="w-3 h-3 text-[#8FA6C1]" />
+                        <span className="text-[#8FA6C1]">{agent.emailStats?.built || 0}</span>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1B2F52] text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Emails Built
                         </div>
-                        <div className="flex items-center gap-1 group relative">
-                          <Clock className="w-3 h-3 text-yellow-400" />
-                          <span className="text-yellow-400">{agent.emailStats.queued}</span>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1B2F52] text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Queued
-                          </div>
+                      </div>
+                      <div className="flex items-center gap-1 group relative">
+                        <Clock className="w-3 h-3 text-yellow-400" />
+                        <span className="text-yellow-400">{agent.emailStats?.queued || 0}</span>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1B2F52] text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Queued
                         </div>
-                        <div className="flex items-center gap-1 group relative">
-                          <Send className="w-3 h-3 text-green-400" />
-                          <span className="text-green-400">{agent.emailStats.sent}</span>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1B2F52] text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Sent
-                          </div>
+                      </div>
+                      <div className="flex items-center gap-1 group relative">
+                        <Send className="w-3 h-3 text-green-400" />
+                        <span className="text-green-400">{agent.emailStats?.sent || 0}</span>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-[#1B2F52] text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Sent
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Cycle Countdown */}
+                    {!isOrphaned && agent.status === 'running' && activity?.nextCycleTime && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#4FD1FF] mb-2">
+                        <Clock className="w-3 h-3" />
+                        <span>Next cycle: {activity.nextCycleTime}</span>
                       </div>
                     )}
 

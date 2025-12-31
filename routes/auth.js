@@ -803,7 +803,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // Create new agent for authenticated user
 router.post('/create-agent', authenticateToken, async (req, res) => {
   try {
-    const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions, useGmail = false } = req.body;
+    const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions, useGmail } = req.body;
     const userId = req.user.userId;
     
     console.log('[AUTH CREATE-AGENT] Request body:', {
@@ -1002,7 +1002,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         useCustomSignature: preset.useCustomSignature || agentSettings.emailBuilder?.useCustomSignature || false,
         signatureName: preset.signatureName || agentSettings.emailBuilder?.signatureName || '',
         signatureTitle: preset.signatureTitle || agentSettings.emailBuilder?.signatureTitle || '',
-        useGmail: useGmail || agentSettings.emailBuilder?.useGmail || false
+        useGmail: useGmail !== undefined ? useGmail : (user.settings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false)
       };
       
       // Apply special instructions from preset if provided
