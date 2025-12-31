@@ -534,7 +534,7 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                               key={account.email}
                               className={`p-4 border rounded-lg transition ${
                                 account.isActive 
-                                  ? 'bg-green-50 border-green-300 shadow-sm' 
+                                  ? 'bg-[#1B2F52] border-[#4FD1FF] shadow-lg shadow-[#4FD1FF]/20' 
                                   : 'bg-white/5 border-white/20'
                               }`}
                             >
@@ -561,7 +561,7 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                                       {account.email}
                                     </p>
                                     {account.isActive && (
-                                      <span className="px-2 py-0.5 bg-green-600 text-white text-xs font-medium rounded-full">
+                                      <span className="px-2 py-0.5 bg-[#4FD1FF] text-[#0A1628] text-xs font-medium rounded-full">
                                         Active
                                       </span>
                                     )}
@@ -633,15 +633,15 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                           onClick={() => {
                             window.location.href = `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`;
                           }}
-                          className="w-full px-4 py-2.5 bg-white/10 backdrop-blur-md border-2 border-dashed border-white/20 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-white/90 font-medium text-sm"
+                          className="w-full px-4 py-2.5 bg-white/10 backdrop-blur-md border-2 border-dashed border-white/20 rounded-lg hover:border-[#4FD1FF] hover:bg-[#1B2F52] transition text-white/90 font-medium text-sm"
                         >
                           + Add Another Account
                         </button>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-sm text-blue-900">
+                        <div className="p-4 bg-[#1B2F52] border border-[#4FD1FF]/30 rounded-lg">
+                          <p className="text-sm text-white/90">
                             This will allow the agent to send emails from the email of your choosing instead of the default service email address.
                           </p>
                         </div>
@@ -744,115 +744,6 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                       </div>
                     )}
                   </div>
-
-                  {/* Domain Health - STEP 2 (Auto-show when Gmail connected) */}
-                  {emailSettings.gmailAccounts.length > 0 && (
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-white">Step 2: Domain Health</h3>
-                          <p className="text-sm text-white/80 mt-1">Automatically checked every 6 hours</p>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            const domain = emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1];
-                            if (!domain) return;
-                            setSaving(true);
-                            try {
-                              const response = await api.post('/api/check-domain-health', { domain });
-                              setEmailSettings(prev => ({
-                                ...prev,
-                                domainHealth: {
-                                  spf: response.data.spf,
-                                  dkim: response.data.dkim,
-                                  dmarc: response.data.dmarc,
-                                  lastChecked: new Date().toISOString()
-                                }
-                              }));
-                              setMessage({ type: 'success', text: 'Domain health refreshed' });
-                            } catch (error: any) {
-                              setMessage({ type: 'error', text: 'Failed to check domain health' });
-                            } finally {
-                              setSaving(false);
-                            }
-                          }}
-                          disabled={saving}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white/5 text-white/90 rounded-lg hover:bg-neutral-200 transition font-medium disabled:opacity-50"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Refresh
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {/* Show current sending domain */}
-                        <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-white/90">Active Sending Domain</span>
-                            <span className="text-sm font-semibold text-white">
-                              {emailSettings.gmailAccounts[emailSettings.activeGmailIndex]?.email.split('@')[1] || 'N/A'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-white/70">
-                            Emails cycle through all {emailSettings.gmailAccounts.length} connected account{emailSettings.gmailAccounts.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-
-                        {/* Domain Health Results */}
-                        {emailSettings.gmailAccounts.length > 0 && (
-                          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-semibold text-green-900">Email Authentication</h4>
-                              <span className="text-xs text-green-600 font-medium">
-                                ✓ Authenticated by Gmail
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between py-2 border-b border-green-200">
-                                <div>
-                                  <span className="text-sm font-medium text-green-900">SPF Authentication</span>
-                                  <p className="text-xs text-green-700">Handled by Google</p>
-                                </div>
-                                <span className="text-sm font-semibold text-green-600">
-                                  ✓ Active
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between py-2 border-b border-green-200">
-                                <div>
-                                  <span className="text-sm font-medium text-green-900">DKIM Signing</span>
-                                  <p className="text-xs text-green-700">Handled by Google</p>
-                                </div>
-                                <span className="text-sm font-semibold text-green-600">
-                                  ✓ Active
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between py-2">
-                                <div>
-                                  <span className="text-sm font-medium text-green-900">DMARC Policy</span>
-                                  <p className="text-xs text-green-700">Handled by Google</p>
-                                </div>
-                                <span className="text-sm font-semibold text-green-600">
-                                  ✓ Active
-                                </span>
-                              </div>
-                            </div>
-                            
-                            {/* Overall status */}
-                            <div className="mt-4 p-3 rounded-lg bg-green-100 border border-green-300">
-                              <p className="text-sm font-medium text-green-900">
-                                ✓ Your emails are fully authenticated by Gmail's infrastructure
-                              </p>
-                              <p className="text-xs text-green-800 mt-1">
-                                Google automatically handles SPF, DKIM, and DMARC authentication for all emails sent through Gmail OAuth.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Basic Email Settings - REMOVED (Gmail handles this) */}
 

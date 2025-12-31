@@ -360,7 +360,7 @@ export default function InfoDashboard() {
         <h3 className="text-white font-semibold text-sm mb-3">Quick Actions</h3>
         <div className="space-y-2">
           <button
-            onClick={() => router.push('/agents')}
+            onClick={() => router.push('/agents-overview')}
             className="w-full px-4 py-2.5 bg-[#1B2F52] text-white rounded-lg text-sm hover:bg-[#2A4472] transition-all flex items-center gap-2 justify-center"
           >
             <Bot className="w-4 h-4" />
