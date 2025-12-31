@@ -1227,7 +1227,7 @@ export default function InteractiveGlobe() {
       )}
 
       {/* Loading Overlay */}
-      {navigating && (
+      {(navigating || loadingQueue) && (
         <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] z-[9999] flex items-center justify-center">
           <div className="text-center">
             <div className="relative w-20 h-20 mx-auto mb-6">
@@ -1649,13 +1649,19 @@ export default function InteractiveGlobe() {
               <div className="flex items-center gap-2">
                 <div className="relative group">
                   <button
-                    onClick={() => router.push(`/agents-overview?agent=${agent.agentId}&returnTo=/dashboard`)}
-                    className="block"
+                    onClick={() => {
+                      setLoadingQueue(true);
+                      // Small delay to ensure loading screen renders before navigation
+                      setTimeout(() => {
+                        router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
+                      }, 50);
+                    }}
+                    className="block transition-all duration-150 active:scale-90"
                   >
                     <img 
                       src={agent.avatar || agent.personality?.avatar} 
                       alt={agent.name}
-                      className="w-10 h-10 rounded-full border-2 border-green-400 shadow-lg transition-transform hover:scale-110 cursor-pointer object-cover"
+                      className="w-10 h-10 rounded-full border-2 border-green-400 shadow-lg transition-all duration-150 hover:scale-110 hover:shadow-green-400/50 active:scale-95 active:shadow-green-400/80 cursor-pointer object-cover"
                     />
                   </button>
                   
@@ -1911,9 +1917,13 @@ export default function InteractiveGlobe() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            router.push(`/agents-overview?agent=${agent.agentId}&returnTo=/dashboard`);
+                            setLoadingQueue(true);
+                            // Small delay to ensure loading screen renders before navigation
+                            setTimeout(() => {
+                              router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
+                            }, 50);
                           }}
-                          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 active:bg-blue-500/40 active:scale-95 text-blue-300 border border-blue-500/40 transition-all"
+                          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 active:bg-blue-500/50 active:scale-[0.95] text-blue-300 border border-blue-500/40 active:border-blue-400 transition-all duration-150"
                         >
                           View Agent
                         </button>

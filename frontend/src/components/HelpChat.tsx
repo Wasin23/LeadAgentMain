@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, HelpCircle, Edit2, Check, RotateCcw } from 'lucide-react';
 import api from '@/lib/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   id: string;
@@ -139,7 +141,7 @@ export default function HelpChat() {
       {/* Help Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-2 transition-all shadow-lg"
+        className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm rounded-xl px-8 py-3 flex items-center gap-2 transition-all shadow-lg"
       >
         <HelpCircle className="w-5 h-5" />
         <span className="font-medium">Help</span>
@@ -208,7 +210,13 @@ export default function HelpChat() {
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {message.role === 'assistant' ? (
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        )}
                         {message.role === 'user' && (
                           <button
                             onClick={() => handleEdit(message.id, message.content)}

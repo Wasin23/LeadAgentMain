@@ -497,8 +497,11 @@ export default function AgentsOverview() {
                 key={agent.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-[#1B2F52]/60 backdrop-blur-md rounded-2xl border border-[#4FD1FF]/20 overflow-hidden hover:border-[#4FD1FF]/50 hover:shadow-lg hover:shadow-[#4FD1FF]/10 transition-all cursor-pointer"
-                onClick={() => router.push(`/agents?agent=${agent.id}&returnTo=/agents-overview`)}
+                whileTap={{ scale: 0.98 }}
+                className="bg-[#1B2F52]/60 backdrop-blur-md rounded-2xl border border-[#4FD1FF]/20 overflow-hidden hover:border-[#4FD1FF]/50 hover:shadow-lg hover:shadow-[#4FD1FF]/10 active:shadow-[#4FD1FF]/30 transition-all cursor-pointer"
+                onClick={() => {
+                  router.push(`/agents?agent=${agent.id}&returnTo=/agents-overview`);
+                }}
               >
                 {/* Header with personality avatar and name */}
                 <div className="p-4 border-b border-[#4FD1FF]/10">
@@ -1050,7 +1053,7 @@ export default function AgentsOverview() {
                   {/* Quick Actions */}
                   <div className="grid grid-cols-2 gap-4">
                     <button
-                      onClick={() => router.push(`/agents?agent=${selectedAgentForSettings.id}&returnTo=/agents-overview`)}
+                      onClick={() => setShowSettingsModal(false)}
                       className="p-4 bg-[#2A4472]/70 hover:bg-[#2A4472] backdrop-blur-sm border border-[#4FD1FF]/30 rounded-xl transition-all duration-150 active:scale-95 text-left"
                     >
                       <div className="flex items-center gap-3">
@@ -1182,10 +1185,10 @@ export default function AgentsOverview() {
                   Close
                 </button>
                 <button
-                  onClick={() => router.push(`/agents?agent=${selectedAgentForSettings.id}&returnTo=/agents-overview`)}
+                  onClick={() => setShowSettingsModal(false)}
                   className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-all font-medium"
                 >
-                  Open Full Dashboard
+                  Done
                 </button>
               </div>
             </motion.div>

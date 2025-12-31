@@ -155,7 +155,13 @@ export default function AnalyticsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#4FD1FF]/30 border-t-[#4FD1FF] rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <div className="text-2xl font-semibold text-white">Loading...</div>
+        </div>
       </div>
     );
   }

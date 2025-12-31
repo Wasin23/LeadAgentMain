@@ -413,7 +413,13 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <div className="text-lg font-medium text-white">Loading...</div>
+        </div>
       </div>
     );
   }

@@ -2663,7 +2663,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onBack}
-            className="p-2 text-white/70 hover:text-white hover:bg-white/10 transition-colors rounded-lg"
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 active:bg-white/20 transition-all rounded-lg"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </motion.button>
