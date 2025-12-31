@@ -260,6 +260,15 @@ try {
   outreachRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Help routes
+let helpRoutes;
+try {
+  helpRoutes = (await import('./routes/help.js')).default;
+} catch (e) {
+  console.log('Help routes not available:', e.message);
+  helpRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 const app = express();
 
 // Security Configuration
@@ -515,6 +524,7 @@ app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe management
 // app.use('/api/ai-search', aiSearchRoutes); // REMOVED - unused feature
 app.use('/api/billing', billingRoutes); // Billing and payment management
 app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conversations
+app.use('/api/help', helpRoutes); // Help chat AI assistant
 
 // Webhook routes for email response agent (replaces Netlify function)
 app.use('/api/webhooks', webhooksReplyRoutes); // Mailgun email response webhooks

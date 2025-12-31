@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 import UserMenu from '@/components/UserMenu';
+import HelpChat from '@/components/HelpChat';
 import api from '@/lib/api';
 import { geoOrthographic, geoPath, geoGraticule, geoMercator, geoAlbersUsa } from 'd3-geo';
 import { feature } from 'topojson-client';
@@ -1255,8 +1256,9 @@ export default function InteractiveGlobe() {
         </div>
       </div>
 
-      {/* User Menu */}
-      <div className="fixed top-4 sm:top-8 right-4 sm:right-8 z-50">
+      {/* User Menu & Help */}
+      <div className="fixed top-4 sm:top-8 right-4 sm:right-8 z-50 flex items-center gap-3">
+        <HelpChat />
         <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
           <UserMenu />
         </div>
@@ -1647,7 +1649,7 @@ export default function InteractiveGlobe() {
               <div className="flex items-center gap-2">
                 <div className="relative group">
                   <button
-                    onClick={() => router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`)}
+                    onClick={() => router.push(`/agents-overview?agent=${agent.agentId}&returnTo=/dashboard`)}
                     className="block"
                   >
                     <img 
@@ -1909,7 +1911,7 @@ export default function InteractiveGlobe() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
+                            router.push(`/agents-overview?agent=${agent.agentId}&returnTo=/dashboard`);
                           }}
                           className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 active:bg-blue-500/40 active:scale-95 text-blue-300 border border-blue-500/40 transition-all"
                         >

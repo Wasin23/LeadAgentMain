@@ -1,7 +1,7 @@
 # Meridian Agent - Technical Documentation
 
 **Last Updated:** December 30, 2025  
-**Status:** Outreach tracking page launched, Gmail OAuth popup implemented, navigation redesigned
+**Status:** Help chat AI assistant implemented, outreach tracking page launched, Gmail OAuth popup implemented, navigation redesigned
 
 ---
 
@@ -1402,6 +1402,16 @@ getUserSettings('USER_ID').then(console.log);
   - Modal closes immediately when clicking save (optimistic)
   - Loading spinner shows during brief save operation
   - Saves happen in background after modal closes
+- ✅ **Help Chat AI Assistant** - Intelligent assistant to help users navigate the platform
+  - Button in top-right corner next to user profile dropdown
+  - Chat modal with conversation history
+  - AI powered by GPT-4o with comprehensive platform knowledge
+  - Context-aware responses using Langchain ConversationChain
+  - Message editing with context regeneration (removes subsequent messages)
+  - Knows about agents, email system, settings, workflows, troubleshooting
+  - Provides step-by-step instructions and best practices
+  - Backend endpoint: `/api/help/chat`
+  - Frontend component: `HelpChat.tsx`
 
 **Implementation Details:**
 - **Loading State:** `setLoadingQueue(true)` called synchronously in `handleAgentSelect` before async operations
@@ -1409,6 +1419,12 @@ getUserSettings('USER_ID').then(console.log);
 - **Success Rate Location:** Dashboard → Sent Emails → Top of modal (above pagination)
 - **Status Badge Location:** Email list → Next to subject line (before email title)
 - **Backend Field Required:** `email.deliveryStatus` must be set to 'delivered', 'bounced', or 'pending'
+- **Help Chat Architecture:**
+  - Frontend sends full message history + new message to backend
+  - Backend uses Langchain BufferMemory to maintain conversation context
+  - System prompt contains comprehensive knowledge base about platform features
+  - AI model: GPT-4o with temperature 0.7 for balanced creativity/accuracy
+  - Edit functionality: Clicking edit on a user message removes all subsequent messages and regenerates from that point
 
 ---
 
@@ -1423,5 +1439,6 @@ getUserSettings('USER_ID').then(console.log);
 ---
 
 **Last Modified:** December 30, 2025  
-**Version:** 2.2.0 (Email Analytics + UX Improvements)  
+**Version:** 2.3.0 (Help Chat + Email Analytics + UX Improvements)  
 **Next Major Features:** Gmail watch auto-renewal, dual-send bug fix, backend delivery status tracking
+
