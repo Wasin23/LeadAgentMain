@@ -8,9 +8,16 @@ import ScrollRestoration from "@/components/ScrollRestoration";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const metadata: Metadata = {
+export const metadata: Metadata = {
   title: "Meridian - AI-Powered Lead Research & Automation",
   description: "AI-powered lead research and email automation platform",
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({

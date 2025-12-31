@@ -202,26 +202,26 @@ export default function AnalyticsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-4 sm:p-6">
       <div className="max-w-[1800px] mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-2xl backdrop-blur-md transition-all border border-white/20 flex items-center gap-2 hover:scale-105 active:scale-95"
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-2xl backdrop-blur-md transition-all border border-white/20 flex items-center gap-2 justify-center hover:scale-105 active:scale-95"
           >
             <ArrowLeftIcon className="w-5 h-5" />
             Back
           </button>
           
           <div>
-            <h1 className="text-3xl font-bold text-white text-right">Analytics Dashboard</h1>
-            <p className="text-white/70 text-sm text-right mt-1">Real-time campaign performance</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white text-left sm:text-right">Analytics Dashboard</h1>
+            <p className="text-white/70 text-xs sm:text-sm text-left sm:text-right mt-1">Real-time campaign performance</p>
           </div>
         </div>
 
         {/* Stats Grid with Mini Graphs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Queued Card */}
           <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-[1.02]">
             <p className="text-white/70 text-sm font-medium mb-2">Queued Emails</p>

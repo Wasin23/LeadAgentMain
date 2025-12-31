@@ -509,13 +509,13 @@ export default function InteractiveGlobe() {
   }, [agents, agentActivities]);
 
   // Fetch agents list
-  const fetchAgents = async () => {
+  const fetchAgents = async (queueType?: 'queued' | 'sent' | 'replied') => {
     setLoadingAgents(true);
     try {
       const response = await api.get('/api/auth/agents');
       console.log('Fetched agents:', response.data.agents);
       console.log('Agent activities:', agentActivities);
-      const agents = response.data.agents || [];
+      let agents = response.data.agents || [];
       console.log('Agents status check:', agents.map((a: any) => ({
         name: a.name,
         status: a.status,
@@ -525,6 +525,27 @@ export default function InteractiveGlobe() {
         useGmail: a.settings?.emailSettings?.useGmail,
         hasEmailSettings: !!a.settings?.emailSettings
       })));
+      
+      // Check for orphaned emails and add special agent if any exist
+      if (queueType === 'queued') {
+        try {
+          const orphanedRes = await api.get('/api/email-queue/queue?agentId=orphan');
+          const orphanedEmails = Array.isArray(orphanedRes.data) ? orphanedRes.data : (orphanedRes.data.emails || []);
+          
+          if (orphanedEmails.length > 0) {
+            // Add orphaned emails as a special agent at the top
+            agents = [{
+              agentId: 'orphan',
+              name: 'Orphaned Emails',
+              status: 'orphaned',
+              isOrphaned: true
+            }, ...agents];
+          }
+        } catch (error) {
+          console.error('Error fetching orphaned emails:', error);
+        }
+      }
+      
       setAgents(agents);
     } catch (error) {
       console.error('Error fetching agents:', error);
@@ -660,7 +681,7 @@ export default function InteractiveGlobe() {
     const centerY = (window.innerHeight - 600) / 2;
     setModalPosition({ x: Math.max(8, centerX), y: Math.max(8, centerY) });
     setModalSize({ width: 896, height: 600 });
-    fetchAgents();
+    fetchAgents(type);
   };
 
   const handleAgentSelect = (agent: any) => {
@@ -1157,75 +1178,173 @@ export default function InteractiveGlobe() {
   }
 
   return (
-    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] relative overflow-hidden">
-      {/* Info Dashboard - Right Side, hidden until lg screens */}
-      {!isExpanded && (
-        <div className="hidden lg:block">
-          <InfoDashboard />
+    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] relative overflow-y-auto sm:overflow-hidden">
+      {/* Meridian Logo */}
+      <div className="sm:fixed relative px-4 pt-4 sm:top-4 sm:left-4 sm:p-0 sm:top-8 sm:left-8 z-50">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <svg width="34" height="34" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-10 sm:h-10">
+            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
+          </svg>
+          <div className="text-white text-lg sm:text-2xl font-bold">
+            Meridian
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Mobile Welcome - Shown only on small screens */}
-      {!isExpanded && (
-        <div className="sm:hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center px-6">
-          <h1 className="text-3xl font-bold text-white mb-3">Meridian Agent</h1>
-          <p className="text-[#A3B4CC] mb-8">Use the navigation above to access your dashboard features</p>
+      {/* User Menu & Help */}
+      <div className="sm:fixed absolute top-4 right-2 sm:top-8 sm:right-8 z-50 flex items-center gap-1.5">
+        {/* Help icon for mobile, full button for desktop */}
+        <button
+          onClick={() => {/* Open help - can add HelpChat trigger here */}}
+          className="sm:hidden flex items-center justify-center w-9 h-9 bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm rounded-xl border border-white/20 transition-all"
+          aria-label="Help"
+        >
+          <span className="text-lg font-bold">?</span>
+        </button>
+        <div className="sm:block hidden">
+          <HelpChat />
         </div>
-      )}
+        <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
+          <UserMenu />
+        </div>
+      </div>
 
       {/* Top Navigation Buttons - Hidden when country is expanded */}
       {!isExpanded && (
-        <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50">
-          {/* All Navigation - Same size, single line */}
-          <div className="flex gap-2 sm:gap-3 flex-wrap justify-center">
+        <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto z-50">
+          {/* Mobile: Full width 2x2 Grid, Desktop: Centered single line */}
+          <div className="flex flex-col gap-2 sm:block">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:flex-wrap sm:justify-center">
+              <button
+                onClick={() => { 
+                  setNavigating(true); 
+                  setTimeout(() => router.push('/agents-overview'), 0);
+                }}
+                className="px-3 py-2.5 sm:px-10 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+              >
+                Agents
+              </button>
+              <button
+                onClick={() => { 
+                  setNavigating(true); 
+                  setTimeout(() => router.push('/outreach'), 0);
+                }}
+                className="px-3 py-2.5 sm:px-10 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+              >
+                Outreach
+              </button>
+              <button
+                onClick={() => { 
+                  setNavigating(true); 
+                  setTimeout(() => router.push('/profile'), 0);
+                }}
+                className="px-3 py-2.5 sm:px-10 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+              >
+                Profile
+              </button>
+              <button
+                onClick={() => { 
+                  setNavigating(true); 
+                  setTimeout(() => router.push('/analytics'), 0);
+                }}
+                className="px-3 py-2.5 sm:px-10 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+              >
+                Analytics
+              </button>
+              <button
+                onClick={() => { 
+                  setNavigating(true); 
+                  setTimeout(() => router.push('/settings'), 0);
+                }}
+                className="hidden sm:flex px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+              >
+                <Cog6ToothIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                Settings
+              </button>
+            </div>
+            
+            {/* Email Stats - Mobile only */}
+            <div className="sm:hidden grid grid-cols-2 gap-2 w-full">
+              {/* Email Queue */}
+              <button
+                onClick={() => handleQueueClick('queued', 'Email Queue')}
+                className="bg-[#1B2F52]/90 rounded-xl p-4 border border-[#4FD1FF]/30 hover:bg-[#2A4472] hover:shadow-lg hover:shadow-[#4FD1FF]/20 transition-all cursor-pointer text-left active:scale-95 shadow-md"
+              >
+                <div className="text-[#A3B4CC] text-xs mb-1">Email Queue</div>
+                <div className="text-2xl font-bold text-white">{stats.emailsQueued}</div>
+              </button>
+
+              {/* Emails Sent */}
+              <button
+                onClick={() => handleQueueClick('sent', 'Sent Emails')}
+                className="bg-[#1B2F52]/90 rounded-xl p-4 border border-[#4FD1FF]/30 hover:bg-[#2A4472] hover:shadow-lg hover:shadow-[#4FD1FF]/20 transition-all cursor-pointer text-left active:scale-95 shadow-md"
+              >
+                <div className="text-[#A3B4CC] text-xs mb-1">Sent</div>
+                <div className="text-2xl font-bold text-white">{stats.emailsSent}</div>
+              </button>
+            </div>
+
+            {/* Start/Stop All Toggle Button - Mobile only */}
             <button
-              onClick={() => { 
-                setNavigating(true); 
-                setTimeout(() => router.push('/agents-overview'), 0);
+              onClick={async () => {
+                const allRunning = agents.every(a => a.status === 'running');
+                if (allRunning) {
+                  // Optimistic update - immediately show as stopped
+                  setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+                  setAgentActivities({});
+                  
+                  // Stop all
+                  for (const agent of agents) {
+                    try {
+                      await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
+                    } catch (error) {
+                      console.error('Error stopping agent:', error);
+                    }
+                  }
+                } else {
+                  // Optimistic update - immediately show as running
+                  setAgents(prev => prev.map(a => ({ ...a, status: 'running' })));
+                  
+                  // Start all
+                  for (const agent of agents) {
+                    if (agent.status !== 'running') {
+                      try {
+                        await api.post('/api/lead-agent/start', { agentId: agent.agentId });
+                      } catch (error) {
+                        console.error('Error starting agent:', error);
+                      }
+                    }
+                  }
+                }
+                await fetchAgents();
               }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+              className={`sm:hidden w-full px-3 py-2.5 rounded-lg backdrop-blur-md transition-all border-2 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg ${
+                agents.every(a => a.status === 'running')
+                  ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border-red-500/40 hover:border-red-500/60'
+                  : 'bg-[#4FD1FF]/20 hover:bg-[#4FD1FF]/30 text-[#4FD1FF] border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60'
+              }`}
             >
-              Agents
-            </button>
-            <button
-              onClick={() => { 
-                setNavigating(true); 
-                setTimeout(() => router.push('/outreach'), 0);
-              }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
-            >
-              Outreach
-            </button>
-            <button
-              onClick={() => { 
-                setNavigating(true); 
-                setTimeout(() => router.push('/profile'), 0);
-              }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
-            >
-              Profile
-            </button>
-            <button
-              onClick={() => { 
-                setNavigating(true); 
-                setTimeout(() => router.push('/analytics'), 0);
-              }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
-            >
-              Analytics
-            </button>
-            <button
-              onClick={() => { 
-                setNavigating(true); 
-                setTimeout(() => router.push('/settings'), 0);
-              }}
-              className="px-6 sm:px-10 py-2 sm:py-4 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center gap-2 text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
-            >
-              <Cog6ToothIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-              Settings
+              {agents.every(a => a.status === 'running') ? 'Stop All Agents' : 'Start All Agents'}
             </button>
           </div>
         </div>
+      )}
+
+      {/* Info Dashboard - Right Side on desktop, after navigation on mobile */}
+      {!isExpanded && (
+        <>
+          <div className="hidden lg:block">
+            <InfoDashboard />
+          </div>
+          <div className="sm:hidden">
+            <InfoDashboard />
+          </div>
+        </>
       )}
 
       {/* Loading Overlay */}
@@ -1240,31 +1359,6 @@ export default function InteractiveGlobe() {
           </div>
         </div>
       )}
-
-      {/* Meridian Logo */}
-      <div className="fixed top-4 sm:top-8 left-4 sm:left-8 z-50">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <svg width="32" height="32" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-10 sm:h-10">
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
-          </svg>
-          <div className="text-white text-xl sm:text-2xl font-bold">
-            Meridian
-          </div>
-        </div>
-      </div>
-
-      {/* User Menu & Help */}
-      <div className="fixed top-4 sm:top-8 right-4 sm:right-8 z-50 flex items-center gap-3">
-        <HelpChat />
-        <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
-          <UserMenu />
-        </div>
-      </div>
 
       {/* Stats Panel - Left Side, hidden on small/medium screens */}
       <div className="hidden xl:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-3">
@@ -1352,19 +1446,21 @@ export default function InteractiveGlobe() {
                   
                   // If all agents are running, stop them all
                   if (idleAgents.length === 0 && runningAgents.length > 0) {
+                    // Optimistic update - immediately show as stopped
+                    setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+                    setAgentActivities({});
+                    
                     try {
                       await Promise.all(
                         runningAgents.map(agent => 
                           api.post('/api/lead-agent/stop', { agentId: agent.agentId })
                         )
                       );
-                      setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
-                      // Clear agent activities
-                      setAgentActivities({});
                       await fetchAgents();
                     } catch (error) {
                       console.error('Error stopping agents:', error);
                       alert('Failed to stop some agents. Please try again.');
+                      await fetchAgents(); // Refresh to get actual state
                     }
                     return;
                   }
@@ -1881,6 +1977,18 @@ export default function InteractiveGlobe() {
                             )}
                           </div>
                           <div className="text-sm text-white/70">{agent.personality?.name || 'Agent'}</div>
+                          <div className="flex items-center gap-1.5 text-xs mt-1">
+                            {agentActivities[agent.agentId]?.status ? (
+                              <>
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                                <span className="text-green-400 font-medium">Active</span>
+                                <span className="text-white/50 mx-1">·</span>
+                                <span className="text-cyan-300 truncate">{agentActivities[agent.agentId].status}</span>
+                              </>
+                            ) : (
+                              <div className="text-white/50">Idle</div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -1905,6 +2013,12 @@ export default function InteractiveGlobe() {
                                 ...prev,
                                 [agent.agentId]: { ...prev[agent.agentId], isActive: false }
                               }));
+                              // Immediately update agent status in state
+                              setAgents(prev => prev.map(a => 
+                                a.agentId === agent.agentId 
+                                  ? { ...a, status: 'stopped' }
+                                  : a
+                              ));
                             } else {
                               setAgentActivities(prev => ({
                                 ...prev,
@@ -1916,6 +2030,12 @@ export default function InteractiveGlobe() {
                                   targeting: agent.targeting || null
                                 }
                               }));
+                              // Immediately update agent status in state
+                              setAgents(prev => prev.map(a => 
+                                a.agentId === agent.agentId 
+                                  ? { ...a, status: 'running' }
+                                  : a
+                              ));
                             }
                             
                             try {
@@ -2060,14 +2180,23 @@ export default function InteractiveGlobe() {
                   <div className="grid grid-cols-2 gap-4">
                     {agents.map((agent) => {
                       const avatarSrc = agent.avatar || agent.personality?.avatar;
+                      const isOrphaned = agent.agentId === 'orphan';
                       return (
                         <button
                           key={agent.agentId}
                           onClick={() => handleAgentSelect(agent)}
-                          className="bg-white/15 rounded-xl p-6 border border-white/20 hover:bg-white/20 active:bg-white/25 active:scale-[0.98] transition-all duration-150 text-left"
+                          className={`rounded-xl p-6 border hover:bg-white/20 active:bg-white/25 active:scale-[0.98] transition-all duration-150 text-left ${
+                            isOrphaned 
+                              ? 'bg-yellow-500/10 border-yellow-500/40' 
+                              : 'bg-white/15 border-white/20'
+                          }`}
                         >
                           <div className="flex items-center gap-3 mb-2">
-                            {avatarSrc && (
+                            {isOrphaned ? (
+                              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                                <span className="text-yellow-400 text-xl">⚠️</span>
+                              </div>
+                            ) : avatarSrc ? (
                               <img 
                                 src={avatarSrc} 
                                 alt={agent.name}
@@ -2077,13 +2206,15 @@ export default function InteractiveGlobe() {
                                   e.currentTarget.style.display = 'none';
                                 }}
                               />
-                            )}
-                            <div className="font-bold text-white text-lg">{agent.name}</div>
+                            ) : null}
+                            <div className={`font-bold text-lg ${isOrphaned ? 'text-yellow-400' : 'text-white'}`}>
+                              {agent.name}
+                            </div>
                           </div>
-                          <div className="text-sm text-white/70">
-                            {agent.personality?.name || 'Agent'}
+                          <div className={`text-sm ${isOrphaned ? 'text-yellow-400/70' : 'text-white/70'}`}>
+                            {isOrphaned ? 'From deleted agents' : (agent.personality?.name || 'Agent')}
                           </div>
-                          <div className="mt-3 text-xs text-white/50">
+                          <div className={`mt-3 text-xs ${isOrphaned ? 'text-yellow-400/50' : 'text-white/50'}`}>
                             Click to view {selectedQueue?.type} emails
                           </div>
                         </button>

@@ -421,9 +421,9 @@ export default function AgentsOverview() {
       <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]" />
       
       {/* Content */}
-      <div className="relative z-10 p-8">
+      <div className="relative z-10 p-4 sm:p-8">
         {/* Header with Back Button and Title */}
-        <div className="mb-6 flex items-center gap-4">
+        <div className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => router.push('/dashboard')}
             className="p-2 rounded-lg bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all border border-[#4FD1FF]/30"
@@ -431,17 +431,17 @@ export default function AgentsOverview() {
             <ArrowLeftIcon className="w-5 h-5 text-white" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-white">Agent Management</h1>
-            <p className="text-[#A3B4CC] text-sm mt-1">Manage your agents and presets</p>
+            <h1 className="text-xl sm:text-3xl font-bold text-white">Agent Management</h1>
+            <p className="text-[#A3B4CC] text-xs sm:text-sm mt-1">Manage your agents and presets</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('agents')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'agents'
                   ? 'bg-[#2A4472] text-white border-2 border-[#4FD1FF]/60 shadow-lg shadow-[#4FD1FF]/20'
                   : 'bg-[#1B2F52]/70 text-[#A3B4CC] border-2 border-[#4FD1FF]/20 hover:bg-[#1B2F52] hover:text-white hover:border-[#4FD1FF]/40'
@@ -451,7 +451,7 @@ export default function AgentsOverview() {
             </button>
             <button
               onClick={() => setActiveTab('presets')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'presets'
                   ? 'bg-[#2A4472] text-white border-2 border-[#4FD1FF]/60 shadow-lg shadow-[#4FD1FF]/20'
                   : 'bg-[#1B2F52]/70 text-[#A3B4CC] border-2 border-[#4FD1FF]/20 hover:bg-[#1B2F52] hover:text-white hover:border-[#4FD1FF]/40'
@@ -464,7 +464,7 @@ export default function AgentsOverview() {
           {activeTab === 'agents' && (
             <button
               onClick={() => setShowPersonalitySelector(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all rounded-lg border border-[#4FD1FF]/30 text-white font-medium shadow-lg shadow-[#4FD1FF]/10"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all rounded-lg border border-[#4FD1FF]/30 text-white font-medium text-sm sm:text-base shadow-lg shadow-[#4FD1FF]/10"
             >
               <PlusIcon className="w-5 h-5" />
               New Agent
@@ -474,7 +474,7 @@ export default function AgentsOverview() {
           {activeTab === 'presets' && (
             <button
               onClick={() => setShowPresetModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 backdrop-blur-sm hover:bg-cyan-500/30 transition-all rounded-lg border border-cyan-500/40 text-cyan-300 font-medium"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-cyan-500/20 backdrop-blur-sm hover:bg-cyan-500/30 transition-all rounded-lg border border-cyan-500/40 text-cyan-300 font-medium text-sm sm:text-base"
             >
               <PlusIcon className="w-5 h-5" />
               New Preset
@@ -484,7 +484,7 @@ export default function AgentsOverview() {
 
         {/* Agents Section */}
         {activeTab === 'agents' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {agents.map((agent) => {
             const targetIndustries = agent.settings?.companyCriteria?.companyIndustries || [];
             const targetPositions = agent.settings?.contactCriteria?.targetPositions || [];

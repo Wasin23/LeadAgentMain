@@ -99,10 +99,10 @@ export default function OutreachPage() {
       <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]" />
       
       {/* Content */}
-      <div className="relative z-10 p-8">
+      <div className="relative z-10 p-4 sm:p-8">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => router.push('/dashboard')}
               className="p-2 rounded-lg bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all border border-white/20"
@@ -110,14 +110,14 @@ export default function OutreachPage() {
               <ArrowLeftIcon className="w-5 h-5 text-white" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-white">Outreach Overview</h1>
-              <p className="text-white/70 text-sm mt-1">Track all your outreach activity across agents</p>
+              <h1 className="text-xl sm:text-3xl font-bold text-white">Outreach Overview</h1>
+              <p className="text-white/70 text-xs sm:text-sm mt-1">Track all your outreach activity across agents</p>
             </div>
           </div>
           
           <button
             onClick={() => setShowAddMeetingModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-500/20 backdrop-blur-sm hover:bg-green-500/30 transition-all rounded-lg border border-green-500/40 text-green-300 font-medium"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500/20 backdrop-blur-sm hover:bg-green-500/30 transition-all rounded-lg border border-green-500/40 text-green-300 font-medium text-sm sm:text-base"
           >
             <PlusIcon className="w-5 h-5" />
             Add Meeting

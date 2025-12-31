@@ -54,6 +54,7 @@ export default function SettingsPage() {
   const [expandedCategory, setExpandedCategory] = useState<string>('account');
   const [selectedSection, setSelectedSection] = useState<SettingSection>('profile');
   const [showCompanyProfileModal, setShowCompanyProfileModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const categories: SettingCategory[] = [
     {
@@ -140,7 +141,7 @@ export default function SettingsPage() {
     if (selectedSection === 'profile') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">User Profile</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">User Profile</h1>
           <p className="text-white/70 mb-8">View your account information</p>
           <SettingsContent initialTab="profile" />
         </div>
@@ -150,7 +151,7 @@ export default function SettingsPage() {
     if (selectedSection === 'company') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Company Profile</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Company Profile</h1>
           <p className="text-white/70 mb-8">Manage your company information for email responses</p>
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-8">
             <p className="text-white/80 mb-6">
@@ -171,7 +172,7 @@ export default function SettingsPage() {
     if (selectedSection === 'gmail') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Gmail Connection</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Gmail Connection</h1>
           <p className="text-white/70 mb-8">Connect and manage your Gmail accounts</p>
           <SettingsContent initialTab="email" />
         </div>
@@ -181,7 +182,7 @@ export default function SettingsPage() {
     if (selectedSection === 'email-preferences') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Email Preferences</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Email Preferences</h1>
           <p className="text-white/70 mb-8">Configure default email settings and AI response behavior</p>
           <SettingsContent initialTab="emailPreferences" />
         </div>
@@ -191,7 +192,7 @@ export default function SettingsPage() {
     if (selectedSection === 'google-calendar') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Google Calendar</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Google Calendar</h1>
           <p className="text-white/70 mb-8">Connect your Google Calendar for automated meeting scheduling</p>
           <SettingsContent initialTab="calendar" calendarSection="google" />
         </div>
@@ -201,7 +202,7 @@ export default function SettingsPage() {
     if (selectedSection === 'calendly') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Calendly Link</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Calendly Link</h1>
           <p className="text-white/70 mb-8">Add your Calendly scheduling link for self-service booking</p>
           <SettingsContent initialTab="calendar" calendarSection="calendly" />
         </div>
@@ -211,7 +212,7 @@ export default function SettingsPage() {
     if (selectedSection === 'privacy') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Privacy Policy</h1>
           <p className="text-white/70 mb-8">Review our privacy policy</p>
           <SettingsContent initialTab="privacy" />
         </div>
@@ -221,7 +222,7 @@ export default function SettingsPage() {
     if (selectedSection === 'memory') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Keyword Memory</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Keyword Memory</h1>
           <p className="text-white/70 mb-8">Manage keywords and training data for your agents</p>
           <KeywordMemoryPanel />
         </div>
@@ -232,7 +233,7 @@ export default function SettingsPage() {
     if (selectedSection === 'payment-methods') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Payment Methods</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Payment Methods</h1>
           <p className="text-white/70 mb-8">Manage your credit cards and payment information</p>
           <BillingContent />
         </div>
@@ -243,7 +244,7 @@ export default function SettingsPage() {
       return (
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Budget & Limits</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Budget & Limits</h1>
             <p className="text-white/70 mb-8">Set monthly spending limits and track API usage</p>
           </div>
           <RateLimitSettings />
@@ -254,7 +255,7 @@ export default function SettingsPage() {
     if (selectedSection === 'payment-history') {
       return (
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Payment History</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Payment History</h1>
           <p className="text-white/70 mb-8">View your transaction history and invoices</p>
           <PaymentHistory />
         </div>
@@ -268,23 +269,39 @@ export default function SettingsPage() {
     <div className="h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex flex-col overflow-hidden">
       {/* Header - Fixed */}
       <div className="border-b border-white/20 bg-black/20 backdrop-blur-sm flex-shrink-0">
-        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => router.push('/dashboard')}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
-              <ArrowLeftIcon className="w-6 h-6 text-white" />
+              <ArrowLeftIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
-            <h1 className="text-2xl font-bold text-white">Settings</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Settings</h1>
           </div>
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <div className="w-full px-6 py-8 flex-1 overflow-hidden flex gap-6">
-          {/* Vertical Sidebar - Fixed */}
-          <div className="w-72 flex-shrink-0">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-4 space-y-2 h-full overflow-y-auto">
+      <div className="w-full px-4 sm:px-6 py-4 sm:py-8 flex-1 overflow-hidden flex gap-6">
+          {/* Vertical Sidebar - Hidden on mobile, shown as dropdown */}
+          <div className={`fixed md:relative inset-0 md:inset-auto z-50 md:z-auto ${showMobileMenu ? 'block' : 'hidden md:block'}`}>
+            {/* Mobile overlay */}
+            <div 
+              className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowMobileMenu(false)}
+            />
+            {/* Sidebar content */}
+            <div className="fixed md:relative left-0 top-0 bottom-0 w-72 md:w-72 flex-shrink-0 md:flex-shrink-0">
+              <div className="bg-white/10 backdrop-blur-md rounded-none md:rounded-2xl border-r md:border border-white/20 p-4 space-y-2 h-full overflow-y-auto">
               {categories.map((category) => {
                 const CategoryIcon = category.icon;
                 const isExpanded = expandedCategory === category.id;
@@ -325,7 +342,10 @@ export default function SettingsPage() {
                               return (
                                 <button
                                   key={section.id}
-                                  onClick={() => setSelectedSection(section.id)}
+                                  onClick={() => {
+                                    setSelectedSection(section.id);
+                                    setShowMobileMenu(false); // Close mobile menu on selection
+                                  }}
                                   className={`w-full flex items-center gap-2 p-2 rounded-lg transition-all text-left ${
                                     isSelected
                                       ? 'bg-white/20 text-white font-medium'
@@ -346,9 +366,10 @@ export default function SettingsPage() {
               })}
             </div>
           </div>
+        </div>
 
           {/* Main Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto pr-4 w-full">
+          <div className="flex-1 overflow-y-auto pr-0 sm:pr-4 w-full">
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedSection}

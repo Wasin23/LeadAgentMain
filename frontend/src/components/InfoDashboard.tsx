@@ -57,6 +57,39 @@ export default function InfoDashboard() {
     setIsMounted(true);
   }, []);
 
+  // Connect to SSE for agent activities
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const authToken = localStorage.getItem('authToken');
+    const eventSource = new EventSource(`${backendUrl}/api/monitoring/stream?token=${encodeURIComponent(authToken || '')}`);
+    
+    eventSource.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const activityData = data.type === 'agent_activity' ? data : 
+                            (data.type === 'activity_added' && data.data?.type === 'agent_activity') ? data.data : 
+                            null;
+        
+        if (activityData && activityData.agentId) {
+          setAgentActivities(prev => ({
+            ...prev,
+            [activityData.agentId]: {
+              status: activityData.cardMessage || activityData.details,
+              timestamp: Date.now(),
+              isActive: true
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
+      }
+    });
+
+    return () => eventSource.close();
+  }, [isMounted]);
+
   const fetchPresets = async () => {
     setLoadingPresets(true);
     try {
@@ -134,6 +167,7 @@ export default function InfoDashboard() {
         );
         
         console.log('[InfoDashboard] Agents with stats:', agentsWithStats);
+        
         setAgents(agentsWithStats);
       }
 
@@ -169,7 +203,7 @@ export default function InfoDashboard() {
 
   if (!isMounted || isLoading) {
     return (
-      <div className="fixed right-0 top-0 h-screen w-[20%] bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10 flex items-center justify-center pt-20">
+      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/10 flex items-center justify-center p-8 sm:p-0 sm:pt-20">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4FD1FF]"></div>
       </div>
     );
@@ -177,7 +211,7 @@ export default function InfoDashboard() {
 
   return (
     <>
-      <div className="fixed right-0 top-0 h-screen w-[20%] bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10 flex flex-col overflow-hidden pt-20">
+      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/10 flex flex-col overflow-y-auto sm:pt-20">
       {/* Header */}
       <div className="px-6 py-5 border-b border-white/10 flex-shrink-0">
         <h2 className="text-white font-bold text-xl">Command Center</h2>
@@ -185,7 +219,7 @@ export default function InfoDashboard() {
       </div>
 
       {/* Scrollable Content - Agents and Notifications */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 max-h-[calc(100vh-200px)] sm:max-h-none">
         {/* Agent Overview */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -226,20 +260,35 @@ export default function InfoDashboard() {
               agents.map(agent => {
                 const activity = agentActivities[agent.agentId];
                 const isRunning = agent.status === 'running';
+                const isOrphaned = agent.status === 'orphaned';
 
                 return (
                   <div
                     key={agent.agentId}
-                    className="bg-[#1B2F52]/50 backdrop-blur-sm border border-white/5 rounded-lg p-3 hover:border-[#4FD1FF]/30 transition-all cursor-pointer"
-                    onClick={() => router.push(`/agents?agent=${agent.agentId}`)}
+                    className={`backdrop-blur-sm border rounded-lg p-3 hover:border-[#4FD1FF]/30 transition-all cursor-pointer ${
+                      isOrphaned 
+                        ? 'bg-yellow-500/10 border-yellow-500/40' 
+                        : 'bg-[#1B2F52]/50 border-white/5'
+                    }`}
+                    onClick={() => {
+                      if (isOrphaned) {
+                        // Navigate to dashboard to view orphaned emails
+                        router.push('/dashboard?view=orphaned-emails');
+                      } else {
+                        router.push(`/agents?agent=${agent.agentId}`);
+                      }
+                    }}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          isOrphaned ? 'bg-yellow-400 animate-pulse' : 
                           isRunning ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
                         }`} />
-                        <span className="text-white font-medium text-sm truncate">{agent.agentName}</span>
-                        {agent.settings?.emailBuilder?.useGmail === true ? (
+                        <span className={`font-medium text-sm truncate ${
+                          isOrphaned ? 'text-yellow-400' : 'text-white'
+                        }`}>{agent.agentName}</span>
+                        {!isOrphaned && agent.settings?.emailBuilder?.useGmail === true ? (
                           <span className="relative group/gmail inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 text-white text-[9px] border border-white/20 flex-shrink-0">
                             <svg className="w-3.5 h-3.5" viewBox="0 0 256 193" fill="none">
                               <path d="M58.182 192.05V93.768L27.507 65.158L0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4"/>
@@ -252,7 +301,7 @@ export default function InfoDashboard() {
                               Gmail sending enabled
                             </span>
                           </span>
-                        ) : (
+                        ) : !isOrphaned ? (
                           <span className="relative group/domain inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px] border border-purple-500/40 flex-shrink-0">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
@@ -261,13 +310,18 @@ export default function InfoDashboard() {
                               Meridian domain sending enabled
                             </span>
                           </span>
-                        )}
+                        ) : null}
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-[#4FD1FF] flex-shrink-0 ml-2" />
+                      {!isOrphaned && (
+                        <ExternalLink className="w-3.5 h-3.5 text-[#4FD1FF] flex-shrink-0 ml-2" />
+                      )}
+                      {isOrphaned && (
+                        <AlertCircle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 ml-2" />
+                      )}
                     </div>
 
                     {/* Targeting Info */}
-                    {agent.targeting && (
+                    {!isOrphaned && agent.targeting && (
                       <div className="space-y-1 mb-2">
                         <div className="flex items-center gap-1.5 text-xs">
                           <Target className="w-3 h-3 text-[#8FA6C1]" />
@@ -306,15 +360,23 @@ export default function InfoDashboard() {
                     )}
 
                     {/* Current Activity */}
-                    {isRunning && activity?.status && (
+                    {!isOrphaned && (
                       <div className="flex items-center gap-1.5 text-xs">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#4FD1FF] animate-pulse" />
-                        <span className="text-[#4FD1FF] truncate">{activity.status}</span>
+                        {activity?.status ? (
+                          <>
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                            <span className="text-green-400 font-medium">Active</span>
+                            <span className="text-[#8FA6C1] mx-1">·</span>
+                            <span className="text-[#4FD1FF] truncate">{activity.status}</span>
+                          </>
+                        ) : (
+                          <div className="text-[#8FA6C1]">Idle</div>
+                        )}
                       </div>
                     )}
-
-                    {!isRunning && (
-                      <div className="text-xs text-[#8FA6C1]">Idle</div>
+                    
+                    {isOrphaned && (
+                      <div className="text-xs text-yellow-400/80 italic">From deleted agents</div>
                     )}
                   </div>
                 );

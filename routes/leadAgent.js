@@ -1191,30 +1191,10 @@ router.delete('/:agentId', async (req, res) => {
     const AWSManager = (await import('../utils/awsManager.js')).default;
     const awsManager = new AWSManager();
     
-    // 1. Reassign orphaned emails to "orphan" agent FIRST
-    console.log(`📧 [DELETE AGENT] Reassigning emails from ${agentId} to orphan agent...`);
-    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
-    const awsQueue = getAWSEmailQueue();
-    
-    const [queuedEmails, sentEmails, repliedEmails] = await Promise.all([
-      awsQueue.getQueuedEmails(userId, agentId),
-      awsQueue.getSentEmails(userId, agentId),
-      awsQueue.getRepliedEmails(userId, agentId)
-    ]);
-    
-    let reassignedCount = 0;
-    const orphanAgentId = 'orphan';
-    
-    for (const email of [...queuedEmails, ...sentEmails, ...repliedEmails]) {
-      try {
-        await awsQueue.reassignEmailToAgent(userId, agentId, email.id, orphanAgentId);
-        reassignedCount++;
-      } catch (error) {
-        console.error(`Failed to reassign email ${email.id}:`, error);
-      }
-    }
-    
-    console.log(`✅ [DELETE AGENT] Reassigned ${reassignedCount} emails to orphan agent`);
+    // 1. Keep emails - DO NOT delete or reassign them
+    // Emails will remain in the queue with their original agentId
+    // The frontend will handle displaying orphaned emails
+    console.log(`📧 [DELETE AGENT] Keeping emails in queue for agent ${agentId} (orphaned emails)`);
     
     // 2. Delete agent state
     await awsManager.deleteAgentState(userId, agentId);
