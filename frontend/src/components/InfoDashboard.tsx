@@ -114,11 +114,13 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
   useEffect(() => {
     if (!isMounted) return;
     
-    // If agents are passed as props, don't fetch our own
+    // If agents are passed as props, enrich them with email stats
     if (propsAgents && propsAgentActivities) {
       console.log('[InfoDashboard] Using props agents:', propsAgents);
-      setAgents(propsAgents);
       setAgentActivities(propsAgentActivities);
+      
+      // Enrich props agents with email stats
+      enrichAgentsWithStats(propsAgents);
       return;
     }
     
@@ -127,6 +129,53 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [isMounted, propsAgents, propsAgentActivities]);
+
+  const enrichAgentsWithStats = async (agentsList: Agent[]) => {
+    try {
+      // Fetch email stats for each agent
+      const agentsWithStats = await Promise.all(
+        agentsList.map(async (agent: any) => {
+          // Normalize agent data structure
+          const normalizedAgent = {
+            ...agent,
+            agentName: agent.agentName || agent.name,
+            agentId: agent.agentId
+          };
+          
+          try {
+            // Fetch queued and sent emails separately
+            const [queuedRes, sentRes] = await Promise.all([
+              api.get(`/api/email-queue/queue?agentId=${normalizedAgent.agentId}`),
+              api.get(`/api/email-queue/sent?agentId=${normalizedAgent.agentId}`)
+            ]);
+            
+            const queuedEmails = Array.isArray(queuedRes.data) ? queuedRes.data : (queuedRes.data.emails || []);
+            const sentEmails = Array.isArray(sentRes.data) ? sentRes.data : (sentRes.data.emails || []);
+            const totalBuilt = queuedEmails.length + sentEmails.length;
+            
+            return {
+              ...normalizedAgent,
+              emailStats: {
+                built: totalBuilt,
+                queued: queuedEmails.length,
+                sent: sentEmails.length
+              }
+            };
+          } catch (error) {
+            console.error(`Error fetching stats for ${normalizedAgent.agentId}:`, error);
+            return normalizedAgent;
+          }
+        })
+      );
+      
+      setAgents(agentsWithStats);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error enriching agents with stats:', error);
+      setAgents(agentsList);
+      setIsLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     console.log('[InfoDashboard] fetchData called');
@@ -138,51 +187,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
         const agentsList = agentsResponse.data.agents || [];
         console.log('[InfoDashboard] Agents list:', agentsList);
         
-        // Fetch email stats for each agent
-        const agentsWithStats = await Promise.all(
-          agentsList.map(async (agent: any) => {
-            // Normalize agent data structure
-            const normalizedAgent = {
-              ...agent,
-              agentName: agent.agentName || agent.name,
-              agentId: agent.agentId
-            };
-            
-            try {
-              // Fetch queued and sent emails separately
-              const [queuedRes, sentRes] = await Promise.all([
-                api.get(`/api/email-queue/queue?agentId=${normalizedAgent.agentId}`),
-                api.get(`/api/email-queue/sent?agentId=${normalizedAgent.agentId}`)
-              ]);
-              
-              console.log(`[InfoDashboard] Queue API response for ${normalizedAgent.agentName}:`, queuedRes.data);
-              console.log(`[InfoDashboard] Sent API response for ${normalizedAgent.agentName}:`, sentRes.data);
-              
-              // The API returns arrays directly, not wrapped in an emails property
-              const queuedEmails = Array.isArray(queuedRes.data) ? queuedRes.data : (queuedRes.data.emails || []);
-              const sentEmails = Array.isArray(sentRes.data) ? sentRes.data : (sentRes.data.emails || []);
-              const totalBuilt = queuedEmails.length + sentEmails.length;
-              
-              console.log(`[InfoDashboard] Stats for ${normalizedAgent.agentName}: Built=${totalBuilt}, Queued=${queuedEmails.length}, Sent=${sentEmails.length}`);
-              
-              return {
-                ...normalizedAgent,
-                emailStats: {
-                  built: totalBuilt,
-                  queued: queuedEmails.length,
-                  sent: sentEmails.length
-                }
-              };
-            } catch (error) {
-              console.error(`Error fetching stats for ${normalizedAgent.agentId}:`, error);
-            }
-            return normalizedAgent;
-          })
-        );
-        
-        console.log('[InfoDashboard] Agents with stats:', agentsWithStats);
-        
-        setAgents(agentsWithStats);
+        await enrichAgentsWithStats(agentsList);
       }
 
       // Fetch notifications - filter to only show important ones
