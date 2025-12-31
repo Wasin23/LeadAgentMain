@@ -37,7 +37,12 @@ interface Notification {
   read: boolean;
 }
 
-export default function InfoDashboard() {
+interface InfoDashboardProps {
+  agents?: Agent[];
+  agentActivities?: {[key: string]: any};
+}
+
+export default function InfoDashboard({ agents: propsAgents, agentActivities: propsAgentActivities }: InfoDashboardProps = {}) {
   const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -108,11 +113,20 @@ export default function InfoDashboard() {
 
   useEffect(() => {
     if (!isMounted) return;
+    
+    // If agents are passed as props, don't fetch our own
+    if (propsAgents && propsAgentActivities) {
+      console.log('[InfoDashboard] Using props agents:', propsAgents);
+      setAgents(propsAgents);
+      setAgentActivities(propsAgentActivities);
+      return;
+    }
+    
     console.log('[InfoDashboard] useEffect triggered, calling fetchData');
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [isMounted]);
+  }, [isMounted, propsAgents, propsAgentActivities]);
 
   const fetchData = async () => {
     console.log('[InfoDashboard] fetchData called');

@@ -1339,16 +1339,16 @@ export default function InteractiveGlobe() {
       {!isExpanded && (
         <>
           <div className="hidden lg:block">
-            <InfoDashboard />
+            <InfoDashboard agents={agents} agentActivities={agentActivities} />
           </div>
           <div className="sm:hidden">
-            <InfoDashboard />
+            <InfoDashboard agents={agents} agentActivities={agentActivities} />
           </div>
         </>
       )}
 
-      {/* Loading Overlay */}
-      {(navigating || loadingQueue) && (
+      {/* Loading Overlay - only for navigation, not for queue modal */}
+      {navigating && (
         <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] z-[9999] flex items-center justify-center">
           <div className="text-center">
             <div className="relative w-20 h-20 mx-auto mb-6">
