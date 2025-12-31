@@ -234,7 +234,7 @@ export default function NotificationsPanel() {
   }
 
   return (
-    <div className="fixed right-8 top-1/2 -translate-y-1/2 z-40 w-72 lg:w-80 h-[70vh] flex flex-col">
+    <div className="fixed right-8 top-[calc(50%+8rem)] -translate-y-1/2 z-40 w-72 lg:w-80 h-[50vh] flex flex-col">
       {/* Header */}
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-2xl px-5 py-4">
         <div className="flex items-center justify-between">

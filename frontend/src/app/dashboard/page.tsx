@@ -4,10 +4,15 @@ import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 import UserMenu from '@/components/UserMenu';
-import NotificationsPanel from '@/components/NotificationsPanel';
 import api from '@/lib/api';
 import { geoOrthographic, geoPath, geoGraticule, geoMercator, geoAlbersUsa } from 'd3-geo';
 import { feature } from 'topojson-client';
+import dynamic from 'next/dynamic';
+
+// Dynamically import InfoDashboard
+const InfoDashboard = dynamic(() => import('@/components/InfoDashboard'), {
+  ssr: false
+});
 
 // Using Natural Earth 110m world data (simplified for performance)
 // This is a simplified TopoJSON representation
@@ -1148,10 +1153,10 @@ export default function InteractiveGlobe() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] relative overflow-hidden">
-      {/* Notifications Panel - Right Side, hidden until lg screens */}
+      {/* Info Dashboard - Right Side, hidden until lg screens */}
       {!isExpanded && (
         <div className="hidden lg:block">
-          <NotificationsPanel />
+          <InfoDashboard />
         </div>
       )}
 
