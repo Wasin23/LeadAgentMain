@@ -1377,6 +1377,39 @@ getUserSettings('USER_ID').then(console.log);
 - ✅ Tabbed interface for agents and presets
 - ✅ Enhanced Start button visibility
 
+**Recent Updates (Dec 30, 2025):**
+- ✅ **Instant Loading States** - Agent card clicks now trigger loading indicators immediately (no delay)
+- ✅ **Dark Theme Text Fix** - All input fields in AgentSettingsModal now have white text on dark backgrounds
+  - Fixed: Agent name, company name, agent title, website URL
+  - Fixed: Primary service, core offering, key advantages, expertise area, company description
+  - Fixed: Company size range inputs (min/max)
+  - Fixed: Lead limit input
+  - Fixed: Industry and job title search fields
+  - Fixed: All dark blue text (text-blue-600/800) converted to light blue (text-blue-300)
+  - Fixed: Hover states for dropdowns (hover:bg-blue-50 → hover:bg-[#1B2F52])
+- ✅ **Email Success Rate Dashboard** - New visualization for sent email analytics
+  - Large percentage display showing overall delivery success rate
+  - Three-category breakdown: Delivered (green), Bounced (red), Pending (yellow)
+  - Visual progress bars showing distribution of email statuses
+  - Automatic calculation: `(delivered / total) * 100%`
+  - Only displays for 'sent' emails queue
+- ✅ **Delivery Status Badges** - Each sent email now shows real-time delivery status
+  - ✓ Delivered (green badge) - Email successfully landed in inbox
+  - ✗ Bounced (red badge) - Email failed to deliver
+  - ⏳ Pending (yellow badge) - Email sent but status unknown
+  - Status pulled from `email.deliveryStatus` field
+- ✅ **Settings Modal Optimistic UI** - Settings now save with instant feedback
+  - Modal closes immediately when clicking save (optimistic)
+  - Loading spinner shows during brief save operation
+  - Saves happen in background after modal closes
+
+**Implementation Details:**
+- **Loading State:** `setLoadingQueue(true)` called synchronously in `handleAgentSelect` before async operations
+- **Text Visibility:** All inputs use `bg-[#0F1E35] text-white` for consistent dark theme
+- **Success Rate Location:** Dashboard → Sent Emails → Top of modal (above pagination)
+- **Status Badge Location:** Email list → Next to subject line (before email title)
+- **Backend Field Required:** `email.deliveryStatus` must be set to 'delivered', 'bounced', or 'pending'
+
 ---
 
 ## Contact & Links
@@ -1389,6 +1422,6 @@ getUserSettings('USER_ID').then(console.log);
 
 ---
 
-**Last Modified:** December 29, 2025  
-**Version:** 2.1.0 (Orphan System + Presets + UI Redesign)  
-**Next Major Features:** Gmail watch auto-renewal, dual-send bug fix, preset application to agents
+**Last Modified:** December 30, 2025  
+**Version:** 2.2.0 (Email Analytics + UX Improvements)  
+**Next Major Features:** Gmail watch auto-renewal, dual-send bug fix, backend delivery status tracking

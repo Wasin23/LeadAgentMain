@@ -657,15 +657,43 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                               `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
                             );
                             
+                            // Listen for postMessage from popup
+                            let messageReceived = false;
+                            const handleMessage = (event: MessageEvent) => {
+                              if (event.data?.type === 'GMAIL_CONNECTED') {
+                                messageReceived = true;
+                                console.log('Received Gmail connected message:', event.data);
+                                setMessage({ type: 'success', text: `Gmail connected! ${event.data.email}` });
+                                // Refresh status immediately
+                                api.get('/api/auth/gmail/status').then(response => {
+                                  if (response.data.accounts && response.data.accounts.length > 0) {
+                                    setEmailSettings(prev => ({
+                                      ...prev,
+                                      gmailAccounts: response.data.accounts,
+                                      activeGmailIndex: response.data.activeIndex || 0
+                                    }));
+                                  }
+                                });
+                              }
+                            };
+                            window.addEventListener('message', handleMessage);
+                            
                             // Listen for OAuth completion
                             const checkPopup = setInterval(async () => {
                               if (popup?.closed) {
                                 clearInterval(checkPopup);
+                                window.removeEventListener('message', handleMessage);
                                 console.log('Gmail popup closed, refreshing status...');
+                                
+                                // If we already got the message, don't do anything else
+                                if (messageReceived) {
+                                  return;
+                                }
+                                
                                 // Wait a moment for backend to process, then refresh Gmail status
                                 setTimeout(async () => {
                                   try {
-                                    // Check localStorage for success flag
+                                    // Check localStorage for success flag (backup method)
                                     const gmailConnectedData = localStorage.getItem('gmailConnected');
                                     if (gmailConnectedData) {
                                       const { email } = JSON.parse(gmailConnectedData);

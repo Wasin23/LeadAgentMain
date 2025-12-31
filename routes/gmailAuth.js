@@ -113,7 +113,13 @@ router.get('/callback', async (req, res) => {
       activeIndex: settingsToSave.activeGmailIndex
     });
 
-    await awsManager.saveUserSettings(userId, settingsToSave);
+    try {
+      await awsManager.saveUserSettings(userId, settingsToSave);
+      console.log('✅ [GMAIL AUTH] Successfully saved to DynamoDB');
+    } catch (saveError) {
+      console.error('❌ [GMAIL AUTH] Error saving to DynamoDB:', saveError);
+      throw saveError;
+    }
 
     console.log('✅ [GMAIL AUTH] Gmail connected successfully for user:', userId);
     console.log('✅ [GMAIL AUTH] Total accounts:', existingAccounts.length);
@@ -160,17 +166,28 @@ router.get('/callback', async (req, res) => {
             <p style="opacity: 0.7; font-size: 0.9rem;">This window will close automatically...</p>
           </div>
           <script>
-            // Store success in localStorage so parent can detect it
+            // Try multiple methods to signal success
             try {
+              // Method 1: postMessage to parent
               if (window.opener) {
-                localStorage.setItem('gmailConnected', JSON.stringify({
+                window.opener.postMessage({
+                  type: 'GMAIL_CONNECTED',
                   email: '${gmailAddress}',
                   timestamp: Date.now()
-                }));
+                }, '*');
+                console.log('Sent postMessage to parent');
               }
+              
+              // Method 2: localStorage (backup)
+              localStorage.setItem('gmailConnected', JSON.stringify({
+                email: '${gmailAddress}',
+                timestamp: Date.now()
+              }));
+              console.log('Set localStorage flag');
             } catch (e) {
-              console.log('Could not access localStorage:', e);
+              console.error('Could not signal parent:', e);
             }
+            
             // Close popup after 2 seconds
             setTimeout(() => {
               window.close();

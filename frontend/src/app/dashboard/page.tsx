@@ -1111,30 +1111,31 @@ export default function InteractiveGlobe() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const currentRotation = rotationRef.current;
-    const projection = geoOrthographic()
-      .scale(500)
-      .translate([canvas.width / 2, canvas.height / 2])
-      .rotate(currentRotation);
+    // Country selection disabled
+    // const currentRotation = rotationRef.current;
+    // const projection = geoOrthographic()
+    //   .scale(500)
+    //   .translate([canvas.width / 2, canvas.height / 2])
+    //   .rotate(currentRotation);
 
-    // Check which country was clicked
-    const features = worldGeoData.features || [];
-    for (const feature of features) {
-      const ctx = canvas.getContext('2d');
-      if (!ctx) continue;
+    // // Check which country was clicked
+    // const features = worldGeoData.features || [];
+    // for (const feature of features) {
+    //   const ctx = canvas.getContext('2d');
+    //   if (!ctx) continue;
 
-      ctx.beginPath();
-      const path = geoPath(projection, ctx);
-      path(feature);
+    //   ctx.beginPath();
+    //   const path = geoPath(projection, ctx);
+    //   path(feature);
       
-      if (ctx.isPointInPath(x, y)) {
-        const countryName = feature.properties?.name || 'Unknown';
-        setSelectedCountry(countryName);
-        setSelectedFeature(feature);
-        setIsExpanded(true);
-        return;
-      }
-    }
+    //   if (ctx.isPointInPath(x, y)) {
+    //     const countryName = feature.properties?.name || 'Unknown';
+    //     setSelectedCountry(countryName);
+    //     setSelectedFeature(feature);
+    //     setIsExpanded(true);
+    //     return;
+    //   }
+    // }
   };
 
   // Prevent hydration mismatch by not rendering until mounted
