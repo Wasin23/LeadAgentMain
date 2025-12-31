@@ -2067,6 +2067,74 @@ export default function InteractiveGlobe() {
                   </div>
                 ) : (
                   <>
+                    {/* Success Rate Graph (only for sent emails) */}
+                    {selectedQueue.type === 'sent' && queueEmails.length > 0 && (
+                      <div className="mb-6 bg-white/10 rounded-xl p-4 border border-white/20">
+                        <h3 className="text-white font-semibold mb-4">Delivery Success Rate</h3>
+                        <div className="flex items-center gap-6">
+                          {/* Success Rate Percentage */}
+                          <div className="flex-shrink-0">
+                            <div className="text-4xl font-bold text-[#4FD1FF]">
+                              {Math.round((queueEmails.filter(e => e.deliveryStatus === 'delivered').length / queueEmails.length) * 100)}%
+                            </div>
+                            <div className="text-xs text-white/50 mt-1">Success Rate</div>
+                          </div>
+                          
+                          {/* Bar Chart */}
+                          <div className="flex-1">
+                            <div className="grid grid-cols-3 gap-2 mb-2">
+                              <div className="text-center">
+                                <div className="text-xs text-white/50 mb-1">Delivered</div>
+                                <div className="text-lg font-bold text-green-400">
+                                  {queueEmails.filter(e => e.deliveryStatus === 'delivered').length}
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xs text-white/50 mb-1">Bounced</div>
+                                <div className="text-lg font-bold text-red-400">
+                                  {queueEmails.filter(e => e.deliveryStatus === 'bounced').length}
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xs text-white/50 mb-1">Pending</div>
+                                <div className="text-lg font-bold text-yellow-400">
+                                  {queueEmails.filter(e => !e.deliveryStatus || e.deliveryStatus === 'pending').length}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Progress bars */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-green-400 rounded-full transition-all duration-500"
+                                    style={{width: `${(queueEmails.filter(e => e.deliveryStatus === 'delivered').length / queueEmails.length) * 100}%`}}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-red-400 rounded-full transition-all duration-500"
+                                    style={{width: `${(queueEmails.filter(e => e.deliveryStatus === 'bounced').length / queueEmails.length) * 100}%`}}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-yellow-400 rounded-full transition-all duration-500"
+                                    style={{width: `${(queueEmails.filter(e => !e.deliveryStatus || e.deliveryStatus === 'pending').length / queueEmails.length) * 100}%`}}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Pagination Info */}
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/20">
                       <div className="text-white/70 text-sm">
@@ -2118,6 +2186,17 @@ export default function InteractiveGlobe() {
                                 {isOrphaned && (
                                   <span className="text-xs font-semibold bg-red-500/80 text-white px-2 py-0.5 rounded">
                                     ORPHANED
+                                  </span>
+                                )}
+                                {selectedQueue.type === 'sent' && (
+                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                    email.deliveryStatus === 'delivered' ? 'bg-green-500/80 text-white' :
+                                    email.deliveryStatus === 'bounced' ? 'bg-red-500/80 text-white' :
+                                    'bg-yellow-500/80 text-white'
+                                  }`}>
+                                    {email.deliveryStatus === 'delivered' ? '✓ Delivered' :
+                                     email.deliveryStatus === 'bounced' ? '✗ Bounced' :
+                                     '⏳ Pending'}
                                   </span>
                                 )}
                                 <div className="font-semibold text-white truncate">{email.subject || 'No Subject'}</div>
