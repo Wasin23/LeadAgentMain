@@ -84,6 +84,7 @@ If it's a COMPANY document, analyze it and return a JSON object with:
 - targetMarket: Who their ideal customers are
 - companySize: Estimated company size (1-10, 11-50, 51-200, 201-500, 501+)
 - description: Brief company description
+- companyAddress: Physical address if mentioned (street, city, state/country)
 
 Also generate recommended agent settings:
 - targetIndustries: Array of 3-5 industries they should target for leads
@@ -129,6 +130,7 @@ If it's a COMPANY document, analyze it and return a JSON object with:
 - targetMarket: Who their ideal customers are
 - companySize: Estimated company size (1-10, 11-50, 51-200, 201-500, 501+)
 - description: Brief company description
+- companyAddress: Physical address if mentioned (street, city, state/country)
 
 Also generate recommended agent settings:
 - targetIndustries: Array of 3-5 industries they should target for leads

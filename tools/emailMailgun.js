@@ -120,6 +120,7 @@ async function buildEmailSignature(userId, userSettings) {
                 ${companyProfile.website ? `<div style="font-size: 12px;"><a href="${companyProfile.website}" style="color: #2563eb; text-decoration: none;">${companyProfile.website}</a></div>` : ''}
                 ${companyProfile.email ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.email}</div>` : ''}
                 ${companyProfile.phone ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.phone}</div>` : ''}
+                ${companyProfile.companyAddress ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${companyProfile.companyAddress}</div>` : ''}
               </td>
             </tr>
           </table>

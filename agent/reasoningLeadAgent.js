@@ -3109,8 +3109,15 @@ ${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join
       // Get agent personality for email style
       const personality = await this.getAgentPersonality();
       
+      // Get calendar link from user settings
+      const calendarLink = this.memory.userSettings?.calendarIntegrationEnabled && this.memory.userSettings?.calendarTokens
+        ? `${process.env.FRONTEND_URL || 'http://localhost:3000'}/calendar/book/${this.userId}`
+        : (this.memory.userSettings?.calendly_link || this.memory.userSettings?.calendar_link || 'your scheduling link');
+      
       // Get custom prompt from email builder settings (editable in UI) - this is the personality/style
-      const customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write professional sales emails';
+      // Replace [SCHEDULING_LINK] placeholder with actual calendar link
+      let customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write professional sales emails';
+      customPrompt = customPrompt.replace(/\[SCHEDULING_LINK\]/g, calendarLink);
       
       // Build campaign-specific messaging if plan exists
       let campaignStrategy = '';
@@ -3491,8 +3498,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
       
-      // Get company address from settings (use user settings)
-      const companyAddress = this.memory.userSettings?.companyAddress || 
+      // Get company address from settings (use company profile)
+      const companyAddress = this.memory.userSettings?.companyProfile?.companyAddress || 
+                            this.memory.userSettings?.companyAddress || 
                             emailSettings.companyBranding?.companyAddress ||
                             'Your Company Address';
       

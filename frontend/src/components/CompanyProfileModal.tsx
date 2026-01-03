@@ -19,7 +19,8 @@ export default function CompanyProfileModal({ open, onClose, onSaved }: Props) {
     services: '',
     targetMarket: '',
     companySize: '',
-    description: ''
+    description: '',
+    companyAddress: ''
   });
 
   useEffect(() => {
@@ -110,6 +111,12 @@ export default function CompanyProfileModal({ open, onClose, onSaved }: Props) {
               <div>
                 <label className="block text-sm font-medium text-white mb-1">Short Description</label>
                 <textarea className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" rows={4} value={profile.description || ''} onChange={(e)=>setProfile({...profile, description: e.target.value})} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">Company Address</label>
+                <input className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none" placeholder="123 Main St, City, State ZIP" value={profile.companyAddress || ''} onChange={(e)=>setProfile({...profile, companyAddress: e.target.value})} />
+                <p className="text-xs text-[#8FA6C1] mt-1">This appears in email signatures: "{profile.companyName || 'YourCompany'} | {profile.companyAddress || 'Your Company Address'}"</p>
               </div>
             </>
           )}

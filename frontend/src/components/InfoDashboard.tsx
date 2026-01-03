@@ -134,7 +134,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
     
     console.log('[InfoDashboard] useEffect triggered, calling fetchData');
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 15000); // Increased to 15 seconds to reduce AWS throughput
     return () => clearInterval(interval);
   }, [isMounted, propsAgents, propsAgentActivities]);
 

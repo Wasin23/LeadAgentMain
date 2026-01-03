@@ -44,11 +44,12 @@ const questions = [
   { id: 'description', question: "Tell us about your company", placeholder: 'Describe what your company does...', type: 'textarea', step: 1 },
   { id: 'industry', question: "What industry are you in?", placeholder: 'e.g., Technology, Healthcare', type: 'text', required: true, step: 1 },
   
-  // Step 2: Contact Info (4 questions)
+  // Step 2: Contact Info (5 questions)
   { id: 'website', question: "What's your website?", placeholder: 'https://yourcompany.com', type: 'url', step: 2 },
   { id: 'linkedinProfile', question: "LinkedIn profile?", placeholder: 'https://linkedin.com/company/...', type: 'url', step: 2 },
   { id: 'email', question: "Contact email?", placeholder: 'contact@company.com', type: 'email', step: 2 },
   { id: 'phone', question: "Phone number?", placeholder: '+1 (555) 000-0000', type: 'tel', step: 2 },
+  { id: 'companyAddress', question: "Company address?", placeholder: '123 Main St, City, State ZIP', type: 'text', step: 2 },
   
   // Step 3: Company Details (4 questions)
   { id: 'location', question: "Where are you based?", placeholder: 'City, Country', type: 'text', step: 3 },
