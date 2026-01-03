@@ -1907,6 +1907,7 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
       const agentData: any = {
         name: customName,
         type: 'reasoning-lead-agent',
+        specialInstructions: preset?.specialInstructions || '', // Add top-level specialInstructions
         personality: {
           type: personality.id,
           name: personality.name,

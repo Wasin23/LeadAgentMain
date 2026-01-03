@@ -502,12 +502,12 @@ export default function AgentPersonalitySelector({
                               console.log('[AgentPersonalitySelector] selectedPreset updated to:', preset.name);
                             }}
                             className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                              (selectedPreset?._id || selectedPreset?.id) === (preset._id || preset.id)
+                              selectedPreset && (selectedPreset._id || selectedPreset.id) === (preset._id || preset.id)
                                 ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
                                 : 'border-neutral-300 hover:border-neutral-400 hover:shadow-md'
                             }`}
                           >
-                            {(selectedPreset?._id || selectedPreset?.id) === (preset._id || preset.id) && (
+                            {selectedPreset && (selectedPreset._id || selectedPreset.id) === (preset._id || preset.id) && (
                               <div className="flex justify-end mb-2">
                                 <CheckIcon className="h-5 w-5 text-green-600" />
                               </div>

@@ -60,6 +60,27 @@ router.get('/queue', async (req, res) => {
       return res.json(emails);
     }
     
+    // If agentId is 'orphan', fetch orphaned emails (from deleted agents)
+    if (agentId === 'orphan') {
+      console.log(`📧 [EMAIL QUEUE] Fetching ORPHANED emails for user ${req.user.userId}`);
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const AWSManager = (await import('../utils/awsManager.js')).default;
+      const awsManager = new AWSManager();
+      const awsQueue = getAWSEmailQueue();
+      
+      // Get all agents for this user
+      const allAgents = await awsManager.getUserAgents(req.user.userId);
+      const activeAgentIds = allAgents.map(a => a.agentId);
+      console.log(`📧 [EMAIL QUEUE] Active agent IDs: ${activeAgentIds.join(', ')}`);
+      
+      // Get all emails and filter for orphaned ones
+      const allEmails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
+      const orphanedEmails = allEmails.filter(email => !activeAgentIds.includes(email.agentId));
+      
+      console.log(`📧 [EMAIL QUEUE] Found ${orphanedEmails.length} orphaned emails (from ${allEmails.length} total)`);
+      return res.json(orphanedEmails);
+    }
+    
     // Otherwise, fetch for specific agent (or null for legacy)
     console.log(`📧 [EMAIL QUEUE] Fetching for specific agent: ${agentId || 'null (legacy)'}`);
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);

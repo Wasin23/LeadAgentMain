@@ -296,8 +296,11 @@ Write a brief, clear description of WHO we're targeting and WHY. Be specific and
     // If no instructions provided, return null (use default behavior)
     if (!specialInstructions || specialInstructions.trim() === '') {
       console.log('📋 [CAMPAIGN PLAN] No special instructions provided, using default behavior');
+      console.log('⚠️ [CAMPAIGN PLAN] WARNING: Without special instructions, agent will skip research/pre-qualify/qualify phases!');
       return null;
     }
+    
+    console.log('📋 [CAMPAIGN PLAN] Special instructions received:', specialInstructions.substring(0, 100) + '...');
     
     try {
       const prompt = `You are an AI campaign strategist. Convert these campaign instructions into a structured plan for lead generation and outreach.
@@ -5866,6 +5869,9 @@ Target Positions:`;
       const leadSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
       if (leadSettings && leadSettings.specialInstructions) {
         console.log(`✅ [REASONING AGENT] Loaded special instructions: "${leadSettings.specialInstructions}"`);
+      } else {
+        console.log(`⚠️ [REASONING AGENT] No special instructions found in lead settings!`);
+        console.log(`🔍 [REASONING AGENT] Lead settings object:`, JSON.stringify(leadSettings, null, 2));
       }
       
       // Store lead settings for campaign plan conversion (has specialInstructions field)
