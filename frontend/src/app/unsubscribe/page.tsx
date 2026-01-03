@@ -66,51 +66,58 @@ function UnsubscribeContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-[#0F1E35] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1a2942] to-[#0F1E35] opacity-50"></div>
+      
+      {/* Animated orbs */}
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#4FD1FF]/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      
+      <div className="max-w-md w-full relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
             <svg width="48" height="48" viewBox="0 0 48 48">
               <defs>
                 <linearGradient id="globeGradientUnsub" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
-                  <stop offset="50%" style={{ stopColor: 'rgb(168, 85, 247)', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: 'rgb(236, 72, 153)', stopOpacity: 1 }} />
+                  <stop offset="0%" style={{ stopColor: '#4FD1FF', stopOpacity: 1 }} />
+                  <stop offset="50%" style={{ stopColor: '#55C7F7', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#6BE3FF', stopOpacity: 1 }} />
                 </linearGradient>
               </defs>
-              <circle cx="24" cy="24" r="20" fill="white" className="dark:fill-neutral-800"/>
-              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1"/>
-              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1"/>
-              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1"/>
-              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1"/>
-              <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1"/>
-              <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientUnsub)" strokeWidth="1"/>
+              <circle cx="24" cy="24" r="20" fill="#1a2942"/>
+              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
+              <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
             </svg>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Meridian</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] bg-clip-text text-transparent">Meridian</h1>
           </div>
         </div>
 
         {/* Main Card */}
-        <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-700 p-8">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-8">
           {status === 'success' ? (
             // Success State
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
-                <CheckCircleIcon className="w-10 h-10 text-green-600 dark:text-green-400" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4 backdrop-blur-sm border border-green-500/30">
+                <CheckCircleIcon className="w-10 h-10 text-green-400" />
               </div>
-              <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+              <h2 className="text-2xl font-semibold text-white mb-2">
                 You're Unsubscribed
               </h2>
-              <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+              <p className="text-white/70 mb-6">
                 {message}
               </p>
-              <p className="text-sm text-neutral-500 dark:text-neutral-500 mb-8">
-                You will no longer receive emails from us at <strong>{email}</strong>
+              <p className="text-sm text-white/60 mb-8">
+                You will no longer receive emails from us at <strong className="text-white">{email}</strong>
               </p>
               <Link 
                 href="/"
-                className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
+                className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all"
               >
                 Return to Meridian
               </Link>
@@ -118,21 +125,21 @@ function UnsubscribeContent() {
           ) : status === 'error' && !email ? (
             // Error State (invalid link)
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
-                <ExclamationCircleIcon className="w-10 h-10 text-red-600 dark:text-red-400" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4 backdrop-blur-sm border border-red-500/30">
+                <ExclamationCircleIcon className="w-10 h-10 text-red-400" />
               </div>
-              <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+              <h2 className="text-2xl font-semibold text-white mb-2">
                 Invalid Link
               </h2>
-              <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+              <p className="text-white/70 mb-6">
                 {message}
               </p>
-              <p className="text-sm text-neutral-500 dark:text-neutral-500 mb-8">
+              <p className="text-sm text-white/60 mb-8">
                 This unsubscribe link may have expired or is invalid. Please use the link from your most recent email.
               </p>
               <Link 
                 href="/"
-                className="inline-flex items-center justify-center px-6 py-3 bg-neutral-600 text-white rounded-lg font-medium hover:bg-neutral-700 transition-all"
+                className="inline-flex items-center justify-center px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl font-medium hover:bg-white/20 transition-all"
               >
                 Go to Home
               </Link>
@@ -140,17 +147,17 @@ function UnsubscribeContent() {
           ) : (
             // Unsubscribe Form
             <>
-              <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2 text-center">
+              <h2 className="text-2xl font-semibold text-white mb-2 text-center">
                 Unsubscribe from Emails
               </h2>
-              <p className="text-neutral-600 dark:text-neutral-400 mb-6 text-center">
+              <p className="text-white/70 mb-6 text-center">
                 We're sorry to see you go. You can unsubscribe from all future emails below.
               </p>
 
               <form onSubmit={handleUnsubscribe} className="space-y-4">
                 {/* Email field (readonly if from token, editable if manual) */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     Email Address
                   </label>
                   <input
@@ -159,38 +166,38 @@ function UnsubscribeContent() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     readOnly={!!token}
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-xl border ${
                       token 
-                        ? 'bg-neutral-100 dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600' 
-                        : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600'
-                    } text-neutral-900 dark:text-neutral-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+                        ? 'bg-white/5 border-white/10' 
+                        : 'bg-white/10 border-white/20'
+                    } text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FD1FF] focus:border-transparent transition-all backdrop-blur-sm`}
                     placeholder="your@email.com"
                   />
                 </div>
 
                 {/* Optional reason */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     Reason (Optional)
                   </label>
                   <select
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white focus:ring-2 focus:ring-[#4FD1FF] focus:border-transparent transition-all backdrop-blur-sm"
                   >
-                    <option value="">Select a reason...</option>
-                    <option value="not_interested">Not interested anymore</option>
-                    <option value="too_many_emails">Too many emails</option>
-                    <option value="not_relevant">Content not relevant</option>
-                    <option value="never_signed_up">Never signed up</option>
-                    <option value="other">Other</option>
+                    <option value="" className="bg-[#1a2942] text-white">Select a reason...</option>
+                    <option value="not_interested" className="bg-[#1a2942] text-white">Not interested anymore</option>
+                    <option value="too_many_emails" className="bg-[#1a2942] text-white">Too many emails</option>
+                    <option value="not_relevant" className="bg-[#1a2942] text-white">Content not relevant</option>
+                    <option value="never_signed_up" className="bg-[#1a2942] text-white">Never signed up</option>
+                    <option value="other" className="bg-[#1a2942] text-white">Other</option>
                   </select>
                 </div>
 
                 {/* Error message */}
                 {status === 'error' && message && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-sm text-red-600 dark:text-red-400">{message}</p>
+                  <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl backdrop-blur-sm">
+                    <p className="text-sm text-red-300">{message}</p>
                   </div>
                 )}
 
@@ -198,7 +205,7 @@ function UnsubscribeContent() {
                 <button
                   type="submit"
                   disabled={status === 'loading' || !email}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg font-medium hover:from-red-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-red-500/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all"
                 >
                   {status === 'loading' ? (
                     <span className="flex items-center justify-center gap-2">
@@ -215,10 +222,10 @@ function UnsubscribeContent() {
               </form>
 
               {/* Footer */}
-              <div className="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
-                <p className="text-xs text-center text-neutral-500 dark:text-neutral-500">
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <p className="text-xs text-center text-white/60">
                   Changed your mind?{' '}
-                  <Link href="/" className="text-blue-600 dark:text-blue-400 hover:underline">
+                  <Link href="/" className="text-[#4FD1FF] hover:text-[#6BE3FF] transition-colors">
                     Return to Meridian
                   </Link>
                 </p>
@@ -228,12 +235,12 @@ function UnsubscribeContent() {
         </div>
 
         {/* Legal Links */}
-        <div className="mt-6 text-center text-sm text-neutral-600 dark:text-neutral-400">
-          <Link href="/privacy" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+        <div className="mt-6 text-center text-sm text-white/60">
+          <Link href="/privacy" className="hover:text-white/90 transition-colors">
             Privacy Policy
           </Link>
           {' '} | {' '}
-          <Link href="/terms" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+          <Link href="/terms" className="hover:text-white/90 transition-colors">
             Terms of Service
           </Link>
         </div>
