@@ -1005,9 +1005,13 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         useGmail: useGmail !== undefined ? useGmail : (user.settings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false)
       };
       
-      // Apply special instructions from preset if provided
-      if (preset.specialInstructions) {
+      // Apply special instructions from preset ONLY if not already set in agent creation
+      // Priority: Direct specialInstructions from request > Preset specialInstructions
+      if (!specialInstructions && preset.specialInstructions) {
         agentSettings.specialInstructions = preset.specialInstructions;
+        console.log(`[AUTH] Using specialInstructions from preset since none provided directly`);
+      } else if (specialInstructions) {
+        console.log(`[AUTH] Using specialInstructions from direct request (overriding preset)`);
       }
       
       console.log(`[AUTH] ✅ Applied preset "${presetName}" to agent ${agentId}:`, {

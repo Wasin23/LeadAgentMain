@@ -219,6 +219,15 @@ export default function InteractiveGlobe() {
     alerts: 0
   });
 
+  // Toast notification state
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  // Show toast notification
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   // Modal states
   const [selectedQueue, setSelectedQueue] = useState<{agentId: string | 'all', type: 'queued' | 'sent' | 'replied', agentName: string} | null>(null);
   const [queueEmails, setQueueEmails] = useState<any[]>([]);
@@ -711,8 +720,10 @@ export default function InteractiveGlobe() {
       await api.post(`/api/email-queue/${emailId}/approve`, {
         agentId: selectedAgent.agentId
       });
+      showToast('Email sent successfully! 🚀', 'success');
     } catch (error) {
       console.error('Error approving email:', error);
+      showToast('Failed to send email', 'error');
       // Revert on error
       fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
       const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
@@ -2696,6 +2707,30 @@ export default function InteractiveGlobe() {
                     </div>
                   );
                 })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-[100] animate-slide-in">
+          <div className={`px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-xl ${
+            toast.type === 'success' 
+              ? 'bg-green-500/20 border-green-500/30 text-green-100' 
+              : 'bg-red-500/20 border-red-500/30 text-red-100'
+          }`}>
+            <div className="flex items-center gap-3">
+              {toast.type === 'success' ? (
+                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
+              <p className="font-medium">{toast.message}</p>
             </div>
           </div>
         </div>

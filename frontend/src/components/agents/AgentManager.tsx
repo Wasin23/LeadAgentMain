@@ -442,7 +442,8 @@ export default function AgentManager({ onSelectAgent }: AgentManagerProps) {
           ccEmails: preset.ccEmails,
           bccEmails: preset.bccEmails,
           followupIntervalDays: preset.followupIntervalDays,
-          enableAutoResponse: preset.enableAutoResponse
+          enableAutoResponse: preset.enableAutoResponse,
+          specialInstructions: preset.specialInstructions // Include special instructions from preset
         };
         console.log('[AgentManager] Preset data being sent:', agentData.preset);
       } else {

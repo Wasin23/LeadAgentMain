@@ -111,26 +111,31 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 p-4 sm:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-4 sm:p-8 relative overflow-hidden">
+      {/* Animated gradient orbs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-[#4FD1FF] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[#6BE3FF] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
+      <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-[#55C7F7] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+      
       {/* Notification */}
       {notification && (
-        <div className={`fixed top-4 right-4 left-4 sm:left-auto z-50 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg shadow-lg ${
-          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        <div className={`fixed top-4 right-4 left-4 sm:left-auto z-50 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg shadow-lg backdrop-blur-md ${
+          notification.type === 'success' ? 'bg-green-500/90' : 'bg-red-500/90'
         } text-white text-sm sm:text-base animate-slide-in`}>
           {notification.message}
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12 animate-fade-in">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-2xl">
-            <CalendarIcon className="w-10 h-10 sm:w-12 sm:h-12 text-purple-600" />
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#4FD1FF] to-[#6BE3FF] rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-2xl shadow-[#4FD1FF]/30">
+            <CalendarIcon className="w-10 h-10 sm:w-12 sm:h-12 text-[#0F1E35]" />
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4 px-4">
             Connect Your Calendar
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-white/90 px-4">
+          <p className="text-base sm:text-lg md:text-xl text-[#A3B4CC] px-4">
             Let your AI schedule meetings automatically
           </p>
         </div>
@@ -138,10 +143,10 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
         {/* Calendar Options */}
         <div className="space-y-4 sm:space-y-6">
           {/* Google Calendar OAuth */}
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 border-2 border-white/50 hover:scale-[1.02] transition-all duration-300">
+          <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-[1.02] transition-all duration-300">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2 sm:gap-3">
+                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2 sm:gap-3">
                     <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -153,7 +158,7 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
                       <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
                     )}
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 mb-4">
+                  <p className="text-sm sm:text-base text-[#A3B4CC] mb-4">
                     AI creates events directly in your calendar when meetings are confirmed
                   </p>
                   <button
@@ -161,8 +166,8 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
                     disabled={isConnectingGoogle || googleConnected}
                     className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
                       googleConnected
-                        ? 'bg-green-100 text-green-700 cursor-default'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+                        : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
                     } ${isConnectingGoogle ? 'opacity-50 cursor-wait' : ''}`}
                   >
                     {isConnectingGoogle ? 'Connecting...' : googleConnected ? 'Connected' : 'Connect Google Calendar'}
@@ -172,12 +177,12 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
             </div>
 
           {/* Calendly Link */}
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 border-2 border-white/50 hover:scale-[1.02] transition-all duration-300">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2 sm:gap-3">
-                <LinkIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+          <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-[1.02] transition-all duration-300">
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2 sm:gap-3">
+                <LinkIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#4FD1FF]" />
                 Calendly Link (Optional)
               </h3>
-              <p className="text-sm sm:text-base text-gray-600 mb-4">
+              <p className="text-sm sm:text-base text-[#A3B4CC] mb-4">
                 AI sends this link to leads who prefer to self-schedule
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -186,17 +191,17 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
                   value={calendlyLink}
                   onChange={(e) => setCalendlyLink(e.target.value)}
                   placeholder="https://calendly.com/yourname/30min"
-                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-lg focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all text-white placeholder-[#A3B4CC]/50"
                 />
                 <button
                   onClick={handleSaveCalendly}
-                  className="px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 hover:shadow-lg transition-all w-full sm:w-auto"
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-lg font-medium hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all w-full sm:w-auto"
                 >
                   Save
                 </button>
               </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Get your link from <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">calendly.com</a>
+            <p className="text-sm text-[#A3B4CC] mt-2">
+              Get your link from <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="text-[#4FD1FF] hover:underline">calendly.com</a>
             </p>
           </div>
         </div>
@@ -205,7 +210,7 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
         <div className="mt-8 sm:mt-12 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 sm:gap-0">
           <button
             onClick={handleSkip}
-            className="px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base text-white/80 hover:text-white font-medium transition-all hover:scale-105 w-full sm:w-auto text-center"
+            className="px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-medium transition-all hover:scale-105 w-full sm:w-auto text-center"
           >
             Skip for now
           </button>
@@ -214,8 +219,8 @@ export default function CalendarSetup({ onComplete }: CalendarSetupProps) {
             disabled={!googleConnected && !calendlyLink.trim()}
             className={`px-8 sm:px-12 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all w-full sm:w-auto ${
               googleConnected || calendlyLink.trim()
-                ? 'bg-white text-purple-600 hover:shadow-2xl hover:scale-110 shadow-xl'
-                : 'bg-white/30 text-white/50 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-110 shadow-xl'
+                : 'bg-[#2A4472] text-white/50 cursor-not-allowed'
             }`}
           >
             <span className="hidden sm:inline">Continue to Create Agent →</span>

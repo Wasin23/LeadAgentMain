@@ -199,10 +199,27 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
           console.log(`[EMAIL ROUTING] Agent ${agentId} useGmail setting:`, useGmailForAgent);
         }
         
-        // Check if Gmail is connected (either legacy or new calendar tokens with Gmail scopes)
+        // Debug: Log what Gmail-related data we have for this user
+        console.log(`🔍 [DEBUG GMAIL TOKENS] userId: ${userId}`);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] Has gmailAuth?`, !!userSettings?.gmailAuth);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] gmailAuth.refreshToken?`, !!userSettings?.gmailAuth?.refreshToken);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] gmailAuth.email?`, userSettings?.gmailAuth?.email);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] Has gmailAccounts?`, !!userSettings?.gmailAccounts);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] gmailAccounts length:`, userSettings?.gmailAccounts?.length || 0);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] gmailAccounts:`, userSettings?.gmailAccounts?.map(acc => ({ email: acc.email, hasToken: !!acc.refreshToken, isActive: acc.isActive })));
+        console.log(`🔍 [DEBUG GMAIL TOKENS] Has calendarTokens?`, !!userSettings?.calendarTokens);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] calendarTokens.refresh_token?`, !!userSettings?.calendarTokens?.refresh_token);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] calendarTokens.scope?`, userSettings?.calendarTokens?.scope);
+        
+        // Check if Gmail is connected (legacy gmailAuth, new gmailAccounts array, or calendar tokens with Gmail scopes)
         const hasGmailTokens = userSettings?.gmailAuth?.refreshToken || 
+                              (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) ||
                               (userSettings?.calendarTokens?.refresh_token && 
                                userSettings?.calendarTokens?.scope?.includes('gmail'));
+        
+        console.log(`🔍 [DEBUG GMAIL TOKENS] Final hasGmailTokens result:`, hasGmailTokens);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] useGmailForAgent:`, useGmailForAgent);
+        console.log(`🔍 [DEBUG GMAIL TOKENS] Both conditions met (will use Gmail)?`, hasGmailTokens && useGmailForAgent);
         
         if (hasGmailTokens && useGmailForAgent) {
           gmailConnected = true;

@@ -1938,7 +1938,8 @@ export default function AgentDirectorDashboard({ onSelectAgent }: AgentDirectorD
           enableAutoResponse: preset.enableAutoResponse,
           useCustomSignature: preset.useCustomSignature,
           signatureName: preset.signatureName,
-          signatureTitle: preset.signatureTitle
+          signatureTitle: preset.signatureTitle,
+          specialInstructions: preset.specialInstructions // Include special instructions from preset
         };
         console.log('[AgentDirector] Preset data being sent:', agentData.preset);
       } else {
