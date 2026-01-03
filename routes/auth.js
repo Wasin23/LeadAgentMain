@@ -1051,6 +1051,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     console.log(`[AUTH] 💾 Saving agent settings for ${agentId}:`, {
       appliedPresetId: agentSettings.appliedPresetId,
       appliedPresetName: agentSettings.appliedPresetName,
+      specialInstructions: agentSettings.specialInstructions,
+      specialInstructionsLength: agentSettings.specialInstructions?.length || 0,
       companyCriteria: agentSettings.companyCriteria,
       contactCriteria: agentSettings.contactCriteria,
       geographicSettings: agentSettings.geographicSettings,

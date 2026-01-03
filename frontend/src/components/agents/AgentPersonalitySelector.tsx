@@ -491,25 +491,25 @@ export default function AgentPersonalitySelector({
                         <p className="text-neutral-600">No presets available. Create one in Settings Presets.</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[450px] overflow-y-auto p-2">
                         {presets.map((preset, index) => (
                           <motion.div
                             key={preset._id || preset.id || `preset-${index}`}
-                            whileHover={{ scale: 1.02 }}
+                            whileHover={{ scale: 1.01 }}
                             onClick={() => {
                               console.log('[AgentPersonalitySelector] Preset clicked - FULL OBJECT:', preset);
                               setSelectedPreset(preset);
                               console.log('[AgentPersonalitySelector] selectedPreset updated to:', preset.name);
                             }}
-                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                            className={`p-3 border rounded-lg cursor-pointer transition-all ${
                               selectedPreset && (selectedPreset._id || selectedPreset.id) === (preset._id || preset.id)
                                 ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
                                 : 'border-neutral-300 hover:border-neutral-400 hover:shadow-md'
                             }`}
                           >
                             {selectedPreset && (selectedPreset._id || selectedPreset.id) === (preset._id || preset.id) && (
-                              <div className="flex justify-end mb-2">
-                                <CheckIcon className="h-5 w-5 text-green-600" />
+                              <div className="flex justify-end mb-1">
+                                <CheckIcon className="h-4 w-4 text-green-600" />
                               </div>
                             )}
                             <h4 className="font-semibold text-neutral-900 mb-2">{preset.name}</h4>

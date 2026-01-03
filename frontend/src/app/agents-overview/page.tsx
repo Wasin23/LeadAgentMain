@@ -13,7 +13,8 @@ import {
   ChatBubbleLeftRightIcon,
   XMarkIcon,
   ChartBarIcon,
-  FunnelIcon
+  FunnelIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import AgentPersonalitySelector, { PersonalityType } from '@/components/agents/AgentPersonalitySelector';
@@ -157,16 +158,40 @@ export default function AgentsOverview() {
   const [presets, setPresets] = useState<any[]>([]);
   const [presetForm, setPresetForm] = useState({
     name: '',
-    targetIndustries: '',
-    targetPositions: '',
-    companySizeMin: '',
-    companySizeMax: '',
-    leadLimit: '',
-    emailLength: 'medium',
-    callToAction: 'book_meeting',
-    personalizationLevel: 'high',
-    ccEmails: ''
+    targetIndustries: [] as string[],
+    targetPositions: [] as string[],
+    companySizeMin: 50,
+    companySizeMax: 500,
+    leadLimit: 10,
+    specialInstructions: '',
+    emailLength: 'medium' as 'short' | 'medium' | 'long',
+    callToAction: 'schedule-meeting',
+    personalizationLevel: 'high' as 'low' | 'medium' | 'high',
+    ccEmails: '',
+    bccEmails: '',
+    followupIntervalDays: 7,
+    enableAutoResponse: true,
+    useCustomSignature: false
   });
+  const [industryInput, setIndustryInput] = useState('');
+  const [positionInput, setPositionInput] = useState('');
+  const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
+
+  // Common industries and positions for suggestions
+  const commonIndustries = [
+    'Technology', 'Healthcare', 'Finance', 'E-commerce', 'SaaS',
+    'Manufacturing', 'Retail', 'Education', 'Real Estate', 'Marketing',
+    'Consulting', 'Media', 'Telecommunications', 'Energy', 'Insurance'
+  ];
+
+  const commonPositions = [
+    'CEO', 'CTO', 'CFO', 'CMO', 'COO',
+    'VP of Sales', 'VP of Marketing', 'VP of Engineering',
+    'Director of Sales', 'Director of Marketing', 'Director of Engineering',
+    'Sales Manager', 'Product Manager', 'Engineering Manager',
+    'Founder', 'Co-Founder', 'Partner', 'Owner'
+  ];
   
   // Tab state
   const [activeTab, setActiveTab] = useState<'agents' | 'presets'>('agents');
@@ -183,9 +208,9 @@ export default function AgentsOverview() {
     fetchAgents();
     
     // Set up SSE connection for real-time agent activity updates
-    const eventSource = new EventSource('/api/monitoring/stream', {
-      withCredentials: true
-    });
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const token = localStorage.getItem('authToken');
+    const eventSource = new EventSource(`${apiUrl}/api/monitoring/stream?token=${token}`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -336,20 +361,88 @@ export default function AgentsOverview() {
     setShowSettingsModal(true);
   };
 
+  const addIndustry = (industry: string) => {
+    if (industry.trim() && !presetForm.targetIndustries.includes(industry)) {
+      setPresetForm({
+        ...presetForm,
+        targetIndustries: [...presetForm.targetIndustries, industry.trim()]
+      });
+      setIndustryInput('');
+      setShowIndustryDropdown(false);
+    }
+  };
+
+  const removeIndustry = (industry: string) => {
+    setPresetForm({
+      ...presetForm,
+      targetIndustries: presetForm.targetIndustries.filter(i => i !== industry)
+    });
+  };
+
+  const addPosition = (position: string) => {
+    if (position.trim() && !presetForm.targetPositions.includes(position)) {
+      setPresetForm({
+        ...presetForm,
+        targetPositions: [...presetForm.targetPositions, position.trim()]
+      });
+      setPositionInput('');
+      setShowPositionDropdown(false);
+    }
+  };
+
+  const removePosition = (position: string) => {
+    setPresetForm({
+      ...presetForm,
+      targetPositions: presetForm.targetPositions.filter(p => p !== position)
+    });
+  };
+
+  const handleIndustryKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && industryInput.trim()) {
+      e.preventDefault();
+      addIndustry(industryInput);
+    }
+  };
+
+  const handlePositionKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && positionInput.trim()) {
+      e.preventDefault();
+      addPosition(positionInput);
+    }
+  };
+
+  const filteredIndustries = industryInput
+    ? commonIndustries.filter(ind => 
+        ind.toLowerCase().includes(industryInput.toLowerCase()) &&
+        !presetForm.targetIndustries.includes(ind)
+      )
+    : commonIndustries.filter(ind => !presetForm.targetIndustries.includes(ind));
+
+  const filteredPositions = positionInput
+    ? commonPositions.filter(pos => 
+        pos.toLowerCase().includes(positionInput.toLowerCase()) &&
+        !presetForm.targetPositions.includes(pos)
+      )
+    : commonPositions.filter(pos => !presetForm.targetPositions.includes(pos));
+
   const handleCreatePreset = async () => {
     try {
-      // Parse comma-separated strings into arrays
       const presetData = {
         name: presetForm.name,
-        targetIndustries: presetForm.targetIndustries.split(',').map(s => s.trim()).filter(Boolean),
-        targetPositions: presetForm.targetPositions.split(',').map(s => s.trim()).filter(Boolean),
-        companySizeMin: presetForm.companySizeMin ? parseInt(presetForm.companySizeMin) : undefined,
-        companySizeMax: presetForm.companySizeMax ? parseInt(presetForm.companySizeMax) : undefined,
-        leadLimit: presetForm.leadLimit ? parseInt(presetForm.leadLimit) : undefined,
+        targetIndustries: presetForm.targetIndustries,
+        targetPositions: presetForm.targetPositions,
+        companySizeMin: presetForm.companySizeMin,
+        companySizeMax: presetForm.companySizeMax,
+        leadLimit: presetForm.leadLimit,
+        specialInstructions: presetForm.specialInstructions || '',
         emailLength: presetForm.emailLength,
         callToAction: presetForm.callToAction,
         personalizationLevel: presetForm.personalizationLevel,
-        ccEmails: presetForm.ccEmails.split(',').map(s => s.trim()).filter(Boolean)
+        ccEmails: presetForm.ccEmails,
+        bccEmails: presetForm.bccEmails,
+        followupIntervalDays: presetForm.followupIntervalDays,
+        enableAutoResponse: presetForm.enableAutoResponse,
+        useCustomSignature: presetForm.useCustomSignature
       };
 
       const response = await api.post('/api/settings/presets', presetData);
@@ -359,16 +452,23 @@ export default function AgentsOverview() {
         // Reset form
         setPresetForm({
           name: '',
-          targetIndustries: '',
-          targetPositions: '',
-          companySizeMin: '',
-          companySizeMax: '',
-          leadLimit: '',
+          targetIndustries: [],
+          targetPositions: [],
+          companySizeMin: 50,
+          companySizeMax: 500,
+          leadLimit: 10,
+          specialInstructions: '',
           emailLength: 'medium',
-          callToAction: 'book_meeting',
+          callToAction: 'schedule-meeting',
           personalizationLevel: 'high',
-          ccEmails: ''
+          ccEmails: '',
+          bccEmails: '',
+          followupIntervalDays: 7,
+          enableAutoResponse: true,
+          useCustomSignature: false
         });
+        setIndustryInput('');
+        setPositionInput('');
       }
     } catch (error) {
       console.error('Failed to create preset:', error);
@@ -780,6 +880,37 @@ export default function AgentsOverview() {
                     <div className="text-white/70">
                       <span className="text-white/50">Lead Limit: </span>
                       {preset.leadLimit} per cycle
+                    </div>
+                  )}
+
+                  {/* Email Settings Summary */}
+                  {(preset.emailLength || preset.callToAction || preset.personalizationLevel) && (
+                    <div className="mt-3 pt-3 border-t border-white/10">
+                      <span className="text-xs text-white/40 uppercase tracking-wide">Email Settings</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {preset.emailLength && (
+                          <span className="px-2 py-0.5 bg-cyan-500/20 rounded text-xs text-cyan-300">
+                            {preset.emailLength}
+                          </span>
+                        )}
+                        {preset.personalizationLevel && (
+                          <span className="px-2 py-0.5 bg-purple-500/20 rounded text-xs text-purple-300">
+                            {preset.personalizationLevel}
+                          </span>
+                        )}
+                        {preset.enableAutoResponse && (
+                          <span className="px-2 py-0.5 bg-green-500/20 rounded text-xs text-green-300">
+                            auto-reply
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special Instructions Indicator */}
+                  {preset.specialInstructions && (
+                    <div className="mt-2 text-xs text-white/50 line-clamp-2">
+                      "{preset.specialInstructions}"
                     </div>
                   )}
                 </div>
@@ -1203,197 +1334,420 @@ export default function AgentsOverview() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" 
-            style={{ backgroundColor: 'rgba(23, 23, 23, 0.65)' }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPresetModal(false)} />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#1B2F52]/95 backdrop-blur-lg rounded-xl shadow-2xl w-full max-w-4xl z-10 overflow-hidden max-h-[90vh] flex flex-col border border-[#4FD1FF]/30"
             >
               {/* Header */}
-              <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
                 <div>
-                  <h2 className="text-xl font-bold text-neutral-900">Create Agent Preset</h2>
-                  <p className="text-sm text-neutral-600 mt-1">Define a reusable configuration for your agents</p>
+                  <h3 className="text-xl font-semibold text-white">Create New Preset</h3>
+                  <p className="text-[#A3B4CC] text-sm mt-1">Configure your ideal customer profile template</p>
                 </div>
-                <button
-                  onClick={() => setShowPresetModal(false)}
-                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                <button 
+                  onClick={() => setShowPresetModal(false)} 
+                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                 >
-                  <XMarkIcon className="w-5 h-5 text-neutral-500" />
+                  <XMarkIcon className="w-5 h-5 text-white" />
                 </button>
               </div>
 
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6">
-                <div className="space-y-4">
-                  {/* Preset Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Preset Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={presetForm.name}
-                      onChange={(e) => setPresetForm({ ...presetForm, name: e.target.value })}
-                      placeholder="e.g., Tech Startups Outreach"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                    />
-                  </div>
+              {/* Scrollable Content */}
+              <div className="p-6 space-y-6 overflow-y-auto">
+                {/* Preset Name */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Preset Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={presetForm.name}
+                    onChange={(e) => setPresetForm({ ...presetForm, name: e.target.value })}
+                    placeholder="e.g., Tech Startups, Enterprise Sales"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white placeholder:text-white/40"
+                  />
+                </div>
 
-                  {/* Target Industries */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Target Industries
-                    </label>
-                    <input
-                      type="text"
-                      value={presetForm.targetIndustries}
-                      onChange={(e) => setPresetForm({ ...presetForm, targetIndustries: e.target.value })}
-                      placeholder="e.g., Technology, SaaS, AI (comma-separated)"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                    />
+                {/* General Instructions */}
+                <div className="bg-[#4FD1FF]/10 rounded-lg p-4 border border-[#4FD1FF]/30">
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    General Instructions
+                  </label>
+                  <p className="text-xs text-[#A3B4CC] mb-3">
+                    Give your agent specific campaign instructions. The AI will dynamically determine what actions to take based on these instructions.
+                  </p>
+                  <textarea
+                    value={presetForm.specialInstructions}
+                    onChange={(e) => setPresetForm({ ...presetForm, specialInstructions: e.target.value })}
+                    placeholder="Example: Target CTOs at Series A startups in healthcare tech. Focus on pain points around scaling engineering teams..."
+                    rows={4}
+                    maxLength={1000}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] resize-none text-white placeholder:text-white/40"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-[#A3B4CC]">💡 These instructions guide the entire campaign behavior</span>
+                    <span className="text-xs text-[#A3B4CC]">{presetForm.specialInstructions.length}/1000</span>
                   </div>
+                </div>
 
-                  {/* Target Positions */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Target Positions
-                    </label>
-                    <input
-                      type="text"
-                      value={presetForm.targetPositions}
-                      onChange={(e) => setPresetForm({ ...presetForm, targetPositions: e.target.value })}
-                      placeholder="e.g., CEO, CTO, VP of Sales (comma-separated)"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                    />
-                  </div>
-
-                  {/* Company Size Range */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Min Company Size
-                      </label>
-                      <input
-                        type="number"
-                        value={presetForm.companySizeMin}
-                        onChange={(e) => setPresetForm({ ...presetForm, companySizeMin: e.target.value })}
-                        placeholder="e.g., 10"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Max Company Size
-                      </label>
-                      <input
-                        type="number"
-                        value={presetForm.companySizeMax}
-                        onChange={(e) => setPresetForm({ ...presetForm, companySizeMax: e.target.value })}
-                        placeholder="e.g., 500"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Lead Limit */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Lead Limit (per cycle)
-                    </label>
+                {/* Company Size */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Company Size (Employees)</label>
+                  <div className="flex items-center gap-3">
                     <input
                       type="number"
-                      value={presetForm.leadLimit}
-                      onChange={(e) => setPresetForm({ ...presetForm, leadLimit: e.target.value })}
-                      placeholder="e.g., 50"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+                      value={presetForm.companySizeMin}
+                      onChange={(e) => setPresetForm({ ...presetForm, companySizeMin: parseInt(e.target.value) || 0 })}
+                      className="w-32 px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white placeholder:text-white/40"
+                      placeholder="Min"
+                    />
+                    <span className="text-white/70 font-medium">to</span>
+                    <input
+                      type="number"
+                      value={presetForm.companySizeMax}
+                      onChange={(e) => setPresetForm({ ...presetForm, companySizeMax: parseInt(e.target.value) || 0 })}
+                      className="w-32 px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white placeholder:text-white/40"
+                      placeholder="Max"
                     />
                   </div>
+                </div>
 
-                  {/* Email Length */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Email Length
-                    </label>
-                    <select
-                      value={presetForm.emailLength}
-                      onChange={(e) => setPresetForm({ ...presetForm, emailLength: e.target.value })}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                    >
-                      <option value="short">Short (2-3 sentences)</option>
-                      <option value="medium">Medium (4-5 sentences)</option>
-                      <option value="long">Long (6+ sentences)</option>
-                    </select>
-                  </div>
+                {/* Target Industries */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Target Industries
+                  </label>
+                  
+                  {/* Selected Industries - Purple Bubbles */}
+                  {presetForm.targetIndustries.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {presetForm.targetIndustries.map((industry) => (
+                        <span
+                          key={industry}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-500 text-white rounded-full text-sm font-medium"
+                        >
+                          {industry}
+                          <button
+                            onClick={() => removeIndustry(industry)}
+                            className="hover:bg-white/20 rounded-full p-0.5"
+                          >
+                            <XMarkIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                  {/* Call to Action */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Call to Action
-                    </label>
-                    <select
-                      value={presetForm.callToAction}
-                      onChange={(e) => setPresetForm({ ...presetForm, callToAction: e.target.value })}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                    >
-                      <option value="book_meeting">Book a Meeting</option>
-                      <option value="reply">Reply to Email</option>
-                      <option value="schedule_call">Schedule a Call</option>
-                      <option value="demo">Request a Demo</option>
-                      <option value="visit_website">Visit Website</option>
-                    </select>
-                  </div>
-
-                  {/* Personalization Level */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Personalization Level
-                    </label>
-                    <select
-                      value={presetForm.personalizationLevel}
-                      onChange={(e) => setPresetForm({ ...presetForm, personalizationLevel: e.target.value })}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-                    >
-                      <option value="low">Low (Generic)</option>
-                      <option value="medium">Medium (Some personalization)</option>
-                      <option value="high">High (Highly personalized)</option>
-                    </select>
-                  </div>
-
-                  {/* CC Emails */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      CC Emails (Optional)
-                    </label>
+                  {/* Search Input */}
+                  <div className="relative">
                     <input
                       type="text"
-                      value={presetForm.ccEmails}
-                      onChange={(e) => setPresetForm({ ...presetForm, ccEmails: e.target.value })}
-                      placeholder="e.g., team@company.com, sales@company.com (comma-separated)"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+                      value={industryInput}
+                      onChange={(e) => setIndustryInput(e.target.value)}
+                      onFocus={() => setShowIndustryDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowIndustryDropdown(false), 200)}
+                      onKeyPress={handleIndustryKeyPress}
+                      placeholder="Search industries... (e.g., Technology, Healthcare, Finance...)"
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder:text-white/40"
                     />
+                    
+                    {/* Suggestions Dropdown */}
+                    {showIndustryDropdown && filteredIndustries.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-[#1B2F52] border border-white/20 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {filteredIndustries.map((industry) => (
+                          <button
+                            key={industry}
+                            onClick={() => addIndustry(industry)}
+                            className="w-full text-left px-4 py-2 hover:bg-purple-500/30 transition-colors text-sm text-white"
+                          >
+                            {industry}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick Add Buttons */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {commonIndustries.map(industry => (
+                      <button
+                        key={industry}
+                        onClick={() => addIndustry(industry)}
+                        disabled={presetForm.targetIndustries.includes(industry)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                          presetForm.targetIndustries.includes(industry)
+                            ? 'bg-purple-500/30 text-purple-300 cursor-default'
+                            : 'bg-white/10 hover:bg-purple-500/30 text-white/70 hover:text-white border border-white/20'
+                        }`}
+                      >
+                        {presetForm.targetIndustries.includes(industry) ? '✓ ' : '+ '}{industry}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Target Positions */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Target Positions
+                  </label>
+                  
+                  {/* Selected Positions - Blue Bubbles */}
+                  {presetForm.targetPositions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {presetForm.targetPositions.map((position) => (
+                        <span
+                          key={position}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm font-medium"
+                        >
+                          {position}
+                          <button
+                            onClick={() => removePosition(position)}
+                            className="hover:bg-white/20 rounded-full p-0.5"
+                          >
+                            <XMarkIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Search Input */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={positionInput}
+                      onChange={(e) => setPositionInput(e.target.value)}
+                      onFocus={() => setShowPositionDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowPositionDropdown(false), 200)}
+                      onKeyPress={handlePositionKeyPress}
+                      placeholder="Search positions... (e.g., CEO, VP of Sales, Director...)"
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder:text-white/40"
+                    />
+                    
+                    {/* Suggestions Dropdown */}
+                    {showPositionDropdown && filteredPositions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-[#1B2F52] border border-white/20 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {filteredPositions.map((position) => (
+                          <button
+                            key={position}
+                            onClick={() => addPosition(position)}
+                            className="w-full text-left px-4 py-2 hover:bg-blue-500/30 transition-colors text-sm text-white"
+                          >
+                            {position}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick Add Buttons */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {commonPositions.map(position => (
+                      <button
+                        key={position}
+                        onClick={() => addPosition(position)}
+                        disabled={presetForm.targetPositions.includes(position)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                          presetForm.targetPositions.includes(position)
+                            ? 'bg-blue-500/30 text-blue-300 cursor-default'
+                            : 'bg-white/10 hover:bg-blue-500/30 text-white/70 hover:text-white border border-white/20'
+                        }`}
+                      >
+                        {presetForm.targetPositions.includes(position) ? '✓ ' : '+ '}{position}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Leads Per Cycle */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Leads Per Cycle</label>
+                  <p className="text-xs text-[#A3B4CC] mb-3">
+                    A cycle runs on your set schedule. Your agent will find and research this many new leads each time.
+                  </p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={presetForm.leadLimit}
+                      onChange={(e) => setPresetForm({ ...presetForm, leadLimit: parseInt(e.target.value) || 1 })}
+                      className="w-32 px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-center font-semibold text-white"
+                    />
+                    <span className="text-white/70">leads per cycle</span>
+                  </div>
+                  <div className="bg-green-500/20 border border-green-500/40 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-white">Estimated Cost:</span>
+                      <span className="text-green-400 font-bold text-lg">
+                        ${(presetForm.leadLimit * 0.18).toFixed(2)} per cycle
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/70 mt-1">
+                      ~$0.18 per lead • {presetForm.leadLimit} leads = ${(presetForm.leadLimit * 0.18).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Email Response Settings */}
+                <div className="border-t border-white/10 pt-6">
+                  <h4 className="text-lg font-semibold text-white mb-2">Email Response Settings</h4>
+                  <p className="text-sm text-[#A3B4CC] mb-4">
+                    Configure how your agent communicates with leads
+                  </p>
+
+                  {/* Email Length, Call to Action, Personalization Level */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">Email Length</label>
+                      <select
+                        value={presetForm.emailLength}
+                        onChange={(e) => setPresetForm({ ...presetForm, emailLength: e.target.value as any })}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white"
+                      >
+                        <option value="short" className="bg-[#1B2F52] text-white">Short (concise)</option>
+                        <option value="medium" className="bg-[#1B2F52] text-white">Medium (balanced)</option>
+                        <option value="long" className="bg-[#1B2F52] text-white">Long (detailed)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">Call to Action</label>
+                      <select
+                        value={presetForm.callToAction}
+                        onChange={(e) => setPresetForm({ ...presetForm, callToAction: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white"
+                      >
+                        <option value="schedule-meeting" className="bg-[#1B2F52] text-white">Schedule Meeting</option>
+                        <option value="request-demo" className="bg-[#1B2F52] text-white">Request Demo</option>
+                        <option value="learn-more" className="bg-[#1B2F52] text-white">Learn More</option>
+                        <option value="custom" className="bg-[#1B2F52] text-white">Custom</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">Personalization Level</label>
+                      <select
+                        value={presetForm.personalizationLevel}
+                        onChange={(e) => setPresetForm({ ...presetForm, personalizationLevel: e.target.value as any })}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white"
+                      >
+                        <option value="low" className="bg-[#1B2F52] text-white">Low (generic)</option>
+                        <option value="medium" className="bg-[#1B2F52] text-white">Medium (personalized)</option>
+                        <option value="high" className="bg-[#1B2F52] text-white">High (hyper-personalized)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* CC and BCC Emails */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">CC Email Addresses</label>
+                      <input
+                        type="text"
+                        value={presetForm.ccEmails}
+                        onChange={(e) => setPresetForm({ ...presetForm, ccEmails: e.target.value })}
+                        placeholder="email1@example.com, email2@example.com"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white placeholder:text-white/40"
+                      />
+                      <p className="text-xs text-[#A3B4CC] mt-1">Comma-separated email addresses</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">BCC Email Addresses</label>
+                      <input
+                        type="text"
+                        value={presetForm.bccEmails}
+                        onChange={(e) => setPresetForm({ ...presetForm, bccEmails: e.target.value })}
+                        placeholder="email1@example.com, email2@example.com"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white placeholder:text-white/40"
+                      />
+                      <p className="text-xs text-[#A3B4CC] mt-1">Hidden from recipients</p>
+                    </div>
+                  </div>
+
+                  {/* Follow-up Interval */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-white mb-2">Follow-up Interval (Days)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={presetForm.followupIntervalDays}
+                      onChange={(e) => setPresetForm({ ...presetForm, followupIntervalDays: parseInt(e.target.value) || 7 })}
+                      className="w-full md:w-48 px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-[#4FD1FF] text-white"
+                    />
+                    <p className="text-xs text-[#A3B4CC] mt-1">Days to wait before sending follow-up email</p>
+                  </div>
+
+                  {/* Enable Auto-Response Toggle */}
+                  <div className="flex items-center justify-between mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div>
+                      <label className="text-sm font-medium text-white">Enable AI Auto-Response to Emails</label>
+                      <p className="text-xs text-[#A3B4CC] mt-1">
+                        When enabled, AI will automatically respond to incoming emails from leads
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPresetForm({ ...presetForm, enableAutoResponse: !presetForm.enableAutoResponse })}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                        presetForm.enableAutoResponse ? 'bg-green-500' : 'bg-white/20'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                          presetForm.enableAutoResponse ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Use Custom Signature Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div>
+                      <label className="text-sm font-medium text-white">Use Custom Email Signature</label>
+                      <p className="text-xs text-[#A3B4CC] mt-1">
+                        Emails will be signed as the AI agent
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPresetForm({ ...presetForm, useCustomSignature: !presetForm.useCustomSignature })}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                        presetForm.useCustomSignature ? 'bg-green-500' : 'bg-white/20'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                          presetForm.useCustomSignature ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t bg-neutral-50 flex items-center justify-end gap-3">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 bg-[#0F1E35]/50 flex-shrink-0">
                 <button
                   onClick={() => setShowPresetModal(false)}
-                  className="px-4 py-2 text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors font-medium"
+                  className="px-5 py-2.5 text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreatePreset}
                   disabled={!presetForm.name}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#4FD1FF] hover:bg-[#4FD1FF]/90 text-[#0F1E35] rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#4FD1FF]/20"
                 >
+                  <CheckIcon className="w-4 h-4" />
                   Create Preset
                 </button>
               </div>

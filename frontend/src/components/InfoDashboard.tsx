@@ -705,20 +705,20 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                   <p className="text-gray-400">No presets available</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[450px] overflow-y-auto mb-6 p-2">
                   {presets.map((preset) => (
                     <button
                       key={preset._id || preset.id}
                       onClick={() => setSelectedPreset(preset)}
-                      className={`relative text-left p-4 rounded-lg border-2 transition-all ${
-                        selectedPreset?._id === preset._id || selectedPreset?.id === preset.id
+                      className={`relative text-left p-3 rounded-lg border-2 transition-all ${
+                        selectedPreset && ((selectedPreset._id && selectedPreset._id === preset._id) || (selectedPreset.id && selectedPreset.id === preset.id))
                           ? 'border-[#4FD1FF] bg-[#1B2F52] ring-2 ring-[#4FD1FF]/30'
                           : 'border-[#1B2F52] bg-[#0F1F3A] hover:border-[#3B82F6]'
                       }`}
                     >
-                      {(selectedPreset?._id === preset._id || selectedPreset?.id === preset.id) && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-[#4FD1FF] rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-[#0F1E35]" fill="currentColor" viewBox="0 0 20 20">
+                      {selectedPreset && ((selectedPreset._id && selectedPreset._id === preset._id) || (selectedPreset.id && selectedPreset.id === preset.id)) && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-[#4FD1FF] rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-[#0F1E35]" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </div>
