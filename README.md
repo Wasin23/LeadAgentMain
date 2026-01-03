@@ -1428,6 +1428,127 @@ getUserSettings('USER_ID').then(console.log);
 
 ---
 
+## Recent Critical Bug Fixes (January 2, 2026)
+
+### Issue #1: Special Instructions Not Being Applied from Presets
+**Problem:** Agents created through the regular "Create Agent" flow (AgentManager, AgentDirectorDashboard) were not using special instructions from presets, causing them to skip research/pre-qualify/qualify workflow entirely.
+
+**Root Cause:** 
+- Frontend was sending `specialInstructions` nested inside `preset` object only
+- Backend at `routes/auth.js` line 930 reads from top-level `specialInstructions` field
+- Backend fallback check `if (!specialInstructions && preset.specialInstructions)` failed because empty string `''` is truthy in JavaScript
+- Result: `specialInstructions` set to empty string, campaign plan generation returned null, agent skipped straight to email phase
+
+**Fix Applied:**
+1. **Frontend Changes:**
+   - [AgentManager.tsx](frontend/src/components/agents/AgentManager.tsx) line 415 - Added `specialInstructions: preset?.specialInstructions || ''` at top level of request
+   - [AgentDirectorDashboard.tsx](frontend/src/components/agents/AgentDirectorDashboard.tsx) line 1910 - Same fix applied
+2. **Backend Changes:**
+   - [auth.js](routes/auth.js) line 1010 - Changed condition to `if ((!specialInstructions || specialInstructions.trim() === '') && preset.specialInstructions)` to properly handle empty strings
+3. **Agent Logging:**
+   - [reasoningLeadAgent.js](agent/reasoningLeadAgent.js) line 5872 - Enhanced logging to show when special instructions are missing and warn about skipped workflow phases
+
+**Impact:** Agents now properly execute full research → pre-qualify → qualify → email workflow when created with presets.
+
+---
+
+### Issue #2: All Presets Showing as Selected in UI
+**Problem:** When opening preset selection modal, all presets briefly showed green selection styling and checkmarks, making it impossible to know which preset was actually selected.
+
+**Root Cause:** 
+- Condition `(selectedPreset?._id || selectedPreset?.id) === (preset._id || preset.id)` evaluated to `true` when both sides were `undefined`
+- `undefined === undefined` returns true in JavaScript
+- Initial state `selectedPreset = null` didn't prevent this because the OR operators returned undefined before comparison
+
+**Fix Applied:**
+- [AgentPersonalitySelector.tsx](frontend/src/components/agents/AgentPersonalitySelector.tsx) lines 505-510
+- Changed to: `selectedPreset && (selectedPreset._id || selectedPreset.id) === (preset._id || preset.id)`
+- Ensures `selectedPreset` exists before checking ID equality
+
+**Impact:** Preset selection UI now correctly shows only the actively selected preset.
+
+---
+
+### Issue #3: Gmail Default Preference Not Being Respected
+**Problem:** Users set "Prioritize Gmail" to true in settings, but new agents were still being created with Mailgun as default email sender.
+
+**Investigation:** 
+- Backend logic at `routes/auth.js` line 1005 already correctly checks: `useGmail: useGmail !== undefined ? useGmail : (user.settings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false)`
+- Frontend was NOT sending `useGmail` field at all in agent creation requests
+- This means backend should fall back to `defaultUseGmail` preference
+
+**Fix Applied:**
+- Added detailed debug logging at [auth.js](routes/auth.js) after line 1005:
+```javascript
+console.log(`[AUTH] 🔍 Gmail Setting Debug:`, {
+  useGmailFromRequest: useGmail,
+  defaultUseGmailFromUserSettings: user.settings?.preferences?.defaultUseGmail,
+  finalUseGmail: agentSettings.emailBuilder.useGmail,
+  userHasGmailAuth: !!user.gmailAuth,
+  userHasGmailAccounts: user.gmailAccounts?.length || 0,
+  userHasCalendarTokens: !!user.calendarTokens
+});
+```
+
+**Impact:** Can now diagnose why Gmail preference isn't being applied by checking server logs during agent creation.
+
+---
+
+### Issue #4: Research Workflow Not Executing Even With Instructions
+**Problem:** Agents were skipping research/pre-qualify/qualify phases and going straight to email, even when special instructions were provided.
+
+**Root Cause:**
+- `convertInstructionsToPlan()` in [reasoningLeadAgent.js](agent/reasoningLeadAgent.js) returns `null` when no special instructions provided
+- Null campaign plan causes agent to skip qualification phases (see line 1237)
+- With Issue #1 fix, special instructions should now flow through properly
+
+**Fix Applied:**
+- Enhanced logging at line 297-299 to warn when campaign plan is null:
+```javascript
+console.log('⚠️ [CAMPAIGN PLAN] WARNING: Without special instructions, agent will skip research/pre-qualify/qualify phases!');
+console.log('📋 [CAMPAIGN PLAN] Special instructions received:', specialInstructions.substring(0, 100) + '...');
+```
+- Added detailed settings logging at line 5872-5876 to show exactly what instructions are loaded at agent startup
+
+**Impact:** Clear visibility into why workflow phases are being skipped, combined with Issue #1 fix ensures workflow executes properly.
+
+---
+
+### Issue #5: Orphaned Emails Not Showing Up After Agent Deletion
+**Problem:** When agents were deleted, their emails should appear in "Orphaned Emails" section at top of email queue, but they weren't showing up reliably.
+
+**Root Cause:**
+- Frontend calls `/api/email-queue/queue?agentId=orphan` to fetch orphaned emails
+- Backend at [emailQueue.js](routes/emailQueue.js) line 48 treated "orphan" as a literal agentId
+- Backend tried to query DynamoDB for emails where `agentId = "orphan"`, but deleted agents' emails still have their REAL agent IDs
+- No special logic existed to identify which emails belong to deleted agents
+
+**Fix Applied:**
+- [emailQueue.js](routes/emailQueue.js) lines 64-83 - Added special case handling:
+```javascript
+if (agentId === 'orphan') {
+  // Get all active agent IDs for user
+  const allAgents = await awsManager.getUserAgents(req.user.userId);
+  const activeAgentIds = allAgents.map(a => a.agentId);
+  
+  // Get all emails and filter for orphaned ones
+  const allEmails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
+  const orphanedEmails = allEmails.filter(email => !activeAgentIds.includes(email.agentId));
+  
+  return res.json(orphanedEmails);
+}
+```
+
+**Logic:**
+1. Fetch list of all active agents for user
+2. Get all emails for user across all agents
+3. Filter emails where `email.agentId` is NOT in active agent list
+4. These are orphaned emails from deleted agents
+
+**Impact:** Orphaned emails now reliably appear in queue after agent deletion, preventing lost leads and allowing users to reassign or delete them.
+
+---
+
 ## Contact & Links
 
 - **Backend:** https://meridian-kdew.onrender.com
@@ -1438,7 +1559,7 @@ getUserSettings('USER_ID').then(console.log);
 
 ---
 
-**Last Modified:** December 30, 2025  
-**Version:** 2.3.0 (Help Chat + Email Analytics + UX Improvements)  
-**Next Major Features:** Gmail watch auto-renewal, dual-send bug fix, backend delivery status tracking
+**Last Modified:** January 2, 2026  
+**Version:** 2.4.0 (Critical Bug Fixes - Agent Presets, Gmail Preferences, Orphaned Emails)  
+**Next Major Features:** Gmail watch auto-renewal, delivery status tracking improvements
 
