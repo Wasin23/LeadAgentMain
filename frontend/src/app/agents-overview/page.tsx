@@ -17,7 +17,7 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
-import AgentPersonalitySelector, { PersonalityType } from '@/components/agents/AgentPersonalitySelector';
+import AgentOnboarding from '@/components/agents/AgentOnboarding';
 
 interface Agent {
   id: string;
@@ -138,7 +138,7 @@ export default function AgentsOverview() {
   const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showPersonalitySelector, setShowPersonalitySelector] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -563,7 +563,7 @@ export default function AgentsOverview() {
           
           {activeTab === 'agents' && (
             <button
-              onClick={() => setShowPersonalitySelector(true)}
+              onClick={() => setShowOnboarding(true)}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all rounded-lg border border-[#4FD1FF]/30 text-white font-medium text-sm sm:text-base shadow-lg shadow-[#4FD1FF]/10"
             >
               <PlusIcon className="w-5 h-5" />
@@ -926,27 +926,16 @@ export default function AgentsOverview() {
         )}
       </div>
 
-      {/* Agent Personality Selector Modal */}
-      <AgentPersonalitySelector
-        isOpen={showPersonalitySelector}
-        onClose={() => setShowPersonalitySelector(false)}
-        onSelectPersonality={async (personality, customName) => {
-          try {
-            const response = await api.post('/api/lead-agent', {
-              personality: personality.id,
-              name: customName || `${personality.name} Agent`
-            });
-            
-            if (response.data?.agent) {
-              setAgents([...agents, response.data.agent]);
-            }
-            setShowPersonalitySelector(false);
-          } catch (error) {
-            console.error('Failed to create agent:', error);
-            alert('Failed to create agent. Please try again.');
-          }
-        }}
-      />
+      {/* Agent Onboarding Modal */}
+      {showOnboarding && (
+        <AgentOnboarding
+          onSkip={() => setShowOnboarding(false)}
+          onComplete={() => {
+            setShowOnboarding(false);
+            fetchAgents(); // Reload agents after creation
+          }}
+        />
+      )}
 
       {/* Instructions Modal */}
       <AnimatePresence>

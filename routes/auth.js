@@ -806,32 +806,31 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions, useGmail } = req.body;
     const userId = req.user.userId;
     
-    console.log('[AUTH CREATE-AGENT] Request body:', {
-      name,
-      type,
-      hasPersonality: !!personality,
-      hasPreset: !!preset,
-      hasSpecialInstructions: !!specialInstructions,
-      preset: preset ? {
-        presetId: preset.presetId,
-        name: preset.name,
-        targetIndustries: preset.targetIndustries,
-        targetPositions: preset.targetPositions,
-        companySizeMin: preset.companySizeMin,
-        companySizeMax: preset.companySizeMax,
-        leadLimit: preset.leadLimit,
-        emailLength: preset.emailLength,
-        callToAction: preset.callToAction,
-        personalizationLevel: preset.personalizationLevel,
-        ccEmails: preset.ccEmails,
-        bccEmails: preset.bccEmails,
-        followupIntervalDays: preset.followupIntervalDays,
-        enableAutoResponse: preset.enableAutoResponse,
-        useCustomSignature: preset.useCustomSignature,
-        signatureName: preset.signatureName,
-        signatureTitle: preset.signatureTitle
-      } : null
-    });
+    console.log('[AUTH CREATE-AGENT] ============================================');
+    console.log('[AUTH CREATE-AGENT] FULL REQUEST BODY:', JSON.stringify(req.body, null, 2));
+    console.log('[AUTH CREATE-AGENT] ============================================');
+    console.log('[AUTH CREATE-AGENT] PRESET OBJECT DETAILS:');
+    if (preset) {
+      console.log('  - Preset ID:', preset.presetId || preset._id || preset.id);
+      console.log('  - Preset Name:', preset.name);
+      console.log('  - targetIndustries:', preset.targetIndustries);
+      console.log('  - targetPositions:', preset.targetPositions);
+      console.log('  - companySizeMin:', preset.companySizeMin);
+      console.log('  - companySizeMax:', preset.companySizeMax);
+      console.log('  - leadLimit:', preset.leadLimit);
+      console.log('  - emailLength:', preset.emailLength);
+      console.log('  - callToAction:', preset.callToAction);
+      console.log('  - personalizationLevel:', preset.personalizationLevel);
+      console.log('  - ccEmails:', preset.ccEmails);
+      console.log('  - bccEmails:', preset.bccEmails);
+      console.log('  - followupIntervalDays:', preset.followupIntervalDays);
+      console.log('  - enableAutoResponse:', preset.enableAutoResponse);
+      console.log('  - useCustomSignature:', preset.useCustomSignature);
+      console.log('  - specialInstructions:', preset.specialInstructions);
+    } else {
+      console.log('  - NO PRESET PROVIDED');
+    }
+    console.log('[AUTH CREATE-AGENT] ============================================');
     
     if (!name) {
       return res.status(400).json({ error: 'Agent name is required' });
@@ -902,10 +901,11 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     const awsManager = (await import('../utils/awsManager.js')).default;
     const awsManagerInstance = new awsManager();
     
-    // Fetch company profile to auto-populate branding
+    // Fetch company profile and user preferences to auto-populate branding and settings
     let companyProfile = null;
+    let userSettings = null;
     try {
-      const userSettings = await awsManagerInstance.getUserSettings(userId);
+      userSettings = await awsManagerInstance.getUserSettings(userId);
       companyProfile = userSettings?.companyProfile;
       console.log('[AUTH] Company profile loaded:', companyProfile ? 'YES' : 'NO');
       if (companyProfile) {
@@ -1002,12 +1002,12 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         useCustomSignature: preset.useCustomSignature || agentSettings.emailBuilder?.useCustomSignature || false,
         signatureName: preset.signatureName || agentSettings.emailBuilder?.signatureName || '',
         signatureTitle: preset.signatureTitle || agentSettings.emailBuilder?.signatureTitle || '',
-        useGmail: useGmail !== undefined ? useGmail : (user.settings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false)
+        useGmail: useGmail !== undefined ? useGmail : (userSettings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false)
       };
       
       console.log(`[AUTH] 🔍 Gmail Setting Debug:`, {
         useGmailFromRequest: useGmail,
-        defaultUseGmailFromUserSettings: user.settings?.preferences?.defaultUseGmail,
+        defaultUseGmailFromUserSettings: userSettings?.preferences?.defaultUseGmail,
         finalUseGmail: agentSettings.emailBuilder.useGmail,
         userHasGmailAuth: !!user.gmailAuth,
         userHasGmailAccounts: user.gmailAccounts?.length || 0,

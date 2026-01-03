@@ -787,6 +787,8 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                       const agentData: any = {
                         name: agentName,
                         type: 'reasoning-lead-agent',
+                        specialInstructions: selectedPreset?.specialInstructions || '',
+                        // Don't send useGmail - let backend use user's default setting from preferences
                         personality: {
                           type: personality?.id,
                           name: personality?.name,
@@ -814,7 +816,10 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                           ccEmails: selectedPreset.ccEmails,
                           bccEmails: selectedPreset.bccEmails,
                           followupIntervalDays: selectedPreset.followupIntervalDays,
-                          enableAutoResponse: selectedPreset.enableAutoResponse
+                          enableAutoResponse: selectedPreset.enableAutoResponse,
+                          useCustomSignature: selectedPreset.useCustomSignature,
+                          signatureName: selectedPreset.signatureName,
+                          signatureTitle: selectedPreset.signatureTitle
                         };
                       }
                       

@@ -98,7 +98,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         name: agentName,
         type: 'reasoning-lead-agent',
         specialInstructions: specialInstructions,
-        useGmail: useGmail,
+        // Don't send useGmail - let backend use user's default setting from preferences
         personality: {
           type: selectedPersonality.id,
           name: selectedPersonality.name,
