@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import UserMenu from '@/components/UserMenu';
@@ -204,12 +204,41 @@ export default function InteractiveGlobe() {
   const rotationRef = useRef<[number, number]>([95, -15]);
   const [targetRotation, setTargetRotation] = useState<[number, number] | null>(null);
   const [isAnimatingToAgent, setIsAnimatingToAgent] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const animationRef = useRef<number | undefined>(undefined);
   const [worldGeoData, setWorldGeoData] = useState<any>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedFeature, setSelectedFeature] = useState<any>(null);
-  const [provinceData, setProvinceData] = useState<any>(null);
+
+  // Globe view toggle
+  const [showGlobe, setShowGlobe] = useState(false);
+  const [globeLoading, setGlobeLoading] = useState(false);
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+
+  // Handle globe toggle with animation
+  const handleGlobeToggle = (show: boolean) => {
+    if (!show && showGlobe) {
+      // Turning off - animate out first
+      setIsAnimatingOut(true);
+      setTimeout(() => {
+        setShowGlobe(false);
+        setIsAnimatingOut(false);
+      }, 500); // Match transition duration
+    } else {
+      setShowGlobe(show);
+    }
+  };
+
+  // When globe is turned on, start loading sequence (useLayoutEffect runs before paint)
+  useLayoutEffect(() => {
+    if (showGlobe) {
+      setIsAnimatingOut(false);
+      setGlobeLoading(true);
+      const timer = setTimeout(() => {
+        setGlobeLoading(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setGlobeLoading(false);
+    }
+  }, [showGlobe]);
 
   // Real stats data
   const [stats, setStats] = useState({
@@ -828,45 +857,21 @@ export default function InteractiveGlobe() {
         // Convert TopoJSON to GeoJSON
         const countries = feature(data, data.objects.countries);
         setWorldGeoData(countries);
+        // Globe is ready
+        setTimeout(() => setGlobeLoading(false), 100);
       })
       .catch(() => {
         // Fallback to simplified data if fetch fails
         setWorldGeoData(worldData);
+        setTimeout(() => setGlobeLoading(false), 100);
       });
   }, []);
 
-  // Fetch province/state data when country is selected
-  useEffect(() => {
-    if (!selectedCountry || !isExpanded || !selectedFeature) {
-      setProvinceData(null);
-      return;
-    }
 
-    // Fetch detailed state/province data for the selected country
-    // Using a higher resolution dataset
-    fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
-      .then(res => res.json())
-      .then(data => {
-        if (selectedCountry === 'United States of America' || selectedCountry === 'United States') {
-          const states = feature(data, data.objects.states);
-          setProvinceData(states);
-        } else {
-          // For other countries, try to get from world-atlas
-          fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json')
-            .then(res => res.json())
-            .then(data => {
-              const provinces = feature(data, data.objects.countries);
-              setProvinceData(provinces);
-            })
-            .catch(() => setProvinceData(null));
-        }
-      })
-      .catch(() => {
-        setProvinceData(null);
-      });
-  }, [selectedCountry, isExpanded, selectedFeature]);
 
   useEffect(() => {
+    if (!showGlobe || globeLoading) return; // Don't render during loading
+    
     const canvas = canvasRef.current;
     if (!canvas || !worldGeoData) return;
 
@@ -883,7 +888,7 @@ export default function InteractiveGlobe() {
       // Adjust scale based on canvas size - larger globe
       const baseScale = canvasSize / 2.0; // Increased from 2.4 for larger globe
       const projection = geoOrthographic()
-        .scale(isExpanded && selectedFeature ? baseScale * 1.6 : baseScale)
+        .scale(baseScale)
         .translate([canvas.width / 2, canvas.height / 2])
         .rotate(currentRotation);
 
@@ -891,139 +896,37 @@ export default function InteractiveGlobe() {
       
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (isExpanded && selectedFeature) {
-        // When expanded, use Mercator projection for flat view
+      // Normal globe view
+      // Draw ocean/globe background
+      ctx.beginPath();
+      path({ type: 'Sphere' } as any);
+      ctx.fillStyle = 'rgba(100, 150, 255, 0.1)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw graticule (lat/long lines)
+      const graticule = geoGraticule();
+      ctx.beginPath();
+      path(graticule() as any);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      // Draw countries
+      const features = worldGeoData.features || [];
+      features.forEach((feature: any) => {
+        ctx.beginPath();
+        path(feature);
         
-        // Special handling for USA to center on continental US
-        if (selectedCountry === 'United States of America' || selectedCountry === 'United States') {
-          // Use Albers USA projection which automatically handles Alaska and Hawaii
-          const albersProjection = geoAlbersUsa();
-          
-          if (albersProjection) {
-            albersProjection.fitSize([canvas.width * 0.9, canvas.height * 0.9], selectedFeature);
-            
-            const translate = albersProjection.translate();
-            albersProjection.translate([
-              translate[0] + (canvas.width - canvas.width * 0.9) / 2,
-              translate[1] + (canvas.height - canvas.height * 0.9) / 2
-            ]);
-            
-            const flatPath = geoPath(albersProjection, ctx as any);
-            
-            // Draw the country
-            ctx.beginPath();
-            flatPath(selectedFeature);
-            ctx.fillStyle = 'rgba(147, 197, 253, 0.3)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            // Draw states if available
-            if (provinceData) {
-              const features = provinceData.features || [];
-              features.forEach((feature: any) => {
-                ctx.beginPath();
-                flatPath(feature);
-                ctx.fillStyle = 'rgba(147, 197, 253, 0.2)';
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-              });
-            }
-            
-            // Draw email dots for US (color-coded by status)
-            if (albersProjection && selectedFeature.properties?.name === 'United States') {
-              emailDots.forEach(email => {
-                const emailCoords = albersProjection([email.location.lng, email.location.lat]);
-                if (emailCoords) {
-                  // Color based on status: green = meeting, white = sent, yellow/orange = queued
-                  const dotColor = email.status === 'meeting' ? '#4ade80' : 
-                                  email.status === 'sent' ? '#ffffff' : 
-                                  '#fbbf24';
-                  
-                  ctx.beginPath();
-                  ctx.arc(emailCoords[0], emailCoords[1], 4, 0, Math.PI * 2);
-                  ctx.fillStyle = dotColor;
-                  ctx.fill();
-                  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                  ctx.lineWidth = 1;
-                  ctx.stroke();
-                }
-              });
-            }
-          }
-        } else {
-          // For other countries, use regular Mercator
-          const flatProjection = geoMercator();
-          flatProjection.fitSize([canvas.width * 0.9, canvas.height * 0.9], selectedFeature);
-          
-          const translate = flatProjection.translate();
-          flatProjection.translate([
-            translate[0] + (canvas.width - canvas.width * 0.9) / 2,
-            translate[1] + (canvas.height - canvas.height * 0.9) / 2
-          ]);
-          
-          const flatPath = geoPath(flatProjection, ctx as any);
-          
-          // Draw the country
-          ctx.beginPath();
-          flatPath(selectedFeature);
-          ctx.fillStyle = 'rgba(147, 197, 253, 0.3)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-
-          // Draw provinces/states if available
-          if (provinceData) {
-            const features = provinceData.features || [];
-            features.forEach((feature: any) => {
-              ctx.beginPath();
-              flatPath(feature);
-              ctx.fillStyle = 'rgba(147, 197, 253, 0.2)';
-              ctx.fill();
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-              ctx.lineWidth = 1.5;
-              ctx.stroke();
-            });
-          }
-        }
-      } else {
-        // Normal globe view
-        // Draw ocean/globe background
-        ctx.beginPath();
-        path({ type: 'Sphere' } as any);
-        ctx.fillStyle = 'rgba(100, 150, 255, 0.1)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 1;
         ctx.stroke();
-
-        // Draw graticule (lat/long lines)
-        const graticule = geoGraticule();
-        ctx.beginPath();
-        path(graticule() as any);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-
-        // Draw countries
-        const features = worldGeoData.features || [];
-        features.forEach((feature: any) => {
-          ctx.beginPath();
-          path(feature);
-          
-          const isSelected = selectedCountry === feature.properties?.name;
-          ctx.fillStyle = isSelected ? 'rgba(147, 197, 253, 0.8)' : 'rgba(255, 255, 255, 0.7)';
-          ctx.fill();
-          
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.lineWidth = isSelected ? 2 : 1;
-          ctx.stroke();
-        });
-      }
+      });
     };
     
     const animate = () => {
@@ -1038,11 +941,11 @@ export default function InteractiveGlobe() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [worldGeoData, isExpanded, selectedFeature, provinceData, selectedCountry, canvasSize]);
+  }, [worldGeoData, canvasSize, showGlobe, globeLoading]);
 
 // Auto-rotation effect - stops when agents are running
   useEffect(() => {
-    if (isExpanded || isAnimatingToAgent) return;
+    if (isAnimatingToAgent) return;
     
     // Get all running agents
     const runningAgents = agents.filter(a => a.status === 'running' || agentActivities[a.agentId]?.isActive);
@@ -1055,14 +958,14 @@ export default function InteractiveGlobe() {
     }, 50);
     
     return () => clearInterval(interval);
-  }, [isExpanded, isAnimatingToAgent, agents, agentActivities]);
+  }, [isAnimatingToAgent, agents, agentActivities]);
 
   // When agents start, spin to center on their locations
   useEffect(() => {
     const runningAgents = agents.filter(a => a.status === 'running' || agentActivities[a.agentId]?.isActive);
     
     // Only recalculate when agents start running (not every activity update)
-    if (runningAgents.length === 0 || isExpanded) return;
+    if (runningAgents.length === 0) return;
     
     // Collect all agent locations
     const agentLocations: Array<{lat: number, lng: number}> = [];
@@ -1105,7 +1008,7 @@ export default function InteractiveGlobe() {
         setIsAnimatingToAgent(true);
       }
     }
-  }, [agents, agentActivities, isExpanded]);
+  }, [agents, agentActivities]);
 
   // Animate to target rotation when agent is clicked
   useEffect(() => {
@@ -1136,41 +1039,7 @@ export default function InteractiveGlobe() {
   }, [targetRotation, isAnimatingToAgent]);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
-    // Don't handle clicks when already expanded (in country detail view)
-    if (isExpanded) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas || !worldGeoData) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
     // Country selection disabled
-    // const currentRotation = rotationRef.current;
-    // const projection = geoOrthographic()
-    //   .scale(500)
-    //   .translate([canvas.width / 2, canvas.height / 2])
-    //   .rotate(currentRotation);
-
-    // // Check which country was clicked
-    // const features = worldGeoData.features || [];
-    // for (const feature of features) {
-    //   const ctx = canvas.getContext('2d');
-    //   if (!ctx) continue;
-
-    //   ctx.beginPath();
-    //   const path = geoPath(projection, ctx);
-    //   path(feature);
-      
-    //   if (ctx.isPointInPath(x, y)) {
-    //     const countryName = feature.properties?.name || 'Unknown';
-    //     setSelectedCountry(countryName);
-    //     setSelectedFeature(feature);
-    //     setIsExpanded(true);
-    //     return;
-    //   }
-    // }
   };
 
   // Prevent hydration mismatch by not rendering until mounted
@@ -1225,9 +1094,8 @@ export default function InteractiveGlobe() {
         </div>
       </div>
 
-      {/* Top Navigation Buttons - Hidden when country is expanded */}
-      {!isExpanded && (
-        <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto z-50">
+      {/* Top Navigation Buttons */}
+      <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto z-50">
           {/* Mobile: Full width 2x2 Grid, Desktop: Centered single line */}
           <div className="flex flex-col gap-2 sm:block">
             <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:flex-wrap sm:justify-center">
@@ -1344,19 +1212,16 @@ export default function InteractiveGlobe() {
             </button>
           </div>
         </div>
-      )}
 
       {/* Info Dashboard - Right Side on desktop, after navigation on mobile */}
-      {!isExpanded && (
-        <>
-          <div className="hidden lg:block">
-            <InfoDashboard agents={agents} agentActivities={agentActivities} />
-          </div>
-          <div className="sm:hidden">
-            <InfoDashboard agents={agents} agentActivities={agentActivities} />
-          </div>
-        </>
-      )}
+      <>
+        <div className="hidden lg:block">
+          <InfoDashboard agents={agents} agentActivities={agentActivities} showGlobe={showGlobe} setShowGlobe={handleGlobeToggle} />
+        </div>
+        <div className="lg:hidden">
+          <InfoDashboard agents={agents} agentActivities={agentActivities} showGlobe={showGlobe} setShowGlobe={handleGlobeToggle} />
+        </div>
+      </>
 
       {/* Loading Overlay - only for navigation, not for queue modal */}
       {navigating && (
@@ -1419,37 +1284,15 @@ export default function InteractiveGlobe() {
         </button>
       </div>
 
-      {/* Back Button - Fixed at top center when expanded */}
-      {isExpanded && selectedCountry && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-white mb-3">{selectedCountry}</h1>
-            <button 
-              onClick={() => {
-                setIsExpanded(false);
-                setSelectedCountry(null);
-                setSelectedFeature(null);
-                setProvinceData(null);
-              }}
-              className="px-6 py-2 bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-xl backdrop-blur-sm transition-all border border-[#4FD1FF]/30"
-            >
-              ← Back to Globe
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Globe - Hidden on mobile */}
       {isMounted && (
         <div 
-          className={`hidden sm:block fixed left-1/2 -translate-x-1/2 transition-all duration-700 ease-out ${
-            isExpanded ? 'top-1/2 -translate-y-1/2' : 'bottom-[-40%] translate-y-0'
-          }`}
+          className="hidden sm:block fixed left-1/2 -translate-x-1/2 top-[200px] transition-all duration-700 ease-out"
         >
         <div className="text-center relative">
           {/* Start/Stop All Agents Button - Above Globe */}
-          {!isExpanded && (
-            <div className="mb-8 animate-fade-in relative inline-block">
+          {(showGlobe || isAnimatingOut) && !globeLoading && (
+            <div className={`mb-8 relative inline-block transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
               <button
                 onClick={async () => {
                   const runningAgents = agents.filter(a => a.status === 'running');
@@ -1525,19 +1368,41 @@ export default function InteractiveGlobe() {
             </div>
           )}
           
-          <canvas
-            ref={canvasRef}
-            className="cursor-default"
-            onClick={handleCanvasClick}
-          />
+          {/* Loading Bar */}
+          {showGlobe && globeLoading && (
+            <div className="w-full max-w-5xl mx-auto px-4 mb-8 animate-fadeIn">
+              <div className="bg-[#0F1E35] rounded-lg p-4 border border-[#4FD1FF]/30">
+                <p className="text-[#4FD1FF] text-center text-sm font-medium mb-3">Initializing Globe...</p>
+                <div className="bg-[#1B2F52] rounded-full h-3 overflow-hidden border border-[#4FD1FF]/50">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF]"
+                    style={{
+                      width: '0%',
+                      animation: 'progressBar 2s ease-out forwards',
+                      boxShadow: '0 0 15px rgba(79,209,255,0.8)'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Globe Canvas */}
+          {(showGlobe || isAnimatingOut) && !globeLoading ? (
+            <canvas
+              ref={canvasRef}
+              className={`cursor-default transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
+              onClick={handleCanvasClick}
+            />
+          ) : null}
         </div>
       </div>
       )}
 
       {/* Animated Satellite - Hidden on mobile and medium screens */}
-      {!isExpanded && (
+      {(showGlobe || isAnimatingOut) && !globeLoading && (
         <div 
-          className="fixed right-[calc(50%+18rem)] lg:right-[22rem] xl:right-[26rem] top-1/2 pointer-events-auto cursor-pointer z-50 hidden lg:block"
+          className={`fixed right-[calc(50%+18rem)] lg:right-[22rem] xl:right-[26rem] top-1/2 pointer-events-auto cursor-pointer z-50 hidden lg:block transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
           style={{
             transform: `translateY(${satelliteBob - 50}%)`,
             transition: 'transform 0.05s linear'
@@ -1589,7 +1454,7 @@ export default function InteractiveGlobe() {
       )}
 
       {/* Email Dots on Globe (color-coded by status) */}
-      {!isExpanded && emailDots.map((email) => {
+      {showGlobe && emailDots.map((email) => {
         // Project email location to screen coordinates
         const baseScale = canvasSize / 2.0;
         const centerPos = canvasSize / 2;
@@ -1631,7 +1496,7 @@ export default function InteractiveGlobe() {
       })}
 
       {/* Active Agents on Globe */}
-      {!isExpanded && agents.map((agent, index) => {
+      {showGlobe && agents.map((agent, index) => {
         // Show agents that are running OR have activity
         const activity = agentActivities[agent.agentId];
         const isActive = agent.status === 'running' || activity?.isActive;
@@ -1843,90 +1708,6 @@ export default function InteractiveGlobe() {
         );
       })}
 
-      {/* Email Dots on Expanded Country View (color-coded by status) */}
-      {isExpanded && selectedFeature && emailDots.map((email) => {
-        // Calculate projection based on country
-        let emailCoords;
-        
-        if (selectedFeature.properties?.name === 'United States') {
-          const albersProjection = geoAlbersUsa()
-            .scale(1)
-            .translate([0, 0]);
-          
-          const canvas = canvasRef.current;
-          if (canvas) {
-            albersProjection.fitSize([canvas.width * 0.9, canvas.height * 0.9], selectedFeature);
-            const translate = albersProjection.translate();
-            albersProjection.translate([
-              translate[0] + (canvas.width - canvas.width * 0.9) / 2,
-              translate[1] + (canvas.height - canvas.height * 0.9) / 2
-            ]);
-            emailCoords = albersProjection([email.location.lng, email.location.lat]);
-          }
-        } else {
-          const flatProjection = geoMercator();
-          const canvas = canvasRef.current;
-          if (canvas) {
-            flatProjection.fitSize([canvas.width * 0.9, canvas.height * 0.9], selectedFeature);
-            const translate = flatProjection.translate();
-            flatProjection.translate([
-              translate[0] + (canvas.width - canvas.width * 0.9) / 2,
-              translate[1] + (canvas.height - canvas.height * 0.9) / 2
-            ]);
-            emailCoords = flatProjection([email.location.lng, email.location.lat]);
-          }
-        }
-        
-        if (!emailCoords) return null;
-        
-        // Calculate screen position
-        const canvasCenterX = window.innerWidth / 2;
-        const canvasCenterY = window.innerHeight;
-        const pointX = canvasCenterX + (emailCoords[0] - 600);
-        const pointY = canvasCenterY + (emailCoords[1] - 600);
-        
-        // Color and label based on status
-        const dotColor = email.status === 'meeting' ? 'bg-green-400' : 
-                        email.status === 'sent' ? 'bg-white' : 
-                        'bg-yellow-400'; // yellow for queued
-        const statusLabel = email.status === 'meeting' ? '✅ Meeting Booked' : 
-                           email.status === 'sent' ? '📧 Email Sent' : 
-                           '⏳ Queued';
-        const statusColor = email.status === 'meeting' ? 'text-green-400' : 
-                           email.status === 'sent' ? 'text-white' : 
-                           'text-yellow-400';
-        
-        return (
-          <div 
-            key={email.id} 
-            className="fixed group" 
-            style={{ 
-              left: `${pointX}px`, 
-              top: `${pointY}px`,
-              transform: 'translate(-50%, -50%)',
-              zIndex: 100 // Higher z-index to be above canvas
-            }}
-          >
-            {/* Colored dot based on status */}
-            <div className={`w-4 h-4 ${dotColor} rounded-full border-2 border-white/70 cursor-pointer hover:scale-150 transition-transform shadow-xl pointer-events-auto`} />
-            
-            {/* Tooltip on hover */}
-            <div className="absolute left-6 top-0 bg-black/95 backdrop-blur-sm text-white text-xs px-4 py-3 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[110] min-w-[250px] shadow-2xl border border-white/20">
-              <div className="font-bold text-sm mb-2">{email.location.companyName || 'Email Activity'}</div>
-              <div className="space-y-1 text-white/80">
-                <div className={`font-semibold ${statusColor}`}>{statusLabel}</div>
-                <div>📧 To: {email.to}</div>
-                <div>👤 Agent: {email.agentName}</div>
-                {email.location.city && <div>📍 {email.location.city}, {email.location.state || email.location.country}</div>}
-                <div className="text-[10px] text-white/60 mt-2">
-                  {new Date(email.timestamp).toLocaleString()}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
       {/* Idle Agents Modal */}
       {showIdleAgents && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
@@ -2124,7 +1905,7 @@ export default function InteractiveGlobe() {
                   </button>
                 )}
                 <h2 className="text-2xl font-bold text-white">
-                  {selectedAgent ? selectedAgent.name : selectedQueue.agentName}
+                  {selectedAgent ? selectedAgent.name : selectedQueue?.agentName || 'Queue'}
                 </h2>
               </div>
               <button
@@ -2252,7 +2033,7 @@ export default function InteractiveGlobe() {
                 ) : (
                   <>
                     {/* Success Rate Graph (only for sent emails) */}
-                    {selectedQueue.type === 'sent' && queueEmails.length > 0 && (
+                    {selectedQueue?.type === 'sent' && queueEmails.length > 0 && (
                       <div className="mb-6 bg-white/10 rounded-xl p-4 border border-white/20">
                         <h3 className="text-white font-semibold mb-4">Delivery Success Rate</h3>
                         <div className="flex items-center gap-6">
@@ -2372,7 +2153,7 @@ export default function InteractiveGlobe() {
                                     ORPHANED
                                   </span>
                                 )}
-                                {selectedQueue.type === 'sent' && (
+                                {selectedQueue?.type === 'sent' && (
                                   <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
                                     email.deliveryStatus === 'delivered' ? 'bg-green-500/80 text-white' :
                                     email.deliveryStatus === 'bounced' ? 'bg-red-500/80 text-white' :
@@ -2564,7 +2345,7 @@ export default function InteractiveGlobe() {
                                       >
                                         Edit
                                       </button>
-                                      {selectedQueue.type === 'queued' && (
+                                      {selectedQueue?.type === 'queued' && (
                                         <>
                                           <button
                                             onClick={() => handleApproveEmail(emailId)}
@@ -2640,6 +2421,15 @@ export default function InteractiveGlobe() {
             transform: scale(1);
           }
         }
+        
+        @keyframes progressBar {
+          from {
+            width: 0%;
+          }
+          to {
+            width: 100%;
+          }
+        }
 
         .animate-fade-in {
           animation: fade-in 0.6s ease-out;
@@ -2652,7 +2442,7 @@ export default function InteractiveGlobe() {
       `}</style>
 
       {/* Active Agents Bar - Bottom Right */}
-      {!isExpanded && agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 && (
+      {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 && (
         <div className="fixed bottom-4 right-4 z-50 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 shadow-lg">
           <div className="flex items-center gap-3">
             <span className="text-white text-sm font-semibold whitespace-nowrap">Active Agents</span>
@@ -2730,7 +2520,7 @@ export default function InteractiveGlobe() {
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               )}
-              <p className="font-medium">{toast.message}</p>
+              <p className="font-medium">{toast?.message}</p>
             </div>
           </div>
         </div>
