@@ -17,6 +17,7 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import AgentPersonalitySelector from '@/components/agents/AgentPersonalitySelector';
 import AgentOnboarding from '@/components/agents/AgentOnboarding';
 
 interface Agent {
@@ -139,6 +140,7 @@ export default function AgentsOverview() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPersonalitySelector, setShowPersonalitySelector] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -563,7 +565,7 @@ export default function AgentsOverview() {
           
           {activeTab === 'agents' && (
             <button
-              onClick={() => setShowOnboarding(true)}
+              onClick={() => setShowPersonalitySelector(true)}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all rounded-lg border border-[#4FD1FF]/30 text-white font-medium text-sm sm:text-base shadow-lg shadow-[#4FD1FF]/10"
             >
               <PlusIcon className="w-5 h-5" />
@@ -926,7 +928,17 @@ export default function AgentsOverview() {
         )}
       </div>
 
-      {/* Agent Onboarding Modal */}
+      {/* Agent Personality Selector Modal */}
+      <AgentPersonalitySelector
+        isOpen={showPersonalitySelector}
+        onClose={() => setShowPersonalitySelector(false)}
+        onSelectPersonality={() => {
+          setShowPersonalitySelector(false);
+          fetchAgents(); // Reload agents after creation
+        }}
+      />
+
+      {/* Agent Onboarding Modal (for full onboarding flow if needed) */}
       {showOnboarding && (
         <AgentOnboarding
           onSkip={() => setShowOnboarding(false)}
