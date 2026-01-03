@@ -3192,12 +3192,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Queue Modal */}
       {showEmailQueue && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-7xl h-[98vh] overflow-hidden mx-4 flex flex-col"
+            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col"
           >
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">

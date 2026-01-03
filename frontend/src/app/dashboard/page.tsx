@@ -1657,10 +1657,10 @@ export default function InteractiveGlobe() {
         const coords = projection([lng, lat]);
         if (!coords) return null;
         
-        // Canvas position: centered horizontally, bottom-0 + translate-y-1/2
-        // This means the canvas bottom edge is at 50% viewport height
+        // Canvas position: bottom-[-40%] means bottom edge is at 140% viewport height
+        // Canvas center Y = 1.4 * viewport height - half canvas size
         const canvasCenterX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
-        const canvasCenterY = typeof window !== 'undefined' ? window.innerHeight : 0;
+        const canvasCenterY = typeof window !== 'undefined' ? (1.4 * window.innerHeight) - (canvasSize / 2) : 0;
         
         // Point position relative to canvas center
         const pointX = canvasCenterX + (coords[0] - centerPos);
