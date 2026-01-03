@@ -277,7 +277,49 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                   console.error('[ONBOARDING] Failed to save Gmail preference:', error);
                 }
               }}
-              onConnect={() => window.open('/api/calendar/google-oauth-url', '_blank')}
+              onConnect={async () => {
+                try {
+                  // Get user ID from settings endpoint (JWT authenticated)
+                  const userResponse = await api.get('/api/auth/settings');
+                  const userId = userResponse.data.userId;
+                  
+                  if (!userId) {
+                    console.error('[ONBOARDING] No userId found in settings response');
+                    return;
+                  }
+                  
+                  // Open Gmail OAuth in popup
+                  const width = 600;
+                  const height = 700;
+                  const left = window.screen.width / 2 - width / 2;
+                  const top = window.screen.height / 2 - height / 2;
+                  const popup = window.open(
+                    `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${userId}`,
+                    'Gmail Authorization',
+                    `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+                  );
+                  
+                  // Listen for success message
+                  const handleMessage = (event: MessageEvent) => {
+                    if (event.data?.type === 'GMAIL_CONNECTED') {
+                      setGmailConnected(true);
+                      console.log('[ONBOARDING] Gmail connected successfully');
+                      window.removeEventListener('message', handleMessage);
+                    }
+                  };
+                  window.addEventListener('message', handleMessage);
+                  
+                  // Check if popup closed
+                  const checkPopup = setInterval(() => {
+                    if (popup?.closed) {
+                      clearInterval(checkPopup);
+                      window.removeEventListener('message', handleMessage);
+                    }
+                  }, 500);
+                } catch (error) {
+                  console.error('[ONBOARDING] Error connecting Gmail:', error);
+                }
+              }}
               onNext={nextStep}
               onBack={prevStep}
             />

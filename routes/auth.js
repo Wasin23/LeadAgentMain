@@ -259,7 +259,7 @@ router.get('/settings', authenticateToken, async (req, res) => {
     const { apiKeys, ...safeSettings } = settings;
     
     console.log(`[AUTH] Sending safe settings:`, safeSettings);
-    res.json({ success: true, settings: safeSettings });
+    res.json({ success: true, userId: userId, settings: safeSettings });
   } catch (error) {
     console.error('[AUTH] Get settings error:', error.message);
     res.status(500).json({ error: error.message });
