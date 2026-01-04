@@ -652,11 +652,16 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             Manage Agents
           </button>
           <button
-            onClick={() => router.push('/outreach')}
-            className="w-full px-4 py-2.5 bg-[#1B2F52] text-white rounded-lg text-sm hover:bg-[#2A4472] transition-all flex items-center gap-2 justify-center"
+            onClick={() => {
+              router.push('/profile');
+              // Trigger visual feedback
+              const btn = document.activeElement as HTMLButtonElement;
+              if (btn) btn.blur();
+            }}
+            className="w-full px-4 py-2.5 bg-[#1B2F52] text-white rounded-lg text-sm hover:bg-[#2A4472] transition-all flex items-center gap-2 justify-center active:scale-95"
           >
-            <Mail className="w-4 h-4" />
-            View Outreach
+            <User className="w-4 h-4" />
+            Edit Profile
           </button>
         </div>
       </div>
