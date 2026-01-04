@@ -579,65 +579,6 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             )}
           </div>
         </div>
-
-        {/* Notifications */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-              <Info className="w-4 h-4 text-[#4FD1FF]" />
-              Notifications
-            </h3>
-            {notifications.filter(n => !n.read).length > 0 && (
-              <span className="bg-[#4FD1FF] text-[#0F1E35] text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                {notifications.filter(n => !n.read).length}
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            {notifications.length === 0 ? (
-              <div className="text-center py-6">
-                <Info className="w-10 h-10 text-[#4FD1FF]/30 mx-auto mb-2" />
-                <p className="text-[#8FA6C1] text-xs">No notifications</p>
-              </div>
-            ) : (
-              notifications.map(notification => (
-                <div
-                  key={notification.issueId}
-                  className={`bg-[#1B2F52]/50 backdrop-blur-sm border rounded-lg p-3 cursor-pointer hover:border-[#4FD1FF]/30 transition-all ${
-                    notification.read ? 'border-white/5' : 'border-[#4FD1FF]/20'
-                  }`}
-                  onClick={() => router.push('/notifications')}
-                >
-                  <div className="flex items-start gap-2">
-                    {notification.severity === 'critical' && (
-                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                    )}
-                    {notification.severity === 'high' && (
-                      <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                    )}
-                    {(notification.severity === 'medium' || notification.severity === 'low') && (
-                      <Info className="w-4 h-4 text-[#4FD1FF] flex-shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-xs font-medium mb-0.5 truncate">{notification.title}</p>
-                      <p className="text-[#8FA6C1] text-xs line-clamp-2">{notification.message}</p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {notifications.length > 0 && (
-            <button
-              onClick={() => router.push('/notifications')}
-              className="w-full mt-3 px-4 py-2 bg-[#1B2F52] text-[#4FD1FF] rounded-lg font-medium text-xs hover:bg-[#2A4472] transition-all"
-            >
-              View All Notifications
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Quick Actions - Fixed at Bottom */}

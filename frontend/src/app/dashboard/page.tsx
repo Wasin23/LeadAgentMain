@@ -1104,7 +1104,7 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/agents-overview'), 0);
                 }}
-                className="px-3 py-2.5 sm:px-10 sm:py-4 sm:w-[140px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="px-3 py-2.5 sm:px-16 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
               >
                 Agents
               </button>
@@ -1113,7 +1113,7 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/profile'), 0);
                 }}
-                className="px-3 py-2.5 sm:px-10 sm:py-4 sm:w-[140px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="px-3 py-2.5 sm:px-16 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
               >
                 Profile
               </button>
@@ -1122,7 +1122,7 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/analytics'), 0);
                 }}
-                className="px-3 py-2.5 sm:px-10 sm:py-4 sm:w-[140px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="px-3 py-2.5 sm:px-16 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
               >
                 Analytics
               </button>
@@ -1131,7 +1131,7 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/settings'), 0);
                 }}
-                className="hidden sm:flex px-6 sm:px-10 py-2 sm:py-4 sm:w-[140px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 items-center justify-center text-base sm:text-xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="hidden sm:flex px-6 sm:px-16 py-2 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 items-center justify-center text-base sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
               >
                 Settings
               </button>
@@ -1275,168 +1275,54 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Outreach Section - Center of Dashboard */}
-      <div className="hidden xl:flex fixed left-[280px] right-[450px] top-[110px] flex-col gap-4 z-30">
-        {/* Stats Cards Row */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-6 border border-[#4FD1FF]/30">
-            <div className="text-[#A3B4CC] text-sm mb-2">Sent Today</div>
-            <div className="text-4xl font-bold text-white">{stats.emailsSent}</div>
-          </div>
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-6 border border-cyan-500/30">
-            <div className="text-[#A3B4CC] text-sm mb-2">Primary Inbox</div>
-            <div className="text-4xl font-bold text-cyan-400">
-              {stats.emailsSent > 0 ? Math.floor((stats.emailsViewed / stats.emailsSent) * 100) : 0}%
-            </div>
-          </div>
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-6 border border-green-500/30">
+      <div className="hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30" style={{ top: 'calc(50vh - 312px)' }}>
+        {/* Stats Row */}
+        <div className="flex gap-4">
+          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-5 border border-green-500/30 flex-1">
             <div className="text-[#A3B4CC] text-sm mb-2">Opens</div>
-            <div className="text-4xl font-bold text-green-400">{stats.emailsViewed}</div>
+            <div className="text-3xl font-bold text-green-400">{stats.emailsViewed}</div>
           </div>
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-6 border border-purple-500/30">
+          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-5 border border-purple-500/30 flex-1">
             <div className="text-[#A3B4CC] text-sm mb-2">Responses</div>
-            <div className="text-4xl font-bold text-purple-400">0</div>
+            <div className="text-3xl font-bold text-purple-400">0</div>
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-2 gap-5">
+        {/* Inbox Delivery - Full Width */}
+        <div>
           {/* Inbox Delivery Status */}
           <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-5 border border-[#4FD1FF]/30">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-base">Inbox Delivery</h3>
-              <span className="text-xs text-[#8FA6C1]">{stats.emailsSent} total</span>
-            </div>
-            
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {stats.emailsSent === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-12 h-12 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                  </div>
-                  <p className="text-[#8FA6C1] text-sm">No emails sent</p>
+              <h3 className="text-white font-semibold text-base">Email Activity</h3>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <button className="text-xs px-2.5 py-1 rounded bg-[#4FD1FF]/20 text-[#4FD1FF] hover:bg-[#4FD1FF]/30 transition-all border border-[#4FD1FF]/40">
+                    All
+                  </button>
+                  <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
+                    Primary
+                  </button>
+                  <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
+                    Promo
+                  </button>
+                  <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
+                    Bounced
+                  </button>
                 </div>
-              ) : (
-                <>
-                  {/* Primary Inbox Example */}
-                  <div className="bg-[#0F1E35]/60 rounded p-3 border border-cyan-500/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-cyan-400 rounded-full flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">lead@company.com</p>
-                        <p className="text-xs text-[#8FA6C1]">Primary • 2m ago</p>
-                      </div>
-                      <span className="text-xs px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30 flex-shrink-0">
-                        ✓ Inbox
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Promotions/Spam Example */}
-                  <div className="bg-[#0F1E35]/60 rounded p-3 border border-yellow-500/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">user@example.com</p>
-                        <p className="text-xs text-[#8FA6C1]">Promotions • 5m ago</p>
-                      </div>
-                      <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded border border-yellow-500/30 flex-shrink-0">
-                        ! Promo
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Bounced Example */}
-                  <div className="bg-[#0F1E35]/60 rounded p-3 border border-red-500/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-red-400 rounded-full flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">invalid@domain.com</p>
-                        <p className="text-xs text-[#8FA6C1]">Bounced • 8m ago</p>
-                      </div>
-                      <span className="text-xs px-2 py-1 bg-red-500/20 text-red-300 rounded border border-red-500/30 flex-shrink-0">
-                        ✗ Fail
-                      </span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Activity Stream */}
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-5 border border-[#4FD1FF]/30">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-base">Activity Stream</h3>
-              <div className="flex items-center gap-2">
-                <button className="text-xs px-2.5 py-1 rounded bg-[#4FD1FF]/20 text-[#4FD1FF] hover:bg-[#4FD1FF]/30 transition-all border border-[#4FD1FF]/40">
-                  All
-                </button>
-                <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
-                  Opens
-                </button>
-                <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
-                  Replies
-                </button>
+                <span className="text-xs text-[#8FA6C1]">{stats.emailsSent} total</span>
               </div>
             </div>
             
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {stats.emailsViewed === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </div>
-                  <p className="text-[#8FA6C1] text-sm">No activity</p>
+            <div className="space-y-2 h-[450px] overflow-y-auto">
+              <div className="text-center py-12">
+                <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                 </div>
-              ) : (
-                <>
-                  {/* Open Activity */}
-                  <div className="bg-[#0F1E35]/60 rounded p-3 border border-green-500/20">
-                    <div className="flex items-start gap-3">
-                      <div className="w-7 h-7 bg-green-500/20 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-white font-medium">Opened</span>
-                          <span className="text-xs text-[#8FA6C1]">2m ago</span>
-                        </div>
-                        <p className="text-xs text-[#8FA6C1] truncate">lead@company.com</p>
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          <span className="text-[10px] px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded">Primary</span>
-                          <span className="text-[10px] text-[#8FA6C1]">Demo Agent</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Response Activity */}
-                  <div className="bg-[#0F1E35]/60 rounded p-3 border border-purple-500/20">
-                    <div className="flex items-start gap-3">
-                      <div className="w-7 h-7 bg-purple-500/20 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-white font-medium">Replied</span>
-                          <span className="text-xs text-[#8FA6C1]">5m ago</span>
-                        </div>
-                        <p className="text-xs text-[#8FA6C1] truncate">lead@company.com</p>
-                        <p className="text-xs text-[#A3B4CC] mt-1.5 line-clamp-2">Thanks for reaching out, I'd like to learn more...</p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+                <p className="text-[#8FA6C1] text-sm">Email activity tracking coming soon</p>
+                <p className="text-[#8FA6C1]/60 text-xs mt-2">Real-time delivery status and engagement metrics</p>
+              </div>
             </div>
           </div>
         </div>
