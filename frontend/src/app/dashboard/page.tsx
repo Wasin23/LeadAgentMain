@@ -746,8 +746,12 @@ export default function InteractiveGlobe() {
     }));
     
     try {
+      // For orphaned emails, use the original agent ID from the email or 'orphan'
+      const agentIdToUse = selectedAgent.agentId === 'orphan' ? 'orphan' : selectedAgent.agentId;
+      
       await api.post(`/api/email-queue/${emailId}/approve`, {
-        agentId: selectedAgent.agentId
+        agentId: agentIdToUse,
+        isOrphaned: selectedAgent.agentId === 'orphan'
       });
       showToast('Email sent successfully! 🚀', 'success');
     } catch (error) {
