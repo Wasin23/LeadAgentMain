@@ -1232,40 +1232,153 @@ export default function InteractiveGlobe() {
 
       {/* Stats Panel - Left Side, hidden on small/medium screens */}
       <div className="hidden xl:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-3">
-        {/* Email Queue */}
+        {/* Email Queue - Max 2000 (98 levels), Formula: 50 + (n × 20) */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
+          className="relative bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg overflow-hidden"
         >
-          <div className="text-[#A3B4CC] text-sm mb-1">Email Queue</div>
-          <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsQueued}</div>
-          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
+          {/* Progress Ring */}
+          <svg className="absolute inset-0 w-full h-full -rotate-90" style={{ transform: 'rotate(-90deg)' }}>
+            <circle
+              cx="50%"
+              cy="50%"
+              r="48%"
+              fill="none"
+              stroke="rgba(79, 209, 255, 0.1)"
+              strokeWidth="4"
+            />
+            <circle
+              cx="50%"
+              cy="50%"
+              r="48%"
+              fill="none"
+              stroke={
+                (() => {
+                  const currentMilestone = 50 + (Math.floor(stats.emailsQueued / (50 + (Math.floor(stats.emailsQueued / 50) * 20))) * 20);
+                  const level = Math.floor(stats.emailsQueued >= 2000 ? 98 : stats.emailsQueued / currentMilestone);
+                  const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                  return level >= 60 ? '#000000' : colors[Math.min(level, 60)];
+                })()
+              }
+              strokeWidth="4"
+              strokeDasharray={`${2 * Math.PI * 48} ${2 * Math.PI * 48}`}
+              strokeDashoffset={
+                (() => {
+                  if (stats.emailsQueued >= 2000) return 0;
+                  const currentMilestone = 50 + (Math.floor(stats.emailsQueued / 50) * 20);
+                  const progress = (stats.emailsQueued % currentMilestone) / currentMilestone;
+                  return 2 * Math.PI * 48 * (1 - progress);
+                })()
+              }
+              className="transition-all duration-500"
+            />
+          </svg>
+          <div className="relative z-10">
+            <div className="text-[#A3B4CC] text-sm mb-1">Email Queue</div>
+            <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsQueued}</div>
+            <div className="text-[#8FA6C1] text-xs">Click to view →</div>
+          </div>
         </button>
 
-        {/* Emails Sent */}
+        {/* Emails Sent - Max 1000 (98 levels), Formula: 25 + (n × 10) */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
+          className="relative bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg overflow-hidden"
         >
-          <div className="text-[#A3B4CC] text-sm mb-1">Sent</div>
-          <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsSent}</div>
-          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
+          {/* Progress Ring */}
+          <svg className="absolute inset-0 w-full h-full -rotate-90" style={{ transform: 'rotate(-90deg)' }}>
+            <circle
+              cx="50%"
+              cy="50%"
+              r="48%"
+              fill="none"
+              stroke="rgba(79, 209, 255, 0.1)"
+              strokeWidth="4"
+            />
+            <circle
+              cx="50%"
+              cy="50%"
+              r="48%"
+              fill="none"
+              stroke={
+                (() => {
+                  const currentMilestone = 25 + (Math.floor(stats.emailsSent / (25 + (Math.floor(stats.emailsSent / 25) * 10))) * 10);
+                  const level = Math.floor(stats.emailsSent >= 1000 ? 98 : stats.emailsSent / currentMilestone);
+                  const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                  return level >= 60 ? '#000000' : colors[Math.min(level, 60)];
+                })()
+              }
+              strokeWidth="4"
+              strokeDasharray={`${2 * Math.PI * 48} ${2 * Math.PI * 48}`}
+              strokeDashoffset={
+                (() => {
+                  if (stats.emailsSent >= 1000) return 0;
+                  const currentMilestone = 25 + (Math.floor(stats.emailsSent / 25) * 10);
+                  const progress = (stats.emailsSent % currentMilestone) / currentMilestone;
+                  return 2 * Math.PI * 48 * (1 - progress);
+                })()
+              }
+              className="transition-all duration-500"
+            />
+          </svg>
+          <div className="relative z-10">
+            <div className="text-[#A3B4CC] text-sm mb-1">Sent</div>
+            <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsSent}</div>
+            <div className="text-[#8FA6C1] text-xs">Click to view →</div>
+          </div>
         </button>
 
-        {/* Emails Viewed */}
-        <button
-          onClick={() => handleQueueClick('replied', 'Viewed Emails')}
-          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
+        {/* Interacted - Max 500 (49 levels), Formula: 10 + (n × 10) */}
+        <div
+          className="relative bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] shadow-lg overflow-hidden opacity-90"
         >
-          <div className="text-[#A3B4CC] text-sm mb-1">Viewed</div>
-          <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsViewed}</div>
-          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
-        </button>
+          {/* Progress Ring */}
+          <svg className="absolute inset-0 w-full h-full -rotate-90" style={{ transform: 'rotate(-90deg)' }}>
+            <circle
+              cx="50%"
+              cy="50%"
+              r="48%"
+              fill="none"
+              stroke="rgba(79, 209, 255, 0.1)"
+              strokeWidth="4"
+            />
+            <circle
+              cx="50%"
+              cy="50%"
+              r="48%"
+              fill="none"
+              stroke={
+                (() => {
+                  const currentMilestone = 10 + (Math.floor(stats.emailsViewed / (10 + (Math.floor(stats.emailsViewed / 10) * 10))) * 10);
+                  const level = Math.floor(stats.emailsViewed >= 500 ? 49 : stats.emailsViewed / currentMilestone);
+                  const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                  return level >= 60 ? '#000000' : colors[Math.min(level, 60)];
+                })()
+              }
+              strokeWidth="4"
+              strokeDasharray={`${2 * Math.PI * 48} ${2 * Math.PI * 48}`}
+              strokeDashoffset={
+                (() => {
+                  if (stats.emailsViewed >= 500) return 0;
+                  const currentMilestone = 10 + (Math.floor(stats.emailsViewed / 10) * 10);
+                  const progress = (stats.emailsViewed % currentMilestone) / currentMilestone;
+                  return 2 * Math.PI * 48 * (1 - progress);
+                })()
+              }
+              className="transition-all duration-500"
+            />
+          </svg>
+          <div className="relative z-10">
+            <div className="text-[#A3B4CC] text-sm mb-1">Interacted</div>
+            <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsViewed}</div>
+            <div className="text-[#8FA6C1] text-xs opacity-0">—</div>
+          </div>
+        </div>
 
         {/* Alerts */}
         <button
           onClick={() => {/* Add alert click handler if needed */}}
-          className="bg-[#1B2F52]/90 rounded-2xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
+          className="bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
         >
           <div className="text-[#A3B4CC] text-sm mb-1">Alerts</div>
           <div className="text-3xl xl:text-5xl font-bold text-white mb-1 flex items-center gap-2">
