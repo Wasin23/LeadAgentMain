@@ -1099,16 +1099,17 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Top Navigation Buttons */}
-      <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto z-50">
+      <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-[47%] sm:-translate-x-1/2 sm:right-auto z-50">
           {/* Mobile: Full width 2x2 Grid, Desktop: Centered single line */}
           <div className="flex flex-col gap-2 sm:block">
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:flex-wrap sm:justify-center">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-nowrap sm:gap-3 sm:justify-center">
               <button
                 onClick={() => { 
                   setNavigating(true); 
                   setTimeout(() => router.push('/agents-overview'), 0);
                 }}
-                className="px-3 py-2.5 sm:px-16 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="relative px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Agents
               </button>
@@ -1117,7 +1118,8 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/profile'), 0);
                 }}
-                className="px-3 py-2.5 sm:px-16 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="relative px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Profile
               </button>
@@ -1126,7 +1128,8 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/analytics'), 0);
                 }}
-                className="px-3 py-2.5 sm:px-16 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="relative px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Analytics
               </button>
@@ -1135,7 +1138,8 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/settings'), 0);
                 }}
-                className="hidden sm:flex px-6 sm:px-16 py-2 sm:py-6 sm:w-[200px] bg-[#1B2F52]/90 hover:bg-[#2A4472] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 items-center justify-center text-base sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10"
+                className="px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Settings
               </button>
@@ -1230,46 +1234,92 @@ export default function InteractiveGlobe() {
         </div>
       )}
 
+      {/* Human Review Label - Left Side */}
+      <div className="hidden xl:block fixed left-2 xl:left-4 z-35" style={{ top: 'calc(10% + 10px)', width: '240px' }}>
+        <div className="text-center py-2 bg-[#0F1E35] rounded-lg">
+          <h2 className="text-[#4FD1FF] text-sm font-bold uppercase tracking-[0.3em]">Human Review</h2>
+        </div>
+      </div>
+
+      {/* System Label - Center */}
+      <div className="hidden xl:block fixed left-[280px] right-[380px] z-35" style={{ top: 'calc(10% + 10px)' }}>
+        <div className="text-center py-2 bg-[#0F1E35] rounded-lg">
+          <h2 className="text-[#4FD1FF] text-sm font-bold uppercase tracking-[0.3em]">System</h2>
+        </div>
+      </div>
+
       {/* Stats Panel - Left Side, hidden on small/medium screens */}
-      <div className="hidden xl:flex fixed left-4 xl:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-3">
+      <div className="hidden xl:flex fixed left-4 xl:left-8 z-40 flex-col gap-5" style={{ top: 'calc(10% + 60px)' }}>
         {/* Email Queue - Formula: 50 + (n × 20), 61 colors then WHITE */}
-        <button
-          onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="relative bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg overflow-hidden"
-        >
-          {/* Progress Ring */}
-          <svg className="absolute inset-0 w-full h-full -rotate-90" style={{ transform: 'rotate(-90deg)' }}>
-            <circle
-              cx="50%"
-              cy="50%"
-              r="48%"
-              fill="none"
-              stroke="rgba(79, 209, 255, 0.1)"
-              strokeWidth="4"
-            />
-            <circle
-              cx="50%"
-              cy="50%"
-              r="48%"
-              fill="none"
-              stroke={
-                (() => {
-                  let level = 0;
-                  let count = stats.emailsQueued;
-                  let milestone = 50;
-                  while (count >= milestone) {
-                    count -= milestone;
-                    level++;
-                    milestone = 50 + (level * 20);
-                  }
-                  const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
-                  return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
-                })()
-              }
-              strokeWidth="4"
-              strokeDasharray={`${2 * Math.PI * 48} ${2 * Math.PI * 48}`}
-              strokeDashoffset={
-                (() => {
+        <div className="p-4 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
+          <button
+            onClick={() => handleQueueClick('queued', 'Email Queue')}
+            className="relative w-[180px] h-[180px] hover:scale-105 transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center group"
+          >
+            {/* Progress Ring */}
+            <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+              <defs>
+                <radialGradient id="innerGlow-queue" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" style={{ stopColor: 'rgba(79, 209, 255, 0.35)', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: 'rgba(79, 209, 255, 0)', stopOpacity: 1 }} />
+                </radialGradient>
+              </defs>
+              <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-queue)" />
+              <circle
+                cx="50%"
+                cy="50%"
+                r="80"
+                fill="none"
+                stroke="rgba(79, 209, 255, 0.3)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="50%"
+                cy="50%"
+                r="80"
+                fill="none"
+                stroke={
+                  (() => {
+                    let level = 0;
+                    let count = stats.emailsQueued;
+                    let milestone = 50;
+                    while (count >= milestone) {
+                      count -= milestone;
+                      level++;
+                      milestone = 50 + (level * 20);
+                    }
+                    const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                    return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                  })()
+                }
+                strokeWidth="4"
+                strokeDasharray={`${2 * Math.PI * 80}`}
+                strokeDashoffset={
+                  (() => {
+                    let level = 0;
+                    let count = stats.emailsQueued;
+                    let milestone = 50;
+                    while (count >= milestone) {
+                      count -= milestone;
+                      level++;
+                      milestone = 50 + (level * 20);
+                    }
+                    const currentMilestone = 50 + (level * 20);
+                    const progress = count / currentMilestone;
+                    return 2 * Math.PI * 80 * (1 - progress);
+                  })()
+                }
+                className="transition-all duration-500"
+                style={{
+                  filter: 'drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor)',
+                }}
+              />
+            </svg>
+            <div className="relative z-10 text-center">
+              <div className="text-[#A3B4CC] text-xs mb-1.5">Email Queue</div>
+              <div className="text-5xl font-bold text-white mb-1">{stats.emailsQueued}</div>
+              <div className="text-[#8FA6C1] text-[9px] font-medium">
+                Next: {(() => {
                   let level = 0;
                   let count = stats.emailsQueued;
                   let milestone = 50;
@@ -1279,39 +1329,41 @@ export default function InteractiveGlobe() {
                     milestone = 50 + (level * 20);
                   }
                   const currentMilestone = 50 + (level * 20);
-                  const progress = count / currentMilestone;
-                  return 2 * Math.PI * 48 * (1 - progress);
-                })()
-              }
-              className="transition-all duration-500"
-            />
-          </svg>
-          <div className="relative z-10">
-            <div className="text-[#A3B4CC] text-sm mb-1">Email Queue</div>
-            <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsQueued}</div>
-            <div className="text-[#8FA6C1] text-xs">Click to view →</div>
-          </div>
-        </button>
+                  return `${count}/${currentMilestone}`;
+                })()}
+              </div>
+              <div className="text-[#8FA6C1] text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">Click to view</div>
+            </div>
+          </button>
+        </div>
 
         {/* Emails Sent - Formula: 25 + (n × 10), 61 colors then WHITE */}
-        <button
-          onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="relative bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg overflow-hidden"
-        >
+        <div className="p-4 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
+          <button
+            onClick={() => handleQueueClick('sent', 'Sent Emails')}
+            className="relative w-[180px] h-[180px] hover:scale-105 transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center group"
+          >
           {/* Progress Ring */}
-          <svg className="absolute inset-0 w-full h-full -rotate-90" style={{ transform: 'rotate(-90deg)' }}>
+          <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+            <defs>
+              <radialGradient id="innerGlow-sent" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style={{ stopColor: 'rgba(79, 209, 255, 0.35)', stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: 'rgba(79, 209, 255, 0)', stopOpacity: 1 }} />
+              </radialGradient>
+            </defs>
+            <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-sent)" />
             <circle
               cx="50%"
               cy="50%"
-              r="48%"
+              r="80"
               fill="none"
-              stroke="rgba(79, 209, 255, 0.1)"
-              strokeWidth="4"
+              stroke="rgba(79, 209, 255, 0.3)"
+              strokeWidth="3"
             />
             <circle
               cx="50%"
               cy="50%"
-              r="48%"
+              r="80"
               fill="none"
               stroke={
                 (() => {
@@ -1328,7 +1380,7 @@ export default function InteractiveGlobe() {
                 })()
               }
               strokeWidth="4"
-              strokeDasharray={`${2 * Math.PI * 48} ${2 * Math.PI * 48}`}
+              strokeDasharray={`${2 * Math.PI * 80}`}
               strokeDashoffset={
                 (() => {
                   let level = 0;
@@ -1341,37 +1393,63 @@ export default function InteractiveGlobe() {
                   }
                   const currentMilestone = 25 + (level * 10);
                   const progress = count / currentMilestone;
-                  return 2 * Math.PI * 48 * (1 - progress);
+                  return 2 * Math.PI * 80 * (1 - progress);
                 })()
               }
               className="transition-all duration-500"
+              style={{
+                filter: 'drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor)',
+              }}
             />
           </svg>
-          <div className="relative z-10">
-            <div className="text-[#A3B4CC] text-sm mb-1">Sent</div>
-            <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsSent}</div>
-            <div className="text-[#8FA6C1] text-xs">Click to view →</div>
+          <div className="relative z-10 text-center">
+            <div className="text-[#A3B4CC] text-xs mb-1.5">Sent</div>
+            <div className="text-5xl font-bold text-white mb-1">{stats.emailsSent}</div>
+            <div className="text-[#8FA6C1] text-[9px] font-medium">
+              Next: {(() => {
+                let level = 0;
+                let count = stats.emailsSent;
+                let milestone = 25;
+                while (count >= milestone) {
+                  count -= milestone;
+                  level++;
+                  milestone = 25 + (level * 10);
+                }
+                const currentMilestone = 25 + (level * 10);
+                return `${count}/${currentMilestone}`;
+              })()}
+            </div>
+            <div className="text-[#8FA6C1] text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">Click to view</div>
           </div>
         </button>
+      </div>
 
         {/* Interacted - Formula: 10 + (n × 10), 61 colors then WHITE */}
-        <div
-          className="relative bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] shadow-lg overflow-hidden opacity-90"
-        >
+        <div className="p-4 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
+          <div
+            className="relative w-[180px] h-[180px] opacity-90 flex flex-col items-center justify-center"
+          >
           {/* Progress Ring */}
-          <svg className="absolute inset-0 w-full h-full -rotate-90" style={{ transform: 'rotate(-90deg)' }}>
+          <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+            <defs>
+              <radialGradient id="innerGlow-interacted" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style={{ stopColor: 'rgba(79, 209, 255, 0.35)', stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: 'rgba(79, 209, 255, 0)', stopOpacity: 1 }} />
+              </radialGradient>
+            </defs>
+            <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-interacted)" />
             <circle
               cx="50%"
               cy="50%"
-              r="48%"
+              r="80"
               fill="none"
-              stroke="rgba(79, 209, 255, 0.1)"
-              strokeWidth="4"
+              stroke="rgba(79, 209, 255, 0.3)"
+              strokeWidth="3"
             />
             <circle
               cx="50%"
               cy="50%"
-              r="48%"
+              r="80"
               fill="none"
               stroke={
                 (() => {
@@ -1388,7 +1466,7 @@ export default function InteractiveGlobe() {
                 })()
               }
               strokeWidth="4"
-              strokeDasharray={`${2 * Math.PI * 48} ${2 * Math.PI * 48}`}
+              strokeDasharray={`${2 * Math.PI * 80}`}
               strokeDashoffset={
                 (() => {
                   let level = 0;
@@ -1401,85 +1479,170 @@ export default function InteractiveGlobe() {
                   }
                   const currentMilestone = 10 + (level * 10);
                   const progress = count / currentMilestone;
-                  return 2 * Math.PI * 48 * (1 - progress);
+                  return 2 * Math.PI * 80 * (1 - progress);
                 })()
               }
               className="transition-all duration-500"
+              style={{
+                filter: 'drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor)',
+              }}
             />
           </svg>
-          <div className="relative z-10">
-            <div className="text-[#A3B4CC] text-sm mb-1">Interacted</div>
-            <div className="text-3xl xl:text-5xl font-bold text-white mb-1">{stats.emailsViewed}</div>
-            <div className="text-[#8FA6C1] text-xs opacity-0">—</div>
+          <div className="relative z-10 text-center">
+            <div className="text-[#A3B4CC] text-xs mb-1.5">Interacted</div>
+            <div className="text-5xl font-bold text-white mb-1">{stats.emailsViewed}</div>
+            <div className="text-[#8FA6C1] text-[9px] font-medium">
+              Next: {(() => {
+                let level = 0;
+                let count = stats.emailsViewed;
+                let milestone = 10;
+                while (count >= milestone) {
+                  count -= milestone;
+                  level++;
+                  milestone = 10 + (level * 10);
+                }
+                const currentMilestone = 10 + (level * 10);
+                return `${count}/${currentMilestone}`;
+              })()}
+            </div>
           </div>
         </div>
-
-        {/* Alerts */}
-        <button
-          onClick={() => {/* Add alert click handler if needed */}}
-          className="bg-[#1B2F52]/90 rounded-3xl p-5 xl:p-7 border border-[#4FD1FF]/30 w-[180px] xl:w-[220px] hover:bg-[#2A4472] hover:shadow-2xl hover:shadow-[#4FD1FF]/20 transition-all duration-200 cursor-pointer text-left active:scale-95 shadow-lg"
-        >
-          <div className="text-[#A3B4CC] text-sm mb-1">Alerts</div>
-          <div className="text-3xl xl:text-5xl font-bold text-white mb-1 flex items-center gap-2">
-            {stats.alerts}
-            {stats.alerts > 0 && (
-              <span className="w-2 h-2 xl:w-3 xl:h-3 bg-[#4FD1FF] rounded-full animate-pulse shadow-lg shadow-[#4FD1FF]/50"></span>
-            )}
-          </div>
-          <div className="text-[#8FA6C1] text-xs">Click to view →</div>
-        </button>
+      </div>
       </div>
 
       {/* Outreach Section - Center of Dashboard */}
-      <div className="hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30" style={{ top: 'calc(50vh - 312px)' }}>
-        {/* Stats Row */}
-        <div className="flex gap-4">
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-5 border border-green-500/30 flex-1">
-            <div className="text-[#A3B4CC] text-sm mb-2">Opens</div>
-            <div className="text-3xl font-bold text-green-400">{stats.emailsViewed}</div>
+      <div className="hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30" style={{ top: 'calc(10% + 60px)' }}>
+        {/* Stats Row - Square boxes */}
+        <div className="grid grid-cols-3 gap-4">
+          {/* Opens */}
+          <div className="relative rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-4 h-[90px] flex flex-col justify-between transition-all duration-200 shadow-lg overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.95) 70%)' }}>
+            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Opens</div>
+            <div className="flex items-end justify-between">
+              <div className="text-3xl font-bold text-white">{stats.emailsViewed}</div>
+              <div className="text-[#4FD1FF] text-sm font-medium">
+                {stats.emailsSent > 0 ? `${Math.round((stats.emailsViewed / stats.emailsSent) * 100)}%` : '0%'}
+              </div>
+            </div>
           </div>
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-5 border border-purple-500/30 flex-1">
-            <div className="text-[#A3B4CC] text-sm mb-2">Responses</div>
-            <div className="text-3xl font-bold text-purple-400">0</div>
+
+          {/* Responses */}
+          <div className="relative rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-4 h-[90px] flex flex-col justify-between transition-all duration-200 shadow-lg overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.95) 70%)' }}>
+            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Responses</div>
+            <div className="flex items-end justify-between">
+              <div className="text-3xl font-bold text-white">0</div>
+              <div className="text-[#4FD1FF] text-sm font-medium">0%</div>
+            </div>
+          </div>
+
+          {/* Bounced */}
+          <div className="relative rounded-lg border-2 border-red-500/40 hover:border-red-500/60 p-4 h-[90px] flex flex-col justify-between transition-all duration-200 shadow-lg overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(239, 68, 68, 0.15) 0%, rgba(27, 47, 82, 0.95) 70%)' }}>
+            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Bounced</div>
+            <div className="flex items-end justify-between">
+              <div className="text-3xl font-bold text-white">0</div>
+              <div className="text-red-400 text-sm font-medium">0%</div>
+            </div>
           </div>
         </div>
 
-        {/* Inbox Delivery - Full Width */}
-        <div>
-          {/* Inbox Delivery Status */}
-          <div className="bg-[#1B2F52]/90 backdrop-blur-md rounded-lg p-5 border border-[#4FD1FF]/30">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-base">Email Activity</h3>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <button className="text-xs px-2.5 py-1 rounded bg-[#4FD1FF]/20 text-[#4FD1FF] hover:bg-[#4FD1FF]/30 transition-all border border-[#4FD1FF]/40">
-                    All
-                  </button>
-                  <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
-                    Primary
-                  </button>
-                  <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
-                    Promo
-                  </button>
-                  <button className="text-xs px-2.5 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all">
-                    Bounced
-                  </button>
-                </div>
-                <span className="text-xs text-[#8FA6C1]">{stats.emailsSent} total</span>
-              </div>
+        {/* Email Activity Log */}
+        <div className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 p-4 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Email Activity</h3>
+            <div className="flex items-center gap-2">
+              <button className="text-[10px] px-2 py-1 rounded bg-[#4FD1FF]/20 text-[#4FD1FF] hover:bg-[#4FD1FF]/30 transition-all border border-[#4FD1FF]/40 font-medium">
+                All
+              </button>
+              <button className="text-[10px] px-2 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all font-medium">
+                Primary
+              </button>
+              <button className="text-[10px] px-2 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all font-medium">
+                Promo
+              </button>
+              <button className="text-[10px] px-2 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all font-medium">
+                Bounced
+              </button>
+              <span className="text-[10px] text-[#8FA6C1] ml-2">{stats.emailsSent} total</span>
             </div>
-            
-            <div className="space-y-2 h-[450px] overflow-y-auto">
-              <div className="text-center py-12">
-                <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <p className="text-[#8FA6C1] text-sm">Email activity tracking coming soon</p>
-                <p className="text-[#8FA6C1]/60 text-xs mt-2">Real-time delivery status and engagement metrics</p>
+          </div>
+          
+          <div className="space-y-2 h-[450px] overflow-y-auto">
+            <div className="text-center py-20">
+              <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
               </div>
+              <p className="text-[#8FA6C1] text-sm">Email activity tracking coming soon</p>
+              <p className="text-[#8FA6C1]/60 text-xs mt-2">Real-time delivery status and engagement metrics</p>
             </div>
+          </div>
+        </div>
+
+        {/* Control Switches */}
+        <div className="grid grid-cols-3 gap-3">
+          {/* Auto-Send Toggle */}
+          <button 
+            className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-3 h-[60px] flex items-center justify-between transition-all duration-200 hover:bg-[#2A4472] shadow-lg active:scale-[0.98]"
+          >
+            <div className="text-[#A3B4CC] text-[10px] font-medium uppercase tracking-wider">Auto-Send</div>
+            <div className="w-11 h-6 bg-green-500/30 rounded-full border-2 border-green-500 relative">
+              <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-green-500 rounded-full shadow-lg"></div>
+            </div>
+          </button>
+
+          {/* Email Tracking Toggle */}
+          <button 
+            className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-3 h-[60px] flex items-center justify-between transition-all duration-200 hover:bg-[#2A4472] shadow-lg active:scale-[0.98]"
+          >
+            <div className="text-[#A3B4CC] text-[10px] font-medium uppercase tracking-wider">Tracking</div>
+            <div className="w-11 h-6 bg-green-500/30 rounded-full border-2 border-green-500 relative">
+              <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-green-500 rounded-full shadow-lg"></div>
+            </div>
+          </button>
+
+          {/* Active Agents Display */}
+          <div className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 p-3 h-[60px] flex items-center justify-between shadow-lg overflow-hidden">
+            <div className="text-[#A3B4CC] text-[10px] font-medium uppercase tracking-wider">Active</div>
+            {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 ? (
+              <div className="flex -space-x-1.5">
+                {agents
+                  .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
+                  .slice(0, 3)
+                  .map((agent) => {
+                    const avatarSrc = agent.avatar || agent.personality?.avatar;
+                    return (
+                      <div
+                        key={agent.agentId}
+                        className="relative group"
+                        title={agent.name}
+                      >
+                        {avatarSrc ? (
+                          <img
+                            src={avatarSrc}
+                            alt={agent.name}
+                            className="w-7 h-7 rounded-full border-2 border-[#4FD1FF]/50 object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full border-2 border-[#4FD1FF]/50 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                            {agent.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-white/50 animate-pulse" />
+                      </div>
+                    );
+                  })}
+                {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 3 && (
+                  <div className="w-7 h-7 rounded-full border-2 border-[#4FD1FF]/50 bg-[#1B2F52] flex items-center justify-center text-[#4FD1FF] text-[10px] font-bold">
+                    +{agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length - 3}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-[#8FA6C1] text-xs">None</div>
+            )}
           </div>
         </div>
       </div>

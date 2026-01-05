@@ -264,6 +264,59 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
           </div>
         </div>
         
+        {/* Start All Agents Button */}
+        <button
+          onClick={async () => {
+            const runningAgents = agents.filter((a: any) => a.status === 'running');
+            const idleAgents = agents.filter((a: any) => a.status !== 'running');
+            
+            // If all agents are running, stop them all
+            if (idleAgents.length === 0 && runningAgents.length > 0) {
+              try {
+                await Promise.all(
+                  runningAgents.map((agent: any) => 
+                    fetch('/api/lead-agent/stop', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ agentId: agent.agentId })
+                    })
+                  )
+                );
+                window.location.reload();
+              } catch (error) {
+                console.error('Failed to stop agents:', error);
+                alert('Failed to stop some agents. Please try again.');
+              }
+              return;
+            }
+            
+            // Otherwise, start all idle agents
+            if (idleAgents.length === 0) {
+              alert('All agents are already running!');
+              return;
+            }
+            
+            try {
+              await Promise.all(
+                idleAgents.map((agent: any) => 
+                  fetch('/api/lead-agent/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agentId: agent.agentId })
+                  })
+                )
+              );
+              window.location.reload();
+            } catch (error) {
+              console.error('Failed to start agents:', error);
+              alert('Failed to start some agents. Please try again.');
+            }
+          }}
+          className="w-full mt-3 px-6 py-3 bg-transparent hover:bg-green-500/10 text-green-400 font-bold rounded-lg uppercase tracking-wider text-sm shadow-lg transition-all duration-200 active:scale-[0.98] border-2 border-green-400"
+        >
+          Start All Agents
+        </button>
+        
         {/* Globe View Toggle */}
         {setShowGlobe && (
           <button
