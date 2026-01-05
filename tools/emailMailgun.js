@@ -198,6 +198,26 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
           const agentSettings = await awsManager.getAgentSettings(userId, agentId);
           useGmailForAgent = agentSettings?.emailBuilder?.useGmail === true;
           console.log(`[EMAIL ROUTING] Agent ${agentId} useGmail setting:`, useGmailForAgent);
+        } else {
+          // No agentId (orphaned email or manual send) - check if user has active Gmail account
+          // If they have Gmail connected and active, assume they want to use it for orphaned emails
+          console.log('═══════════════════════════════════════════════════════════════');
+          console.log('🏴 [EMAIL ROUTING] ORPHANED EMAIL DETECTED - No agentId provided');
+          console.log('═══════════════════════════════════════════════════════════════');
+          console.log('📧 Checking user Gmail accounts for fallback routing...');
+          console.log('👤 User ID:', userId);
+          console.log('📬 Gmail accounts:', userSettings?.gmailAccounts?.map(acc => ({
+            email: acc.email,
+            isActive: acc.isActive,
+            hasToken: !!acc.refreshToken
+          })));
+          
+          const hasActiveGmailAccount = userSettings?.gmailAccounts?.some(acc => acc.isActive && acc.refreshToken);
+          useGmailForAgent = hasActiveGmailAccount || false;
+          
+          console.log('✅ Has active Gmail account?', hasActiveGmailAccount);
+          console.log('🎯 Will use Gmail for orphaned email?', useGmailForAgent);
+          console.log('═══════════════════════════════════════════════════════════════\n');
         }
         
         // Debug: Log what Gmail-related data we have for this user
