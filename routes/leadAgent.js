@@ -182,6 +182,25 @@ router.post('/stop', async (req, res) => {
           const awsManagerInstance = new awsManager();
           await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
           console.log('✅ [LEAD AGENT API] Updated agent status to idle in database');
+          
+          // Broadcast agent stop to all SSE clients for real-time UI update
+          try {
+            const { broadcastActivity } = await import('./monitoring.js');
+            const agent = user.activeAgents.find(a => a.agentId === agentId);
+            broadcastActivity({
+              type: 'agent_stopped',
+              agentId: agentId,
+              agentName: agent?.name || 'Agent',
+              userId: userId,
+              timestamp: new Date().toISOString(),
+              isActive: false,
+              status: 'idle',
+              message: 'Agent stopped'
+            });
+            console.log('📡 [LEAD AGENT API] Broadcasted agent stop event via SSE');
+          } catch (broadcastError) {
+            console.error('⚠️ [LEAD AGENT API] Failed to broadcast agent stop:', broadcastError.message);
+          }
         }
       } catch (dbError) {
         console.error('⚠️ [LEAD AGENT API] Failed to update agent status in database:', dbError);

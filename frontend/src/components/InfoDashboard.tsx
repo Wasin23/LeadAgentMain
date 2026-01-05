@@ -273,7 +273,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             // If all agents are running, stop them all
             if (idleAgents.length === 0 && runningAgents.length > 0) {
               // Optimistically update UI immediately
-              setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+              setAgents(prev => prev.map(a => ({ ...a, status: 'idle', currentActivity: null })));
               setAgentActivities({});
               
               try {
@@ -282,6 +282,17 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                     api.post('/api/lead-agent/stop', { agentId: agent.agentId })
                   )
                 );
+                // Refresh after 2 seconds to ensure correct state
+                setTimeout(async () => {
+                  try {
+                    const response = await api.get('/api/user/profile');
+                    if (response.data.user?.activeAgents) {
+                      setAgents(response.data.user.activeAgents);
+                    }
+                  } catch (error) {
+                    console.error('Failed to refresh agents:', error);
+                  }
+                }, 2000);
               } catch (error) {
                 console.error('Failed to stop agents:', error);
               }

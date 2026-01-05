@@ -457,6 +457,29 @@ export default function InteractiveGlobe() {
       try {
         const data = JSON.parse(event.data);
         console.log('📡 SSE Event received:', data);
+        
+        // Handle agent stopped event
+        if (data.type === 'activity_added' && data.data?.type === 'agent_stopped') {
+          const stopData = data.data;
+          console.log('🛑 Agent stopped event received:', stopData);
+          
+          // Clear agent activity
+          setAgentActivities(prev => {
+            const newActivities = { ...prev };
+            delete newActivities[stopData.agentId];
+            return newActivities;
+          });
+          
+          // Update agent status to idle
+          setAgents(prev => prev.map(agent => 
+            agent.agentId === stopData.agentId
+              ? { ...agent, status: 'idle', currentActivity: null }
+              : agent
+          ));
+          
+          return; // Don't process as normal activity
+        }
+        
         const activityData = data.type === 'agent_activity' ? data : 
                             (data.type === 'activity_added' && data.data?.type === 'agent_activity') ? data.data : 
                             null;
@@ -1878,7 +1901,7 @@ export default function InteractiveGlobe() {
                   // If all agents are running, stop them all
                   if (idleAgents.length === 0 && runningAgents.length > 0) {
                     // Optimistic update - immediately show as stopped
-                    setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+                    setAgents(prev => prev.map(a => ({ ...a, status: 'idle', currentActivity: null })));
                     setAgentActivities({});
                     
                     try {
@@ -1887,7 +1910,8 @@ export default function InteractiveGlobe() {
                           api.post('/api/lead-agent/stop', { agentId: agent.agentId })
                         )
                       );
-                      await fetchAgents();
+                      // Refresh agent list after 2 seconds to ensure correct state
+                      setTimeout(() => fetchAgents(), 2000);
                     } catch (error) {
                       console.error('Error stopping agents:', error);
                       await fetchAgents(); // Refresh to get actual state
@@ -2027,7 +2051,7 @@ export default function InteractiveGlobe() {
       )}
 
       {/* Email Dots on Globe (color-coded by status) */}
-      {showGlobe && emailDots.map((email) => {
+      {showGlobe && !globeLoading && emailDots.map((email) => {
         // Project email location to screen coordinates
         const baseScale = canvasSize / 2.0;
         const centerPos = canvasSize / 2;
@@ -2069,7 +2093,7 @@ export default function InteractiveGlobe() {
       })}
 
       {/* Active Agents on Globe */}
-      {showGlobe && agents.map((agent, index) => {
+      {showGlobe && !globeLoading && agents.map((agent, index) => {
         // Show agents that are running OR have activity
         const activity = agentActivities[agent.agentId];
         const isActive = agent.status === 'running' || activity?.isActive;
