@@ -1708,14 +1708,14 @@ export default function InteractiveGlobe() {
                           {/* Inbox classification - PRIMARY if opened (tracking pixel fired), PROMOTIONAL otherwise */}
                           {hasOpened ? (
                             <span 
-                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-help"
+                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer"
                               title="PRIMARY - Tracking pixel fired immediately, indicating email landed in Primary inbox (images auto-loaded)"
                             >
                               PRIMARY
                             </span>
                           ) : (
                             <span 
-                              className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded cursor-help"
+                              className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded cursor-pointer"
                               title="PROMOTIONAL - No tracking pixel hit yet, likely in Promotions/Social tab or Spam (images not auto-loaded)"
                             >
                               PROMOTIONAL
@@ -1725,7 +1725,7 @@ export default function InteractiveGlobe() {
                           {/* Engagement status */}
                           {hasReplied && (
                             <span 
-                              className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded cursor-help"
+                              className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded cursor-pointer"
                               title="Recipient replied to this email"
                             >
                               REPLIED
@@ -1733,7 +1733,7 @@ export default function InteractiveGlobe() {
                           )}
                           {hasClicked && !hasReplied && (
                             <span 
-                              className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded cursor-help"
+                              className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded cursor-pointer"
                               title="Recipient clicked a link in this email"
                             >
                               CLICKED
@@ -1741,7 +1741,7 @@ export default function InteractiveGlobe() {
                           )}
                           {hasOpened && !hasClicked && !hasReplied && (
                             <span 
-                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-help"
+                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer"
                               title={`Recipient opened this email${openCount > 1 ? ` ${openCount} times` : ''}`}
                             >
                               OPENED {openCount > 1 ? `${openCount}×` : ''}
@@ -1749,7 +1749,7 @@ export default function InteractiveGlobe() {
                           )}
                           {!hasOpened && !isBounced && (
                             <span 
-                              className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded cursor-help"
+                              className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded cursor-pointer"
                               title="Email sent but not opened yet"
                             >
                               SENT
@@ -1757,7 +1757,7 @@ export default function InteractiveGlobe() {
                           )}
                           {isBounced && (
                             <span 
-                              className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded cursor-help"
+                              className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded cursor-pointer"
                               title="Email bounced - invalid address or mailbox full"
                             >
                               BOUNCED

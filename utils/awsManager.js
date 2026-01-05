@@ -2479,7 +2479,12 @@ class AWSManager {
 
       return result.Items && result.Items.length > 0;
     } catch (error) {
-      console.error('❌ [AWS] Error checking unsubscribe status:', error);
+      // Gracefully handle missing table or other errors
+      if (error.name === 'ResourceNotFoundException') {
+        console.log('ℹ️ [AWS] Unsubscribe table does not exist yet - allowing email (create table: meridian-unsubscribes)');
+        return false;
+      }
+      console.error('❌ [AWS] Error checking unsubscribe status:', error.message);
       return false; // Default to not unsubscribed on error
     }
   }
@@ -2787,8 +2792,19 @@ class AWSManager {
       // console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
       
       if (!agentId) {
-        console.log(`⚠️ [EMAIL-TRACKING] agentId required for efficient query, falling back to scan`);
-        return [];
+        console.log(`⚠️ [EMAIL-TRACKING] agentId is null, scanning for all user tracking events`);
+        // Scan for all events for this user across all agents
+        const scanCommand = new ScanCommand({
+          TableName: this.tables.emailTracking,
+          FilterExpression: 'begins_with(PK, :userPrefix)',
+          ExpressionAttributeValues: {
+            ':userPrefix': `USER#${userId}#`
+          },
+          Limit: limit
+        });
+        const result = await this.dynamodb.send(scanCommand);
+        console.log(`✅ [EMAIL-TRACKING] Scan found ${result.Items?.length || 0} tracking events for user across all agents`);
+        return result.Items || [];
       }
       
       const pk = `USER#${userId}#AGENT#${agentId}`;
