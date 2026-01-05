@@ -1707,38 +1707,59 @@ export default function InteractiveGlobe() {
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           {/* Inbox classification - PRIMARY if opened (tracking pixel fired), PROMOTIONAL otherwise */}
                           {hasOpened ? (
-                            <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded">
+                            <span 
+                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-help"
+                              title="PRIMARY - Tracking pixel fired immediately, indicating email landed in Primary inbox (images auto-loaded)"
+                            >
                               PRIMARY
                             </span>
                           ) : (
-                            <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded">
+                            <span 
+                              className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded cursor-help"
+                              title="PROMOTIONAL - No tracking pixel hit yet, likely in Promotions/Social tab or Spam (images not auto-loaded)"
+                            >
                               PROMOTIONAL
                             </span>
                           )}
                           
                           {/* Engagement status */}
                           {hasReplied && (
-                            <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded">
+                            <span 
+                              className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded cursor-help"
+                              title="Recipient replied to this email"
+                            >
                               REPLIED
                             </span>
                           )}
                           {hasClicked && !hasReplied && (
-                            <span className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded">
+                            <span 
+                              className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded cursor-help"
+                              title="Recipient clicked a link in this email"
+                            >
                               CLICKED
                             </span>
                           )}
                           {hasOpened && !hasClicked && !hasReplied && (
-                            <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded">
+                            <span 
+                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-help"
+                              title={`Recipient opened this email${openCount > 1 ? ` ${openCount} times` : ''}`}
+                            >
                               OPENED {openCount > 1 ? `${openCount}×` : ''}
                             </span>
                           )}
                           {!hasOpened && !isBounced && (
-                            <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded">
+                            <span 
+                              className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded cursor-help"
+                              title="Email sent but not opened yet"
+                            >
                               SENT
                             </span>
                           )}
                           {isBounced && (
-                            <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded">
+                            <span 
+                              className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded cursor-help"
+                              title="Email bounced - invalid address or mailbox full"
+                            >
                               BOUNCED
                             </span>
                           )}
