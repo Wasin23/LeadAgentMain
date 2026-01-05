@@ -1316,10 +1316,10 @@ export default function InteractiveGlobe() {
         </div>
       )}
 
-      {/* Human Review Label - Left Side */}
+      {/* Needs Review Label - Left Side */}
       <div className="hidden xl:block fixed left-2 xl:left-4 z-35" style={{ top: 'calc(10% + 10px)', width: '240px' }}>
         <div className="text-center py-2 bg-[#0F1E35] rounded-lg">
-          <h2 className="text-[#4FD1FF] text-sm font-bold uppercase tracking-[0.3em]">Human Review</h2>
+          <h2 className="text-[#4FD1FF] text-sm font-bold uppercase tracking-[0.3em]">Needs Review</h2>
         </div>
       </div>
 
@@ -1406,7 +1406,7 @@ export default function InteractiveGlobe() {
               <div className="text-[#A3B4CC] text-xs mb-1.5">Email Queue</div>
               <div className="text-5xl font-bold text-white mb-1">{stats.emailsQueued}</div>
               <div className="text-[#8FA6C1] text-[9px] font-medium">
-                Next: {(() => {
+                Milestone: {(() => {
                   let level = 0;
                   let count = stats.totalEmailsQueued || stats.emailsQueued; // Use cumulative total
                   let milestone = 50;
@@ -1419,7 +1419,7 @@ export default function InteractiveGlobe() {
                   return `${count}/${currentMilestone}`;
                 })()}
               </div>
-              <div className="text-[#8FA6C1] text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">Click to view</div>
+              <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view</div>
             </div>
           </button>
         </div>
@@ -1493,7 +1493,7 @@ export default function InteractiveGlobe() {
             <div className="text-[#A3B4CC] text-xs mb-1.5">Sent</div>
             <div className="text-5xl font-bold text-white mb-1">{stats.emailsSent}</div>
             <div className="text-[#8FA6C1] text-[9px] font-medium">
-              Next: {(() => {
+              Milestone: {(() => {
                 let level = 0;
                 let count = stats.totalEmailsSent || stats.emailsSent; // Use cumulative total
                 let milestone = 25;
@@ -1506,25 +1506,26 @@ export default function InteractiveGlobe() {
                 return `${count}/${currentMilestone}`;
               })()}
             </div>
-            <div className="text-[#8FA6C1] text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">Click to view</div>
+            <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view</div>
           </div>
         </button>
       </div>
 
-        {/* Interacted - Formula: 10 + (n × 10), 61 colors then WHITE */}
+        {/* Responses - Formula: 5 + (n × 5), 61 colors then WHITE */}
         <div className="p-4 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
-          <div
-            className="relative w-[180px] h-[180px] opacity-90 flex flex-col items-center justify-center"
+          <button
+            onClick={() => handleQueueClick('replied', 'Replied Emails')}
+            className="relative w-[180px] h-[180px] hover:scale-105 transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center group"
           >
           {/* Progress Ring */}
           <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
             <defs>
-              <radialGradient id="innerGlow-interacted" cx="50%" cy="50%" r="50%">
+              <radialGradient id="innerGlow-responses" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" style={{ stopColor: 'rgba(79, 209, 255, 0.35)', stopOpacity: 1 }} />
                 <stop offset="100%" style={{ stopColor: 'rgba(79, 209, 255, 0)', stopOpacity: 1 }} />
               </radialGradient>
             </defs>
-            <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-interacted)" />
+            <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-responses)" />
             <circle
               cx="50%"
               cy="50%"
@@ -1541,12 +1542,12 @@ export default function InteractiveGlobe() {
               stroke={
                 (() => {
                   let level = 0;
-                  let count = stats.emailsViewed;
-                  let milestone = 10;
+                  let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                  let milestone = 5;
                   while (count >= milestone) {
                     count -= milestone;
                     level++;
-                    milestone = 10 + (level * 10);
+                    milestone = 5 + (level * 5);
                   }
                   const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
                   return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
@@ -1557,14 +1558,14 @@ export default function InteractiveGlobe() {
               strokeDashoffset={
                 (() => {
                   let level = 0;
-                  let count = stats.emailsViewed;
-                  let milestone = 10;
+                  let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                  let milestone = 5;
                   while (count >= milestone) {
                     count -= milestone;
                     level++;
-                    milestone = 10 + (level * 10);
+                    milestone = 5 + (level * 5);
                   }
-                  const currentMilestone = 10 + (level * 10);
+                  const currentMilestone = 5 + (level * 5);
                   const progress = count / currentMilestone;
                   return 2 * Math.PI * 80 * (1 - progress);
                 })()
@@ -1576,63 +1577,80 @@ export default function InteractiveGlobe() {
             />
           </svg>
           <div className="relative z-10 text-center">
-            <div className="text-[#A3B4CC] text-xs mb-1.5">Interacted</div>
-            <div className="text-5xl font-bold text-white mb-1">{stats.emailsViewed}</div>
+            <div className="text-[#A3B4CC] text-xs mb-1.5">Responses</div>
+            <div className="text-5xl font-bold text-white mb-1">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
             <div className="text-[#8FA6C1] text-[9px] font-medium">
-              Next: {(() => {
+              Milestone: {(() => {
                 let level = 0;
-                let count = stats.emailsViewed;
-                let milestone = 10;
+                let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                let milestone = 5;
                 while (count >= milestone) {
                   count -= milestone;
                   level++;
-                  milestone = 10 + (level * 10);
+                  milestone = 5 + (level * 5);
                 }
-                const currentMilestone = 10 + (level * 10);
+                const currentMilestone = 5 + (level * 5);
                 return `${count}/${currentMilestone}`;
               })()}
             </div>
+            <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view</div>
           </div>
-        </div>
+        </button>
       </div>
       </div>
 
       {/* Outreach Section - Center of Dashboard */}
+
       <div 
         className={`hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30 transition-opacity duration-700 ${
           showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`} 
         style={{ top: 'calc(10% + 60px)' }}
       >
-        {/* Stats Row - Square boxes */}
-        <div className="grid grid-cols-3 gap-4">
-          {/* Opens */}
-          <div className="relative rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-4 h-[90px] flex flex-col justify-between transition-all duration-200 shadow-lg overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.95) 70%)' }}>
-            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Opens</div>
-            <div className="flex items-end justify-between">
-              <div className="text-3xl font-bold text-white">{stats.emailsViewed}</div>
-              <div className="text-[#4FD1FF] text-sm font-medium">
-                {stats.emailsSent > 0 ? `${Math.round((stats.emailsViewed / stats.emailsSent) * 100)}%` : '0%'}
+        {/* Active Agents Display - Moved to top */}
+        <div className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 p-6 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Active Agents</div>
+            {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 ? (
+              <div className="flex -space-x-1.5">
+                {agents
+                  .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
+                  .slice(0, 5)
+                  .map((agent) => {
+                    const avatarSrc = agent.avatar || agent.personality?.avatar;
+                    return (
+                      <div
+                        key={agent.agentId}
+                        className="relative group"
+                        title={agent.name}
+                      >
+                        {avatarSrc ? (
+                          <img
+                            src={avatarSrc}
+                            alt={agent.name}
+                            className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/50 object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/50 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                            {agent.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-white/50 animate-pulse" />
+                      </div>
+                    );
+                  })}
+                {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 5 && (
+                  <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/50 bg-[#1B2F52] flex items-center justify-center text-[#4FD1FF] text-[10px] font-bold">
+                    +{agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length - 5}
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-
-          {/* Responses */}
-          <div className="relative rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-4 h-[90px] flex flex-col justify-between transition-all duration-200 shadow-lg overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.95) 70%)' }}>
-            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Responses</div>
-            <div className="flex items-end justify-between">
-              <div className="text-3xl font-bold text-white">0</div>
-              <div className="text-[#4FD1FF] text-sm font-medium">0%</div>
-            </div>
-          </div>
-
-          {/* Bounced */}
-          <div className="relative rounded-lg border-2 border-red-500/40 hover:border-red-500/60 p-4 h-[90px] flex flex-col justify-between transition-all duration-200 shadow-lg overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(239, 68, 68, 0.15) 0%, rgba(27, 47, 82, 0.95) 70%)' }}>
-            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Bounced</div>
-            <div className="flex items-end justify-between">
-              <div className="text-3xl font-bold text-white">0</div>
-              <div className="text-red-400 text-sm font-medium">0%</div>
-            </div>
+            ) : (
+              <div className="text-[#8FA6C1] text-xs">None</div>
+            )}
           </div>
         </div>
 
@@ -1640,7 +1658,33 @@ export default function InteractiveGlobe() {
         <div className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 p-4 shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Email Activity</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* Stats - Opens, Responses, Bounced */}
+              <div className="flex items-center gap-3 mr-2 border-r border-white/10 pr-3">
+                <div className="text-center">
+                  <div className="text-[9px] text-[#8FA6C1] uppercase tracking-wide">Opens</div>
+                  <div className="text-sm font-bold text-white">{emailActivity.filter(e => e.analyticsStatus?.opened).length}</div>
+                  <div className="text-[8px] text-[#4FD1FF]">
+                    {stats.emailsSent > 0 ? `${Math.round((emailActivity.filter(e => e.analyticsStatus?.opened).length / stats.emailsSent) * 100)}%` : '0%'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[9px] text-[#8FA6C1] uppercase tracking-wide">Replies</div>
+                  <div className="text-sm font-bold text-white">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
+                  <div className="text-[8px] text-[#4FD1FF]">
+                    {stats.emailsSent > 0 ? `${Math.round((emailActivity.filter(e => e.analyticsStatus?.replied).length / stats.emailsSent) * 100)}%` : '0%'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[9px] text-[#8FA6C1] uppercase tracking-wide">Bounced</div>
+                  <div className="text-sm font-bold text-white">{emailActivity.filter(e => e.status === 'bounced').length}</div>
+                  <div className="text-[8px] text-red-400">
+                    {stats.emailsSent > 0 ? `${Math.round((emailActivity.filter(e => e.status === 'bounced').length / stats.emailsSent) * 100)}%` : '0%'}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Filter buttons */}
               <button 
                 onClick={() => setActivityFilter('all')}
                 className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
@@ -1685,7 +1729,7 @@ export default function InteractiveGlobe() {
             </div>
           </div>
           
-          <div className="space-y-2 h-[450px] overflow-y-auto">
+          <div className="space-y-2 h-[530px] overflow-y-auto">
             {emailActivity.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -1809,74 +1853,6 @@ export default function InteractiveGlobe() {
                     </div>
                   );
                 })
-            )}
-          </div>
-        </div>
-
-        {/* Control Switches */}
-        <div className="grid grid-cols-3 gap-3">
-          {/* Auto-Send Toggle */}
-          <button 
-            className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-3 h-[60px] flex items-center justify-between transition-all duration-200 hover:bg-[#2A4472] shadow-lg active:scale-[0.98]"
-          >
-            <div className="text-[#A3B4CC] text-[10px] font-medium uppercase tracking-wider">Auto-Send</div>
-            <div className="w-11 h-6 bg-green-500/30 rounded-full border-2 border-green-500 relative">
-              <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-green-500 rounded-full shadow-lg"></div>
-            </div>
-          </button>
-
-          {/* Email Tracking Toggle */}
-          <button 
-            className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60 p-3 h-[60px] flex items-center justify-between transition-all duration-200 hover:bg-[#2A4472] shadow-lg active:scale-[0.98]"
-          >
-            <div className="text-[#A3B4CC] text-[10px] font-medium uppercase tracking-wider">Tracking</div>
-            <div className="w-11 h-6 bg-green-500/30 rounded-full border-2 border-green-500 relative">
-              <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-green-500 rounded-full shadow-lg"></div>
-            </div>
-          </button>
-
-          {/* Active Agents Display */}
-          <div className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 p-3 h-[60px] flex items-center justify-between shadow-lg overflow-hidden">
-            <div className="text-[#A3B4CC] text-[10px] font-medium uppercase tracking-wider">Active</div>
-            {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 ? (
-              <div className="flex -space-x-1.5">
-                {agents
-                  .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
-                  .slice(0, 3)
-                  .map((agent) => {
-                    const avatarSrc = agent.avatar || agent.personality?.avatar;
-                    return (
-                      <div
-                        key={agent.agentId}
-                        className="relative group"
-                        title={agent.name}
-                      >
-                        {avatarSrc ? (
-                          <img
-                            src={avatarSrc}
-                            alt={agent.name}
-                            className="w-7 h-7 rounded-full border-2 border-[#4FD1FF]/50 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full border-2 border-[#4FD1FF]/50 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                            {agent.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-white/50 animate-pulse" />
-                      </div>
-                    );
-                  })}
-                {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 3 && (
-                  <div className="w-7 h-7 rounded-full border-2 border-[#4FD1FF]/50 bg-[#1B2F52] flex items-center justify-center text-[#4FD1FF] text-[10px] font-bold">
-                    +{agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length - 3}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-[#8FA6C1] text-xs">None</div>
             )}
           </div>
         </div>
