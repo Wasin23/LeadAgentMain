@@ -184,13 +184,14 @@ class AWSEmailQueue {
       trackingEvents.forEach(event => {
         const id = event.trackingId;
         if (!trackingMap.has(id)) {
-          trackingMap.set(id, { opened: false, clicked: false, replied: false, events: [] });
+          trackingMap.set(id, { opened: false, clicked: false, replied: false, hasProxy: false, events: [] });
         }
         const data = trackingMap.get(id);
         data.events.push(event);
         
         // Set flags based on event type
-        if (event.eventType === 'open') data.opened = true;
+        if (event.eventType === 'open') data.opened = true; // Real open (second hit)
+        if (event.eventType === 'proxy') data.hasProxy = true; // First hit (image proxy)
         if (event.eventType === 'click') data.clicked = true;
         if (event.eventType === 'reply') data.replied = true;
         if (event.eventType === 'ai_response') data.aiResponded = true;
@@ -207,7 +208,8 @@ class AWSEmailQueue {
               opened: tracking.opened,
               clicked: tracking.clicked,
               replied: tracking.replied,
-              aiResponded: tracking.aiResponded
+              aiResponded: tracking.aiResponded,
+              hasProxy: tracking.hasProxy
             },
             opened: tracking.opened,
             replied: tracking.replied,

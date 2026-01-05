@@ -245,7 +245,9 @@ export default function InteractiveGlobe() {
     emailsQueued: 0,
     emailsSent: 0,
     emailsViewed: 0,
-    alerts: 0
+    alerts: 0,
+    totalEmailsQueued: 0, // Cumulative total for progress bar
+    totalEmailsSent: 0    // Cumulative total for progress bar
   });
 
   // Toast notification state
@@ -262,6 +264,7 @@ export default function InteractiveGlobe() {
   const [queueEmails, setQueueEmails] = useState<any[]>([]);
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
   const [editingEmail, setEditingEmail] = useState<{id: string, subject: string, body: string, to: string, cc?: string, bcc?: string} | null>(null);
+  const [selectedEmailForView, setSelectedEmailForView] = useState<any | null>(null); // For viewing email details
   const [navigating, setNavigating] = useState(false);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
@@ -783,7 +786,8 @@ export default function InteractiveGlobe() {
     setStats(prev => ({
       ...prev,
       emailsQueued: Math.max(0, prev.emailsQueued - 1),
-      emailsSent: prev.emailsSent + 1
+      emailsSent: prev.emailsSent + 1,
+      totalEmailsSent: prev.totalEmailsSent + 1 // Increment cumulative total
     }));
     
     try {
@@ -818,6 +822,7 @@ export default function InteractiveGlobe() {
     setStats(prev => ({
       ...prev,
       emailsQueued: Math.max(0, prev.emailsQueued - 1)
+      // totalEmailsQueued stays the same - rejection doesn't change cumulative total
     }));
     
     try {
@@ -854,12 +859,15 @@ export default function InteractiveGlobe() {
         // TODO: Fetch alerts from your alerts API
         const alerts = 0;
 
-        setStats({
+        setStats(prev => ({
           emailsQueued,
           emailsSent,
           emailsViewed,
-          alerts
-        });
+          alerts,
+          // Initialize cumulative totals on first load, otherwise keep existing values
+          totalEmailsQueued: Math.max(prev.totalEmailsQueued, emailsQueued),
+          totalEmailsSent: Math.max(prev.totalEmailsSent, emailsSent)
+        }));
       } catch (error) {
         console.error('Failed to fetch stats:', error);
       }
@@ -1203,6 +1211,7 @@ export default function InteractiveGlobe() {
               >
                 <div className="text-[#A3B4CC] text-xs mb-1">Email Queue</div>
                 <div className="text-2xl font-bold text-white">{stats.emailsQueued}</div>
+                <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view →</div>
               </button>
 
               {/* Emails Sent */}
@@ -1212,6 +1221,7 @@ export default function InteractiveGlobe() {
               >
                 <div className="text-[#A3B4CC] text-xs mb-1">Sent</div>
                 <div className="text-2xl font-bold text-white">{stats.emailsSent}</div>
+                <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view →</div>
               </button>
             </div>
 
@@ -1335,7 +1345,7 @@ export default function InteractiveGlobe() {
                 stroke={
                   (() => {
                     let level = 0;
-                    let count = stats.emailsQueued;
+                    let count = stats.totalEmailsQueued || stats.emailsQueued; // Use cumulative total
                     let milestone = 50;
                     while (count >= milestone) {
                       count -= milestone;
@@ -1351,7 +1361,7 @@ export default function InteractiveGlobe() {
                 strokeDashoffset={
                   (() => {
                     let level = 0;
-                    let count = stats.emailsQueued;
+                    let count = stats.totalEmailsQueued || stats.emailsQueued; // Use cumulative total
                     let milestone = 50;
                     while (count >= milestone) {
                       count -= milestone;
@@ -1375,7 +1385,7 @@ export default function InteractiveGlobe() {
               <div className="text-[#8FA6C1] text-[9px] font-medium">
                 Next: {(() => {
                   let level = 0;
-                  let count = stats.emailsQueued;
+                  let count = stats.totalEmailsQueued || stats.emailsQueued; // Use cumulative total
                   let milestone = 50;
                   while (count >= milestone) {
                     count -= milestone;
@@ -1422,7 +1432,7 @@ export default function InteractiveGlobe() {
               stroke={
                 (() => {
                   let level = 0;
-                  let count = stats.emailsSent;
+                  let count = stats.totalEmailsSent || stats.emailsSent; // Use cumulative total
                   let milestone = 25;
                   while (count >= milestone) {
                     count -= milestone;
@@ -1438,7 +1448,7 @@ export default function InteractiveGlobe() {
               strokeDashoffset={
                 (() => {
                   let level = 0;
-                  let count = stats.emailsSent;
+                  let count = stats.totalEmailsSent || stats.emailsSent; // Use cumulative total
                   let milestone = 25;
                   while (count >= milestone) {
                     count -= milestone;
@@ -1462,7 +1472,7 @@ export default function InteractiveGlobe() {
             <div className="text-[#8FA6C1] text-[9px] font-medium">
               Next: {(() => {
                 let level = 0;
-                let count = stats.emailsSent;
+                let count = stats.totalEmailsSent || stats.emailsSent; // Use cumulative total
                 let milestone = 25;
                 while (count >= milestone) {
                   count -= milestone;
@@ -1673,7 +1683,8 @@ export default function InteractiveGlobe() {
                   return true;
                 })
                 .map((email, idx) => {
-                  const hasOpened = email.analyticsStatus?.opened;
+                  const hasOpened = email.analyticsStatus?.opened; // Real open (second hit)
+                  const hasProxy = email.analyticsStatus?.hasProxy; // First hit (proxy)
                   const hasClicked = email.analyticsStatus?.clicked;
                   const hasReplied = email.analyticsStatus?.replied;
                   const isBounced = email.status === 'bounced';
@@ -1705,63 +1716,70 @@ export default function InteractiveGlobe() {
                         
                         {/* Fixed position status badges on the right */}
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {/* Inbox classification - PRIMARY if opened (tracking pixel fired), PROMOTIONAL otherwise */}
-                          {hasOpened ? (
-                            <span 
-                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer"
+                          {/* Inbox classification - PRIMARY if proxy hit (first hit), PROMOTIONAL if no hits yet */}
+                          {hasProxy ? (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
+                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer hover:bg-green-500/30 transition-colors"
                               title="PRIMARY - Tracking pixel fired immediately, indicating email landed in Primary inbox (images auto-loaded)"
                             >
                               PRIMARY
-                            </span>
+                            </button>
                           ) : (
-                            <span 
-                              className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded cursor-pointer"
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
+                              className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded cursor-pointer hover:bg-orange-500/30 transition-colors"
                               title="PROMOTIONAL - No tracking pixel hit yet, likely in Promotions/Social tab or Spam (images not auto-loaded)"
                             >
                               PROMOTIONAL
-                            </span>
+                            </button>
                           )}
                           
                           {/* Engagement status */}
                           {hasReplied && (
-                            <span 
-                              className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded cursor-pointer"
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
+                              className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded cursor-pointer hover:bg-purple-500/30 transition-colors"
                               title="Recipient replied to this email"
                             >
                               REPLIED
-                            </span>
+                            </button>
                           )}
                           {hasClicked && !hasReplied && (
-                            <span 
-                              className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded cursor-pointer"
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
+                              className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded cursor-pointer hover:bg-yellow-500/30 transition-colors"
                               title="Recipient clicked a link in this email"
                             >
                               CLICKED
-                            </span>
+                            </button>
                           )}
                           {hasOpened && !hasClicked && !hasReplied && (
-                            <span 
-                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer"
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
+                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer hover:bg-green-500/30 transition-colors"
                               title={`Recipient opened this email${openCount > 1 ? ` ${openCount} times` : ''}`}
                             >
                               OPENED {openCount > 1 ? `${openCount}×` : ''}
-                            </span>
+                            </button>
                           )}
                           {!hasOpened && !isBounced && (
-                            <span 
-                              className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded cursor-pointer"
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
+                              className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded cursor-pointer hover:bg-blue-500/30 transition-colors"
                               title="Email sent but not opened yet"
                             >
                               SENT
-                            </span>
+                            </button>
                           )}
                           {isBounced && (
-                            <span 
-                              className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded cursor-pointer"
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
+                              className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded cursor-pointer hover:bg-red-500/30 transition-colors"
                               title="Email bounced - invalid address or mailbox full"
                             >
                               BOUNCED
-                            </span>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -2995,6 +3013,87 @@ export default function InteractiveGlobe() {
           transform-origin: center;
         }
       `}</style>
+
+      {/* Email Detail Modal */}
+      {selectedEmailForView && (
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4" onClick={() => setSelectedEmailForView(null)}>
+          <div className="bg-gradient-to-br from-[#1B2F52] via-[#223A63] to-[#2A4570] rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-[#4FD1FF]/30" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-[#0F1E35]/80 px-6 py-4 border-b border-[#4FD1FF]/20 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white">Email Details</h3>
+                <p className="text-[#8FA6C1] text-sm mt-0.5">Sent {new Date(selectedEmailForView.sentAt || selectedEmailForView.timestamp).toLocaleString()}</p>
+              </div>
+              <button
+                onClick={() => setSelectedEmailForView(null)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6 text-[#8FA6C1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {/* Email Info */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[#8FA6C1] text-sm font-medium">To:</label>
+                  <p className="text-white mt-1">{selectedEmailForView.to || selectedEmailForView.recipient}</p>
+                </div>
+                
+                <div>
+                  <label className="text-[#8FA6C1] text-sm font-medium">Subject:</label>
+                  <p className="text-white mt-1">{selectedEmailForView.subject || 'No subject'}</p>
+                </div>
+
+                {selectedEmailForView.cc && (
+                  <div>
+                    <label className="text-[#8FA6C1] text-sm font-medium">CC:</label>
+                    <p className="text-white mt-1">{selectedEmailForView.cc}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-[#8FA6C1] text-sm font-medium">Message:</label>
+                  <div className="mt-2 bg-[#0F1E35]/60 rounded-lg p-4 border border-[#4FD1FF]/10">
+                    <div 
+                      className="text-white text-sm whitespace-pre-wrap prose prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: (selectedEmailForView.html || selectedEmailForView.body || selectedEmailForView.content || 'No content').replace(/\n/g, '<br/>') }}
+                    />
+                  </div>
+                </div>
+
+                {/* Analytics */}
+                {selectedEmailForView.analyticsStatus && (
+                  <div>
+                    <label className="text-[#8FA6C1] text-sm font-medium">Analytics:</label>
+                    <div className="mt-2 bg-[#0F1E35]/60 rounded-lg p-4 border border-[#4FD1FF]/10 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-[#8FA6C1]">Status:</span>
+                        <span className="text-white">{selectedEmailForView.analyticsStatus.replied ? '✅ Replied' : selectedEmailForView.analyticsStatus.opened ? '✅ Opened' : selectedEmailForView.analyticsStatus.hasProxy ? '🟢 Primary Inbox' : '📧 Sent'}</span>
+                      </div>
+                      {selectedEmailForView.analyticsStatus.openCount > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#8FA6C1]">Opens:</span>
+                          <span className="text-white">{selectedEmailForView.analyticsStatus.openCount}</span>
+                        </div>
+                      )}
+                      {selectedEmailForView.trackingId && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#8FA6C1]">Tracking ID:</span>
+                          <span className="text-white text-xs font-mono">{selectedEmailForView.trackingId}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (
