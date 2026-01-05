@@ -275,41 +275,28 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
               try {
                 await Promise.all(
                   runningAgents.map((agent: any) => 
-                    fetch('/api/lead-agent/stop', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ agentId: agent.agentId })
-                    })
+                    api.post('/api/lead-agent/stop', { agentId: agent.agentId })
                   )
                 );
-                window.location.reload();
               } catch (error) {
                 console.error('Failed to stop agents:', error);
-                alert('Failed to stop some agents. Please try again.');
               }
               return;
             }
             
             // Otherwise, start all idle agents
             if (idleAgents.length === 0) {
-              alert('All agents are already running!');
               return;
             }
             
             try {
               await Promise.all(
                 idleAgents.map((agent: any) => 
-                  fetch('/api/lead-agent/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ agentId: agent.agentId })
-                  })
+                  api.post('/api/lead-agent/start', { agentId: agent.agentId })
                 )
               );
-              window.location.reload();
             } catch (error) {
               console.error('Failed to start agents:', error);
-              alert('Failed to start some agents. Please try again.');
             }
           }}
           className="w-full mt-3 px-6 py-3 bg-transparent hover:bg-green-500/10 text-green-400 font-bold rounded-lg uppercase tracking-wider text-sm shadow-lg transition-all duration-200 active:scale-[0.98] border-2 border-green-400"

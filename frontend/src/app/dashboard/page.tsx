@@ -284,6 +284,8 @@ export default function InteractiveGlobe() {
   const [showIdleAgents, setShowIdleAgents] = useState(false);
   const [satelliteBob, setSatelliteBob] = useState(0);
   const [agentActivities, setAgentActivities] = useState<{[agentId: string]: any}>({});
+  const [emailActivity, setEmailActivity] = useState<any[]>([]);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'opened' | 'sent' | 'bounced'>('all');
   
   // Email location tracking with status (queued, sent, meeting)
   const [emailDots, setEmailDots] = useState<Array<{
@@ -593,6 +595,23 @@ export default function InteractiveGlobe() {
     }
   };
 
+  // Fetch email activity from analytics API
+  const fetchEmailActivity = async () => {
+    try {
+      const response = await api.get('/api/analytics/emails');
+      if (response.data.success) {
+        const emails = response.data.data || [];
+        // Sort by sentAt timestamp descending (most recent first)
+        const sortedEmails = emails.sort((a: any, b: any) => 
+          new Date(b.sentAt || b.timestamp).getTime() - new Date(a.sentAt || a.timestamp).getTime()
+        );
+        setEmailActivity(sortedEmails.slice(0, 50)); // Keep last 50 emails
+      }
+    } catch (err) {
+      console.error('Error fetching email activity:', err);
+    }
+  };
+
   // Fetch queue emails when agent is selected
   const fetchQueueEmails = async (agentId: string, type: 'queued' | 'sent' | 'replied') => {
     setLoadingQueue(true);
@@ -838,6 +857,14 @@ export default function InteractiveGlobe() {
   // Fetch agents on mount
   useEffect(() => {
     fetchAgents();
+    fetchEmailActivity();
+    
+    // Poll for email activity every 15 seconds
+    const interval = setInterval(() => {
+      fetchEmailActivity();
+    }, 15000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Refetch agents when page becomes visible (when user navigates back)
@@ -1242,7 +1269,12 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* System Label - Center */}
-      <div className="hidden xl:block fixed left-[280px] right-[380px] z-35" style={{ top: 'calc(10% + 10px)' }}>
+      <div 
+        className={`hidden xl:block fixed left-[280px] right-[380px] z-35 transition-opacity duration-700 ${
+          showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`} 
+        style={{ top: 'calc(10% + 10px)' }}
+      >
         <div className="text-center py-2 bg-[#0F1E35] rounded-lg">
           <h2 className="text-[#4FD1FF] text-sm font-bold uppercase tracking-[0.3em]">System</h2>
         </div>
@@ -1511,7 +1543,12 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Outreach Section - Center of Dashboard */}
-      <div className="hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30" style={{ top: 'calc(10% + 60px)' }}>
+      <div 
+        className={`hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30 transition-opacity duration-700 ${
+          showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`} 
+        style={{ top: 'calc(10% + 60px)' }}
+      >
         {/* Stats Row - Square boxes */}
         <div className="grid grid-cols-3 gap-4">
           {/* Opens */}
@@ -1549,32 +1586,123 @@ export default function InteractiveGlobe() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Email Activity</h3>
             <div className="flex items-center gap-2">
-              <button className="text-[10px] px-2 py-1 rounded bg-[#4FD1FF]/20 text-[#4FD1FF] hover:bg-[#4FD1FF]/30 transition-all border border-[#4FD1FF]/40 font-medium">
+              <button 
+                onClick={() => setActivityFilter('all')}
+                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
+                  activityFilter === 'all' 
+                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
+                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
+                }`}
+              >
                 All
               </button>
-              <button className="text-[10px] px-2 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all font-medium">
-                Primary
+              <button 
+                onClick={() => setActivityFilter('sent')}
+                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
+                  activityFilter === 'sent' 
+                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
+                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
+                }`}
+              >
+                Sent
               </button>
-              <button className="text-[10px] px-2 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all font-medium">
-                Promo
+              <button 
+                onClick={() => setActivityFilter('opened')}
+                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
+                  activityFilter === 'opened' 
+                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
+                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
+                }`}
+              >
+                Opened
               </button>
-              <button className="text-[10px] px-2 py-1 rounded text-[#8FA6C1] hover:bg-white/10 transition-all font-medium">
+              <button 
+                onClick={() => setActivityFilter('bounced')}
+                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
+                  activityFilter === 'bounced' 
+                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
+                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
+                }`}
+              >
                 Bounced
               </button>
-              <span className="text-[10px] text-[#8FA6C1] ml-2">{stats.emailsSent} total</span>
+              <span className="text-[10px] text-[#8FA6C1] ml-2">{emailActivity.length} emails</span>
             </div>
           </div>
           
           <div className="space-y-2 h-[450px] overflow-y-auto">
-            <div className="text-center py-20">
-              <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+            {emailActivity.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p className="text-[#8FA6C1] text-sm">No email activity yet</p>
+                <p className="text-[#8FA6C1]/60 text-xs mt-2">Sent emails will appear here</p>
               </div>
-              <p className="text-[#8FA6C1] text-sm">Email activity tracking coming soon</p>
-              <p className="text-[#8FA6C1]/60 text-xs mt-2">Real-time delivery status and engagement metrics</p>
-            </div>
+            ) : (
+              emailActivity
+                .filter(email => {
+                  if (activityFilter === 'all') return true;
+                  if (activityFilter === 'opened') return email.analyticsStatus?.opened;
+                  if (activityFilter === 'sent') return !email.analyticsStatus?.opened; // Sent but not opened
+                  if (activityFilter === 'bounced') return email.status === 'bounced';
+                  return true;
+                })
+                .map((email, idx) => {
+                  const hasOpened = email.analyticsStatus?.opened;
+                  const hasClicked = email.analyticsStatus?.clicked;
+                  const hasReplied = email.analyticsStatus?.replied;
+                  const isBounced = email.status === 'bounced';
+                  const timeAgo = new Date(email.sentAt || email.timestamp).toLocaleString();
+                  
+                  return (
+                    <div 
+                      key={email.trackingId || email.id || idx} 
+                      className="bg-[#0F1E35]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            hasReplied ? 'bg-purple-400' : hasClicked ? 'bg-yellow-400' : hasOpened ? 'bg-green-400' : isBounced ? 'bg-red-400' : 'bg-blue-400'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white text-xs font-medium truncate">
+                              {email.to || email.recipient || 'Unknown'}
+                            </div>
+                            <div className="text-[#8FA6C1] text-[10px] mt-0.5 truncate">
+                              {email.subject || 'No subject'}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {hasReplied && (
+                                <span className="text-[9px] text-purple-400 font-medium">Replied</span>
+                              )}
+                              {hasClicked && (
+                                <span className="text-[9px] text-yellow-400 font-medium">Clicked</span>
+                              )}
+                              {hasOpened && (
+                                <span className="text-[9px] text-green-400 font-medium">
+                                  Opened {email.analyticsStatus?.openCount > 1 ? `(${email.analyticsStatus.openCount}x)` : ''}
+                                </span>
+                              )}
+                              {!hasOpened && !isBounced && (
+                                <span className="text-[9px] text-[#8FA6C1] font-medium">Sent</span>
+                              )}
+                              {isBounced && (
+                                <span className="text-[9px] text-red-400 font-medium">Bounced</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-[#8FA6C1] text-[9px] whitespace-nowrap ml-2">
+                          {timeAgo}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
           </div>
         </div>
 
@@ -1650,7 +1778,9 @@ export default function InteractiveGlobe() {
       {/* Globe - Hidden on mobile */}
       {isMounted && (
         <div 
-          className="hidden sm:block fixed left-1/2 -translate-x-1/2 top-[200px] transition-all duration-700 ease-out"
+          className={`hidden sm:block fixed left-1/2 -translate-x-1/2 top-[200px] transition-all duration-700 ease-out ${
+            showGlobe || isAnimatingOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         >
         <div className="text-center relative">
           {/* Start/Stop All Agents Button - Above Globe */}
@@ -1676,7 +1806,6 @@ export default function InteractiveGlobe() {
                       await fetchAgents();
                     } catch (error) {
                       console.error('Error stopping agents:', error);
-                      alert('Failed to stop some agents. Please try again.');
                       await fetchAgents(); // Refresh to get actual state
                     }
                     return;
@@ -1684,41 +1813,38 @@ export default function InteractiveGlobe() {
                   
                   // Otherwise, start all idle agents
                   if (idleAgents.length === 0) {
-                    alert('All agents are already running!');
                     return;
                   }
                   
+                  // Optimistically update UI immediately
+                  setAgents(prev => prev.map(a => 
+                    idleAgents.find(idle => idle.agentId === a.agentId)
+                      ? { ...a, status: 'running' }
+                      : a
+                  ));
+                  
+                  const newActivities: {[key: string]: any} = {};
+                  idleAgents.forEach(agent => {
+                    newActivities[agent.agentId] = {
+                      status: 'Starting...',
+                      timestamp: Date.now(),
+                      location: agent.targeting?.location || null,
+                      targeting: agent.targeting || null,
+                      isActive: true
+                    };
+                  });
+                  setAgentActivities(prev => ({ ...prev, ...newActivities }));
+                  
                   try {
-                    // Immediately set agents as running and create activities
-                    const newActivities: {[key: string]: any} = {};
-                    idleAgents.forEach(agent => {
-                      newActivities[agent.agentId] = {
-                        status: 'Starting...',
-                        timestamp: Date.now(),
-                        location: agent.targeting?.location || null,
-                        targeting: agent.targeting || null,
-                        isActive: true
-                      };
-                    });
-                    
-                    setAgentActivities(prev => ({ ...prev, ...newActivities }));
-                    setAgents(prev => prev.map(a => 
-                      idleAgents.find(idle => idle.agentId === a.agentId)
-                        ? { ...a, status: 'running' }
-                        : a
-                    ));
-                    
-                    // Then make the API calls
                     await Promise.all(
                       idleAgents.map(agent => 
                         api.post('/api/lead-agent/start', { agentId: agent.agentId })
                       )
                     );
-                    
                     await fetchAgents();
                   } catch (error) {
                     console.error('Error starting agents:', error);
-                    alert('Failed to start some agents. Please try again.');
+                    await fetchAgents(); // Refresh to get actual state
                   }
                 }}
                 className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all active:scale-95"
@@ -2803,67 +2929,6 @@ export default function InteractiveGlobe() {
           transform-origin: center;
         }
       `}</style>
-
-      {/* Active Agents Bar - Bottom Right */}
-      {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 shadow-lg">
-          <div className="flex items-center gap-3">
-            <span className="text-white text-sm font-semibold whitespace-nowrap">Active Agents</span>
-            <div className="flex -space-x-2">
-              {agents
-                .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
-                .slice(0, 10)
-                .map((agent) => {
-                  const avatarSrc = agent.avatar || agent.personality?.avatar;
-                  const agentActivity = agentActivities[agent.agentId];
-                  const agentLocation = agentActivity?.location;
-                  
-                  return (
-                    <div
-                      key={agent.agentId}
-                      className="relative group"
-                      title={agent.name}
-                      onClick={() => {
-                        if (agentLocation) {
-                          const coords = geocodeLocation(agentLocation);
-                          if (coords) {
-                            // Calculate rotation to center on this location
-                            // Convert lat/lng to rotation values
-                            const targetLng = -coords.lng; // Negative for rotation direction
-                            const targetLat = -coords.lat;
-                            setTargetRotation([targetLng, targetLat]);
-                            setIsAnimatingToAgent(true);
-                          }
-                        }
-                      }}
-                    >
-                      {avatarSrc ? (
-                        <img
-                          src={avatarSrc}
-                          alt={agent.name}
-                          className="w-8 h-8 rounded-full border-2 border-white/30 object-cover hover:scale-110 transition-transform cursor-pointer"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full border-2 border-white/30 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold hover:scale-110 transition-transform cursor-pointer">
-                          {agent.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      {/* Pulsing indicator */}
-                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border border-white/50 animate-pulse" />
-                      {/* Tooltip on hover */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        {agent.name}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Toast Notification */}
       {toast && (
