@@ -2,6 +2,7 @@ import express from 'express';
 import { EmailQueue } from '../lib/emailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
+import AWSEmailQueue from '../utils/awsEmailQueue.js';
 
 const router = express.Router();
 
@@ -226,9 +227,27 @@ router.put('/:id', async (req, res) => {
 router.post('/:id/approve', async (req, res) => {
   try {
     const { id } = req.params;
+    const isOrphaned = req.body.isOrphaned || false;
     
     // Get the email from queue first
-    const agentId = req.query.agentId || req.body.agentId || null; // Support agentId from query or body
+    let agentId = req.query.agentId || req.body.agentId || null; // Support agentId from query or body
+    
+    // For orphaned emails, we need to get all queued emails and find this one
+    if (isOrphaned || agentId === 'orphan') {
+      console.log('[EMAIL QUEUE] 🏴 Processing ORPHANED email:', id);
+      const awsQueue = new AWSEmailQueue();
+      const allQueuedEmails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
+      const orphanedEmail = allQueuedEmails.find(e => e.id === id);
+      
+      if (orphanedEmail) {
+        agentId = orphanedEmail.agentId;
+        console.log('[EMAIL QUEUE] Found orphaned email with original agentId:', agentId);
+      } else {
+        console.error('[EMAIL QUEUE] Orphaned email not found in queued emails');
+        return res.status(404).json({ error: 'Orphaned email not found' });
+      }
+    }
+    
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const queue = await userEmailQueue.getQueue();
     const email = queue.find(e => e.id === id);

@@ -410,8 +410,17 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
     // Load SENT emails from DynamoDB (modern system)
     try {
       const awsEmailQueue = new AWSEmailQueue();
-      const sentEmails = await awsEmailQueue.getSentEmails(userId, agentId);
-      console.log(`📧 [ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId}`);
+      let sentEmails = [];
+      
+      // If agentId is provided, get emails for that specific agent
+      // Otherwise, get ALL sent emails for the user across all agents
+      if (agentId) {
+        sentEmails = await awsEmailQueue.getSentEmails(userId, agentId);
+        console.log(`📧 [ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId}, agent ${agentId}`);
+      } else {
+        sentEmails = await awsEmailQueue.getAllSentEmailsForUser(userId);
+        console.log(`📧 [ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId} (all agents)`);
+      }
       
       // Normalize DynamoDB emails to match expected structure
       const normalizedSent = sentEmails.map(email => ({
@@ -435,6 +444,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       logs = [...logs, ...normalizedSent];
     } catch (dynamoError) {
       console.error('📧 [ANALYTICS] Failed to load sent emails from DynamoDB:', dynamoError.message);
+      console.error('📧 [ANALYTICS] Error stack:', dynamoError.stack);
       // Continue with legacy logs only
     }
     

@@ -599,13 +599,17 @@ export default function InteractiveGlobe() {
   const fetchEmailActivity = async () => {
     try {
       const response = await api.get('/api/analytics/emails');
+      console.log('📧 [EMAIL ACTIVITY] API Response:', response.data);
       if (response.data.success) {
         const emails = response.data.data || [];
+        console.log('📧 [EMAIL ACTIVITY] Emails count:', emails.length);
+        console.log('📧 [EMAIL ACTIVITY] First 3 emails:', emails.slice(0, 3));
         // Sort by sentAt timestamp descending (most recent first)
         const sortedEmails = emails.sort((a: any, b: any) => 
           new Date(b.sentAt || b.timestamp).getTime() - new Date(a.sentAt || a.timestamp).getTime()
         );
         setEmailActivity(sortedEmails.slice(0, 50)); // Keep last 50 emails
+        console.log('📧 [EMAIL ACTIVITY] Set emailActivity state with', sortedEmails.slice(0, 50).length, 'emails');
       }
     } catch (err) {
       console.error('Error fetching email activity:', err);
@@ -1655,6 +1659,7 @@ export default function InteractiveGlobe() {
                   const hasClicked = email.analyticsStatus?.clicked;
                   const hasReplied = email.analyticsStatus?.replied;
                   const isBounced = email.status === 'bounced';
+                  const openCount = email.analyticsStatus?.openCount || 0;
                   const timeAgo = new Date(email.sentAt || email.timestamp).toLocaleString();
                   
                   return (
@@ -1662,8 +1667,8 @@ export default function InteractiveGlobe() {
                       key={email.trackingId || email.id || idx} 
                       className="bg-[#0F1E35]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                           <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                             hasReplied ? 'bg-purple-400' : hasClicked ? 'bg-yellow-400' : hasOpened ? 'bg-green-400' : isBounced ? 'bg-red-400' : 'bg-blue-400'
                           }`} />
@@ -1675,28 +1680,50 @@ export default function InteractiveGlobe() {
                               {email.subject || 'No subject'}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              {hasReplied && (
-                                <span className="text-[9px] text-purple-400 font-medium">Replied</span>
-                              )}
-                              {hasClicked && (
-                                <span className="text-[9px] text-yellow-400 font-medium">Clicked</span>
-                              )}
-                              {hasOpened && (
-                                <span className="text-[9px] text-green-400 font-medium">
-                                  Opened {email.analyticsStatus?.openCount > 1 ? `(${email.analyticsStatus.openCount}x)` : ''}
-                                </span>
-                              )}
-                              {!hasOpened && !isBounced && (
-                                <span className="text-[9px] text-[#8FA6C1] font-medium">Sent</span>
-                              )}
-                              {isBounced && (
-                                <span className="text-[9px] text-red-400 font-medium">Bounced</span>
-                              )}
+                              <span className="text-[9px] text-[#8FA6C1]/60">{timeAgo}</span>
                             </div>
                           </div>
                         </div>
-                        <div className="text-[#8FA6C1] text-[9px] whitespace-nowrap ml-2">
-                          {timeAgo}
+                        
+                        {/* Fixed position status badges on the right */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {/* Inbox classification - PRIMARY if opened (tracking pixel fired), PROMOTIONAL otherwise */}
+                          {hasOpened ? (
+                            <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded">
+                              PRIMARY
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded">
+                              PROMOTIONAL
+                            </span>
+                          )}
+                          
+                          {/* Engagement status */}
+                          {hasReplied && (
+                            <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded">
+                              REPLIED
+                            </span>
+                          )}
+                          {hasClicked && !hasReplied && (
+                            <span className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded">
+                              CLICKED
+                            </span>
+                          )}
+                          {hasOpened && !hasClicked && !hasReplied && (
+                            <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded">
+                              OPENED {openCount > 1 ? `${openCount}×` : ''}
+                            </span>
+                          )}
+                          {!hasOpened && !isBounced && (
+                            <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded">
+                              SENT
+                            </span>
+                          )}
+                          {isBounced && (
+                            <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded">
+                              BOUNCED
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
