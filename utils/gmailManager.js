@@ -165,15 +165,10 @@ class GmailManager {
       const finalTrackingId = trackingId || `tracking-${userId}_${agentId || 'unknown'}_${Date.now()}`;
       console.log(`📊 [GMAIL] Using tracking ID: ${finalTrackingId}`);
 
-      // Add tracking pixel to email body if enabled
+      // Tracking pixel is already added by emailMailgun.js before reaching here
+      // Don't add a duplicate pixel
       let finalHtmlBody = htmlBody || textBody;
-      if (enableTracking) {
-        const trackingDomain = process.env.API_BASE_URL || 'https://meridian-kdew.onrender.com';
-        const trackingPixelUrl = `${trackingDomain}/api/tracking/pixel/${finalTrackingId}.png`;
-        const trackingPixel = `<img src="${trackingPixelUrl}" width="1" height="1" border="0" alt="" style="display:block;">`;
-        finalHtmlBody = finalHtmlBody + trackingPixel;
-        console.log(`📊 [GMAIL] Added tracking pixel: ${trackingPixelUrl}`);
-      }
+      console.log(`📊 [GMAIL] Tracking pixel already included in email body (added by emailMailgun.js)`);
 
       // Build email message in RFC 2822 format
       const messageParts = [

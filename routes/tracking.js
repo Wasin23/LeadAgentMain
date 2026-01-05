@@ -38,17 +38,31 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     // Get email sent time to determine if this is a proxy hit (immediate) or real open (delayed)
     let emailSentTime = null;
     console.log('⏰ [INBOX DETECTION] Fetching email sent time for timing analysis...');
+    console.log('🔍 [INBOX DETECTION] userId:', userId, 'agentId:', agentId);
     try {
-      const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      // For orphaned emails (agentId is null or 'null'), get all user emails
+      let sentEmails;
+      if (!agentId || agentId === 'null') {
+        console.log('📧 [INBOX DETECTION] Orphaned email detected, fetching all user emails...');
+        sentEmails = await awsQueue.getAllSentEmailsForUser(userId);
+      } else {
+        console.log('📧 [INBOX DETECTION] Fetching emails for specific agent:', agentId);
+        sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      }
+      
+      console.log(`📊 [INBOX DETECTION] Found ${sentEmails.length} sent emails to search`);
       const emailData = sentEmails.find(e => e.trackingId === trackingId);
       if (emailData && emailData.sentAt) {
         emailSentTime = new Date(emailData.sentAt).getTime();
-        console.log('📅 [INBOX DETECTION] Email sent at:', new Date(emailSentTime).toISOString());
+        console.log('✅ [INBOX DETECTION] Found email with sentAt:', new Date(emailSentTime).toISOString());
       } else {
         console.warn('⚠️ [INBOX DETECTION] No email found with sentAt timestamp for trackingId:', trackingId);
+        if (sentEmails.length > 0) {
+          console.log('📋 [INBOX DETECTION] Sample tracking IDs:', sentEmails.slice(0, 3).map(e => e.trackingId));
+        }
       }
     } catch (err) {
-      console.error('⚠️ [TRACKING PIXEL] Error fetching email sent time:', err.message);
+      console.error('❌ [INBOX DETECTION] Error fetching email sent time:', err.message);
     }
     
     const now = Date.now();
@@ -125,7 +139,16 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     let subject = null;
     try {
       console.log(`[TRACKING PIXEL] Fetching sent emails for userId: ${userId}, agentId: ${agentId}`);
-      const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      
+      // For orphaned emails (agentId is null or 'null'), get all user emails
+      let sentEmails;
+      if (!agentId || agentId === 'null') {
+        console.log('[TRACKING PIXEL] Using getAllSentEmailsForUser for orphaned email');
+        sentEmails = await awsQueue.getAllSentEmailsForUser(userId);
+      } else {
+        sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      }
+      
       console.log(`[TRACKING PIXEL] Found ${sentEmails.length} sent emails`);
       
       if (sentEmails.length > 0) {
