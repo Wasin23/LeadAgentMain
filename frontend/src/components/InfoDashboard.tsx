@@ -272,6 +272,10 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             
             // If all agents are running, stop them all
             if (idleAgents.length === 0 && runningAgents.length > 0) {
+              // Optimistically update UI immediately
+              setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+              setAgentActivities({});
+              
               try {
                 await Promise.all(
                   runningAgents.map((agent: any) => 
@@ -289,6 +293,25 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
               return;
             }
             
+            // Optimistically update UI immediately
+            setAgents(prev => prev.map(a => 
+              idleAgents.find(idle => idle.agentId === a.agentId)
+                ? { ...a, status: 'running' }
+                : a
+            ));
+            
+            const newActivities: {[key: string]: any} = {};
+            idleAgents.forEach(agent => {
+              newActivities[agent.agentId] = {
+                status: 'Starting...',
+                timestamp: Date.now(),
+                location: agent.targeting?.location || null,
+                targeting: agent.targeting || null,
+                isActive: true
+              };
+            });
+            setAgentActivities(prev => ({ ...prev, ...newActivities }));
+            
             try {
               await Promise.all(
                 idleAgents.map((agent: any) => 
@@ -299,9 +322,16 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
               console.error('Failed to start agents:', error);
             }
           }}
-          className="w-full mt-3 px-6 py-3 bg-transparent hover:bg-green-500/10 text-green-400 font-bold rounded-lg uppercase tracking-wider text-sm shadow-lg transition-all duration-200 active:scale-[0.98] border-2 border-green-400"
+          className={`w-full mt-3 px-6 py-3 bg-transparent font-bold rounded-lg uppercase tracking-wider text-sm shadow-lg transition-all duration-200 active:scale-[0.98] border-2 ${
+            agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
+              ? 'text-red-400 border-red-400 hover:bg-red-500/10'
+              : 'text-green-400 border-green-400 hover:bg-green-500/10'
+          }`}
         >
-          Start All Agents
+          {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
+            ? 'Stop All Agents'
+            : 'Start All Agents'
+          }
         </button>
         
         {/* Globe View Toggle */}
