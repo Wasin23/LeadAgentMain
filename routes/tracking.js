@@ -35,46 +35,88 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
     const hasBeenOpenedBefore = existingEvents.some(e => e.eventType === 'open');
     const hasProxyHit = existingEvents.some(e => e.eventType === 'proxy');
     
-    if (!hasProxyHit) {
-      console.log('🤖 [TRACKING PIXEL] First hit detected (proxy) - recording as proxy, not as open');
-      
-      // Record the proxy hit so we know subsequent hits are real
-      await awsManager.logEmailTracking(userId, agentId, trackingId, {
-        eventType: 'proxy',
-        ipAddress: ip,
-        userAgent: userAgent,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Broadcast proxy hit to SSE
-      try {
-        const { broadcastAIResponse } = await import('./outreach.js');
-        broadcastAIResponse(userId, agentId, {
-          type: 'tracking_update',
-          trackingId: trackingId,
-          eventType: 'proxy',
-          timestamp: new Date().toISOString()
-        });
-        console.log('✅ [TRACKING PIXEL] SSE broadcast sent for proxy hit');
-      } catch (sseError) {
-        console.error('[TRACKING PIXEL] SSE broadcast failed:', sseError.message);
+    // Get email sent time to determine if this is a proxy hit (immediate) or real open (delayed)
+    let emailSentTime = null;
+    console.log('⏰ [INBOX DETECTION] Fetching email sent time for timing analysis...');
+    try {
+      const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      const emailData = sentEmails.find(e => e.trackingId === trackingId);
+      if (emailData && emailData.sentAt) {
+        emailSentTime = new Date(emailData.sentAt).getTime();
+        console.log('📅 [INBOX DETECTION] Email sent at:', new Date(emailSentTime).toISOString());
+      } else {
+        console.warn('⚠️ [INBOX DETECTION] No email found with sentAt timestamp for trackingId:', trackingId);
       }
-      
-      // Send the pixel but don't record as open
-      const pixel = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-        'base64'
-      );
-      res.writeHead(200, {
-        'Content-Type': 'image/png',
-        'Content-Length': pixel.length,
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-        'Expires': '0'
-      });
-      return res.end(pixel);
+    } catch (err) {
+      console.error('⚠️ [TRACKING PIXEL] Error fetching email sent time:', err.message);
     }
     
-    console.log('✅ [TRACKING PIXEL] Subsequent hit detected - recording open event');
+    const now = Date.now();
+    const timeSinceSent = emailSentTime ? (now - emailSentTime) / 1000 : null; // seconds
+    const isProxyHit = timeSinceSent !== null && timeSinceSent < 10; // Less than 10 seconds = proxy/Primary inbox
+    
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('⏱️  [INBOX DETECTION] TIMING ANALYSIS');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('📧 Tracking ID:', trackingId);
+    console.log('📅 Email sent at:', emailSentTime ? new Date(emailSentTime).toISOString() : 'UNKNOWN');
+    console.log('🕐 Pixel hit at:', new Date(now).toISOString());
+    console.log('⏳ Time since sent:', timeSinceSent !== null ? `${timeSinceSent.toFixed(2)} seconds` : 'UNKNOWN');
+    console.log('🎯 Classification:', isProxyHit ? '🟢 PRIMARY INBOX (auto-load <10s)' : '📧 PROMOTIONAL/MANUAL OPEN (>10s or unknown timing)');
+    console.log('📊 Has previous proxy hit:', hasProxyHit);
+    console.log('📊 Has previous open event:', hasBeenOpenedBefore);
+    console.log('═══════════════════════════════════════════════════════════════');
+    
+    if (!hasProxyHit && !hasBeenOpenedBefore) {
+      // First hit ever for this email
+      if (isProxyHit) {
+        console.log(`🟢 [TRACKING PIXEL] First hit within ${timeSinceSent?.toFixed(1)}s of sending - PRIMARY INBOX (proxy)`);
+        
+        // Record as proxy hit (Gmail auto-loaded images in Primary inbox)
+        await awsManager.logEmailTracking(userId, agentId, trackingId, {
+          eventType: 'proxy',
+          ipAddress: ip,
+          userAgent: userAgent,
+          timestamp: new Date().toISOString(),
+          timeSinceSent: timeSinceSent
+        });
+        
+        // Broadcast proxy hit to SSE
+        try {
+          const { broadcastAIResponse } = await import('./outreach.js');
+          broadcastAIResponse(userId, agentId, {
+            type: 'tracking_update',
+            trackingId: trackingId,
+            eventType: 'proxy',
+            timestamp: new Date().toISOString()
+          });
+          console.log('✅ [TRACKING PIXEL] SSE broadcast sent for proxy hit');
+        } catch (sseError) {
+          console.error('[TRACKING PIXEL] SSE broadcast failed:', sseError.message);
+        }
+        
+        // Send the pixel but don't record as open
+        const pixel = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'base64'
+        );
+        res.writeHead(200, {
+          'Content-Type': 'image/png',
+          'Content-Length': pixel.length,
+          'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+          'Expires': '0'
+        });
+        return res.end(pixel);
+      } else {
+        console.log(`📧 [TRACKING PIXEL] First hit ${timeSinceSent ? `after ${timeSinceSent.toFixed(1)}s` : 'with unknown timing'} - REAL USER OPEN (likely Promotions/Social)`);
+        // Continue to record as real open below
+      }
+    } else if (hasProxyHit && !hasBeenOpenedBefore) {
+      console.log('✅ [TRACKING PIXEL] Second hit after proxy - recording as real open');
+    } else {
+      console.log('✅ [TRACKING PIXEL] Subsequent open detected');
+    }
+    
     console.log(`[TRACKING PIXEL] Existing events: ${existingEvents.length}, hasBeenOpenedBefore: ${hasBeenOpenedBefore}`);
     
     // Get email details from queue to get recipient info

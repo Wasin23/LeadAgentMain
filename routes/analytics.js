@@ -472,6 +472,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
         opened: log.analytics?.opened || false,
         clicked: log.analytics?.clicked || false,
         replied: log.analytics?.replied || false,
+        hasProxy: log.analytics?.hasProxy || false, // First tracking pixel hit (Primary inbox indicator)
         openCount: log.analytics?.openCount || 0,
         clickCount: log.analytics?.clickCount || 0,
         lastActivity: log.analytics?.lastActivity || null,
