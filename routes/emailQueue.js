@@ -277,7 +277,18 @@ router.post('/:id/approve', async (req, res) => {
     // Send the actual email with person information
     const personInfo = approvedEmail.leadDetails?.personInfo || null;
     const userId = approvedEmail.userId || null; // Get userId from queue data
-    const effectiveAgentId = approvedEmail.agentId || req.body.agentId || null;
+    const originalAgentId = approvedEmail.agentId || req.body.agentId || null; // Keep for tracking
+    
+    // For orphaned emails, pass null as agentId so it uses user-level Gmail preference
+    // Otherwise use the original agentId for agent-specific settings
+    const effectiveAgentId = (isOrphaned || agentId === 'orphan') ? null : originalAgentId;
+    
+    console.log('[EMAIL QUEUE] Email routing info:', {
+      isOrphaned,
+      originalAgentId,
+      effectiveAgentId: effectiveAgentId || 'null (will use user-level settings)',
+      willUseUserLevelSettings: effectiveAgentId === null
+    });
     
     console.log('[EMAIL QUEUE] Person/Lead info for tracking:', {
       personInfo: personInfo ? {
@@ -371,11 +382,13 @@ router.post('/:id/approve', async (req, res) => {
           console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {
             emailId: id,
             userId: approvedEmail.userId,
-            agentId: effectiveAgentId,
+            originalAgentId,
+            effectiveAgentId: effectiveAgentId || 'null (user-level routing)',
             trackingId: sendResult.result.trackingId,
             leadNameForTracking,
             personInfo: personInfo ? { fullName: personInfo.fullName, name: personInfo.name } : null,
-            approvedEmail: { leadName: approvedEmail.leadName, recipientName: approvedEmail.recipientName }
+            approvedEmail: { leadName: approvedEmail.leadName, recipientName: approvedEmail.recipientName },
+            sentVia: sendResult.method || 'mailgun'
           });
           
           await userEmailQueue.markEmailAsSent(id, {

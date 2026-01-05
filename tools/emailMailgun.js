@@ -74,8 +74,13 @@ function addTrackingToEmail(body, trackingId) {
     trackingUrl = `${protocol}://${trackingDomain}/track/open/${trackingId}`;
   }
   
+  console.log('🎯 [TRACKING PIXEL] Injecting tracking pixel into email');
+  console.log('📍 Tracking URL:', trackingUrl);
+  console.log('🔑 Tracking ID:', trackingId);
+  
   // Invisible tracking pixel (1x1 transparent PNG - Gmail friendly)
   const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" border="0" alt="">`;
+  console.log('🖼️  Tracking pixel HTML:', trackingPixel);
   
   // Convert links to tracked links
   const trackedBody = body.replace(
@@ -90,7 +95,12 @@ function addTrackingToEmail(body, trackingId) {
   );
   
   // Add tracking pixel at the very end
-  return trackedBody + trackingPixel;
+  const finalBody = trackedBody + trackingPixel;
+  console.log('✅ [TRACKING PIXEL] Pixel injected at end of email body');
+  console.log('📏 Final body length:', finalBody.length);
+  console.log('🔍 Body includes tracking pixel?', finalBody.includes(trackingUrl));
+  
+  return finalBody;
 }
 
 // Function to build email signature with company logo
