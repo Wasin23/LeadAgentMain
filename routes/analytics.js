@@ -359,7 +359,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const agentId = req.query.agentId; // Optional agentId for agent-specific data
     
-    // Load agent-specific or user-specific email logs
+    // Load agent-specific or user-specific email logs (legacy file-based)
     const logFileName = agentId ? `email_logs_${userId}_${agentId}.json` : `email_logs_${userId}.json`;
     const logPath = path.join(process.cwd(), logFileName);
     let logs = [];
@@ -371,7 +371,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       logs = [];
     }
     
-    // Load approved emails and filter by agentId if provided
+    // Load approved emails and filter by agentId if provided (legacy file-based)
     const approvedPath = path.join(process.cwd(), `email_approved_${userId}.json`);
     let approvedEmails = [];
     
@@ -404,8 +404,39 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       company: email.leadInfo?.company || 'Unknown Company'
     }));
     
-    // Combine logs and normalized approved emails
+    // Combine legacy logs with normalized approved emails
     logs = [...logs, ...normalizedApproved];
+    
+    // Load SENT emails from DynamoDB (modern system)
+    try {
+      const awsEmailQueue = new AWSEmailQueue();
+      const sentEmails = await awsEmailQueue.getSentEmails(userId, agentId);
+      console.log(`📧 [ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId}`);
+      
+      // Normalize DynamoDB emails to match expected structure
+      const normalizedSent = sentEmails.map(email => ({
+        ...email,
+        id: email.id || email.emailId,
+        trackingId: email.trackingId,
+        sentAt: email.sentAt,
+        subject: email.subject,
+        body: email.body || email.text,
+        content: email.html || email.body || email.text,
+        to: email.to,
+        personInfo: {
+          fullName: email.lead?.name || email.leadName || 'Unknown',
+          company: email.lead?.company || 'Unknown Company'
+        },
+        company: email.lead?.company || 'Unknown Company',
+        status: 'sent'
+      }));
+      
+      // Combine with legacy logs
+      logs = [...logs, ...normalizedSent];
+    } catch (dynamoError) {
+      console.error('📧 [ANALYTICS] Failed to load sent emails from DynamoDB:', dynamoError.message);
+      // Continue with legacy logs only
+    }
     
     // Add analytics status to each email
     const emailsWithAnalytics = logs.map(log => ({
