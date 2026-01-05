@@ -36,12 +36,23 @@ router.get('/debug/email-html/:trackingId', async (req, res) => {
 
 // Track email opens (1x1 tracking pixel)
 router.get('/track/open/:trackingId', async (req, res) => {
-  console.log('🔔 [TRACKING HIT] /track/open endpoint accessed!');
+  const timestamp = new Date().toISOString();
+  console.log('\n');
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('🎯 [TRACKING PIXEL] EMAIL OPENED!');
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('📅 Timestamp:', timestamp);
   try {
     const { trackingId } = req.params;
     const userAgent = req.get('User-Agent') || '';
     const referer = req.get('Referer') || '';
     const forwarded = req.get('X-Forwarded-For') || '';
+    
+    console.log('🔑 Tracking ID:', trackingId);
+    console.log('🌐 IP Address:', req.ip);
+    console.log('🖥️  User Agent:', userAgent);
+    console.log('🔗 Referer:', referer);
+    console.log('📡 X-Forwarded-For:', forwarded);
     
     // Detect actual bots/crawlers (but allow email client proxies like Gmail)
     const imageProxyPatterns = [
@@ -61,18 +72,13 @@ router.get('/track/open/:trackingId', async (req, res) => {
       pattern.test(userAgent) || pattern.test(referer)
     );
     
-    console.log('[EMAIL TRACKING] ===== EMAIL OPENED =====');
-    console.log('[EMAIL TRACKING] Tracking ID:', trackingId);
-    console.log('[EMAIL TRACKING] User Agent:', userAgent);
-    console.log('[EMAIL TRACKING] Referer:', referer);
-    console.log('[EMAIL TRACKING] X-Forwarded-For:', forwarded);
-    console.log('[EMAIL TRACKING] Is Image Proxy:', isImageProxy);
-    console.log('[EMAIL TRACKING] IP:', req.ip);
-    console.log('[EMAIL TRACKING] ========================');
+    console.log('🤖 Is Image Proxy/Bot:', isImageProxy);
     
     // Only count as real open if not from image proxy
     if (!isImageProxy) {
-      console.log('[EMAIL TRACKING] ✅ Real user open detected');
+      console.log('✅ REAL USER OPEN - Counting as engagement!');
+      console.log('📊 Updating analytics in DynamoDB...');
+      
       // Update analytics
       await updateEmailAnalytics(trackingId, {
         opened: true,
@@ -81,12 +87,17 @@ router.get('/track/open/:trackingId', async (req, res) => {
         ipAddress: req.ip
       });
       
+      console.log('💾 Analytics updated successfully!');
+      
       // Log to DynamoDB for Outreach dashboard
       try {
         // Parse tracking ID format: tracking-{userId}_{agentId}_{timestamp}_{random}
         const parts = trackingId.split('_');
         const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
         const agentId = parts[1]; // Extract agentId
+        
+        console.log('👤 User ID:', userId);
+        console.log('🤖 Agent ID:', agentId);
         
         // Get email details from queue to enrich tracking event
         let recipientEmail = null;
@@ -105,9 +116,10 @@ router.get('/track/open/:trackingId', async (req, res) => {
             console.log(`[EMAIL TRACKING] Enriched event: to=${recipientEmail}, leadName=${leadName}, subject=${subject}`);
           }
         } catch (err) {
-          console.error('[EMAIL TRACKING] Error fetching email details:', err);
+          console.error('❌ Error fetching email details:', err);
         }
         
+        console.log('📬 Logging tracking event to DynamoDB...');
         await awsManager.logEmailTracking(userId, agentId, trackingId, {
           eventType: 'open',
           recipientEmail,
@@ -117,6 +129,7 @@ router.get('/track/open/:trackingId', async (req, res) => {
           userAgent: userAgent,
           timestamp: new Date().toISOString()
         });
+        console.log('✅ Tracking event logged to DynamoDB!');
         
         // Broadcast to SSE clients for real-time UI updates
         try {
@@ -130,15 +143,19 @@ router.get('/track/open/:trackingId', async (req, res) => {
             subject,
             timestamp: new Date().toISOString()
           });
-          console.log('[EMAIL TRACKING] ✅ SSE broadcast sent for open event');
+          console.log('📡 SSE broadcast sent for real-time UI update!');
         } catch (sseError) {
-          console.error('[EMAIL TRACKING] SSE broadcast failed:', sseError.message);
+          console.error('⚠️  SSE broadcast failed:', sseError.message);
         }
       } catch (dbError) {
-        console.error('[EMAIL TRACKING] DynamoDB logging failed:', dbError);
+        console.error('❌ DynamoDB logging failed:', dbError);
       }
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🎉 TRACKING PIXEL PROCESSED SUCCESSFULLY - EMAIL MARKED AS OPENED');
+      console.log('═══════════════════════════════════════════════════════════════\n');
     } else {
-      console.log('[EMAIL TRACKING] 🤖 Image proxy request ignored (not counted as open)');
+      console.log('⚠️  IMAGE PROXY/BOT DETECTED - Not counting as real open');
+      console.log('═══════════════════════════════════════════════════════════════\n');
     }
     
     // Return 1x1 transparent pixel

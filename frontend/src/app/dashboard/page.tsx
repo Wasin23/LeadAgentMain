@@ -604,15 +604,33 @@ export default function InteractiveGlobe() {
         const emails = response.data.data || [];
         console.log('📧 [EMAIL ACTIVITY] Emails count:', emails.length);
         console.log('📧 [EMAIL ACTIVITY] First 3 emails:', emails.slice(0, 3));
+        
         // Sort by sentAt timestamp descending (most recent first)
         const sortedEmails = emails.sort((a: any, b: any) => 
           new Date(b.sentAt || b.timestamp).getTime() - new Date(a.sentAt || a.timestamp).getTime()
         );
-        setEmailActivity(sortedEmails.slice(0, 50)); // Keep last 50 emails
-        console.log('📧 [EMAIL ACTIVITY] Set emailActivity state with', sortedEmails.slice(0, 50).length, 'emails');
+        
+        console.log('📧 [EMAIL ACTIVITY] Sorted emails (first 3):', sortedEmails.slice(0, 3));
+        console.log('📧 [EMAIL ACTIVITY] Analytics status check:');
+        sortedEmails.slice(0, 3).forEach((email: any, idx: number) => {
+          console.log(`  Email ${idx + 1}:`, {
+            to: email.to,
+            subject: email.subject?.substring(0, 30),
+            opened: email.analyticsStatus?.opened,
+            clicked: email.analyticsStatus?.clicked,
+            replied: email.analyticsStatus?.replied,
+            openCount: email.analyticsStatus?.openCount,
+            sentAt: email.sentAt
+          });
+        });
+        
+        const slicedEmails = sortedEmails.slice(0, 50);
+        console.log('📧 [EMAIL ACTIVITY] Setting state with', slicedEmails.length, 'emails');
+        setEmailActivity(slicedEmails); // Keep last 50 emails
+        console.log('✅ [EMAIL ACTIVITY] State updated successfully!');
       }
     } catch (err) {
-      console.error('Error fetching email activity:', err);
+      console.error('❌ [EMAIL ACTIVITY] Error fetching email activity:', err);
     }
   };
 
