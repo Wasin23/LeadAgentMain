@@ -76,35 +76,94 @@ router.get('/track/open/:trackingId', async (req, res) => {
     
     // Only count as real open if not from image proxy
     if (!isImageProxy) {
-      console.log('✅ REAL USER OPEN - Counting as engagement!');
-      console.log('📊 Updating analytics in DynamoDB...');
+      console.log('✅ LEGITIMATE HIT - Processing...');
       
-      // Update analytics
-      await updateEmailAnalytics(trackingId, {
-        opened: true,
-        openCount: 1, // Will be incremented if already opened
-        lastActivity: new Date().toISOString(),
-        ipAddress: req.ip
-      });
+      // Parse tracking ID format: tracking-{userId}_{agentId}_{timestamp}_{random}
+      const parts = trackingId.split('_');
+      const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
+      const agentId = parts[1]; // Extract agentId
       
-      console.log('💾 Analytics updated successfully!');
+      console.log('👤 User ID:', userId);
+      console.log('🤖 Agent ID:', agentId);
       
-      // Log to DynamoDB for Outreach dashboard
+      // STEP 1: Get email sent time to determine if this is a proxy hit (immediate) or real open (delayed)
+      let emailSentTime = null;
+      let isProxyHit = false;
+      let eventType = 'open'; // Default to open
+      
+      console.log('⏰ [INBOX DETECTION] Fetching email sent time for timing analysis...');
+      console.log('🔍 [INBOX DETECTION] userId:', userId, 'agentId:', agentId);
       try {
-        // Parse tracking ID format: tracking-{userId}_{agentId}_{timestamp}_{random}
-        const parts = trackingId.split('_');
-        const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
-        const agentId = parts[1]; // Extract agentId
+        // For orphaned emails (agentId is null or 'null'), get all user emails
+        let sentEmails;
+        if (!agentId || agentId === 'null') {
+          console.log('📧 [INBOX DETECTION] Orphaned email detected, fetching all user emails...');
+          sentEmails = await awsQueue.getAllSentEmailsForUser(userId);
+        } else {
+          console.log('📧 [INBOX DETECTION] Fetching emails for specific agent:', agentId);
+          sentEmails = await awsQueue.getSentEmails(userId, agentId);
+        }
         
-        console.log('👤 User ID:', userId);
-        console.log('🤖 Agent ID:', agentId);
+        console.log(`📊 [INBOX DETECTION] Found ${sentEmails.length} sent emails to search`);
+        const emailData = sentEmails.find(e => e.trackingId === trackingId);
+        if (emailData && emailData.sentAt) {
+          emailSentTime = new Date(emailData.sentAt).getTime();
+          console.log('✅ [INBOX DETECTION] Found email with sentAt:', new Date(emailSentTime).toISOString());
+        } else {
+          console.warn('⚠️ [INBOX DETECTION] No email found with sentAt timestamp for trackingId:', trackingId);
+          if (sentEmails.length > 0) {
+            console.log('📋 [INBOX DETECTION] Sample tracking IDs:', sentEmails.slice(0, 3).map(e => e.trackingId));
+          }
+        }
+      } catch (err) {
+        console.error('❌ [INBOX DETECTION] Error fetching email sent time:', err.message);
+      }
+      
+      const now = Date.now();
+      const timeSinceSent = emailSentTime ? (now - emailSentTime) / 1000 : null; // seconds
+      isProxyHit = timeSinceSent !== null && timeSinceSent < 10; // Less than 10 seconds = proxy/Primary inbox
+      
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('⏱️  [INBOX DETECTION] TIMING ANALYSIS');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('📧 Tracking ID:', trackingId);
+      console.log('📅 Email sent at:', emailSentTime ? new Date(emailSentTime).toISOString() : 'UNKNOWN');
+      console.log('🕐 Pixel hit at:', new Date(now).toISOString());
+      console.log('⏳ Time since sent:', timeSinceSent !== null ? `${timeSinceSent.toFixed(2)} seconds` : 'UNKNOWN');
+      console.log('🎯 Classification:', isProxyHit ? '🟢 PRIMARY INBOX (auto-load <10s)' : '📧 USER OPENED (>10s or unknown timing)');
+      console.log('═══════════════════════════════════════════════════════════════');
+      
+      // Determine event type based on timing
+      eventType = isProxyHit ? 'proxy' : 'open';
+      console.log(`📝 [INBOX DETECTION] Recording as: ${eventType}`);
+      
+      // STEP 2: Only update email as "opened" if this is NOT a proxy hit
+      if (!isProxyHit) {
+        console.log('✅ REAL USER OPEN - Marking email as opened!');
+        console.log('📊 Updating analytics in DynamoDB...');
         
+        await updateEmailAnalytics(trackingId, {
+          opened: true,
+          openCount: 1, // Will be incremented if already opened
+          lastActivity: new Date().toISOString(),
+          ipAddress: req.ip
+        });
+        
+        console.log('💾 Analytics updated successfully!');
+      } else {
+        console.log('🟢 PRIMARY INBOX PROXY HIT - Not marking as opened (just logging event)');
+      }
+      
+      // STEP 3: Log event to DynamoDB (for both proxy and real opens)
+      try {
         // Get email details from queue to enrich tracking event
         let recipientEmail = null;
         let leadName = null;
         let subject = null;
         try {
-          const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+          const sentEmails = agentId && agentId !== 'null' 
+            ? await awsQueue.getSentEmails(userId, agentId)
+            : await awsQueue.getAllSentEmailsForUser(userId);
           const emailData = sentEmails.find(e => e.trackingId === trackingId);
           if (emailData) {
             recipientEmail = emailData.to;
@@ -120,8 +179,15 @@ router.get('/track/open/:trackingId', async (req, res) => {
         }
         
         console.log('📬 Logging tracking event to DynamoDB...');
+        console.log(`📝 [EMAIL-TRACKING] Logging event: {`);
+        console.log(`  eventType: '${eventType}',`);
+        console.log(`  recipientEmail: '${recipientEmail}',`);
+        console.log(`  leadName: '${leadName}',`);
+        console.log(`  subject: '${subject}'`);
+        console.log(`}`);
+        
         await awsManager.logEmailTracking(userId, agentId, trackingId, {
-          eventType: 'open',
+          eventType: eventType, // Use the calculated eventType (proxy or open)
           recipientEmail,
           leadName,
           subject,
@@ -137,7 +203,7 @@ router.get('/track/open/:trackingId', async (req, res) => {
           broadcastAIResponse(userId, agentId, {
             type: 'tracking_update',
             trackingId: trackingId,
-            eventType: 'open',
+            eventType: eventType, // Use the calculated eventType (proxy or open)
             recipientEmail,
             leadName,
             subject,
@@ -151,7 +217,11 @@ router.get('/track/open/:trackingId', async (req, res) => {
         console.error('❌ DynamoDB logging failed:', dbError);
       }
       console.log('═══════════════════════════════════════════════════════════════');
-      console.log('🎉 TRACKING PIXEL PROCESSED SUCCESSFULLY - EMAIL MARKED AS OPENED');
+      if (eventType === 'proxy') {
+        console.log('📧 TRACKING PIXEL PROCESSED - PRIMARY INBOX PROXY HIT (not counted as opened)');
+      } else {
+        console.log('🎉 TRACKING PIXEL PROCESSED - EMAIL MARKED AS OPENED');
+      }
       console.log('═══════════════════════════════════════════════════════════════\n');
     } else {
       console.log('⚠️  IMAGE PROXY/BOT DETECTED - Not counting as real open');
