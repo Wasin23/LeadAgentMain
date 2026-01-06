@@ -102,10 +102,20 @@ router.post('/gmail-notification', async (req, res) => {
 
     // Find user by Gmail address
     const users = await awsManager.getAllUsers();
-    const user = users.find(u => 
-      u.gmailAuth?.email === emailAddress || 
-      u.email === emailAddress
-    );
+    
+    // Check multiple sources for Gmail email
+    const user = users.find(u => {
+      // Check legacy gmailAuth
+      if (u.gmailAuth?.email === emailAddress) return true;
+      
+      // Check gmailAccounts array
+      if (u.gmailAccounts && u.gmailAccounts.some(acc => acc.email === emailAddress)) return true;
+      
+      // Check user's main email
+      if (u.email === emailAddress) return true;
+      
+      return false;
+    });
 
     if (!user) {
       console.log(`⚠️ [GMAIL PUBSUB] No user found for email: ${emailAddress}`);
