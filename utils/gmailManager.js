@@ -448,12 +448,30 @@ class GmailManager {
   async setupPushNotifications(userId) {
     try {
       const userSettings = await awsManager.getUserSettings(userId);
-      if (!userSettings?.gmailAuth?.refreshToken) {
+      
+      // Get refresh token from various sources
+      let refreshToken = null;
+      
+      if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+        // New multi-account format - use active account
+        const activeIndex = userSettings.activeGmailIndex || 0;
+        const activeAccount = userSettings.gmailAccounts[activeIndex];
+        refreshToken = activeAccount?.refreshToken;
+      } else if (userSettings?.gmailAuth?.refreshToken) {
+        // Legacy single account format
+        refreshToken = userSettings.gmailAuth.refreshToken;
+      } else if (userSettings?.calendarTokens?.refresh_token && 
+                 userSettings?.calendarTokens?.scope?.includes('gmail')) {
+        // Calendar OAuth includes Gmail scopes
+        refreshToken = userSettings.calendarTokens.refresh_token;
+      }
+      
+      if (!refreshToken) {
         throw new Error('No Gmail refresh token found');
       }
 
       this.oauth2Client.setCredentials({
-        refresh_token: userSettings.gmailAuth.refreshToken
+        refresh_token: refreshToken
       });
 
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
@@ -499,12 +517,27 @@ class GmailManager {
   async stopPushNotifications(userId) {
     try {
       const userSettings = await awsManager.getUserSettings(userId);
-      if (!userSettings?.gmailAuth?.refreshToken) {
+      
+      // Get refresh token from various sources
+      let refreshToken = null;
+      
+      if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+        const activeIndex = userSettings.activeGmailIndex || 0;
+        const activeAccount = userSettings.gmailAccounts[activeIndex];
+        refreshToken = activeAccount?.refreshToken;
+      } else if (userSettings?.gmailAuth?.refreshToken) {
+        refreshToken = userSettings.gmailAuth.refreshToken;
+      } else if (userSettings?.calendarTokens?.refresh_token && 
+                 userSettings?.calendarTokens?.scope?.includes('gmail')) {
+        refreshToken = userSettings.calendarTokens.refresh_token;
+      }
+      
+      if (!refreshToken) {
         throw new Error('No Gmail refresh token found');
       }
 
       this.oauth2Client.setCredentials({
-        refresh_token: userSettings.gmailAuth.refreshToken
+        refresh_token: refreshToken
       });
 
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
@@ -527,12 +560,27 @@ class GmailManager {
   async getHistory(userId, startHistoryId) {
     try {
       const userSettings = await awsManager.getUserSettings(userId);
-      if (!userSettings?.gmailAuth?.refreshToken) {
+      
+      // Get refresh token from various sources
+      let refreshToken = null;
+      
+      if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+        const activeIndex = userSettings.activeGmailIndex || 0;
+        const activeAccount = userSettings.gmailAccounts[activeIndex];
+        refreshToken = activeAccount?.refreshToken;
+      } else if (userSettings?.gmailAuth?.refreshToken) {
+        refreshToken = userSettings.gmailAuth.refreshToken;
+      } else if (userSettings?.calendarTokens?.refresh_token && 
+                 userSettings?.calendarTokens?.scope?.includes('gmail')) {
+        refreshToken = userSettings.calendarTokens.refresh_token;
+      }
+      
+      if (!refreshToken) {
         throw new Error('No Gmail refresh token found');
       }
 
       this.oauth2Client.setCredentials({
-        refresh_token: userSettings.gmailAuth.refreshToken
+        refresh_token: refreshToken
       });
 
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
