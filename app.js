@@ -605,6 +605,17 @@ const server = app.listen(PORT, async () => {
   // Start grace period checker (hourly checks for suspensions/warnings)
   startGracePeriodChecker();
   
+  // Initialize Gmail watches for all users on startup
+  try {
+    const { initializeGmailWatches } = await import('./utils/gmailWatchInitializer.js');
+    // Run in background, don't block startup
+    initializeGmailWatches().catch(err => 
+      console.error('⚠️ [EMAIL] Gmail watch init failed:', err.message)
+    );
+  } catch (error) {
+    console.error('⚠️ [EMAIL] Failed to load Gmail watch initializer:', error.message);
+  }
+  
   // Start Gmail watch auto-renewal (runs daily)
   try {
     const { GmailWatchRenewer } = await import('./utils/gmailWatchRenewer.js');

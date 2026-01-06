@@ -2,6 +2,7 @@
 import express from 'express';
 import GmailManager from '../utils/gmailManager.js';
 import AWSManager from '../utils/awsManager.js';
+import { authenticateToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 const gmailManager = new GmailManager();
@@ -201,10 +202,11 @@ router.post('/gmail-notification', async (req, res) => {
 /**
  * Manually set up push notifications for a user
  */
-router.post('/setup-watch', async (req, res) => {
+router.post('/setup-watch', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
     
+    console.log(`📬 [GMAIL PUBSUB] Manually setting up watch for user: ${userId}`);
     const result = await gmailManager.setupPushNotifications(userId);
     
     res.json({
@@ -222,9 +224,50 @@ router.post('/setup-watch', async (req, res) => {
 });
 
 /**
+ * Check watch status for a user
+ */
+router.get('/watch-status', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.user;
+    
+    const userSettings = await awsManager.getUserSettings(userId);
+    const watch = userSettings?.gmailWatch;
+    
+    if (!watch) {
+      return res.json({
+        success: true,
+        isActive: false,
+        message: 'No watch configured'
+      });
+    }
+    
+    const now = Date.now();
+    const isExpired = watch.expiration && parseInt(watch.expiration) < now;
+    
+    res.json({
+      success: true,
+      isActive: !isExpired,
+      watch: {
+        historyId: watch.historyId,
+        expiration: watch.expiration,
+        expirationDate: watch.expiration ? new Date(parseInt(watch.expiration)).toISOString() : null,
+        setupAt: watch.setupAt,
+        isExpired
+      }
+    });
+  } catch (error) {
+    console.error('❌ [GMAIL PUBSUB] Error checking watch status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Stop push notifications for a user
  */
-router.post('/stop-watch', async (req, res) => {
+router.post('/stop-watch', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
     
@@ -236,6 +279,110 @@ router.post('/stop-watch', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [GMAIL PUBSUB] Error stopping watch:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Test endpoint - manually trigger notification processing
+ * Useful for debugging
+ */
+router.post('/test-notification', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.user;
+    
+    console.log('🧪 [GMAIL PUBSUB TEST] Manually checking for new messages for user:', userId);
+    
+    // Get user settings
+    const userSettings = await awsManager.getUserSettings(userId);
+    const lastHistoryId = userSettings?.gmailWatch?.historyId;
+    
+    if (!lastHistoryId) {
+      return res.json({
+        success: false,
+        error: 'No watch configured. Run /setup-watch first.',
+        hasWatch: false
+      });
+    }
+    
+    console.log('🧪 [GMAIL PUBSUB TEST] Last history ID:', lastHistoryId);
+    
+    // Get history manually
+    const history = await gmailManager.getHistory(userId, lastHistoryId);
+    console.log(`🧪 [GMAIL PUBSUB TEST] Found ${history.length} history items`);
+    
+    let bouncesFound = 0;
+    let repliesFound = 0;
+    let messagesProcessed = 0;
+    
+    // Process messages
+    for (const historyItem of history) {
+      if (historyItem.messagesAdded) {
+        for (const msgAdded of historyItem.messagesAdded) {
+          const messageId = msgAdded.message.id;
+          messagesProcessed++;
+          
+          // Fetch full message details
+          const fullMessage = await gmailManager.getMessage(userId, messageId);
+          
+          console.log('🧪 [GMAIL PUBSUB TEST] Message:', {
+            from: fullMessage.from,
+            subject: fullMessage.subject?.substring(0, 50),
+            isBounce: gmailManager.isBounceMessage(fullMessage)
+          });
+          
+          // Check if this is a bounce message
+          if (gmailManager.isBounceMessage(fullMessage)) {
+            bouncesFound++;
+            console.log(`⚠️ [GMAIL PUBSUB TEST] Found bounce from: ${fullMessage.from}`);
+            
+            const trackingId = gmailManager.extractTrackingIdFromBounce(fullMessage);
+            const recipient = gmailManager.extractRecipientFromBounce(fullMessage);
+            
+            if (trackingId) {
+              console.log(`📧 [GMAIL PUBSUB TEST] Bounce for tracking ID: ${trackingId}`);
+              
+              // Extract userId and agentId
+              const userIdMatch = trackingId.match(/tracking-([a-f0-9-]+)_/);
+              const agentIdMatch = trackingId.match(/tracking-[a-f0-9-]+_([^_]+)_/);
+              
+              const extractedUserId = userIdMatch ? userIdMatch[1] : null;
+              const agentId = agentIdMatch ? agentIdMatch[1] : null;
+              
+              if (extractedUserId && agentId) {
+                await processBounce(extractedUserId, agentId, trackingId, recipient, fullMessage);
+              }
+            }
+            continue;
+          }
+          
+          // Check if this is a reply
+          const hasTrackingId = 
+            (fullMessage.inReplyTo && fullMessage.inReplyTo.includes('tracking-')) ||
+            (fullMessage.references && fullMessage.references.includes('tracking-'));
+          
+          if (hasTrackingId) {
+            repliesFound++;
+            console.log(`📧 [GMAIL PUBSUB TEST] Found reply from: ${fullMessage.from}`);
+          }
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      historyItems: history.length,
+      messagesProcessed,
+      bouncesFound,
+      repliesFound,
+      message: `Processed ${messagesProcessed} messages, found ${bouncesFound} bounces and ${repliesFound} replies`
+    });
+    
+  } catch (error) {
+    console.error('❌ [GMAIL PUBSUB TEST] Error:', error);
     res.status(500).json({
       success: false,
       error: error.message
