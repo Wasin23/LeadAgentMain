@@ -100,27 +100,51 @@ router.post('/gmail-notification', async (req, res) => {
     const emailAddress = notification.emailAddress;
     const historyId = notification.historyId;
 
+    console.log(`📧 [GMAIL PUBSUB] Looking for user with Gmail: ${emailAddress}`);
+
     // Find user by Gmail address
     const users = await awsManager.getAllUsers();
     
     // Check multiple sources for Gmail email
-    const user = users.find(u => {
-      // Check legacy gmailAuth
-      if (u.gmailAuth?.email === emailAddress) return true;
+    let matchedUser = null;
+    
+    for (const u of users) {
+      // Check user's main email first
+      if (u.email === emailAddress) {
+        matchedUser = u;
+        console.log(`✅ [GMAIL PUBSUB] Found user by main email: ${u.userId.substring(0, 8)}...`);
+        break;
+      }
       
-      // Check gmailAccounts array
-      if (u.gmailAccounts && u.gmailAccounts.some(acc => acc.email === emailAddress)) return true;
-      
-      // Check user's main email
-      if (u.email === emailAddress) return true;
-      
-      return false;
-    });
+      // Need to fetch settings to check gmailAccounts/gmailAuth
+      try {
+        const settings = await awsManager.getUserSettings(u.userId);
+        
+        // Check legacy gmailAuth
+        if (settings?.gmailAuth?.email === emailAddress) {
+          matchedUser = u;
+          console.log(`✅ [GMAIL PUBSUB] Found user by gmailAuth: ${u.userId.substring(0, 8)}...`);
+          break;
+        }
+        
+        // Check gmailAccounts array
+        if (settings?.gmailAccounts && settings.gmailAccounts.some(acc => acc.email === emailAddress)) {
+          matchedUser = u;
+          console.log(`✅ [GMAIL PUBSUB] Found user by gmailAccounts: ${u.userId.substring(0, 8)}...`);
+          break;
+        }
+      } catch (err) {
+        // Skip users with no settings
+        continue;
+      }
+    }
 
-    if (!user) {
+    if (!matchedUser) {
       console.log(`⚠️ [GMAIL PUBSUB] No user found for email: ${emailAddress}`);
       return;
     }
+    
+    const user = matchedUser;
 
     console.log(`👤 [GMAIL PUBSUB] Processing notification for user: ${user.userId}`);
 
