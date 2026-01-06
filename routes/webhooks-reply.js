@@ -603,6 +603,7 @@ const sendEmailTool = new DynamicStructuredTool({
 
 router.post('/mailgun-reply', async (req, res) => {
   console.log('[WEBHOOK] Received Mailgun webhook');
+  console.log('[WEBHOOK] Raw body keys:', Object.keys(req.body).slice(0, 10));
   
   try {
     // Parse Mailgun payload
@@ -611,6 +612,15 @@ router.post('/mailgun-reply', async (req, res) => {
     // Check if this is a bounce/failure event (not an incoming email)
     if (formData.event && formData.event !== 'stored') {
       console.log(`[WEBHOOK] Handling Mailgun event: ${formData.event}`);
+      console.log(`[WEBHOOK] Event data:`, {
+        event: formData.event,
+        recipient: formData.recipient,
+        severity: formData.severity,
+        reason: formData.reason,
+        code: formData.code,
+        timestamp: formData.timestamp,
+        variables: formData['X-Mailgun-Variables']
+      });
       
       // Import bounce handler
       const { handleMailgunEvent, parseMailgunEvent } = await import('../utils/bounceHandler.js');
@@ -620,9 +630,11 @@ router.post('/mailgun-reply', async (req, res) => {
       const userId = extractUserIdFromTrackingId(trackingId);
       const agentId = extractAgentIdFromTrackingId(trackingId);
       
+      console.log(`[WEBHOOK] Bounce event trackingId: ${trackingId}, userId: ${userId}, agentId: ${agentId}`);
+      
       // Parse and handle the event
       const eventData = parseMailgunEvent(formData);
-      await handleMailgunEvent(eventData, userId, agentId);
+      await handleMailgunEvent(eventData, userId, agentId, trackingId);
       
       return res.json({
         success: true,

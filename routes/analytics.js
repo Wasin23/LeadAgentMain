@@ -524,7 +524,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
           company: email.lead?.company || 'Unknown Company'
         },
         company: email.lead?.company || 'Unknown Company',
-        status: 'sent'
+        status: (email.status || 'SENT').toLowerCase() // Convert SENT/BOUNCED/etc to lowercase
       }));
       
       // Combine with legacy logs

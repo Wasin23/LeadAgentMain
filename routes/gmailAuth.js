@@ -124,6 +124,16 @@ router.get('/callback', async (req, res) => {
     console.log('✅ [GMAIL AUTH] Gmail connected successfully for user:', userId);
     console.log('✅ [GMAIL AUTH] Total accounts:', existingAccounts.length);
 
+    // Set up Gmail Pub/Sub push notifications for bounce detection
+    try {
+      console.log('📬 [GMAIL AUTH] Setting up Pub/Sub watch for bounce detection...');
+      await gmailManager.setupPushNotifications(userId);
+      console.log('✅ [GMAIL AUTH] Pub/Sub watch enabled for bounce detection');
+    } catch (watchError) {
+      console.error('⚠️ [GMAIL AUTH] Failed to set up Pub/Sub watch (non-critical):', watchError.message);
+      // Continue even if watch setup fails - it can be set up later
+    }
+
     // Send HTML that closes the popup and signals parent
     res.send(`
       <!DOCTYPE html>

@@ -607,6 +607,15 @@ const server = app.listen(PORT, async () => {
   
   // Start Gmail watch auto-renewal (runs daily)
   try {
+    const { GmailWatchRenewer } = await import('./utils/gmailWatchRenewer.js');
+    const watchRenewer = new GmailWatchRenewer();
+    watchRenewer.start();
+    console.log('✅ [EMAIL] Gmail Pub/Sub watch renewal service started');
+  } catch (error) {
+    console.error('⚠️ [EMAIL] Failed to start Gmail watch renewer:', error.message);
+  }
+  
+  try {
     console.log('✅ [EMAIL] Using Mailgun webhooks for reply detection');
   } catch (error) {
     console.error('❌ [EMAIL] Failed to initialize email system:', error.message);

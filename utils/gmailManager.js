@@ -550,6 +550,82 @@ class GmailManager {
       throw error;
     }
   }
+
+  /**
+   * Check if a message is a bounce notification
+   * Gmail bounce messages come from mailer-daemon@googlemail.com
+   */
+  isBounceMessage(message) {
+    if (!message) return false;
+
+    const fromLower = (message.from || '').toLowerCase();
+    const subjectLower = (message.subject || '').toLowerCase();
+
+    // Check if from mailer-daemon
+    const isFromDaemon = fromLower.includes('mailer-daemon') || 
+                         fromLower.includes('postmaster') ||
+                         fromLower.includes('mail delivery');
+
+    // Check subject for bounce indicators
+    const hasBounceSubject = subjectLower.includes('delivery') ||
+                             subjectLower.includes('undelivered') ||
+                             subjectLower.includes('failure') ||
+                             subjectLower.includes('returned') ||
+                             subjectLower.includes('not delivered');
+
+    return isFromDaemon && hasBounceSubject;
+  }
+
+  /**
+   * Extract tracking ID from bounce message
+   * Looks for tracking ID in the original message headers or body
+   */
+  extractTrackingIdFromBounce(message) {
+    // Check In-Reply-To header
+    if (message.inReplyTo && message.inReplyTo.includes('tracking-')) {
+      const match = message.inReplyTo.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+)/i);
+      if (match) return match[1];
+    }
+
+    // Check References header
+    if (message.references && message.references.includes('tracking-')) {
+      const match = message.references.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+)/i);
+      if (match) return match[1];
+    }
+
+    // Check body content
+    if (message.body) {
+      const match = message.body.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+)/i);
+      if (match) return match[1];
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract recipient email from bounce message
+   */
+  extractRecipientFromBounce(message) {
+    const body = message.body || '';
+    
+    // Common patterns in bounce messages
+    const patterns = [
+      /<([^>]+)>:/,  // <email@example.com>:
+      /to ([\w\.-]+@[\w\.-]+)/i,  // "to email@example.com"
+      /address ([\w\.-]+@[\w\.-]+)/i,  // "address email@example.com"
+      /user ([\w\.-]+@[\w\.-]+)/i  // "user email@example.com"
+    ];
+
+    for (const pattern of patterns) {
+      const match = body.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    return 'unknown';
+  }
 }
+
 
 export default GmailManager;

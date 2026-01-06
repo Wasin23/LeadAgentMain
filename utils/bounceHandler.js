@@ -10,8 +10,9 @@ const monitoringStore = require('../routes/monitoring').monitoringStore;
  * @param {object} eventData - Mailgun event data
  * @param {string} userId - User ID extracted from tracking
  * @param {string} agentId - Agent ID extracted from tracking
+ * @param {string} trackingId - Tracking ID from email
  */
-async function handleMailgunEvent(eventData, userId, agentId) {
+async function handleMailgunEvent(eventData, userId, agentId, trackingId) {
   const eventType = eventData.event;
   const recipient = eventData.recipient;
   const timestamp = eventData.timestamp;
@@ -63,6 +64,53 @@ async function handleMailgunEvent(eventData, userId, agentId) {
         } catch (error) {
           console.error('❌ [ISSUES] Failed to log bounce to database:', error);
         }
+      }
+      
+      // Log bounce event to email tracking
+      if (userId && agentId && trackingId) {
+        try {
+          const AWSManager = require('./awsManager').default || require('./awsManager');
+          const awsManager = new AWSManager();
+          
+          // Log bounce event to tracking
+          await awsManager.logEmailTracking(userId, agentId, trackingId, {
+            eventType: 'bounced',
+            recipientEmail: recipient,
+            bounceType: eventData.severity || 'unknown',
+            reason: bounceReason,
+            code: eventData.code,
+            timestamp: new Date(timestamp * 1000).toISOString()
+          });
+          
+          console.log(`✅ [BOUNCE] Logged bounce event to tracking for ${trackingId}`);
+          
+          // Update email status to bounced
+          const awsQueue = (await import('./awsEmailQueue.js')).default;
+          const queueInstance = new awsQueue();
+          
+          // Find the email first to get its current status
+          const sentEmails = await queueInstance.getSentEmails(userId, agentId);
+          const email = sentEmails.find(e => e.trackingId === trackingId);
+          
+          if (email) {
+            // Update from current status to BOUNCED
+            const currentStatus = email.status || 'SENT';
+            await queueInstance.updateEmailStatus(userId, agentId, trackingId, currentStatus, 'BOUNCED', {
+              bounceType: eventData.severity || 'unknown',
+              bounceReason: bounceReason,
+              bounceCode: eventData.code,
+              bouncedAt: new Date(timestamp * 1000).toISOString()
+            });
+            
+            console.log(`✅ [BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${trackingId}`);
+          } else {
+            console.warn(`⚠️ [BOUNCE] Email not found in sent emails for trackingId: ${trackingId}`);
+          }
+        } catch (error) {
+          console.error('❌ [BOUNCE] Failed to log bounce to tracking:', error);
+        }
+      } else {
+        console.warn(`⚠️ [BOUNCE] Missing context - cannot update email status. userId: ${userId}, agentId: ${agentId}, trackingId: ${trackingId}`);
       }
       
       console.log(`⚠️ [BOUNCE] ${eventData.severity || 'Unknown'} bounce for ${recipient}: ${bounceReason}`);

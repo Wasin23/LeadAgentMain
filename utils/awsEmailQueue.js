@@ -231,10 +231,12 @@ class AWSEmailQueue {
 
   /**
    * Get all sent emails for a specific agent (enriched with tracking data)
+   * Includes both SENT and BOUNCED emails
    */
   async getSentEmails(userId, agentId) {
     try {
-      const response = await this.dynamodb.send(new QueryCommand({
+      // Query for SENT emails
+      const sentResponse = await this.dynamodb.send(new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
         ExpressionAttributeValues: {
@@ -243,7 +245,17 @@ class AWSEmailQueue {
         }
       }));
 
-      const emails = response.Items || [];
+      // Query for BOUNCED emails
+      const bouncedResponse = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+        ExpressionAttributeValues: {
+          ':pk': this._getPK(userId, agentId),
+          ':status': 'BOUNCED#'
+        }
+      }));
+
+      const emails = [...(sentResponse.Items || []), ...(bouncedResponse.Items || [])];
       
       // Enrich with tracking data from DynamoDB tracking table
       return await this.enrichEmailsWithTracking(userId, agentId, emails);
@@ -297,10 +309,12 @@ class AWSEmailQueue {
 
   /**
    * Get ALL sent emails across ALL agents for a user (using GSI, enriched with tracking)
+   * Includes both SENT and BOUNCED emails
    */
   async getAllSentEmailsForUser(userId) {
     try {
-      const response = await this.dynamodb.send(new QueryCommand({
+      // Query for SENT emails across all agents
+      const sentResponse = await this.dynamodb.send(new QueryCommand({
         TableName: this.tableName,
         IndexName: this.gsiName,
         KeyConditionExpression: 'GSIPK = :gsipk',
@@ -309,7 +323,17 @@ class AWSEmailQueue {
         }
       }));
 
-      const emails = response.Items || [];
+      // Query for BOUNCED emails across all agents
+      const bouncedResponse = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tableName,
+        IndexName: this.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': this._getGSIPK(userId, 'BOUNCED')
+        }
+      }));
+
+      const emails = [...(sentResponse.Items || []), ...(bouncedResponse.Items || [])];
       
       // Enrich with tracking data (pass null for agentId to get all tracking)
       return await this.enrichEmailsWithTracking(userId, null, emails);

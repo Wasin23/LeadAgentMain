@@ -8,6 +8,70 @@ const gmailManager = new GmailManager();
 const awsManager = new AWSManager();
 
 /**
+ * Process a bounce message from Gmail
+ */
+async function processBounce(userId, agentId, trackingId, recipient, message) {
+  try {
+    console.log(`⚠️ [GMAIL BOUNCE] Processing bounce for ${recipient}`);
+    
+    // Log bounce event to tracking
+    await awsManager.logEmailTracking(userId, agentId, trackingId, {
+      eventType: 'bounced',
+      recipientEmail: recipient,
+      bounceType: 'gmail',
+      reason: 'Gmail bounce notification',
+      source: 'gmail-pubsub',
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`✅ [GMAIL BOUNCE] Logged bounce event to tracking for ${trackingId}`);
+    
+    // Update email status to bounced
+    const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
+    const queueInstance = new awsQueue();
+    
+    // Find the email first to get its current status
+    const sentEmails = await queueInstance.getSentEmails(userId, agentId);
+    const email = sentEmails.find(e => e.trackingId === trackingId);
+    
+    if (email) {
+      // Update from current status to BOUNCED
+      const currentStatus = email.status || 'SENT';
+      await queueInstance.updateEmailStatus(userId, agentId, trackingId, currentStatus, 'BOUNCED', {
+        bounceType: 'gmail',
+        bounceReason: 'Gmail delivery failure',
+        bounceSource: 'gmail-pubsub',
+        bouncedAt: new Date().toISOString()
+      });
+      
+      console.log(`✅ [GMAIL BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${trackingId}`);
+    } else {
+      console.warn(`⚠️ [GMAIL BOUNCE] Email not found in sent emails for trackingId: ${trackingId}`);
+    }
+    
+    // Also log to issues system
+    await awsManager.addIssue(
+      userId,
+      'warning',
+      'Email Bounced',
+      `Gmail delivery failed for ${recipient}`,
+      {
+        agentId: agentId || 'unknown',
+        recipient,
+        trackingId,
+        bounceType: 'gmail',
+        source: 'gmail-pubsub',
+        timestamp: new Date().toISOString()
+      }
+    );
+    
+    console.log(`✅ [GMAIL BOUNCE] Bounce processing complete for ${trackingId}`);
+  } catch (error) {
+    console.error('❌ [GMAIL BOUNCE] Error processing bounce:', error);
+  }
+}
+
+/**
  * Receive Gmail push notifications from Google Cloud Pub/Sub
  * This endpoint is called by Google when new emails arrive
  */
@@ -79,6 +143,36 @@ router.post('/gmail-notification', async (req, res) => {
           
           // Fetch full message details
           const fullMessage = await gmailManager.getMessage(user.userId, messageId);
+          
+          // Check if this is a bounce message
+          if (gmailManager.isBounceMessage(fullMessage)) {
+            console.log(`⚠️ [GMAIL PUBSUB] Detected bounce message from: ${fullMessage.from}`);
+            
+            // Extract tracking ID from bounce
+            const trackingId = gmailManager.extractTrackingIdFromBounce(fullMessage);
+            const recipient = gmailManager.extractRecipientFromBounce(fullMessage);
+            
+            if (trackingId) {
+              console.log(`📧 [GMAIL PUBSUB] Bounce for tracking ID: ${trackingId}, recipient: ${recipient}`);
+              
+              // Extract userId and agentId from tracking ID
+              const userIdMatch = trackingId.match(/tracking-([a-f0-9-]+)_/);
+              const agentIdMatch = trackingId.match(/tracking-[a-f0-9-]+_([^_]+)_/);
+              
+              const userId = userIdMatch ? userIdMatch[1] : null;
+              const agentId = agentIdMatch ? agentIdMatch[1] : null;
+              
+              if (userId && agentId) {
+                // Process bounce
+                await processBounce(userId, agentId, trackingId, recipient, fullMessage);
+              } else {
+                console.log(`⚠️ [GMAIL PUBSUB] Could not extract userId/agentId from tracking ID: ${trackingId}`);
+              }
+            } else {
+              console.log(`⚠️ [GMAIL PUBSUB] Could not extract tracking ID from bounce message`);
+            }
+            continue;
+          }
           
           // Check if this is a reply to one of our tracked emails
           const hasTrackingId = 
