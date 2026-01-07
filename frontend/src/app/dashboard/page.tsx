@@ -1336,7 +1336,7 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Stats Panel - Left Side, hidden on small/medium screens */}
-      <div className="hidden xl:flex fixed left-4 xl:left-8 z-40 flex-col gap-5" style={{ top: 'calc(10% + 60px)' }}>
+      <div className="hidden xl:flex fixed left-4 xl:left-8 z-40 flex-col gap-5" style={{ top: 'calc(10% + 60px)', width: '240px' }}>
         {/* Email Queue - Formula: 50 + (n × 20), 61 colors then WHITE */}
         <div className="p-3 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
           <button
