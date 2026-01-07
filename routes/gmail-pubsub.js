@@ -31,37 +31,50 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
     const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
     const queueInstance = new awsQueue();
     
-    // Find the email - retry a few times in case of race condition
-    let email = null;
+    // Find and update the email - retry a few times in case of race condition
+    let updateSuccessful = false;
     let attempts = 0;
     const maxAttempts = 3;
     
-    while (!email && attempts < maxAttempts) {
+    while (!updateSuccessful && attempts < maxAttempts) {
       attempts++;
       console.log(`🔍 [GMAIL BOUNCE] Looking for email, attempt ${attempts}/${maxAttempts}`);
       
-      const sentEmails = await queueInstance.getSentEmails(userId, agentId);
-      email = sentEmails.find(e => e.trackingId === trackingId);
-      
-      if (!email && attempts < maxAttempts) {
-        console.log(`⏳ [GMAIL BOUNCE] Email not found yet, waiting 1 second...`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const sentEmails = await queueInstance.getSentEmails(userId, agentId);
+        const email = sentEmails.find(e => e.trackingId === trackingId);
+        
+        if (email) {
+          // Update from current status to BOUNCED
+          const currentStatus = email.status || 'SENT';
+          await queueInstance.updateEmailStatus(userId, agentId, trackingId, currentStatus, 'BOUNCED', {
+            bounceType: 'gmail',
+            bounceReason: 'Gmail delivery failure',
+            bounceSource: 'gmail-pubsub',
+            bouncedAt: new Date().toISOString()
+          });
+          
+          console.log(`✅ [GMAIL BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${trackingId}`);
+          updateSuccessful = true;
+        } else {
+          console.log(`⏳ [GMAIL BOUNCE] Email not found yet, waiting 2 seconds...`);
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      } catch (error) {
+        console.log(`⚠️ [GMAIL BOUNCE] Update attempt ${attempts} failed: ${error.message}`);
+        if (attempts < maxAttempts) {
+          console.log(`⏳ [GMAIL BOUNCE] Retrying in 2 seconds...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        } else {
+          throw error;
+        }
       }
     }
     
-    if (email) {
-      // Update from current status to BOUNCED
-      const currentStatus = email.status || 'SENT';
-      await queueInstance.updateEmailStatus(userId, agentId, trackingId, currentStatus, 'BOUNCED', {
-        bounceType: 'gmail',
-        bounceReason: 'Gmail delivery failure',
-        bounceSource: 'gmail-pubsub',
-        bouncedAt: new Date().toISOString()
-      });
-      
-      console.log(`✅ [GMAIL BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${trackingId}`);
-    } else {
-      console.warn(`⚠️ [GMAIL BOUNCE] Email not found in sent emails for trackingId: ${trackingId}`);
+    if (!updateSuccessful) {
+      console.warn(`⚠️ [GMAIL BOUNCE] Failed to update email status after ${maxAttempts} attempts for trackingId: ${trackingId}`);
     }
     
     // Also log to issues system
