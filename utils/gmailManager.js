@@ -424,12 +424,37 @@ class GmailManager {
 
       // Extract body
       let body = '';
+      
+      // Recursive function to extract body from parts
+      const extractBodyFromParts = (parts) => {
+        if (!parts || !Array.isArray(parts)) return '';
+        
+        for (const part of parts) {
+          // Check if this part has nested parts
+          if (part.parts) {
+            const nestedBody = extractBodyFromParts(part.parts);
+            if (nestedBody) return nestedBody;
+          }
+          
+          // Try text/plain first
+          if (part.mimeType === 'text/plain' && part.body?.data) {
+            return Buffer.from(part.body.data, 'base64').toString('utf-8');
+          }
+        }
+        
+        // If no text/plain found, try text/html
+        for (const part of parts) {
+          if (part.mimeType === 'text/html' && part.body?.data) {
+            return Buffer.from(part.body.data, 'base64').toString('utf-8');
+          }
+        }
+        
+        return '';
+      };
+      
       if (message.payload?.parts) {
         // Multipart message
-        const textPart = message.payload.parts.find(part => part.mimeType === 'text/plain');
-        if (textPart?.body?.data) {
-          body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
-        }
+        body = extractBodyFromParts(message.payload.parts);
       } else if (message.payload?.body?.data) {
         // Simple message
         body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
