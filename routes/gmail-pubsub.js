@@ -47,14 +47,17 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
         if (email) {
           // Update from current status to BOUNCED
           const currentStatus = email.status || 'SENT';
-          await queueInstance.updateEmailStatus(userId, agentId, trackingId, currentStatus, 'BOUNCED', {
+          const emailId = email.id; // Use the actual email ID, not tracking ID
+          console.log(`📧 [GMAIL BOUNCE] Found email ${emailId} with trackingId ${trackingId}`);
+          
+          await queueInstance.updateEmailStatus(userId, agentId, emailId, currentStatus, 'BOUNCED', {
             bounceType: 'gmail',
             bounceReason: 'Gmail delivery failure',
             bounceSource: 'gmail-pubsub',
             bouncedAt: new Date().toISOString()
           });
           
-          console.log(`✅ [GMAIL BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${trackingId}`);
+          console.log(`✅ [GMAIL BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${emailId}`);
           updateSuccessful = true;
         } else {
           console.log(`⏳ [GMAIL BOUNCE] Email not found yet, waiting 2 seconds...`);
