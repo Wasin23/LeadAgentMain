@@ -1338,53 +1338,72 @@ export default function InteractiveGlobe() {
       {/* Stats Panel - Left Side, hidden on small/medium screens */}
       <div className="hidden xl:flex fixed left-4 xl:left-8 z-40 flex-col gap-5" style={{ top: 'calc(10% + 60px)' }}>
         {/* Email Queue - Formula: 50 + (n × 20), 61 colors then WHITE */}
-        <div className="p-4 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
+        <div className="p-3 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
           <button
             onClick={() => handleQueueClick('queued', 'Email Queue')}
-            className="relative w-[180px] h-[180px] hover:scale-105 transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center group"
+            className="w-full hover:scale-[1.02] transition-all cursor-pointer active:scale-[0.98]"
           >
-            {/* Progress Ring */}
-            <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
-              <defs>
-                <radialGradient id="innerGlow-queue" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" style={{ stopColor: 'rgba(79, 209, 255, 0.35)', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: 'rgba(79, 209, 255, 0)', stopOpacity: 1 }} />
-                </radialGradient>
-              </defs>
-              <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-queue)" />
-              <circle
-                cx="50%"
-                cy="50%"
-                r="80"
-                fill="none"
-                stroke="rgba(79, 209, 255, 0.3)"
-                strokeWidth="3"
-              />
-              <circle
-                cx="50%"
-                cy="50%"
-                r="80"
-                fill="none"
-                stroke={
-                  (() => {
-                    let level = 0;
-                    let count = stats.totalEmailsQueued || stats.emailsQueued; // Use cumulative total
-                    let milestone = 50;
-                    while (count >= milestone) {
-                      count -= milestone;
-                      level++;
-                      milestone = 50 + (level * 20);
+            <div className="flex items-center gap-3">
+              <div className="relative w-14 h-14 flex-shrink-0">
+                <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="22"
+                    fill="none"
+                    stroke="rgba(79, 209, 255, 0.2)"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="22"
+                    fill="none"
+                    stroke={
+                      (() => {
+                        let level = 0;
+                        let count = stats.totalEmailsQueued || stats.emailsQueued;
+                        let milestone = 50;
+                        while (count >= milestone) {
+                          count -= milestone;
+                          level++;
+                          milestone = 50 + (level * 20);
+                        }
+                        const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                        return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                      })()
                     }
-                    const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
-                    return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
-                  })()
-                }
-                strokeWidth="4"
-                strokeDasharray={`${2 * Math.PI * 80}`}
-                strokeDashoffset={
-                  (() => {
+                    strokeWidth="3"
+                    strokeDasharray={`${2 * Math.PI * 22}`}
+                    strokeDashoffset={
+                      (() => {
+                        let level = 0;
+                        let count = stats.totalEmailsQueued || stats.emailsQueued;
+                        let milestone = 50;
+                        while (count >= milestone) {
+                          count -= milestone;
+                          level++;
+                          milestone = 50 + (level * 20);
+                        }
+                        const currentMilestone = 50 + (level * 20);
+                        const progress = count / currentMilestone;
+                        return 2 * Math.PI * 22 * (1 - progress);
+                      })()
+                    }
+                    className="transition-all duration-500"
+                    style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-white text-lg font-bold">{stats.emailsQueued}</div>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[#A3B4CC] text-xs mb-1">Email Queue</div>
+                <div className="text-[#8FA6C1] text-[9px]">
+                  Milestone: {(() => {
                     let level = 0;
-                    let count = stats.totalEmailsQueued || stats.emailsQueued; // Use cumulative total
+                    let count = stats.totalEmailsQueued || stats.emailsQueued;
                     let milestone = 50;
                     while (count >= milestone) {
                       count -= milestone;
@@ -1392,211 +1411,177 @@ export default function InteractiveGlobe() {
                       milestone = 50 + (level * 20);
                     }
                     const currentMilestone = 50 + (level * 20);
-                    const progress = count / currentMilestone;
-                    return 2 * Math.PI * 80 * (1 - progress);
-                  })()
-                }
-                className="transition-all duration-500"
-                style={{
-                  filter: 'drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor)',
-                }}
-              />
-            </svg>
-            <div className="relative z-10 text-center">
-              <div className="text-[#A3B4CC] text-xs mb-1.5">Email Queue</div>
-              <div className="text-5xl font-bold text-white mb-1">{stats.emailsQueued}</div>
-              <div className="text-[#8FA6C1] text-[9px] font-medium">
-                Milestone: {(() => {
-                  let level = 0;
-                  let count = stats.totalEmailsQueued || stats.emailsQueued; // Use cumulative total
-                  let milestone = 50;
-                  while (count >= milestone) {
-                    count -= milestone;
-                    level++;
-                    milestone = 50 + (level * 20);
-                  }
-                  const currentMilestone = 50 + (level * 20);
-                  return `${count}/${currentMilestone}`;
-                })()}
+                    return `${count}/${currentMilestone}`;
+                  })()}
+                </div>
               </div>
-              <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view</div>
             </div>
           </button>
         </div>
 
         {/* Emails Sent - Formula: 25 + (n × 10), 61 colors then WHITE */}
-        <div className="p-4 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
+        <div className="p-3 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
           <button
             onClick={() => handleQueueClick('sent', 'Sent Emails')}
-            className="relative w-[180px] h-[180px] hover:scale-105 transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center group"
+            className="w-full hover:scale-[1.02] transition-all cursor-pointer active:scale-[0.98]"
           >
-          {/* Progress Ring */}
-          <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
-            <defs>
-              <radialGradient id="innerGlow-sent" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" style={{ stopColor: 'rgba(79, 209, 255, 0.35)', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: 'rgba(79, 209, 255, 0)', stopOpacity: 1 }} />
-              </radialGradient>
-            </defs>
-            <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-sent)" />
-            <circle
-              cx="50%"
-              cy="50%"
-              r="80"
-              fill="none"
-              stroke="rgba(79, 209, 255, 0.3)"
-              strokeWidth="3"
-            />
-            <circle
-              cx="50%"
-              cy="50%"
-              r="80"
-              fill="none"
-              stroke={
-                (() => {
-                  let level = 0;
-                  let count = stats.totalEmailsSent || stats.emailsSent; // Use cumulative total
-                  let milestone = 25;
-                  while (count >= milestone) {
-                    count -= milestone;
-                    level++;
-                    milestone = 25 + (level * 10);
-                  }
-                  const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
-                  return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
-                })()
-              }
-              strokeWidth="4"
-              strokeDasharray={`${2 * Math.PI * 80}`}
-              strokeDashoffset={
-                (() => {
-                  let level = 0;
-                  let count = stats.totalEmailsSent || stats.emailsSent; // Use cumulative total
-                  let milestone = 25;
-                  while (count >= milestone) {
-                    count -= milestone;
-                    level++;
-                    milestone = 25 + (level * 10);
-                  }
-                  const currentMilestone = 25 + (level * 10);
-                  const progress = count / currentMilestone;
-                  return 2 * Math.PI * 80 * (1 - progress);
-                })()
-              }
-              className="transition-all duration-500"
-              style={{
-                filter: 'drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor)',
-              }}
-            />
-          </svg>
-          <div className="relative z-10 text-center">
-            <div className="text-[#A3B4CC] text-xs mb-1.5">Sent</div>
-            <div className="text-5xl font-bold text-white mb-1">{stats.emailsSent}</div>
-            <div className="text-[#8FA6C1] text-[9px] font-medium">
-              Milestone: {(() => {
-                let level = 0;
-                let count = stats.totalEmailsSent || stats.emailsSent; // Use cumulative total
-                let milestone = 25;
-                while (count >= milestone) {
-                  count -= milestone;
-                  level++;
-                  milestone = 25 + (level * 10);
-                }
-                const currentMilestone = 25 + (level * 10);
-                return `${count}/${currentMilestone}`;
-              })()}
+            <div className="flex items-center gap-3">
+              <div className="relative w-14 h-14 flex-shrink-0">
+                <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="22"
+                    fill="none"
+                    stroke="rgba(79, 209, 255, 0.2)"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="22"
+                    fill="none"
+                    stroke={
+                      (() => {
+                        let level = 0;
+                        let count = stats.totalEmailsSent || stats.emailsSent;
+                        let milestone = 25;
+                        while (count >= milestone) {
+                          count -= milestone;
+                          level++;
+                          milestone = 25 + (level * 10);
+                        }
+                        const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                        return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                      })()
+                    }
+                    strokeWidth="3"
+                    strokeDasharray={`${2 * Math.PI * 22}`}
+                    strokeDashoffset={
+                      (() => {
+                        let level = 0;
+                        let count = stats.totalEmailsSent || stats.emailsSent;
+                        let milestone = 25;
+                        while (count >= milestone) {
+                          count -= milestone;
+                          level++;
+                          milestone = 25 + (level * 10);
+                        }
+                        const currentMilestone = 25 + (level * 10);
+                        const progress = count / currentMilestone;
+                        return 2 * Math.PI * 22 * (1 - progress);
+                      })()
+                    }
+                    className="transition-all duration-500"
+                    style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-white text-lg font-bold">{stats.emailsSent}</div>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[#A3B4CC] text-xs mb-1">Emails Sent</div>
+                <div className="text-[#8FA6C1] text-[9px]">
+                  Milestone: {(() => {
+                    let level = 0;
+                    let count = stats.totalEmailsSent || stats.emailsSent;
+                    let milestone = 25;
+                    while (count >= milestone) {
+                      count -= milestone;
+                      level++;
+                      milestone = 25 + (level * 10);
+                    }
+                    const currentMilestone = 25 + (level * 10);
+                    return `${count}/${currentMilestone}`;
+                  })()}
+                </div>
+              </div>
             </div>
-            <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view</div>
-          </div>
-        </button>
-      </div>
+          </button>
+        </div>
 
         {/* Responses - Formula: 5 + (n × 5), 61 colors then WHITE */}
-        <div className="p-4 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
+        <div className="p-3 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
           <button
             onClick={() => handleQueueClick('replied', 'Replied Emails')}
-            className="relative w-[180px] h-[180px] hover:scale-105 transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center group"
+            className="w-full hover:scale-[1.02] transition-all cursor-pointer active:scale-[0.98]"
           >
-          {/* Progress Ring */}
-          <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
-            <defs>
-              <radialGradient id="innerGlow-responses" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" style={{ stopColor: 'rgba(79, 209, 255, 0.35)', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: 'rgba(79, 209, 255, 0)', stopOpacity: 1 }} />
-              </radialGradient>
-            </defs>
-            <circle cx="50%" cy="50%" r="45%" fill="url(#innerGlow-responses)" />
-            <circle
-              cx="50%"
-              cy="50%"
-              r="80"
-              fill="none"
-              stroke="rgba(79, 209, 255, 0.3)"
-              strokeWidth="3"
-            />
-            <circle
-              cx="50%"
-              cy="50%"
-              r="80"
-              fill="none"
-              stroke={
-                (() => {
-                  let level = 0;
-                  let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
-                  let milestone = 5;
-                  while (count >= milestone) {
-                    count -= milestone;
-                    level++;
-                    milestone = 5 + (level * 5);
-                  }
-                  const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
-                  return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
-                })()
-              }
-              strokeWidth="4"
-              strokeDasharray={`${2 * Math.PI * 80}`}
-              strokeDashoffset={
-                (() => {
-                  let level = 0;
-                  let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
-                  let milestone = 5;
-                  while (count >= milestone) {
-                    count -= milestone;
-                    level++;
-                    milestone = 5 + (level * 5);
-                  }
-                  const currentMilestone = 5 + (level * 5);
-                  const progress = count / currentMilestone;
-                  return 2 * Math.PI * 80 * (1 - progress);
-                })()
-              }
-              className="transition-all duration-500"
-              style={{
-                filter: 'drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor)',
-              }}
-            />
-          </svg>
-          <div className="relative z-10 text-center">
-            <div className="text-[#A3B4CC] text-xs mb-1.5">Responses</div>
-            <div className="text-5xl font-bold text-white mb-1">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
-            <div className="text-[#8FA6C1] text-[9px] font-medium">
-              Milestone: {(() => {
-                let level = 0;
-                let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
-                let milestone = 5;
-                while (count >= milestone) {
-                  count -= milestone;
-                  level++;
-                  milestone = 5 + (level * 5);
-                }
-                const currentMilestone = 5 + (level * 5);
-                return `${count}/${currentMilestone}`;
-              })()}
+            <div className="flex items-center gap-3">
+              <div className="relative w-14 h-14 flex-shrink-0">
+                <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="22"
+                    fill="none"
+                    stroke="rgba(79, 209, 255, 0.2)"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="22"
+                    fill="none"
+                    stroke={
+                      (() => {
+                        let level = 0;
+                        let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                        let milestone = 5;
+                        while (count >= milestone) {
+                          count -= milestone;
+                          level++;
+                          milestone = 5 + (level * 5);
+                        }
+                        const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                        return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                      })()
+                    }
+                    strokeWidth="3"
+                    strokeDasharray={`${2 * Math.PI * 22}`}
+                    strokeDashoffset={
+                      (() => {
+                        let level = 0;
+                        let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                        let milestone = 5;
+                        while (count >= milestone) {
+                          count -= milestone;
+                          level++;
+                          milestone = 5 + (level * 5);
+                        }
+                        const currentMilestone = 5 + (level * 5);
+                        const progress = count / currentMilestone;
+                        return 2 * Math.PI * 22 * (1 - progress);
+                      })()
+                    }
+                    className="transition-all duration-500"
+                    style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-white text-lg font-bold">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[#A3B4CC] text-xs mb-1">Responses</div>
+                <div className="text-[#8FA6C1] text-[9px]">
+                  Milestone: {(() => {
+                    let level = 0;
+                    let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                    let milestone = 5;
+                    while (count >= milestone) {
+                      count -= milestone;
+                      level++;
+                      milestone = 5 + (level * 5);
+                    }
+                    const currentMilestone = 5 + (level * 5);
+                    return `${count}/${currentMilestone}`;
+                  })()}
+                </div>
+              </div>
             </div>
-            <div className="text-[#8FA6C1] text-[10px] mt-1">Click to view</div>
-          </div>
-        </button>
-      </div>
+          </button>
+        </div>
       </div>
 
       {/* Outreach Section - Center of Dashboard */}
