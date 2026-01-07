@@ -422,43 +422,50 @@ class GmailManager {
         });
       }
 
-      // Extract body
-      let body = '';
+      // Extract body - collect ALL text from all parts
+      let allTextParts = [];
       
-      // Recursive function to extract body from parts
-      const extractBodyFromParts = (parts) => {
-        if (!parts || !Array.isArray(parts)) return '';
+      // Recursive function to extract ALL body text from parts
+      const extractAllBodyParts = (parts, depth = 0) => {
+        if (!parts || !Array.isArray(parts)) return;
         
         for (const part of parts) {
+          console.log(`${'  '.repeat(depth)}📦 [GMAIL] Part: ${part.mimeType}, has data: ${!!part.body?.data}, has nested parts: ${!!part.parts}`);
+          
           // Check if this part has nested parts
           if (part.parts) {
-            const nestedBody = extractBodyFromParts(part.parts);
-            if (nestedBody) return nestedBody;
+            extractAllBodyParts(part.parts, depth + 1);
           }
           
-          // Try text/plain first
-          if (part.mimeType === 'text/plain' && part.body?.data) {
-            return Buffer.from(part.body.data, 'base64').toString('utf-8');
+          // Extract text from this part if it has data
+          if (part.body?.data) {
+            try {
+              const text = Buffer.from(part.body.data, 'base64').toString('utf-8');
+              if (text && text.length > 0) {
+                console.log(`${'  '.repeat(depth)}✅ [GMAIL] Extracted ${text.length} chars from ${part.mimeType}`);
+                allTextParts.push(text);
+              }
+            } catch (err) {
+              console.log(`${'  '.repeat(depth)}⚠️ [GMAIL] Failed to decode part: ${err.message}`);
+            }
           }
         }
-        
-        // If no text/plain found, try text/html
-        for (const part of parts) {
-          if (part.mimeType === 'text/html' && part.body?.data) {
-            return Buffer.from(part.body.data, 'base64').toString('utf-8');
-          }
-        }
-        
-        return '';
       };
       
       if (message.payload?.parts) {
-        // Multipart message
-        body = extractBodyFromParts(message.payload.parts);
+        // Multipart message - extract all parts
+        console.log(`📬 [GMAIL] Message has ${message.payload.parts.length} top-level parts`);
+        extractAllBodyParts(message.payload.parts);
       } else if (message.payload?.body?.data) {
         // Simple message
-        body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
+        const text = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
+        console.log(`📬 [GMAIL] Simple message: ${text.length} chars`);
+        allTextParts.push(text);
       }
+      
+      // Combine all text parts
+      const body = allTextParts.join('\n\n---\n\n');
+      console.log(`📝 [GMAIL] Total body length: ${body.length} chars from ${allTextParts.length} parts`);
 
       return {
         id: message.id,
