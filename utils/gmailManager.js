@@ -332,12 +332,25 @@ class GmailManager {
   async checkForReplies(userId, afterTimestamp = null) {
     try {
       const userSettings = await awsManager.getUserSettings(userId);
-      if (!userSettings?.gmailAuth?.refreshToken) {
+      
+      // Check for refresh token in multiple locations
+      let refreshToken = null;
+      if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+        const activeAccount = userSettings.gmailAccounts.find(acc => acc.isActive) || userSettings.gmailAccounts[0];
+        refreshToken = activeAccount.refreshToken;
+      } else if (userSettings?.gmailAuth?.refreshToken) {
+        refreshToken = userSettings.gmailAuth.refreshToken;
+      } else if (userSettings?.calendarTokens?.refresh_token && 
+                 userSettings?.calendarTokens?.scope?.includes('gmail')) {
+        refreshToken = userSettings.calendarTokens.refresh_token;
+      }
+      
+      if (!refreshToken) {
         return [];
       }
 
       this.oauth2Client.setCredentials({
-        refresh_token: userSettings.gmailAuth.refreshToken
+        refresh_token: refreshToken
       });
 
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
@@ -370,12 +383,25 @@ class GmailManager {
   async getMessage(userId, messageId) {
     try {
       const userSettings = await awsManager.getUserSettings(userId);
-      if (!userSettings?.gmailAuth?.refreshToken) {
+      
+      // Check for refresh token in multiple locations (gmailAccounts, gmailAuth, calendarTokens)
+      let refreshToken = null;
+      if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
+        const activeAccount = userSettings.gmailAccounts.find(acc => acc.isActive) || userSettings.gmailAccounts[0];
+        refreshToken = activeAccount.refreshToken;
+      } else if (userSettings?.gmailAuth?.refreshToken) {
+        refreshToken = userSettings.gmailAuth.refreshToken;
+      } else if (userSettings?.calendarTokens?.refresh_token && 
+                 userSettings?.calendarTokens?.scope?.includes('gmail')) {
+        refreshToken = userSettings.calendarTokens.refresh_token;
+      }
+      
+      if (!refreshToken) {
         throw new Error('No Gmail refresh token found');
       }
 
       this.oauth2Client.setCredentials({
-        refresh_token: userSettings.gmailAuth.refreshToken
+        refresh_token: refreshToken
       });
 
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
