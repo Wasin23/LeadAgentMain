@@ -653,26 +653,54 @@ class GmailManager {
   /**
    * Extract tracking ID from bounce message
    * Looks for tracking ID in the original message headers or body
+   * Format: tracking-{userId}_{agentId}_{timestamp}_{shortHash}
    */
   extractTrackingIdFromBounce(message) {
+    // Updated regex to match the full tracking ID format with 4 parts
+    const trackingPattern = /(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i;
+    
     // Check In-Reply-To header
     if (message.inReplyTo && message.inReplyTo.includes('tracking-')) {
-      const match = message.inReplyTo.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+)/i);
-      if (match) return match[1];
+      const match = message.inReplyTo.match(trackingPattern);
+      if (match) {
+        console.log(`🔍 [GMAIL] Found tracking ID in In-Reply-To: ${match[1]}`);
+        return match[1];
+      }
     }
 
     // Check References header
     if (message.references && message.references.includes('tracking-')) {
-      const match = message.references.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+)/i);
-      if (match) return match[1];
+      const match = message.references.match(trackingPattern);
+      if (match) {
+        console.log(`🔍 [GMAIL] Found tracking ID in References: ${match[1]}`);
+        return match[1];
+      }
+    }
+
+    // Check Message-ID header (our sent emails have tracking ID in Message-ID)
+    if (message.messageId && message.messageId.includes('tracking-')) {
+      const match = message.messageId.match(trackingPattern);
+      if (match) {
+        console.log(`🔍 [GMAIL] Found tracking ID in Message-ID: ${match[1]}`);
+        return match[1];
+      }
     }
 
     // Check body content
     if (message.body) {
-      const match = message.body.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+)/i);
-      if (match) return match[1];
+      const match = message.body.match(trackingPattern);
+      if (match) {
+        console.log(`🔍 [GMAIL] Found tracking ID in body: ${match[1]}`);
+        return match[1];
+      }
     }
 
+    console.log(`⚠️ [GMAIL] Could not find tracking ID in message`);
+    console.log(`   In-Reply-To: ${message.inReplyTo || 'none'}`);
+    console.log(`   References: ${message.references || 'none'}`);
+    console.log(`   Message-ID: ${message.messageId || 'none'}`);
+    console.log(`   Body preview: ${(message.body || '').substring(0, 200)}...`);
+    
     return null;
   }
 

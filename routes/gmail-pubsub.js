@@ -182,6 +182,7 @@ router.post('/gmail-notification', async (req, res) => {
           // Check if this is a bounce message
           if (gmailManager.isBounceMessage(fullMessage)) {
             console.log(`⚠️ [GMAIL PUBSUB] Detected bounce message from: ${fullMessage.from}`);
+            console.log(`📧 [GMAIL PUBSUB] Bounce subject: ${fullMessage.subject}`);
             
             // Extract tracking ID from bounce
             const trackingId = gmailManager.extractTrackingIdFromBounce(fullMessage);
