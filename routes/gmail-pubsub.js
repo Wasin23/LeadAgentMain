@@ -31,9 +31,23 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
     const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
     const queueInstance = new awsQueue();
     
-    // Find the email first to get its current status
-    const sentEmails = await queueInstance.getSentEmails(userId, agentId);
-    const email = sentEmails.find(e => e.trackingId === trackingId);
+    // Find the email - retry a few times in case of race condition
+    let email = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (!email && attempts < maxAttempts) {
+      attempts++;
+      console.log(`🔍 [GMAIL BOUNCE] Looking for email, attempt ${attempts}/${maxAttempts}`);
+      
+      const sentEmails = await queueInstance.getSentEmails(userId, agentId);
+      email = sentEmails.find(e => e.trackingId === trackingId);
+      
+      if (!email && attempts < maxAttempts) {
+        console.log(`⏳ [GMAIL BOUNCE] Email not found yet, waiting 1 second...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
     
     if (email) {
       // Update from current status to BOUNCED
