@@ -1304,7 +1304,9 @@ export default function InteractiveGlobe() {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-white text-2xl font-bold">{stats.emailsSent}</div>
+                <div className="w-14 h-14 rounded-full bg-[#243D63] flex items-center justify-center">
+                  <div className="text-white text-2xl font-bold">{stats.emailsSent}</div>
+                </div>
               </div>
             </div>
             <div className="flex-1 min-w-0 text-left">
@@ -1827,10 +1829,9 @@ export default function InteractiveGlobe() {
 
       {isMounted && (
         <div 
-          className={`hidden sm:block fixed top-[200px] transition-all duration-700 ease-out ${
+          className={`hidden sm:flex fixed left-[265px] right-[380px] top-[200px] justify-center transition-all duration-700 ease-out ${
             showGlobe || isAnimatingOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
-          style={{ left: '50%', transform: 'translateX(-50%)' }}
         >
         {/* Globe - Hidden on mobile */}
         <div className="text-center relative">
