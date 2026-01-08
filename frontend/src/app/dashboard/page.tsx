@@ -1178,17 +1178,294 @@ export default function InteractiveGlobe() {
         </div>
       </div>
 
-      {/* Top Navigation Buttons */}
-      <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-[47%] sm:-translate-x-1/2 sm:right-auto z-50">
-          {/* Mobile: Full width 2x2 Grid, Desktop: Centered single line */}
-          <div className="flex flex-col gap-2 sm:block">
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-nowrap sm:gap-3 sm:justify-center">
+      {/* Top Queue Stats - Desktop horizontal layout */}
+      <div className="hidden xl:flex fixed top-6 left-[47%] -translate-x-1/2 z-50 gap-5">
+        {/* Email Queue */}
+        <button
+          onClick={() => handleQueueClick('queued', 'Email Queue')}
+          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative w-16 h-16 flex-shrink-0">
+              <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="50%" cy="50%" r="28" fill="none" stroke="rgba(79, 209, 255, 0.2)" strokeWidth="3" />
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="28"
+                  fill="none"
+                  stroke={
+                    (() => {
+                      let level = 0;
+                      let count = stats.totalEmailsQueued || stats.emailsQueued;
+                      let milestone = 50;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 50 + (level * 20);
+                      }
+                      const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                      return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                    })()
+                  }
+                  strokeWidth="4"
+                  strokeDasharray={`${2 * Math.PI * 28}`}
+                  strokeDashoffset={
+                    (() => {
+                      let level = 0;
+                      let count = stats.totalEmailsQueued || stats.emailsQueued;
+                      let milestone = 50;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 50 + (level * 20);
+                      }
+                      const currentMilestone = 50 + (level * 20);
+                      const progress = count / currentMilestone;
+                      return 2 * Math.PI * 28 * (1 - progress);
+                    })()
+                  }
+                  className="transition-all duration-500"
+                  style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-white text-2xl font-bold">{stats.emailsQueued}</div>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[#A3B4CC] text-base font-semibold mb-1">Email Queue</div>
+              <div className="text-[#8FA6C1] text-xs mb-2">
+                Milestone: {(() => {
+                  let level = 0;
+                  let count = stats.totalEmailsQueued || stats.emailsQueued;
+                  let milestone = 50;
+                  while (count >= milestone) {
+                    count -= milestone;
+                    level++;
+                    milestone = 50 + (level * 20);
+                  }
+                  const currentMilestone = 50 + (level * 20);
+                  return `${count}/${currentMilestone}`;
+                })()}
+              </div>
+              <div className="text-[#4FD1FF] text-sm font-medium">Click to view →</div>
+            </div>
+          </div>
+        </button>
+
+        {/* Emails Sent */}
+        <button
+          onClick={() => handleQueueClick('sent', 'Sent Emails')}
+          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative w-16 h-16 flex-shrink-0">
+              <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="50%" cy="50%" r="28" fill="none" stroke="rgba(79, 209, 255, 0.2)" strokeWidth="3" />
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="28"
+                  fill="none"
+                  stroke={
+                    (() => {
+                      let level = 0;
+                      let count = stats.totalEmailsSent || stats.emailsSent;
+                      let milestone = 25;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 25 + (level * 10);
+                      }
+                      const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                      return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                    })()
+                  }
+                  strokeWidth="4"
+                  strokeDasharray={`${2 * Math.PI * 28}`}
+                  strokeDashoffset={
+                    (() => {
+                      let level = 0;
+                      let count = stats.totalEmailsSent || stats.emailsSent;
+                      let milestone = 25;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 25 + (level * 10);
+                      }
+                      const currentMilestone = 25 + (level * 10);
+                      const progress = count / currentMilestone;
+                      return 2 * Math.PI * 28 * (1 - progress);
+                    })()
+                  }
+                  className="transition-all duration-500"
+                  style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-white text-2xl font-bold">{stats.emailsSent}</div>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[#A3B4CC] text-base font-semibold mb-1">Emails Sent</div>
+              <div className="text-[#8FA6C1] text-xs mb-2">
+                Milestone: {(() => {
+                  let level = 0;
+                  let count = stats.totalEmailsSent || stats.emailsSent;
+                  let milestone = 25;
+                  while (count >= milestone) {
+                    count -= milestone;
+                    level++;
+                    milestone = 25 + (level * 10);
+                  }
+                  const currentMilestone = 25 + (level * 10);
+                  return `${count}/${currentMilestone}`;
+                })()}
+              </div>
+              <div className="text-[#4FD1FF] text-sm font-medium">Click to view →</div>
+            </div>
+          </div>
+        </button>
+
+        {/* Responses */}
+        <button
+          onClick={() => handleQueueClick('replied', 'Replied Emails')}
+          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative w-16 h-16 flex-shrink-0">
+              <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="50%" cy="50%" r="28" fill="none" stroke="rgba(79, 209, 255, 0.2)" strokeWidth="3" />
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="28"
+                  fill="none"
+                  stroke={
+                    (() => {
+                      let level = 0;
+                      let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                      let milestone = 5;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 5 + (level * 5);
+                      }
+                      const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                      return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                    })()
+                  }
+                  strokeWidth="4"
+                  strokeDasharray={`${2 * Math.PI * 28}`}
+                  strokeDashoffset={
+                    (() => {
+                      let level = 0;
+                      let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                      let milestone = 5;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 5 + (level * 5);
+                      }
+                      const currentMilestone = 5 + (level * 5);
+                      const progress = count / currentMilestone;
+                      return 2 * Math.PI * 28 * (1 - progress);
+                    })()
+                  }
+                  className="transition-all duration-500"
+                  style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-white text-2xl font-bold">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[#A3B4CC] text-base font-semibold mb-1">Responses</div>
+              <div className="text-[#8FA6C1] text-xs mb-2">
+                Milestone: {(() => {
+                  let level = 0;
+                  let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                  let milestone = 5;
+                  while (count >= milestone) {
+                    count -= milestone;
+                    level++;
+                    milestone = 5 + (level * 5);
+                  }
+                  const currentMilestone = 5 + (level * 5);
+                  return `${count}/${currentMilestone}`;
+                })()}
+              </div>
+              <div className="text-[#4FD1FF] text-sm font-medium">Click to view →</div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Navigation Tabs - Left Side (Desktop only) */}
+      <div className="hidden xl:flex fixed left-8 top-24 z-50 flex-col gap-3 w-[200px]">
+        <button
+          onClick={() => router.push('/agents-overview')}
+          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span className="text-[#A3B4CC] text-sm font-semibold">Agents</span>
+          </div>
+        </button>
+        
+        <button
+          onClick={() => router.push('/profile')}
+          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="text-[#A3B4CC] text-sm font-semibold">Profile</span>
+          </div>
+        </button>
+        
+        <button
+          onClick={() => router.push('/analytics')}
+          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            </svg>
+            <span className="text-[#A3B4CC] text-sm font-semibold">Analytics</span>
+          </div>
+        </button>
+        
+        <button
+          onClick={() => router.push('/settings')}
+          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-[#A3B4CC] text-sm font-semibold">Settings</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Mobile Navigation/Stats */}
+      <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-[47%] sm:-translate-x-1/2 sm:right-auto z-50 xl:hidden">
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => { 
                   setNavigating(true); 
                   setTimeout(() => router.push('/agents-overview'), 0);
                 }}
-                className="relative px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                className="relative px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
                 style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Agents
@@ -1198,7 +1475,7 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/profile'), 0);
                 }}
-                className="relative px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                className="relative px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
                 style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Profile
@@ -1208,7 +1485,7 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/analytics'), 0);
                 }}
-                className="relative px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                className="relative px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
                 style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Analytics
@@ -1218,7 +1495,7 @@ export default function InteractiveGlobe() {
                   setNavigating(true); 
                   setTimeout(() => router.push('/settings'), 0);
                 }}
-                className="px-3 py-2.5 sm:px-8 sm:py-3 sm:w-[280px] text-white rounded-lg sm:rounded-xl backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 hover:brightness-110 hover:shadow-xl hover:shadow-[#4FD1FF]/30 flex items-center justify-center gap-2 text-xs sm:text-2xl font-semibold shadow-lg shadow-[#4FD1FF]/10 overflow-hidden active:scale-95"
+                className="px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
                 style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
                 Settings
@@ -1316,275 +1593,7 @@ export default function InteractiveGlobe() {
         </div>
       )}
 
-      {/* Needs Review Label - Left Side */}
-      <div className="hidden xl:block fixed left-2 xl:left-4 z-35" style={{ top: 'calc(10% + 10px)', width: '240px' }}>
-        <div className="text-center py-2 bg-[#0F1E35] rounded-lg">
-          <h2 className="text-[#4FD1FF] text-sm font-bold uppercase tracking-[0.3em]">Needs Review</h2>
-        </div>
-      </div>
-
-      {/* System Label - Center */}
-      <div 
-        className={`hidden xl:block fixed left-[280px] right-[380px] z-35 transition-opacity duration-700 ${
-          showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`} 
-        style={{ top: 'calc(10% + 10px)' }}
-      >
-        <div className="text-center py-2 bg-[#0F1E35] rounded-lg">
-          <h2 className="text-[#4FD1FF] text-sm font-bold uppercase tracking-[0.3em]">System</h2>
-        </div>
-      </div>
-
-      {/* Stats Panel - Left Side, hidden on small/medium screens */}
-      <div className="hidden xl:flex fixed left-4 xl:left-8 z-40 flex-col gap-5" style={{ top: 'calc(10% + 60px)', width: '240px' }}>
-        {/* Email Queue - Formula: 50 + (n × 20), 61 colors then WHITE */}
-        <div className="p-3 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
-          <button
-            onClick={() => handleQueueClick('queued', 'Email Queue')}
-            className="w-full hover:scale-[1.02] transition-all cursor-pointer active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative w-14 h-14 flex-shrink-0">
-                <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="22"
-                    fill="none"
-                    stroke="rgba(79, 209, 255, 0.2)"
-                    strokeWidth="2"
-                  />
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="22"
-                    fill="none"
-                    stroke={
-                      (() => {
-                        let level = 0;
-                        let count = stats.totalEmailsQueued || stats.emailsQueued;
-                        let milestone = 50;
-                        while (count >= milestone) {
-                          count -= milestone;
-                          level++;
-                          milestone = 50 + (level * 20);
-                        }
-                        const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
-                        return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
-                      })()
-                    }
-                    strokeWidth="3"
-                    strokeDasharray={`${2 * Math.PI * 22}`}
-                    strokeDashoffset={
-                      (() => {
-                        let level = 0;
-                        let count = stats.totalEmailsQueued || stats.emailsQueued;
-                        let milestone = 50;
-                        while (count >= milestone) {
-                          count -= milestone;
-                          level++;
-                          milestone = 50 + (level * 20);
-                        }
-                        const currentMilestone = 50 + (level * 20);
-                        const progress = count / currentMilestone;
-                        return 2 * Math.PI * 22 * (1 - progress);
-                      })()
-                    }
-                    className="transition-all duration-500"
-                    style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-white text-lg font-bold">{stats.emailsQueued}</div>
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[#A3B4CC] text-xs mb-1">Email Queue</div>
-                <div className="text-[#8FA6C1] text-[9px]">
-                  Milestone: {(() => {
-                    let level = 0;
-                    let count = stats.totalEmailsQueued || stats.emailsQueued;
-                    let milestone = 50;
-                    while (count >= milestone) {
-                      count -= milestone;
-                      level++;
-                      milestone = 50 + (level * 20);
-                    }
-                    const currentMilestone = 50 + (level * 20);
-                    return `${count}/${currentMilestone}`;
-                  })()}
-                </div>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        {/* Emails Sent - Formula: 25 + (n × 10), 61 colors then WHITE */}
-        <div className="p-3 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
-          <button
-            onClick={() => handleQueueClick('sent', 'Sent Emails')}
-            className="w-full hover:scale-[1.02] transition-all cursor-pointer active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative w-14 h-14 flex-shrink-0">
-                <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="22"
-                    fill="none"
-                    stroke="rgba(79, 209, 255, 0.2)"
-                    strokeWidth="2"
-                  />
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="22"
-                    fill="none"
-                    stroke={
-                      (() => {
-                        let level = 0;
-                        let count = stats.totalEmailsSent || stats.emailsSent;
-                        let milestone = 25;
-                        while (count >= milestone) {
-                          count -= milestone;
-                          level++;
-                          milestone = 25 + (level * 10);
-                        }
-                        const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
-                        return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
-                      })()
-                    }
-                    strokeWidth="3"
-                    strokeDasharray={`${2 * Math.PI * 22}`}
-                    strokeDashoffset={
-                      (() => {
-                        let level = 0;
-                        let count = stats.totalEmailsSent || stats.emailsSent;
-                        let milestone = 25;
-                        while (count >= milestone) {
-                          count -= milestone;
-                          level++;
-                          milestone = 25 + (level * 10);
-                        }
-                        const currentMilestone = 25 + (level * 10);
-                        const progress = count / currentMilestone;
-                        return 2 * Math.PI * 22 * (1 - progress);
-                      })()
-                    }
-                    className="transition-all duration-500"
-                    style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-white text-lg font-bold">{stats.emailsSent}</div>
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[#A3B4CC] text-xs mb-1">Emails Sent</div>
-                <div className="text-[#8FA6C1] text-[9px]">
-                  Milestone: {(() => {
-                    let level = 0;
-                    let count = stats.totalEmailsSent || stats.emailsSent;
-                    let milestone = 25;
-                    while (count >= milestone) {
-                      count -= milestone;
-                      level++;
-                      milestone = 25 + (level * 10);
-                    }
-                    const currentMilestone = 25 + (level * 10);
-                    return `${count}/${currentMilestone}`;
-                  })()}
-                </div>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        {/* Responses - Formula: 5 + (n × 5), 61 colors then WHITE */}
-        <div className="p-3 bg-[#1B2F52]/60 rounded-xl border border-[#4FD1FF]/20">
-          <button
-            onClick={() => handleQueueClick('replied', 'Replied Emails')}
-            className="w-full hover:scale-[1.02] transition-all cursor-pointer active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative w-14 h-14 flex-shrink-0">
-                <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="22"
-                    fill="none"
-                    stroke="rgba(79, 209, 255, 0.2)"
-                    strokeWidth="2"
-                  />
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="22"
-                    fill="none"
-                    stroke={
-                      (() => {
-                        let level = 0;
-                        let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
-                        let milestone = 5;
-                        while (count >= milestone) {
-                          count -= milestone;
-                          level++;
-                          milestone = 5 + (level * 5);
-                        }
-                        const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
-                        return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
-                      })()
-                    }
-                    strokeWidth="3"
-                    strokeDasharray={`${2 * Math.PI * 22}`}
-                    strokeDashoffset={
-                      (() => {
-                        let level = 0;
-                        let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
-                        let milestone = 5;
-                        while (count >= milestone) {
-                          count -= milestone;
-                          level++;
-                          milestone = 5 + (level * 5);
-                        }
-                        const currentMilestone = 5 + (level * 5);
-                        const progress = count / currentMilestone;
-                        return 2 * Math.PI * 22 * (1 - progress);
-                      })()
-                    }
-                    className="transition-all duration-500"
-                    style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-white text-lg font-bold">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[#A3B4CC] text-xs mb-1">Responses</div>
-                <div className="text-[#8FA6C1] text-[9px]">
-                  Milestone: {(() => {
-                    let level = 0;
-                    let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
-                    let milestone = 5;
-                    while (count >= milestone) {
-                      count -= milestone;
-                      level++;
-                      milestone = 5 + (level * 5);
-                    }
-                    const currentMilestone = 5 + (level * 5);
-                    return `${count}/${currentMilestone}`;
-                  })()}
-                </div>
-              </div>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Outreach Section - Center of Dashboard */}
+      {/* Outreach Section - Center of Dashboard */
 
       <div 
         className={`hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30 transition-opacity duration-700 ${
@@ -1847,14 +1856,16 @@ export default function InteractiveGlobe() {
           </div>
         </div>
       </div>
+      
+          }{/* End Outreach Section */}
 
-      {/* Globe - Hidden on mobile */}
       {isMounted && (
         <div 
           className={`hidden sm:block fixed left-1/2 -translate-x-1/2 top-[200px] transition-all duration-700 ease-out ${
             showGlobe || isAnimatingOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
+        {/* Globe - Hidden on mobile */}
         <div className="text-center relative">
           {/* Start/Stop All Agents Button - Above Globe */}
           {(showGlobe || isAnimatingOut) && !globeLoading && (
