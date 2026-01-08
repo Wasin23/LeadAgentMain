@@ -289,6 +289,7 @@ export default function InteractiveGlobe() {
   const [agentActivities, setAgentActivities] = useState<{[agentId: string]: any}>({});
   const [emailActivity, setEmailActivity] = useState<any[]>([]);
   const [activityFilter, setActivityFilter] = useState<'all' | 'opened' | 'sent' | 'bounced'>('all');
+  const [outreachSearch, setOutreachSearch] = useState('');
   
   // Email location tracking with status (queued, sent, meeting)
   const [emailDots, setEmailDots] = useState<Array<{
@@ -1234,7 +1235,7 @@ export default function InteractiveGlobe() {
               </div>
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-[#A3B4CC] text-base font-semibold mb-1">Email Queue</div>
+              <div className="text-white text-base font-semibold mb-1">Email Queue</div>
               <div className="text-[#8FA6C1] text-xs mb-2">
                 Milestone: {(() => {
                   let level = 0;
@@ -1310,7 +1311,7 @@ export default function InteractiveGlobe() {
               </div>
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-[#A3B4CC] text-base font-semibold mb-1">Emails Sent</div>
+              <div className="text-white text-base font-semibold mb-1">Emails Sent</div>
               <div className="text-[#8FA6C1] text-xs mb-2">
                 Milestone: {(() => {
                   let level = 0;
@@ -1384,7 +1385,7 @@ export default function InteractiveGlobe() {
               </div>
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-[#A3B4CC] text-base font-semibold mb-1">Responses</div>
+              <div className="text-white text-base font-semibold mb-1">Responses</div>
               <div className="text-[#8FA6C1] text-xs mb-2">
                 Milestone: {(() => {
                   let level = 0;
@@ -1691,6 +1692,22 @@ export default function InteractiveGlobe() {
             </div>
           </div>
           
+          {/* Search Input */}
+          <div className="mb-2 mt-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search emails..."
+                value={outreachSearch}
+                onChange={(e) => setOutreachSearch(e.target.value)}
+                className="w-full px-3 py-2 pl-9 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm placeholder-[#8FA6C1] focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8FA6C1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          
           <div className="space-y-2 h-[635px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
             {emailActivity.length === 0 ? (
               <div className="text-center py-20">
@@ -1707,9 +1724,16 @@ export default function InteractiveGlobe() {
                 .filter(email => {
                   if (activityFilter === 'all') return true;
                   if (activityFilter === 'opened') return email.analyticsStatus?.opened;
-                  if (activityFilter === 'sent') return !email.analyticsStatus?.opened; // Sent but not opened
+                  if (activityFilter === 'sent') return !email.analyticsStatus?.opened;
                   if (activityFilter === 'bounced') return email.status === 'bounced';
                   return true;
+                })
+                .filter(email => {
+                  if (!outreachSearch) return true;
+                  const searchLower = outreachSearch.toLowerCase();
+                  const recipient = (email.to || email.recipient || '').toLowerCase();
+                  const subject = (email.subject || '').toLowerCase();
+                  return recipient.includes(searchLower) || subject.includes(searchLower);
                 })
                 .map((email, idx) => {
                   const hasOpened = email.analyticsStatus?.opened; // Real open (second hit)
