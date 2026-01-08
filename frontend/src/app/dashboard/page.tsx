@@ -1827,9 +1827,10 @@ export default function InteractiveGlobe() {
 
       {isMounted && (
         <div 
-          className={`hidden sm:block fixed left-1/2 -translate-x-1/2 top-[200px] transition-all duration-700 ease-out ${
+          className={`hidden sm:block fixed top-[200px] transition-all duration-700 ease-out ${
             showGlobe || isAnimatingOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
+          style={{ left: '50%', transform: 'translateX(-50%)' }}
         >
         {/* Globe - Hidden on mobile */}
         <div className="text-center relative">
