@@ -1260,7 +1260,7 @@ export default function InteractiveGlobe() {
           className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1 max-w-[380px]"
         >
           <div className="flex items-center gap-3">
-            <div className="relative w-16 h-16 flex-shrink-0">
+            <div className="relative w-16 h-16 flex-shrink-0 rounded-full bg-[#243D63]">
               <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
                 <circle cx="50%" cy="50%" r="28" fill="none" stroke="rgba(79, 209, 255, 0.2)" strokeWidth="3" />
                 <circle
