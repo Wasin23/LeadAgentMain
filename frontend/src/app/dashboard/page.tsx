@@ -1179,11 +1179,11 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Top Queue Stats - Desktop horizontal layout */}
-      <div className="hidden xl:flex fixed top-6 left-[47%] -translate-x-1/2 z-50 gap-5">
+      <div className="hidden xl:flex fixed top-6 left-[265px] right-[380px] z-50 justify-between">
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="p-5 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1 max-w-[380px]"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1257,7 +1257,7 @@ export default function InteractiveGlobe() {
         {/* Emails Sent */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="p-5 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1 max-w-[380px]"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1331,7 +1331,7 @@ export default function InteractiveGlobe() {
         {/* Responses */}
         <button
           onClick={() => handleQueueClick('replied', 'Replied Emails')}
-          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+          className="p-3 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1 max-w-[380px]"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1609,13 +1609,13 @@ export default function InteractiveGlobe() {
       {/* Outreach Section - Center of Dashboard */
 
       <div 
-        className={`hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-6 z-30 transition-opacity duration-700 ${
+        className={`hidden xl:flex fixed left-[265px] right-[380px] flex-col gap-6 z-30 transition-opacity duration-700 ${
           showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`} 
         style={{ top: 'calc(10% + 60px)' }}
       >
         {/* Email Activity Log */}
-        <div className="bg-[#1B2F52]/95 rounded-lg p-4 shadow-lg">
+        <div className="bg-[#223B61]/95 rounded p-4 shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Outreach Feed</h3>
             <div className="flex items-center gap-3">
@@ -1689,7 +1689,7 @@ export default function InteractiveGlobe() {
             </div>
           </div>
           
-          <div className="space-y-2 h-[620px] overflow-y-auto">
+          <div className="space-y-2 h-[635px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
             {emailActivity.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -1721,7 +1721,7 @@ export default function InteractiveGlobe() {
                   return (
                     <div 
                       key={email.trackingId || email.id || idx} 
-                      className="bg-[#0F1E35]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all"
+                      className="bg-[#0A1525]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
