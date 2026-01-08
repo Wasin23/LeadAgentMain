@@ -254,7 +254,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
 
   return (
     <>
-      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/10 flex flex-col overflow-y-auto sm:pt-20">
+      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/10 flex flex-col overflow-y-auto sm:pt-4">
       {/* Header */}
       <div className="px-6 py-5 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
@@ -344,6 +344,43 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             : 'Start All Agents'
           }
         </button>
+
+        {/* Active Agents Display */}
+        <div className="mt-4 rounded-xl">
+          <div className="text-[#A3B4CC] text-xs uppercase tracking-wider mb-3 font-semibold">Active Agents</div>
+          {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 ? (
+            <div className="flex flex-wrap gap-3">
+              {agents
+                .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
+                .slice(0, 5)
+                .map((agent) => (
+                  <div key={agent.agentId} className="relative">
+                    {(agent as any).avatar ? (
+                      <img
+                        src={(agent as any).avatar}
+                        alt={agent.agentName}
+                        className="w-12 h-12 rounded-full border-2 border-[#4FD1FF]/60"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4FD1FF] to-[#2A8FB9] flex items-center justify-center text-white font-bold text-sm border-2 border-[#4FD1FF]/60">
+                        {agent.agentName.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0F1E35] animate-pulse" />
+                  </div>
+                ))}
+              {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 5 && (
+                <div className="w-12 h-12 rounded-full bg-[#1B2F52] flex items-center justify-center border-2 border-[#4FD1FF]/40">
+                  <span className="text-[#4FD1FF] text-xs font-bold">
+                    +{agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length - 5}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-[#8FA6C1] text-sm">None</div>
+          )}
+        </div>
         
         {/* Globe View Toggle */}
         {setShowGlobe && (

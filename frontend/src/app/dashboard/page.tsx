@@ -1160,8 +1160,11 @@ export default function InteractiveGlobe() {
         </div>
       </div>
 
-      {/* User Menu & Help - Positioned within Command Center bounds */}
-      <div className="fixed top-4 right-8 z-50 flex items-center gap-3">
+      {/* User Menu & Help - Bottom Left Corner */}
+      <div className="fixed bottom-4 left-4 z-50 flex items-center gap-3">
+        <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
+          <UserMenu />
+        </div>
         {/* Help icon for mobile, full button for desktop */}
         <button
           onClick={() => {/* Open help - can add HelpChat trigger here */}}
@@ -1173,9 +1176,6 @@ export default function InteractiveGlobe() {
         <div className="sm:block hidden">
           <HelpChat />
         </div>
-        <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
-          <UserMenu />
-        </div>
       </div>
 
       {/* Top Queue Stats - Desktop horizontal layout */}
@@ -1183,7 +1183,7 @@ export default function InteractiveGlobe() {
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+          className="p-5 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1257,7 +1257,7 @@ export default function InteractiveGlobe() {
         {/* Emails Sent */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
+          className="p-5 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer w-[380px]"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1404,10 +1404,14 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Navigation Tabs - Left Side (Desktop only) */}
-      <div className="hidden xl:flex fixed left-8 top-24 z-50 flex-col gap-3 w-[200px]">
+      <div className="hidden xl:flex fixed left-8 top-32 z-50 flex-col gap-3 w-[200px]">
+        <div className="text-[#8FA6C1] text-xs font-medium uppercase tracking-wider mb-2">Navigation</div>
         <button
-          onClick={() => router.push('/agents-overview')}
-          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          onClick={() => { 
+            setNavigating(true); 
+            setTimeout(() => router.push('/agents-overview'), 0);
+          }}
+          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1418,8 +1422,11 @@ export default function InteractiveGlobe() {
         </button>
         
         <button
-          onClick={() => router.push('/profile')}
-          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          onClick={() => { 
+            setNavigating(true); 
+            setTimeout(() => router.push('/profile'), 0);
+          }}
+          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1430,8 +1437,11 @@ export default function InteractiveGlobe() {
         </button>
         
         <button
-          onClick={() => router.push('/analytics')}
-          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          onClick={() => { 
+            setNavigating(true); 
+            setTimeout(() => router.push('/analytics'), 0);
+          }}
+          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1443,8 +1453,11 @@ export default function InteractiveGlobe() {
         </button>
         
         <button
-          onClick={() => router.push('/settings')}
-          className="p-3 bg-[#1B2F52]/80 rounded-xl border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#1B2F52]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          onClick={() => { 
+            setNavigating(true); 
+            setTimeout(() => router.push('/settings'), 0);
+          }}
+          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1596,62 +1609,15 @@ export default function InteractiveGlobe() {
       {/* Outreach Section - Center of Dashboard */
 
       <div 
-        className={`hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-4 z-30 transition-opacity duration-700 ${
+        className={`hidden xl:flex fixed left-[280px] right-[380px] flex-col gap-6 z-30 transition-opacity duration-700 ${
           showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`} 
         style={{ top: 'calc(10% + 60px)' }}
       >
-        {/* Active Agents Display - Moved to top */}
-        <div className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="text-[#A3B4CC] text-xs font-medium uppercase tracking-wider">Active Agents</div>
-            {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 ? (
-              <div className="flex -space-x-1.5">
-                {agents
-                  .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
-                  .slice(0, 5)
-                  .map((agent) => {
-                    const avatarSrc = agent.avatar || agent.personality?.avatar;
-                    return (
-                      <div
-                        key={agent.agentId}
-                        className="relative group"
-                        title={agent.name}
-                      >
-                        {avatarSrc ? (
-                          <img
-                            src={avatarSrc}
-                            alt={agent.name}
-                            className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/50 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/50 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                            {agent.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-white/50 animate-pulse" />
-                      </div>
-                    );
-                  })}
-                {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 5 && (
-                  <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/50 bg-[#1B2F52] flex items-center justify-center text-[#4FD1FF] text-[10px] font-bold">
-                    +{agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length - 5}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-[#8FA6C1] text-xs">None</div>
-            )}
-          </div>
-        </div>
-
         {/* Email Activity Log */}
-        <div className="bg-[#1B2F52]/95 rounded-lg border-2 border-[#4FD1FF]/40 p-4 shadow-lg">
+        <div className="bg-[#1B2F52]/95 rounded-lg p-4 shadow-lg">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Email Activity</h3>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Outreach Feed</h3>
             <div className="flex items-center gap-3">
               {/* Stats - Opens, Responses, Bounced */}
               <div className="flex items-center gap-3 mr-2 border-r border-white/10 pr-3">
@@ -1723,7 +1689,7 @@ export default function InteractiveGlobe() {
             </div>
           </div>
           
-          <div className="space-y-2 h-[530px] overflow-y-auto">
+          <div className="space-y-2 h-[620px] overflow-y-auto">
             {emailActivity.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">

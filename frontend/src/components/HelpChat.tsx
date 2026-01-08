@@ -141,10 +141,10 @@ export default function HelpChat() {
       {/* Help Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm rounded-xl px-8 py-3 flex items-center gap-2 transition-all shadow-lg"
+        className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-2 transition-all shadow-lg border border-white/20 h-[48px]"
       >
         <HelpCircle className="w-5 h-5" />
-        <span className="font-medium">Help</span>
+        <span className="font-medium text-sm">Help</span>
       </button>
 
       {/* Chat Modal */}

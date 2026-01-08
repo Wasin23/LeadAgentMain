@@ -67,7 +67,7 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
             {userInitial}
           </span>
         </div>
-        <span className="hidden sm:inline text-xs truncate max-w-[120px]">{displayName}</span>
+        <span className="hidden text-xs truncate max-w-[120px]">{displayName}</span>
         <ChevronDownIcon className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
@@ -82,10 +82,10 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
             
             {/* Menu */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              className="absolute right-0 mt-2 w-96 bg-white border border-neutral-200 rounded-2xl shadow-2xl z-20"
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="absolute left-0 bottom-full mb-2 w-96 bg-white border border-neutral-200 rounded-2xl shadow-2xl z-20"
             >
               {/* User Info */}
               <div className="px-4 py-3 border-b border-neutral-200">
