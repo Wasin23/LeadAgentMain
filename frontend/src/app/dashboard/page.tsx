@@ -1180,11 +1180,11 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Top Queue Stats - Desktop horizontal layout */}
-      <div className="hidden xl:flex fixed top-6 left-[265px] right-[380px] z-50 justify-between">
+      <div className="hidden xl:flex fixed top-6 left-[265px] lg:right-[20%] z-50 justify-between gap-6">
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1 max-w-[380px]"
+          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1258,7 +1258,7 @@ export default function InteractiveGlobe() {
         {/* Emails Sent */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1 max-w-[380px]"
+          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0 rounded-full bg-[#243D63]">
@@ -1334,7 +1334,7 @@ export default function InteractiveGlobe() {
         {/* Responses */}
         <button
           onClick={() => handleQueueClick('replied', 'Replied Emails')}
-          className="p-3 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1 max-w-[380px]"
+          className="p-3 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1612,7 +1612,7 @@ export default function InteractiveGlobe() {
       {/* Outreach Section - Center of Dashboard */
 
       <div 
-        className={`hidden xl:flex fixed left-[265px] right-[380px] flex-col gap-6 z-30 transition-opacity duration-700 ${
+        className={`hidden xl:flex fixed left-[265px] lg:right-[20%] flex-col gap-6 z-30 transition-opacity duration-700 ${
           showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`} 
         style={{ top: 'calc(10% + 60px)' }}
@@ -1708,7 +1708,7 @@ export default function InteractiveGlobe() {
             </div>
           </div>
           
-          <div className="space-y-2 h-[635px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
+          <div className="space-y-2 h-[615px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
             {emailActivity.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -1853,7 +1853,7 @@ export default function InteractiveGlobe() {
 
       {isMounted && (
         <div 
-          className={`hidden sm:flex fixed left-[265px] right-[380px] top-[200px] justify-center transition-all duration-700 ease-out ${
+          className={`hidden sm:flex fixed left-[265px] lg:right-[20%] top-[200px] justify-center transition-all duration-700 ease-out ${
             showGlobe || isAnimatingOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
