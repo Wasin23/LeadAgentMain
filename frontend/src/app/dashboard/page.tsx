@@ -1180,7 +1180,7 @@ export default function InteractiveGlobe() {
       </div>
 
       {/* Top Queue Stats - Desktop horizontal layout */}
-      <div className="hidden xl:flex fixed top-6 left-[265px] lg:right-[20%] z-50 justify-between gap-6">
+      <div className="hidden xl:flex fixed top-6 left-[265px] lg:right-[calc(20%+10px)] z-50 justify-between gap-6">
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
@@ -1612,7 +1612,7 @@ export default function InteractiveGlobe() {
       {/* Outreach Section - Center of Dashboard */
 
       <div 
-        className={`hidden xl:flex fixed left-[265px] lg:right-[20%] flex-col gap-6 z-30 transition-opacity duration-700 ${
+        className={`hidden xl:flex fixed left-[265px] lg:right-[calc(20%+10px)] flex-col gap-6 z-30 transition-opacity duration-700 ${
           showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`} 
         style={{ top: 'calc(10% + 60px)' }}
@@ -1853,7 +1853,7 @@ export default function InteractiveGlobe() {
 
       {isMounted && (
         <div 
-          className={`hidden sm:flex fixed left-[265px] lg:right-[20%] top-[200px] justify-center transition-all duration-700 ease-out ${
+          className={`hidden sm:flex fixed left-[265px] lg:right-[calc(20%+10px)] top-[200px] justify-center transition-all duration-700 ease-out ${
             showGlobe || isAnimatingOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
