@@ -80,6 +80,11 @@ router.get('/dashboard', isAdmin, async (req, res) => {
     });
     const { Items: payments } = await awsManager.dynamodb.send(paymentsCommand);
     
+    console.log(`💳 [ADMIN] Found ${payments?.length || 0} payment records`);
+    if (payments && payments.length > 0) {
+      console.log(`💳 [ADMIN] Sample payment:`, JSON.stringify(payments[0], null, 2));
+    }
+    
     // Calculate totals
     const totalBilling = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
     
@@ -102,7 +107,7 @@ router.get('/dashboard', isAdmin, async (req, res) => {
       monthlyBilling[monthKey].total += payment.amount || 0;
       monthlyBilling[monthKey].count += 1;
       
-      if (payment.status === 'succeeded') {
+      if (payment.status === 'success') {
         monthlyBilling[monthKey].successful += 1;
       } else if (payment.status === 'failed') {
         monthlyBilling[monthKey].failed += 1;
@@ -117,6 +122,16 @@ router.get('/dashboard', isAdmin, async (req, res) => {
       const userSettings = settings?.find(s => s.userId === user.userId);
       const userPayments = payments?.filter(p => p.userId === user.userId) || [];
       const totalSpent = userPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const failedPayments = userPayments.filter(p => p.status === 'failed');
+      const outstandingAmount = failedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      // Check multiple fields for payment method (Stripe can store it in different places)
+      const hasPaymentMethod = !!(
+        userSettings?.defaultPaymentMethodId || 
+        userSettings?.stripePaymentMethodId ||
+        user.stripePaymentMethodId ||
+        (user.stripeCustomerId && userSettings?.paymentStatus === 'active')
+      );
       
       return {
         userId: user.userId,
@@ -125,11 +140,13 @@ router.get('/dashboard', isAdmin, async (req, res) => {
         createdAt: user.createdAt,
         stripeCustomerId: user.stripeCustomerId,
         paymentStatus: userSettings?.paymentStatus || 'unknown',
-        hasPaymentMethod: !!userSettings?.defaultPaymentMethodId,
+        hasPaymentMethod: hasPaymentMethod,
         lastChargeDate: userSettings?.lastChargeDate,
         lastChargeAmount: userSettings?.lastChargeAmount,
         gracePeriodEnd: userSettings?.gracePeriodEnd,
         totalSpent: totalSpent,
+        outstandingAmount: outstandingAmount,
+        failedPaymentCount: failedPayments.length,
         paymentCount: userPayments.length
       };
     }).filter(u => u.email) || []; // Filter out any invalid entries

@@ -31,6 +31,8 @@ interface Account {
   paymentStatus: string;
   hasPaymentMethod: boolean;
   totalSpent: number;
+  outstandingAmount: number;
+  failedPaymentCount: number;
   lastChargeDate: string;
   paymentCount: number;
 }
@@ -283,6 +285,7 @@ export default function AdminDashboard() {
                   <th className="text-left py-3 px-4 text-[#8FA6C1] text-sm uppercase tracking-wider">Status</th>
                   <th className="text-left py-3 px-4 text-[#8FA6C1] text-sm uppercase tracking-wider">Payment Method</th>
                   <th className="text-left py-3 px-4 text-[#8FA6C1] text-sm uppercase tracking-wider">Total Spent</th>
+                  <th className="text-left py-3 px-4 text-[#8FA6C1] text-sm uppercase tracking-wider">Outstanding</th>
                   <th className="text-left py-3 px-4 text-[#8FA6C1] text-sm uppercase tracking-wider">Last Charge</th>
                   <th className="text-left py-3 px-4 text-[#8FA6C1] text-sm uppercase tracking-wider">Payments</th>
                 </tr>
@@ -290,7 +293,7 @@ export default function AdminDashboard() {
               <tbody>
                 {dashboardData.accounts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-4 text-[#8FA6C1]">
+                    <td colSpan={8} className="text-center py-4 text-[#8FA6C1]">
                       No accounts found
                     </td>
                   </tr>
@@ -311,6 +314,14 @@ export default function AdminDashboard() {
                         {account.hasPaymentMethod ? '✓ Card on file' : '✗ No payment'}
                       </td>
                       <td className="py-3 px-4">${account.totalSpent.toFixed(2)}</td>
+                      <td className="py-3 px-4">
+                        <span className={account.outstandingAmount > 0 ? 'text-red-400 font-semibold' : 'text-green-400'}>
+                          ${account.outstandingAmount.toFixed(2)}
+                          {account.failedPaymentCount > 0 && (
+                            <span className="text-xs ml-2">({account.failedPaymentCount} failed)</span>
+                          )}
+                        </span>
+                      </td>
                       <td className="py-3 px-4">
                         {account.lastChargeDate
                           ? new Date(account.lastChargeDate).toLocaleDateString()
