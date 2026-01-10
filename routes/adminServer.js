@@ -76,7 +76,7 @@ router.get('/dashboard', isAdmin, async (req, res) => {
     
     // Get all payment history
     const paymentsCommand = new ScanCommand({
-      TableName: awsManager.tables.payments
+      TableName: awsManager.tables.paymentHistory
     });
     const { Items: payments } = await awsManager.dynamodb.send(paymentsCommand);
     
