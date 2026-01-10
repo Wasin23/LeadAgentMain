@@ -3286,9 +3286,9 @@ export default function InteractiveGlobe() {
                 <div className="bg-purple-500/5 rounded-xl p-4 border border-purple-500/20">
                   <h4 className="text-lg font-semibold text-purple-300 mb-3">🔗 All Research Sources</h4>
                   <div className="space-y-2">
-                    {Array.from(new Set(viewingAiReport.allCitedFacts.map((f: any) => f.source)))
-                      .filter((source: string) => source)
-                      .map((source: string, i: number) => {
+                    {(Array.from(new Set(viewingAiReport.allCitedFacts.map((f: any) => f.source))) as string[])
+                      .filter((source) => source)
+                      .map((source, i) => {
                         const sourceTitle = viewingAiReport.allCitedFacts.find((f: any) => f.source === source)?.sourceTitle;
                         return (
                           <a
