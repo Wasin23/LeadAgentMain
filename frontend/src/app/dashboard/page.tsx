@@ -1785,7 +1785,7 @@ export default function InteractiveGlobe() {
                               ) : (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                                  className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[9px] font-medium rounded cursor-pointer hover:bg-orange-500/30 transition-colors"
+                                  className="px-1.5 py-0.5 bg-gray-500/20 border border-gray-500/40 text-gray-400 text-[9px] font-medium rounded cursor-pointer hover:bg-gray-500/30 transition-colors"
                                   title="PROMOTIONAL - No tracking pixel hit yet, likely in Promotions/Social tab or Spam (images not auto-loaded)"
                                 >
                                   PROMOTIONAL
@@ -3152,7 +3152,7 @@ export default function InteractiveGlobe() {
       {/* AI Report Modal */}
       {viewingAiReport && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
           onClick={() => setViewingAiReport(null)}
         >
           <div 
@@ -3262,13 +3262,53 @@ export default function InteractiveGlobe() {
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                           </svg>
-                          <span className="truncate">{evidence.source}</span>
+                          <a 
+                            href={evidence.source} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="truncate hover:text-blue-400 hover:underline transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {evidence.source}
+                          </a>
                           <span className={`ml-auto px-2 py-0.5 rounded-full ${evidence.supportsMatch ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
                             {evidence.supportsMatch ? 'Supports' : 'Conflicts'}
                           </span>
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* All Research Sources */}
+              {viewingAiReport.allCitedFacts && viewingAiReport.allCitedFacts.length > 0 && (
+                <div className="bg-purple-500/5 rounded-xl p-4 border border-purple-500/20">
+                  <h4 className="text-lg font-semibold text-purple-300 mb-3">🔗 All Research Sources</h4>
+                  <div className="space-y-2">
+                    {Array.from(new Set(viewingAiReport.allCitedFacts.map((f: any) => f.source)))
+                      .filter((source: string) => source)
+                      .map((source: string, i: number) => {
+                        const sourceTitle = viewingAiReport.allCitedFacts.find((f: any) => f.source === source)?.sourceTitle;
+                        return (
+                          <a
+                            key={i}
+                            href={source}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <svg className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                              {sourceTitle && <div className="text-white text-sm font-medium group-hover:text-purple-300 transition-colors">{sourceTitle}</div>}
+                              <div className="text-white/50 text-xs truncate group-hover:text-purple-400/70">{source}</div>
+                            </div>
+                          </a>
+                        );
+                      })}
                   </div>
                 </div>
               )}
