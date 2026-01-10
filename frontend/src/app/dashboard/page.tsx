@@ -1736,6 +1736,7 @@ export default function InteractiveGlobe() {
                   const subject = (email.subject || '').toLowerCase();
                   return recipient.includes(searchLower) || subject.includes(searchLower);
                 })
+                .slice(0, 20) // Limit to 20 most recent emails for performance
                 .map((email, idx) => {
                   const hasOpened = email.analyticsStatus?.opened; // Real open (second hit)
                   const hasProxy = email.analyticsStatus?.hasProxy; // First hit (proxy)
@@ -2443,7 +2444,7 @@ export default function InteractiveGlobe() {
       {selectedQueue && !navigating && (
         <div className="fixed inset-0 bg-black/50 z-[100]">
           <div 
-            className="bg-gradient-to-br from-[#1B2F52] via-[#223A63] to-[#2A4570] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-[#4FD1FF]/30 absolute"
+            className="bg-gradient-to-br from-[#1B2F52] via-[#223A63] to-[#2A4570] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-[#4FD1FF]/30 absolute relative"
             style={{
               width: `${modalSize.width}px`,
               height: `${modalSize.height}px`,
@@ -3152,7 +3153,7 @@ export default function InteractiveGlobe() {
       {/* AI Report Overlay - Inside Queue Modal */}
       {viewingAiReport && selectedQueue && (
         <div 
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fadeIn"
+          className="absolute inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-6 animate-fadeIn"
           onClick={() => setViewingAiReport(null)}
         >
           <div 
