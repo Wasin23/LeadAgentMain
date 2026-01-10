@@ -265,6 +265,7 @@ export default function InteractiveGlobe() {
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
   const [editingEmail, setEditingEmail] = useState<{id: string, subject: string, body: string, to: string, cc?: string, bcc?: string} | null>(null);
   const [selectedEmailForView, setSelectedEmailForView] = useState<any | null>(null); // For viewing email details
+  const [viewingAiReport, setViewingAiReport] = useState<any | null>(null); // For viewing AI research reports
   const [navigating, setNavigating] = useState(false);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
@@ -2473,6 +2474,21 @@ export default function InteractiveGlobe() {
                 <h2 className="text-2xl font-bold text-white">
                   {selectedAgent ? selectedAgent.name : selectedQueue?.agentName || 'Queue'}
                 </h2>
+                {selectedAgent && selectedQueue && (
+                  <select
+                    value={selectedQueue.type}
+                    onChange={(e) => {
+                      const newType = e.target.value as 'queued' | 'sent' | 'replied';
+                      setSelectedQueue({ ...selectedQueue, type: newType });
+                      fetchQueueEmails(selectedAgent.agentId, newType);
+                    }}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm border border-white/20 cursor-pointer"
+                  >
+                    <option value="queued">Queued</option>
+                    <option value="sent">Sent</option>
+                    <option value="replied">Replied</option>
+                  </select>
+                )}
               </div>
               <button
                 onClick={() => {
@@ -2698,6 +2714,11 @@ export default function InteractiveGlobe() {
                       const isEditing = editingEmail?.id === emailId;
                       const isOrphaned = email.agentId === 'orphan';
                       
+                      // Debug: Log email data to see if aiReport exists
+                      if (!email.aiReport) {
+                        console.log('📧 Email missing aiReport:', emailId, 'Keys:', Object.keys(email));
+                      }
+                      
                       return (
                         <div key={emailId} className="bg-white/15 border border-white/20 rounded-xl overflow-hidden">
                           {/* Email Title Row - Always Visible */}
@@ -2740,9 +2761,34 @@ export default function InteractiveGlobe() {
                               )}
                             </div>
                             <div className="flex items-center gap-3 ml-4">
-                              {email.scheduledFor && (
-                                <div className="text-xs text-white/50">
-                                  {new Date(email.scheduledFor).toLocaleDateString()}
+                              {/* Date Info */}
+                              <div className="text-xs text-white/50 text-right">
+                                {email.timestamp && (
+                                  <div>Queued: {new Date(email.timestamp).toLocaleDateString()}</div>
+                                )}
+                                {email.scheduledFor && (
+                                  <div>Scheduled: {new Date(email.scheduledFor).toLocaleDateString()}</div>
+                                )}
+                              </div>
+                              {/* AI Report Icon */}
+                              {email.aiReport ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setViewingAiReport(email.aiReport);
+                                  }}
+                                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors group/ai"
+                                  title="View AI Research Report"
+                                >
+                                  <svg className="w-5 h-5 text-blue-400 group-hover/ai:text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                </button>
+                              ) : (
+                                <div className="p-1.5 opacity-30" title="No AI Report (pre-existing email)">
+                                  <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
                                 </div>
                               )}
                               <svg 
@@ -3082,6 +3128,142 @@ export default function InteractiveGlobe() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Report Modal */}
+      {viewingAiReport && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+          onClick={() => setViewingAiReport(null)}
+        >
+          <div 
+            className="bg-gradient-to-br from-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/20 max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div>
+                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  AI Research Report
+                </h3>
+                <p className="text-white/60 text-sm mt-1">{viewingAiReport.companyName}</p>
+              </div>
+              <button
+                onClick={() => setViewingAiReport(null)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6 text-white/70" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Qualification Tier */}
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-lg font-semibold text-white">Qualification Tier</h4>
+                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                    viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+                    viewingAiReport.tier === 'QUALIFIED' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                    viewingAiReport.tier === 'SHOTGUN' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+                    'bg-red-500/20 text-red-300 border border-red-500/30'
+                  }`}>
+                    {viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? '⭐ Highly Qualified' :
+                     viewingAiReport.tier === 'QUALIFIED' ? '✅ Qualified' :
+                     viewingAiReport.tier === 'SHOTGUN' ? '🎯 Shotgun' :
+                     '❌ Rejected'}
+                  </span>
+                </div>
+                <p className="text-white/70 text-sm mb-2">{viewingAiReport.tierDescription}</p>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-white/60">Score: <span className="text-white font-semibold">{viewingAiReport.score}/100</span></span>
+                  <span className="text-white/60">Confidence: <span className={`font-semibold ${
+                    viewingAiReport.confidence === 'HIGH' ? 'text-green-400' :
+                    viewingAiReport.confidence === 'MEDIUM' ? 'text-yellow-400' :
+                    'text-red-400'
+                  }`}>{viewingAiReport.confidence}</span></span>
+                  <span className="text-white/60">Research: <span className="text-white font-semibold">{viewingAiReport.researchQuality}</span></span>
+                </div>
+              </div>
+
+              {/* Email Strategy */}
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <h4 className="text-lg font-semibold text-white mb-2">Email Strategy</h4>
+                <p className="text-white/70 text-sm">{viewingAiReport.emailStrategy}</p>
+              </div>
+
+              {/* AI Reasoning */}
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <h4 className="text-lg font-semibold text-white mb-2">AI Reasoning</h4>
+                <p className="text-white/70 text-sm whitespace-pre-wrap">{viewingAiReport.reasoning}</p>
+              </div>
+
+              {/* Key Strengths */}
+              {viewingAiReport.keyStrengths && viewingAiReport.keyStrengths.length > 0 && (
+                <div className="bg-green-500/5 rounded-xl p-4 border border-green-500/20">
+                  <h4 className="text-lg font-semibold text-green-300 mb-3">💪 Key Strengths</h4>
+                  <ul className="space-y-2">
+                    {viewingAiReport.keyStrengths.map((strength: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-white/80 text-sm">
+                        <span className="text-green-400 mt-0.5">✓</span>
+                        <span>{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Weaknesses */}
+              {viewingAiReport.weaknesses && viewingAiReport.weaknesses.length > 0 && (
+                <div className="bg-yellow-500/5 rounded-xl p-4 border border-yellow-500/20">
+                  <h4 className="text-lg font-semibold text-yellow-300 mb-3">⚠️ Concerns</h4>
+                  <ul className="space-y-2">
+                    {viewingAiReport.weaknesses.map((weakness: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-white/80 text-sm">
+                        <span className="text-yellow-400 mt-0.5">!</span>
+                        <span>{weakness}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Cited Evidence */}
+              {viewingAiReport.citedEvidence && viewingAiReport.citedEvidence.length > 0 && (
+                <div className="bg-blue-500/5 rounded-xl p-4 border border-blue-500/20">
+                  <h4 className="text-lg font-semibold text-blue-300 mb-3">📚 Cited Evidence ({viewingAiReport.totalSources} sources)</h4>
+                  <div className="space-y-3">
+                    {viewingAiReport.citedEvidence.map((evidence: any, i: number) => (
+                      <div key={i} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                        <p className="text-white text-sm mb-2">{evidence.fact}</p>
+                        <div className="flex items-center gap-2 text-xs text-white/50">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                          <span className="truncate">{evidence.source}</span>
+                          <span className={`ml-auto px-2 py-0.5 rounded-full ${evidence.supportsMatch ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                            {evidence.supportsMatch ? 'Supports' : 'Conflicts'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Metadata */}
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-xs text-white/50">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>Evaluated: {new Date(viewingAiReport.evaluatedAt).toLocaleString()}</div>
+                  <div>Contact: {viewingAiReport.contactName}</div>
+                </div>
               </div>
             </div>
           </div>

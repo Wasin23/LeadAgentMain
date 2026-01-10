@@ -2053,33 +2053,49 @@ Respond in JSON format:
     const personName = leadData?.name || 'Unknown';
     const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
     
-    console.log(`📊 [QUALIFY] Detailed evaluation: ${personName} at ${companyName}`);
+    console.log(`📊 [QUALIFY] Tiered evaluation: ${personName} at ${companyName}`);
     
     try {
-      // If no campaign plan, use default qualification (always qualify)
+      // If no campaign plan, use default qualification (SHOTGUN tier)
       if (!this.campaignPlan || !this.campaignPlan.qualificationCriteria) {
-        console.log('📋 [QUALIFY] No campaign plan, accepting lead');
+        console.log('📋 [QUALIFY] No campaign plan, defaulting to SHOTGUN tier');
         return {
           success: true,
           qualified: true,
-          score: 75,
-          reasoning: 'No specific criteria configured, lead accepted',
+          tier: 'SHOTGUN',
+          score: 50,
+          reasoning: 'No specific criteria configured, lead accepted for generic outreach',
           keyStrengths: ['Meets basic targeting criteria'],
-          weaknesses: []
+          weaknesses: ['No research verification available'],
+          aiReport: {
+            tier: 'SHOTGUN',
+            tierDescription: 'Generic outreach - limited research data',
+            citedFacts: [],
+            confidence: 0.3,
+            emailStrategy: 'Use generic template without personalization'
+          }
         };
       }
       
       const criteria = this.campaignPlan.qualificationCriteria;
       
-      // Extract research insights
+      // Extract research insights with citations
       let researchSummary = 'No research data available';
-      if (researchData?.data?.organic && researchData.data.organic.length > 0) {
+      let allCitedFacts = [];
+      
+      if (researchData?.citedFacts && researchData.citedFacts.length > 0) {
+        allCitedFacts = researchData.citedFacts;
+        researchSummary = allCitedFacts
+          .map(fact => `${fact.text} [Source: ${fact.sourceTitle}]`)
+          .join('\n');
+      } else if (researchData?.data?.organic && researchData.data.organic.length > 0) {
+        // Fallback to old format
         researchSummary = researchData.data.organic.slice(0, 5)
           .map(r => r.snippet)
           .join(' ');
       }
       
-      const prompt = `You are an expert lead qualification analyst. Evaluate this lead comprehensively.
+      const prompt = `You are an expert lead qualification analyst. Evaluate this lead using TIERED QUALIFICATION.
 
 LEAD PROFILE:
 Name: ${personName}
@@ -2088,31 +2104,62 @@ Company: ${companyName}
 Industry: ${leadData?.organization?.industry || 'Unknown'}
 Company Size: ${leadData?.organization?.estimated_num_employees || 'Unknown'} employees
 
-RESEARCH FINDINGS:
+RESEARCH FINDINGS (WITH SOURCES):
 ${researchSummary}
 
 QUALIFICATION CRITERIA:
 Must Have (required): ${criteria.mustHave?.join(', ') || 'None'}
 Nice to Have (bonus points): ${criteria.niceToHave?.join(', ') || 'None'}
-Disqualifiers (instant fail): ${criteria.disqualifiers?.join(', ') || 'None'}
+Disqualifiers (instant reject): ${criteria.disqualifiers?.join(', ') || 'None'}
 
-EVALUATION TASK:
-1. Check for disqualifiers (instant 0 score if found)
-2. Score against must-have criteria (0-60 points)
-3. Score against nice-to-have criteria (0-40 points)
-4. Identify key strengths that match campaign goals
-5. Note any weaknesses or concerns
+TIERED EVALUATION SYSTEM:
+
+TIER 1: HIGHLY_QUALIFIED (Score 80-100)
+- All must-have criteria verified with strong evidence
+- Multiple specific facts from research confirm fit
+- Ready for deeply personalized email with cited research
+- Example: Independent hotel owner, 50 rooms, uses legacy PMS, seeking upgrade
+
+TIER 2: QUALIFIED (Score 60-79)
+- Most must-have criteria met
+- Some evidence from research, but not comprehensive
+- Ready for moderate personalization
+- Example: Hotel manager, right size, unclear if independent
+
+TIER 3: SHOTGUN (Score 40-59)
+- Generally in target industry/role
+- Limited/weak research evidence
+- Send generic template, no personalization
+- Example: Hospitality worker, some relevant keywords, unclear fit
+
+TIER 4: REJECT (Score 0-39)
+- Disqualifier found OR
+- Does not meet critical must-have criteria
+- Do NOT send email
+- Example: Chain hotel (when seeking independent), wrong industry, etc.
+
+YOUR TASK:
+1. Check for disqualifiers FIRST (instant REJECT if found)
+2. Analyze research evidence quality (strong vs weak)
+3. Assign tier based on criteria match + evidence strength
+4. List specific cited facts that support the tier assignment
 
 Respond in JSON:
 {
+  "tier": "HIGHLY_QUALIFIED" | "QUALIFIED" | "SHOTGUN" | "REJECT",
   "score": 0-100,
-  "qualified": true/false (true if score >= 60),
-  "reasoning": "detailed explanation",
-  "keyStrengths": ["strength1", "strength2"],
-  "weaknesses": ["weakness1", "weakness2"]
+  "qualified": true/false (false only if REJECT),
+  "reasoning": "detailed explanation of tier assignment",
+  "keyStrengths": ["specific strength with evidence"],
+  "weaknesses": ["specific concerns"],
+  "confidence": "HIGH" | "MEDIUM" | "LOW",
+  "citedEvidence": [
+    {"fact": "specific fact from research", "source": "source title or domain", "supportsMatch": true/false}
+  ],
+  "emailStrategy": "deep personalization" | "moderate personalization" | "generic template" | "do not send"
 }`;
 
-      console.log('💰 [COST OPTIMIZATION] Using GPT-3.5-Turbo for qualification scoring (10x cheaper than GPT-4)');
+      console.log('💰 [COST OPTIMIZATION] Using GPT-3.5-Turbo for tiered qualification (10x cheaper than GPT-4)');
       
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo-1106',
@@ -2123,126 +2170,161 @@ Respond in JSON:
 
       const result = JSON.parse(response.choices[0].message.content);
       
+      // Log tier assignment
+      console.log(`📊 [QUALIFY] Result: ${result.tier} (Score: ${result.score}/100)`);
+      console.log(`   Strategy: ${result.emailStrategy}`);
+      console.log(`   Evidence: ${result.citedEvidence?.length || 0} cited facts`);
+      
       // Log API usage
       if (response.usage) {
         await this.awsManager.logApiUsage({
           userId: this.userId,
           agentId: this.agentId,
           service: 'openai',
-          operation: 'detailed_qualification',
+          operation: 'tiered_qualification',
           usage: response.usage.total_tokens,
           metadata: {
             model: 'gpt-3.5-turbo-1106',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             score: result.score,
+            tier: result.tier,
             qualified: result.qualified
           }
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
       }
       
-      // Calculate confidence based on research verification
-      let confidence = 'HIGH';
-      let researchQuality = 'COMPLETE';
-      
-      // Check if we have solid research data
-      if (researchData && typeof researchData === 'object' && researchData.combinedFindings) {
-        const findingsCount = researchData.combinedFindings.length;
+      // Build comprehensive AI Report
+      const aiReport = {
+        tier: result.tier || 'UNKNOWN',
+        score: result.score || 0,
+        confidence: result.confidence || 'UNKNOWN',
+        qualified: result.qualified !== false,
         
-        if (findingsCount >= 8) {
-          confidence = 'HIGH';
-          researchQuality = 'COMPLETE';
-        } else if (findingsCount >= 4) {
-          confidence = 'MEDIUM';
-          researchQuality = 'PARTIAL';
-        } else {
-          confidence = 'LOW';
-          researchQuality = 'LIMITED';
-        }
+        // Tier description for UI
+        tierDescription: {
+          'HIGHLY_QUALIFIED': 'Perfect match - Deep personalization with verified facts',
+          'QUALIFIED': 'Good match - Moderate personalization',
+          'SHOTGUN': 'Generic match - Template email only',
+          'REJECT': 'Not a fit - Do not send'
+        }[result.tier] || 'Unknown tier',
         
-        // Check if must-have criteria were actually found in research
-        if (criteria.mustHave && criteria.mustHave.length > 0) {
-          const allFindings = researchData.combinedFindings.map(f => f.snippet).join(' ').toLowerCase();
-          let verified = 0;
-          
-          criteria.mustHave.forEach(requirement => {
-            const keywords = requirement.toLowerCase().split(' ').filter(w => w.length > 3);
-            const found = keywords.some(kw => allFindings.includes(kw));
-            if (found) verified++;
-          });
-          
-          const verificationRate = verified / criteria.mustHave.length;
-          if (verificationRate < 0.5) {
-            confidence = 'LOW';
-            researchQuality = 'UNVERIFIED';
-          }
-        }
-      } else {
-        confidence = 'LOW';
-        researchQuality = 'MINIMAL';
-      }
+        // Email strategy guidance
+        emailStrategy: result.emailStrategy || 'generic template',
+        
+        // Evidence and citations
+        citedEvidence: result.citedEvidence || [],
+        totalSources: researchData?.totalSources || 0,
+        researchQuality: allCitedFacts.length >= 10 ? 'EXCELLENT' :
+                        allCitedFacts.length >= 5 ? 'GOOD' :
+                        allCitedFacts.length >= 2 ? 'FAIR' : 'LIMITED',
+        
+        // Full reasoning
+        reasoning: result.reasoning,
+        keyStrengths: result.keyStrengths || [],
+        weaknesses: result.weaknesses || [],
+        
+        // Metadata
+        evaluatedAt: new Date().toISOString(),
+        companyName: companyName,
+        contactName: personName,
+        
+        // All cited facts from research (for email builder to use)
+        allCitedFacts: allCitedFacts
+      };
       
-      // Emit detailed activity log
-      const emoji = result.qualified ? '✅' : '❌';
-      const confidenceEmoji = confidence === 'HIGH' ? '🟢' : confidence === 'MEDIUM' ? '🟡' : '🔴';
+      console.log(`✅ [QUALIFY] AI Report generated with ${aiReport.citedEvidence.length} evidence items`);
+      
+      // Emit detailed activity log with tier information
+      const tierEmojis = {
+        'HIGHLY_QUALIFIED': '⭐',
+        'QUALIFIED': '✅',
+        'SHOTGUN': '🎯',
+        'REJECT': '❌'
+      };
+      const emoji = tierEmojis[result.tier] || '❓';
+      const confidenceEmoji = result.confidence === 'HIGH' ? '🟢' : result.confidence === 'MEDIUM' ? '🟡' : '🔴';
       
       // Build detailed summary with AI's full reasoning
       const detailsSummary = [
-        `${result.qualified ? 'Qualified' : 'Disqualified'} (${result.score}/100) ${confidenceEmoji}`,
+        `Tier: ${result.tier} (${result.score}/100) ${confidenceEmoji}`,
         `💭 AI Reasoning: ${result.reasoning}`,
+        `📧 Strategy: ${result.emailStrategy}`,
         result.keyStrengths?.length > 0 ? `💪 Strengths: ${result.keyStrengths.join(', ')}` : null,
         result.weaknesses?.length > 0 ? `⚠️ Concerns: ${result.weaknesses.join(', ')}` : null,
-        confidence === 'LOW' && result.qualified ? '⚠️ Marked for manual review' : null
+        `📚 Evidence: ${aiReport.citedEvidence.length} cited facts from ${aiReport.totalSources} sources`
       ].filter(Boolean).join(' • ');
       
       this.logOperation(`${emoji} Qualification: ${personName}`, 
         detailsSummary, 
-        result.qualified ? (confidence === 'LOW' ? 'warning' : 'completed') : 'warning',
+        result.qualified ? 'completed' : 'warning',
         { 
+          tier: result.tier,
           score: result.score,
           company: companyName,
-          confidence: confidence,
-          researchQuality: researchQuality,
+          confidence: result.confidence,
+          researchQuality: aiReport.researchQuality,
           reasoning: result.reasoning,
           strengths: result.keyStrengths,
           weaknesses: result.weaknesses,
-          requiresReview: confidence === 'LOW' && result.qualified
+          emailStrategy: result.emailStrategy,
+          citedEvidence: aiReport.citedEvidence.length
         }
       );
       
-      console.log(`${emoji} [QUALIFY] Score: ${result.score}/100 - ${result.qualified ? 'QUALIFIED' : 'DISQUALIFIED'} - ${confidenceEmoji}`);
-      console.log(`📊 [QUALIFY] Research Quality: ${researchQuality}`);
+      console.log(`${emoji} [QUALIFY] Tier: ${result.tier} - Score: ${result.score}/100 - ${confidenceEmoji}`);
+      console.log(`📊 [QUALIFY] Research Quality: ${aiReport.researchQuality} (${allCitedFacts.length} cited facts)`);
       console.log(`💭 [QUALIFY] Reasoning: ${result.reasoning}`);
+      console.log(`📧 [QUALIFY] Email Strategy: ${result.emailStrategy}`);
       console.log(`💪 [QUALIFY] Strengths: ${result.keyStrengths?.join(', ')}`);
       if (result.weaknesses?.length > 0) {
         console.log(`⚠️ [QUALIFY] Weaknesses: ${result.weaknesses.join(', ')}`);
-      }
-      if (confidence === 'LOW' && result.qualified) {
-        console.log(`⚠️ [QUALIFY] Email should be reviewed before sending`);
       }
       
       return {
         success: true,
         qualified: result.qualified,
+        tier: result.tier,
         score: result.score,
         reasoning: result.reasoning,
-        confidence: confidence,
-        researchQuality: researchQuality,
-        requiresReview: confidence === 'LOW' && result.qualified,
+        confidence: result.confidence,
+        researchQuality: aiReport.researchQuality,
+        requiresReview: result.tier === 'SHOTGUN' || result.confidence === 'LOW',
         keyStrengths: result.keyStrengths || [],
-        weaknesses: result.weaknesses || []
+        weaknesses: result.weaknesses || [],
+        aiReport: aiReport // Include full AI report for email builder and UI
       };
+
       
     } catch (error) {
       console.error('❌ [QUALIFY] Error:', error);
-      // On error, don't block the lead - default to qualified
+      // On error, don't block the lead - default to SHOTGUN tier
       return {
         success: true,
         qualified: true,
-        score: 60,
-        reasoning: 'Qualification error, proceeding with default acceptance',
+        tier: 'SHOTGUN',
+        score: 50,
+        reasoning: 'Qualification error, proceeding with generic outreach',
         keyStrengths: ['Error in qualification process'],
-        weaknesses: []
+        weaknesses: ['Unable to complete research verification'],
+        aiReport: {
+          tier: 'SHOTGUN',
+          score: 50,
+          confidence: 'LOW',
+          qualified: true,
+          tierDescription: 'Generic match - Template email only (error fallback)',
+          emailStrategy: 'generic template',
+          citedEvidence: [],
+          totalSources: 0,
+          researchQuality: 'ERROR',
+          reasoning: 'Qualification error occurred',
+          keyStrengths: [],
+          weaknesses: ['Qualification system error'],
+          evaluatedAt: new Date().toISOString(),
+          companyName: this.memory.currentCycle.currentLead?.organization?.name || 'Unknown',
+          contactName: this.memory.currentCycle.currentLead?.name || 'Unknown',
+          allCitedFacts: []
+        }
       };
     }
   }
@@ -2373,10 +2455,21 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
                   });
                   
                   const extractedInsights = insightResponse.choices[0].message.content;
+                  
+                  // Parse insights and attach source URL to each fact
+                  const insightLines = extractedInsights.split('\n').filter(line => line.trim().startsWith('-'));
+                  const citedInsights = insightLines.map(insight => ({
+                    text: insight.replace(/^-\s*/, '').trim(),
+                    source: webpage.url,
+                    sourceTitle: webpage.title,
+                    confidence: 0.9 // High confidence from direct webpage content
+                  }));
+                  
                   webpageInsights.push({
                     source: webpage.url,
                     title: webpage.title,
-                    insights: extractedInsights
+                    insights: extractedInsights,
+                    citedFacts: citedInsights // NEW: Individual facts with source attribution
                   });
                   
                   console.log(`   ✅ Extracted insights from: ${webpage.title}`);
@@ -2432,6 +2525,14 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
             console.error(`   ❌ Search failed: ${searchError.message}`);
           }
         }
+        
+        // Build comprehensive cited facts database
+        const allCitedFacts = allResearchData.searches
+          .flatMap(search => search.webpageInsights || [])
+          .flatMap(insight => insight.citedFacts || []);
+        
+        allResearchData.citedFacts = allCitedFacts;
+        allResearchData.totalSources = new Set(allCitedFacts.map(f => f.source)).size;
         
         // Store all research data
         this.memory.lastResearch = allResearchData;
@@ -3030,13 +3131,14 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
 
   // Build personalized email
   async buildPersonalizedEmail(parameters) {
-    console.log('📝 [EMAIL BUILDER] Creating personalized email...');
+    console.log('📝 [EMAIL BUILDER] Creating adaptive personalized email...');
     
     try {
       // Get data from current cycle state instead of parameters
       const leadData = this.memory.currentCycle.currentLead;
       const researchData = this.memory.lastResearch;
       const emailSettings = this.memory.emailSettings;
+      const qualification = this.memory.currentQualification; // Get tier from qualification
       
       if (!leadData) {
         throw new Error('No current lead data available for email building');
@@ -3056,55 +3158,85 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
       const industry = leadData.organization?.industry || 'business';
       const employeeCount = leadData.organization?.estimated_num_employees || 'Unknown';
       
-      // Extract specific research insights for personalization
-      let researchInsights = 'Company research data available';
-      let keyBusinessFacts = [];
+      // Determine personalization tier
+      const tier = qualification?.tier || 'SHOTGUN';
+      const aiReport = qualification?.aiReport;
       
-      if (researchData?.data?.organic && researchData.data.organic.length > 0) {
-        // Extract key business insights from research
-        keyBusinessFacts = researchData.data.organic.slice(0, 3).map(r => r.snippet);
-        researchInsights = keyBusinessFacts.join(' ');
-        
-        // Look for specific business indicators to personalize
-        const fullResearchText = researchInsights.toLowerCase();
-        const businessContext = {
-          isFintech: fullResearchText.includes('fintech') || fullResearchText.includes('financial'),
-          hasZelle: fullResearchText.includes('zelle'),
-          preventsFraud: fullResearchText.includes('fraud'),
-          isGrowing: fullResearchText.includes('growing') || fullResearchText.includes('expansion'),
-          hasEmployees: fullResearchText.includes('employee') || fullResearchText.includes('workforce'),
-          usesADP: fullResearchText.includes('adp'),
-          hasCompliance: fullResearchText.includes('compliance') || fullResearchText.includes('regulation')
-        };
-      }
-        
-      // Enhanced personalized email prompt with specific research insights
-      const specificInsights = this.extractSpecificInsights(researchData);
+      console.log(`📊 [EMAIL BUILDER] Using ${tier} tier strategy: ${aiReport?.emailStrategy || 'generic template'}`);
       
-      // Extract deep webpage insights from research
-      let deepInsights = '';
-      if (researchData?.searches) {
-        const allWebpageInsights = researchData.searches
-          .flatMap(search => search.webpageInsights || [])
-          .filter(insight => insight.insights);
-        
-        if (allWebpageInsights.length > 0) {
-          deepInsights = `\nDEEP COMPANY RESEARCH (from ${allWebpageInsights.length} articles):
-${allWebpageInsights.map(insight => `
-Source: ${insight.title}
-${insight.insights}`).join('\n')}`;
-        }
+      // Extract cited facts for personalization
+      let citedFactsContext = '';
+      if (aiReport?.allCitedFacts && aiReport.allCitedFacts.length > 0) {
+        const topFacts = aiReport.allCitedFacts.slice(0, 10);
+        citedFactsContext = `\nVERIFIED RESEARCH FACTS (use these for personalization):\n${
+          topFacts.map((fact, i) => `${i + 1}. "${fact.text}" [Source: ${fact.sourceTitle || fact.source}]`).join('\n')
+        }`;
       }
       
-      // Build intelligence context from research
-      let intelligenceContext = '';
-      if (specificInsights.length > 0) {
-        intelligenceContext = `\nQUICK RESEARCH FINDINGS:
-${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join('\n')}`;
-      }
+      // Build tier-specific email instructions
+      let tierInstructions = '';
+      let personalizationLevel = 'DEEP';
       
-      // Combine all research context
-      const fullResearchContext = intelligenceContext + deepInsights;
+      switch (tier) {
+        case 'HIGHLY_QUALIFIED':
+          personalizationLevel = 'DEEP';
+          tierInstructions = `
+🌟 TIER: HIGHLY QUALIFIED - DEEP PERSONALIZATION
+This lead is a PERFECT MATCH with verified research. Write a highly personalized email using specific cited facts.
+
+REQUIREMENTS:
+✓ Use 3-5 specific facts from the VERIFIED RESEARCH FACTS above
+✓ Cite each fact naturally (e.g., "I saw you recently raised $10M...")
+✓ Show you deeply understand their business
+✓ Make specific recommendations based on their situation
+✓ Email should feel like it was written by a human who spent 30 minutes researching them
+
+STRENGTHS TO LEVERAGE:
+${qualification?.keyStrengths?.map(s => `- ${s}`).join('\n') || 'N/A'}
+
+EMAIL LENGTH: 7-9 sentences (more room for detailed personalization)`;
+          break;
+          
+        case 'QUALIFIED':
+          personalizationLevel = 'MODERATE';
+          tierInstructions = `
+✅ TIER: QUALIFIED - MODERATE PERSONALIZATION
+This lead is a GOOD MATCH with some verified research. Write a moderately personalized email.
+
+REQUIREMENTS:
+✓ Use 1-2 facts from research if available
+✓ Focus on industry/role relevance
+✓ Show understanding of their general challenges
+✓ Less specific than HIGHLY_QUALIFIED but more than generic template
+
+STRENGTHS TO LEVERAGE:
+${qualification?.keyStrengths?.map(s => `- ${s}`).join('\n') || 'General industry fit'}
+
+EMAIL LENGTH: 6-7 sentences (standard personalization)`;
+          break;
+          
+        case 'SHOTGUN':
+          personalizationLevel = 'MINIMAL';
+          tierInstructions = `
+🎯 TIER: SHOTGUN - MINIMAL PERSONALIZATION
+This lead is TANGENTIALLY RELATED. Write a generic template email focusing on value proposition.
+
+REQUIREMENTS:
+✓ DO NOT use specific research facts (not enough verified data)
+✓ Focus on general industry/role pain points
+✓ Lead with value proposition immediately
+✓ Keep it brief and scannable
+✓ Use generic but professional language
+
+EMAIL LENGTH: 5-6 sentences (short and generic)`;
+          break;
+          
+        default:
+          personalizationLevel = 'MODERATE';
+          tierInstructions = `
+STANDARD PERSONALIZATION - Use available research but don't force it.
+EMAIL LENGTH: 6-7 sentences`;
+      }
       
       // Get agent personality for email style
       const personality = await this.getAgentPersonality();
@@ -3121,7 +3253,6 @@ ${specificInsights.map(insight => `- ${insight.insight} (${insight.type})`).join
       
       // Build campaign-specific messaging if plan exists
       let campaignStrategy = '';
-      let qualificationInsights = '';
       
       if (this.campaignPlan && this.campaignPlan.emailMessaging) {
         const messaging = this.campaignPlan.emailMessaging;
@@ -3136,6 +3267,7 @@ Tone: ${messaging.tone || 'professional'}`;
       }
       
       // Add qualification strengths if available (from qualify_lead tool)
+      let qualificationInsights = '';
       if (this.memory.currentQualification?.keyStrengths && this.memory.currentQualification.keyStrengths.length > 0) {
         qualificationInsights = `
 LEAD QUALIFICATION INSIGHTS (lead with these strengths):
@@ -3152,7 +3284,7 @@ Company: ${companyName}
 Contact: ${leadData.first_name} ${leadData.last_name}
 Title: ${contactTitle}
 Industry: ${industry}
-Employee Count: ${employeeCount} employees${fullResearchContext}${qualificationInsights}${campaignStrategy}
+Employee Count: ${employeeCount} employees${citedFactsContext}${qualificationInsights}${campaignStrategy}
 
 YOUR SOLUTION:
 Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
@@ -3423,7 +3555,7 @@ LEAD DETAILS:
 - Industry: ${industry}
 
 RESEARCH DATA QUALITY:
-${fullResearchContext || 'Limited research data available'}
+${citedFactsContext || 'Limited research data available'}
 
 QUALIFICATION INSIGHTS:
 ${leadData.qualificationScore ? `Qualification Score: ${leadData.qualificationScore}/100` : 'Not scored'}
@@ -5336,6 +5468,9 @@ Target Positions:`;
         // AI Confidence Report
         confidenceReport: leadData.confidenceReport,
         confidenceLevel: leadData.confidenceLevel,
+        
+        // AI Report (NEW - for verification and UI display)
+        aiReport: this.memory.currentQualification?.aiReport || null,
         
         // Lead information
         leadInfo: {
