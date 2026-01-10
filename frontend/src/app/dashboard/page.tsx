@@ -3149,23 +3149,23 @@ export default function InteractiveGlobe() {
         </div>
       )}
 
-      {/* AI Report Modal - Slide-in Panel */}
-      {viewingAiReport && (
+      {/* AI Report Overlay - Inside Queue Modal */}
+      {viewingAiReport && selectedQueue && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] transition-opacity duration-300"
+          className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fadeIn"
           onClick={() => setViewingAiReport(null)}
         >
           <div 
-            className="fixed right-0 top-0 h-full w-full max-w-2xl bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] shadow-2xl border-l border-[#4FD1FF]/30 flex flex-col animate-slide-in-right"
+            className="bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/30 w-full max-w-4xl max-h-[90%] overflow-hidden flex flex-col animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Glowing accent line */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(79,209,255,0.5)]" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(79,209,255,0.5)]" />
             
             {/* Header */}
             <div className="relative flex items-start justify-between p-6 border-b border-white/10 bg-black/20">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30">
                     <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -3178,7 +3178,7 @@ export default function InteractiveGlobe() {
                 </div>
                 
                 {/* Quick Stats Bar */}
-                <div className="flex items-center gap-3 mt-4">
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
                     <span className="text-xs text-white/50">Score</span>
                     <span className="text-sm font-bold text-cyan-400">{viewingAiReport.score}/100</span>
@@ -3199,37 +3199,33 @@ export default function InteractiveGlobe() {
                     <span className="text-xs text-white/50">Sources</span>
                     <span className="text-sm font-bold text-purple-400">{viewingAiReport.totalSources}</span>
                   </div>
+                  <span className={`ml-auto px-4 py-1.5 rounded-full text-xs font-bold shadow-lg ${
+                    viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? 'bg-green-500/30 text-green-300 border-2 border-green-500/50' :
+                    viewingAiReport.tier === 'QUALIFIED' ? 'bg-blue-500/30 text-blue-300 border-2 border-blue-500/50' :
+                    viewingAiReport.tier === 'SHOTGUN' ? 'bg-yellow-500/30 text-yellow-300 border-2 border-yellow-500/50' :
+                    'bg-red-500/30 text-red-300 border-2 border-red-500/50'
+                  }`}>
+                    {viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? '⭐ Highly Qualified' :
+                     viewingAiReport.tier === 'QUALIFIED' ? '✅ Qualified' :
+                     viewingAiReport.tier === 'SHOTGUN' ? '🎯 Shotgun' :
+                     '❌ Rejected'}
+                  </span>
                 </div>
               </div>
               
               <button
                 onClick={() => setViewingAiReport(null)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-all hover:rotate-90 duration-300"
+                className="p-2 hover:bg-white/10 rounded-lg transition-all hover:rotate-90 duration-300 ml-4"
               >
                 <XMarkIcon className="w-6 h-6 text-white/70" />
               </button>
             </div>
 
-            {/* Tier Badge - Floating */}
-            <div className="absolute right-6 top-6">
-              <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-lg ${
-                viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? 'bg-green-500/30 text-green-300 border-2 border-green-500/50 shadow-green-500/50' :
-                viewingAiReport.tier === 'QUALIFIED' ? 'bg-blue-500/30 text-blue-300 border-2 border-blue-500/50 shadow-blue-500/50' :
-                viewingAiReport.tier === 'SHOTGUN' ? 'bg-yellow-500/30 text-yellow-300 border-2 border-yellow-500/50 shadow-yellow-500/50' :
-                'bg-red-500/30 text-red-300 border-2 border-red-500/50 shadow-red-500/50'
-              }`}>
-                {viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? '⭐ Highly Qualified' :
-                 viewingAiReport.tier === 'QUALIFIED' ? '✅ Qualified' :
-                 viewingAiReport.tier === 'SHOTGUN' ? '🎯 Shotgun' :
-                 '❌ Rejected'}
-              </span>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               
               {/* AI Reasoning - Hero Section */}
-              <div className="relative bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl p-5 border border-blue-400/30 shadow-lg">
+              <div className="relative bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl p-5 border border-blue-400/30">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -z-10" />
                 <h4 className="text-base font-bold text-blue-300 mb-3 flex items-center gap-2">
                   <span className="text-lg">🧠</span>
@@ -3322,7 +3318,7 @@ export default function InteractiveGlobe() {
                     <span>🔗</span>
                     All Sources ({(Array.from(new Set(viewingAiReport.allCitedFacts.map((f: any) => f.source))) as string[]).filter(s => s).length})
                   </h4>
-                  <div className="space-y-1.5 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-transparent">
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
                     {(Array.from(new Set(viewingAiReport.allCitedFacts.map((f: any) => f.source))) as string[])
                       .filter((source) => source)
                       .map((source, i) => {
