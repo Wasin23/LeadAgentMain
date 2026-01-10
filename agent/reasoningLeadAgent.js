@@ -2123,34 +2123,53 @@ Disqualifiers (instant reject): ${criteria.disqualifiers?.join(', ') || 'None'}
 TIERED EVALUATION SYSTEM:
 
 TIER 1: HIGHLY_QUALIFIED (Score 80-100)
+- STRONG, SPECIFIC buyer motivation articulated with urgency/timeline
 - All must-have criteria verified with strong evidence
-- Multiple specific facts from research confirm fit
+- Multiple specific facts from research confirm fit (5+ facts)
+- Clear reason WHY they would buy NOW
 - Ready for deeply personalized email with cited research
-- Example: Independent hotel owner, 50 rooms, uses legacy PMS, seeking upgrade
+- Example: Independent hotel owner, 50 rooms, uses legacy PMS, just posted about seeking upgrade solutions, budget allocated Q1 2026
 
 TIER 2: QUALIFIED (Score 60-79)
+- DECENT buyer motivation with some evidence-based reasoning
 - Most must-have criteria met
-- Some evidence from research, but not comprehensive
+- Some evidence from research (2-4 facts)
+- Plausible reason they might buy soon
 - Ready for moderate personalization
-- Example: Hotel manager, right size, unclear if independent
+- Example: Hotel manager, right size, unclear if independent, but growing and mentions operational challenges
 
 TIER 3: SHOTGUN (Score 40-59)
+- WEAK or GENERIC buyer motivation (speculative, not evidence-based)
 - Generally in target industry/role
-- Limited/weak research evidence
+- Limited/weak research evidence (0-1 facts)
+- No clear urgency or timeline
 - Send generic template, no personalization
-- Example: Hospitality worker, some relevant keywords, unclear fit
+- Example: Hospitality worker, some relevant keywords, unclear fit, no specific motivation
 
 TIER 4: REJECT (Score 0-39)
+- CANNOT articulate any plausible buyer motivation OR
 - Disqualifier found OR
 - Does not meet critical must-have criteria
 - Do NOT send email
-- Example: Chain hotel (when seeking independent), wrong industry, etc.
+- Example: Chain hotel (when seeking independent), wrong industry, or no reason they'd buy
 
 YOUR TASK:
 1. Check for disqualifiers FIRST (instant REJECT if found)
-2. Analyze research evidence quality (strong vs weak)
-3. Assign tier based on criteria match + evidence strength
-4. List specific cited facts that support the tier assignment
+2. ARTICULATE BUYER MOTIVATION - This is the PRIMARY qualification factor
+3. Analyze research evidence quality (strong vs weak)
+4. Assign tier and confidence based on buyer motivation clarity + evidence strength
+5. List specific cited facts that support the tier assignment
+
+🎯 BUYER MOTIVATION IS THE HIGHEST PRIORITY:
+- If you can articulate SPECIFIC, EVIDENCE-BASED buyer motivation → HIGH confidence possible
+- Strong buyer motivation = they should act NOW = HIGHLY_QUALIFIED or QUALIFIED tier
+- Weak/generic motivation = speculative = SHOTGUN tier at best
+- No buyer motivation = REJECT or SHOTGUN (never HIGHLY_QUALIFIED)
+
+CONFIDENCE LEVEL LOGIC:
+- HIGH confidence: Strong buyer motivation + 5+ cited facts + clear urgency/timeline
+- MEDIUM confidence: Decent buyer motivation + 2-4 cited facts + general fit
+- LOW confidence: Weak/speculative motivation OR insufficient evidence
 
 REASONING REQUIREMENTS:
 - Be SPECIFIC: Reference actual facts found in research (names, numbers, technologies, initiatives)
@@ -2165,12 +2184,78 @@ GOOD EXAMPLE:
 BAD EXAMPLE:
 "Emanuel Darmanin meets all criteria as CEO of MITA in tech industry. Strong evidence confirms good fit. Company size significant. Interest aligns with goals. Highly qualified prospect."
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 CRITICAL REQUIREMENT: BUYER-SIDE MOTIVATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You MUST articulate a plausible buyer-side motivation before qualifying this lead.
+No email may be generated unless you can answer: "WHY would this person buy from us?"
+
+HOW TO IDENTIFY BUYER MOTIVATION (analyze research for these signals):
+
+1. TIMING SIGNALS (strongest motivation - they need it NOW):
+   - Recent funding round → spending mode, scaling initiatives
+   - Job postings → hiring = growth = new problems to solve
+   - Recent news/announcements → new initiatives requiring solutions
+   - Fiscal year timing → budget cycles, Q1 priorities
+   - Leadership changes → new direction, shake-up opportunities
+   - Expansion (new markets/offices) → operational scaling needs
+
+2. PAIN SIGNALS (they're actively suffering):
+   - Public complaints/challenges mentioned in content
+   - LinkedIn posts about specific problems
+   - Tech stack gaps visible in job descriptions
+   - Company size inflection points (50→150 employees = process breakdown)
+   - Industry-specific challenges at their scale
+
+3. INITIATIVE SIGNALS (they're already looking):
+   - Active projects mentioned (digital transformation, modernization)
+   - RFPs or procurement pages
+   - Technology mentions in job posts (seeking specific skills)
+   - Conference attendance/speaking (researching solutions)
+   - Budget allocations or investment announcements
+
+4. URGENCY INDICATORS (why NOW vs later):
+   - Specific deadlines or timelines mentioned
+   - Regulatory/compliance pressures
+   - Competitive threats
+   - Growth rate creating pressure
+   - Executive visibility (CEO posting = high priority)
+
+CONSTRUCT BUYER MOTIVATION BY COMBINING:
+[TIMING SIGNAL] + [PAIN/NEED] + [URGENCY] + [EVIDENCE]
+
+Example: "Just raised $15M Series B" [TIMING] + "scaling from 50 to 150 employees per job posts" [PAIN: scaling] + "manual processes become bottleneck at this inflection" [URGENCY: growth rate] + "finance teams spend 35% time on contractor payments at this scale" [EVIDENCE: industry benchmark]
+
+BUYER MOTIVATION must be:
+✓ SPECIFIC to their current situation (not generic pain points)
+✓ EVIDENCE-BASED from the research findings
+✓ TIED to their business objectives, growth stage, or initiatives
+✓ ACTIONABLE - something they would realistically act on NOW
+✓ SOPHISTICATED - demonstrate deep understanding of their context
+
+GOOD BUYER MOTIVATIONS:
+"MITA is in month 3 of a €12M digital transformation initiative with Q1 2026 legacy system modernization as a stated priority. Emanuel, as CEO, is personally posting about cloud migration challenges, indicating this is top-of-mind and he's actively seeking solutions. The €12M budget is allocated, timeline is urgent, and his public engagement shows he's in the decision-making phase."
+
+"Company just raised Series B ($15M) and is scaling from 50 to 150 employees according to job postings. At this inflection point, manual contractor payment processes that worked at 50 employees become a board-level bottleneck. Finance teams at this stage spend 35% of time on payments - that's a $200K+ annual cost in wasted labor. Buyer motivation: eliminate scaling bottleneck before it becomes a crisis."
+
+BAD BUYER MOTIVATIONS:
+"They might need our solution because they're in the right industry."
+"Company is growing so they probably have challenges."
+"CEO would want to improve efficiency." (Too generic)
+"They use legacy systems." (Not tied to current urgency)
+
+IF YOU CANNOT ARTICULATE A SPECIFIC, EVIDENCE-BASED BUYER MOTIVATION:
+→ The lead should be REJECT or SHOTGUN (not HIGHLY_QUALIFIED/QUALIFIED)
+→ Without clear motivation, personalization is guesswork
+
 Respond in JSON:
 {
   "tier": "HIGHLY_QUALIFIED" | "QUALIFIED" | "SHOTGUN" | "REJECT",
   "score": 0-100,
   "qualified": true/false (false only if REJECT),
   "reasoning": "detailed explanation with specific facts, numbers, and evidence (3-5 sentences minimum)",
+  "buyerMotivation": "specific, evidence-based explanation of WHY this person would buy from us RIGHT NOW (required - 2-4 sentences with concrete reasoning)",
   "keyStrengths": ["specific strength with actual evidence/data"],
   "weaknesses": ["specific concerns with reasoning"],
   "confidence": "HIGH" | "MEDIUM" | "LOW",
@@ -2233,6 +2318,9 @@ Respond in JSON:
         // Email strategy guidance
         emailStrategy: result.emailStrategy || 'generic template',
         
+        // Buyer-side motivation (CRITICAL for email generation)
+        buyerMotivation: result.buyerMotivation || 'Not articulated',
+        
         // Evidence and citations
         citedEvidence: result.citedEvidence || [],
         totalSources: researchData?.totalSources || 0,
@@ -2269,7 +2357,7 @@ Respond in JSON:
       // Build detailed summary with AI's full reasoning
       const detailsSummary = [
         `Tier: ${result.tier} (${result.score}/100) ${confidenceEmoji}`,
-        `💭 AI Reasoning: ${result.reasoning}`,
+        `💭 ${result.reasoning}${result.buyerMotivation && result.buyerMotivation !== 'Not articulated' ? ' Buyer motivation: ' + result.buyerMotivation : ''}`,
         `📧 Strategy: ${result.emailStrategy}`,
         result.keyStrengths?.length > 0 ? `💪 Strengths: ${result.keyStrengths.join(', ')}` : null,
         result.weaknesses?.length > 0 ? `⚠️ Concerns: ${result.weaknesses.join(', ')}` : null,
@@ -3185,6 +3273,53 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
       
       console.log(`📊 [EMAIL BUILDER] Using ${tier} tier strategy: ${aiReport?.emailStrategy || 'generic template'}`);
       
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 🎯 CRITICAL VALIDATION: BUYER-SIDE MOTIVATION REQUIRED
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      
+      const buyerMotivation = aiReport?.buyerMotivation || qualification?.buyerMotivation;
+      
+      // Check if buyer motivation is articulated and sophisticated
+      const hasValidMotivation = buyerMotivation && 
+        buyerMotivation !== 'Not articulated' &&
+        buyerMotivation.length > 50 && // Must be substantial
+        !buyerMotivation.toLowerCase().includes('might need') &&
+        !buyerMotivation.toLowerCase().includes('probably') &&
+        !buyerMotivation.toLowerCase().includes('could benefit');
+      
+      if (!hasValidMotivation) {
+        const errorMsg = !buyerMotivation || buyerMotivation === 'Not articulated' 
+          ? '❌ [BUYER MOTIVATION] Not articulated - cannot generate email'
+          : '❌ [BUYER MOTIVATION] Too generic or speculative - requires specific evidence-based reasoning';
+        
+        console.log(errorMsg);
+        console.log(`   Lead: ${leadData.first_name} ${leadData.last_name} at ${companyName}`);
+        console.log(`   Motivation provided: ${buyerMotivation || 'NONE'}`);
+        
+        this.logOperation('Email Generation Blocked', 
+          `No plausible buyer-side motivation articulated for ${leadData.first_name} ${leadData.last_name}. ` +
+          `Email generation requires specific, evidence-based understanding of WHY they would buy. ` +
+          `Current motivation: ${buyerMotivation || 'Not provided'}`,
+          'error',
+          { 
+            leadName: `${leadData.first_name} ${leadData.last_name}`,
+            companyName: companyName,
+            tier: tier,
+            buyerMotivation: buyerMotivation || 'NONE',
+            reason: 'Missing or insufficient buyer motivation'
+          }
+        );
+        
+        throw new Error(
+          'Email generation blocked: Cannot articulate plausible buyer-side motivation. ' +
+          'Lead needs deeper research or different qualification tier. ' +
+          `Motivation provided: ${buyerMotivation || 'NONE'}`
+        );
+      }
+      
+      console.log(`✅ [BUYER MOTIVATION VALIDATED] ${buyerMotivation.substring(0, 100)}...`);
+      console.log(`   This motivation will guide email personalization strategy`);
+      
       // Extract cited facts for personalization
       let citedFactsContext = '';
       if (aiReport?.allCitedFacts && aiReport.allCitedFacts.length > 0) {
@@ -3297,6 +3432,25 @@ Score: ${this.memory.currentQualification.score}/100`;
         
         console.log('💪 [EMAIL] Incorporating qualification strengths into email');
       }
+      
+      // Add BUYER MOTIVATION context (validated above - this is CRITICAL)
+      const buyerMotivationContext = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 BUYER-SIDE MOTIVATION (USE THIS TO GUIDE YOUR EMAIL):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${buyerMotivation}
+
+Your email MUST connect to this motivation. This is not generic - this is the specific,
+evidence-based reason WHY this person would buy from us RIGHT NOW. Use this to:
+✓ Frame your opening hook around their current situation
+✓ Connect your solution to their immediate needs/timeline
+✓ Create urgency based on their actual business context
+✓ Demonstrate you understand their strategic priorities
+
+DO NOT write generic emails. Use this buyer motivation to show sophisticated understanding.`;
+      
+      console.log('🎯 [EMAIL] Incorporating validated buyer motivation into email context');
       
       // Common ruleset for email structure - ALWAYS include lead details and context
       const commonRuleset = `
@@ -3509,8 +3663,8 @@ BODY: [complete email with greeting, paragraph, and signature]
 
 NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connecting why your solution fits their situation.`;
 
-      // ALWAYS combine personality prompt with common ruleset containing lead details
-      const emailPrompt = `${customPrompt}\n${commonRuleset}`;
+      // ALWAYS combine personality prompt with common ruleset containing lead details + buyer motivation
+      const emailPrompt = `${customPrompt}\n${commonRuleset}${buyerMotivationContext}`;
 
       console.log('💎 [PREMIUM MODEL] Using GPT-4 for high-quality email generation');
       console.log('📝 [EMAIL PROMPT] Full prompt being sent to GPT-4:');

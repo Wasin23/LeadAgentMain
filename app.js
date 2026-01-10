@@ -19,6 +19,7 @@ import { memoryMonitor, performanceMiddleware } from './utils/memoryMonitor.js';
 import chatRoutes from './routes/chat.js';
 import billingRoutes from './routes/billing.js';
 import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
+import { startBillingCron } from './utils/billingCron.js';
 
 // Load and validate configuration
 const config = getConfig();
@@ -534,7 +535,7 @@ app.use('/api/webhooks', webhooksReplyRoutes); // Mailgun email response webhook
 // Admin routes
 let adminRoutes;
 try {
-  adminRoutes = (await import('./routes/admin.js')).default;
+  adminRoutes = (await import('./routes/adminServer.js')).default;
   app.use('/api/admin', adminRoutes); // Admin utilities for billing/testing
   console.log('[APP] Admin routes loaded successfully');
 } catch (error) {
@@ -604,6 +605,9 @@ const server = app.listen(PORT, async () => {
   
   // Start grace period checker (hourly checks for suspensions/warnings)
   startGracePeriodChecker();
+  
+  // Start monthly billing cron job (runs 1st of month at 2 AM)
+  startBillingCron();
   
   // Initialize Gmail watches for all users on startup
   try {
