@@ -2761,28 +2761,39 @@ export default function InteractiveGlobe() {
                               </div>
                               <div className="flex items-center justify-between gap-2">
                                 <div className="text-sm text-white/60 truncate">To: {email.to}</div>
-                                {email.timestamp && (
+                                {email.timestamp ? (
                                   <div className="text-xs text-white/50 whitespace-nowrap">
                                     Queued: {new Date(email.timestamp).toLocaleDateString()}
                                   </div>
+                                ) : (
+                                  <div className="text-xs text-yellow-400/60 whitespace-nowrap">
+                                    (Legacy email - no date)
+                                  </div>
                                 )}
                               </div>
+                              {!email.aiReport && !email.timestamp && (
+                                <div className="text-xs text-yellow-400/60 mt-1">
+                                  ⚠️ Old email (created before AI reports/timestamps)
+                                </div>
+                              )}
                               {isOrphaned && email.originalAgentId && (
                                 <div className="text-xs text-red-400/80 mt-1">
                                   Original agent: {email.originalAgentId}
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 ml-4 relative z-10">
+                            <div className="flex items-center gap-3 ml-4 shrink-0">
                               {/* AI Report Icon */}
                               {email.aiReport ? (
                                 <button
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     setViewingAiReport(email.aiReport);
                                   }}
-                                  className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-400/50 hover:border-blue-400"
+                                  className="relative z-50 p-2 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-400/50 hover:border-blue-400 pointer-events-auto"
                                   title="View AI Research Report"
+                                  type="button"
                                 >
                                   <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

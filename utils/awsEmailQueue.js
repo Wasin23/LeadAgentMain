@@ -111,10 +111,17 @@ class AWSEmailQueue {
         confidenceReport: emailData.confidenceReport || '',
         confidenceLevel: emailData.confidenceLevel || 'medium',
         
+        // AI Report (NEW - comprehensive qualification report)
+        aiReport: emailData.aiReport || null,
+        
         // Lead information (normalize leadInfo -> lead for backward compatibility)
         lead: emailData.lead || emailData.leadInfo || {},
         
+        // Research data
+        researchData: emailData.researchData || null,
+        
         // Timestamps
+        timestamp: emailData.timestamp || timestamp, // Use provided timestamp or default to now
         queuedAt: timestamp,
         createdAt: timestamp,
         updatedAt: timestamp,
