@@ -2152,14 +2152,27 @@ YOUR TASK:
 3. Assign tier based on criteria match + evidence strength
 4. List specific cited facts that support the tier assignment
 
+REASONING REQUIREMENTS:
+- Be SPECIFIC: Reference actual facts found in research (names, numbers, technologies, initiatives)
+- Cite EVIDENCE: Quote or paraphrase specific details from the sources
+- Explain WHY: Connect the evidence to qualification criteria
+- Be DETAILED: 3-5 sentences minimum with concrete examples
+- Avoid GENERIC phrases like "meets criteria", "good fit", "strong evidence"
+
+GOOD EXAMPLE:
+"Research reveals MITA (Malta's IT Agency) recently launched a €12M digital transformation fund specifically targeting SME modernization, with Emanuel Darmanin leading the initiative as CEO. His LinkedIn shows 3 recent posts about cloud migration challenges in government systems, directly aligning with our Azure integration solutions. MITA's procurement page lists 'legacy system modernization' as a Q1 2026 priority. The company employs 150+ IT professionals and operates independently from central government IT."
+
+BAD EXAMPLE:
+"Emanuel Darmanin meets all criteria as CEO of MITA in tech industry. Strong evidence confirms good fit. Company size significant. Interest aligns with goals. Highly qualified prospect."
+
 Respond in JSON:
 {
   "tier": "HIGHLY_QUALIFIED" | "QUALIFIED" | "SHOTGUN" | "REJECT",
   "score": 0-100,
   "qualified": true/false (false only if REJECT),
-  "reasoning": "detailed explanation of tier assignment",
-  "keyStrengths": ["specific strength with evidence"],
-  "weaknesses": ["specific concerns"],
+  "reasoning": "detailed explanation with specific facts, numbers, and evidence (3-5 sentences minimum)",
+  "keyStrengths": ["specific strength with actual evidence/data"],
+  "weaknesses": ["specific concerns with reasoning"],
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "citedEvidence": [
     {"fact": "specific fact from research", "source": "source title or domain", "supportsMatch": true/false}
