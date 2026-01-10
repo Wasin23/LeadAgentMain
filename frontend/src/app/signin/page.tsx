@@ -397,13 +397,10 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] text-sm sm:text-base font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
-                  style={{
-                    background: isLoading ? 'rgb(107, 114, 128)' : 'linear-gradient(to right, rgb(59, 130, 246), rgb(147, 51, 234))'
-                  }}
+                  className="w-full py-3 sm:py-3.5 px-4 bg-[#4FD1FF] hover:bg-[#6BE3FF] text-[#0F1E35] text-sm sm:text-base font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isLoading && (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-[#0F1E35] border-t-transparent rounded-full animate-spin" />
                   )}
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </button>
@@ -509,10 +506,10 @@ export default function SignInPage() {
                 <button
                   type="submit"
                   disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}
-                  className="w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] text-sm sm:text-base font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="w-full py-3 sm:py-3.5 px-4 bg-[#4FD1FF] hover:bg-[#6BE3FF] text-[#0F1E35] text-sm sm:text-base font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isLoading && (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-[#0F1E35] border-t-transparent rounded-full animate-spin" />
                   )}
                   {isLoading ? 'Creating account...' : 'Create Account'}
                 </button>

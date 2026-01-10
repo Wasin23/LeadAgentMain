@@ -285,7 +285,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                 // Refresh after 2 seconds to ensure correct state
                 setTimeout(async () => {
                   try {
-                    const response = await api.get('/api/user/profile');
+                    const response = await api.get('/api/auth/profile');
                     if (response.data.user?.activeAgents) {
                       setAgents(response.data.user.activeAgents);
                     }
@@ -355,11 +355,11 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                 .slice(0, 5)
                 .map((agent) => (
                   <div key={agent.agentId} className="relative">
-                    {(agent as any).avatar ? (
+                    {((agent as any).avatar || (agent as any).personality?.avatar) ? (
                       <img
-                        src={(agent as any).avatar}
+                        src={(agent as any).avatar || (agent as any).personality?.avatar}
                         alt={agent.agentName}
-                        className="w-12 h-12 rounded-full border-2 border-[#4FD1FF]/60"
+                        className="w-12 h-12 rounded-full border-2 border-[#4FD1FF]/60 object-cover"
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4FD1FF] to-[#2A8FB9] flex items-center justify-center text-white font-bold text-sm border-2 border-[#4FD1FF]/60">

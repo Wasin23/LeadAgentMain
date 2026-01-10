@@ -2715,9 +2715,15 @@ export default function InteractiveGlobe() {
                       const isOrphaned = email.agentId === 'orphan';
                       
                       // Debug: Log email data to see if aiReport exists
-                      if (!email.aiReport) {
-                        console.log('📧 Email missing aiReport:', emailId, 'Keys:', Object.keys(email));
-                      }
+                      console.log('📧 Email data:', {
+                        id: emailId,
+                        hasAiReport: !!email.aiReport,
+                        aiReportTier: email.aiReport?.tier,
+                        timestamp: email.timestamp,
+                        timestampType: typeof email.timestamp,
+                        scheduledFor: email.scheduledFor,
+                        allKeys: Object.keys(email)
+                      });
                       
                       return (
                         <div key={emailId} className="bg-white/15 border border-white/20 rounded-xl overflow-hidden">
@@ -2753,23 +2759,21 @@ export default function InteractiveGlobe() {
                                 )}
                                 <div className="font-semibold text-white truncate">{email.subject || 'No Subject'}</div>
                               </div>
-                              <div className="text-sm text-white/60 truncate">To: {email.to}</div>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-sm text-white/60 truncate">To: {email.to}</div>
+                                {email.timestamp && (
+                                  <div className="text-xs text-white/50 whitespace-nowrap">
+                                    Queued: {new Date(email.timestamp).toLocaleDateString()}
+                                  </div>
+                                )}
+                              </div>
                               {isOrphaned && email.originalAgentId && (
                                 <div className="text-xs text-red-400/80 mt-1">
                                   Original agent: {email.originalAgentId}
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 ml-4">
-                              {/* Date Info */}
-                              <div className="text-xs text-white/50 text-right">
-                                {email.timestamp && (
-                                  <div>Queued: {new Date(email.timestamp).toLocaleDateString()}</div>
-                                )}
-                                {email.scheduledFor && (
-                                  <div>Scheduled: {new Date(email.scheduledFor).toLocaleDateString()}</div>
-                                )}
-                              </div>
+                            <div className="flex items-center gap-3 ml-4 relative z-10">
                               {/* AI Report Icon */}
                               {email.aiReport ? (
                                 <button
@@ -2777,15 +2781,15 @@ export default function InteractiveGlobe() {
                                     e.stopPropagation();
                                     setViewingAiReport(email.aiReport);
                                   }}
-                                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors group/ai"
+                                  className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-400/50 hover:border-blue-400"
                                   title="View AI Research Report"
                                 >
-                                  <svg className="w-5 h-5 text-blue-400 group-hover/ai:text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
                                 </button>
                               ) : (
-                                <div className="p-1.5 opacity-30" title="No AI Report (pre-existing email)">
+                                <div className="p-2 opacity-20" title="No AI Report (pre-existing email)">
                                   <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>

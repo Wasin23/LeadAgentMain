@@ -1260,8 +1260,16 @@ Call the appropriate function to continue the workflow.`;
             reasoning: actionResult.reasoning,
             confidence: actionResult.confidence,
             researchQuality: actionResult.researchQuality,
-            requiresReview: actionResult.requiresReview
+            requiresReview: actionResult.requiresReview,
+            aiReport: actionResult.aiReport // Store full AI report for email building
           };
+          
+          console.log('🔍 [AI REPORT DEBUG] Stored in currentQualification:', {
+            hasAiReport: !!actionResult.aiReport,
+            tier: actionResult.aiReport?.tier,
+            score: actionResult.aiReport?.score,
+            citedEvidence: actionResult.aiReport?.citedEvidence?.length || 0
+          });
           
           if (actionResult.qualified) {
             // Qualification passed, proceed to email unlock
@@ -3158,9 +3166,9 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
       const industry = leadData.organization?.industry || 'business';
       const employeeCount = leadData.organization?.estimated_num_employees || 'Unknown';
       
-      // Determine personalization tier
-      const tier = qualification?.tier || 'SHOTGUN';
+      // Determine personalization tier from AI Report
       const aiReport = qualification?.aiReport;
+      const tier = aiReport?.tier || qualification?.tier || 'SHOTGUN';
       
       console.log(`📊 [EMAIL BUILDER] Using ${tier} tier strategy: ${aiReport?.emailStrategy || 'generic template'}`);
       
@@ -5539,7 +5547,11 @@ Target Positions:`;
         hasConfidenceReport: !!queueData.confidenceReport,
         confidenceReportLength: queueData.confidenceReport?.length || 0,
         confidenceLevel: queueData.confidenceLevel,
-        confidenceReportPreview: queueData.confidenceReport?.substring(0, 100)
+        confidenceReportPreview: queueData.confidenceReport?.substring(0, 100),
+        hasAiReport: !!queueData.aiReport,
+        aiReportTier: queueData.aiReport?.tier,
+        aiReportScore: queueData.aiReport?.score,
+        aiReportCitedEvidence: queueData.aiReport?.citedEvidence?.length || 0
       });
 
       await this.emailQueue.addToQueue(queueData);
