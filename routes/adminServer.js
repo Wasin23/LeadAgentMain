@@ -60,7 +60,7 @@ function isAdmin(req, res, next) {
 // Admin dashboard - get all billing data
 router.get('/dashboard', isAdmin, async (req, res) => {
   try {
-    console.log('📊 [ADMIN] Dashboard request from:', req.user.userId);
+    console.log('📊 [ADMIN] Dashboard request from admin');
     
     // Get all users
     const usersCommand = new ScanCommand({
