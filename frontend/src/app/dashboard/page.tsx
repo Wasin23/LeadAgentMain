@@ -3149,143 +3149,180 @@ export default function InteractiveGlobe() {
         </div>
       )}
 
-      {/* AI Report Modal */}
+      {/* AI Report Modal - Slide-in Panel */}
       {viewingAiReport && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] transition-opacity duration-300"
           onClick={() => setViewingAiReport(null)}
         >
           <div 
-            className="bg-gradient-to-br from-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/20 max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-2xl bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] shadow-2xl border-l border-[#4FD1FF]/30 flex flex-col animate-slide-in-right"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Glowing accent line */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(79,209,255,0.5)]" />
+            
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div>
-                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  AI Research Report
-                </h3>
-                <p className="text-white/60 text-sm mt-1">{viewingAiReport.companyName}</p>
+            <div className="relative flex items-start justify-between p-6 border-b border-white/10 bg-black/20">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30">
+                    <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">AI Research Report</h3>
+                    <p className="text-white/50 text-sm">{viewingAiReport.companyName} • {viewingAiReport.contactName}</p>
+                  </div>
+                </div>
+                
+                {/* Quick Stats Bar */}
+                <div className="flex items-center gap-3 mt-4">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/50">Score</span>
+                    <span className="text-sm font-bold text-cyan-400">{viewingAiReport.score}/100</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${
+                    viewingAiReport.confidence === 'HIGH' ? 'bg-green-500/10 border-green-500/30' :
+                    viewingAiReport.confidence === 'MEDIUM' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                    'bg-red-500/10 border-red-500/30'
+                  }`}>
+                    <span className="text-xs text-white/50">Confidence</span>
+                    <span className={`text-sm font-bold ${
+                      viewingAiReport.confidence === 'HIGH' ? 'text-green-400' :
+                      viewingAiReport.confidence === 'MEDIUM' ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>{viewingAiReport.confidence}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/50">Sources</span>
+                    <span className="text-sm font-bold text-purple-400">{viewingAiReport.totalSources}</span>
+                  </div>
+                </div>
               </div>
+              
               <button
                 onClick={() => setViewingAiReport(null)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/10 rounded-lg transition-all hover:rotate-90 duration-300"
               >
                 <XMarkIcon className="w-6 h-6 text-white/70" />
               </button>
             </div>
 
+            {/* Tier Badge - Floating */}
+            <div className="absolute right-6 top-6">
+              <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-lg ${
+                viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? 'bg-green-500/30 text-green-300 border-2 border-green-500/50 shadow-green-500/50' :
+                viewingAiReport.tier === 'QUALIFIED' ? 'bg-blue-500/30 text-blue-300 border-2 border-blue-500/50 shadow-blue-500/50' :
+                viewingAiReport.tier === 'SHOTGUN' ? 'bg-yellow-500/30 text-yellow-300 border-2 border-yellow-500/50 shadow-yellow-500/50' :
+                'bg-red-500/30 text-red-300 border-2 border-red-500/50 shadow-red-500/50'
+              }`}>
+                {viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? '⭐ Highly Qualified' :
+                 viewingAiReport.tier === 'QUALIFIED' ? '✅ Qualified' :
+                 viewingAiReport.tier === 'SHOTGUN' ? '🎯 Shotgun' :
+                 '❌ Rejected'}
+              </span>
+            </div>
+
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Qualification Tier */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-lg font-semibold text-white">Qualification Tier</h4>
-                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                    viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                    viewingAiReport.tier === 'QUALIFIED' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                    viewingAiReport.tier === 'SHOTGUN' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                    'bg-red-500/20 text-red-300 border border-red-500/30'
-                  }`}>
-                    {viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? '⭐ Highly Qualified' :
-                     viewingAiReport.tier === 'QUALIFIED' ? '✅ Qualified' :
-                     viewingAiReport.tier === 'SHOTGUN' ? '🎯 Shotgun' :
-                     '❌ Rejected'}
-                  </span>
-                </div>
-                <p className="text-white/70 text-sm mb-2">{viewingAiReport.tierDescription}</p>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-white/60">Score: <span className="text-white font-semibold">{viewingAiReport.score}/100</span></span>
-                  <span className="text-white/60">Confidence: <span className={`font-semibold ${
-                    viewingAiReport.confidence === 'HIGH' ? 'text-green-400' :
-                    viewingAiReport.confidence === 'MEDIUM' ? 'text-yellow-400' :
-                    'text-red-400'
-                  }`}>{viewingAiReport.confidence}</span></span>
-                  <span className="text-white/60">Research: <span className="text-white font-semibold">{viewingAiReport.researchQuality}</span></span>
-                </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+              
+              {/* AI Reasoning - Hero Section */}
+              <div className="relative bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl p-5 border border-blue-400/30 shadow-lg">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -z-10" />
+                <h4 className="text-base font-bold text-blue-300 mb-3 flex items-center gap-2">
+                  <span className="text-lg">🧠</span>
+                  AI Analysis
+                </h4>
+                <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{viewingAiReport.reasoning}</p>
               </div>
 
               {/* Email Strategy */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <h4 className="text-lg font-semibold text-white mb-2">Email Strategy</h4>
+              <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl p-4 border border-cyan-400/30">
+                <h4 className="text-sm font-bold text-cyan-300 mb-2 flex items-center gap-2">
+                  <span>📧</span>
+                  Email Strategy
+                </h4>
                 <p className="text-white/70 text-sm">{viewingAiReport.emailStrategy}</p>
               </div>
 
-              {/* AI Reasoning */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <h4 className="text-lg font-semibold text-white mb-2">AI Reasoning</h4>
-                <p className="text-white/70 text-sm whitespace-pre-wrap">{viewingAiReport.reasoning}</p>
+              {/* Two Column Layout for Strengths/Concerns */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Key Strengths */}
+                {viewingAiReport.keyStrengths && viewingAiReport.keyStrengths.length > 0 && (
+                  <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30">
+                    <h4 className="text-sm font-bold text-green-300 mb-3 flex items-center gap-2">
+                      <span>💪</span>
+                      Strengths
+                    </h4>
+                    <ul className="space-y-2">
+                      {viewingAiReport.keyStrengths.map((strength: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-white/80 text-xs">
+                          <span className="text-green-400 mt-0.5 text-sm">✓</span>
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Weaknesses */}
+                {viewingAiReport.weaknesses && viewingAiReport.weaknesses.length > 0 && (
+                  <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30">
+                    <h4 className="text-sm font-bold text-yellow-300 mb-3 flex items-center gap-2">
+                      <span>⚠️</span>
+                      Concerns
+                    </h4>
+                    <ul className="space-y-2">
+                      {viewingAiReport.weaknesses.map((weakness: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-white/80 text-xs">
+                          <span className="text-yellow-400 mt-0.5 text-sm">!</span>
+                          <span>{weakness}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
-              {/* Key Strengths */}
-              {viewingAiReport.keyStrengths && viewingAiReport.keyStrengths.length > 0 && (
-                <div className="bg-green-500/5 rounded-xl p-4 border border-green-500/20">
-                  <h4 className="text-lg font-semibold text-green-300 mb-3">💪 Key Strengths</h4>
-                  <ul className="space-y-2">
-                    {viewingAiReport.keyStrengths.map((strength: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-white/80 text-sm">
-                        <span className="text-green-400 mt-0.5">✓</span>
-                        <span>{strength}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Weaknesses */}
-              {viewingAiReport.weaknesses && viewingAiReport.weaknesses.length > 0 && (
-                <div className="bg-yellow-500/5 rounded-xl p-4 border border-yellow-500/20">
-                  <h4 className="text-lg font-semibold text-yellow-300 mb-3">⚠️ Concerns</h4>
-                  <ul className="space-y-2">
-                    {viewingAiReport.weaknesses.map((weakness: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-white/80 text-sm">
-                        <span className="text-yellow-400 mt-0.5">!</span>
-                        <span>{weakness}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Cited Evidence */}
+              {/* Cited Evidence - Compact Cards */}
               {viewingAiReport.citedEvidence && viewingAiReport.citedEvidence.length > 0 && (
-                <div className="bg-blue-500/5 rounded-xl p-4 border border-blue-500/20">
-                  <h4 className="text-lg font-semibold text-blue-300 mb-3">📚 Cited Evidence ({viewingAiReport.totalSources} sources)</h4>
-                  <div className="space-y-3">
+                <div className="bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30">
+                  <h4 className="text-sm font-bold text-indigo-300 mb-3 flex items-center gap-2">
+                    <span>📚</span>
+                    Key Evidence
+                  </h4>
+                  <div className="space-y-2">
                     {viewingAiReport.citedEvidence.map((evidence: any, i: number) => (
-                      <div key={i} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                        <p className="text-white text-sm mb-2">{evidence.fact}</p>
-                        <div className="flex items-center gap-2 text-xs text-white/50">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      <div key={i} className="bg-black/20 rounded-lg p-3 border border-white/5 hover:border-white/10 transition-colors">
+                        <p className="text-white/90 text-xs mb-2 leading-relaxed">{evidence.fact}</p>
+                        <a 
+                          href={evidence.source} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors group"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
-                          <a 
-                            href={evidence.source} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="truncate hover:text-blue-400 hover:underline transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {evidence.source}
-                          </a>
-                          <span className={`ml-auto px-2 py-0.5 rounded-full ${evidence.supportsMatch ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
-                            {evidence.supportsMatch ? 'Supports' : 'Conflicts'}
-                          </span>
-                        </div>
+                          <span className="truncate max-w-[250px]">{evidence.source}</span>
+                        </a>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* All Research Sources */}
+              {/* All Research Sources - Compact List */}
               {viewingAiReport.allCitedFacts && viewingAiReport.allCitedFacts.length > 0 && (
-                <div className="bg-purple-500/5 rounded-xl p-4 border border-purple-500/20">
-                  <h4 className="text-lg font-semibold text-purple-300 mb-3">🔗 All Research Sources</h4>
-                  <div className="space-y-2">
+                <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30">
+                  <h4 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
+                    <span>🔗</span>
+                    All Sources ({(Array.from(new Set(viewingAiReport.allCitedFacts.map((f: any) => f.source))) as string[]).filter(s => s).length})
+                  </h4>
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-transparent">
                     {(Array.from(new Set(viewingAiReport.allCitedFacts.map((f: any) => f.source))) as string[])
                       .filter((source) => source)
                       .map((source, i) => {
@@ -3296,15 +3333,15 @@ export default function InteractiveGlobe() {
                             href={source}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-start gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
+                            className="flex items-center gap-2 p-2 bg-black/20 rounded-lg hover:bg-black/30 transition-all group border border-white/5 hover:border-purple-400/30"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <svg className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3.5 h-3.5 text-purple-400 shrink-0 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                             <div className="flex-1 min-w-0">
-                              {sourceTitle && <div className="text-white text-sm font-medium group-hover:text-purple-300 transition-colors">{sourceTitle}</div>}
-                              <div className="text-white/50 text-xs truncate group-hover:text-purple-400/70">{source}</div>
+                              {sourceTitle && <div className="text-white text-xs font-medium truncate group-hover:text-purple-300 transition-colors">{sourceTitle}</div>}
+                              <div className="text-white/40 text-[10px] truncate group-hover:text-purple-400/70">{source}</div>
                             </div>
                           </a>
                         );
@@ -3313,11 +3350,11 @@ export default function InteractiveGlobe() {
                 </div>
               )}
 
-              {/* Metadata */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-xs text-white/50">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>Evaluated: {new Date(viewingAiReport.evaluatedAt).toLocaleString()}</div>
-                  <div>Contact: {viewingAiReport.contactName}</div>
+              {/* Metadata Footer */}
+              <div className="bg-white/5 rounded-lg p-3 border border-white/10 text-[10px] text-white/40">
+                <div className="flex items-center justify-between">
+                  <span>Evaluated: {new Date(viewingAiReport.evaluatedAt).toLocaleString()}</span>
+                  <span className="px-2 py-1 bg-white/5 rounded">Quality: {viewingAiReport.researchQuality}</span>
                 </div>
               </div>
             </div>
