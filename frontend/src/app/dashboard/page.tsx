@@ -291,6 +291,8 @@ export default function InteractiveGlobe() {
   const [emailActivity, setEmailActivity] = useState<any[]>([]);
   const [activityFilter, setActivityFilter] = useState<'all' | 'opened' | 'sent' | 'bounced'>('all');
   const [outreachSearch, setOutreachSearch] = useState('');
+  const [outreachPage, setOutreachPage] = useState(0);
+  const OUTREACH_PAGE_SIZE = 20;
   
   // Email location tracking with status (queued, sent, meeting)
   const [emailDots, setEmailDots] = useState<Array<{
@@ -1721,36 +1723,44 @@ export default function InteractiveGlobe() {
                 <p className="text-[#8FA6C1]/60 text-xs mt-2">Sent emails will appear here</p>
               </div>
             ) : (
-              emailActivity
-                .filter(email => {
-                  if (activityFilter === 'all') return true;
-                  if (activityFilter === 'opened') return email.analyticsStatus?.opened;
-                  if (activityFilter === 'sent') return !email.analyticsStatus?.opened;
-                  if (activityFilter === 'bounced') return email.status === 'bounced';
-                  return true;
-                })
-                .filter(email => {
-                  if (!outreachSearch) return true;
-                  const searchLower = outreachSearch.toLowerCase();
-                  const recipient = (email.to || email.recipient || '').toLowerCase();
-                  const subject = (email.subject || '').toLowerCase();
-                  return recipient.includes(searchLower) || subject.includes(searchLower);
-                })
-                .slice(0, 20) // Limit to 20 most recent emails for performance
-                .map((email, idx) => {
-                  const hasOpened = email.analyticsStatus?.opened; // Real open (second hit)
-                  const hasProxy = email.analyticsStatus?.hasProxy; // First hit (proxy)
-                  const hasClicked = email.analyticsStatus?.clicked;
-                  const hasReplied = email.analyticsStatus?.replied;
-                  const isBounced = email.status === 'bounced';
-                  const openCount = email.analyticsStatus?.openCount || 0;
-                  const timeAgo = new Date(email.sentAt || email.timestamp).toLocaleString();
+              <>
+                {(() => {
+                  const filtered = emailActivity
+                    .filter(email => {
+                      if (activityFilter === 'all') return true;
+                      if (activityFilter === 'opened') return email.analyticsStatus?.opened;
+                      if (activityFilter === 'sent') return !email.analyticsStatus?.opened;
+                      if (activityFilter === 'bounced') return email.status === 'bounced';
+                      return true;
+                    })
+                    .filter(email => {
+                      if (!outreachSearch) return true;
+                      const searchLower = outreachSearch.toLowerCase();
+                      const recipient = (email.to || email.recipient || '').toLowerCase();
+                      const subject = (email.subject || '').toLowerCase();
+                      return recipient.includes(searchLower) || subject.includes(searchLower);
+                    });
+                  
+                  const hasSearch = !!outreachSearch;
+                  const paginated = hasSearch ? filtered : filtered.slice(outreachPage * OUTREACH_PAGE_SIZE, (outreachPage + 1) * OUTREACH_PAGE_SIZE);
+                  const totalPages = hasSearch ? 1 : Math.ceil(filtered.length / OUTREACH_PAGE_SIZE);
                   
                   return (
-                    <div 
-                      key={email.trackingId || email.id || idx} 
-                      className="bg-[#0A1525]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all"
-                    >
+                    <>
+                      {paginated.map((email, idx) => {
+                        const hasOpened = email.analyticsStatus?.opened;
+                        const hasProxy = email.analyticsStatus?.hasProxy;
+                        const hasClicked = email.analyticsStatus?.clicked;
+                        const hasReplied = email.analyticsStatus?.replied;
+                        const isBounced = email.status === 'bounced';
+                        const openCount = email.analyticsStatus?.openCount || 0;
+                        const timeAgo = new Date(email.sentAt || email.timestamp).toLocaleString();
+                        
+                        return (
+                          <div 
+                            key={email.trackingId || email.id || idx} 
+                            className="bg-[#0A1525]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all"
+                          >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -1845,8 +1855,43 @@ export default function InteractiveGlobe() {
                       </div>
                     </div>
                   );
-                })
-            )}
+                })}
+                
+                {/* Pagination Controls - Only show when not searching */}
+                {!hasSearch && totalPages > 1 && (
+                  <div className="flex items-center justify-between p-3 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg mt-2">
+                    <button
+                      onClick={() => setOutreachPage(Math.max(0, outreachPage - 1))}
+                      disabled={outreachPage === 0}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-xs font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Previous
+                    </button>
+                    
+                    <span className="text-[#8FA6C1] text-xs">
+                      Page {outreachPage + 1} of {totalPages} ({filtered.length} total)
+                    </span>
+                    
+                    <button
+                      onClick={() => setOutreachPage(Math.min(totalPages - 1, outreachPage + 1))}
+                      disabled={outreachPage >= totalPages - 1}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-xs font-medium"
+                    >
+                      Next
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </>
+      )}
           </div>
         </div>
       </div>
@@ -3153,15 +3198,15 @@ export default function InteractiveGlobe() {
       {/* AI Report Overlay - Inside Queue Modal */}
       {viewingAiReport && selectedQueue && (
         <div 
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-6 animate-fadeIn"
+          className="absolute inset-0 bg-black/80 z-[200] flex items-center justify-center p-6"
           onClick={() => setViewingAiReport(null)}
         >
           <div 
-            className="bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/30 w-full max-w-4xl max-h-[90%] overflow-hidden flex flex-col animate-scaleIn"
+            className="bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/30 w-full max-w-4xl max-h-[90%] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Glowing accent line */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(79,209,255,0.5)]" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600" />
             
             {/* Header */}
             <div className="relative flex items-start justify-between p-6 border-b border-white/10 bg-black/20">
@@ -3200,7 +3245,7 @@ export default function InteractiveGlobe() {
                     <span className="text-xs text-white/50">Sources</span>
                     <span className="text-sm font-bold text-purple-400">{viewingAiReport.totalSources}</span>
                   </div>
-                  <span className={`ml-auto px-4 py-1.5 rounded-full text-xs font-bold shadow-lg ${
+                  <span className={`ml-auto px-4 py-1.5 rounded-full text-xs font-bold ${
                     viewingAiReport.tier === 'HIGHLY_QUALIFIED' ? 'bg-green-500/30 text-green-300 border-2 border-green-500/50' :
                     viewingAiReport.tier === 'QUALIFIED' ? 'bg-blue-500/30 text-blue-300 border-2 border-blue-500/50' :
                     viewingAiReport.tier === 'SHOTGUN' ? 'bg-yellow-500/30 text-yellow-300 border-2 border-yellow-500/50' :
@@ -3216,7 +3261,7 @@ export default function InteractiveGlobe() {
               
               <button
                 onClick={() => setViewingAiReport(null)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-all hover:rotate-90 duration-300 ml-4"
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors ml-4"
               >
                 <XMarkIcon className="w-6 h-6 text-white/70" />
               </button>
@@ -3225,63 +3270,50 @@ export default function InteractiveGlobe() {
             {/* Content - Scrollable */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               
-              {/* AI Reasoning - Hero Section */}
+              {/* AI Analysis with Strengths */}
               <div className="relative bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl p-5 border border-blue-400/30">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -z-10" />
                 <h4 className="text-base font-bold text-blue-300 mb-3 flex items-center gap-2">
                   <span className="text-lg">🧠</span>
                   AI Analysis
                 </h4>
-                <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{viewingAiReport.reasoning}</p>
-              </div>
-
-              {/* Email Strategy */}
-              <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl p-4 border border-cyan-400/30">
-                <h4 className="text-sm font-bold text-cyan-300 mb-2 flex items-center gap-2">
-                  <span>📧</span>
-                  Email Strategy
-                </h4>
-                <p className="text-white/70 text-sm">{viewingAiReport.emailStrategy}</p>
-              </div>
-
-              {/* Two Column Layout for Strengths/Concerns */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Key Strengths */}
+                <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap mb-4">{viewingAiReport.reasoning}</p>
+                
+                {/* Strengths inline */}
                 {viewingAiReport.keyStrengths && viewingAiReport.keyStrengths.length > 0 && (
-                  <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30">
-                    <h4 className="text-sm font-bold text-green-300 mb-3 flex items-center gap-2">
+                  <div className="mt-4 pt-4 border-t border-green-500/20">
+                    <h5 className="text-sm font-bold text-green-300 mb-2 flex items-center gap-2">
                       <span>💪</span>
-                      Strengths
-                    </h4>
-                    <ul className="space-y-2">
+                      Key Strengths
+                    </h5>
+                    <ul className="space-y-1.5">
                       {viewingAiReport.keyStrengths.map((strength: string, i: number) => (
                         <li key={i} className="flex items-start gap-2 text-white/80 text-xs">
-                          <span className="text-green-400 mt-0.5 text-sm">✓</span>
+                          <span className="text-green-400 mt-0.5">✓</span>
                           <span>{strength}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
-
-                {/* Weaknesses */}
-                {viewingAiReport.weaknesses && viewingAiReport.weaknesses.length > 0 && (
-                  <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30">
-                    <h4 className="text-sm font-bold text-yellow-300 mb-3 flex items-center gap-2">
-                      <span>⚠️</span>
-                      Concerns
-                    </h4>
-                    <ul className="space-y-2">
-                      {viewingAiReport.weaknesses.map((weakness: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2 text-white/80 text-xs">
-                          <span className="text-yellow-400 mt-0.5 text-sm">!</span>
-                          <span>{weakness}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
+
+              {/* Concerns */}
+              {viewingAiReport.weaknesses && viewingAiReport.weaknesses.length > 0 && (
+                <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30">
+                  <h4 className="text-sm font-bold text-yellow-300 mb-3 flex items-center gap-2">
+                    <span>⚠️</span>
+                    Concerns
+                  </h4>
+                  <ul className="space-y-2">
+                    {viewingAiReport.weaknesses.map((weakness: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-white/80 text-xs">
+                        <span className="text-yellow-400 mt-0.5">!</span>
+                        <span>{weakness}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Cited Evidence - Compact Cards */}
               {viewingAiReport.citedEvidence && viewingAiReport.citedEvidence.length > 0 && (
