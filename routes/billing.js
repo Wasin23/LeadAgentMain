@@ -639,7 +639,7 @@ export async function scanUsersAndCharge() {
             amount: totalCost,
             currency: 'USD',
             paymentIntentId: paymentIntent.id,
-            billingPeriod: startOfMonth.toISOString()
+            billingPeriod: new Date().toISOString() // Use current date instead of undefined variable
           }, 'success');
           
           console.log(`✅ [BILLING] Charged ${userId}: $${totalCost.toFixed(2)}`);
