@@ -1698,19 +1698,19 @@ export default function InteractiveGlobe() {
                     >
                       {/* Collapsed Header */}
                       <div
-                        className="p-2 cursor-pointer hover:bg-white/5"
+                        className="p-2.5 cursor-pointer hover:bg-white/5"
                         onClick={() => setExpandedEmailId(isExpanded ? null : emailId)}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               {isOrphaned && (
-                                <span className="text-[9px] font-semibold bg-red-500/80 text-white px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold bg-red-500/80 text-white px-1.5 py-0.5 rounded">
                                   ORPHAN
                                 </span>
                               )}
                               {selectedQueue?.type === 'sent' && email.deliveryStatus && (
-                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                                   email.deliveryStatus === 'delivered' ? 'bg-green-500/80 text-white' :
                                   email.deliveryStatus === 'bounced' ? 'bg-red-500/80 text-white' :
                                   'bg-yellow-500/80 text-white'
@@ -1723,23 +1723,60 @@ export default function InteractiveGlobe() {
                               <div className="text-white text-[11px] font-medium truncate flex-1">
                                 {email.subject || 'No Subject'}
                               </div>
+                            </div>
+                            <div className="text-[#8FA6C1] text-[11px] truncate mb-1">
+                              To: {email.to} {email.agentName && `• ${email.agentName}`}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-[#8FA6C1]/70">
+                              {email.queuedAt && (
+                                <span>
+                                  Queued: {new Date(email.queuedAt).toLocaleDateString()} {new Date(email.queuedAt).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                </span>
+                              )}
                               {sentDate && (
-                                <span className="text-[9px] text-[#8FA6C1]/60 whitespace-nowrap">
-                                  {sentDate.toLocaleDateString()} {sentDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                <span>
+                                  • Sent: {sentDate.toLocaleDateString()} {sentDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </span>
                               )}
                             </div>
-                            <div className="text-[#8FA6C1] text-[9px] truncate">
-                              To: {email.to} {email.agentName && `• ${email.agentName}`}
-                            </div>
                           </div>
                           
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             {hasAiReport && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400" title="Has AI Report" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingAiReport(email.aiReport);
+                                }}
+                                className="p-1 hover:bg-blue-500/20 rounded border border-blue-400/50 hover:border-blue-400 transition-colors"
+                                title="View AI Research Report"
+                              >
+                                <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </button>
                             )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingEmail({
+                                  id: emailId,
+                                  subject: email.subject || '',
+                                  body: email.body || '',
+                                  to: email.to || '',
+                                  cc: email.cc,
+                                  bcc: email.bcc
+                                });
+                              }}
+                              className="p-1 hover:bg-[#4FD1FF]/20 rounded border border-[#4FD1FF]/50 hover:border-[#4FD1FF] transition-colors"
+                              title="Edit Email"
+                            >
+                              <svg className="w-3.5 h-3.5 text-[#4FD1FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
                             <svg 
-                              className={`w-3 h-3 text-[#4FD1FF] transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              className={`w-3.5 h-3.5 text-[#4FD1FF] transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                               fill="none" 
                               stroke="currentColor" 
                               viewBox="0 0 24 24"
@@ -1752,23 +1789,23 @@ export default function InteractiveGlobe() {
 
                       {/* Expanded Content */}
                       {isExpanded && (
-                        <div className="border-t border-[#4FD1FF]/20 p-2 space-y-2 bg-[#0A1525]/60">
+                        <div className="border-t border-[#4FD1FF]/20 p-3 space-y-2.5 bg-[#0A1525]/60">
                           <div>
-                            <div className="text-[9px] text-[#8FA6C1] mb-0.5">Subject</div>
-                            <div className="text-white text-[10px]">{email.subject || 'No subject'}</div>
+                            <div className="text-[10px] text-[#8FA6C1] mb-1">Subject</div>
+                            <div className="text-white text-[11px]">{email.subject || 'No subject'}</div>
                           </div>
 
                           <div>
-                            <div className="text-[9px] text-[#8FA6C1] mb-0.5">Email Body</div>
-                            <div className="bg-[#0A1525]/80 rounded p-2 text-white/90 text-[9px] whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto">
+                            <div className="text-[10px] text-[#8FA6C1] mb-1">Email Body</div>
+                            <div className="bg-[#0A1525]/80 rounded p-2.5 text-white/90 text-[11px] whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto">
                               {email.body || 'No content'}
                             </div>
                           </div>
 
                           {hasAiReport && (
                             <div>
-                              <div className="text-[9px] text-[#8FA6C1] mb-0.5">AI Report</div>
-                              <div className="bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 rounded p-2 text-white/90 text-[9px] max-h-[150px] overflow-y-auto">
+                              <div className="text-[10px] text-[#8FA6C1] mb-1">AI Report</div>
+                              <div className="bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 rounded p-2.5 text-white/90 text-[11px] max-h-[150px] overflow-y-auto">
                                 {email.aiReport}
                               </div>
                             </div>
@@ -1781,7 +1818,7 @@ export default function InteractiveGlobe() {
                                 // Handle accept
                                 console.log('Accept email:', emailId);
                               }}
-                              className="px-2 py-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 text-[10px] font-medium rounded transition-colors"
+                              className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 text-[11px] font-medium rounded transition-colors"
                             >
                               ✓ Accept
                             </button>
@@ -1791,12 +1828,12 @@ export default function InteractiveGlobe() {
                                 // Handle reject
                                 console.log('Reject email:', emailId);
                               }}
-                              className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-[10px] font-medium rounded transition-colors"
+                              className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-[11px] font-medium rounded transition-colors"
                             >
                               ✗ Reject
                             </button>
                             {email.agentName && (
-                              <span className="text-[9px] text-[#8FA6C1] ml-auto">
+                              <span className="text-[10px] text-[#8FA6C1] ml-auto">
                                 {email.agentName}
                               </span>
                             )}
