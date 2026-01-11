@@ -283,7 +283,7 @@ router.get('/dashboard', isAdmin, async (req, res) => {
 // Trigger monthly billing manually
 router.post('/trigger-billing', isAdmin, async (req, res) => {
   try {
-    console.log('💰 [ADMIN] Manual billing trigger by:', req.user.userId);
+    console.log('💰 [ADMIN] Manual billing trigger by admin');
     
     const results = await scanUsersAndCharge();
     
