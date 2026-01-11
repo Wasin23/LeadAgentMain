@@ -970,11 +970,69 @@ router.get('/api-usage/total', async (req, res) => {
     const trialCreditsUsed = user?.trialCreditsUsed || 0;
     const hasPaymentMethod = user?.paymentMethodAdded || false;
     
+    // Calculate outstanding (usage minus payments) for current month only
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
+    // Get current month's usage from summary
+    const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+    const summaryQuery = new QueryCommand({
+      TableName: userAgent.awsManager.tables.apiUsageSummary,
+      KeyConditionExpression: 'userId = :userId',
+      FilterExpression: '#month = :month',
+      ExpressionAttributeNames: {
+        '#month': 'month'
+      },
+      ExpressionAttributeValues: {
+        ':userId': userId,
+        ':month': currentMonth
+      }
+    });
+    
+    const summaryResult = await userAgent.awsManager.dynamodb.send(summaryQuery);
+    const currentMonthSummary = summaryResult.Items?.[0];
+    
+    let currentMonthUsage = 0;
+    if (currentMonthSummary) {
+      ['apollo', 'openai', 'mailgun', 'zerobounce', 'serper', 'gmail'].forEach(service => {
+        if (currentMonthSummary[service]) {
+          currentMonthUsage += currentMonthSummary[service].cost || 0;
+        }
+      });
+    }
+    
+    // Get payments for current month
+    const paymentQuery = new QueryCommand({
+      TableName: userAgent.awsManager.tables.paymentHistory,
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': userId
+      }
+    });
+    
+    const paymentResult = await userAgent.awsManager.dynamodb.send(paymentQuery);
+    const payments = paymentResult.Items || [];
+    
+    // Sum successful payments for current month
+    let currentMonthPaid = 0;
+    payments.forEach(payment => {
+      if (payment.status === 'success' && payment.billingPeriod) {
+        const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+        if (paymentMonth === currentMonth) {
+          currentMonthPaid += payment.amount || 0;
+        }
+      }
+    });
+    
+    const outstandingThisMonth = Math.max(0, currentMonthUsage - currentMonthPaid);
+    
     res.json({
       success: true,
       ...result,
       trialCreditsUsed,
-      hasPaymentMethod
+      hasPaymentMethod,
+      currentMonthUsage,
+      currentMonthPaid,
+      outstandingThisMonth
     });
   } catch (error) {
     console.error('[LEAD AGENT API] Error getting total API usage:', error);

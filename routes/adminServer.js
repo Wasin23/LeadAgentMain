@@ -162,7 +162,9 @@ router.get('/dashboard', isAdmin, async (req, res) => {
     const activeAccounts = users?.map(user => {
       const userSettings = settings?.find(s => s.userId === user.userId);
       const userPayments = payments?.filter(p => p.userId === user.userId) || [];
-      const totalSpent = userPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalSpent = userPayments
+        .filter(p => p.status === 'success')
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
       
       // Build monthly payment breakdown
       const monthlyBreakdown = {};
@@ -230,21 +232,42 @@ router.get('/dashboard', isAdmin, async (req, res) => {
         (user.stripeCustomerId && userSettings?.paymentStatus === 'active')
       );
       
+      // Calculate last charge date from actual payment records
+      const successfulPayments = userPayments.filter(p => p.status === 'success');
+      const lastSuccessfulPayment = successfulPayments.length > 0 
+        ? successfulPayments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
+        : null;
+      
+      const lastChargeDate = lastSuccessfulPayment?.timestamp || userSettings?.lastChargeDate || null;
+      const lastChargeAmount = lastSuccessfulPayment?.amount || userSettings?.lastChargeAmount || 0;
+      
+      // Determine payment status dynamically
+      let paymentStatus = 'unknown';
+      if (!hasPaymentMethod) {
+        paymentStatus = 'no_payment';
+      } else if (successfulPayments.length > 0) {
+        paymentStatus = 'active';
+      } else if (userPayments.some(p => p.status === 'failed')) {
+        paymentStatus = 'payment_failed';
+      } else {
+        paymentStatus = userSettings?.paymentStatus || 'unknown';
+      }
+      
       return {
         userId: user.userId,
         email: user.email,
         username: user.username,
         createdAt: user.createdAt,
         stripeCustomerId: user.stripeCustomerId,
-        paymentStatus: userSettings?.paymentStatus || 'unknown',
+        paymentStatus: paymentStatus,
         hasPaymentMethod: hasPaymentMethod,
-        lastChargeDate: userSettings?.lastChargeDate,
-        lastChargeAmount: userSettings?.lastChargeAmount,
+        lastChargeDate: lastChargeDate,
+        lastChargeAmount: lastChargeAmount,
         gracePeriodEnd: userSettings?.gracePeriodEnd,
         totalSpent: totalSpent,
         outstandingAmount: outstandingAmount,
         apiCallsThisMonth: apiCallsThisMonth,
-        paymentCount: userPayments.length,
+        paymentCount: successfulPayments.length,
         paymentBreakdown: paymentBreakdown
       };
     }).filter(u => u.email) || []; // Filter out any invalid entries

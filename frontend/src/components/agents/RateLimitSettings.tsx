@@ -77,6 +77,7 @@ const RateLimitSettings: React.FC = () => {
 
       // Fetch total spending
       let totalCost = 0;
+      let outstandingAmount = 0;
       const spendingResponse = await api.get('/api/lead-agent/api-usage/total');
       if (spendingResponse.data.success) {
         totalCost = 
@@ -86,12 +87,16 @@ const RateLimitSettings: React.FC = () => {
           (spendingResponse.data.stats?.zerobounce?.cost || 0) +
           (spendingResponse.data.stats?.serper?.cost || 0);
         
+        // Use outstanding amount from API (current month usage minus payments)
+        outstandingAmount = spendingResponse.data.outstandingThisMonth || 0;
+        
         // Subtract trial credits used as a credit if payment method is added
         const trialCredit = (spendingResponse.data.hasPaymentMethod && spendingResponse.data.trialCreditsUsed) 
           ? spendingResponse.data.trialCreditsUsed 
           : 0;
         
-        setTotalSpent(totalCost - trialCredit);
+        // For display: show outstanding this month (or trial usage if no payment method)
+        setTotalSpent(spendingResponse.data.hasPaymentMethod ? outstandingAmount : (totalCost - trialCredit));
       }
 
       // Fetch next billing date from payment stats
@@ -236,7 +241,7 @@ const RateLimitSettings: React.FC = () => {
           <div>
             <div className="flex items-baseline gap-3 mb-1">
               <p className="text-blue-100 text-sm font-medium">
-                {trialCredits && !trialCredits.paymentMethodAdded ? 'Trial Credits Used' : 'Total Spent This Month'}
+                {trialCredits && !trialCredits.paymentMethodAdded ? 'Trial Credits Used' : 'Outstanding This Month'}
               </p>
               {nextBillingDate && trialCredits?.paymentMethodAdded && (
                 <p className="text-blue-200 text-xs">
