@@ -596,4 +596,121 @@ router.delete('/sent/clear', async (req, res) => {
   }
 });
 
+// Bulk edit/replace text in queued emails
+router.post('/bulk-edit', async (req, res) => {
+  try {
+    const { findText, replaceText, useRegex = false, agentId } = req.body;
+    
+    if (!findText && findText !== '') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Find text is required' 
+      });
+    }
+    
+    console.log(`🔧 [EMAIL QUEUE] Bulk edit: "${findText}" → "${replaceText}" (regex: ${useRegex}, agent: ${agentId || 'all'})`);
+    
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    
+    // Get all queued emails for this user (and optionally specific agent)
+    let emails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
+    
+    // Filter by agent if specified
+    if (agentId && agentId !== 'all') {
+      emails = emails.filter(e => e.agentId === agentId);
+    }
+    
+    console.log(`🔧 [EMAIL QUEUE] Found ${emails.length} queued emails to process`);
+    
+    let updatedCount = 0;
+    const updates = [];
+    
+    // Process emails with delay to avoid AWS throttling
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    for (let i = 0; i < emails.length; i++) {
+      const email = emails[i];
+      let bodyChanged = false;
+      let subjectChanged = false;
+      let newBody = email.body;
+      let newSubject = email.subject;
+      
+      // Replace in email body
+      if (email.body) {
+        if (useRegex) {
+          const regex = new RegExp(findText, 'g');
+          const replaced = email.body.replace(regex, replaceText);
+          if (replaced !== email.body) {
+            newBody = replaced;
+            bodyChanged = true;
+          }
+        } else {
+          const replaced = email.body.split(findText).join(replaceText);
+          if (replaced !== email.body) {
+            newBody = replaced;
+            bodyChanged = true;
+          }
+        }
+      }
+      
+      // Replace in subject
+      if (email.subject) {
+        if (useRegex) {
+          const regex = new RegExp(findText, 'g');
+          const replaced = email.subject.replace(regex, replaceText);
+          if (replaced !== email.subject) {
+            newSubject = replaced;
+            subjectChanged = true;
+          }
+        } else {
+          const replaced = email.subject.split(findText).join(replaceText);
+          if (replaced !== email.subject) {
+            newSubject = replaced;
+            subjectChanged = true;
+          }
+        }
+      }
+      
+      // Update if changes were made
+      if (bodyChanged || subjectChanged) {
+        await awsQueue.updateEmail(email.emailId, {
+          body: newBody,
+          subject: newSubject
+        });
+        updatedCount++;
+        updates.push({
+          emailId: email.emailId,
+          to: email.to,
+          bodyChanged,
+          subjectChanged
+        });
+        
+        console.log(`✅ [EMAIL QUEUE] Updated email ${updatedCount}/${emails.length} (${email.to})`);
+        
+        // Delay 500ms between updates to avoid AWS throttling
+        if (i < emails.length - 1) {
+          await delay(500);
+        }
+      }
+    }
+    
+    console.log(`✅ [EMAIL QUEUE] Bulk edit complete: ${updatedCount}/${emails.length} emails updated`);
+    
+    res.json({
+      success: true,
+      updatedCount,
+      totalProcessed: emails.length,
+      updates
+    });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error in bulk edit:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to bulk edit emails',
+      details: error.message 
+    });
+  }
+});
+
 export default router;

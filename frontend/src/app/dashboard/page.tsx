@@ -274,6 +274,14 @@ export default function InteractiveGlobe() {
   const [currentEmailPage, setCurrentEmailPage] = useState(1);
   const EMAILS_PER_PAGE = 20;
   
+  // Auto-editor states
+  const [showAutoEditor, setShowAutoEditor] = useState(false);
+  const [autoEditFind, setAutoEditFind] = useState('');
+  const [autoEditReplace, setAutoEditReplace] = useState('');
+  const [autoEditUseRegex, setAutoEditUseRegex] = useState(false);
+  const [autoEditLoading, setAutoEditLoading] = useState(false);
+  const [autoEditProgress, setAutoEditProgress] = useState('');
+  
   // Modal drag and resize states
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const [modalSize, setModalSize] = useState({ width: 896, height: 600 }); // max-w-4xl = 896px
@@ -865,6 +873,51 @@ export default function InteractiveGlobe() {
         ...prev,
         emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0
       }));
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (!autoEditFind && autoEditFind !== '') {
+      alert('Please enter text to find');
+      return;
+    }
+    
+    setAutoEditLoading(true);
+    setAutoEditProgress('Preparing to edit emails...');
+    
+    try {
+      const response = await api.post('/api/email-queue/bulk-edit', {
+        findText: autoEditFind,
+        replaceText: autoEditReplace || '',
+        useRegex: autoEditUseRegex,
+        agentId: selectedAgent?.agentId || 'all'
+      });
+      
+      if (response.data.success) {
+        setAutoEditProgress(`✅ Complete! Updated ${response.data.updatedCount} of ${response.data.totalProcessed} emails`);
+        
+        // Show success message for 2 seconds then close
+        setTimeout(() => {
+          setShowAutoEditor(false);
+          setAutoEditFind('');
+          setAutoEditReplace('');
+          setAutoEditProgress('');
+          
+          // Refresh the queue
+          if (selectedAgent && selectedQueue) {
+            fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
+          }
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('Error in bulk edit:', error);
+      setAutoEditProgress('❌ Failed: ' + (error.response?.data?.error || error.message));
+      
+      // Clear error after 3 seconds
+      setTimeout(() => {
+        setAutoEditProgress('');
+        setAutoEditLoading(false);
+      }, 3000);
     }
   };
 
@@ -2521,19 +2574,30 @@ export default function InteractiveGlobe() {
                   {selectedAgent ? selectedAgent.name : selectedQueue?.agentName || 'Queue'}
                 </h2>
                 {selectedAgent && selectedQueue && (
-                  <select
-                    value={selectedQueue.type}
-                    onChange={(e) => {
-                      const newType = e.target.value as 'queued' | 'sent' | 'replied';
-                      setSelectedQueue({ ...selectedQueue, type: newType });
-                      fetchQueueEmails(selectedAgent.agentId, newType);
-                    }}
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm border border-white/20 cursor-pointer"
-                  >
-                    <option value="queued">Queued</option>
-                    <option value="sent">Sent</option>
-                    <option value="replied">Replied</option>
-                  </select>
+                  <>
+                    <select
+                      value={selectedQueue.type}
+                      onChange={(e) => {
+                        const newType = e.target.value as 'queued' | 'sent' | 'replied';
+                        setSelectedQueue({ ...selectedQueue, type: newType });
+                        fetchQueueEmails(selectedAgent.agentId, newType);
+                      }}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm border border-white/20 cursor-pointer"
+                    >
+                      <option value="queued">Queued</option>
+                      <option value="sent">Sent</option>
+                      <option value="replied">Replied</option>
+                    </select>
+                    {selectedQueue.type === 'queued' && (
+                      <button
+                        onClick={() => setShowAutoEditor(true)}
+                        className="px-3 py-1.5 bg-blue-500/80 hover:bg-blue-600 text-white rounded-lg text-sm border border-blue-400/50 transition-colors"
+                        title="Find and replace text across all queued emails"
+                      >
+                        🔧 Auto-Editor
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
               <button
@@ -3390,6 +3454,106 @@ export default function InteractiveGlobe() {
                 </svg>
               )}
               <p className="font-medium">{toast?.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-Editor Modal */}
+      {showAutoEditor && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[110]">
+          <div className="bg-gradient-to-br from-[#1B2F52] via-[#223A63] to-[#2A4570] rounded-2xl shadow-2xl border border-[#4FD1FF]/30 p-6 w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-white">🔧 Auto-Editor</h3>
+              <button
+                onClick={() => {
+                  setShowAutoEditor(false);
+                  setAutoEditFind('');
+                  setAutoEditReplace('');
+                }}
+                className="text-white/70 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-white/80 text-sm font-medium mb-2">
+                  Find text:
+                </label>
+                <input
+                  type="text"
+                  value={autoEditFind}
+                  onChange={(e) => setAutoEditFind(e.target.value)}
+                  placeholder="Enter text to find (e.g., [scheduling_link])"
+                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#4FD1FF]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-white/80 text-sm font-medium mb-2">
+                  Replace with:
+                </label>
+                <input
+                  type="text"
+                  value={autoEditReplace}
+                  onChange={(e) => setAutoEditReplace(e.target.value)}
+                  placeholder="Enter replacement text"
+                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#4FD1FF]"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="useRegex"
+                  checked={autoEditUseRegex}
+                  onChange={(e) => setAutoEditUseRegex(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-white/10 text-[#4FD1FF] focus:ring-[#4FD1FF]"
+                />
+                <label htmlFor="useRegex" className="text-white/80 text-sm">
+                  Use regex pattern matching
+                </label>
+              </div>
+              
+              <div className="bg-white/5 border border-white/20 rounded-lg p-3 text-xs text-white/60">
+                <p className="font-medium mb-1">💡 Tips:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>This will edit all queued emails for this agent</li>
+                  <li>Common fix: Replace [scheduling_link] with your actual calendar link</li>
+                  <li>Use regex for advanced patterns like phone numbers or emails</li>
+                  <li>⏱️ Updates happen one per 0.5s to avoid AWS throttling</li>
+                </ul>
+              </div>
+              
+              {autoEditProgress && (
+                <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-3 text-sm text-white animate-pulse">
+                  {autoEditProgress}
+                </div>
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAutoEditor(false);
+                    setAutoEditFind('');
+                    setAutoEditReplace('');
+                    setAutoEditProgress('');
+                  }}
+                  disabled={autoEditLoading}
+                  className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:text-white/40 text-white rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkEdit}
+                  disabled={autoEditLoading || !autoEditFind}
+                  className="flex-1 px-4 py-2 bg-[#4FD1FF] hover:bg-[#3BB4E5] disabled:bg-white/10 disabled:text-white/40 text-[#0A1525] rounded-lg font-medium transition-colors"
+                >
+                  {autoEditLoading ? 'Processing...' : 'Apply Changes'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
