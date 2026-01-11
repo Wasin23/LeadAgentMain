@@ -17,6 +17,7 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import AppLayout from '@/components/AppLayout';
 import AgentPersonalitySelector from '@/components/agents/AgentPersonalitySelector';
 import AgentOnboarding from '@/components/agents/AgentOnboarding';
 
@@ -518,25 +519,23 @@ export default function AgentsOverview() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Gradient Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]" />
-      
-      {/* Content */}
-      <div className="relative z-10 p-4 sm:p-8">
-        {/* Header with Back Button and Title */}
-        <div className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-4">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="p-2 rounded-lg bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all border border-[#4FD1FF]/30"
-          >
-            <ArrowLeftIcon className="w-5 h-5 text-white" />
-          </button>
-          <div>
-            <h1 className="text-xl sm:text-3xl font-bold text-white">Agent Management</h1>
-            <p className="text-[#A3B4CC] text-xs sm:text-sm mt-1">Manage your agents and presets</p>
+    <AppLayout>
+      <div className="h-full relative overflow-hidden">
+        {/* Content */}
+        <div className="relative z-10 p-4">
+          {/* Header with Back Button and Title */}
+          <div className="mb-4 flex items-center gap-4">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="p-2 rounded-lg bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all border border-[#4FD1FF]/30"
+            >
+              <ArrowLeftIcon className="w-5 h-5 text-white" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Agent Management</h1>
+              <p className="text-[#A3B4CC] text-sm mt-1">Manage your agents and presets</p>
+            </div>
           </div>
-        </div>
 
         {/* Tabs */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
@@ -1756,6 +1755,7 @@ export default function AgentsOverview() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

@@ -215,11 +215,11 @@ export default function OutreachPage() {
                                     <>
                                       {hasProxy ? (
                                         <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[10px] font-medium rounded">
-                                          PRI
+                                          Primary
                                         </span>
                                       ) : (
                                         <span className="px-1.5 py-0.5 bg-gray-500/20 border border-gray-500/40 text-gray-400 text-[10px] font-medium rounded">
-                                          PRO
+                                          Promotional
                                         </span>
                                       )}
                                     </>

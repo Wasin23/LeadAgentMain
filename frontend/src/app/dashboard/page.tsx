@@ -1827,6 +1827,7 @@ export default function InteractiveGlobe() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                setExpandedEmailId(emailId);
                                 setEditingEmail({
                                   id: emailId,
                                   subject: email.subject || '',
@@ -1858,45 +1859,124 @@ export default function InteractiveGlobe() {
                       {/* Expanded Content */}
                       {isExpanded && (
                         <div className="border-t border-[#4FD1FF]/20 p-3 space-y-2.5 bg-[#0A1525]/60">
-                          <div>
-                            <div className="text-[10px] text-[#8FA6C1] mb-1">Subject</div>
-                            <div className="text-white text-[11px]">{email.subject || 'No subject'}</div>
-                          </div>
+                          {editingEmail?.id === emailId ? (
+                            /* Edit Mode */
+                            <>
+                              <div>
+                                <div className="text-[10px] text-[#8FA6C1] mb-1">To</div>
+                                <input
+                                  type="text"
+                                  value={editingEmail?.to || ''}
+                                  onChange={(e) => editingEmail && setEditingEmail({...editingEmail, to: e.target.value})}
+                                  className="w-full px-2 py-1.5 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded text-white text-[11px] focus:outline-none focus:border-[#4FD1FF]/40"
+                                />
+                              </div>
+                              
+                              <div>
+                                <div className="text-[10px] text-[#8FA6C1] mb-1">Subject</div>
+                                <input
+                                  type="text"
+                                  value={editingEmail?.subject || ''}
+                                  onChange={(e) => editingEmail && setEditingEmail({...editingEmail, subject: e.target.value})}
+                                  className="w-full px-2 py-1.5 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded text-white text-[11px] focus:outline-none focus:border-[#4FD1FF]/40"
+                                />
+                              </div>
 
-                          <div>
-                            <div className="text-[10px] text-[#8FA6C1] mb-1">Email Body</div>
-                            <div className="bg-[#0A1525]/80 rounded p-2.5 text-white/90 text-[11px] whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto">
-                              {email.body || 'No content'}
-                            </div>
-                          </div>
+                              <div>
+                                <div className="text-[10px] text-[#8FA6C1] mb-1">Email Body</div>
+                                <textarea
+                                  value={editingEmail?.body || ''}
+                                  onChange={(e) => editingEmail && setEditingEmail({...editingEmail, body: e.target.value})}
+                                  rows={8}
+                                  className="w-full px-2 py-1.5 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded text-white text-[11px] whitespace-pre-wrap font-mono resize-none focus:outline-none focus:border-[#4FD1FF]/40"
+                                />
+                              </div>
 
-                          <div className="flex items-center gap-2 pt-1">
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Handle accept
-                                console.log('Accept email:', emailId);
-                              }}
-                              className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 text-[11px] font-medium rounded transition-colors"
-                            >
-                              ✓ Accept
-                            </button>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Handle reject
-                                console.log('Reject email:', emailId);
-                              }}
-                              className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-[11px] font-medium rounded transition-colors"
-                            >
-                              ✗ Reject
-                            </button>
-                            {email.agentName && (
-                              <span className="text-[10px] text-[#8FA6C1] ml-auto">
-                                {email.agentName}
-                              </span>
-                            )}
-                          </div>
+                              <div className="flex items-center gap-2 pt-1">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingEmail(null);
+                                  }}
+                                  className="px-3 py-1.5 bg-gray-500/20 hover:bg-gray-500/30 border border-gray-500/40 text-gray-400 text-[11px] font-medium rounded transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!editingEmail) return;
+                                    try {
+                                      // Use the email's actual agentId instead of selectedAgent
+                                      const emailAgentId = email.agentId || selectedAgent?.agentId || 'all';
+                                      await api.put(`/api/email-queue/${emailId}?agentId=${emailAgentId}`, {
+                                        subject: editingEmail.subject,
+                                        body: editingEmail.body,
+                                        to: editingEmail.to,
+                                        cc: editingEmail.cc,
+                                        bcc: editingEmail.bcc
+                                      });
+                                      showToast('Email updated successfully', 'success');
+                                      setEditingEmail(null);
+                                      // Refresh the queue
+                                      if (selectedAgent) {
+                                        fetchQueueEmails(selectedAgent.agentId, selectedQueue?.type || 'queued');
+                                      }
+                                    } catch (error) {
+                                      console.error('Error updating email:', error);
+                                      showToast('Failed to update email', 'error');
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-400 text-[11px] font-medium rounded transition-colors"
+                                >
+                                  Save Changes
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            /* View Mode */
+                            <>
+                              <div>
+                                <div className="text-[10px] text-[#8FA6C1] mb-1">Subject</div>
+                                <div className="text-white text-[11px]">{email.subject || 'No subject'}</div>
+                              </div>
+
+                              <div>
+                                <div className="text-[10px] text-[#8FA6C1] mb-1">Email Body</div>
+                                <div className="bg-[#0A1525]/80 rounded p-2.5 text-white/90 text-[11px] whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto">
+                                  {email.body || 'No content'}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 pt-1">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Handle accept
+                                    console.log('Accept email:', emailId);
+                                  }}
+                                  className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 text-[11px] font-medium rounded transition-colors"
+                                >
+                                  ✓ Accept
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Handle reject
+                                    console.log('Reject email:', emailId);
+                                  }}
+                                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-[11px] font-medium rounded transition-colors"
+                                >
+                                  ✗ Reject
+                                </button>
+                                {email.agentName && (
+                                  <span className="text-[10px] text-[#8FA6C1] ml-auto">
+                                    {email.agentName}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

@@ -1751,6 +1751,11 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         console.log('❌ [SETTINGS] No lead agent settings found in AWS DynamoDB!');
         return { error: 'No lead agent settings configured for this user' };
       }
+
+      // ALSO load general user settings to get company profile
+      console.log('🏢 [AWS] Loading general user settings for company profile...');
+      const generalUserSettings = await this.awsManager.getUserSettings(this.userId);
+      console.log('🔍 [DEBUG] Company profile from general settings:', generalUserSettings?.companyProfile);
       
       const actualSettings = {
         // Company branding (REAL DATA)
@@ -1761,6 +1766,9 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         coreOffering: leadContactSettings.companyBranding?.coreOffering,
         keyAdvantages: leadContactSettings.companyBranding?.keyAdvantages,
         expertiseArea: leadContactSettings.companyBranding?.expertiseArea,
+        
+        // Company profile (from general user settings)
+        companyProfile: generalUserSettings?.companyProfile,
         
         // Company criteria (REAL DATA) 
         companySizeMin: leadContactSettings.companyCriteria?.companySizeMin,
@@ -3806,10 +3814,17 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
       
       // Get company address from settings (use company profile)
+      console.log('🔍 [DEBUG] Checking for company address in memory:');
+      console.log('this.memory.userSettings?.companyProfile:', this.memory.userSettings?.companyProfile);
+      console.log('this.memory.userSettings?.companyAddress:', this.memory.userSettings?.companyAddress);
+      console.log('emailSettings.companyBranding?.companyAddress:', emailSettings.companyBranding?.companyAddress);
+      
       const companyAddress = this.memory.userSettings?.companyProfile?.companyAddress || 
                             this.memory.userSettings?.companyAddress || 
                             emailSettings.companyBranding?.companyAddress ||
                             'Your Company Address';
+      
+      console.log('🏢 [ADDRESS] Final company address used:', companyAddress);
       
       // Minimal compliance footer - less promotional looking
       const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
