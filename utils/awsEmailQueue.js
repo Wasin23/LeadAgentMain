@@ -41,13 +41,13 @@ class AWSEmailQueue {
     
     // Add in-memory cache to reduce DynamoDB queries
     this.cache = new Map();
-    this.cacheTimeout = 5000; // 5 seconds cache
+    this.cacheTimeout = 30000; // 30 seconds cache (increased from 5)
     
     console.log(`📧 [AWS EMAIL QUEUE] Initialized with table: ${this.tableName}`);
   }
 
   /**
-   * Get cached data or fetch from DB
+   * Get cached data or fetch from DB with error handling
    */
   async _getCached(key, fetchFn) {
     const cached = this.cache.get(key);
@@ -56,16 +56,30 @@ class AWSEmailQueue {
       return cached.data;
     }
     
-    const data = await fetchFn();
-    this.cache.set(key, { data, timestamp: Date.now() });
-    
-    // Clear old cache entries (keep last 100)
-    if (this.cache.size > 100) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+    try {
+      const data = await fetchFn();
+      this.cache.set(key, { data, timestamp: Date.now() });
+      
+      // Clear old cache entries (keep last 100)
+      if (this.cache.size > 100) {
+        const firstKey = this.cache.keys().next().value;
+        this.cache.delete(firstKey);
+      }
+      
+      return data;
+    } catch (error) {
+      // If we hit throughput limits and have stale cache, use it
+      if (error.name === 'ProvisionedThroughputExceededException' && cached) {
+        console.log(`⚠️ [CACHE] Using stale cache for ${key} due to throughput limit`);
+        return cached.data;
+      }
+      // If no cache available, return empty array instead of throwing
+      if (error.name === 'ProvisionedThroughputExceededException') {
+        console.log(`⚠️ [CACHE] Returning empty data for ${key} due to throughput limit`);
+        return [];
+      }
+      throw error;
     }
-    
-    return data;
   }
 
   /**
