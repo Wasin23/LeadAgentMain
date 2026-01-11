@@ -468,11 +468,14 @@ router.post('/charge-tokens', authenticateToken, async (req, res) => {
 export async function scanUsersAndCharge() {
   console.log('💰 [BILLING] Starting monthly billing cycle...');
   
-  // Get all users with Stripe customers
+  // Get all users with Stripe customers from USERS table (single source of truth)
   const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
   const scanCommand = new ScanCommand({
-    TableName: awsManager.tables.userSettings,
-    FilterExpression: 'attribute_exists(stripeCustomerId)'
+    TableName: awsManager.tables.users,
+    FilterExpression: 'attribute_exists(stripeCustomerId) AND attribute_exists(paymentMethodAdded) AND paymentMethodAdded = :true',
+    ExpressionAttributeValues: {
+      ':true': true
+    }
   });
   
   const { Items: users } = await awsManager.dynamodb.send(scanCommand);
@@ -489,8 +492,11 @@ export async function scanUsersAndCharge() {
     try {
       const userId = user.userId;
       
+      // Get user settings for additional data
+      const userSettings = await awsManager.getUserSettings(userId);
+      
       // Skip if already charged this month
-      const lastChargeDate = user.lastChargeDate;
+      const lastChargeDate = userSettings?.lastChargeDate;
       if (lastChargeDate) {
         const lastCharge = new Date(lastChargeDate);
         const now = new Date();
@@ -543,7 +549,7 @@ export async function scanUsersAndCharge() {
           amount: amountInCents,
           currency: 'usd',
           customer: user.stripeCustomerId,
-          payment_method: user.defaultPaymentMethodId,
+          payment_method: userSettings?.defaultPaymentMethodId,
           off_session: true,
           confirm: true,
           description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
@@ -556,7 +562,7 @@ export async function scanUsersAndCharge() {
         
         // Update user settings with success
         await awsManager.saveUserSettings(userId, {
-          ...user,
+          ...userSettings,
           paymentStatus: 'active',
           lastChargeDate: new Date().toISOString(),
           lastChargeAmount: totalCost,
@@ -607,7 +613,7 @@ export async function scanUsersAndCharge() {
         
         // Update user settings with failure
         await awsManager.saveUserSettings(userId, {
-          ...user,
+          ...userSettings,
           paymentStatus: 'payment_failed',
           gracePeriodEnd: gracePeriodEnd.toISOString(),
           lastFailedCharge: {
