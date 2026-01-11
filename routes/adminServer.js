@@ -207,8 +207,8 @@ router.get('/dashboard', isAdmin, async (req, res) => {
       
       // Sum ONLY unpaid months
       userSummaries.forEach(summary => {
-        // Skip this month if it's already been paid
-        if (paidMonths.has(summary.monthKey)) {
+        // Skip this month if it's already been paid (use 'month' field, not 'monthKey')
+        if (paidMonths.has(summary.month)) {
           return;
         }
         

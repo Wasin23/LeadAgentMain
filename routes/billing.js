@@ -495,17 +495,6 @@ export async function scanUsersAndCharge() {
       // Get user settings for additional data
       const userSettings = await awsManager.getUserSettings(userId);
       
-      // Skip if already charged this month
-      const lastChargeDate = userSettings?.lastChargeDate;
-      if (lastChargeDate) {
-        const lastCharge = new Date(lastChargeDate);
-        const now = new Date();
-        if (lastCharge.getMonth() === now.getMonth() && lastCharge.getFullYear() === now.getFullYear()) {
-          console.log(`⏭️ [BILLING] Skipping ${userId} - already charged this month`);
-          continue;
-        }
-      }
-      
       // Get ALL unpaid usage from apiUsageSummary (charge all outstanding months)
       const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
       const summaryQuery = new QueryCommand({
@@ -546,8 +535,8 @@ export async function scanUsersAndCharge() {
       const unpaidMonths = [];
       
       for (const summary of summaries || []) {
-        // Skip if already paid
-        if (paidMonths.has(summary.monthKey)) {
+        // Skip if already paid (month field, not monthKey)
+        if (paidMonths.has(summary.month)) {
           continue;
         }
         
@@ -561,7 +550,7 @@ export async function scanUsersAndCharge() {
         
         if (monthCost > 0) {
           totalCost += monthCost;
-          unpaidMonths.push(summary.monthKey);
+          unpaidMonths.push(summary.month);
         }
       }
       
@@ -623,9 +612,10 @@ export async function scanUsersAndCharge() {
         });
         
           // Log payment for EACH unpaid month so they're marked as paid
-          for (const monthKey of unpaidMonths) {
-            const [year, month] = monthKey.split('-');
-            const billingPeriod = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
+          for (const month of unpaidMonths) {
+            if (!month) continue; // Skip if undefined
+            const [year, monthNum] = month.split('-');
+            const billingPeriod = new Date(parseInt(year), parseInt(monthNum) - 1, 1).toISOString();
             
             await awsManager.logPayment(userId, {
               amount: totalCost / unpaidMonths.length, // Split amount across months
@@ -633,7 +623,7 @@ export async function scanUsersAndCharge() {
               currency: 'USD',
               stripePaymentIntentId: paymentIntent.id,
               billingPeriod: billingPeriod,
-              description: `API usage for ${monthKey}`
+              description: `API usage for ${month}`
             });
           }
         
