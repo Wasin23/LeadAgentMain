@@ -927,7 +927,7 @@ export default function InteractiveGlobe() {
   const handleAcceptEmail = async (emailId: string, agentId: string) => {
     try {
       // Send the email FIRST - don't remove until we know it succeeded
-      await api.post(`/api/email-queue/send/${emailId}`, { agentId });
+      await api.post(`/api/email-queue/${emailId}/approve`, { agentId });
       
       // Only remove from UI after successful send
       setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
