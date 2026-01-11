@@ -979,7 +979,7 @@ export default function InteractiveGlobe() {
 
   // Fetch all emails from all agents on initial load
   useEffect(() => {
-    if (agents.length > 0 && queueEmails.length === 0) {
+    if (agents.length > 0) {
       const fetchAllEmails = async () => {
         try {
           const allEmails: any[] = [];
@@ -1661,7 +1661,7 @@ export default function InteractiveGlobe() {
                     }
                   }
                 }}
-                className="w-full px-2 py-1.5 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-xs focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
+                className="w-full px-2 py-1 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-[11px] focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
               >
                 <option value="all">All Agents</option>
                 {agents.map(agent => (
