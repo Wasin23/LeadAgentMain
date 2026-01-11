@@ -506,36 +506,69 @@ export async function scanUsersAndCharge() {
         }
       }
       
-      // Get usage from api-usage table for this month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      
+      // Get ALL unpaid usage from apiUsageSummary (charge all outstanding months)
       const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
-      const usageQuery = new QueryCommand({
-        TableName: awsManager.tables.apiUsage,
-        KeyConditionExpression: 'userId = :userId AND #timestamp >= :startDate',
-        ExpressionAttributeNames: {
-          '#timestamp': 'timestamp'
-        },
+      const summaryQuery = new QueryCommand({
+        TableName: awsManager.tables.apiUsageSummary,
+        KeyConditionExpression: 'userId = :userId',
         ExpressionAttributeValues: {
-          ':userId': userId,
-          ':startDate': startOfMonth.toISOString()
+          ':userId': userId
         }
       });
       
-      const { Items: usageRecords } = await awsManager.dynamodb.send(usageQuery);
+      const { Items: summaries } = await awsManager.dynamodb.send(summaryQuery);
       
-      // Calculate total cost
+      // Get previously paid months from payment history
+      const paymentsQuery = new QueryCommand({
+        TableName: awsManager.tables.paymentHistory,
+        KeyConditionExpression: 'userId = :userId',
+        FilterExpression: '#status = :success',
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        },
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':success': 'success'
+        }
+      });
+      
+      const { Items: payments } = await awsManager.dynamodb.send(paymentsQuery);
+      const paidMonths = new Set(
+        (payments || []).map(p => {
+          if (!p.billingPeriod) return null;
+          const date = new Date(p.billingPeriod);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        }).filter(Boolean)
+      );
+      
+      // Calculate total outstanding (all unpaid months)
       let totalCost = 0;
-      for (const record of usageRecords || []) {
-        totalCost += record.cost || 0;
+      const unpaidMonths = [];
+      
+      for (const summary of summaries || []) {
+        // Skip if already paid
+        if (paidMonths.has(summary.monthKey)) {
+          continue;
+        }
+        
+        // Sum costs from all services
+        let monthCost = 0;
+        ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
+          if (summary[service]) {
+            monthCost += summary[service].cost || 0;
+          }
+        });
+        
+        if (monthCost > 0) {
+          totalCost += monthCost;
+          unpaidMonths.push(summary.monthKey);
+        }
       }
       
       // Convert to cents and round
       const amountInCents = Math.round(totalCost * 100);
       
-      console.log(`💵 [BILLING] User ${userId}: $${totalCost.toFixed(2)} (${amountInCents} cents)`);
+      console.log(`💵 [BILLING] User ${userId}: $${totalCost.toFixed(2)} (${amountInCents} cents) for ${unpaidMonths.length} unpaid month(s): ${unpaidMonths.join(', ')}`);
       
       // Skip if no charges
       if (amountInCents === 0) {
@@ -545,18 +578,38 @@ export async function scanUsersAndCharge() {
       
       // Charge the card
       try {
+        // Get payment method ID - fetch from Stripe if not in userSettings
+        let paymentMethodId = userSettings?.defaultPaymentMethodId;
+        
+        if (!paymentMethodId && user.stripeCustomerId) {
+          console.log(`🔍 [BILLING] No payment method in settings, fetching from Stripe for ${userId}`);
+          const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+          paymentMethodId = customer.invoice_settings?.default_payment_method || customer.default_source;
+          
+          if (paymentMethodId) {
+            console.log(`✅ [BILLING] Found payment method from Stripe: ${paymentMethodId}`);
+            // Update userSettings with the payment method for next time
+            await awsManager.saveUserSettings(userId, {
+              ...userSettings,
+              defaultPaymentMethodId: paymentMethodId
+            });
+          } else {
+            throw new Error('No payment method found for customer');
+          }
+        }
+        
         const paymentIntent = await stripe.paymentIntents.create({
           amount: amountInCents,
           currency: 'usd',
           customer: user.stripeCustomerId,
-          payment_method: userSettings?.defaultPaymentMethodId,
+          payment_method: paymentMethodId,
           off_session: true,
           confirm: true,
-          description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          description: `Outstanding API usage for ${unpaidMonths.length} month(s): ${unpaidMonths.join(', ')}`,
           metadata: { 
             userId,
-            billingPeriod: `${startOfMonth.toISOString()}`,
-            recordCount: usageRecords?.length || 0
+            unpaidMonths: unpaidMonths.join(','),
+            monthCount: unpaidMonths.length
           }
         });
         
@@ -569,19 +622,26 @@ export async function scanUsersAndCharge() {
           gracePeriodEnd: null
         });
         
-          // Log payment to history
-          await awsManager.logPayment(userId, {
-            amount: totalCost,
-            status: 'success',
-            currency: 'USD',
-            stripePaymentIntentId: paymentIntent.id,
-            billingPeriod: startOfMonth.toISOString(),
-            description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
-          });
+          // Log payment for EACH unpaid month so they're marked as paid
+          for (const monthKey of unpaidMonths) {
+            const [year, month] = monthKey.split('-');
+            const billingPeriod = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
+            
+            await awsManager.logPayment(userId, {
+              amount: totalCost / unpaidMonths.length, // Split amount across months
+              status: 'success',
+              currency: 'USD',
+              stripePaymentIntentId: paymentIntent.id,
+              billingPeriod: billingPeriod,
+              description: `API usage for ${monthKey}`
+            });
+          }
         
-          // Send success email
+          // Send success email (non-blocking)
           if (user.email) {
-            await sendPaymentSuccessEmail(userId, user.email, totalCost);
+            sendPaymentSuccessEmail(userId, user.email, totalCost).catch(err => {
+              console.error(`⚠️ [BILLING] Failed to send success email (non-critical):`, err.message);
+            });
           }
           
           // Log successful billing
@@ -596,14 +656,14 @@ export async function scanUsersAndCharge() {
           results.successful++;      } catch (chargeError) {
         console.error(`❌ [BILLING] Charge failed for ${userId}:`, chargeError.message);
         
-        // Log failed payment to history
+        // Log failed payment (just one record for the total)
         await awsManager.logPayment(userId, {
           amount: totalCost,
           status: 'failed',
           currency: 'USD',
           stripePaymentIntentId: null,
-          billingPeriod: startOfMonth.toISOString(),
-          description: `Monthly API usage - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          billingPeriod: new Date().toISOString(),
+          description: `Outstanding charges for ${unpaidMonths.length} month(s): ${unpaidMonths.join(', ')}`,
           errorMessage: chargeError.message
         });
         
@@ -623,9 +683,11 @@ export async function scanUsersAndCharge() {
           }
         });
         
-        // Send failed payment email
+        // Send failed payment email (non-blocking)
         if (user.email) {
-          await sendPaymentFailedEmail(userId, user.email, totalCost, chargeError.message);
+          sendPaymentFailedEmail(userId, user.email, totalCost, chargeError.message).catch(err => {
+            console.error(`⚠️ [BILLING] Failed to send failure email (non-critical):`, err.message);
+          });
         }
         
         // Log failed billing and create alert
