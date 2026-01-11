@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import AppLayout from '@/components/AppLayout';
 
 export default function AnalyticsPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -152,21 +153,23 @@ export default function AnalyticsPage() {
     setTimeSeriesData(data);
   };
 
+  if (!isAuthenticated) return null;
+  
   if (isLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div className="text-2xl font-semibold text-white">Loading...</div>
           </div>
-          <div className="text-2xl font-semibold text-white">Loading...</div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
-
-  if (!isAuthenticated) return null;
 
   // Calculate totals
   const totalQueued = agents.reduce((sum, a) => sum + (a.queued || 0), 0);
@@ -202,28 +205,20 @@ export default function AnalyticsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-4 sm:p-6">
-      <div className="max-w-[1800px] mx-auto space-y-6">
+    <AppLayout>
+      <div className="space-y-6 max-w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-2xl backdrop-blur-md transition-all border border-white/20 flex items-center gap-2 justify-center hover:scale-105 active:scale-95"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-            Back
-          </button>
-          
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white text-left sm:text-right">Analytics Dashboard</h1>
-            <p className="text-white/70 text-xs sm:text-sm text-left sm:text-right mt-1">Real-time campaign performance</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white text-left">Analytics Dashboard</h1>
+            <p className="text-white/70 text-xs sm:text-sm text-left mt-1">Real-time campaign performance</p>
           </div>
         </div>
 
         {/* Stats Grid with Mini Graphs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4 w-full">
           {/* Queued Card */}
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300">
             <p className="text-white/70 text-sm font-medium mb-2">Queued Emails</p>
             <p className="text-white text-4xl font-bold mb-4">{totalQueued}</p>
             <div className="h-16 flex items-end gap-1">
@@ -243,7 +238,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Sent Card */}
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300">
             <p className="text-white/70 text-sm font-medium mb-2">Emails Sent</p>
             <p className="text-white text-4xl font-bold mb-4">{totalSent}</p>
             <div className="h-16 flex items-end gap-1">
@@ -263,7 +258,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Replied Card */}
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300">
             <p className="text-white/70 text-sm font-medium mb-2">Replies Received</p>
             <p className="text-white text-4xl font-bold mb-4">{totalReplied}</p>
             <div className="h-16 flex items-end gap-1">
@@ -283,7 +278,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Reply Rate Card */}
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300">
             <p className="text-white/70 text-sm font-medium mb-2">Reply Rate</p>
             <p className="text-white text-4xl font-bold mb-4">{replyRate}%</p>
             <div className="h-16 flex items-end gap-1">
@@ -786,6 +781,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

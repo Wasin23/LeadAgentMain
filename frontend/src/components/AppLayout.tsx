@@ -1,0 +1,112 @@
+'use client';
+
+import { useRouter, usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import UserMenu from './UserMenu';
+import HelpChat from './HelpChat';
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [navigating, setNavigating] = useState(false);
+  const [optimisticPath, setOptimisticPath] = useState<string | null>(null);
+
+  // Clear navigating state when pathname changes
+  useEffect(() => {
+    setNavigating(false);
+    setOptimisticPath(null);
+  }, [pathname]);
+
+  const navItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { name: 'Outreach', path: '/outreach', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+    { name: 'Profile', path: '/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+    { name: 'Analytics', path: '/analytics', icon: 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z' },
+    { name: 'Settings', path: '/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+  ];
+
+  const handleNavClick = (path: string) => {
+    if (pathname !== path) {
+      setOptimisticPath(path);
+      setNavigating(true);
+      router.push(path);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]">
+      {/* Meridian Logo */}
+      <div className="fixed top-8 left-8 z-50">
+        <div className="flex items-center gap-3">
+          <svg width="40" height="40" viewBox="0 0 48 48" className="drop-shadow-lg">
+            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
+          </svg>
+          <div className="text-white text-2xl font-bold">
+            Meridian
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Sidebar */}
+      <div className="fixed left-8 top-32 z-50 flex flex-col gap-3 w-[200px]">
+        <div className="text-[#8FA6C1] text-xs font-medium uppercase tracking-wider mb-2">Navigation</div>
+        {navItems.map((item) => {
+          const isActive = (optimisticPath || pathname) === item.path;
+          return (
+            <button
+              key={item.path}
+              onClick={() => handleNavClick(item.path)}
+              className={`p-3 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isActive ? 'bg-white/20 rounded-lg' : 'hover:bg-white/10'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                </svg>
+                <span className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-[#A3B4CC]'}`}>
+                  {item.name}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* User Menu - Bottom Left */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <UserMenu />
+      </div>
+
+      {/* Help Button - Next to User Menu */}
+      <div className="fixed bottom-4 left-32 z-50">
+        <HelpChat />
+      </div>
+
+      {/* Content Area */}
+      <div className="fixed left-[265px] right-0 top-0 bottom-0 overflow-hidden bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]">
+        <div className="h-full overflow-y-auto overflow-x-hidden px-6 py-6">
+          {navigating && (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] z-[9999] flex items-center justify-center">
+              <div className="text-center">
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <p className="text-2xl font-semibold text-white">Loading...</p>
+              </div>
+            </div>
+          )}
+          <div className={navigating ? 'invisible' : 'visible'}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import CompanyProfileInstagram from '@/components/CompanyProfileInstagram';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import AppLayout from '@/components/AppLayout';
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -16,35 +17,28 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <div className="text-2xl font-semibold text-white">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
   if (!isAuthenticated) {
     return null; // Will redirect to signin
   }
+  
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div className="text-2xl font-semibold text-white">Loading...</div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-8">
-      {/* Back Button */}
-      <button
-        onClick={() => router.push('/dashboard')}
-        className="mb-6 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-sm transition-all border border-white/20 flex items-center gap-2"
-      >
-        <ArrowLeftIcon className="w-5 h-5" />
-        Back
-      </button>
-
+    <AppLayout>
       {/* Two Column Layout */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Company Profile - Takes 2 columns */}
@@ -88,6 +82,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

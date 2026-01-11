@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import UserMenu from '@/components/UserMenu';
+import AppLayout from '@/components/AppLayout';
 import HelpChat from '@/components/HelpChat';
 import api from '@/lib/api';
 import { geoOrthographic, geoPath, geoGraticule, geoMercator, geoAlbersUsa } from 'd3-geo';
@@ -1186,55 +1186,22 @@ export default function InteractiveGlobe() {
   // Prevent hydration mismatch by not rendering until mounted
   if (!isMounted) {
     return (
-      <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+      <AppLayout>
+        <div suppressHydrationWarning className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div className="text-2xl font-semibold text-white">Loading...</div>
           </div>
-          <div className="text-2xl font-semibold text-white">Loading...</div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] relative overflow-y-auto sm:overflow-hidden">
-      {/* Meridian Logo */}
-      <div className="sm:fixed relative px-4 pt-4 sm:top-4 sm:left-4 sm:p-0 sm:top-8 sm:left-8 z-50">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <svg width="34" height="34" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-10 sm:h-10">
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
-          </svg>
-          <div className="text-white text-lg sm:text-2xl font-bold">
-            Meridian
-          </div>
-        </div>
-      </div>
-
-      {/* User Menu & Help - Bottom Left Corner */}
-      <div className="fixed bottom-4 left-4 z-50 flex items-center gap-3">
-        <div className="[&_button]:!bg-white/20 [&_button]:hover:!bg-white/30 [&_button]:!text-white [&_button]:backdrop-blur-sm [&_button]:rounded-xl [&_div>div>div:nth-child(2)_button]:!text-neutral-900 [&_div>div>div:nth-child(2)_button]:hover:!bg-neutral-50 [&_div>div>div:nth-child(3)_button]:!text-red-600 [&_div>div>div:nth-child(3)_button]:hover:!bg-red-50">
-          <UserMenu />
-        </div>
-        {/* Help icon for mobile, full button for desktop */}
-        <button
-          onClick={() => {/* Open help - can add HelpChat trigger here */}}
-          className="sm:hidden flex items-center justify-center w-10 h-10 bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm rounded-xl border border-white/20 transition-all"
-          aria-label="Help"
-        >
-          <span className="text-lg font-bold">?</span>
-        </button>
-        <div className="sm:block hidden">
-          <HelpChat />
-        </div>
-      </div>
-
+    <AppLayout>
       {/* Top Queue Stats - Desktop horizontal layout */}
       <div className="hidden xl:flex fixed top-6 left-[265px] lg:right-[calc(20%+10px)] z-50 justify-between gap-6">
         {/* Email Queue */}
@@ -1462,127 +1429,9 @@ export default function InteractiveGlobe() {
         </button>
       </div>
 
-      {/* Navigation Tabs - Left Side (Desktop only) */}
-      <div className="hidden xl:flex fixed left-8 top-32 z-50 flex-col gap-3 w-[200px]">
-        <div className="text-[#8FA6C1] text-xs font-medium uppercase tracking-wider mb-2">Navigation</div>
-        <div className="p-3 bg-white/20 rounded-lg">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            <span className="text-white text-sm font-semibold">Dashboard</span>
-          </div>
-        </div>
-        
-        <button
-          onClick={() => { 
-            setNavigating(true); 
-            setTimeout(() => router.push('/outreach'), 0);
-          }}
-          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <span className="text-[#A3B4CC] text-sm font-semibold">Outreach</span>
-          </div>
-        </button>
-        
-        <button
-          onClick={() => { 
-            setNavigating(true); 
-            setTimeout(() => router.push('/profile'), 0);
-          }}
-          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-[#A3B4CC] text-sm font-semibold">Profile</span>
-          </div>
-        </button>
-        
-        <button
-          onClick={() => { 
-            setNavigating(true); 
-            setTimeout(() => router.push('/analytics'), 0);
-          }}
-          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-            </svg>
-            <span className="text-[#A3B4CC] text-sm font-semibold">Analytics</span>
-          </div>
-        </button>
-        
-        <button
-          onClick={() => { 
-            setNavigating(true); 
-            setTimeout(() => router.push('/settings'), 0);
-          }}
-          className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-[#A3B4CC] text-sm font-semibold">Settings</span>
-          </div>
-        </button>
-      </div>
-
       {/* Mobile Navigation/Stats */}
       <div className="sm:fixed relative px-2 pt-10 sm:pt-0 sm:top-6 sm:left-[47%] sm:-translate-x-1/2 sm:right-auto z-50 xl:hidden">
           <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { 
-                  setNavigating(true); 
-                  setTimeout(() => router.push('/outreach'), 0);
-                }}
-                className="relative px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
-                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
-              >
-                Outreach
-              </button>
-              <button
-                onClick={() => { 
-                  setNavigating(true); 
-                  setTimeout(() => router.push('/profile'), 0);
-                }}
-                className="relative px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
-                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
-              >
-                Profile
-              </button>
-              <button
-                onClick={() => { 
-                  setNavigating(true); 
-                  setTimeout(() => router.push('/analytics'), 0);
-                }}
-                className="relative px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
-                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
-              >
-                Analytics
-              </button>
-              <button
-                onClick={() => { 
-                  setNavigating(true); 
-                  setTimeout(() => router.push('/settings'), 0);
-                }}
-                className="px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
-                style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
-              >
-                Settings
-              </button>
-            </div>
-            
             {/* Email Stats - Mobile only */}
             <div className="sm:hidden grid grid-cols-2 gap-2 w-full">
               {/* Email Queue */}
@@ -3466,6 +3315,6 @@ export default function InteractiveGlobe() {
           </div>
         </div>
       )}
-    </div>
+    </AppLayout>
   );
 }

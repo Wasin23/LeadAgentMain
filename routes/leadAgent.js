@@ -962,66 +962,128 @@ router.get('/api-usage/total', async (req, res) => {
   try {
     const userId = req.user.userId;
     
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID not found in request'
+      });
+    }
+    
     const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
+    
+    if (!userAgent || !userAgent.awsManager) {
+      console.error('[LEAD AGENT API] User agent or AWS manager not initialized for userId:', userId);
+      return res.status(500).json({
+        success: false,
+        message: 'User agent not properly initialized',
+        stats: {
+          apollo: { usage: 0, calls: 0, cost: 0 },
+          openai: { usage: 0, calls: 0, cost: 0 },
+          mailgun: { usage: 0, calls: 0, cost: 0 },
+          zerobounce: { usage: 0, calls: 0, cost: 0 },
+          serper: { usage: 0, calls: 0, cost: 0 },
+          gmail: { usage: 0, calls: 0, cost: 0 }
+        },
+        trialCreditsUsed: 0,
+        hasPaymentMethod: false,
+        currentMonthUsage: 0,
+        currentMonthPaid: 0,
+        outstandingThisMonth: 0
+      });
+    }
+    
     // Use summary table instead of querying all records
-    const result = await userAgent.awsManager.getUserApiUsageSummary(userId);
+    let result = { success: true, stats: {} };
+    try {
+      result = await userAgent.awsManager.getUserApiUsageSummary(userId);
+    } catch (summaryError) {
+      console.error('[LEAD AGENT API] Error getting summary:', summaryError);
+      result = {
+        success: false,
+        stats: {
+          apollo: { usage: 0, calls: 0, cost: 0 },
+          openai: { usage: 0, calls: 0, cost: 0 },
+          mailgun: { usage: 0, calls: 0, cost: 0 },
+          zerobounce: { usage: 0, calls: 0, cost: 0 },
+          serper: { usage: 0, calls: 0, cost: 0 },
+          gmail: { usage: 0, calls: 0, cost: 0 }
+        }
+      };
+    }
     
     // Get user to check trial credits and payment status
-    const user = await userAgent.awsManager.getUserById(userId);
+    let user = null;
+    try {
+      user = await userAgent.awsManager.getUserById(userId);
+    } catch (userError) {
+      console.error('[LEAD AGENT API] Error getting user:', userError);
+    }
     const trialCreditsUsed = user?.trialCreditsUsed || 0;
     const hasPaymentMethod = user?.paymentMethodAdded || false;
     
     // Calculate outstanding (usage minus payments) for current month only
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
     
-    // Get current month's usage from summary
-    const summaryQuery = new QueryCommand({
-      TableName: userAgent.awsManager.tables.apiUsageSummary,
-      KeyConditionExpression: 'userId = :userId',
-      FilterExpression: '#month = :month',
-      ExpressionAttributeNames: {
-        '#month': 'month'
-      },
-      ExpressionAttributeValues: {
-        ':userId': userId,
-        ':month': currentMonth
-      }
-    });
-    
-    const summaryResult = await userAgent.awsManager.dynamodb.send(summaryQuery);
-    const currentMonthSummary = summaryResult.Items?.[0];
-    
     let currentMonthUsage = 0;
-    if (currentMonthSummary) {
-      ['apollo', 'openai', 'mailgun', 'zerobounce', 'serper', 'gmail'].forEach(service => {
-        if (currentMonthSummary[service]) {
-          currentMonthUsage += currentMonthSummary[service].cost || 0;
+    let currentMonthPaid = 0;
+    
+    try {
+      // Check if tables are initialized
+      if (!userAgent.awsManager.tables || !userAgent.awsManager.tables.apiUsageSummary) {
+        console.error('[LEAD AGENT API] AWS tables not initialized');
+        throw new Error('AWS tables not initialized');
+      }
+      
+      // Get current month's usage from summary
+      const summaryQuery = new QueryCommand({
+        TableName: userAgent.awsManager.tables.apiUsageSummary,
+        KeyConditionExpression: 'userId = :userId',
+        FilterExpression: '#month = :month',
+        ExpressionAttributeNames: {
+          '#month': 'month'
+        },
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':month': currentMonth
         }
       });
-    }
-    
-    // Get payments for current month
-    const paymentQuery = new QueryCommand({
-      TableName: userAgent.awsManager.tables.paymentHistory,
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': userId
+      
+      const summaryResult = await userAgent.awsManager.dynamodb.send(summaryQuery);
+      const currentMonthSummary = summaryResult.Items?.[0];
+      
+      if (currentMonthSummary) {
+        ['apollo', 'openai', 'mailgun', 'zerobounce', 'serper', 'gmail'].forEach(service => {
+          if (currentMonthSummary[service]) {
+            currentMonthUsage += currentMonthSummary[service].cost || 0;
+          }
+        });
       }
-    });
-    
-    const paymentResult = await userAgent.awsManager.dynamodb.send(paymentQuery);
-    const payments = paymentResult.Items || [];
-    
-    // Sum successful payments for current month
-    let currentMonthPaid = 0;
-    payments.forEach(payment => {
-      if (payment.status === 'success' && payment.billingPeriod) {
-        const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
-        if (paymentMonth === currentMonth) {
-          currentMonthPaid += payment.amount || 0;
+      
+      // Get payments for current month
+      const paymentQuery = new QueryCommand({
+        TableName: userAgent.awsManager.tables.paymentHistory,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
         }
-      }
-    });
+      });
+      
+      const paymentResult = await userAgent.awsManager.dynamodb.send(paymentQuery);
+      const payments = paymentResult.Items || [];
+      
+      // Sum successful payments for current month
+      payments.forEach(payment => {
+        if (payment.status === 'success' && payment.billingPeriod) {
+          const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+          if (paymentMonth === currentMonth) {
+            currentMonthPaid += payment.amount || 0;
+          }
+        }
+      });
+    } catch (monthError) {
+      console.error('[LEAD AGENT API] Error calculating monthly usage:', monthError);
+      // Continue with 0 values
+    }
     
     const outstandingThisMonth = Math.max(0, currentMonthUsage - currentMonthPaid);
     

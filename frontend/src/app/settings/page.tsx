@@ -24,6 +24,7 @@ import RateLimitSettings from '@/components/agents/RateLimitSettings';
 import SettingsContent from '@/components/SettingsContent';
 import CompanyProfileModal from '@/components/CompanyProfileModal';
 import KeywordMemoryPanel from '@/components/agents/KeywordMemoryPanel';
+import AppLayout from '@/components/AppLayout';
 
 type SettingSection = 
   | 'profile' 
@@ -266,28 +267,21 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex flex-col overflow-hidden">
-      {/* Header - Fixed */}
-      <div className="border-b border-white/20 bg-black/20 backdrop-blur-sm flex-shrink-0">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </button>
+    <AppLayout>
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Header - Fixed */}
+        <div className="border-b border-white/20 bg-black/20 backdrop-blur-sm flex-shrink-0">
+          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
             <h1 className="text-xl sm:text-2xl font-bold text-white">Settings</h1>
-          </div>
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
         </div>
       </div>
 
@@ -392,6 +386,7 @@ export default function SettingsPage() {
           onClose={() => setShowCompanyProfileModal(false)} 
         />
       )}
-    </div>
+      </div>
+    </AppLayout>
   );
 }
