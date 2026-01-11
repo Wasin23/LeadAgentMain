@@ -1,5 +1,9 @@
-import awsManager from './utils/awsManager.js';
+import dotenv from 'dotenv';
+import AWSManager from './utils/awsManager.js';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+
+// Load environment variables
+dotenv.config();
 
 /**
  * View all billing data - total revenue, outstanding amounts, per-user breakdown
@@ -10,6 +14,8 @@ async function viewBillingTotals() {
   console.log('💰 ═══════════════════════════════════════════════════════════\n');
 
   try {
+    const awsManager = new AWSManager();
+    
     // 1. Get all users
     const usersCommand = new ScanCommand({ TableName: awsManager.tables.users });
     const { Items: users } = await awsManager.dynamodb.send(usersCommand);

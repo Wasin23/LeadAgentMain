@@ -115,7 +115,15 @@ router.get('/dashboard', isAdmin, async (req, res) => {
     console.log(`👥 [ADMIN] Found ${users?.length || 0} users`);
     users?.slice(0, 5).forEach(user => {
       const usage = summaryByUser[user.userId];
+      const userSettings = settings?.find(s => s.userId === user.userId);
       console.log(`   User: ${user.email} → userId: ${user.userId} → Outstanding: $${usage?.totalCost.toFixed(2) || '0.00'} (${usage?.totalCalls || 0} calls)`);
+      console.log(`      Payment Method Fields:`, {
+        defaultPaymentMethodId: userSettings?.defaultPaymentMethodId,
+        stripePaymentMethodId: userSettings?.stripePaymentMethodId || user.stripePaymentMethodId,
+        stripeCustomerId: user.stripeCustomerId,
+        paymentStatus: userSettings?.paymentStatus,
+        paymentMethodAdded: userSettings?.paymentMethodAdded || user.paymentMethodAdded
+      });
     });
     
     // Calculate totals
@@ -217,6 +225,8 @@ router.get('/dashboard', isAdmin, async (req, res) => {
         userSettings?.defaultPaymentMethodId || 
         userSettings?.stripePaymentMethodId ||
         user.stripePaymentMethodId ||
+        userSettings?.paymentMethodAdded ||
+        user.paymentMethodAdded ||
         (user.stripeCustomerId && userSettings?.paymentStatus === 'active')
       );
       
