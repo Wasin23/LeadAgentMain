@@ -85,6 +85,11 @@ router.get('/dashboard', isAdmin, async (req, res) => {
       console.log(`💳 [ADMIN] Sample payment:`, JSON.stringify(payments[0], null, 2));
     }
     
+    console.log(`👥 [ADMIN] Found ${users?.length || 0} users`);
+    users?.slice(0, 5).forEach(user => {
+      console.log(`   User: ${user.email} → userId: ${user.userId}`);
+    });
+    
     // Calculate totals
     const totalBilling = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
     
