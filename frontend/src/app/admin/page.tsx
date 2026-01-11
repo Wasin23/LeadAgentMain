@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Summary {
@@ -24,6 +24,12 @@ interface MonthlyReport {
   failed: number;
 }
 
+interface PaymentBreakdown {
+  month: string;
+  amount: number;
+  date: string;
+}
+
 interface Account {
   userId: string;
   email: string;
@@ -35,6 +41,7 @@ interface Account {
   apiCallsThisMonth: number;
   lastChargeDate: string;
   paymentCount: number;
+  paymentBreakdown: PaymentBreakdown[];
 }
 
 interface DashboardData {
@@ -51,6 +58,7 @@ export default function AdminDashboard() {
   const [loginError, setLoginError] = useState('');
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
 
   const API_URL = typeof window !== 'undefined' ? window.location.origin.replace(':3000', ':8080') : 'http://localhost:8080';
 
@@ -299,36 +307,63 @@ export default function AdminDashboard() {
                   </tr>
                 ) : (
                   dashboardData.accounts.map((account) => (
-                    <tr
-                      key={account.userId}
-                      className="border-b border-[#2A3F5F] hover:bg-[#0A0E27]"
-                    >
-                      <td className="py-3 px-4">{account.email}</td>
-                      <td className="py-3 px-4">{account.username || 'N/A'}</td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(account.paymentStatus)}`}>
-                          {account.paymentStatus}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        {account.hasPaymentMethod ? '✓ Card on file' : '✗ No payment'}
-                      </td>
-                      <td className="py-3 px-4">${account.totalSpent.toFixed(2)}</td>
-                      <td className="py-3 px-4">
-                        <span className={account.outstandingAmount > 0 ? 'text-yellow-400 font-semibold' : 'text-green-400'}>
-                          ${account.outstandingAmount.toFixed(2)}
-                          {account.apiCallsThisMonth > 0 && (
-                            <span className="text-xs ml-2">({account.apiCallsThisMonth} API calls)</span>
-                          )}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        {account.lastChargeDate
-                          ? new Date(account.lastChargeDate).toLocaleDateString()
-                          : 'Never'}
-                      </td>
-                      <td className="py-3 px-4">{account.paymentCount}</td>
-                    </tr>
+                    <React.Fragment key={account.userId}>
+                      <tr
+                        className="border-b border-[#2A3F5F] hover:bg-[#0A0E27] cursor-pointer"
+                        onClick={() => setExpandedAccount(expandedAccount === account.userId ? null : account.userId)}
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#8FA6C1]">{expandedAccount === account.userId ? '▼' : '▶'}</span>
+                            {account.email}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">{account.username || 'N/A'}</td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(account.paymentStatus)}`}>
+                            {account.paymentStatus}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {account.hasPaymentMethod ? '✓ Card on file' : '✗ No payment'}
+                        </td>
+                        <td className="py-3 px-4">${account.totalSpent.toFixed(2)}</td>
+                        <td className="py-3 px-4">
+                          <span className={account.outstandingAmount > 0 ? 'text-yellow-400 font-semibold' : 'text-green-400'}>
+                            ${account.outstandingAmount.toFixed(2)}
+                            {account.apiCallsThisMonth > 0 && (
+                              <span className="text-xs ml-2">({account.apiCallsThisMonth} API calls)</span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {account.lastChargeDate
+                            ? new Date(account.lastChargeDate).toLocaleDateString()
+                            : 'Never'}
+                        </td>
+                        <td className="py-3 px-4">{account.paymentCount}</td>
+                      </tr>
+                      {expandedAccount === account.userId && account.paymentBreakdown && account.paymentBreakdown.length > 0 && (
+                        <tr className="bg-[#1A2332]">
+                          <td colSpan={8} className="py-4 px-8">
+                            <div className="space-y-2">
+                              <h4 className="text-[#4FD1FF] font-semibold mb-3">💳 Payment History</h4>
+                              <div className="grid grid-cols-3 gap-4">
+                                {account.paymentBreakdown.map((payment, idx) => (
+                                  <div key={idx} className="bg-[#0A0E27] rounded-lg p-3 border border-[#2A3F5F]">
+                                    <div className="text-[#8FA6C1] text-sm">{payment.month}</div>
+                                    <div className="text-green-400 font-semibold text-lg">${payment.amount.toFixed(2)}</div>
+                                    <div className="text-[#8FA6C1] text-xs mt-1">
+                                      {new Date(payment.date).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))
                 )}
               </tbody>

@@ -80,33 +80,42 @@ router.get('/dashboard', isAdmin, async (req, res) => {
     });
     const { Items: payments } = await awsManager.dynamodb.send(paymentsCommand);
     
-    // Get API usage for current month to calculate outstanding amounts
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    
-    const apiUsageCommand = new ScanCommand({
-      TableName: awsManager.tables.apiUsage,
-      FilterExpression: '#timestamp >= :startDate',
-      ExpressionAttributeNames: {
-        '#timestamp': 'timestamp'
-      },
-      ExpressionAttributeValues: {
-        ':startDate': startOfMonth.toISOString()
-      }
+    // Get ALL API usage summaries to calculate outstanding (unpaid) amounts
+    const apiUsageSummaryCommand = new ScanCommand({
+      TableName: awsManager.tables.apiUsageSummary
     });
-    const { Items: apiUsage } = await awsManager.dynamodb.send(apiUsageCommand);
+    const { Items: apiUsageSummary } = await awsManager.dynamodb.send(apiUsageSummaryCommand);
     
     console.log(`💳 [ADMIN] Found ${payments?.length || 0} payment records`);
     if (payments && payments.length > 0) {
       console.log(`💳 [ADMIN] Sample payment:`, JSON.stringify(payments[0], null, 2));
     }
     
-    console.log(`💰 [ADMIN] Found ${apiUsage?.length || 0} API usage records this month`);
+    console.log(`💰 [ADMIN] Found ${apiUsageSummary?.length || 0} API usage summary records (all months)`);
+    if (apiUsageSummary && apiUsageSummary.length > 0) {
+      console.log(`💰 [ADMIN] Sample summary:`, JSON.stringify(apiUsageSummary[0], null, 2));
+    }
+    
+    // Debug: Show summary by userId (sum ALL months for outstanding)
+    const summaryByUser = {};
+    apiUsageSummary?.forEach(summary => {
+      if (!summaryByUser[summary.userId]) {
+        summaryByUser[summary.userId] = { totalCost: 0, totalCalls: 0 };
+      }
+      
+      // Sum costs from all services (nested structure)
+      ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
+        if (summary[service]) {
+          summaryByUser[summary.userId].totalCost += summary[service].cost || 0;
+          summaryByUser[summary.userId].totalCalls += summary[service].calls || 0;
+        }
+      });
+    });
     
     console.log(`👥 [ADMIN] Found ${users?.length || 0} users`);
     users?.slice(0, 5).forEach(user => {
-      console.log(`   User: ${user.email} → userId: ${user.userId}`);
+      const usage = summaryByUser[user.userId];
+      console.log(`   User: ${user.email} → userId: ${user.userId} → Outstanding: $${usage?.totalCost.toFixed(2) || '0.00'} (${usage?.totalCalls || 0} calls)`);
     });
     
     // Calculate totals
@@ -147,9 +156,61 @@ router.get('/dashboard', isAdmin, async (req, res) => {
       const userPayments = payments?.filter(p => p.userId === user.userId) || [];
       const totalSpent = userPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
       
-      // Calculate outstanding amount from current month's API usage
-      const userApiUsage = apiUsage?.filter(u => u.userId === user.userId) || [];
-      const outstandingAmount = userApiUsage.reduce((sum, u) => sum + (u.cost || 0), 0);
+      // Build monthly payment breakdown
+      const monthlyBreakdown = {};
+      userPayments
+        .filter(p => p.status === 'success' && p.billingPeriod)
+        .forEach(payment => {
+          const date = new Date(payment.billingPeriod);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          
+          if (!monthlyBreakdown[monthKey]) {
+            monthlyBreakdown[monthKey] = {
+              month: monthLabel,
+              amount: 0,
+              date: payment.timestamp
+            };
+          }
+          monthlyBreakdown[monthKey].amount += payment.amount;
+        });
+      
+      // Convert to array and sort by month (newest first)
+      const paymentBreakdown = Object.keys(monthlyBreakdown)
+        .sort((a, b) => b.localeCompare(a))
+        .map(key => monthlyBreakdown[key]);
+      
+      // Calculate outstanding amount from UNPAID months only
+      const userSummaries = apiUsageSummary?.filter(s => s.userId === user.userId) || [];
+      
+      // Get list of paid months from successful payments
+      const paidMonths = new Set(
+        userPayments
+          .filter(p => p.status === 'success' && p.billingPeriod)
+          .map(p => {
+            // Extract YYYY-MM from billingPeriod (ISO date string)
+            const date = new Date(p.billingPeriod);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          })
+      );
+      
+      let outstandingAmount = 0;
+      let apiCallsThisMonth = 0;
+      
+      // Sum ONLY unpaid months
+      userSummaries.forEach(summary => {
+        // Skip this month if it's already been paid
+        if (paidMonths.has(summary.monthKey)) {
+          return;
+        }
+        
+        ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
+          if (summary[service]) {
+            outstandingAmount += summary[service].cost || 0;
+            apiCallsThisMonth += summary[service].calls || 0;
+          }
+        });
+      });
       
       // Check multiple fields for payment method (Stripe can store it in different places)
       const hasPaymentMethod = !!(
@@ -172,8 +233,9 @@ router.get('/dashboard', isAdmin, async (req, res) => {
         gracePeriodEnd: userSettings?.gracePeriodEnd,
         totalSpent: totalSpent,
         outstandingAmount: outstandingAmount,
-        apiCallsThisMonth: userApiUsage.length,
-        paymentCount: userPayments.length
+        apiCallsThisMonth: apiCallsThisMonth,
+        paymentCount: userPayments.length,
+        paymentBreakdown: paymentBreakdown
       };
     }).filter(u => u.email) || []; // Filter out any invalid entries
     
