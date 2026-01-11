@@ -413,9 +413,10 @@ class AWSEmailQueue {
 
         return response.Items || [];
       } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error getting all replied emails for user:', error);
-      throw error;
-    }
+        console.error('[AWS EMAIL QUEUE] Error getting all replied emails for user:', error);
+        throw error;
+      }
+    });
   }
 
   /**
