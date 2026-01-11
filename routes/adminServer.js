@@ -80,10 +80,29 @@ router.get('/dashboard', isAdmin, async (req, res) => {
     });
     const { Items: payments } = await awsManager.dynamodb.send(paymentsCommand);
     
+    // Get API usage for current month to calculate outstanding amounts
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const apiUsageCommand = new ScanCommand({
+      TableName: awsManager.tables.apiUsage,
+      FilterExpression: '#timestamp >= :startDate',
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: {
+        ':startDate': startOfMonth.toISOString()
+      }
+    });
+    const { Items: apiUsage } = await awsManager.dynamodb.send(apiUsageCommand);
+    
     console.log(`💳 [ADMIN] Found ${payments?.length || 0} payment records`);
     if (payments && payments.length > 0) {
       console.log(`💳 [ADMIN] Sample payment:`, JSON.stringify(payments[0], null, 2));
     }
+    
+    console.log(`💰 [ADMIN] Found ${apiUsage?.length || 0} API usage records this month`);
     
     console.log(`👥 [ADMIN] Found ${users?.length || 0} users`);
     users?.slice(0, 5).forEach(user => {
@@ -127,8 +146,10 @@ router.get('/dashboard', isAdmin, async (req, res) => {
       const userSettings = settings?.find(s => s.userId === user.userId);
       const userPayments = payments?.filter(p => p.userId === user.userId) || [];
       const totalSpent = userPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      const failedPayments = userPayments.filter(p => p.status === 'failed');
-      const outstandingAmount = failedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      // Calculate outstanding amount from current month's API usage
+      const userApiUsage = apiUsage?.filter(u => u.userId === user.userId) || [];
+      const outstandingAmount = userApiUsage.reduce((sum, u) => sum + (u.cost || 0), 0);
       
       // Check multiple fields for payment method (Stripe can store it in different places)
       const hasPaymentMethod = !!(
@@ -151,7 +172,7 @@ router.get('/dashboard', isAdmin, async (req, res) => {
         gracePeriodEnd: userSettings?.gracePeriodEnd,
         totalSpent: totalSpent,
         outstandingAmount: outstandingAmount,
-        failedPaymentCount: failedPayments.length,
+        apiCallsThisMonth: userApiUsage.length,
         paymentCount: userPayments.length
       };
     }).filter(u => u.email) || []; // Filter out any invalid entries

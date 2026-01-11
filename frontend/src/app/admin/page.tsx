@@ -32,7 +32,7 @@ interface Account {
   hasPaymentMethod: boolean;
   totalSpent: number;
   outstandingAmount: number;
-  failedPaymentCount: number;
+  apiCallsThisMonth: number;
   lastChargeDate: string;
   paymentCount: number;
 }
@@ -315,10 +315,10 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-3 px-4">${account.totalSpent.toFixed(2)}</td>
                       <td className="py-3 px-4">
-                        <span className={account.outstandingAmount > 0 ? 'text-red-400 font-semibold' : 'text-green-400'}>
+                        <span className={account.outstandingAmount > 0 ? 'text-yellow-400 font-semibold' : 'text-green-400'}>
                           ${account.outstandingAmount.toFixed(2)}
-                          {account.failedPaymentCount > 0 && (
-                            <span className="text-xs ml-2">({account.failedPaymentCount} failed)</span>
+                          {account.apiCallsThisMonth > 0 && (
+                            <span className="text-xs ml-2">({account.apiCallsThisMonth} API calls)</span>
                           )}
                         </span>
                       </td>
