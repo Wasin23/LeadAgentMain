@@ -835,6 +835,10 @@ export default function InteractiveGlobe() {
   }, [isDraggingModal, isResizing, dragStart, resizeStart, modalPosition, modalSize, resizeDirection]);
 
   const handleQueueClick = (type: 'queued' | 'sent' | 'replied', label: string) => {
+    // Reset loading states immediately
+    setLoadingAgents(false);
+    setLoadingQueue(false);
+    
     setSelectedQueue({ agentId: 'all', type, agentName: label });
     setSelectedAgent(null);
     // Reset modal position and size when opening - center it on screen
@@ -1335,7 +1339,6 @@ export default function InteractiveGlobe() {
                       return 2 * Math.PI * 28 * (1 - progress);
                     })()
                   }
-                  className="transition-all duration-500"
                   style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
                 />
               </svg>
@@ -1409,7 +1412,6 @@ export default function InteractiveGlobe() {
                       return 2 * Math.PI * 28 * (1 - progress);
                     })()
                   }
-                  className="transition-all duration-500"
                   style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
                 />
               </svg>
@@ -1485,7 +1487,6 @@ export default function InteractiveGlobe() {
                       return 2 * Math.PI * 28 * (1 - progress);
                     })()
                   }
-                  className="transition-all duration-500"
                   style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
                 />
               </svg>
@@ -2720,12 +2721,18 @@ export default function InteractiveGlobe() {
             />
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6" style={{transform: 'translateZ(0)', willChange: 'scroll-position'}}>
+            <div className="flex-1 overflow-y-auto p-6 relative" style={{transform: 'translateZ(0)', willChange: 'scroll-position'}}>
               {!selectedAgent ? (
                 // Show agents list
                 loadingAgents ? (
-                  <div className="text-center py-12">
-                    <div className="text-white/70">Loading agents...</div>
+                  <div className="flex items-center justify-center py-20">
+                    <div className="text-center">
+                      <div className="relative w-12 h-12 mx-auto mb-3">
+                        <div className="absolute inset-0 border-3 border-[#4FD1FF]/20 rounded-full"></div>
+                        <div className="absolute inset-0 border-3 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <div className="text-sm text-white/70">Loading agents...</div>
+                    </div>
                   </div>
                 ) : agents.length === 0 ? (
                   <div className="text-center py-12">
@@ -2780,13 +2787,13 @@ export default function InteractiveGlobe() {
               ) : (
                 // Show emails for selected agent
                 loadingQueue ? (
-                  <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center justify-center py-20">
                     <div className="text-center">
-                      <div className="relative w-20 h-20 mx-auto mb-6">
-                        <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+                      <div className="relative w-12 h-12 mx-auto mb-3">
+                        <div className="absolute inset-0 border-3 border-[#4FD1FF]/20 rounded-full"></div>
+                        <div className="absolute inset-0 border-3 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
                       </div>
-                      <div className="text-2xl font-semibold text-white">Loading...</div>
+                      <div className="text-sm font-semibold text-white">Loading...</div>
                     </div>
                   </div>
                 ) : queueEmails.length === 0 ? (

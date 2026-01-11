@@ -90,10 +90,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Content Area */}
-      <div className="fixed left-[265px] right-0 top-0 bottom-0 overflow-hidden bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63]">
-        <div className="h-full overflow-y-auto overflow-x-hidden px-6 py-6">
+      <div className="fixed left-[265px] right-0 top-0 bottom-0 overflow-hidden bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] border-l border-white/10">
+        <div className="relative h-full overflow-y-auto overflow-x-hidden px-6 py-6">
           {navigating && (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] z-[9999] flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] border-l border-white/10 z-50 flex items-center justify-center">
               <div className="text-center">
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
