@@ -1465,18 +1465,27 @@ export default function InteractiveGlobe() {
       {/* Navigation Tabs - Left Side (Desktop only) */}
       <div className="hidden xl:flex fixed left-8 top-32 z-50 flex-col gap-3 w-[200px]">
         <div className="text-[#8FA6C1] text-xs font-medium uppercase tracking-wider mb-2">Navigation</div>
+        <div className="p-3 bg-white/20 rounded-lg">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="text-white text-sm font-semibold">Dashboard</span>
+          </div>
+        </div>
+        
         <button
           onClick={() => { 
             setNavigating(true); 
-            setTimeout(() => router.push('/agents-overview'), 0);
+            setTimeout(() => router.push('/outreach'), 0);
           }}
           className="p-3 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            <span className="text-[#A3B4CC] text-sm font-semibold">Agents</span>
+            <span className="text-[#A3B4CC] text-sm font-semibold">Outreach</span>
           </div>
         </button>
         
@@ -1489,7 +1498,7 @@ export default function InteractiveGlobe() {
         >
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <span className="text-[#A3B4CC] text-sm font-semibold">Profile</span>
           </div>
@@ -1535,12 +1544,12 @@ export default function InteractiveGlobe() {
               <button
                 onClick={() => { 
                   setNavigating(true); 
-                  setTimeout(() => router.push('/agents-overview'), 0);
+                  setTimeout(() => router.push('/outreach'), 0);
                 }}
                 className="relative px-3 py-2.5 text-white rounded-lg backdrop-blur-md transition-all border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg shadow-[#4FD1FF]/10 active:scale-95"
                 style={{ background: 'radial-gradient(circle at center, rgba(79, 209, 255, 0.15) 0%, rgba(27, 47, 82, 0.9) 70%)' }}
               >
-                Agents
+                Outreach
               </button>
               <button
                 onClick={() => { 
@@ -1676,280 +1685,179 @@ export default function InteractiveGlobe() {
         {/* Email Activity Log */}
         <div className="bg-[#223B61]/95 rounded p-4 shadow-lg">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Outreach Feed</h3>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Email Queue</h3>
             <div className="flex items-center gap-3">
-              {/* Stats - Opens, Responses, Bounced */}
-              <div className="flex items-center gap-3 mr-2 border-r border-white/10 pr-3">
-                <div className="text-center">
-                  <div className="text-[9px] text-[#8FA6C1] uppercase tracking-wide">Opens</div>
-                  <div className="text-sm font-bold text-white">{emailActivity.filter(e => e.analyticsStatus?.opened).length}</div>
-                  <div className="text-[8px] text-[#4FD1FF]">
-                    {stats.emailsSent > 0 ? `${Math.round((emailActivity.filter(e => e.analyticsStatus?.opened).length / stats.emailsSent) * 100)}%` : '0%'}
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-[9px] text-[#8FA6C1] uppercase tracking-wide">Replies</div>
-                  <div className="text-sm font-bold text-white">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
-                  <div className="text-[8px] text-[#4FD1FF]">
-                    {stats.emailsSent > 0 ? `${Math.round((emailActivity.filter(e => e.analyticsStatus?.replied).length / stats.emailsSent) * 100)}%` : '0%'}
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-[9px] text-[#8FA6C1] uppercase tracking-wide">Bounced</div>
-                  <div className="text-sm font-bold text-white">{emailActivity.filter(e => e.status === 'bounced').length}</div>
-                  <div className="text-[8px] text-red-400">
-                    {stats.emailsSent > 0 ? `${Math.round((emailActivity.filter(e => e.status === 'bounced').length / stats.emailsSent) * 100)}%` : '0%'}
-                  </div>
-                </div>
-              </div>
+              {/* Queue Type Dropdown */}
+              <select
+                value={selectedQueue?.type || 'queued'}
+                onChange={(e) => {
+                  const newType = e.target.value as 'queued' | 'sent' | 'replied';
+                  if (selectedAgent) {
+                    setSelectedQueue({ agentId: selectedAgent.agentId, type: newType, agentName: selectedAgent.name });
+                    fetchQueueEmails(selectedAgent.agentId, newType);
+                  } else {
+                    // Fetch all queued emails for all agents
+                    setSelectedQueue({ agentId: 'all', type: newType, agentName: 'All Agents' });
+                  }
+                }}
+                className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs rounded border border-white/20 cursor-pointer font-medium"
+              >
+                <option value="queued">Queued</option>
+                <option value="sent">Sent</option>
+                <option value="replied">Replied</option>
+              </select>
               
-              {/* Filter buttons */}
-              <button 
-                onClick={() => setActivityFilter('all')}
-                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
-                  activityFilter === 'all' 
-                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
-                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
-                }`}
-              >
-                All
-              </button>
-              <button 
-                onClick={() => setActivityFilter('sent')}
-                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
-                  activityFilter === 'sent' 
-                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
-                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
-                }`}
-              >
-                Sent
-              </button>
-              <button 
-                onClick={() => setActivityFilter('opened')}
-                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
-                  activityFilter === 'opened' 
-                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
-                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
-                }`}
-              >
-                Opened
-              </button>
-              <button 
-                onClick={() => setActivityFilter('bounced')}
-                className={`text-[10px] px-2 py-1 rounded transition-all border font-medium ${
-                  activityFilter === 'bounced' 
-                    ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' 
-                    : 'text-[#8FA6C1] hover:bg-white/10 border-transparent'
-                }`}
-              >
-                Bounced
-              </button>
-              <span className="text-[10px] text-[#8FA6C1] ml-2">{emailActivity.length} emails</span>
+              {/* Auto-Editor Button (only for queued) */}
+              {selectedQueue?.type === 'queued' && (
+                <button
+                  onClick={() => setShowAutoEditor(true)}
+                  className="px-3 py-1 bg-blue-500/80 hover:bg-blue-600 text-white rounded text-xs border border-blue-400/50 transition-colors font-medium"
+                  title="Find and replace text across all queued emails"
+                >
+                  🔧 Auto-Editor
+                </button>
+              )}
+              
+              <span className="text-[10px] text-[#8FA6C1] ml-2">{queueEmails.length} emails</span>
             </div>
           </div>
           
-          {/* Search Input */}
+          {/* Agent Filter */}
           <div className="mb-2 mt-3">
             <div className="relative">
-              <input
-                type="text"
-                placeholder="Search emails..."
-                value={outreachSearch}
-                onChange={(e) => setOutreachSearch(e.target.value)}
-                className="w-full px-3 py-2 pl-9 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm placeholder-[#8FA6C1] focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
-              />
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8FA6C1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <select
+                value={selectedAgent?.agentId || 'all'}
+                onChange={(e) => {
+                  const agentId = e.target.value;
+                  if (agentId === 'all') {
+                    setSelectedAgent(null);
+                    setQueueEmails([]);
+                  } else {
+                    const agent = agents.find(a => a.agentId === agentId);
+                    if (agent) {
+                      setSelectedAgent(agent);
+                      fetchQueueEmails(agentId, selectedQueue?.type || 'queued');
+                    }
+                  }
+                }}
+                className="w-full px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
+              >
+                <option value="all">Select an agent...</option>
+                {agents.map(agent => (
+                  <option key={agent.agentId} value={agent.agentId}>{agent.name}</option>
+                ))}
+              </select>
             </div>
           </div>
           
           <div className="space-y-2 h-[615px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
-            {emailActivity.length === 0 ? (
+            {!selectedAgent ? (
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-[#8FA6C1] text-sm">No email activity yet</p>
-                <p className="text-[#8FA6C1]/60 text-xs mt-2">Sent emails will appear here</p>
+                <p className="text-[#8FA6C1] text-sm">Select an agent to view emails</p>
+                <p className="text-[#8FA6C1]/60 text-xs mt-2">Queue emails will appear here</p>
+              </div>
+            ) : queueEmails.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4\" />
+                  </svg>
+                </div>
+                <p className="text-[#8FA6C1] text-sm">No emails in {selectedQueue?.type} queue</p>
+                <p className="text-[#8FA6C1]/60 text-xs mt-2">{selectedAgent.name}</p>
               </div>
             ) : (
               <>
-                {(() => {
-                  const filtered = emailActivity
-                    .filter(email => {
-                      if (activityFilter === 'all') return true;
-                      if (activityFilter === 'opened') return email.analyticsStatus?.opened;
-                      if (activityFilter === 'sent') return !email.analyticsStatus?.opened;
-                      if (activityFilter === 'bounced') return email.status === 'bounced';
-                      return true;
-                    })
-                    .filter(email => {
-                      if (!outreachSearch) return true;
-                      const searchLower = outreachSearch.toLowerCase();
-                      const recipient = (email.to || email.recipient || '').toLowerCase();
-                      const subject = (email.subject || '').toLowerCase();
-                      return recipient.includes(searchLower) || subject.includes(searchLower);
-                    });
-                  
-                  const hasSearch = !!outreachSearch;
-                  const paginated = hasSearch ? filtered : filtered.slice(outreachPage * OUTREACH_PAGE_SIZE, (outreachPage + 1) * OUTREACH_PAGE_SIZE);
-                  const totalPages = hasSearch ? 1 : Math.ceil(filtered.length / OUTREACH_PAGE_SIZE);
+                {queueEmails.slice(0, 20).map((email, idx) => {
+                  const emailId = email._id || email.id;
+                  const hasAiReport = !!email.aiReport;
+                  const isOrphaned = email.agentId === 'orphan';
                   
                   return (
-                    <>
-                      {paginated.map((email, idx) => {
-                        const hasOpened = email.analyticsStatus?.opened;
-                        const hasProxy = email.analyticsStatus?.hasProxy;
-                        const hasClicked = email.analyticsStatus?.clicked;
-                        const hasReplied = email.analyticsStatus?.replied;
-                        const isBounced = email.status === 'bounced';
-                        const openCount = email.analyticsStatus?.openCount || 0;
-                        const timeAgo = new Date(email.sentAt || email.timestamp).toLocaleString();
-                        
-                        return (
-                          <div 
-                            key={email.trackingId || email.id || idx} 
-                            className="bg-[#0A1525]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all"
-                          >
+                    <div 
+                      key={emailId || idx} 
+                      className="bg-[#0A1525]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all cursor-pointer"
+                      onClick={() => {
+                        setSelectedQueue({ agentId: email.agentId, type: selectedQueue?.type || 'queued', agentName: selectedAgent.name });
+                        setExpandedEmailId(expandedEmailId === emailId ? null : emailId);
+                      }}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            hasReplied ? 'bg-purple-400' : hasClicked ? 'bg-yellow-400' : hasOpened ? 'bg-green-400' : isBounced ? 'bg-red-400' : 'bg-blue-400'
-                          }`} />
                           <div className="flex-1 min-w-0">
-                            <div className="text-white text-xs font-medium truncate">
-                              {email.to || email.recipient || 'Unknown'}
+                            <div className="flex items-center gap-2 mb-1">
+                              {isOrphaned && (
+                                <span className="text-xs font-semibold bg-red-500/80 text-white px-2 py-0.5 rounded">
+                                  ORPHANED
+                                </span>
+                              )}
+                              {selectedQueue?.type === 'sent' && (
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                  email.deliveryStatus === 'delivered' ? 'bg-green-500/80 text-white' :
+                                  email.deliveryStatus === 'bounced' ? 'bg-red-500/80 text-white' :
+                                  'bg-yellow-500/80 text-white'
+                                }`}>
+                                  {email.deliveryStatus === 'delivered' ? '✓' :
+                                   email.deliveryStatus === 'bounced' ? '✗' :
+                                   '⏳'}
+                                </span>
+                              )}
+                              <div className="text-white text-xs font-medium truncate">
+                                {email.subject || 'No Subject'}
+                              </div>
                             </div>
-                            <div className="text-[#8FA6C1] text-[10px] mt-0.5 truncate">
-                              {email.subject || 'No subject'}
+                            <div className="text-[#8FA6C1] text-[10px] truncate">
+                              To: {email.to}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[9px] text-[#8FA6C1]/60">{timeAgo}</span>
+                              {email.timestamp && (
+                                <span className="text-[9px] text-[#8FA6C1]/60">
+                                  {new Date(email.timestamp).toLocaleDateString()}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                         
-                        {/* Fixed position status badges on the right */}
+                        {/* AI Report Icon */}
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {/* Inbox classification - PRIMARY if proxy hit (first hit), PROMOTIONAL if no hits yet */}
-                          {/* Don't show inbox classification if bounced */}
-                          {!isBounced && (
-                            <>
-                              {hasProxy ? (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                                  className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer hover:bg-green-500/30 transition-colors"
-                                  title="PRIMARY - Tracking pixel fired immediately, indicating email landed in Primary inbox (images auto-loaded)"
-                                >
-                                  PRIMARY
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                                  className="px-1.5 py-0.5 bg-gray-500/20 border border-gray-500/40 text-gray-400 text-[9px] font-medium rounded cursor-pointer hover:bg-gray-500/30 transition-colors"
-                                  title="PROMOTIONAL - No tracking pixel hit yet, likely in Promotions/Social tab or Spam (images not auto-loaded)"
-                                >
-                                  PROMOTIONAL
-                                </button>
-                              )}
-                            </>
-                          )}
-                          
-                          {/* Engagement status */}
-                          {hasReplied && (
+                          {hasAiReport ? (
                             <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                              className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-medium rounded cursor-pointer hover:bg-purple-500/30 transition-colors"
-                              title="Recipient replied to this email"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewingAiReport(email.aiReport);
+                              }}
+                              className="p-1.5 hover:bg-blue-500/20 rounded border border-blue-400/50 hover:border-blue-400 transition-colors"
+                              title="View AI Research Report"
                             >
-                              REPLIED
+                              <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
                             </button>
-                          )}
-                          {hasClicked && !hasReplied && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                              className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[9px] font-medium rounded cursor-pointer hover:bg-yellow-500/30 transition-colors"
-                              title="Recipient clicked a link in this email"
-                            >
-                              CLICKED
-                            </button>
-                          )}
-                          {hasOpened && !hasClicked && !hasReplied && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                              className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 text-green-400 text-[9px] font-medium rounded cursor-pointer hover:bg-green-500/30 transition-colors"
-                              title={`Recipient opened this email${openCount > 1 ? ` ${openCount} times` : ''}`}
-                            >
-                              OPENED {openCount > 1 ? `${openCount}×` : ''}
-                            </button>
-                          )}
-                          {!hasOpened && !isBounced && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                              className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[9px] font-medium rounded cursor-pointer hover:bg-blue-500/30 transition-colors"
-                              title="Email sent but not opened yet"
-                            >
-                              SENT
-                            </button>
-                          )}
-                          {isBounced && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedEmailForView(email); }}
-                              className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 text-red-400 text-[9px] font-medium rounded cursor-pointer hover:bg-red-500/30 transition-colors"
-                              title="Email bounced - invalid address or mailbox full"
-                            >
-                              BOUNCED
-                            </button>
+                          ) : (
+                            <div className="p-1.5 opacity-20">
+                              <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
                           )}
                         </div>
                       </div>
                     </div>
                   );
                 })}
-                
-                {/* Pagination Controls - Only show when not searching */}
-                {!hasSearch && totalPages > 1 && (
-                  <div className="flex items-center justify-between p-3 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg mt-2">
-                    <button
-                      onClick={() => setOutreachPage(Math.max(0, outreachPage - 1))}
-                      disabled={outreachPage === 0}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-xs font-medium"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Previous
-                    </button>
-                    
-                    <span className="text-[#8FA6C1] text-xs">
-                      Page {outreachPage + 1} of {totalPages} ({filtered.length} total)
-                    </span>
-                    
-                    <button
-                      onClick={() => setOutreachPage(Math.min(totalPages - 1, outreachPage + 1))}
-                      disabled={outreachPage >= totalPages - 1}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-xs font-medium"
-                    >
-                      Next
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
               </>
-            );
-          })()}
-        </>
-      )}
+            )}
           </div>
         </div>
       </div>
       
-          }{/* End Outreach Section */}
+          }{/* End Email Queue Section */}
 
       {isMounted && (
         <div 
