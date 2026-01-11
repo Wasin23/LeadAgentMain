@@ -44,13 +44,13 @@ export default function OutreachPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-full">
+      <div className="flex flex-col h-[calc(100vh-48px)]">
           <div className="mb-3">
             <h1 className="text-2xl font-bold text-white">Outreach</h1>
           </div>
           
           {/* Outreach Feed */}
-          <div className="bg-[#223B61]/95 rounded-lg p-3 shadow-2xl w-full h-[calc(100vh-120px)]">
+          <div className="rounded-lg p-3 w-full flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 {/* Stats - Opens, Responses, Bounced */}
@@ -141,7 +141,7 @@ export default function OutreachPage() {
               </div>
             </div>
             
-            <div className="space-y-1.5 h-[calc(100%-110px)] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
+            <div className="space-y-1.5 flex-1 min-h-0 overflow-y-auto bg-[#0A1525]/40 rounded p-2">
               {emailActivity.length === 0 ? (
                 <div className="text-center py-20">
                   <div className="w-16 h-16 bg-[#4FD1FF]/20 rounded-xl flex items-center justify-center mx-auto mb-4">

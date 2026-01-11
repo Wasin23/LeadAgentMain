@@ -291,6 +291,7 @@ export default function InteractiveGlobe() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, posX: 0, posY: 0 });
   const rafRef = useRef<number | undefined>(undefined);
+  const prevShowIdleAgentsRef = useRef(false);
 
   // Satellite and agent positioning
   const [showIdleAgents, setShowIdleAgents] = useState(false);
@@ -331,6 +332,49 @@ export default function InteractiveGlobe() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Refetch all agents queue when modal closes and "All Agents" is selected
+  useEffect(() => {
+    console.log('Modal close effect triggered:', {
+      prevModalOpen: prevShowIdleAgentsRef.current,
+      currentModalOpen: showIdleAgents,
+      selectedAgent: selectedAgent,
+      selectedQueue: selectedQueue,
+      agentsCount: agents.length
+    });
+    
+    // Only run when modal transitions from open to closed
+    if (prevShowIdleAgentsRef.current && !showIdleAgents && !selectedAgent && selectedQueue && agents.length > 0) {
+      console.log('Refetching all emails for queue:', selectedQueue.type);
+      // Refetch all emails when modal closes and we're viewing all agents
+      const fetchAllEmails = async () => {
+        try {
+          const allEmails: any[] = [];
+          for (const agent of agents) {
+            if (agent.agentId === 'orphan') continue;
+            const response = await api.get(`/api/email-queue/${selectedQueue?.type === 'sent' ? 'sent' : selectedQueue?.type === 'replied' ? 'replied' : 'queue'}`, {
+              params: { agentId: agent.agentId }
+            });
+            const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
+            console.log(`Agent ${agent.name} returned ${emails.length} emails`);
+            allEmails.push(...emails.map((email: any) => ({
+              ...email,
+              agentName: agent.name
+            })));
+          }
+          console.log(`Total emails fetched: ${allEmails.length}`);
+          setQueueEmails(allEmails.sort((a, b) => 
+            new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+          ));
+        } catch (error) {
+          console.error('Error fetching all emails:', error);
+        }
+      };
+      fetchAllEmails();
+    }
+    // Update the ref for next time
+    prevShowIdleAgentsRef.current = showIdleAgents;
+  }, [showIdleAgents, selectedAgent, selectedQueue, agents]);
 
   // City and state geocoding function with detailed US city coordinates
   const geocodeLocation = (location: any): { lat: number; lng: number } | null => {
@@ -966,7 +1010,7 @@ export default function InteractiveGlobe() {
 
   // Fetch agents on mount
   useEffect(() => {
-    fetchAgents();
+    fetchAgents('queued');
     fetchEmailActivity();
     
     // Poll for email activity every 15 seconds
@@ -980,20 +1024,34 @@ export default function InteractiveGlobe() {
   // Fetch all emails from all agents on initial load
   useEffect(() => {
     if (agents.length > 0) {
+      console.log('Fetching all emails for agents:', agents.map(a => a.name));
       const fetchAllEmails = async () => {
         try {
           const allEmails: any[] = [];
           for (const agent of agents) {
-            const response = await api.get(`/api/email-queue/queued`, {
-              params: { agentId: agent.agentId }
-            });
-            if (response.data.success) {
-              allEmails.push(...(response.data.emails || []).map((email: any) => ({
+            // Skip orphan agent - it doesn't have real emails
+            if (agent.agentId === 'orphan') continue;
+            
+            console.log('Fetching emails for agent:', agent.name, agent.agentId);
+            try {
+              const response = await api.get(`/api/email-queue/queue`, {
+                params: { agentId: agent.agentId }
+              });
+              console.log('Response for', agent.name, ':', response.data);
+              const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
+              console.log(`Got ${emails.length} emails for ${agent.name}`);
+              allEmails.push(...emails.map((email: any) => ({
                 ...email,
                 agentName: agent.name
               })));
+            } catch (err: any) {
+              // Skip 404 errors for agents without queues
+              if (err?.response?.status !== 404) {
+                console.error('Error fetching emails for agent', agent.name, ':', err);
+              }
             }
           }
+          console.log('Total emails fetched:', allEmails.length);
           setQueueEmails(allEmails.sort((a, b) => 
             new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
           ));
@@ -1003,7 +1061,7 @@ export default function InteractiveGlobe() {
       };
       fetchAllEmails();
     }
-  }, [agents]);
+  }, [agents.length]);
 
   // Refetch agents when page becomes visible (when user navigates back)
   useEffect(() => {
@@ -1235,7 +1293,7 @@ export default function InteractiveGlobe() {
         {/* Email Queue */}
         <button
           onClick={() => handleQueueClick('queued', 'Email Queue')}
-          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
+          className="p-5 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1309,7 +1367,7 @@ export default function InteractiveGlobe() {
         {/* Emails Sent */}
         <button
           onClick={() => handleQueueClick('sent', 'Sent Emails')}
-          className="p-5 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
+          className="p-5 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0 rounded-full bg-[#243D63]">
@@ -1385,7 +1443,7 @@ export default function InteractiveGlobe() {
         {/* Responses */}
         <button
           onClick={() => handleQueueClick('replied', 'Replied Emails')}
-          className="p-3 bg-[#243D63]/80 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 hover:bg-[#243D63]/90 transition-all shadow-lg shadow-[#4FD1FF]/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
+          className="p-3 rounded border-2 border-[#4FD1FF]/40 hover:border-[#4FD1FF]/70 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex-1"
         >
           <div className="flex items-center gap-3">
             <div className="relative w-16 h-16 flex-shrink-0">
@@ -1557,10 +1615,10 @@ export default function InteractiveGlobe() {
         className={`hidden xl:flex fixed left-[265px] lg:right-[calc(20%+10px)] flex-col gap-6 z-30 transition-opacity duration-700 ${
           showGlobe ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`} 
-        style={{ top: 'calc(10% + 60px)' }}
+        style={{ top: 'calc(8% + 40px)' }}
       >
         {/* Email Activity Log */}
-        <div className="bg-[#223B61]/95 rounded p-4 shadow-lg">
+        <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Email Queue</h3>
             <div className="flex items-center gap-3">
@@ -1579,15 +1637,16 @@ export default function InteractiveGlobe() {
                       try {
                         const allEmails: any[] = [];
                         for (const agent of agents) {
-                          const response = await api.get(`/api/email-queue/${newType}`, {
+                          if (agent.agentId === 'orphan') continue;
+                          const endpoint = newType === 'sent' ? 'sent' : newType === 'replied' ? 'replied' : 'queue';
+                          const response = await api.get(`/api/email-queue/${endpoint}`, {
                             params: { agentId: agent.agentId }
                           });
-                          if (response.data.success) {
-                            allEmails.push(...(response.data.emails || []).map((email: any) => ({
-                              ...email,
-                              agentName: agent.name
-                            })));
-                          }
+                          const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
+                          allEmails.push(...emails.map((email: any) => ({
+                            ...email,
+                            agentName: agent.name
+                          })));
                         }
                         setQueueEmails(allEmails.sort((a, b) => 
                           new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
@@ -1635,15 +1694,15 @@ export default function InteractiveGlobe() {
                       try {
                         const allEmails: any[] = [];
                         for (const agent of agents) {
-                          const response = await api.get(`/api/email-queue/${selectedQueue?.type || 'queued'}`, {
+                          if (agent.agentId === 'orphan') continue;
+                          const response = await api.get(`/api/email-queue/${selectedQueue?.type === 'sent' ? 'sent' : selectedQueue?.type === 'replied' ? 'replied' : 'queue'}`, {
                             params: { agentId: agent.agentId }
                           });
-                          if (response.data.success) {
-                            allEmails.push(...(response.data.emails || []).map((email: any) => ({
-                              ...email,
-                              agentName: agent.name
-                            })));
-                          }
+                          const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
+                          allEmails.push(...emails.map((email: any) => ({
+                            ...email,
+                            agentName: agent.name
+                          })));
                         }
                         setQueueEmails(allEmails.sort((a, b) => 
                           new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
@@ -1671,7 +1730,7 @@ export default function InteractiveGlobe() {
             </div>
           </div>
           
-          <div className="space-y-1.5 h-[615px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
+          <div className="space-y-1.5 h-[700px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
             {queueEmails.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -1684,7 +1743,16 @@ export default function InteractiveGlobe() {
               </div>
             ) : (
               <>
-                {queueEmails.slice(0, 50).map((email, idx) => {
+                {(() => {
+                  const EMAILS_PER_PAGE = 20;
+                  const startIndex = (currentEmailPage - 1) * EMAILS_PER_PAGE;
+                  const endIndex = startIndex + EMAILS_PER_PAGE;
+                  const totalPages = Math.ceil(queueEmails.length / EMAILS_PER_PAGE);
+                  const paginatedEmails = queueEmails.slice(startIndex, endIndex);
+                  
+                  return (
+                    <>
+                      {paginatedEmails.map((email, idx) => {
                   const emailId = email._id || email.id;
                   const isExpanded = expandedEmailId === emailId;
                   const hasAiReport = !!email.aiReport;
@@ -1802,15 +1870,6 @@ export default function InteractiveGlobe() {
                             </div>
                           </div>
 
-                          {hasAiReport && (
-                            <div>
-                              <div className="text-[10px] text-[#8FA6C1] mb-1">AI Report</div>
-                              <div className="bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 rounded p-2.5 text-white/90 text-[11px] max-h-[150px] overflow-y-auto">
-                                {email.aiReport}
-                              </div>
-                            </div>
-                          )}
-
                           <div className="flex items-center gap-2 pt-1">
                             <button 
                               onClick={(e) => {
@@ -1843,13 +1902,45 @@ export default function InteractiveGlobe() {
                     </div>
                   );
                 })}
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between p-3 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg mt-3">
+                    <button
+                      onClick={() => setCurrentEmailPage(Math.max(1, currentEmailPage - 1))}
+                      disabled={currentEmailPage === 1}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Previous
+                    </button>
+                    
+                    <span className="text-[#8FA6C1] text-[11px]">
+                      Page {currentEmailPage} of {totalPages} ({queueEmails.length} total)
+                    </span>
+                    
+                    <button
+                      onClick={() => setCurrentEmailPage(Math.min(totalPages, currentEmailPage + 1))}
+                      disabled={currentEmailPage >= totalPages}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
+                    >
+                      Next
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                    </>
+                  );
+                })()}
               </>
             )}
           </div>
         </div>
       </div>
-      
-          }{/* End Email Queue Section */}
+      }{/* End Email Queue Section */}
 
       {isMounted && (
         <div 
@@ -3159,21 +3250,21 @@ export default function InteractiveGlobe() {
         </div>
       )}
 
-      {/* AI Report Overlay - Inside Queue Modal */}
-      {viewingAiReport && selectedQueue && (
-        <div 
-          className="absolute inset-0 bg-black/80 z-[200] flex items-center justify-center p-6"
-          onClick={() => setViewingAiReport(null)}
-        >
+      {/* AI Report Modal */}
+      {viewingAiReport && (
+        <>
+          {/* Dark overlay covering everything including sidebar */}
+          <div className="fixed inset-0 bg-black/60 z-[199]" onClick={() => setViewingAiReport(null)} />
+          
           <div 
-            className="bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/30 w-full max-w-4xl max-h-[90%] overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 pointer-events-none"
           >
-            {/* Glowing accent line */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600" />
-            
-            {/* Header */}
-            <div className="relative flex items-start justify-between p-6 border-b border-[#4FD1FF]/20">
+            <div 
+              className="bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/30 w-full max-w-4xl max-h-[90%] overflow-hidden flex flex-col pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="relative flex items-start justify-between p-6 border-b border-[#4FD1FF]/20">
               <div className="flex-1">
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-white uppercase tracking-wider">Research Report</h3>
@@ -3332,7 +3423,8 @@ export default function InteractiveGlobe() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Toast Notification */}
