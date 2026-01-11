@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/jwt.js';
 import { checkPaymentStatus } from '../middleware/paymentStatus.js';
 import AWSManager from '../utils/awsManager.js';
 import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
+import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 const router = express.Router();
 
@@ -974,7 +975,6 @@ router.get('/api-usage/total', async (req, res) => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
     
     // Get current month's usage from summary
-    const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
     const summaryQuery = new QueryCommand({
       TableName: userAgent.awsManager.tables.apiUsageSummary,
       KeyConditionExpression: 'userId = :userId',
