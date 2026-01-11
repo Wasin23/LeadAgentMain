@@ -924,6 +924,48 @@ export default function InteractiveGlobe() {
     }
   };
 
+  const handleAcceptEmail = async (emailId: string, agentId: string) => {
+    try {
+      // Send the email FIRST - don't remove until we know it succeeded
+      await api.post(`/api/email-queue/send/${emailId}`, { agentId });
+      
+      // Only remove from UI after successful send
+      setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
+      setStats(prev => ({
+        ...prev,
+        emailsQueued: Math.max(0, prev.emailsQueued - 1)
+      }));
+      
+      showToast('Email sent successfully', 'success');
+    } catch (error) {
+      console.error('Error accepting email:', error);
+      showToast('Failed to send email', 'error');
+      // Don't remove email from queue on error - user can try again
+    }
+  };
+
+  const handleRejectEmailFromQueue = async (emailId: string, agentId: string) => {
+    try {
+      // Delete FIRST - don't remove from UI until we know it succeeded
+      await api.delete(`/api/email-queue/${emailId}`, {
+        data: { agentId }
+      });
+      
+      // Only remove from UI after successful deletion
+      setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
+      setStats(prev => ({
+        ...prev,
+        emailsQueued: Math.max(0, prev.emailsQueued - 1)
+      }));
+      
+      showToast('Email rejected', 'success');
+    } catch (error) {
+      console.error('Error rejecting email:', error);
+      showToast('Failed to reject email', 'error');
+      // Don't remove email from queue on error - user can try again
+    }
+  };
+
   const handleBulkEdit = async () => {
     if (!autoEditFind && autoEditFind !== '') {
       alert('Please enter text to find');
@@ -1673,7 +1715,7 @@ export default function InteractiveGlobe() {
                   className="px-3 py-1 bg-blue-500/80 hover:bg-blue-600 text-white rounded text-xs border border-blue-400/50 transition-colors font-medium"
                   title="Find and replace text across all queued emails"
                 >
-                  🔧 Auto-Editor
+                  🔧 Bulk Edit
                 </button>
               )}
               
@@ -1907,6 +1949,15 @@ export default function InteractiveGlobe() {
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     if (!editingEmail) return;
+                                    
+                                    // Optimistic update - update local state immediately
+                                    setQueueEmails(prev => prev.map(em => 
+                                      (em._id || em.id) === emailId 
+                                        ? { ...em, subject: editingEmail.subject, body: editingEmail.body, to: editingEmail.to, cc: editingEmail.cc, bcc: editingEmail.bcc }
+                                        : em
+                                    ));
+                                    setEditingEmail(null);
+                                    
                                     try {
                                       // Use the email's actual agentId instead of selectedAgent
                                       const emailAgentId = email.agentId || selectedAgent?.agentId || 'all';
@@ -1918,14 +1969,32 @@ export default function InteractiveGlobe() {
                                         bcc: editingEmail.bcc
                                       });
                                       showToast('Email updated successfully', 'success');
-                                      setEditingEmail(null);
-                                      // Refresh the queue
-                                      if (selectedAgent) {
-                                        fetchQueueEmails(selectedAgent.agentId, selectedQueue?.type || 'queued');
-                                      }
                                     } catch (error) {
                                       console.error('Error updating email:', error);
                                       showToast('Failed to update email', 'error');
+                                      // Revert on error
+                                      if (selectedAgent) {
+                                        fetchQueueEmails(selectedAgent.agentId, selectedQueue?.type || 'queued');
+                                      } else {
+                                        // Reload all emails for all agents
+                                        try {
+                                          const allEmails: any[] = [];
+                                          for (const agent of agents) {
+                                            if (agent.agentId === 'orphan') continue;
+                                            const response = await api.get(`/api/email-queue/${selectedQueue?.type === 'sent' ? 'sent' : selectedQueue?.type === 'replied' ? 'replied' : 'queue'}`, {
+                                              params: { agentId: agent.agentId }
+                                            });
+                                            const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
+                                            allEmails.push(...emails.map((email: any) => ({
+                                              ...email,
+                                              agentName: agent.name
+                                            })));
+                                          }
+                                          setQueueEmails(allEmails);
+                                        } catch (err) {
+                                          console.error('Error reloading emails:', err);
+                                        }
+                                      }
                                     }
                                   }}
                                   className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-400 text-[11px] font-medium rounded transition-colors"
@@ -1953,8 +2022,7 @@ export default function InteractiveGlobe() {
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // Handle accept
-                                    console.log('Accept email:', emailId);
+                                    handleAcceptEmail(emailId, email.agentId);
                                   }}
                                   className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 text-[11px] font-medium rounded transition-colors"
                                 >
@@ -1963,8 +2031,7 @@ export default function InteractiveGlobe() {
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // Handle reject
-                                    console.log('Reject email:', emailId);
+                                    handleRejectEmailFromQueue(emailId, email.agentId);
                                   }}
                                   className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-[11px] font-medium rounded transition-colors"
                                 >

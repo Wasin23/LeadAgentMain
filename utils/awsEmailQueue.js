@@ -39,7 +39,46 @@ class AWSEmailQueue {
     this.tableName = process.env.AWS_DYNAMODB_EMAIL_QUEUE_TABLE || 'meridian-email-queue';
     this.gsiName = 'UserStatusIndex';
     
+    // Add in-memory cache to reduce DynamoDB queries
+    this.cache = new Map();
+    this.cacheTimeout = 5000; // 5 seconds cache
+    
     console.log(`📧 [AWS EMAIL QUEUE] Initialized with table: ${this.tableName}`);
+  }
+
+  /**
+   * Get cached data or fetch from DB
+   */
+  async _getCached(key, fetchFn) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      console.log(`📦 [CACHE HIT] ${key}`);
+      return cached.data;
+    }
+    
+    const data = await fetchFn();
+    this.cache.set(key, { data, timestamp: Date.now() });
+    
+    // Clear old cache entries (keep last 100)
+    if (this.cache.size > 100) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    
+    return data;
+  }
+
+  /**
+   * Invalidate cache for a user
+   */
+  _invalidateCache(userId) {
+    const keysToDelete = [];
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(userId)) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach(key => this.cache.delete(key));
   }
 
   /**
@@ -137,6 +176,9 @@ class AWSEmailQueue {
         TableName: this.tableName,
         Item: item
       }));
+
+      // Invalidate cache for this user
+      this._invalidateCache(userId);
 
       console.log(`✅ [AWS EMAIL QUEUE] Email queued: ${emailId} for agent ${agentId}`);
       return item;
@@ -297,21 +339,23 @@ class AWSEmailQueue {
    * Get ALL queued emails across ALL agents for a user (using GSI)
    */
   async getAllQueuedEmailsForUser(userId) {
-    try {
-      const response = await this.dynamodb.send(new QueryCommand({
-        TableName: this.tableName,
-        IndexName: this.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': this._getGSIPK(userId, 'QUEUED')
-        }
-      }));
+    return this._getCached(`${userId}:queued`, async () => {
+      try {
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: {
+            ':gsipk': this._getGSIPK(userId, 'QUEUED')
+          }
+        }));
 
-      return response.Items || [];
-    } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error getting all queued emails for user:', error);
-      throw error;
-    }
+        return response.Items || [];
+      } catch (error) {
+        console.error('[AWS EMAIL QUEUE] Error getting all queued emails for user:', error);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -319,16 +363,17 @@ class AWSEmailQueue {
    * Includes both SENT and BOUNCED emails
    */
   async getAllSentEmailsForUser(userId) {
-    try {
-      // Query for SENT emails across all agents
-      const sentResponse = await this.dynamodb.send(new QueryCommand({
-        TableName: this.tableName,
-        IndexName: this.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': this._getGSIPK(userId, 'SENT')
-        }
-      }));
+    return this._getCached(`${userId}:sent`, async () => {
+      try {
+        // Query for SENT emails across all agents
+        const sentResponse = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: {
+            ':gsipk': this._getGSIPK(userId, 'SENT')
+          }
+        }));
 
       // Query for BOUNCED emails across all agents
       const bouncedResponse = await this.dynamodb.send(new QueryCommand({
@@ -344,28 +389,30 @@ class AWSEmailQueue {
       
       // Enrich with tracking data (pass null for agentId to get all tracking)
       return await this.enrichEmailsWithTracking(userId, null, emails);
-    } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error getting all sent emails for user:', error);
-      throw error;
-    }
+      } catch (error) {
+        console.error('[AWS EMAIL QUEUE] Error getting all sent emails for user:', error);
+        throw error;
+      }
+    });
   }
 
   /**
    * Get ALL replied emails across ALL agents for a user (using GSI)
    */
   async getAllRepliedEmailsForUser(userId) {
-    try {
-      const response = await this.dynamodb.send(new QueryCommand({
-        TableName: this.tableName,
-        IndexName: this.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': this._getGSIPK(userId, 'REPLIED')
-        }
-      }));
+    return this._getCached(`${userId}:replied`, async () => {
+      try {
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: {
+            ':gsipk': this._getGSIPK(userId, 'REPLIED')
+          }
+        }));
 
-      return response.Items || [];
-    } catch (error) {
+        return response.Items || [];
+      } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting all replied emails for user:', error);
       throw error;
     }
@@ -481,6 +528,9 @@ class AWSEmailQueue {
         TableName: this.tableName,
         Item: newItem
       }));
+
+      // Invalidate cache for this user
+      this._invalidateCache(userId);
 
       console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} status updated: ${oldStatus} -> ${newStatus}`);
       return newItem;
@@ -634,6 +684,9 @@ class AWSEmailQueue {
           SK: item.SK
         }
       }));
+
+      // Invalidate cache for this user
+      this._invalidateCache(userId);
 
       console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} deleted (rejected)`);
     } catch (error) {

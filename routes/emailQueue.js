@@ -261,13 +261,13 @@ router.post('/:id/approve', async (req, res) => {
     
     // Handle both old format (direct fields) and new format (nested in emailData)
     const emailData = approvedEmail.emailData || {};
-    const finalRecipient = emailData.finalRecipient || approvedEmail.finalRecipient;
-    const finalSubject = emailData.finalSubject || approvedEmail.finalSubject;
-    const finalBody = emailData.finalBody || approvedEmail.finalBody;
+    const finalRecipient = emailData.finalRecipient || approvedEmail.finalRecipient || approvedEmail.to;
+    const finalSubject = emailData.finalSubject || approvedEmail.finalSubject || approvedEmail.subject;
+    const finalBody = emailData.finalBody || approvedEmail.finalBody || approvedEmail.body;
     
     // Validate we have all required fields
     if (!finalRecipient || !finalSubject || !finalBody) {
-      console.error('[EMAIL QUEUE] Missing email data:', { finalRecipient, finalSubject, finalBody });
+      console.error('[EMAIL QUEUE] Missing email data:', { finalRecipient, finalSubject, finalBody, approvedEmail });
       return res.status(400).json({ 
         error: 'Email data incomplete', 
         details: 'Missing recipient, subject, or body'
