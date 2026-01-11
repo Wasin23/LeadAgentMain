@@ -977,6 +977,34 @@ export default function InteractiveGlobe() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch all emails from all agents on initial load
+  useEffect(() => {
+    if (agents.length > 0 && queueEmails.length === 0) {
+      const fetchAllEmails = async () => {
+        try {
+          const allEmails: any[] = [];
+          for (const agent of agents) {
+            const response = await api.get(`/api/email-queue/queued`, {
+              params: { agentId: agent.agentId }
+            });
+            if (response.data.success) {
+              allEmails.push(...(response.data.emails || []).map((email: any) => ({
+                ...email,
+                agentName: agent.name
+              })));
+            }
+          }
+          setQueueEmails(allEmails.sort((a, b) => 
+            new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+          ));
+        } catch (error) {
+          console.error('Error fetching all emails:', error);
+        }
+      };
+      fetchAllEmails();
+    }
+  }, [agents]);
+
   // Refetch agents when page becomes visible (when user navigates back)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -1545,11 +1573,33 @@ export default function InteractiveGlobe() {
                     setSelectedQueue({ agentId: selectedAgent.agentId, type: newType, agentName: selectedAgent.name });
                     fetchQueueEmails(selectedAgent.agentId, newType);
                   } else {
-                    // Fetch all queued emails for all agents
+                    // Fetch all emails for all agents
                     setSelectedQueue({ agentId: 'all', type: newType, agentName: 'All Agents' });
+                    const fetchAllEmails = async () => {
+                      try {
+                        const allEmails: any[] = [];
+                        for (const agent of agents) {
+                          const response = await api.get(`/api/email-queue/${newType}`, {
+                            params: { agentId: agent.agentId }
+                          });
+                          if (response.data.success) {
+                            allEmails.push(...(response.data.emails || []).map((email: any) => ({
+                              ...email,
+                              agentName: agent.name
+                            })));
+                          }
+                        }
+                        setQueueEmails(allEmails.sort((a, b) => 
+                          new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+                        ));
+                      } catch (error) {
+                        console.error('Error fetching all emails:', error);
+                      }
+                    };
+                    fetchAllEmails();
                   }
                 }}
-                className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs rounded border border-white/20 cursor-pointer font-medium"
+                className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] rounded border border-white/20 cursor-pointer font-medium"
               >
                 <option value="queued">Queued</option>
                 <option value="sent">Sent</option>
@@ -1580,7 +1630,29 @@ export default function InteractiveGlobe() {
                   const agentId = e.target.value;
                   if (agentId === 'all') {
                     setSelectedAgent(null);
-                    setQueueEmails([]);
+                    // Fetch all emails from all agents
+                    const fetchAllEmails = async () => {
+                      try {
+                        const allEmails: any[] = [];
+                        for (const agent of agents) {
+                          const response = await api.get(`/api/email-queue/${selectedQueue?.type || 'queued'}`, {
+                            params: { agentId: agent.agentId }
+                          });
+                          if (response.data.success) {
+                            allEmails.push(...(response.data.emails || []).map((email: any) => ({
+                              ...email,
+                              agentName: agent.name
+                            })));
+                          }
+                        }
+                        setQueueEmails(allEmails.sort((a, b) => 
+                          new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+                        ));
+                      } catch (error) {
+                        console.error('Error fetching all emails:', error);
+                      }
+                    };
+                    fetchAllEmails();
                   } else {
                     const agent = agents.find(a => a.agentId === agentId);
                     if (agent) {
@@ -1589,9 +1661,9 @@ export default function InteractiveGlobe() {
                     }
                   }
                 }}
-                className="w-full px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
+                className="w-full px-2 py-1.5 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-xs focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
               >
-                <option value="all">Select an agent...</option>
+                <option value="all">All Agents</option>
                 {agents.map(agent => (
                   <option key={agent.agentId} value={agent.agentId}>{agent.name}</option>
                 ))}
@@ -1599,18 +1671,8 @@ export default function InteractiveGlobe() {
             </div>
           </div>
           
-          <div className="space-y-2 h-[615px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
-            {!selectedAgent ? (
-              <div className="text-center py-20">
-                <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="text-[#8FA6C1] text-sm">Select an agent to view emails</p>
-                <p className="text-[#8FA6C1]/60 text-xs mt-2">Queue emails will appear here</p>
-              </div>
-            ) : queueEmails.length === 0 ? (
+          <div className="space-y-1.5 h-[615px] overflow-y-auto bg-[#0A1525]/40 rounded p-2">
+            {queueEmails.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1618,35 +1680,37 @@ export default function InteractiveGlobe() {
                   </svg>
                 </div>
                 <p className="text-[#8FA6C1] text-sm">No emails in {selectedQueue?.type} queue</p>
-                <p className="text-[#8FA6C1]/60 text-xs mt-2">{selectedAgent.name}</p>
+                <p className="text-[#8FA6C1]/60 text-xs mt-2">{selectedAgent?.name || 'All agents'}</p>
               </div>
             ) : (
               <>
-                {queueEmails.slice(0, 20).map((email, idx) => {
+                {queueEmails.slice(0, 50).map((email, idx) => {
                   const emailId = email._id || email.id;
+                  const isExpanded = expandedEmailId === emailId;
                   const hasAiReport = !!email.aiReport;
                   const isOrphaned = email.agentId === 'orphan';
+                  const sentDate = email.timestamp ? new Date(email.timestamp) : null;
                   
                   return (
                     <div 
                       key={emailId || idx} 
-                      className="bg-[#0A1525]/60 rounded-lg p-3 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all cursor-pointer"
-                      onClick={() => {
-                        setSelectedQueue({ agentId: email.agentId, type: selectedQueue?.type || 'queued', agentName: selectedAgent.name });
-                        setExpandedEmailId(expandedEmailId === emailId ? null : emailId);
-                      }}
+                      className="bg-[#0A1525]/60 rounded border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all overflow-hidden"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {/* Collapsed Header */}
+                      <div
+                        className="p-2 cursor-pointer hover:bg-white/5"
+                        onClick={() => setExpandedEmailId(isExpanded ? null : emailId)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               {isOrphaned && (
-                                <span className="text-xs font-semibold bg-red-500/80 text-white px-2 py-0.5 rounded">
-                                  ORPHANED
+                                <span className="text-[9px] font-semibold bg-red-500/80 text-white px-1.5 py-0.5 rounded">
+                                  ORPHAN
                                 </span>
                               )}
-                              {selectedQueue?.type === 'sent' && (
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                              {selectedQueue?.type === 'sent' && email.deliveryStatus && (
+                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
                                   email.deliveryStatus === 'delivered' ? 'bg-green-500/80 text-white' :
                                   email.deliveryStatus === 'bounced' ? 'bg-red-500/80 text-white' :
                                   'bg-yellow-500/80 text-white'
@@ -1656,47 +1720,89 @@ export default function InteractiveGlobe() {
                                    '⏳'}
                                 </span>
                               )}
-                              <div className="text-white text-xs font-medium truncate">
+                              <div className="text-white text-[11px] font-medium truncate flex-1">
                                 {email.subject || 'No Subject'}
                               </div>
-                            </div>
-                            <div className="text-[#8FA6C1] text-[10px] truncate">
-                              To: {email.to}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              {email.timestamp && (
-                                <span className="text-[9px] text-[#8FA6C1]/60">
-                                  {new Date(email.timestamp).toLocaleDateString()}
+                              {sentDate && (
+                                <span className="text-[9px] text-[#8FA6C1]/60 whitespace-nowrap">
+                                  {sentDate.toLocaleDateString()} {sentDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </span>
                               )}
                             </div>
+                            <div className="text-[#8FA6C1] text-[9px] truncate">
+                              To: {email.to} {email.agentName && `• ${email.agentName}`}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {hasAiReport && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400" title="Has AI Report" />
+                            )}
+                            <svg 
+                              className={`w-3 h-3 text-[#4FD1FF] transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
                           </div>
                         </div>
-                        
-                        {/* AI Report Icon */}
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {hasAiReport ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setViewingAiReport(email.aiReport);
-                              }}
-                              className="p-1.5 hover:bg-blue-500/20 rounded border border-blue-400/50 hover:border-blue-400 transition-colors"
-                              title="View AI Research Report"
-                            >
-                              <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </button>
-                          ) : (
-                            <div className="p-1.5 opacity-20">
-                              <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
+                      </div>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="border-t border-[#4FD1FF]/20 p-2 space-y-2 bg-[#0A1525]/60">
+                          <div>
+                            <div className="text-[9px] text-[#8FA6C1] mb-0.5">Subject</div>
+                            <div className="text-white text-[10px]">{email.subject || 'No subject'}</div>
+                          </div>
+
+                          <div>
+                            <div className="text-[9px] text-[#8FA6C1] mb-0.5">Email Body</div>
+                            <div className="bg-[#0A1525]/80 rounded p-2 text-white/90 text-[9px] whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto">
+                              {email.body || 'No content'}
+                            </div>
+                          </div>
+
+                          {hasAiReport && (
+                            <div>
+                              <div className="text-[9px] text-[#8FA6C1] mb-0.5">AI Report</div>
+                              <div className="bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 rounded p-2 text-white/90 text-[9px] max-h-[150px] overflow-y-auto">
+                                {email.aiReport}
+                              </div>
                             </div>
                           )}
+
+                          <div className="flex items-center gap-2 pt-1">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle accept
+                                console.log('Accept email:', emailId);
+                              }}
+                              className="px-2 py-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 text-[10px] font-medium rounded transition-colors"
+                            >
+                              ✓ Accept
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle reject
+                                console.log('Reject email:', emailId);
+                              }}
+                              className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-[10px] font-medium rounded transition-colors"
+                            >
+                              ✗ Reject
+                            </button>
+                            {email.agentName && (
+                              <span className="text-[9px] text-[#8FA6C1] ml-auto">
+                                {email.agentName}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
