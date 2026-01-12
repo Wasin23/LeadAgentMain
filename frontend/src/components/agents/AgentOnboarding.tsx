@@ -23,7 +23,7 @@ interface AgentOnboardingProps {
   onSkip: () => void;
 }
 
-type OnboardingStep = 'intro' | 'select-personality' | 'name-agent' | 'choose-preset' | 'name-preset' | 'gmail-setup' | 'review' | 'creating';
+type OnboardingStep = 'intro' | 'select-personality' | 'name-agent' | 'choose-preset' | 'name-preset' | 'gmail-setup' | 'crm-setup' | 'payment-setup' | 'review' | 'creating';
 
 export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingProps) {
   const router = useRouter();
@@ -35,11 +35,13 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [useGmail, setUseGmail] = useState(false);
   const [gmailConnected, setGmailConnected] = useState(false);
+  const [crmConnected, setCrmConnected] = useState(false);
+  const [paymentAdded, setPaymentAdded] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'gmail-setup', 'review', 'creating'];
+  const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'gmail-setup', 'crm-setup', 'payment-setup', 'review', 'creating'];
   const currentStepIndex = steps.indexOf(currentStep);
 
   // Load user's default Gmail preference on mount
@@ -319,6 +321,59 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                 } catch (error) {
                   console.error('[ONBOARDING] Error connecting Gmail:', error);
                 }
+              }}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
+          {currentStep === 'crm-setup' && (
+            <CRMSetupStep
+              key="crm-setup"
+              crmConnected={crmConnected}
+              onConnect={async () => {
+                try {
+                  const response = await api.post('/api/crm/link-token');
+                  const linkToken = response.data.linkToken;
+                  
+                  const width = 600;
+                  const height = 700;
+                  const left = window.screen.width / 2 - width / 2;
+                  const top = window.screen.height / 2 - height / 2;
+                  
+                  const popup = window.open(
+                    `https://app.merge.dev/link/${linkToken}`,
+                    'Merge Link',
+                    `width=${width},height=${height},left=${left},top=${top}`
+                  );
+                  
+                  const handleMessage = async (event: MessageEvent) => {
+                    if (event.data.type === 'merge-link-success') {
+                      const publicToken = event.data.publicToken;
+                      await api.post('/api/crm/exchange-token', {
+                        publicToken,
+                        integrationName: event.data.integrationName || 'crm'
+                      });
+                      setCrmConnected(true);
+                      if (popup) popup.close();
+                      window.removeEventListener('message', handleMessage);
+                    }
+                  };
+                  window.addEventListener('message', handleMessage);
+                } catch (error) {
+                  console.error('Error connecting CRM:', error);
+                }
+              }}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
+          {currentStep === 'payment-setup' && (
+            <PaymentSetupStep
+              key="payment-setup"
+              paymentAdded={paymentAdded}
+              onAddPayment={() => {
+                // Redirect to billing page to add payment method
+                window.open('/billing', '_blank');
               }}
               onNext={nextStep}
               onBack={prevStep}
@@ -1686,6 +1741,211 @@ function GmailSetupStep({
           }}
         >
           Continue
+          <ArrowRightIcon className="w-5 h-5" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// CRM Setup Step
+function CRMSetupStep({
+  crmConnected,
+  onConnect,
+  onNext,
+  onBack
+}: {
+  crmConnected: boolean;
+  onConnect: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="w-full max-w-2xl"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-4xl font-bold text-white mb-3">Connect Your CRM (Optional)</h2>
+        <p className="text-xl text-white/90">
+          Auto-sync researched leads to your CRM platform
+        </p>
+      </div>
+
+      <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
+        <div className="space-y-6">
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <svg className="w-8 h-8 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <div>
+                <h3 className="font-bold text-blue-900 text-lg mb-2">Why connect a CRM?</h3>
+                <ul className="space-y-2 text-sm text-blue-800">
+                  <li>✓ Automatically sync researched leads</li>
+                  <li>✓ Keep your CRM up-to-date effortlessly</li>
+                  <li>✓ Research summaries attached as notes</li>
+                  <li>✓ Works with Salesforce, HubSpot, Pipedrive, Zoho & more</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {!crmConnected && (
+            <div className="text-center py-4">
+              <button
+                onClick={onConnect}
+                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all"
+              >
+                Connect CRM Platform
+              </button>
+              <p className="text-sm text-neutral-500 mt-3">
+                You can also connect this later from your Profile page
+              </p>
+            </div>
+          )}
+
+          {crmConnected && (
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <CheckIcon className="w-6 h-6 text-green-600" />
+                <p className="text-sm text-green-800 font-semibold">
+                  CRM connected! Leads will auto-sync after research.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+        >
+          ← Back
+        </button>
+        <button
+          onClick={onNext}
+          className="px-10 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-xl hover:scale-105 inline-flex items-center gap-2"
+          style={{
+            backgroundColor: 'white',
+            color: 'rgb(147, 51, 234)'
+          }}
+        >
+          {crmConnected ? 'Continue' : 'Skip for now'}
+          <ArrowRightIcon className="w-5 h-5" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// Payment Setup Step
+function PaymentSetupStep({
+  paymentAdded,
+  onAddPayment,
+  onNext,
+  onBack
+}: {
+  paymentAdded: boolean;
+  onAddPayment: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="w-full max-w-2xl"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-4xl font-bold text-white mb-3">Add Payment Method (Optional)</h2>
+        <p className="text-xl text-white/90">
+          Get started with $25 in free trial credits
+        </p>
+      </div>
+
+      <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
+        <div className="space-y-6">
+          <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <svg className="w-8 h-8 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="font-bold text-green-900 text-lg mb-2">Trial Credits Included</h3>
+                <p className="text-sm text-green-800 mb-3">
+                  Start with $25 in free credits to test the platform. Only pay when you're ready to scale.
+                </p>
+                <ul className="space-y-2 text-sm text-green-800">
+                  <li>✓ No credit card required to start</li>
+                  <li>✓ Pay-as-you-go pricing after trial</li>
+                  <li>✓ Only charged for API usage (leads researched, emails sent)</li>
+                  <li>✓ Cancel anytime, no commitments</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-blue-900">Trial Credits Remaining</p>
+                <p className="text-2xl font-bold text-blue-600">$25.00</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-blue-700">No payment required yet</p>
+              </div>
+            </div>
+          </div>
+
+          {!paymentAdded && (
+            <div className="text-center py-4">
+              <button
+                onClick={onAddPayment}
+                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all"
+              >
+                Add Payment Method
+              </button>
+              <p className="text-sm text-neutral-500 mt-3">
+                You can also add this later from the Billing page
+              </p>
+            </div>
+          )}
+
+          {paymentAdded && (
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <CheckIcon className="w-6 h-6 text-green-600" />
+                <p className="text-sm text-green-800 font-semibold">
+                  Payment method added successfully!
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+        >
+          ← Back
+        </button>
+        <button
+          onClick={onNext}
+          className="px-10 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-xl hover:scale-105 inline-flex items-center gap-2"
+          style={{
+            backgroundColor: 'white',
+            color: 'rgb(147, 51, 234)'
+          }}
+        >
+          {paymentAdded ? 'Continue' : 'Skip for now'}
           <ArrowRightIcon className="w-5 h-5" />
         </button>
       </div>
