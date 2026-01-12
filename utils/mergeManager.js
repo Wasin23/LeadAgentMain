@@ -4,7 +4,7 @@ import AWSManager from './awsManager.js';
 class MergeManager {
   constructor() {
     this.apiKey = process.env.MERGE_API_KEY;
-    this.baseURL = 'https://api.merge.dev/api';
+    this.baseURL = 'https://api.merge.dev';
     this.awsManager = new AWSManager();
     
     // Create axios instance with auth
@@ -22,7 +22,8 @@ class MergeManager {
    */
   async createLinkToken(userId, endUserEmail) {
     try {
-      const response = await this.client.post('/link-token/create', {
+      const response = await this.client.post('/api/integrations/create-link-token', {
+        end_user_origin_id: userId,
         end_user_email_address: endUserEmail,
         end_user_organization_name: 'Meridian User',
         categories: ['crm'],
@@ -42,9 +43,7 @@ class MergeManager {
    */
   async exchangeToken(publicToken) {
     try {
-      const response = await this.client.post('/link-token/exchange', {
-        public_token: publicToken
-      });
+      const response = await this.client.get(`/api/integrations/account-token/${publicToken}`);
 
       console.log('✅ [MERGE] Exchanged token successfully');
       return response.data;
@@ -89,7 +88,7 @@ class MergeManager {
       }
 
       // Create contact in CRM using Merge API
-      const contactResponse = await this.client.post('/crm/v1/contacts', {
+      const contactResponse = await this.client.post('/api/crm/v1/contacts', {
         model: {
           first_name: leadData.firstName,
           last_name: leadData.lastName,
@@ -115,7 +114,7 @@ class MergeManager {
 
       // Add research notes
       if (leadData.researchSummary) {
-        await this.client.post('/crm/v1/notes', {
+        await this.client.post('/api/crm/v1/notes', {
           model: {
             content: `Research Summary:\n\n${leadData.researchSummary}`,
             contact: contact.id
