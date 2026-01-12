@@ -29,6 +29,9 @@ router.post('/link-token', authenticateToken, async (req, res) => {
     
     const linkToken = await mergeManager.createLinkToken(userId, userEmail);
     
+    console.log('[CRM] Link token response:', linkToken);
+    console.log('[CRM] Sending to frontend:', linkToken.link_token);
+    
     res.json({
       success: true,
       linkToken: linkToken.link_token

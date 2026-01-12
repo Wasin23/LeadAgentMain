@@ -22,6 +22,8 @@ class MergeManager {
    */
   async createLinkToken(userId, endUserEmail) {
     try {
+      console.log('[MERGE] Creating link token with params:', { userId, endUserEmail });
+      
       const response = await this.client.post('/api/integrations/create-link-token', {
         end_user_origin_id: userId,
         end_user_email_address: endUserEmail,
@@ -30,7 +32,8 @@ class MergeManager {
         link_expiry_mins: 30
       });
 
-      console.log('✅ [MERGE] Created link token for user:', userId);
+      console.log('✅ [MERGE] Full response:', JSON.stringify(response.data, null, 2));
+      console.log('✅ [MERGE] Link token:', response.data.link_token);
       return response.data;
     } catch (error) {
       console.error('❌ [MERGE] Error creating link token:', error.response?.data || error.message);

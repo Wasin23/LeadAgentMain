@@ -274,16 +274,16 @@ router.post('/check-domain-health', authenticateToken, async (req, res) => {
       const updateCommand = new UpdateCommand({
         TableName: tableName,
         Key: { userId },
-        UpdateExpression: 'SET #emailSettings = if_not_exists(#emailSettings, :emptyMap), #emailSettings.#domainHealth = :health, #emailSettings.#domainHealthLastChecked = :timestamp',
+        UpdateExpression: 'SET #emailSettings.#domainHealth = :healthObj',
         ExpressionAttributeNames: {
           '#emailSettings': 'emailSettings',
-          '#domainHealth': 'domainHealth',
-          '#domainHealthLastChecked': 'domainHealthLastChecked'
+          '#domainHealth': 'domainHealth'
         },
         ExpressionAttributeValues: {
-          ':health': health,
-          ':timestamp': new Date().toISOString(),
-          ':emptyMap': {}
+          ':healthObj': {
+            ...health,
+            lastChecked: new Date().toISOString()
+          }
         }
       });
       await dynamodb.send(updateCommand);
