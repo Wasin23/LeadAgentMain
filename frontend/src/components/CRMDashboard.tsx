@@ -58,8 +58,10 @@ export default function CRMDashboard() {
       const response = await api.post('/api/crm/link-token');
       const token = response.data.linkToken;
       
+      console.log('[CRM] Got link token:', token);
+      
       // Open Merge Link in new window
-      const mergeUrl = `https://app.merge.dev/link/${token}`;
+      const mergeUrl = `https://app.merge.dev/link?linkToken=${token}`;
       const width = 600;
       const height = 700;
       const left = window.screen.width / 2 - width / 2;

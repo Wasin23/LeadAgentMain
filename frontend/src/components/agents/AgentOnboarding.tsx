@@ -335,13 +335,15 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                   const response = await api.post('/api/crm/link-token');
                   const linkToken = response.data.linkToken;
                   
+                  console.log('[CRM ONBOARDING] Got link token:', linkToken);
+                  
                   const width = 600;
                   const height = 700;
                   const left = window.screen.width / 2 - width / 2;
                   const top = window.screen.height / 2 - height / 2;
                   
                   const popup = window.open(
-                    `https://app.merge.dev/link/${linkToken}`,
+                    `https://app.merge.dev/link?linkToken=${linkToken}`,
                     'Merge Link',
                     `width=${width},height=${height},left=${left},top=${top}`
                   );
