@@ -1744,6 +1744,54 @@ class AWSManager {
    */
   async getApiUsageTimeSeries(userId, days = 7, interval = 'day') {
     try {
+      // For month interval, use summary table (much faster)
+      if (interval === 'month') {
+        const summaryCommand = new QueryCommand({
+          TableName: this.tables.apiUsageSummary,
+          KeyConditionExpression: 'userId = :userId',
+          ExpressionAttributeValues: {
+            ':userId': userId
+          }
+        });
+        
+        const { Items: summaryRecords } = await this.dynamodb.send(summaryCommand);
+        
+        // Convert summary records to time series format
+        const series = summaryRecords?.map(record => {
+          const [year, month] = record.month.split('-');
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const displayDate = `${monthNames[parseInt(month) - 1]} ${year}`;
+          
+          return {
+            date: displayDate,
+            sortKey: record.month,
+            apolloCalls: record.apollo?.calls || 0,
+            openaiCalls: record.openai?.calls || 0,
+            mailgunCalls: record.mailgun?.calls || 0,
+            zerbounceCalls: record.zerobounce?.calls || 0,
+            serperCalls: record.serper?.calls || 0,
+            gmailCalls: record.gmail?.calls || 0,
+            totalCalls: (record.apollo?.calls || 0) + (record.openai?.calls || 0) + 
+                        (record.mailgun?.calls || 0) + (record.zerobounce?.calls || 0) + 
+                        (record.serper?.calls || 0) + (record.gmail?.calls || 0),
+            apollo: { cost: record.apollo?.cost || 0 },
+            openai: { cost: record.openai?.cost || 0 },
+            mailgun: { cost: record.mailgun?.cost || 0 },
+            zerobounce: { cost: record.zerobounce?.cost || 0 },
+            serper: { cost: record.serper?.cost || 0 },
+            gmail: { cost: record.gmail?.cost || 0 },
+            total: { 
+              cost: (record.apollo?.cost || 0) + (record.openai?.cost || 0) + 
+                    (record.mailgun?.cost || 0) + (record.zerobounce?.cost || 0) + 
+                    (record.serper?.cost || 0) + (record.gmail?.cost || 0)
+            }
+          };
+        }).sort((a, b) => a.sortKey.localeCompare(b.sortKey)) || [];
+        
+        return { success: true, series, days, interval };
+      }
+      
+      // For other intervals, use detailed table
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -1789,12 +1837,6 @@ class AWSManager {
             const ampm = hr >= 12 ? 'PM' : 'AM';
             const hour12 = hr % 12 || 12;
             displayDate = `${hour12} ${ampm}`;
-            break;
-          case 'month':
-            // Group by month
-            key = timestamp.toISOString().slice(0, 7); // YYYY-MM
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            displayDate = `${months[timestamp.getMonth()]} ${timestamp.getFullYear()}`;
             break;
           case 'day':
           default:
@@ -1879,12 +1921,6 @@ class AWSManager {
             const hour12 = hr % 12 || 12;
             displayDate = `${hour12} ${ampm}`;
             currentTime.setHours(currentTime.getHours() + 1);
-            break;
-          case 'month':
-            key = currentTime.toISOString().slice(0, 7);
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            displayDate = `${months[currentTime.getMonth()]} ${currentTime.getFullYear()}`;
-            currentTime.setMonth(currentTime.getMonth() + 1);
             break;
           case 'day':
           default:
@@ -2377,6 +2413,7 @@ class AWSManager {
       const stats = {
         totalPaid: 0,
         totalFailed: 0,
+        outstanding: 0,
         successCount: 0,
         failedCount: 0,
         lastSuccessfulPayment: null,
@@ -2413,12 +2450,52 @@ class AWSManager {
       // Sum up unique failed amounts
       stats.totalFailed = Array.from(failedPeriods.values()).reduce((sum, amount) => sum + amount, 0);
 
+      // Calculate outstanding balance from usage summary
+      try {
+        const summaryCommand = new QueryCommand({
+          TableName: this.tables.apiUsageSummary,
+          KeyConditionExpression: 'userId = :userId',
+          ExpressionAttributeValues: {
+            ':userId': userId
+          }
+        });
+        
+        const { Items: summaryRecords } = await this.dynamodb.send(summaryCommand);
+        
+        // Build set of paid months from successful payments
+        const paidMonths = new Set(
+          payments
+            .filter(p => p.status === 'success' && p.billingPeriod)
+            .map(p => {
+              const date = new Date(p.billingPeriod);
+              return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            })
+        );
+        
+        // Calculate outstanding (unpaid months only)
+        let outstanding = 0;
+        summaryRecords?.forEach(summary => {
+          if (paidMonths.has(summary.month)) return; // Skip paid months
+          
+          ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
+            if (summary[service]) {
+              outstanding += summary[service].cost || 0;
+            }
+          });
+        });
+        
+        stats.outstanding = outstanding;
+      } catch (summaryError) {
+        console.error('⚠️ [AWS] Error calculating outstanding balance:', summaryError);
+        stats.outstanding = 0;
+      }
+
       // Calculate next billing date (first of next month)
       const now = new Date();
       const nextBillingDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       stats.nextBillingDate = nextBillingDate.toISOString();
 
-      console.log(`✅ [AWS] Payment stats: ${stats.successCount} successful, ${stats.failedCount} failed (unique periods)`);
+      console.log(`✅ [AWS] Payment stats: ${stats.successCount} successful, ${stats.failedCount} failed (unique periods), $${stats.outstanding.toFixed(2)} outstanding`);
       return stats;
     } catch (error) {
       console.error('❌ [AWS] Error getting payment stats:', error);

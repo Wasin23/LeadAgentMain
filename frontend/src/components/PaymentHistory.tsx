@@ -17,6 +17,7 @@ interface Payment {
 interface PaymentStats {
   totalPaid: number;
   totalFailed: number;
+  outstanding: number;
   successCount: number;
   failedCount: number;
   lastSuccessfulPayment?: Payment;
@@ -207,19 +208,32 @@ export default function PaymentHistory() {
     <div className="space-y-6">
       {/* Stats Summary */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-green-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-600 font-medium">Total Paid This Month</p>
+                <p className="text-sm text-green-600 font-medium">Total Paid</p>
                 <p className="text-2xl font-bold text-green-700">{formatCurrency(stats.totalPaid)}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
             <p className="text-xs text-green-600 mt-1">
+              {stats.successCount} successful payments
+            </p>
+          </div>
+
+          <div className="bg-orange-50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-600 font-medium">Outstanding Balance</p>
+                <p className="text-2xl font-bold text-orange-700">{formatCurrency(stats.outstanding || 0)}</p>
+              </div>
+              <DollarSign className="w-8 h-8 text-orange-500" />
+            </div>
+            <p className="text-xs text-orange-600 mt-1">
               {stats.nextBillingDate
                 ? `Next charge: ${new Date(stats.nextBillingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                : `${stats.successCount} successful payments`}
+                : 'Unpaid usage'}
             </p>
           </div>
 

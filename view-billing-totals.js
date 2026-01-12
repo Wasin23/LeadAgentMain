@@ -66,7 +66,7 @@ async function viewBillingTotals() {
       let outstanding = 0;
       
       userSummaries.forEach(summary => {
-        if (paidMonths.has(summary.monthKey)) return; // Skip paid months
+        if (paidMonths.has(summary.month)) return; // Skip paid months - FIX: use 'month' not 'monthKey'
         
         ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
           if (summary[service]) {
@@ -82,7 +82,7 @@ async function viewBillingTotals() {
         totalPaid,
         outstanding,
         paymentCount: userPayments.length,
-        unpaidMonths: userSummaries.filter(s => !paidMonths.has(s.monthKey)).length
+        unpaidMonths: userSummaries.filter(s => !paidMonths.has(s.month)).length
       });
     }
     
