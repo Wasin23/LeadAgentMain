@@ -986,8 +986,6 @@ router.get('/api-usage/total', async (req, res) => {
         },
         trialCreditsUsed: 0,
         hasPaymentMethod: false,
-        currentMonthUsage: 0,
-        currentMonthPaid: 0,
         outstandingThisMonth: 0
       });
     }
@@ -1090,8 +1088,6 @@ router.get('/api-usage/total', async (req, res) => {
       ...result,
       trialCreditsUsed,
       hasPaymentMethod,
-      currentMonthUsage,
-      currentMonthPaid,
       outstandingThisMonth
     });
   } catch (error) {
