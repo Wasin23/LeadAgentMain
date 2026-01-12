@@ -21,6 +21,7 @@ import { internetSearch } from '../tools/internetSearch.js';
 import { companyIntelligence } from '../tools/companyIntelligence.js';
 import { deepResearch } from '../tools/deepResearch.js';
 import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
+import MergeManager from '../utils/mergeManager.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -59,6 +60,9 @@ class ReasoningLeadAgent extends EventEmitter {
     
     // AWS manager for settings and data storage
     this.awsManager = new AWSManager();
+    
+    // CRM manager for syncing leads
+    this.mergeManager = new MergeManager();
     
     // Zilliz lead memory for persistent learning
     this.leadMemory = new ZillizLeadMemory();
@@ -5832,6 +5836,83 @@ Target Positions:`;
           }
         });
         // Don't fail the queue addition if tracking fails
+      }
+
+      // ==========================================
+      // CRM SYNC - Automatically sync lead to CRM
+      // ==========================================
+      try {
+        const user = await this.awsManager.getUserById(this.userId);
+        
+        if (user.crmConnected && user.crmAutoSync) {
+          console.log(`🔄 [CRM SYNC] Auto-syncing lead ${leadData.email} to ${user.crmIntegration}...`);
+          
+          // Emit SSE progress for CRM sync
+          this.emit('progress', {
+            id: this.generateUniqueId(),
+            timestamp: new Date().toISOString(),
+            operation: '🔄 Syncing to CRM',
+            details: `Syncing ${leadInfo.name} to ${user.crmIntegration}...`,
+            status: 'processing',
+            data: { 
+              phase: 'crm_sync',
+              contactName: leadInfo.name,
+              crmIntegration: user.crmIntegration
+            }
+          });
+          
+          // Prepare lead data for CRM
+          const crmLeadData = {
+            firstName: leadData.first_name || leadData.name?.split(' ')[0],
+            lastName: leadData.last_name || leadData.name?.split(' ').slice(1).join(' '),
+            email: leadData.email,
+            phone: leadData.phone_number || null,
+            companyName: leadData.company,
+            researchSummary: queueData.researchData?.summary || null
+          };
+          
+          const syncResult = await this.mergeManager.syncLeadToCRM(this.userId, crmLeadData);
+          
+          if (syncResult.success) {
+            console.log(`✅ [CRM SYNC] Successfully synced to ${syncResult.crmIntegration}`);
+            
+            // Emit SSE success for CRM sync
+            this.emit('progress', {
+              id: this.generateUniqueId(),
+              timestamp: new Date().toISOString(),
+              operation: '✅ Synced to CRM',
+              details: `${leadInfo.name} synced to ${syncResult.crmIntegration}`,
+              status: 'completed',
+              data: { 
+                phase: 'crm_sync_complete',
+                crmContactId: syncResult.crmContactId,
+                crmIntegration: syncResult.crmIntegration,
+                contactName: leadInfo.name
+              }
+            });
+          } else {
+            console.warn(`⚠️ [CRM SYNC] Failed to sync: ${syncResult.error}`);
+            
+            // Emit SSE warning for CRM sync failure
+            this.emit('progress', {
+              id: this.generateUniqueId(),
+              timestamp: new Date().toISOString(),
+              operation: 'CRM Sync',
+              details: `⚠️ CRM sync failed - ${syncResult.error}`,
+              status: 'warning',
+              data: { 
+                phase: 'crm_sync_failed',
+                error: syncResult.error,
+                contactName: leadInfo.name
+              }
+            });
+          }
+        } else {
+          console.log('⏭️ [CRM SYNC] Skipped - CRM not connected or auto-sync disabled');
+        }
+      } catch (crmError) {
+        console.error('❌ [CRM SYNC] Error syncing to CRM:', crmError.message);
+        // Don't fail the email queue if CRM sync fails
       }
 
       // Emit progress event for email queue update

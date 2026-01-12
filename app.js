@@ -243,6 +243,17 @@ try {
   settingsRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import CRM routes
+let crmRoutes;
+try {
+  crmRoutes = (await import('./routes/crm.js')).default;
+  console.log('[APP] ✅ CRM routes loaded successfully');
+} catch (e) {
+  console.error('[APP] ❌ CRM routes failed to load:', e.message);
+  console.error(e.stack);
+  crmRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import System Management routes
 let systemRoutes;
 try {
@@ -500,6 +511,7 @@ app.use('/api/email-queue', emailQueueRoutes);
 app.use('/api/email-response-settings', emailResponseSettingsRoutes);
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
 app.use('/api/settings', settingsRoutes); // Settings presets management
+app.use('/api/crm', crmRoutes); // CRM integration (Merge.dev)
 app.use('/api/calendar', calendarRoutes); // Calendar OAuth and integration
 app.use('/api/gmail-pubsub', gmailPubSubRoutes); // Gmail Pub/Sub push notifications
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints

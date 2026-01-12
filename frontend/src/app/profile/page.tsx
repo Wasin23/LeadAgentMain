@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import CompanyProfileInstagram from '@/components/CompanyProfileInstagram';
+import CRMDashboard from '@/components/CRMDashboard';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import AppLayout from '@/components/AppLayout';
 
@@ -48,38 +49,7 @@ export default function ProfilePage() {
 
         {/* CRM Integration Panel - Takes 1 column */}
         <div className="lg:col-span-1 space-y-6">
-          {/* CRM Integrations */}
-          <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20 overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#4FD1FF]/20">
-              <h2 className="text-xl font-semibold text-white">CRM Integrations</h2>
-              <p className="text-xs text-[#A3B4CC] mt-1">Connected systems</p>
-            </div>
-            <div className="p-4 space-y-3">
-              {/* Salesforce */}
-              <div className="flex items-center justify-between p-3 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">SF</div>
-                  <div>
-                    <div className="text-sm font-medium text-white">Salesforce</div>
-                    <div className="text-xs text-[#8FA6C1]">Not connected</div>
-                  </div>
-                </div>
-                <button className="text-xs text-[#4FD1FF] hover:text-[#6BE3FF]">Connect</button>
-              </div>
-
-              {/* HubSpot */}
-              <div className="flex items-center justify-between p-3 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-white text-xs font-bold">HS</div>
-                  <div>
-                    <div className="text-sm font-medium text-white">HubSpot</div>
-                    <div className="text-xs text-[#8FA6C1]">Not connected</div>
-                  </div>
-                </div>
-                <button className="text-xs text-[#4FD1FF] hover:text-[#6BE3FF]">Connect</button>
-              </div>
-            </div>
-          </div>
+          <CRMDashboard />
         </div>
       </div>
     </AppLayout>

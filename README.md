@@ -948,6 +948,98 @@ const api = axios.create({
 
 ---
 
+## CRM Integration System
+
+**Purpose:** Automatically sync researched leads to connected CRM platforms using Merge.dev unified API.
+
+### Features
+- **Multi-CRM Support:** Works with 40+ CRMs (Salesforce, HubSpot, Pipedrive, Zoho, etc.)
+- **OAuth Connection:** Secure authentication via Merge Link popup
+- **Auto-Sync:** Automatically syncs leads after research completes
+- **Research Notes:** Attaches research summaries as CRM notes
+- **Real-time Status:** Shows connection status, integration name, and sync activity
+
+### How It Works
+
+**1. User connects CRM (Profile page):**
+- User clicks "Connect" on desired CRM
+- Backend generates Merge Link token (`POST /api/crm/link-token`)
+- Popup opens for OAuth authentication
+- After auth, public token exchanged for account token (`POST /api/crm/exchange-token`)
+- User record updated with CRM connection details
+
+**2. Lead research completes:**
+- Agent finishes researching lead and queuing email
+- If user has `crmConnected=true` and `crmAutoSync=true`:
+  - Lead data prepared with name, email, company, research summary
+  - Merge API called to create contact in CRM
+  - Research summary attached as CRM note
+  - SSE progress events emitted ("Syncing to CRM...", "Synced to Salesforce")
+
+**3. Manual sync (optional):**
+- API endpoint available: `POST /api/crm/sync-lead`
+- Accepts lead data and syncs to user's connected CRM
+
+### Implementation
+
+**Backend:**
+- `utils/mergeManager.js` - Merge.dev API wrapper (axios-based)
+  - `createLinkToken()` - Generate OAuth link token
+  - `exchangeToken()` - Exchange public token for account token
+  - `syncLeadToCRM()` - Sync lead with contact + notes creation
+  - `getCRMStatus()` - Get user's CRM connection status
+  - `disconnectCRM()` - Remove CRM connection
+
+- `routes/crm.js` - API endpoints
+  - `GET /api/crm/status`
+  - `POST /api/crm/link-token`
+  - `POST /api/crm/exchange-token`
+  - `POST /api/crm/sync-lead`
+  - `POST /api/crm/disconnect`
+  - `POST /api/crm/toggle-auto-sync`
+
+- `agent/reasoningLeadAgent.js` - Auto-sync integration
+  - After email queued, checks if CRM connected
+  - Calls `mergeManager.syncLeadToCRM()` with lead data
+  - Emits SSE progress events for UI feedback
+
+**Frontend:**
+- `frontend/src/components/CRMDashboard.tsx` - CRM UI component
+  - Shows connected/not connected state
+  - Displays CRM options (Salesforce, HubSpot, Pipedrive, Zoho)
+  - Connect button opens Merge Link popup
+  - Auto-sync toggle switch
+  - Disconnect button
+
+- `frontend/src/app/profile/page.tsx` - Profile page
+  - Two-column layout: Company profile (left), CRM dashboard (right)
+  - Shows CRM integration status and controls
+
+**Database:**
+- User table (`meridian-users`) includes CRM fields:
+  - `crmConnected` (Boolean) - Connection status
+  - `crmAccountToken` (String) - Merge account token
+  - `crmIntegration` (String) - Platform name (e.g., "salesforce")
+  - `crmConnectedAt` (String) - ISO timestamp
+  - `crmAutoSync` (Boolean) - Auto-sync enabled/disabled
+
+**Environment:**
+- `MERGE_API_KEY` - Merge.dev API key for authentication
+
+### User Flow
+
+1. Navigate to Profile page
+2. Click "Connect" on desired CRM (e.g., Salesforce)
+3. Merge Link popup opens for OAuth
+4. User authenticates with CRM credentials
+5. Popup closes, CRM shows as "Connected"
+6. Toggle auto-sync ON (default)
+7. Agent researches lead and queues email
+8. Lead automatically synced to CRM with research notes
+9. SSE updates show "Synced to Salesforce" in real-time
+
+---
+
 ## API Endpoints Reference
 
 ### Agent Management
@@ -967,6 +1059,18 @@ const api = axios.create({
 - `GET /api/email-queue/queued` - Get queued emails
 - `GET /api/email-queue/sent` - Get sent emails
 - `DELETE /api/email-queue/sent/clear` - Clear sent emails
+
+### CRM Integration (Merge.dev)
+- `GET /api/crm/status` - Get user's CRM connection status
+- `POST /api/crm/link-token` - Generate Merge Link token for OAuth connection
+- `POST /api/crm/exchange-token` - Exchange public token for account token (after OAuth)
+- `POST /api/crm/sync-lead` - Manually sync a specific lead to connected CRM
+- `POST /api/crm/disconnect` - Disconnect CRM integration
+- `POST /api/crm/toggle-auto-sync` - Enable/disable automatic lead syncing
+
+**Supported CRMs:** Salesforce, HubSpot, Pipedrive, Zoho CRM (40+ via Merge.dev unified API)
+
+**Auto-Sync:** When enabled, researched leads are automatically synced to the connected CRM with research notes attached as CRM notes.
 
 ## Key Dependencies
 
@@ -1008,12 +1112,14 @@ const api = axios.create({
 - `routes/billing.js` - Stripe subscription management
 - `routes/chat.js` - AI chat interface
 - `routes/leadAgent.js` - Lead outreach orchestration
+- `routes/crm.js` - CRM integration (Merge.dev API wrapper)
 
 ### Backend Utils
 - `utils/gmailManager.js` - Gmail API wrapper (send, watch, history)
 - `utils/awsManager.js` - DynamoDB operations
 - `utils/zillizEmailTracker.js` - Vector DB email tracking
 - `utils/calendarIntegrationManager.js` - Google Calendar sync
+- `utils/mergeManager.js` - Merge.dev CRM integration manager
 - `utils/gracePeriodChecker.js` - Subscription grace period logic
 - `utils/billingEmails.js` - Payment reminder emails
 - `utils/backup.js` - Automated database backups to S3
@@ -1045,7 +1151,9 @@ const api = axios.create({
 - `frontend/src/components/agents/AgentOnboarding.tsx` - Agent creation wizard
 - `frontend/src/components/agents/AgentSettingsModal.tsx` - Settings editor
 - `frontend/src/components/agents/AgentDashboard.tsx` - Agent management
+- `frontend/src/components/CRMDashboard.tsx` - CRM integration UI
 - `frontend/src/app/dashboard/page.tsx` - Main dashboard
+- `frontend/src/app/profile/page.tsx` - Profile page with CRM dashboard
 
 ### Frontend API
 - `frontend/src/lib/api.js` - API client with auth
@@ -1098,6 +1206,35 @@ gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
 4. Add routing rule: Forward replies@mg.meridianagent.xyz → webhook
 
 ### 3. DynamoDB Tables
+
+**meridian-users (User accounts):**
+```bash
+aws dynamodb create-table \
+  --table-name meridian-users \
+  --attribute-definitions AttributeName=userId,AttributeType=S \
+  --key-schema AttributeName=userId,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST
+```
+
+**User Schema:**
+- `userId` (String, Primary Key) - Unique user identifier
+- `username` (String) - Username for login
+- `email` (String) - Email address
+- `passwordHash` (String) - Hashed password
+- `createdAt` (String) - ISO timestamp
+- `lastLogin` (String) - ISO timestamp
+- `activeAgents` (Array) - List of active agent configurations
+- `trialCreditsUsed` (Number) - Trial credits consumed
+- `trialCreditsLimit` (Number) - Trial credit limit (default: 25)
+- `paymentMethodAdded` (Boolean) - Has payment method
+- `stripeCustomerId` (String) - Stripe customer ID
+- **CRM Integration Fields:**
+  - `crmConnected` (Boolean) - Whether CRM is connected
+  - `crmAccountToken` (String) - Merge.dev account token
+  - `crmIntegration` (String) - CRM platform name (salesforce, hubspot, etc.)
+  - `crmConnectedAt` (String) - ISO timestamp of connection
+  - `crmAutoSync` (Boolean) - Auto-sync leads to CRM (default: true)
+- `apiKeys` (Object) - API keys for integrations (openai, serper, apollo, mailgun, sendgrid)
 
 **UserSettings:**
 ```bash

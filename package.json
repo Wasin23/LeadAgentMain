@@ -33,7 +33,7 @@
     "@langchain/pinecone": "^0.2.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "@zilliz/milvus2-sdk-node": "^2.6.0",
-    "axios": "^1.11.0",
+    "axios": "^1.13.2",
     "cheerio": "^1.1.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
