@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMergeLink } from '@mergeapi/react-merge-link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   XMarkIcon, 
@@ -37,6 +38,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [gmailConnected, setGmailConnected] = useState(false);
   const [crmConnected, setCrmConnected] = useState(false);
   const [paymentAdded, setPaymentAdded] = useState(false);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +61,41 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
     };
     loadUserPreferences();
   }, []);
+
+  // Merge Link callback for CRM connection
+  const onMergeLinkSuccess = useCallback(async (publicToken: string) => {
+    try {
+      console.log('[CRM ONBOARDING] Received public token:', publicToken);
+      
+      await api.post('/api/crm/exchange-token', {
+        publicToken,
+        integrationName: 'crm'
+      });
+      
+      setCrmConnected(true);
+      setLinkToken(null);
+      
+    } catch (error) {
+      console.error('[CRM ONBOARDING] Error exchanging token:', error);
+    }
+  }, []);
+
+  // Initialize Merge Link hook
+  const { open: openMergeLink, isReady: isMergeLinkReady } = useMergeLink({
+    linkToken: linkToken || '',
+    onSuccess: onMergeLinkSuccess,
+    onExit: () => {
+      console.log('[CRM ONBOARDING] User closed Merge Link');
+      setLinkToken(null);
+    }
+  });
+
+  // Auto-open Merge Link when token is ready
+  useEffect(() => {
+    if (linkToken && isMergeLinkReady) {
+      openMergeLink();
+    }
+  }, [linkToken, isMergeLinkReady, openMergeLink]);
 
   const createAgent = async () => {
     setIsCreating(true);
@@ -333,36 +370,13 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               onConnect={async () => {
                 try {
                   const response = await api.post('/api/crm/link-token');
-                  const linkToken = response.data.linkToken;
+                  const token = response.data.linkToken;
                   
-                  console.log('[CRM ONBOARDING] Got link token:', linkToken);
+                  console.log('[CRM ONBOARDING] Got link token:', token);
+                  setLinkToken(token); // This will trigger Merge Link to open
                   
-                  const width = 600;
-                  const height = 700;
-                  const left = window.screen.width / 2 - width / 2;
-                  const top = window.screen.height / 2 - height / 2;
-                  
-                  const popup = window.open(
-                    `https://app.merge.dev/link?linkToken=${linkToken}`,
-                    'Merge Link',
-                    `width=${width},height=${height},left=${left},top=${top}`
-                  );
-                  
-                  const handleMessage = async (event: MessageEvent) => {
-                    if (event.data.type === 'merge-link-success') {
-                      const publicToken = event.data.publicToken;
-                      await api.post('/api/crm/exchange-token', {
-                        publicToken,
-                        integrationName: event.data.integrationName || 'crm'
-                      });
-                      setCrmConnected(true);
-                      if (popup) popup.close();
-                      window.removeEventListener('message', handleMessage);
-                    }
-                  };
-                  window.addEventListener('message', handleMessage);
                 } catch (error) {
-                  console.error('Error connecting CRM:', error);
+                  console.error('[CRM ONBOARDING] Error connecting CRM:', error);
                 }
               }}
               onNext={nextStep}

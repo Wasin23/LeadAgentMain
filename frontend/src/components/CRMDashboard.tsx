@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useMergeLink } from '@mergeapi/react-merge-link';
 import api from '@/lib/api';
 import { 
   ArrowPathIcon, 
@@ -59,41 +60,7 @@ export default function CRMDashboard() {
       const token = response.data.linkToken;
       
       console.log('[CRM] Got link token:', token);
-      
-      // Open Merge Link in new window
-      const mergeUrl = `https://app.merge.dev/link?linkToken=${token}`;
-      const width = 600;
-      const height = 700;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      
-      const popup = window.open(
-        mergeUrl,
-        'MergeLink',
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      // Listen for message from popup when auth completes
-      const handleMessage = async (event: MessageEvent) => {
-        if (event.data.type === 'merge-link-success') {
-          const publicToken = event.data.publicToken;
-          
-          // Exchange token with backend
-          await api.post('/api/crm/exchange-token', {
-            publicToken,
-            integrationName: crmName
-          });
-          
-          // Refresh status
-          await fetchCRMStatus();
-          
-          // Close popup
-          if (popup) popup.close();
-          window.removeEventListener('message', handleMessage);
-        }
-      };
-      
-      window.addEventListener('message', handleMessage);
+      setLinkToken(token);
       
     } catch (error) {
       console.error('Error connecting CRM:', error);
@@ -102,6 +69,45 @@ export default function CRMDashboard() {
       setLoading(false);
     }
   };
+
+  // Callback when user successfully connects CRM
+  const onSuccess = useCallback(async (publicToken: string) => {
+    try {
+      console.log('[CRM] Received public token:', publicToken);
+      
+      // Exchange token with backend
+      await api.post('/api/crm/exchange-token', {
+        publicToken,
+        integrationName: 'crm' // Merge will tell us which one they connected
+      });
+      
+      // Refresh status
+      await fetchCRMStatus();
+      setLinkToken(null);
+      
+    } catch (error) {
+      console.error('Error exchanging token:', error);
+      alert('Failed to complete CRM connection. Please try again.');
+    }
+  }, []);
+
+  // Initialize Merge Link hook
+  const { open, isReady } = useMergeLink({
+    linkToken: linkToken || '',
+    onSuccess,
+    onExit: () => {
+      console.log('[CRM] User closed Merge Link');
+      setLinkToken(null);
+      setLoading(false);
+    }
+  });
+
+  // Open Merge Link when we have a token
+  useEffect(() => {
+    if (linkToken && isReady) {
+      open();
+    }
+  }, [linkToken, isReady, open]);
 
   const handleDisconnect = async () => {
     if (!confirm('Are you sure you want to disconnect your CRM?')) return;
