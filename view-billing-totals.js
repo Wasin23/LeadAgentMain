@@ -61,18 +61,34 @@ async function viewBillingTotals() {
           })
       );
       
-      // Calculate outstanding (unpaid months only)
+      // Calculate outstanding (usage minus payments) per month
       const userSummaries = apiUsageSummary?.filter(s => s.userId === user.userId) || [];
       let outstanding = 0;
       
+      // Calculate by month: usage - payments for that month
       userSummaries.forEach(summary => {
-        if (paidMonths.has(summary.month)) return; // Skip paid months - FIX: use 'month' not 'monthKey'
-        
+        // Calculate total usage cost for this month
+        let monthUsage = 0;
         ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
           if (summary[service]) {
-            outstanding += summary[service].cost || 0;
+            monthUsage += summary[service].cost || 0;
           }
         });
+        
+        // Calculate total payments for this month
+        let monthPayments = 0;
+        userPayments
+          .filter(p => p.status === 'success' && p.billingPeriod)
+          .forEach(payment => {
+            const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+            if (paymentMonth === summary.month) {
+              monthPayments += payment.amount || 0;
+            }
+          });
+        
+        // Outstanding = usage - payments (can't be negative)
+        const monthOutstanding = Math.max(0, monthUsage - monthPayments);
+        outstanding += monthOutstanding;
       });
       
       totalOutstanding += outstanding;
@@ -82,7 +98,18 @@ async function viewBillingTotals() {
         totalPaid,
         outstanding,
         paymentCount: userPayments.length,
-        unpaidMonths: userSummaries.filter(s => !paidMonths.has(s.month)).length
+        unpaidMonths: userSummaries.filter(s => {
+          let monthUsage = 0;
+          ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
+            if (s[service]) monthUsage += s[service].cost || 0;
+          });
+          let monthPayments = 0;
+          userPayments.filter(p => p.status === 'success' && p.billingPeriod).forEach(payment => {
+            const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+            if (paymentMonth === s.month) monthPayments += payment.amount || 0;
+          });
+          return monthUsage > monthPayments;
+        }).length
       });
     }
     

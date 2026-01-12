@@ -190,36 +190,37 @@ router.get('/dashboard', isAdmin, async (req, res) => {
         .sort((a, b) => b.localeCompare(a))
         .map(key => monthlyBreakdown[key]);
       
-      // Calculate outstanding amount from UNPAID months only
+      // Calculate outstanding amount (usage minus payments) per month
       const userSummaries = apiUsageSummary?.filter(s => s.userId === user.userId) || [];
-      
-      // Get list of paid months from successful payments
-      const paidMonths = new Set(
-        userPayments
-          .filter(p => p.status === 'success' && p.billingPeriod)
-          .map(p => {
-            // Extract YYYY-MM from billingPeriod (ISO date string)
-            const date = new Date(p.billingPeriod);
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          })
-      );
       
       let outstandingAmount = 0;
       let apiCallsThisMonth = 0;
       
-      // Sum ONLY unpaid months
+      // Calculate outstanding by month: usage - payments for that month
       userSummaries.forEach(summary => {
-        // Skip this month if it's already been paid (use 'month' field, not 'monthKey')
-        if (paidMonths.has(summary.month)) {
-          return;
-        }
-        
+        // Calculate total usage cost for this month
+        let monthUsage = 0;
         ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
           if (summary[service]) {
-            outstandingAmount += summary[service].cost || 0;
+            monthUsage += summary[service].cost || 0;
             apiCallsThisMonth += summary[service].calls || 0;
           }
         });
+        
+        // Calculate total payments for this month
+        let monthPayments = 0;
+        userPayments
+          .filter(p => p.status === 'success' && p.billingPeriod)
+          .forEach(payment => {
+            const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+            if (paymentMonth === summary.month) {
+              monthPayments += payment.amount || 0;
+            }
+          });
+        
+        // Outstanding = usage - payments (can't be negative)
+        const monthOutstanding = Math.max(0, monthUsage - monthPayments);
+        outstandingAmount += monthOutstanding;
       });
       
       // Check multiple fields for payment method (Stripe can store it in different places)

@@ -2462,26 +2462,31 @@ class AWSManager {
         
         const { Items: summaryRecords } = await this.dynamodb.send(summaryCommand);
         
-        // Build set of paid months from successful payments
-        const paidMonths = new Set(
-          payments
-            .filter(p => p.status === 'success' && p.billingPeriod)
-            .map(p => {
-              const date = new Date(p.billingPeriod);
-              return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            })
-        );
-        
-        // Calculate outstanding (unpaid months only)
+        // Calculate outstanding (usage minus payments) per month
         let outstanding = 0;
         summaryRecords?.forEach(summary => {
-          if (paidMonths.has(summary.month)) return; // Skip paid months
-          
+          // Calculate total usage cost for this month
+          let monthUsage = 0;
           ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
             if (summary[service]) {
-              outstanding += summary[service].cost || 0;
+              monthUsage += summary[service].cost || 0;
             }
           });
+          
+          // Calculate total payments for this month
+          let monthPayments = 0;
+          payments
+            .filter(p => p.status === 'success' && p.billingPeriod)
+            .forEach(payment => {
+              const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+              if (paymentMonth === summary.month) {
+                monthPayments += payment.amount || 0;
+              }
+            });
+          
+          // Outstanding = usage - payments (can't be negative)
+          const monthOutstanding = Math.max(0, monthUsage - monthPayments);
+          outstanding += monthOutstanding;
         });
         
         stats.outstanding = outstanding;

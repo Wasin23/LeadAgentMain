@@ -1021,11 +1021,8 @@ router.get('/api-usage/total', async (req, res) => {
     const trialCreditsUsed = user?.trialCreditsUsed || 0;
     const hasPaymentMethod = user?.paymentMethodAdded || false;
     
-    // Calculate outstanding (usage minus payments) for current month only
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-    
-    let currentMonthUsage = 0;
-    let currentMonthPaid = 0;
+    // Calculate outstanding (usage minus payments) for ALL months
+    let outstandingThisMonth = 0;
     
     try {
       // Check if tables are initialized
@@ -1034,32 +1031,19 @@ router.get('/api-usage/total', async (req, res) => {
         throw new Error('AWS tables not initialized');
       }
       
-      // Get current month's usage from summary
+      // Get ALL usage summaries
       const summaryQuery = new QueryCommand({
         TableName: userAgent.awsManager.tables.apiUsageSummary,
         KeyConditionExpression: 'userId = :userId',
-        FilterExpression: '#month = :month',
-        ExpressionAttributeNames: {
-          '#month': 'month'
-        },
         ExpressionAttributeValues: {
-          ':userId': userId,
-          ':month': currentMonth
+          ':userId': userId
         }
       });
       
       const summaryResult = await userAgent.awsManager.dynamodb.send(summaryQuery);
-      const currentMonthSummary = summaryResult.Items?.[0];
+      const summaries = summaryResult.Items || [];
       
-      if (currentMonthSummary) {
-        ['apollo', 'openai', 'mailgun', 'zerobounce', 'serper', 'gmail'].forEach(service => {
-          if (currentMonthSummary[service]) {
-            currentMonthUsage += currentMonthSummary[service].cost || 0;
-          }
-        });
-      }
-      
-      // Get payments for current month
+      // Get ALL payments
       const paymentQuery = new QueryCommand({
         TableName: userAgent.awsManager.tables.paymentHistory,
         KeyConditionExpression: 'userId = :userId',
@@ -1071,21 +1055,35 @@ router.get('/api-usage/total', async (req, res) => {
       const paymentResult = await userAgent.awsManager.dynamodb.send(paymentQuery);
       const payments = paymentResult.Items || [];
       
-      // Sum successful payments for current month
-      payments.forEach(payment => {
-        if (payment.status === 'success' && payment.billingPeriod) {
-          const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
-          if (paymentMonth === currentMonth) {
-            currentMonthPaid += payment.amount || 0;
+      // Calculate outstanding by month: usage - payments for that month
+      summaries.forEach(summary => {
+        // Calculate total usage cost for this month
+        let monthUsage = 0;
+        ['apollo', 'openai', 'mailgun', 'zerobounce', 'serper', 'gmail'].forEach(service => {
+          if (summary[service]) {
+            monthUsage += summary[service].cost || 0;
           }
-        }
+        });
+        
+        // Calculate total payments for this month
+        let monthPayments = 0;
+        payments
+          .filter(p => p.status === 'success' && p.billingPeriod)
+          .forEach(payment => {
+            const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+            if (paymentMonth === summary.month) {
+              monthPayments += payment.amount || 0;
+            }
+          });
+        
+        // Outstanding = usage - payments (can't be negative)
+        const monthOutstanding = Math.max(0, monthUsage - monthPayments);
+        outstandingThisMonth += monthOutstanding;
       });
     } catch (monthError) {
-      console.error('[LEAD AGENT API] Error calculating monthly usage:', monthError);
-      // Continue with 0 values
+      console.error('[LEAD AGENT API] Error calculating outstanding:', monthError);
+      // Continue with 0 value
     }
-    
-    const outstandingThisMonth = Math.max(0, currentMonthUsage - currentMonthPaid);
     
     res.json({
       success: true,
