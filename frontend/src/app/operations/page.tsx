@@ -307,6 +307,12 @@ export default function InteractiveGlobe() {
   const [outreachPage, setOutreachPage] = useState(0);
   const OUTREACH_PAGE_SIZE = 20;
   
+  // Follow-up modal state
+  const [followUpModal, setFollowUpModal] = useState<any>(null);
+  const [editingFollowUp, setEditingFollowUp] = useState(false);
+  const [editFollowUpDate, setEditFollowUpDate] = useState('');
+  const [editTemplateId, setEditTemplateId] = useState(0);
+  
   // Email location tracking with status (queued, sent, meeting)
   const [emailDots, setEmailDots] = useState<Array<{
     id: string;
@@ -1633,6 +1639,21 @@ export default function InteractiveGlobe() {
                                    '⏳'}
                                 </span>
                               )}
+                              {selectedQueue?.type === 'sent' && email.followUpScheduled && email.followUpDate && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFollowUpModal(email);
+                                    setEditFollowUpDate(new Date(email.followUpDate).toISOString().slice(0, 16));
+                                    setEditTemplateId(email.assignedTemplateId || 0);
+                                    setEditingFollowUp(false);
+                                  }}
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-500/80 text-white hover:bg-purple-600/90 transition-colors cursor-pointer"
+                                  title={`Follow-up: ${new Date(email.followUpDate).toLocaleString()}`}
+                                >
+                                  📅 {new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </button>
+                              )}
                               <div className="text-white text-[11px] font-medium truncate flex-1">
                                 {email.subject || 'No Subject'}
                               </div>
@@ -2664,6 +2685,145 @@ export default function InteractiveGlobe() {
               </div>
             </div>
           </div>
+          </div>
+        </>
+      )}
+
+      {/* Follow-up Modal */}
+      {followUpModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-[199]" onClick={() => setFollowUpModal(null)} />
+          
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 pointer-events-none">
+            <div 
+              className="bg-gradient-to-br from-[#0a1628] via-[#0F1E35] to-[#1a2f4a] rounded-2xl shadow-2xl border border-[#4FD1FF]/30 w-full max-w-2xl overflow-hidden flex flex-col pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-[#4FD1FF]/20">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Follow-up Details</h3>
+                  <p className="text-[#8FA6C1] text-sm mt-1">To: {followUpModal.to}</p>
+                </div>
+                <button
+                  onClick={() => setFollowUpModal(null)}
+                  className="text-[#8FA6C1] hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Follow-up Date */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Scheduled Follow-up Date
+                  </label>
+                  {editingFollowUp ? (
+                    <input
+                      type="datetime-local"
+                      value={editFollowUpDate}
+                      onChange={(e) => setEditFollowUpDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm focus:border-[#4FD1FF]/50 focus:outline-none"
+                    />
+                  ) : (
+                    <div className="px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm">
+                      {followUpModal.followUpDate 
+                        ? new Date(followUpModal.followUpDate).toLocaleString()
+                        : 'Not scheduled'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Template */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Assigned Template
+                  </label>
+                  {editingFollowUp && agents.length > 0 ? (
+                    <select
+                      value={editTemplateId}
+                      onChange={(e) => setEditTemplateId(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm focus:border-[#4FD1FF]/50 focus:outline-none"
+                    >
+                      {agents.find((a: any) => a.agentId === followUpModal.agentId)?.settings?.followUpTemplates?.templates?.map((template: any, idx: number) => (
+                        <option key={idx} value={idx}>{template.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded">
+                      <div className="text-white text-sm font-medium mb-2">
+                        {followUpModal.assignedTemplate?.name || 'No template assigned'}
+                      </div>
+                      {followUpModal.assignedTemplate && (
+                        <>
+                          <div className="text-[#8FA6C1] text-xs mb-1">
+                            Subject: {followUpModal.assignedTemplate.subject}
+                          </div>
+                          <div className="text-[#8FA6C1] text-xs whitespace-pre-wrap">
+                            {followUpModal.assignedTemplate.body}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between p-6 border-t border-[#4FD1FF]/20">
+                <div className="text-xs text-[#8FA6C1]">
+                  Scheduled: {followUpModal.followUpScheduledAt 
+                    ? new Date(followUpModal.followUpScheduledAt).toLocaleDateString()
+                    : 'N/A'}
+                </div>
+                <div className="flex gap-3">
+                  {editingFollowUp ? (
+                    <>
+                      <button
+                        onClick={() => setEditingFollowUp(false)}
+                        className="px-4 py-2 text-sm text-[#8FA6C1] hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await api.put(`/api/email-queue/${followUpModal.id}/followup`, {
+                              agentId: followUpModal.agentId,
+                              templateId: editTemplateId,
+                              followUpDate: editFollowUpDate ? new Date(editFollowUpDate).toISOString() : null
+                            });
+                            showToast('Follow-up updated', 'success');
+                            setFollowUpModal(null);
+                            setEditingFollowUp(false);
+                            if (selectedQueue && selectedAgent) {
+                              fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
+                            }
+                          } catch (error) {
+                            console.error('Error updating follow-up:', error);
+                            showToast('Failed to update follow-up', 'error');
+                          }
+                        }}
+                        className="px-4 py-2 bg-[#4FD1FF] hover:bg-[#3FB8E8] text-black font-medium rounded text-sm transition-colors"
+                      >
+                        Save Changes
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setEditingFollowUp(true)}
+                      className="px-4 py-2 bg-[#4FD1FF] hover:bg-[#3FB8E8] text-black font-medium rounded text-sm transition-colors"
+                    >
+                      Edit Follow-up
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </>
       )}
