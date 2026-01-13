@@ -18,7 +18,7 @@ export default function Dashboard() {
     checkCompanyProfile();
   }, []);
 
-  // Redirect to dashboard if onboarding is complete
+  // Redirect to home if onboarding is complete
   useEffect(() => {
     if (!isCheckingProfile && hasCompanyProfile && hasCalendarSetup === true && !showAgentOnboarding) {
       const timer = setTimeout(() => {
@@ -86,7 +86,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 dark:border-neutral-600 border-t-blue-600 dark:border-t-blue-400 mx-auto mb-4"></div>
-            <p className="text-neutral-600 dark:text-neutral-400">Redirecting to dashboard...</p>
+            <p className="text-neutral-600 dark:text-neutral-400">Redirecting to operations...</p>
           </div>
         </div>
       )}

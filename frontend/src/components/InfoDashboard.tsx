@@ -254,7 +254,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
 
   return (
     <>
-      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/10 flex flex-col overflow-y-auto sm:pt-4">
+      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20.75%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/10 flex flex-col overflow-y-auto sm:pt-4">
       {/* Header */}
       <div className="px-6 py-5 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">

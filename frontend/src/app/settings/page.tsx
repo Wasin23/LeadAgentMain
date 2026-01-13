@@ -24,11 +24,14 @@ import RateLimitSettings from '@/components/agents/RateLimitSettings';
 import SettingsContent from '@/components/SettingsContent';
 import CompanyProfileModal from '@/components/CompanyProfileModal';
 import KeywordMemoryPanel from '@/components/agents/KeywordMemoryPanel';
+import CRMDashboard from '@/components/CRMDashboard';
+import CompanyProfileInstagram from '@/components/CompanyProfileInstagram';
 import AppLayout from '@/components/AppLayout';
 
 type SettingSection = 
   | 'profile' 
   | 'company' 
+  | 'crm'
   | 'payment-methods' 
   | 'budget' 
   | 'payment-history'
@@ -64,7 +67,8 @@ export default function SettingsPage() {
       icon: UserCircleIcon,
       sections: [
         { id: 'profile', label: 'Profile', icon: UserCircleIcon },
-        { id: 'company', label: 'Company Profile', icon: BuildingOfficeIcon }
+        { id: 'company', label: 'Company Profile', icon: BuildingOfficeIcon },
+        { id: 'crm', label: 'CRM Integrations', icon: LinkIcon }
       ]
     },
     {
@@ -154,18 +158,17 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Company Profile</h1>
           <p className="text-white/70 mb-8">Manage your company information for email responses</p>
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-8">
-            <p className="text-white/80 mb-6">
-              Your company profile is used to personalize email responses and provide context to your AI agents.
-              Click the button below to edit your company information.
-            </p>
-            <button
-              onClick={() => setShowCompanyProfileModal(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Edit Company Profile
-            </button>
-          </div>
+          <CompanyProfileInstagram />
+        </div>
+      );
+    }
+
+    if (selectedSection === 'crm') {
+      return (
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">CRM Integrations</h1>
+          <p className="text-white/70 mb-8">Connect and manage your CRM systems</p>
+          <CRMDashboard />
         </div>
       );
     }

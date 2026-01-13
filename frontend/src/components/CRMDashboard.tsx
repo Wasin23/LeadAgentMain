@@ -27,6 +27,7 @@ export default function CRMDashboard() {
   const [loading, setLoading] = useState(true);
   const [syncing, setIsSyncing] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [justConnected, setJustConnected] = useState(false);
 
   // Supported CRMs with their logos/colors
   const crmOptions = [
@@ -84,6 +85,10 @@ export default function CRMDashboard() {
       // Refresh status
       await fetchCRMStatus();
       setLinkToken(null);
+      setJustConnected(true);
+      
+      // Clear success animation after 3 seconds
+      setTimeout(() => setJustConnected(false), 3000);
       
     } catch (error) {
       console.error('Error exchanging token:', error);

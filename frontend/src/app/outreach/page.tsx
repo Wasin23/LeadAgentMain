@@ -48,6 +48,147 @@ export default function OutreachPage() {
           <div className="mb-3">
             <h1 className="text-2xl font-bold text-white">Outreach</h1>
           </div>
+
+          {/* Stats Cards - Emails Sent & Responses */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* Emails Sent */}
+            <div className="p-4 rounded-lg border-2 border-[#4FD1FF]/40 bg-[#1B2F52]/50">
+              <div className="flex items-center gap-3">
+                <div className="relative w-14 h-14 flex-shrink-0 rounded-full bg-[#243D63]">
+                  <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="50%" cy="50%" r="24" fill="none" stroke="rgba(79, 209, 255, 0.2)" strokeWidth="3" />
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="24"
+                      fill="none"
+                      stroke={
+                        (() => {
+                          let level = 0;
+                          let count = stats.emailsSent;
+                          let milestone = 25;
+                          while (count >= milestone) {
+                            count -= milestone;
+                            level++;
+                            milestone = 25 + (level * 10);
+                          }
+                          const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                          return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                        })()
+                      }
+                      strokeWidth="4"
+                      strokeDasharray={`${2 * Math.PI * 24}`}
+                      strokeDashoffset={
+                        (() => {
+                          let level = 0;
+                          let count = stats.emailsSent;
+                          let milestone = 25;
+                          while (count >= milestone) {
+                            count -= milestone;
+                            level++;
+                            milestone = 25 + (level * 10);
+                          }
+                          const currentMilestone = 25 + (level * 10);
+                          const progress = count / currentMilestone;
+                          return 2 * Math.PI * 24 * (1 - progress);
+                        })()
+                      }
+                      style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-white text-lg font-bold">{stats.emailsSent}</div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-white text-sm font-semibold mb-0.5">Emails Sent</div>
+                  <div className="text-[#8FA6C1] text-xs">
+                    Milestone: {(() => {
+                      let level = 0;
+                      let count = stats.emailsSent;
+                      let milestone = 25;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 25 + (level * 10);
+                      }
+                      const currentMilestone = 25 + (level * 10);
+                      return `${count}/${currentMilestone}`;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Responses */}
+            <div className="p-4 rounded-lg border-2 border-[#4FD1FF]/40 bg-[#1B2F52]/50">
+              <div className="flex items-center gap-3">
+                <div className="relative w-14 h-14 flex-shrink-0">
+                  <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="50%" cy="50%" r="24" fill="none" stroke="rgba(79, 209, 255, 0.2)" strokeWidth="3" />
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="24"
+                      fill="none"
+                      stroke={
+                        (() => {
+                          let level = 0;
+                          let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                          let milestone = 5;
+                          while (count >= milestone) {
+                            count -= milestone;
+                            level++;
+                            milestone = 5 + (level * 5);
+                          }
+                          const colors = ['#3d3d3d','#505050','#636363','#767676','#898989','#9c9c9c','#afafaf','#c2c2c2','#d5d5d5','#e8e8e8','#00ff7f','#00f566','#00eb4d','#00e134','#00d71b','#00cd02','#1ac300','#33b900','#4daf00','#66a500','#006aff','#0077ff','#0084ff','#0091ff','#009eff','#00abff','#00b8ff','#00c5ff','#00d2ff','#00dfff','#8b00ff','#9500ff','#9f00ff','#a900ff','#b300ff','#bd00ff','#c700ff','#d100ff','#db00ff','#e500ff','#ffaa00','#ffb700','#ffc400','#ffd100','#ffde00','#ffeb00','#fff800','#ffff05','#ffff33','#ffff61','#ff0000','#ff1a00','#ff3300','#ff4d00','#ff6600','#ff8000','#ff9900','#ffb300','#ffcc00','#ffe600','#000000'];
+                          return level > 60 ? '#FFFFFF' : colors[Math.min(level, 60)];
+                        })()
+                      }
+                      strokeWidth="4"
+                      strokeDasharray={`${2 * Math.PI * 24}`}
+                      strokeDashoffset={
+                        (() => {
+                          let level = 0;
+                          let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                          let milestone = 5;
+                          while (count >= milestone) {
+                            count -= milestone;
+                            level++;
+                            milestone = 5 + (level * 5);
+                          }
+                          const currentMilestone = 5 + (level * 5);
+                          const progress = count / currentMilestone;
+                          return 2 * Math.PI * 24 * (1 - progress);
+                        })()
+                      }
+                      style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-white text-lg font-bold">{emailActivity.filter(e => e.analyticsStatus?.replied).length}</div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-white text-sm font-semibold mb-0.5">Responses</div>
+                  <div className="text-[#8FA6C1] text-xs">
+                    Milestone: {(() => {
+                      let level = 0;
+                      let count = emailActivity.filter(e => e.analyticsStatus?.replied).length;
+                      let milestone = 5;
+                      while (count >= milestone) {
+                        count -= milestone;
+                        level++;
+                        milestone = 5 + (level * 5);
+                      }
+                      const currentMilestone = 5 + (level * 5);
+                      return `${count}/${currentMilestone}`;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Outreach Feed */}
           <div className="rounded-lg p-3 w-full flex-1 flex flex-col min-h-0">
