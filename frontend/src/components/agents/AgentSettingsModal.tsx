@@ -1329,6 +1329,21 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                         />
                         <p className="text-xs text-gray-400 mt-1">Days to wait before sending follow-up email</p>
                       </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Max Follow-ups
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="3"
+                          value={settings.emailBuilder?.maxRebumps || 1}
+                          onChange={(e) => updateField('emailBuilder', 'maxRebumps', parseInt(e.target.value) || 1)}
+                          className="w-full px-3 py-2 border border-[#1B2F52] bg-[#0F1E35] text-white rounded-lg focus:ring-2 focus:ring-[#4FD1FF] focus:border-transparent"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Maximum number of follow-ups per lead</p>
+                      </div>
                     </div>
 
                     <div className="pt-2">
@@ -1352,6 +1367,34 @@ export default function AgentSettingsModal({ isOpen, onClose, agentId, compact =
                           <span
                             className={`inline-block h-6 w-6 transform rounded-full bg-[#0F1E35] shadow-lg transition-transform duration-200 ${
                               (settings.emailBuilder?.enableAutoResponse !== false) ? 'translate-x-7' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Auto-Rebump Toggle */}
+                    <div className="pt-4 border-t border-[#1B2F52]">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-medium text-gray-300">
+                            Enable Auto Follow-ups
+                          </label>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Automatically send follow-up emails to non-responders after {settings.emailBuilder?.rebumpIntervalDays || 7} days
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateField('emailBuilder', 'enableRebump', !(settings.emailBuilder?.enableRebump !== false))}
+                          className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
+                          style={{
+                            backgroundColor: (settings.emailBuilder?.enableRebump !== false) ? '#4ade80' : '#52525b'
+                          }}
+                        >
+                          <span
+                            className={`inline-block h-6 w-6 transform rounded-full bg-[#0F1E35] shadow-lg transition-transform duration-200 ${
+                              (settings.emailBuilder?.enableRebump !== false) ? 'translate-x-7' : 'translate-x-1'
                             }`}
                           />
                         </button>

@@ -621,6 +621,15 @@ const server = app.listen(PORT, async () => {
   // Start monthly billing cron job (runs 1st of month at 2 AM)
   startBillingCron();
   
+  // Start rebump checker (runs every 6 hours)
+  try {
+    const { startRebumpChecker } = await import('./utils/rebumpChecker.js');
+    startRebumpChecker();
+    console.log('✅ [REBUMP] Follow-up email checker started');
+  } catch (error) {
+    console.error('⚠️ [REBUMP] Failed to start rebump checker:', error.message);
+  }
+  
   // Initialize Gmail watches for all users on startup
   try {
     const { initializeGmailWatches } = await import('./utils/gmailWatchInitializer.js');

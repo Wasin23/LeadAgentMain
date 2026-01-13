@@ -1338,14 +1338,18 @@ export default function InteractiveGlobe() {
 
   return (
     <AppLayout>
+      <div className="mb-3">
+        <h1 className="text-2xl font-bold text-white">Operations</h1>
+      </div>
+
       {/* Top Tabs */}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex gap-3 bg-[#0F1E35]/60 backdrop-blur-md rounded-xl p-1.5 border border-[#4FD1FF]/20">
+      <div className="flex items-center gap-2 mb-4 border-b border-[#4FD1FF]/20 pb-2">
         <button
           onClick={() => setActiveTab('director')}
-          className={`px-5 py-2.5 rounded-lg font-semibold transition-all ${
+          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
             activeTab === 'director'
-              ? 'bg-[#4FD1FF] text-[#0F1E35] shadow-lg shadow-[#4FD1FF]/20'
-              : 'text-[#8FA6C1] hover:text-white hover:bg-[#1B2F52]/60'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
           Agent Director
@@ -1355,10 +1359,10 @@ export default function InteractiveGlobe() {
             setActiveTab('queue');
             handleGlobeToggle(false);
           }}
-          className={`px-5 py-2.5 rounded-lg font-semibold transition-all ${
+          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
             activeTab === 'queue'
-              ? 'bg-[#4FD1FF] text-[#0F1E35] shadow-lg shadow-[#4FD1FF]/20'
-              : 'text-[#8FA6C1] hover:text-white hover:bg-[#1B2F52]/60'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
           Email Queue
@@ -1368,10 +1372,10 @@ export default function InteractiveGlobe() {
             setActiveTab('globe');
             handleGlobeToggle(true);
           }}
-          className={`px-5 py-2.5 rounded-lg font-semibold transition-all ${
+          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
             activeTab === 'globe'
-              ? 'bg-[#4FD1FF] text-[#0F1E35] shadow-lg shadow-[#4FD1FF]/20'
-              : 'text-[#8FA6C1] hover:text-white hover:bg-[#1B2F52]/60'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
           Overview
@@ -1889,12 +1893,6 @@ export default function InteractiveGlobe() {
       )}{/* End Email Queue Section */}
 
       {/* Tab Content */}
-      {activeTab === 'director' && (
-        <div className="pt-24">
-          <AgentDirector />
-        </div>
-      )}
-
       {activeTab === 'queue' && (
         <div className="pt-32">
           {/* Email Queue tab content */}
@@ -1902,11 +1900,11 @@ export default function InteractiveGlobe() {
       )}
 
       {activeTab === 'globe' && (
-      <div className="fixed inset-0 lg:right-[20.75%]">
+      <div className="fixed inset-0 lg:right-[20.75%] pointer-events-none">
 
       {isMounted && (
         <div 
-          className={`hidden sm:flex fixed left-[265px] lg:right-[calc(20%+10px)] top-[200px] justify-center transition-all duration-700 ease-out ${
+          className={`hidden sm:flex fixed left-[265px] lg:right-[calc(20%+10px)] top-[200px] justify-center transition-all duration-700 ease-out pointer-events-auto ${
             showGlobe || isAnimatingOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
