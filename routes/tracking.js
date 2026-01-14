@@ -9,6 +9,168 @@ const awsManager = new AWSManager();
 const awsQueue = new AWSEmailQueue();
 
 // Tracking pixel endpoint (1x1 transparent PNG)
+// Both /pixel/ and /open/ routes for compatibility
+router.get('/open/:trackingId', async (req, res) => {
+  const { trackingId } = req.params;
+  const userAgent = req.get('User-Agent') || '';
+  const ip = req.ip || req.connection.remoteAddress || '';
+  
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('🔔 [TRACKING PIXEL] /track/open/ endpoint hit!');
+  console.log('🔑 [TRACKING PIXEL] Tracking ID:', trackingId);
+  console.log('🌐 [TRACKING PIXEL] User Agent:', userAgent);
+  console.log('📍 [TRACKING PIXEL] IP:', ip);
+  console.log('═══════════════════════════════════════════════════════════════');
+  
+  // NEW: Log to DynamoDB for AWS-based tracking
+  try {
+    const userId = trackingId.split('_')[0].replace('tracking-', ''); // Extract userId
+    const agentId = trackingId.split('_')[1]; // Extract agentId
+    
+    console.log('👤 [TRACKING] Extracted userId:', userId);
+    console.log('🤖 [TRACKING] Extracted agentId:', agentId);
+    
+    // Check if this is the first hit (proxy hit) - if so, skip recording
+    let existingEvents = [];
+    try {
+      existingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
+      console.log('📊 [TRACKING] Found', existingEvents.length, 'existing tracking events');
+    } catch (queryError) {
+      console.error('⚠️ [TRACKING PIXEL] Error querying existing events:', queryError.message);
+    }
+    
+    const hasBeenOpenedBefore = existingEvents.some(e => e.eventType === 'open');
+    const hasProxyHit = existingEvents.some(e => e.eventType === 'proxy');
+    
+    console.log('📧 [TRACKING] Has been opened before:', hasBeenOpenedBefore);
+    console.log('🔍 [TRACKING] Has proxy hit:', hasProxyHit);
+    
+    // Get email sent time to determine if this is a proxy hit (immediate) or real open (delayed)
+    let emailSentTime = null;
+    console.log('⏰ [INBOX DETECTION] Fetching email sent time...');
+    try {
+      let sentEmails;
+      if (!agentId || agentId === 'null') {
+        console.log('📧 [INBOX DETECTION] Fetching all user emails (orphaned)...');
+        sentEmails = await awsQueue.getAllSentEmailsForUser(userId);
+      } else {
+        console.log('📧 [INBOX DETECTION] Fetching emails for agent:', agentId);
+        sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      }
+      
+      console.log(`📊 [INBOX DETECTION] Found ${sentEmails.length} sent emails`);
+      const emailData = sentEmails.find(e => e.trackingId === trackingId);
+      if (emailData && emailData.sentAt) {
+        emailSentTime = new Date(emailData.sentAt).getTime();
+        console.log('✅ [INBOX DETECTION] Email sent at:', new Date(emailSentTime).toISOString());
+      } else {
+        console.warn('⚠️ [INBOX DETECTION] No email found with trackingId:', trackingId);
+      }
+    } catch (err) {
+      console.error('❌ [INBOX DETECTION] Error:', err.message);
+    }
+    
+    const now = Date.now();
+    const timeSinceSent = emailSentTime ? (now - emailSentTime) / 1000 : null;
+    const isProxyHit = timeSinceSent !== null && timeSinceSent < 10;
+    
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('⏱️  [INBOX DETECTION] TIMING ANALYSIS');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('⏳ Time since sent:', timeSinceSent !== null ? `${timeSinceSent.toFixed(2)}s` : 'UNKNOWN');
+    console.log('🎯 Classification:', isProxyHit ? '🟢 PRIMARY INBOX (<10s)' : '📧 PROMOTIONAL/MANUAL (>10s)');
+    console.log('═══════════════════════════════════════════════════════════════');
+    
+    if (!hasProxyHit && !hasBeenOpenedBefore) {
+      if (isProxyHit) {
+        console.log(`🟢 [TRACKING] PRIMARY INBOX - Recording proxy hit`);
+        await awsManager.logEmailTracking(userId, agentId, trackingId, {
+          eventType: 'proxy',
+          ipAddress: ip,
+          userAgent: userAgent,
+          timestamp: new Date().toISOString(),
+          timeSinceSent: timeSinceSent
+        });
+        
+        try {
+          const { broadcastAIResponse } = await import('./outreach.js');
+          broadcastAIResponse(userId, {
+            type: 'email_primary_inbox',
+            trackingId,
+            agentId,
+            timestamp: new Date().toISOString()
+          });
+          console.log('📡 [TRACKING] Broadcasted primary inbox event via SSE');
+        } catch (broadcastErr) {
+          console.error('❌ [TRACKING] Error broadcasting:', broadcastErr.message);
+        }
+      } else {
+        console.log(`📧 [TRACKING] REAL OPEN - Recording open event`);
+        await awsManager.logEmailTracking(userId, agentId, trackingId, {
+          eventType: 'open',
+          ipAddress: ip,
+          userAgent: userAgent,
+          timestamp: new Date().toISOString(),
+          timeSinceSent: timeSinceSent
+        });
+        
+        try {
+          const { broadcastAIResponse } = await import('./outreach.js');
+          broadcastAIResponse(userId, {
+            type: 'email_opened',
+            trackingId,
+            agentId,
+            timestamp: new Date().toISOString()
+          });
+          console.log('📡 [TRACKING] Broadcasted email opened event via SSE');
+        } catch (broadcastErr) {
+          console.error('❌ [TRACKING] Error broadcasting:', broadcastErr.message);
+        }
+      }
+    } else if (hasProxyHit && !hasBeenOpenedBefore) {
+      console.log(`📧 [TRACKING] Second hit after proxy - REAL USER OPEN`);
+      await awsManager.logEmailTracking(userId, agentId, trackingId, {
+        eventType: 'open',
+        ipAddress: ip,
+        userAgent: userAgent,
+        timestamp: new Date().toISOString(),
+        timeSinceSent: timeSinceSent
+      });
+      
+      try {
+        const { broadcastAIResponse } = await import('./outreach.js');
+        broadcastAIResponse(userId, {
+          type: 'email_opened',
+          trackingId,
+          agentId,
+          timestamp: new Date().toISOString()
+        });
+        console.log('📡 [TRACKING] Broadcasted email opened event via SSE');
+      } catch (broadcastErr) {
+        console.error('❌ [TRACKING] Error broadcasting:', broadcastErr.message);
+      }
+    } else {
+      console.log(`🔄 [TRACKING] Already recorded (${existingEvents.length} events) - Ignoring duplicate`);
+    }
+  } catch (error) {
+    console.error('❌ [TRACKING PIXEL] Error logging tracking:', error);
+  }
+  
+  // Return 1x1 transparent PNG
+  const img = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  res.writeHead(200, {
+    'Content-Type': 'image/png',
+    'Content-Length': img.length,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  res.end(img);
+  console.log('✅ [TRACKING] Pixel image sent');
+  console.log('═══════════════════════════════════════════════════════════════');
+});
+
+// Legacy /pixel/ route for backwards compatibility
 router.get('/pixel/:trackingId.png', async (req, res) => {
   const { trackingId } = req.params;
   const userAgent = req.get('User-Agent') || '';

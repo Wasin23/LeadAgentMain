@@ -536,20 +536,75 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
     }
     
     // Add analytics status to each email
-    const emailsWithAnalytics = logs.map(log => ({
-      ...log,
-      analyticsStatus: {
-        opened: log.analytics?.opened || false,
-        clicked: log.analytics?.clicked || false,
-        replied: log.analytics?.replied || false,
-        hasProxy: log.analytics?.hasProxy || false, // First tracking pixel hit (Primary inbox indicator)
-        openCount: log.analytics?.openCount || 0,
-        clickCount: log.analytics?.clickCount || 0,
-        lastActivity: log.analytics?.lastActivity || null,
-        daysSinceLastActivity: log.analytics?.lastActivity ? 
-          Math.floor((new Date() - new Date(log.analytics.lastActivity)) / (1000 * 60 * 60 * 24)) : null
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('📊 [ANALYTICS] Adding tracking data to', logs.length, 'emails');
+    
+    // Get all tracking events for this user
+    let emailsWithAnalytics = [];
+    try {
+      let allTrackingEvents = [];
+      if (agentId) {
+        allTrackingEvents = await awsManager.getEmailTrackingByAgent(userId, agentId);
+      } else {
+        allTrackingEvents = await awsManager.getEmailTrackingByUser(userId);
       }
-    }));
+      console.log('📊 [ANALYTICS] Found', allTrackingEvents.length, 'tracking events');
+      
+      // Group tracking events by trackingId for quick lookup
+      const trackingByEmail = {};
+      allTrackingEvents.forEach(event => {
+        if (!trackingByEmail[event.trackingId]) {
+          trackingByEmail[event.trackingId] = [];
+        }
+        trackingByEmail[event.trackingId].push(event);
+      });
+      
+      console.log('📊 [ANALYTICS] Grouped into', Object.keys(trackingByEmail).length, 'unique emails');
+      
+      emailsWithAnalytics = logs.map(log => {
+        const events = trackingByEmail[log.trackingId] || [];
+        const hasProxy = events.some(e => e.eventType === 'proxy');
+        const hasOpen = events.some(e => e.eventType === 'open');
+        const hasClick = events.some(e => e.eventType === 'click');
+        
+        return {
+          ...log,
+          analyticsStatus: {
+            opened: hasOpen,
+            clicked: hasClick,
+            replied: log.analytics?.replied || false,
+            hasProxy: hasProxy,
+            openCount: events.filter(e => e.eventType === 'open').length,
+            clickCount: events.filter(e => e.eventType === 'click').length,
+            lastActivity: events.length > 0 ? events[events.length - 1].timestamp : null,
+            daysSinceLastActivity: events.length > 0 && events[events.length - 1].timestamp ? 
+              Math.floor((new Date() - new Date(events[events.length - 1].timestamp)) / (1000 * 60 * 60 * 24)) : null
+          }
+        };
+      });
+      
+      const withTracking = emailsWithAnalytics.filter(e => e.analyticsStatus.opened || e.analyticsStatus.hasProxy);
+      console.log('✅ [ANALYTICS]', withTracking.length, 'emails have tracking data');
+      console.log('═══════════════════════════════════════════════════════════════');
+      
+    } catch (trackingError) {
+      console.error('❌ [ANALYTICS] Error loading tracking:', trackingError);
+      // Fallback to legacy
+      emailsWithAnalytics = logs.map(log => ({
+        ...log,
+        analyticsStatus: {
+          opened: log.analytics?.opened || false,
+          clicked: log.analytics?.clicked || false,
+          replied: log.analytics?.replied || false,
+          hasProxy: log.analytics?.hasProxy || false,
+          openCount: log.analytics?.openCount || 0,
+          clickCount: log.analytics?.clickCount || 0,
+          lastActivity: log.analytics?.lastActivity || null,
+          daysSinceLastActivity: log.analytics?.lastActivity ? 
+            Math.floor((new Date() - new Date(log.analytics.lastActivity)) / (1000 * 60 * 60 * 24)) : null
+        }
+      }));
+    }
     
     res.json({
       success: true,

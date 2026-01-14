@@ -960,44 +960,67 @@ export default function InteractiveGlobe() {
   };
 
   const handleAcceptEmail = async (emailId: string, agentId: string) => {
+    // Optimistic update - remove email immediately from queue
+    setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
+    setStats(prev => ({
+      ...prev,
+      emailsQueued: Math.max(0, prev.emailsQueued - 1),
+      emailsSent: prev.emailsSent + 1,
+      totalEmailsSent: prev.totalEmailsSent + 1
+    }));
+    
+    // Show immediate feedback
+    showToast('Email sent successfully! 🚀', 'success');
+    
     try {
-      // Send the email FIRST - don't remove until we know it succeeded
       await api.post(`/api/email-queue/${emailId}/approve`, { agentId });
       
-      // Only remove from UI after successful send
-      setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
-      setStats(prev => ({
-        ...prev,
-        emailsQueued: Math.max(0, prev.emailsQueued - 1)
-      }));
-      
-      showToast('Email sent successfully', 'success');
+      // Refresh sent emails after a moment to get follow-up data
+      setTimeout(() => {
+        if (selectedQueue?.type === 'sent' || selectedAgent) {
+          fetchQueueEmails(selectedAgent?.agentId || agentId, 'sent');
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error accepting email:', error);
       showToast('Failed to send email', 'error');
-      // Don't remove email from queue on error - user can try again
+      // Revert on error
+      fetchQueueEmails(agentId, selectedQueue?.type || 'queued');
+      const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
+      const sentResponse = await api.get('/api/email-queue/sent?agentId=all');
+      setStats(prev => ({
+        ...prev,
+        emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0,
+        emailsSent: Array.isArray(sentResponse.data) ? sentResponse.data.length : 0
+      }));
     }
   };
 
   const handleRejectEmailFromQueue = async (emailId: string, agentId: string) => {
+    // Optimistic update - remove email immediately
+    setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
+    setStats(prev => ({
+      ...prev,
+      emailsQueued: Math.max(0, prev.emailsQueued - 1)
+    }));
+    
+    // Show immediate feedback
+    showToast('Email rejected', 'success');
+    
     try {
-      // Delete FIRST - don't remove from UI until we know it succeeded
       await api.delete(`/api/email-queue/${emailId}`, {
         data: { agentId }
       });
-      
-      // Only remove from UI after successful deletion
-      setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
-      setStats(prev => ({
-        ...prev,
-        emailsQueued: Math.max(0, prev.emailsQueued - 1)
-      }));
-      
-      showToast('Email rejected', 'success');
     } catch (error) {
       console.error('Error rejecting email:', error);
       showToast('Failed to reject email', 'error');
-      // Don't remove email from queue on error - user can try again
+      // Revert on error
+      fetchQueueEmails(agentId, selectedQueue?.type || 'queued');
+      const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
+      setStats(prev => ({
+        ...prev,
+        emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0
+      }));
     }
   };
 
@@ -1634,7 +1657,7 @@ export default function InteractiveGlobe() {
                   const isExpanded = expandedEmailId === emailId;
                   const hasAiReport = !!email.aiReport;
                   const isOrphaned = email.agentId === 'orphan';
-                  const sentDate = (selectedQueue?.type === 'sent' && email.sentAt) ? new Date(email.sentAt) : null;
+                  const sentDate = email.timestamp ? new Date(email.timestamp) : null;
                   
                   // Debug: Log follow-up data for each email
                   if (selectedQueue?.type === 'sent' && idx === 0) {
@@ -1973,150 +1996,39 @@ export default function InteractiveGlobe() {
         >
         {/* Globe - Hidden on mobile */}
         <div className="text-center relative">
-          {/* Start/Stop All Agents Button - Above Globe */}
-          {(showGlobe || isAnimatingOut) && (
-            <div className={`mb-8 relative inline-block transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-              <button
-                onClick={async () => {
-                  const runningAgents = agents.filter(a => a.agentId !== 'orphan' && a.status === 'running');
-                  const idleAgents = agents.filter(a => a.agentId !== 'orphan' && a.status !== 'running');
-                  
-                  // If all agents are running, stop them all (exclude orphan)
-                  if (idleAgents.length === 0 && runningAgents.length > 0) {
-                    // Optimistic update - immediately show as stopped
-                    setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'idle', currentActivity: null }));
-                    setAgentActivities({});
-                    
-                    try {
-                      await Promise.all(
-                        runningAgents.map(agent => 
-                          api.post('/api/lead-agent/stop', { agentId: agent.agentId })
-                        )
-                      );
-                      // Refresh agent list after 2 seconds to ensure correct state
-                      setTimeout(() => fetchAgents(), 2000);
-                    } catch (error) {
-                      console.error('Error stopping agents:', error);
-                      await fetchAgents(); // Refresh to get actual state
-                    }
-                    return;
-                  }
-                  
-                  // Otherwise, start all idle agents (exclude orphan)
-                  const nonOrphanIdleAgents = idleAgents.filter(a => a.agentId !== 'orphan');
-                  if (nonOrphanIdleAgents.length === 0) {
-                    return;
-                  }
-                  
-                  // Optimistically update UI immediately
-                  setAgents(prev => prev.map(a => 
-                    nonOrphanIdleAgents.find(idle => idle.agentId === a.agentId)
-                      ? { ...a, status: 'running' }
-                      : a
-                  ));
-                  
-                  const newActivities: {[key: string]: any} = {};
-                  nonOrphanIdleAgents.forEach(agent => {
-                    newActivities[agent.agentId] = {
-                      status: 'Starting...',
-                      timestamp: Date.now(),
-                      location: agent.targeting?.location || null,
-                      targeting: agent.targeting || null,
-                      isActive: true
-                    };
-                  });
-                  setAgentActivities(prev => ({ ...prev, ...newActivities }));
-                  
-                  try {
-                    await Promise.all(
-                      nonOrphanIdleAgents.map(agent => 
-                        api.post('/api/lead-agent/start', { agentId: agent.agentId })
-                      )
-                    );
-                    await fetchAgents();
-                  } catch (error) {
-                    console.error('Error starting agents:', error);
-                    await fetchAgents(); // Refresh to get actual state
-                  }
-                }}
-                className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all active:scale-95"
-              >
-                {agents.filter(a => a.agentId !== 'orphan' && a.status !== 'running').length === 0 && agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length > 0
-                  ? 'Stop All Agents'
-                  : 'Start All Agents'
-                }
-              </button>
+          {/* Loading Bar */}
+          {showGlobe && globeLoading && (
+            <div className="w-full max-w-5xl mx-auto px-4 mb-8 animate-fadeIn">
+              <div className="bg-[#0F1E35] rounded-lg p-4 border border-[#4FD1FF]/30">
+                <p className="text-[#4FD1FF] text-center text-sm font-medium mb-3">Initializing Globe...</p>
+                <div className="bg-[#1B2F52] rounded-full h-3 overflow-hidden border border-[#4FD1FF]/50">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF]"
+                    style={{
+                      width: '0%',
+                      animation: 'progressBar 2s ease-out forwards',
+                      boxShadow: '0 0 15px rgba(79,209,255,0.8)'
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
-          
+
           {/* Globe Canvas */}
-          {(showGlobe || isAnimatingOut) && (
+          {(showGlobe || isAnimatingOut) && !globeLoading ? (
             <canvas
               ref={canvasRef}
               className={`cursor-default transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
               onClick={handleCanvasClick}
             />
-          )}
+          ) : null}
         </div>
       </div>
-
-        )}
-        {/* Animated Satellite - Hidden on mobile and medium screens */}
-      {(showGlobe || isAnimatingOut) && (
-        <div 
-          className={`fixed right-[calc(50%+18rem)] lg:right-[22rem] xl:right-[26rem] top-1/2 pointer-events-auto cursor-pointer z-50 hidden lg:block transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
-          style={{
-            transform: `translateY(${satelliteBob - 50}%)`,
-            transition: 'transform 0.05s linear'
-          }}
-          onClick={() => setShowIdleAgents(!showIdleAgents)}
-        >
-          <div className="relative hover:scale-110 transition-transform">
-            {/* ISS Space Station Icon */}
-            <svg width="90" height="60" viewBox="0 0 60 40" fill="none" className="drop-shadow-2xl">
-              {/* Large Solar Panels - Left */}
-              <rect x="2" y="12" width="15" height="16" rx="1" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5"/>
-              <line x1="2" y1="16" x2="17" y2="16" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-              <line x1="2" y1="20" x2="17" y2="20" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-              <line x1="2" y1="24" x2="17" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-              
-              {/* Large Solar Panels - Right */}
-              <rect x="43" y="12" width="15" height="16" rx="1" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5"/>
-              <line x1="43" y1="16" x2="58" y2="16" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-              <line x1="43" y1="20" x2="58" y2="20" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-              <line x1="43" y1="24" x2="58" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-              
-              {/* Main Truss */}
-              <rect x="18" y="18" width="24" height="4" rx="1" fill="rgba(255,255,255,0.35)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
-              
-              {/* Modules */}
-              <ellipse cx="25" cy="20" rx="4" ry="3" fill="rgba(255,255,255,0.4)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
-              <ellipse cx="30" cy="20" rx="5" ry="4" fill="rgba(255,255,255,0.45)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
-              <ellipse cx="35" cy="20" rx="4" ry="3" fill="rgba(255,255,255,0.4)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
-              
-              {/* Small Solar Arrays */}
-              <rect x="27" y="8" width="6" height="8" rx="0.5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
-              <line x1="27" y1="10" x2="33" y2="10" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
-              <line x1="27" y1="12" x2="33" y2="12" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
-              <line x1="27" y1="14" x2="33" y2="14" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
-              
-              {/* Radiators */}
-              <rect x="22" y="24" width="3" height="8" rx="0.5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
-              <rect x="35" y="24" width="3" height="8" rx="0.5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
-            </svg>
-            
-            {/* Idle Agent Badge */}
-            {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length > 0 && (
-              <div className="absolute -top-2 -right-2 bg-white text-black text-xs rounded-full min-w-6 h-6 px-2 flex items-center justify-center font-bold shadow-lg">
-                {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length}
-              </div>
-            )}
-          </div>
-        </div>
       )}
 
       {/* Email Dots on Globe (color-coded by status) */}
-      {showGlobe && emailDots.map((email) => {
+      {showGlobe && !globeLoading && emailDots.map((email) => {
         // Project email location to screen coordinates
         const baseScale = canvasSize / 2.0;
         const centerPos = canvasSize / 2;
@@ -2158,7 +2070,7 @@ export default function InteractiveGlobe() {
       })}
 
       {/* Active Agents on Globe */}
-      {showGlobe && agents.map((agent, index) => {
+      {showGlobe && !globeLoading && agents.map((agent, index) => {
         // Show agents that are running OR have activity
         const activity = agentActivities[agent.agentId];
         const isActive = agent.status === 'running' || activity?.isActive;
@@ -2370,169 +2282,6 @@ export default function InteractiveGlobe() {
         );
       })}
 
-      {/* Idle Agents Modal */}
-      {showIdleAgents && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-gradient-to-br from-[#1B2F52] via-[#223A63] to-[#2A4570] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[70vh] overflow-hidden flex flex-col border border-[#4FD1FF]/30">
-            <div className="p-6 border-b border-white/20 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Idle Agents</h2>
-              <button
-                onClick={() => setShowIdleAgents(false)}
-                className="text-white/70 hover:text-white transition-colors"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6" style={{transform: 'translateZ(0)', willChange: 'scroll-position'}}>
-              {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').length === 0 ? (
-                <div className="text-center py-12 text-white/70">
-                  All agents are currently active
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  {agents.filter(a => !agentActivities[a.agentId]?.isActive && a.status !== 'running').map(agent => (
-                    <div
-                      key={agent.agentId}
-                      className="bg-[#1B2F52]/50 backdrop-blur-md rounded-xl p-4 border border-white/10 hover:border-[#4FD1FF]/30 transition-all"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        {(agent.avatar || agent.personality?.avatar) && (
-                          <img 
-                            src={agent.avatar || agent.personality?.avatar} 
-                            alt={agent.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-white">{agent.name}</span>
-                            {agent.settings?.emailBuilder?.useGmail === true ? (
-                              <span className="relative group/gmail inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 text-white text-[9px] border border-white/20">
-                                <svg className="w-3.5 h-3.5" viewBox="0 0 256 193" fill="none">
-                                  <path d="M58.182 192.05V93.768L27.507 65.158L0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4"/>
-                                  <path d="M197.818 192.05h40.727c9.659 0 17.455-7.854 17.455-17.455V49.504l-31.274 17.278-27.506 28.61Z" fill="#34A853"/>
-                                  <path d="M197.818 49.504V93.768l58.182-44.264V34.91c0-21.585-24.641-33.89-41.89-20.945Z" fill="#FBBC04"/>
-                                  <path d="M58.182 93.768V49.504L128 105.23l69.818-55.726v44.264L128 149.494Z" fill="#EA4335"/>
-                                  <path d="M0 34.91v14.594l58.182 44.264V49.504L40.727 37.072C23.478 24.019-.001 36.324 0 34.91Z" fill="#C5221F"/>
-                                </svg>
-                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/gmail:opacity-100 transition-opacity pointer-events-none z-50">
-                                  Gmail sending enabled
-                                </span>
-                              </span>
-                            ) : (
-                              <span className="relative group/domain inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px] border border-purple-500/40">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                                </svg>
-                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/domain:opacity-100 transition-opacity pointer-events-none z-50">
-                                  Meridian domain sending enabled
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-white/70">{agent.personality?.name || 'Agent'}</div>
-                          <div className="flex items-center gap-1.5 text-xs mt-1">
-                            {agentActivities[agent.agentId]?.status ? (
-                              <>
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                <span className="text-green-400 font-medium">Active</span>
-                                <span className="text-white/50 mx-1">·</span>
-                                <span className="text-cyan-300 truncate">{agentActivities[agent.agentId].status}</span>
-                              </>
-                            ) : (
-                              <div className="text-white/50">Idle</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            
-                            // Optimistic update - update UI immediately
-                            const isCurrentlyRunning = agent.status === 'running';
-                            const updatedStatus = isCurrentlyRunning ? 'idle' : 'running';
-                            
-                            // Update agents list immediately
-                            setAgents(prev => prev.map(a => 
-                              a.agentId === agent.agentId 
-                                ? { ...a, status: updatedStatus }
-                                : a
-                            ));
-                            
-                            // Update activity state
-                            if (isCurrentlyRunning) {
-                              setAgentActivities(prev => ({
-                                ...prev,
-                                [agent.agentId]: { ...prev[agent.agentId], isActive: false }
-                              }));
-                              // Immediately update agent status in state
-                              setAgents(prev => prev.map(a => 
-                                a.agentId === agent.agentId 
-                                  ? { ...a, status: 'stopped' }
-                                  : a
-                              ));
-                            } else {
-                              setAgentActivities(prev => ({
-                                ...prev,
-                                [agent.agentId]: { 
-                                  isActive: true, 
-                                  status: 'Starting...', 
-                                  timestamp: Date.now(),
-                                  location: agent.targeting?.location || null,
-                                  targeting: agent.targeting || null
-                                }
-                              }));
-                              // Immediately update agent status in state
-                              setAgents(prev => prev.map(a => 
-                                a.agentId === agent.agentId 
-                                  ? { ...a, status: 'running' }
-                                  : a
-                              ));
-                            }
-                            
-                            try {
-                              if (isCurrentlyRunning) {
-                                await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
-                              } else {
-                                await api.post('/api/lead-agent/start', { agentId: agent.agentId });
-                              }
-                              // Refetch agents to sync with backend database
-                              await fetchAgents();
-                            } catch (error) {
-                              console.error('Error updating agent status:', error);
-                              // Revert on error
-                              fetchAgents();
-                            }
-                          }}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all active:scale-95 ${
-                            agent.status === 'running'
-                              ? 'bg-red-500/20 hover:bg-red-500/30 active:bg-red-500/40 text-red-300 border border-red-500/40'
-                              : 'bg-green-500/20 hover:bg-green-500/30 active:bg-green-500/40 text-green-300 border border-green-500/40'
-                          }`}
-                        >
-                          {agent.status === 'running' ? 'Stop' : 'Start'}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLoadingQueue(true);
-                            router.push(`/agents?agent=${agent.agentId}&returnTo=/dashboard`);
-                          }}
-                          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-500/20 hover:bg-blue-500/30 active:bg-blue-500/50 active:scale-[0.95] text-blue-300 border border-blue-500/40 active:border-blue-400 transition-all duration-150"
-                        >
-                          View Agent
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       </div>
       )}{/* End Globe Tab */}
 
