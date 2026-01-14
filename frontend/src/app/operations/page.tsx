@@ -350,7 +350,7 @@ export default function InteractiveGlobe() {
       currentModalOpen: showIdleAgents,
       selectedAgent: selectedAgent,
       selectedQueue: selectedQueue,
-      agentsCount: agents.length
+      agentsCount: agents.filter(a => a.agentId !== 'orphan').length
     });
     
     // Only run when modal transitions from open to closed
@@ -1437,10 +1437,11 @@ export default function InteractiveGlobe() {
                   }
                 } else {
                   // Optimistic update - immediately show as running
-                  setAgents(prev => prev.map(a => ({ ...a, status: 'running' })));
+                  setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'running' }));
                   
-                  // Start all
+                  // Start all (exclude orphan agent)
                   for (const agent of agents) {
+                    if (agent.agentId === 'orphan') continue; // Skip orphan placeholder
                     if (agent.status !== 'running') {
                       try {
                         await api.post('/api/lead-agent/start', { agentId: agent.agentId });
@@ -1453,12 +1454,12 @@ export default function InteractiveGlobe() {
                 await fetchAgents();
               }}
               className={`sm:hidden w-full px-3 py-2.5 rounded-lg backdrop-blur-md transition-all border-2 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg ${
-                agents.every(a => a.status === 'running')
+                agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running')
                   ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border-red-500/40 hover:border-red-500/60'
                   : 'bg-[#4FD1FF]/20 hover:bg-[#4FD1FF]/30 text-[#4FD1FF] border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60'
               }`}
             >
-              {agents.every(a => a.status === 'running') ? 'Stop All Agents' : 'Start All Agents'}
+              {agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running') ? 'Stop All Agents' : 'Start All Agents'}
             </button>
           </div>
         </div>
@@ -1611,7 +1612,7 @@ export default function InteractiveGlobe() {
               <div className="text-center py-20">
                 <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4\" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
                 <p className="text-[#8FA6C1] text-sm">No emails in {selectedQueue?.type} queue</p>
@@ -1977,13 +1978,13 @@ export default function InteractiveGlobe() {
             <div className={`mb-8 relative inline-block transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
               <button
                 onClick={async () => {
-                  const runningAgents = agents.filter(a => a.status === 'running');
-                  const idleAgents = agents.filter(a => a.status !== 'running');
+                  const runningAgents = agents.filter(a => a.agentId !== 'orphan' && a.status === 'running');
+                  const idleAgents = agents.filter(a => a.agentId !== 'orphan' && a.status !== 'running');
                   
-                  // If all agents are running, stop them all
+                  // If all agents are running, stop them all (exclude orphan)
                   if (idleAgents.length === 0 && runningAgents.length > 0) {
                     // Optimistic update - immediately show as stopped
-                    setAgents(prev => prev.map(a => ({ ...a, status: 'idle', currentActivity: null })));
+                    setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'idle', currentActivity: null }));
                     setAgentActivities({});
                     
                     try {
@@ -2001,20 +2002,21 @@ export default function InteractiveGlobe() {
                     return;
                   }
                   
-                  // Otherwise, start all idle agents
-                  if (idleAgents.length === 0) {
+                  // Otherwise, start all idle agents (exclude orphan)
+                  const nonOrphanIdleAgents = idleAgents.filter(a => a.agentId !== 'orphan');
+                  if (nonOrphanIdleAgents.length === 0) {
                     return;
                   }
                   
                   // Optimistically update UI immediately
                   setAgents(prev => prev.map(a => 
-                    idleAgents.find(idle => idle.agentId === a.agentId)
+                    nonOrphanIdleAgents.find(idle => idle.agentId === a.agentId)
                       ? { ...a, status: 'running' }
                       : a
                   ));
                   
                   const newActivities: {[key: string]: any} = {};
-                  idleAgents.forEach(agent => {
+                  nonOrphanIdleAgents.forEach(agent => {
                     newActivities[agent.agentId] = {
                       status: 'Starting...',
                       timestamp: Date.now(),
@@ -2027,7 +2029,7 @@ export default function InteractiveGlobe() {
                   
                   try {
                     await Promise.all(
-                      idleAgents.map(agent => 
+                      nonOrphanIdleAgents.map(agent => 
                         api.post('/api/lead-agent/start', { agentId: agent.agentId })
                       )
                     );
@@ -2039,7 +2041,7 @@ export default function InteractiveGlobe() {
                 }}
                 className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all active:scale-95"
               >
-                {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
+                {agents.filter(a => a.agentId !== 'orphan' && a.status !== 'running').length === 0 && agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length > 0
                   ? 'Stop All Agents'
                   : 'Start All Agents'
                 }
