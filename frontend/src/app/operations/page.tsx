@@ -1635,6 +1635,16 @@ export default function InteractiveGlobe() {
                   const isOrphaned = email.agentId === 'orphan';
                   const sentDate = email.timestamp ? new Date(email.timestamp) : null;
                   
+                  // Debug: Log follow-up data for each email
+                  if (selectedQueue?.type === 'sent' && idx === 0) {
+                    console.log('📅 [FOLLOW-UP RENDER] First email in sent queue:', {
+                      id: emailId,
+                      followUpScheduled: email.followUpScheduled,
+                      followUpDate: email.followUpDate,
+                      hasFollowUpData: !!(email.followUpScheduled && email.followUpDate)
+                    });
+                  }
+                  
                   return (
                     <div 
                       key={emailId || idx} 
