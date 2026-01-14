@@ -95,6 +95,98 @@ Return ONLY valid JSON with this structure:
 }
 
 /**
+ * Auto-schedule a follow-up for a newly sent email
+ */
+export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
+  try {
+    console.log(`🔄 [REBUMP] Auto-scheduling follow-up for email ${sentEmail.id}`);
+    
+    // Get agent settings
+    const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
+    if (!agentSettings || !agentSettings.emailBuilder) return;
+
+    const rebumpEnabled = agentSettings.emailBuilder.enableRebump !== false;
+    if (!rebumpEnabled) {
+      console.log(`⚠️ [REBUMP] Auto-followup disabled for agent ${agentId}`);
+      return;
+    }
+
+    // Check if follow-up already scheduled
+    if (sentEmail.followUpScheduled) {
+      console.log(`⚠️ [REBUMP] Follow-up already scheduled for email ${sentEmail.id}`);
+      return;
+    }
+
+    // Generate templates if needed
+    let templates = agentSettings.followUpTemplates?.templates;
+    const lastGenerated = agentSettings.followUpTemplates?.generatedAt;
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    
+    if (!templates || !lastGenerated || new Date(lastGenerated) < weekAgo) {
+      console.log(`🔄 [REBUMP] Generating templates for auto-schedule`);
+      const newTemplates = await generateFollowUpTemplates(userId, agentId);
+      if (newTemplates) templates = newTemplates;
+    }
+
+    // Get interval days from settings
+    const intervalDays = agentSettings.emailBuilder.rebumpIntervalDays || 7;
+    
+    // Calculate exact follow-up date
+    const sentDate = new Date(sentEmail.sentAt || Date.now());
+    const followUpDate = new Date(sentDate.getTime() + (intervalDays * 24 * 60 * 60 * 1000));
+    
+    // Get selected default template or use first one
+    const selectedTemplateId = agentSettings.emailBuilder.selectedFollowUpTemplate || 0;
+    const templateToUse = templates?.[selectedTemplateId] || templates?.[0];
+
+    // Mark email with calculated follow-up date and assigned template
+    await emailQueue.updateEmailStatus(userId, agentId, sentEmail.id, 'SENT', 'SENT', {
+      followUpScheduled: true,
+      followUpScheduledAt: new Date().toISOString(),
+      followUpDate: followUpDate.toISOString(),
+      assignedTemplateId: selectedTemplateId,
+      assignedTemplate: templateToUse
+    });
+
+    console.log(`✅ [REBUMP] Scheduled follow-up for ${followUpDate.toISOString()} (${intervalDays} days from send)`);
+  } catch (error) {
+    console.error('❌ [REBUMP] Error auto-scheduling follow-up:', error);
+  }
+}
+
+/**
+ * Cancel all scheduled follow-ups for an agent
+ */
+export async function cancelScheduledFollowUps(userId, agentId) {
+  try {
+    console.log(`🚫 [REBUMP] Canceling all scheduled follow-ups for agent ${agentId}`);
+    
+    // Get all SENT emails for this agent
+    const sentEmails = await emailQueue.getSentEmails(userId, agentId);
+    if (!sentEmails || sentEmails.length === 0) return;
+
+    let canceledCount = 0;
+
+    // Update all emails that have scheduled follow-ups
+    for (const email of sentEmails) {
+      if (email.followUpScheduled) {
+        await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+          followUpScheduled: false,
+          followUpCanceledAt: new Date().toISOString()
+        });
+        canceledCount++;
+      }
+    }
+
+    console.log(`✅ [REBUMP] Canceled ${canceledCount} scheduled follow-ups`);
+    return { canceledCount };
+  } catch (error) {
+    console.error('❌ [REBUMP] Error canceling follow-ups:', error);
+    return { canceledCount: 0 };
+  }
+}
+
+/**
  * Check for emails that need rebumps and queue them
  */
 export async function checkForRebumps() {
@@ -163,25 +255,43 @@ export async function checkForRebumps() {
 
         // Filter emails that need rebumps
         for (const email of sentEmails) {
+          // Skip if no follow-up scheduled
+          if (!email.followUpScheduled) continue;
+          
           // Skip if already has reply
           if (email.status === 'REPLIED') continue;
+          
+          // Skip if bounced
+          if (email.status === 'BOUNCED') continue;
           
           // Skip if already rebumped (check rebumpCount)
           const rebumpCount = email.rebumpCount || 0;
           const maxRebumps = agentSettings.emailBuilder.maxRebumps || 1;
           if (rebumpCount >= maxRebumps) continue;
 
-          // Check if enough time has passed since last outreach
-          const sentAt = new Date(email.sentAt || email.timestamp).getTime();
-          const lastRebumpAt = email.lastRebumpAt ? new Date(email.lastRebumpAt).getTime() : sentAt;
-          const timeSinceLastContact = now - lastRebumpAt;
+          // Skip if no follow-up date set
+          if (!email.followUpDate) continue;
 
-          if (timeSinceLastContact >= rebumpIntervalMs) {
-            console.log(`📧 [REBUMP] Queueing rebump for ${email.lead?.email || 'unknown'}`);
+          // Check if we've reached the follow-up date
+          const followUpDate = new Date(email.followUpDate);
+          if (now < followUpDate.getTime()) {
+            console.log(`⏳ [REBUMP] Skipping ${email.to} - scheduled for ${followUpDate.toISOString()}`);
+            continue;
+          }
+
+          // We've reached the follow-up date
+          const timeSinceLastContact = now - new Date(email.sentAt || email.timestamp).getTime();
+          {
+            console.log(`📧 [REBUMP] Queueing rebump for ${email.to} (scheduled: ${followUpDate.toISOString()})`);
             
-            // Get template (rotate through available templates)
-            const templateIndex = agentSettings.followUpTemplates?.lastUsedIndex || 0;
-            const template = agentSettings.followUpTemplates?.templates[templateIndex];
+            // Use the assigned template from when email was sent
+            let template = email.assignedTemplate;
+            
+            // Fallback to templates if assigned template is missing
+            if (!template) {
+              const templateIndex = email.assignedTemplateId || 0;
+              template = agentSettings.followUpTemplates?.templates[templateIndex];
+            }
             
             if (!template) {
               console.log(`⚠️ [REBUMP] No templates available for agent ${agentId}`);

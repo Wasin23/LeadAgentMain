@@ -1700,16 +1700,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   if (showOutreach) {
     return (
       <div className="p-6 space-y-6">
-        {/* Header with Back Button */}
+        {/* Header without Back Button */}
         <div className="flex items-center gap-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowOutreach(false)}
-            className="p-3 text-white/80 hover:text-white hover:bg-white/20 transition-colors rounded-lg border border-white/20"
-          >
-            <ArrowLeftIcon className="h-5 w-5" />
-          </motion.button>
           <h1 className="text-2xl font-semibold text-white">{getAgentDisplayName()}'s Outreach</h1>
         </div>
 

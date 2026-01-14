@@ -273,122 +273,89 @@ export default function SettingsPage() {
     <AppLayout>
       <div className="flex flex-col h-full overflow-hidden">
         {/* Header - Fixed */}
-        <div className="border-b border-white/20 bg-black/20 backdrop-blur-sm flex-shrink-0">
-          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Settings</h1>
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-        </div>
-      </div>
-
-      <div className="w-full px-4 sm:px-6 py-4 sm:py-8 flex-1 overflow-hidden flex gap-6">
-          {/* Vertical Sidebar - Hidden on mobile, shown as dropdown */}
-          <div className={`fixed md:relative inset-0 md:inset-auto z-50 md:z-auto ${showMobileMenu ? 'block' : 'hidden md:block'}`}>
-            {/* Mobile overlay */}
-            <div 
-              className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setShowMobileMenu(false)}
-            />
-            {/* Sidebar content */}
-            <div className="fixed md:relative left-0 top-0 bottom-0 w-72 md:w-72 flex-shrink-0 md:flex-shrink-0">
-              <div className="bg-white/10 backdrop-blur-md rounded-none md:rounded-2xl border-r md:border border-white/20 p-4 space-y-2 h-full overflow-y-auto">
+        <div className="border-b border-white/20 flex-shrink-0">
+          <div className="px-4 sm:px-6 py-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-4">Settings</h1>
+            
+            {/* Horizontal Main Tabs */}
+            <div className="flex items-center gap-2 border-b border-[#4FD1FF]/20 pb-2">
               {categories.map((category) => {
                 const CategoryIcon = category.icon;
-                const isExpanded = expandedCategory === category.id;
-
+                const isActive = expandedCategory === category.id;
+                
                 return (
-                  <div key={category.id}>
-                    {/* Category Header */}
-                    <button
-                      onClick={() => toggleCategory(category.id)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/10 transition-all text-white group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <CategoryIcon className="w-5 h-5" />
-                        <span className="font-semibold">{category.label}</span>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronDownIcon className="w-4 h-4 transition-transform" />
-                      ) : (
-                        <ChevronRightIcon className="w-4 h-4 transition-transform" />
-                      )}
-                    </button>
-
-                    {/* Sections */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="ml-4 mt-1 space-y-1 border-l border-white/20 pl-4">
-                            {category.sections.map((section) => {
-                              const SectionIcon = section.icon;
-                              const isSelected = selectedSection === section.id;
-
-                              return (
-                                <button
-                                  key={section.id}
-                                  onClick={() => {
-                                    setSelectedSection(section.id);
-                                    setShowMobileMenu(false); // Close mobile menu on selection
-                                  }}
-                                  className={`w-full flex items-center gap-2 p-2 rounded-lg transition-all text-left ${
-                                    isSelected
-                                      ? 'bg-white/20 text-white font-medium'
-                                      : 'text-white/70 hover:bg-white/10 hover:text-white'
-                                  }`}
-                                >
-                                  <SectionIcon className="w-4 h-4" />
-                                  <span className="text-sm">{section.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                  <button
+                    key={category.id}
+                    onClick={() => {
+                      setExpandedCategory(category.id);
+                      // Auto-select first section in category
+                      setSelectedSection(category.sections[0].id);
+                    }}
+                    className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+                      isActive
+                        ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+                        : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <CategoryIcon className="w-4 h-4" />
+                    {category.label}
+                  </button>
                 );
               })}
             </div>
+            
+            {/* Sub-tabs for selected category */}
+            {expandedCategory && (
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                {categories
+                  .find((cat) => cat.id === expandedCategory)
+                  ?.sections.map((section) => {
+                    const SectionIcon = section.icon;
+                    const isSelected = selectedSection === section.id;
+                    
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => setSelectedSection(section.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <SectionIcon className="w-3.5 h-3.5" />
+                        {section.label}
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
 
-          {/* Main Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto pr-0 sm:pr-4 w-full">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedSection}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                className="w-full"
-              >
-                {renderContent()}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-      </div>
+        {/* Main Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedSection}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              className="w-full"
+            >
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-      {/* Company Profile Modal */}
-      {showCompanyProfileModal && (
-        <CompanyProfileModal 
-          open={showCompanyProfileModal}
-          onClose={() => setShowCompanyProfileModal(false)} 
-        />
-      )}
+        {/* Company Profile Modal */}
+        {showCompanyProfileModal && (
+          <CompanyProfileModal 
+            open={showCompanyProfileModal}
+            onClose={() => setShowCompanyProfileModal(false)} 
+          />
+        )}
       </div>
     </AppLayout>
   );

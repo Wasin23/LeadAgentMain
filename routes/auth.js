@@ -16,6 +16,7 @@ import {
 } from '../lib/userManager.js';
 import { sendPasswordResetEmail } from '../tools/emailMailgun.js';
 import { generateToken, authenticateToken } from '../middleware/jwt.js';
+import { cancelScheduledFollowUps } from '../utils/rebumpChecker.js';
 
 const router = express.Router();
 
@@ -1184,6 +1185,47 @@ router.get('/agents', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('[AUTH] Get agents error:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Update agent settings (with rebump auto-schedule/cancel logic)
+router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId } = req.params;
+    const settings = req.body;
+    
+    console.log(`[AUTH] Updating settings for agent ${agentId}`);
+    
+    // Get current settings to check if enableRebump changed
+    const awsManager = (await import('../utils/awsManager.js')).default;
+    const awsManagerInstance = new awsManager();
+    const currentSettings = await awsManagerInstance.getLeadAgentSettings(userId, agentId);
+    
+    // Save the updated settings
+    await awsManagerInstance.saveLeadAgentSettings(userId, agentId, settings);
+    
+    // Check if rebump was disabled
+    const wasEnabled = currentSettings?.emailBuilder?.enableRebump !== false;
+    const isEnabled = settings?.emailBuilder?.enableRebump !== false;
+    
+    if (wasEnabled && !isEnabled) {
+      // Rebump was just disabled - cancel scheduled follow-ups
+      console.log(`🚫 [REBUMP] Auto-followup disabled for agent ${agentId}, canceling scheduled follow-ups`);
+      const { cancelScheduledFollowUps } = await import('../utils/rebumpChecker.js');
+      await cancelScheduledFollowUps(userId, agentId);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Agent settings updated successfully'
+    });
+  } catch (error) {
+    console.error('[AUTH] Error updating agent settings:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 

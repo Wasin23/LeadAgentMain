@@ -441,7 +441,7 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
       <div className="space-y-6">
             {/* Profile Section */}
             {activeTab === 'profile' && (
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
+              <div className="p-6">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-white/90 mb-2">Username</label>
@@ -519,7 +519,7 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
             {activeTab === 'email' && (
               <div className="space-y-6">
                 {/* Gmail OAuth Connection - STEP 1 */}
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
+                <div className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-white">Step 1: Connect Your Gmail</h3>
@@ -554,12 +554,17 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                                       src={account.profilePicture} 
                                       alt={account.email}
                                       className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+                                      onError={(e) => {
+                                        // Hide broken image and show fallback
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextElementSibling;
+                                        if (fallback) fallback.classList.remove('hidden');
+                                      }}
                                     />
-                                  ) : (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm">
-                                      {account.email.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
+                                  ) : null}
+                                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm ${account.profilePicture ? 'hidden' : ''}`}>
+                                    {account.email.charAt(0).toUpperCase()}
+                                  </div>
                                 </div>
                                 
                                 {/* Account Info */}
@@ -784,7 +789,7 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
 
                   {/* Default Gmail Sending Toggle */}
                   {emailSettings.gmailAccounts.length > 0 && (
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
+                    <div className="p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-white mb-2">Default Gmail Sending</h3>
@@ -1009,7 +1014,7 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
             {/* Email Preferences Section */}
             {activeTab === 'emailPreferences' && (
               <div className="space-y-6">
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
+                <div className="p-6">
                   <h3 className="text-lg font-semibold text-white mb-6">Email Settings</h3>
                   
                   <div className="space-y-6">
