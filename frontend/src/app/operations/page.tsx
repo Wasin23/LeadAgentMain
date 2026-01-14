@@ -298,8 +298,7 @@ export default function InteractiveGlobe() {
   const [showIdleAgents, setShowIdleAgents] = useState(false);
   const [satelliteBob, setSatelliteBob] = useState(0);
   const [agentActivities, setAgentActivities] = useState<{[agentId: string]: any}>({});
-  const [emailActivity, setEmailActivity] = useState<any[]>([]);
-  
+
   // Tab state for operations view
   const [activeTab, setActiveTab] = useState<'director' | 'queue' | 'globe'>('director');
   const [activityFilter, setActivityFilter] = useState<'all' | 'opened' | 'sent' | 'bounced'>('all');
@@ -687,44 +686,7 @@ export default function InteractiveGlobe() {
     }
   };
 
-  // Fetch email activity from analytics API
-  const fetchEmailActivity = async () => {
-    try {
-      const response = await api.get('/api/analytics/emails');
-      console.log('📧 [EMAIL ACTIVITY] API Response:', response.data);
-      if (response.data.success) {
-        const emails = response.data.data || [];
-        console.log('📧 [EMAIL ACTIVITY] Emails count:', emails.length);
-        console.log('📧 [EMAIL ACTIVITY] First 3 emails:', emails.slice(0, 3));
-        
-        // Sort by sentAt timestamp descending (most recent first)
-        const sortedEmails = emails.sort((a: any, b: any) => 
-          new Date(b.sentAt || b.timestamp).getTime() - new Date(a.sentAt || a.timestamp).getTime()
-        );
-        
-        console.log('📧 [EMAIL ACTIVITY] Sorted emails (first 3):', sortedEmails.slice(0, 3));
-        console.log('📧 [EMAIL ACTIVITY] Analytics status check:');
-        sortedEmails.slice(0, 3).forEach((email: any, idx: number) => {
-          console.log(`  Email ${idx + 1}:`, {
-            to: email.to,
-            subject: email.subject?.substring(0, 30),
-            opened: email.analyticsStatus?.opened,
-            clicked: email.analyticsStatus?.clicked,
-            replied: email.analyticsStatus?.replied,
-            openCount: email.analyticsStatus?.openCount,
-            sentAt: email.sentAt
-          });
-        });
-        
-        const slicedEmails = sortedEmails.slice(0, 50);
-        console.log('📧 [EMAIL ACTIVITY] Setting state with', slicedEmails.length, 'emails');
-        setEmailActivity(slicedEmails); // Keep last 50 emails
-        console.log('✅ [EMAIL ACTIVITY] State updated successfully!');
-      }
-    } catch (err) {
-      console.error('❌ [EMAIL ACTIVITY] Error fetching email activity:', err);
-    }
-  };
+
 
   // Fetch queue emails when agent is selected
   const fetchQueueEmails = async (agentId: string, type: 'queued' | 'sent' | 'replied') => {
@@ -1115,14 +1077,6 @@ export default function InteractiveGlobe() {
   // Fetch agents on mount
   useEffect(() => {
     fetchAgents('queued');
-    fetchEmailActivity();
-    
-    // Poll for email activity every 15 seconds
-    const interval = setInterval(() => {
-      fetchEmailActivity();
-    }, 15000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   // Fetch all emails from all agents on initial load
