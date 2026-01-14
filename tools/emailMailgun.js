@@ -158,6 +158,15 @@ export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail, buildEmailSig
 
 export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
   try {
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('📧 [SEND EMAIL MAILGUN] Function called with:');
+    console.log('📧 to:', to);
+    console.log('📧 subject:', subject);
+    console.log('📧 enableTracking:', enableTracking);
+    console.log('📧 userId:', userId);
+    console.log('📧 agentId:', agentId);
+    console.log('═══════════════════════════════════════════════════════════════');
+    
     // Ensure we always have HTML content for tracking
     let htmlBody = body;
     
@@ -174,7 +183,19 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     // Use new AWS-based tracking system with DynamoDB
     if (enableTracking) {
       trackingId = `tracking-${userId}_${agentId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🎯 [TRACKING] Tracking enabled! Injecting tracking pixel...');
+      console.log('🎯 [TRACKING] Generated tracking ID:', trackingId);
+      console.log('🎯 [TRACKING] About to call addTrackingToEmail()');
+      console.log('═══════════════════════════════════════════════════════════════');
+      
       htmlBody = addTrackingToEmail(htmlBody, trackingId);
+      
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🎯 [TRACKING] addTrackingToEmail() completed');
+      console.log('🎯 [TRACKING] htmlBody length after tracking:', htmlBody.length);
+      console.log('🎯 [TRACKING] htmlBody contains tracking ID?', htmlBody.includes(trackingId));
+      console.log('═══════════════════════════════════════════════════════════════');
       
       console.log(`✅ [AWS TRACKING] Email tracking injected for ${to} with ID: ${trackingId} (User: ${userId}, Agent: ${agentId})`);
     }

@@ -99,22 +99,36 @@ Return ONLY valid JSON with this structure:
  */
 export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
   try {
-    console.log(`🔄 [REBUMP] Auto-scheduling follow-up for email ${sentEmail.id}`);
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(`🔄 [AUTO-SCHEDULE FOLLOW-UP] Starting for email ${sentEmail.id}`);
+    console.log('🔄 [AUTO-SCHEDULE] userId:', userId);
+    console.log('🔄 [AUTO-SCHEDULE] agentId:', agentId);
+    console.log('🔄 [AUTO-SCHEDULE] sentEmail:', JSON.stringify(sentEmail, null, 2));
+    console.log('═══════════════════════════════════════════════════════════════');
     
     // Get agent settings
+    console.log('🔄 [AUTO-SCHEDULE] Fetching agent settings...');
     const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
-    if (!agentSettings || !agentSettings.emailBuilder) return;
+    console.log('🔄 [AUTO-SCHEDULE] Agent settings:', JSON.stringify(agentSettings?.emailBuilder, null, 2));
+    
+    if (!agentSettings || !agentSettings.emailBuilder) {
+      console.log('⚠️ [AUTO-SCHEDULE] No agent settings or emailBuilder found');
+      return { success: false, reason: 'no_settings' };
+    }
 
     const rebumpEnabled = agentSettings.emailBuilder.enableRebump !== false;
+    console.log('🔄 [AUTO-SCHEDULE] Rebump enabled?', rebumpEnabled);
+    
     if (!rebumpEnabled) {
       console.log(`⚠️ [REBUMP] Auto-followup disabled for agent ${agentId}`);
-      return;
+      return { success: false, reason: 'disabled' };
     }
 
     // Check if follow-up already scheduled
+    console.log('🔄 [AUTO-SCHEDULE] followUpScheduled field:', sentEmail.followUpScheduled);
     if (sentEmail.followUpScheduled) {
       console.log(`⚠️ [REBUMP] Follow-up already scheduled for email ${sentEmail.id}`);
-      return;
+      return { success: false, reason: 'already_scheduled' };
     }
 
     // Generate templates if needed
@@ -122,24 +136,36 @@ export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
     const lastGenerated = agentSettings.followUpTemplates?.generatedAt;
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
+    console.log('🔄 [AUTO-SCHEDULE] Has templates?', !!templates);
+    console.log('🔄 [AUTO-SCHEDULE] Template count:', templates?.length || 0);
+    
     if (!templates || !lastGenerated || new Date(lastGenerated) < weekAgo) {
       console.log(`🔄 [REBUMP] Generating templates for auto-schedule`);
       const newTemplates = await generateFollowUpTemplates(userId, agentId);
       if (newTemplates) templates = newTemplates;
+      console.log('🔄 [AUTO-SCHEDULE] Generated templates:', templates?.length || 0);
     }
 
     // Get interval days from settings
     const intervalDays = agentSettings.emailBuilder.rebumpIntervalDays || 7;
+    console.log('🔄 [AUTO-SCHEDULE] Interval days:', intervalDays);
     
     // Calculate exact follow-up date
     const sentDate = new Date(sentEmail.sentAt || Date.now());
     const followUpDate = new Date(sentDate.getTime() + (intervalDays * 24 * 60 * 60 * 1000));
     
+    console.log('🔄 [AUTO-SCHEDULE] Sent date:', sentDate.toISOString());
+    console.log('🔄 [AUTO-SCHEDULE] Follow-up date:', followUpDate.toISOString());
+    
     // Get selected default template or use first one
     const selectedTemplateId = agentSettings.emailBuilder.selectedFollowUpTemplate || 0;
     const templateToUse = templates?.[selectedTemplateId] || templates?.[0];
+    
+    console.log('🔄 [AUTO-SCHEDULE] Selected template ID:', selectedTemplateId);
+    console.log('🔄 [AUTO-SCHEDULE] Template to use:', templateToUse ? { subject: templateToUse.subject } : 'none');
 
     // Mark email with calculated follow-up date and assigned template
+    console.log('🔄 [AUTO-SCHEDULE] Calling updateEmailStatus...');
     await emailQueue.updateEmailStatus(userId, agentId, sentEmail.id, 'SENT', 'SENT', {
       followUpScheduled: true,
       followUpScheduledAt: new Date().toISOString(),
@@ -149,8 +175,13 @@ export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
     });
 
     console.log(`✅ [REBUMP] Scheduled follow-up for ${followUpDate.toISOString()} (${intervalDays} days from send)`);
+    console.log('═══════════════════════════════════════════════════════════════');
+    
+    return { success: true, followUpDate: followUpDate.toISOString() };
   } catch (error) {
     console.error('❌ [REBUMP] Error auto-scheduling follow-up:', error);
+    console.error('❌ [REBUMP] Error stack:', error.stack);
+    return { success: false, error: error.message };
   }
 }
 

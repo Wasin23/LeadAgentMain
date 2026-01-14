@@ -360,6 +360,10 @@ router.post('/:id/approve', async (req, res) => {
       emailType: approvedEmail.metadata?.customEmail ? 'custom' : 'regular'
     });
     
+    console.log('🎯 [EMAIL QUEUE] About to send email via leadEmail() with tracking enabled');
+    console.log('🔑 [EMAIL QUEUE] userId:', userId);
+    console.log('🔑 [EMAIL QUEUE] effectiveAgentId:', effectiveAgentId);
+    
     const sendResult = await leadEmail(
       finalRecipient,
       finalSubject,
@@ -374,11 +378,17 @@ router.post('/:id/approve', async (req, res) => {
     
     if (sendResult.success) {
       console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);
+      console.log('📦 [EMAIL QUEUE] sendResult object:', JSON.stringify(sendResult, null, 2));
       
       // Mark email as sent in AWS DynamoDB
       if (sendResult.result) {
         try {
           const leadNameForTracking = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName;
+          
+          console.log('═══════════════════════════════════════════════════════════');
+          console.log('🎯 [TRACKING PIXEL] Tracking ID from sendResult:', sendResult.result.trackingId);
+          console.log('🎯 [TRACKING PIXEL] Has tracking ID?', !!sendResult.result.trackingId);
+          console.log('═══════════════════════════════════════════════════════════');
           
           console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {
             emailId: id,
@@ -406,18 +416,44 @@ router.post('/:id/approve', async (req, res) => {
           
           // Auto-schedule follow-up if enabled for this agent
           try {
+            console.log('═══════════════════════════════════════════════════════════');
+            console.log('📅 [FOLLOW-UP] Starting auto-schedule follow-up process');
+            console.log('📅 [FOLLOW-UP] userId:', userId);
+            console.log('📅 [FOLLOW-UP] effectiveAgentId:', effectiveAgentId);
+            console.log('📅 [FOLLOW-UP] emailId:', id);
+            console.log('═══════════════════════════════════════════════════════════');
+            
             // Get the sent email to pass to autoScheduleFollowUp
             const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
             const awsQueue = getAWSEmailQueue();
+            
+            console.log('📅 [FOLLOW-UP] Fetching sent emails from AWS...');
             const sentEmails = await awsQueue.getSentEmails(userId, effectiveAgentId);
+            console.log('📅 [FOLLOW-UP] Found', sentEmails.length, 'sent emails');
+            
             const sentEmail = sentEmails.find(e => e.id === id);
+            console.log('📅 [FOLLOW-UP] Found sent email?', !!sentEmail);
             
             if (sentEmail) {
-              await autoScheduleFollowUp(userId, effectiveAgentId, sentEmail);
+              console.log('📅 [FOLLOW-UP] Sent email details:', {
+                id: sentEmail.id,
+                to: sentEmail.to,
+                subject: sentEmail.subject,
+                sentAt: sentEmail.sentAt,
+                hasTrackingId: !!sentEmail.trackingId
+              });
+              
+              console.log('📅 [FOLLOW-UP] Calling autoScheduleFollowUp...');
+              const result = await autoScheduleFollowUp(userId, effectiveAgentId, sentEmail);
+              console.log('📅 [FOLLOW-UP] autoScheduleFollowUp result:', result);
               console.log(`[EMAIL QUEUE] 📅 Auto-scheduled follow-up for email ${id}`);
+            } else {
+              console.log('⚠️ [FOLLOW-UP] Could not find sent email with id:', id);
+              console.log('⚠️ [FOLLOW-UP] Available sent email IDs:', sentEmails.map(e => e.id));
             }
           } catch (followUpError) {
             console.error('[EMAIL QUEUE] ⚠️ Failed to auto-schedule follow-up:', followUpError);
+            console.error('[EMAIL QUEUE] ⚠️ Follow-up error stack:', followUpError.stack);
             // Don't fail the email send if follow-up scheduling fails
           }
         } catch (trackingError) {
