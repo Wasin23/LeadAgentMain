@@ -188,8 +188,35 @@ router.post('/gmail-notification', async (req, res) => {
     }
 
     // Get history of changes since last check
-    const history = await gmailManager.getHistory(user.userId, lastHistoryId);
-    console.log(`📜 [GMAIL PUBSUB] Found ${history.length} history items`);
+    let history;
+    try {
+      history = await gmailManager.getHistory(user.userId, lastHistoryId);
+      console.log(`📜 [GMAIL PUBSUB] Found ${history.length} history items`);
+    } catch (error) {
+      // If history ID is expired (404), reset to current history ID
+      if (error.status === 404 || error.code === 404) {
+        console.log('⚠️ [GMAIL PUBSUB] History ID expired, resetting to current...');
+        
+        // Get current profile to get fresh historyId
+        const profile = await gmailManager.getUserProfile(user.userId);
+        const currentHistoryId = profile.historyId;
+        
+        console.log(`🔄 [GMAIL PUBSUB] Reset historyId from ${lastHistoryId} to ${currentHistoryId}`);
+        
+        // Save the new historyId
+        await awsManager.saveUserSettings(user.userId, {
+          ...userSettings,
+          gmailWatch: {
+            ...userSettings.gmailWatch,
+            historyId: currentHistoryId
+          }
+        });
+        
+        // Skip processing this notification since we can't get history
+        return;
+      }
+      throw error;
+    }
 
     // Update the historyId for next time
     await awsManager.saveUserSettings(user.userId, {

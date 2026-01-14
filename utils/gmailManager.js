@@ -613,6 +613,42 @@ class GmailManager {
   }
 
   /**
+   * Get Gmail user profile (includes current historyId)
+   */
+  async getUserProfile(userId) {
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      
+      let refreshToken;
+      if (userSettings?.gmailAuth?.refreshToken) {
+        refreshToken = userSettings.gmailAuth.refreshToken;
+      } else if (userSettings?.calendarTokens?.refresh_token && 
+                 userSettings?.calendarTokens?.scope?.includes('gmail')) {
+        refreshToken = userSettings.calendarTokens.refresh_token;
+      }
+      
+      if (!refreshToken) {
+        throw new Error('No Gmail refresh token found');
+      }
+
+      this.oauth2Client.setCredentials({
+        refresh_token: refreshToken
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+      const response = await gmail.users.getProfile({
+        userId: 'me'
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('❌ [GMAIL] Error getting profile:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get history of changes since a specific historyId
    */
   async getHistory(userId, startHistoryId) {
