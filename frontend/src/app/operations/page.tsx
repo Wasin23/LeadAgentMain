@@ -1634,7 +1634,7 @@ export default function InteractiveGlobe() {
                   const isExpanded = expandedEmailId === emailId;
                   const hasAiReport = !!email.aiReport;
                   const isOrphaned = email.agentId === 'orphan';
-                  const sentDate = email.timestamp ? new Date(email.timestamp) : null;
+                  const sentDate = (selectedQueue?.type === 'sent' && email.sentAt) ? new Date(email.sentAt) : null;
                   
                   // Debug: Log follow-up data for each email
                   if (selectedQueue?.type === 'sent' && idx === 0) {
@@ -1974,7 +1974,7 @@ export default function InteractiveGlobe() {
         {/* Globe - Hidden on mobile */}
         <div className="text-center relative">
           {/* Start/Stop All Agents Button - Above Globe */}
-          {(showGlobe || isAnimatingOut) && !globeLoading && (
+          {(showGlobe || isAnimatingOut) && (
             <div className={`mb-8 relative inline-block transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
               <button
                 onClick={async () => {
@@ -2049,39 +2049,20 @@ export default function InteractiveGlobe() {
             </div>
           )}
           
-          {/* Loading Bar */}
-          {showGlobe && globeLoading && (
-            <div className="w-full max-w-5xl mx-auto px-4 mb-8 animate-fadeIn">
-              <div className="bg-[#0F1E35] rounded-lg p-4 border border-[#4FD1FF]/30">
-                <p className="text-[#4FD1FF] text-center text-sm font-medium mb-3">Initializing Globe...</p>
-                <div className="bg-[#1B2F52] rounded-full h-3 overflow-hidden border border-[#4FD1FF]/50">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF]"
-                    style={{
-                      width: '0%',
-                      animation: 'progressBar 2s ease-out forwards',
-                      boxShadow: '0 0 15px rgba(79,209,255,0.8)'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Globe Canvas */}
-          {(showGlobe || isAnimatingOut) && !globeLoading ? (
+          {(showGlobe || isAnimatingOut) && (
             <canvas
               ref={canvasRef}
               className={`cursor-default transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
               onClick={handleCanvasClick}
             />
-          ) : null}
+          )}
         </div>
       </div>
-      )}
 
-      {/* Animated Satellite - Hidden on mobile and medium screens */}
-      {(showGlobe || isAnimatingOut) && !globeLoading && (
+        )}
+        {/* Animated Satellite - Hidden on mobile and medium screens */}
+      {(showGlobe || isAnimatingOut) && (
         <div 
           className={`fixed right-[calc(50%+18rem)] lg:right-[22rem] xl:right-[26rem] top-1/2 pointer-events-auto cursor-pointer z-50 hidden lg:block transition-all duration-500 ${!showGlobe && isAnimatingOut ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
           style={{
@@ -2135,7 +2116,7 @@ export default function InteractiveGlobe() {
       )}
 
       {/* Email Dots on Globe (color-coded by status) */}
-      {showGlobe && !globeLoading && emailDots.map((email) => {
+      {showGlobe && emailDots.map((email) => {
         // Project email location to screen coordinates
         const baseScale = canvasSize / 2.0;
         const centerPos = canvasSize / 2;
@@ -2177,7 +2158,7 @@ export default function InteractiveGlobe() {
       })}
 
       {/* Active Agents on Globe */}
-      {showGlobe && !globeLoading && agents.map((agent, index) => {
+      {showGlobe && agents.map((agent, index) => {
         // Show agents that are running OR have activity
         const activity = agentActivities[agent.agentId];
         const isActive = agent.status === 'running' || activity?.isActive;

@@ -381,34 +381,6 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             <div className="text-[#8FA6C1] text-sm">None</div>
           )}
         </div>
-        
-        {/* Globe View Toggle */}
-        {setShowGlobe && (
-          <button
-            onClick={() => setShowGlobe(!showGlobe)}
-            className={`w-full mt-3 px-3 py-2 rounded-lg flex items-center justify-between transition-all ${
-              showGlobe 
-                ? 'bg-[#4FD1FF]/20 border border-[#4FD1FF] text-[#4FD1FF]' 
-                : 'bg-[#1B2F52] border border-white/10 text-[#8FA6C1] hover:text-white hover:border-white/20'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M2 12h20"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-              <span className="text-sm font-medium">Globe View</span>
-            </div>
-            <div className={`w-10 h-5 rounded-full transition-colors ${
-              showGlobe ? 'bg-[#4FD1FF]' : 'bg-[#2A4472]'
-            }`}>
-              <div className={`w-4 h-4 bg-white rounded-full transition-transform transform ${
-                showGlobe ? 'translate-x-5' : 'translate-x-0.5'
-              } mt-0.5`} />
-            </div>
-          </button>
-        )}
       </div>
 
       {/* Scrollable Content - Agents and Notifications */}
