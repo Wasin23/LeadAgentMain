@@ -1577,7 +1577,7 @@ export default function InteractiveGlobe() {
                 className="w-full px-2 py-1 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-[11px] focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
               >
                 <option value="all">All Agents</option>
-                {agents.map(agent => (
+                {agents.filter(a => a.agentId !== 'orphan').map(agent => (
                   <option key={agent.agentId} value={agent.agentId}>{agent.name}</option>
                 ))}
               </select>
@@ -1611,7 +1611,7 @@ export default function InteractiveGlobe() {
                   const isExpanded = expandedEmailId === emailId;
                   const hasAiReport = !!email.aiReport;
                   const isOrphaned = email.agentId === 'orphan';
-                  const sentDate = email.timestamp ? new Date(email.timestamp) : null;
+                  const sentDate = (selectedQueue?.type === 'sent' && email.sentAt) ? new Date(email.sentAt) : null;
                   
                   // Debug: Log follow-up data for each email
                   if (selectedQueue?.type === 'sent' && idx === 0) {

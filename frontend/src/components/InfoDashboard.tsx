@@ -348,10 +348,10 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
         {/* Active Agents Display */}
         <div className="mt-4 rounded-xl">
           <div className="text-[#A3B4CC] text-xs uppercase tracking-wider mb-3 font-semibold">Active Agents</div>
-          {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 0 ? (
+          {agents.filter(a => a.agentId !== 'orphan' && (agentActivities[a.agentId]?.isActive || a.status === 'running')).length > 0 ? (
             <div className="flex flex-wrap gap-3">
               {agents
-                .filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running')
+                .filter(a => a.agentId !== 'orphan' && (agentActivities[a.agentId]?.isActive || a.status === 'running'))
                 .slice(0, 5)
                 .map((agent) => (
                   <div key={agent.agentId} className="relative">
@@ -369,10 +369,10 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0F1E35] animate-pulse" />
                   </div>
                 ))}
-              {agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length > 5 && (
+              {agents.filter(a => a.agentId !== 'orphan' && (agentActivities[a.agentId]?.isActive || a.status === 'running')).length > 5 && (
                 <div className="w-12 h-12 rounded-full bg-[#1B2F52] flex items-center justify-center border-2 border-[#4FD1FF]/40">
                   <span className="text-[#4FD1FF] text-xs font-bold">
-                    +{agents.filter(a => agentActivities[a.agentId]?.isActive || a.status === 'running').length - 5}
+                    +{agents.filter(a => a.agentId !== 'orphan' && (agentActivities[a.agentId]?.isActive || a.status === 'running')).length - 5}
                   </span>
                 </div>
               )}
@@ -393,7 +393,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
               Agents
             </h3>
             <span className="text-[#4FD1FF] font-bold text-sm">
-              {agents.length}/{maxAgents}
+              {agents.filter(a => a.agentId !== 'orphan').length}/{maxAgents}
             </span>
           </div>
 
@@ -401,7 +401,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
           <div className="w-full bg-[#1B2F52] rounded-full h-2 mb-4">
             <div 
               className="bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(agents.length / maxAgents) * 100}%` }}
+              style={{ width: `${(agents.filter(a => a.agentId !== 'orphan').length / maxAgents) * 100}%` }}
             />
           </div>
 
