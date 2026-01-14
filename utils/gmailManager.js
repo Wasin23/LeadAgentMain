@@ -165,10 +165,10 @@ class GmailManager {
       const finalTrackingId = trackingId || `tracking-${userId}_${agentId || 'unknown'}_${Date.now()}`;
       console.log(`📊 [GMAIL] Using tracking ID: ${finalTrackingId}`);
 
-      // Tracking pixel is already added by emailMailgun.js before reaching here
-      // Don't add a duplicate pixel
+      // Tracking pixel was already injected by sendEmailMailgun before routing to Gmail
       let finalHtmlBody = htmlBody || textBody;
-      console.log(`📊 [GMAIL] Tracking pixel already included in email body (added by emailMailgun.js)`);
+      console.log(`📊 [GMAIL] Email body received (tracking pixel should already be included)`);
+      console.log(`📊 [GMAIL] Body contains tracking pixel?`, finalHtmlBody?.includes(finalTrackingId));
 
       // Build email message in RFC 2822 format
       const messageParts = [

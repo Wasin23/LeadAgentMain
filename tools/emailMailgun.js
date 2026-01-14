@@ -181,6 +181,8 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     let trackingId = null;
     
     // Use new AWS-based tracking system with DynamoDB
+    // IMPORTANT: Generate tracking ID and inject pixel BEFORE checking Gmail routing
+    // so that Gmail emails also get the tracking pixel
     if (enableTracking) {
       trackingId = `tracking-${userId}_${agentId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       console.log('═══════════════════════════════════════════════════════════════');
@@ -195,6 +197,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       console.log('🎯 [TRACKING] addTrackingToEmail() completed');
       console.log('🎯 [TRACKING] htmlBody length after tracking:', htmlBody.length);
       console.log('🎯 [TRACKING] htmlBody contains tracking ID?', htmlBody.includes(trackingId));
+      console.log('🎯 [TRACKING] Tracking pixel injected BEFORE Gmail/Mailgun routing');
       console.log('═══════════════════════════════════════════════════════════════');
       
       console.log(`✅ [AWS TRACKING] Email tracking injected for ${to} with ID: ${trackingId} (User: ${userId}, Agent: ${agentId})`);

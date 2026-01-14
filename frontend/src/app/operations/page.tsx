@@ -737,7 +737,24 @@ export default function InteractiveGlobe() {
       else if (type === 'replied') endpoint = `/api/email-queue/replied?agentId=${agentId}`;
       
       const response = await api.get(endpoint);
-      setQueueEmails(Array.isArray(response.data) ? response.data : []);
+      const emails = Array.isArray(response.data) ? response.data : [];
+      
+      // Debug: Log follow-up data for sent emails
+      if (type === 'sent' && emails.length > 0) {
+        console.log('📅 [FOLLOW-UP DEBUG] Fetched sent emails:', emails.length);
+        const emailsWithFollowUp = emails.filter(e => e.followUpScheduled || e.followUpDate);
+        console.log('📅 [FOLLOW-UP DEBUG] Emails with follow-up data:', emailsWithFollowUp.length);
+        if (emailsWithFollowUp.length > 0) {
+          console.log('📅 [FOLLOW-UP DEBUG] Sample email with follow-up:', {
+            id: emailsWithFollowUp[0].id,
+            followUpScheduled: emailsWithFollowUp[0].followUpScheduled,
+            followUpDate: emailsWithFollowUp[0].followUpDate,
+            assignedTemplateId: emailsWithFollowUp[0].assignedTemplateId
+          });
+        }
+      }
+      
+      setQueueEmails(emails);
     } catch (error) {
       console.error('Error fetching queue emails:', error);
       setQueueEmails([]);
@@ -874,7 +891,7 @@ export default function InteractiveGlobe() {
   const handleApproveEmail = async (emailId: string) => {
     if (!selectedQueue || !selectedAgent) return;
     
-    // Optimistic update - remove email immediately
+    // Optimistic update - remove email immediately from queue
     setQueueEmails(prev => prev.filter(e => (e._id || e.id) !== emailId));
     setStats(prev => ({
       ...prev,
@@ -892,6 +909,14 @@ export default function InteractiveGlobe() {
         isOrphaned: selectedAgent.agentId === 'orphan'
       });
       showToast('Email sent successfully! 🚀', 'success');
+      
+      // Refresh sent emails to get the updated data with follow-up info
+      // Wait a moment for backend to process
+      setTimeout(() => {
+        if (selectedQueue.type === 'sent' || selectedAgent) {
+          fetchQueueEmails(selectedAgent.agentId, 'sent');
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error approving email:', error);
       showToast('Failed to send email', 'error');
@@ -1643,6 +1668,12 @@ export default function InteractiveGlobe() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    console.log('📅 [FOLLOW-UP BADGE] Clicked on email:', {
+                                      id: email.id,
+                                      followUpScheduled: email.followUpScheduled,
+                                      followUpDate: email.followUpDate,
+                                      assignedTemplateId: email.assignedTemplateId
+                                    });
                                     setFollowUpModal(email);
                                     setEditFollowUpDate(new Date(email.followUpDate).toISOString().slice(0, 16));
                                     setEditTemplateId(email.assignedTemplateId || 0);
