@@ -287,6 +287,8 @@ export default function InteractiveGlobe() {
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const [modalSize, setModalSize] = useState({ width: 896, height: 600 }); // max-w-4xl = 896px
   const [isDraggingModal, setIsDraggingModal] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<string>('');
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -1481,6 +1483,8 @@ export default function InteractiveGlobe() {
                 value={selectedQueue?.type || 'queued'}
                 onChange={(e) => {
                   const newType = e.target.value as 'queued' | 'sent' | 'replied';
+                  setSelectionMode(false);
+                  setSelectedEmails(new Set());
                   if (selectedAgent) {
                     setSelectedQueue({ agentId: selectedAgent.agentId, type: newType, agentName: selectedAgent.name });
                     fetchQueueEmails(selectedAgent.agentId, newType);
@@ -1520,7 +1524,7 @@ export default function InteractiveGlobe() {
               </select>
               
               {/* Auto-Editor Button (only for queued) */}
-              {selectedQueue?.type === 'queued' && (
+              {selectedQueue?.type === 'queued' && !selectionMode && (
                 <button
                   onClick={() => setShowAutoEditor(true)}
                   className="px-3 py-1 bg-blue-500/80 hover:bg-blue-600 text-white rounded text-xs border border-blue-400/50 transition-colors font-medium"
@@ -1528,6 +1532,61 @@ export default function InteractiveGlobe() {
                 >
                   🔧 Bulk Edit
                 </button>
+              )}
+              
+              {/* Selection Mode Controls */}
+              {selectedQueue?.type === 'queued' && (
+                <>
+                  {!selectionMode ? (
+                    <button
+                      onClick={() => setSelectionMode(true)}
+                      className="px-3 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-xs font-medium transition-colors border border-[#4FD1FF]/30"
+                    >
+                      Select
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectionMode(false);
+                          setSelectedEmails(new Set());
+                        }}
+                        className="px-3 py-1 bg-white/10 hover:bg-white/20 text-[#8FA6C1] rounded text-xs font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      {selectedEmails.size > 0 && (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-[#4FD1FF]/10 rounded border border-[#4FD1FF]/30">
+                          <span className="text-[#4FD1FF] text-xs font-medium">{selectedEmails.size} selected</span>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Send ${selectedEmails.size} email(s)?`)) return;
+                              
+                              for (const emailId of selectedEmails) {
+                                const email = queueEmails.find(e => (e._id || e.id) === emailId);
+                                if (email) {
+                                  await handleAcceptEmail(emailId, email.agentId);
+                                }
+                              }
+                              
+                              setSelectedEmails(new Set());
+                              setSelectionMode(false);
+                            }}
+                            className="px-2 py-0.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-xs font-medium transition-colors"
+                          >
+                            Send All
+                          </button>
+                          <button
+                            onClick={() => setSelectedEmails(new Set())}
+                            className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded transition-colors"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
               
               <span className="text-[10px] text-[#8FA6C1] ml-2">{queueEmails.length} emails</span>
@@ -1606,6 +1665,30 @@ export default function InteractiveGlobe() {
                   
                   return (
                     <>
+                      {/* Select Page Button - only show in selection mode and queued type */}
+                      {selectionMode && selectedQueue?.type === 'queued' && (
+                        <div className="flex items-center justify-between mb-2 px-1">
+                          <button
+                            onClick={() => {
+                              const currentPageIds = new Set(paginatedEmails.map(e => e._id || e.id).filter(Boolean));
+                              if (paginatedEmails.every(e => selectedEmails.has(e._id || e.id))) {
+                                // Deselect all on page
+                                setSelectedEmails(prev => {
+                                  const newSet = new Set(prev);
+                                  currentPageIds.forEach(id => newSet.delete(id));
+                                  return newSet;
+                                });
+                              } else {
+                                // Select all on page
+                                setSelectedEmails(prev => new Set([...prev, ...currentPageIds]));
+                              }
+                            }}
+                            className="px-3 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors border border-[#4FD1FF]/30"
+                          >
+                            {paginatedEmails.every(e => selectedEmails.has(e._id || e.id)) ? 'Deselect Page' : 'Select Page'}
+                          </button>
+                        </div>
+                      )}
                       {paginatedEmails.map((email, idx) => {
                   const emailId = email._id || email.id;
                   const isExpanded = expandedEmailId === emailId;
@@ -1631,10 +1714,34 @@ export default function InteractiveGlobe() {
                       {/* Collapsed Header */}
                       <div
                         className="p-2.5 cursor-pointer hover:bg-white/5"
-                        onClick={() => setExpandedEmailId(isExpanded ? null : emailId)}
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return;
+                          setExpandedEmailId(isExpanded ? null : emailId);
+                        }}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {/* Checkbox - only show in selection mode for queued emails */}
+                            {selectionMode && selectedQueue?.type === 'queued' && (
+                              <input
+                                type="checkbox"
+                                checked={selectedEmails.has(emailId)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedEmails(prev => {
+                                    const newSet = new Set(prev);
+                                    if (newSet.has(emailId)) {
+                                      newSet.delete(emailId);
+                                    } else {
+                                      newSet.add(emailId);
+                                    }
+                                    return newSet;
+                                  });
+                                }}
+                                className="w-4 h-4 rounded-full border-2 border-[#4FD1FF]/60 bg-[#0A1525]/60 text-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF] focus:ring-offset-0 flex-shrink-0 cursor-pointer"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               {isOrphaned && (
                                 <span className="text-[10px] font-semibold bg-red-500/80 text-white px-1.5 py-0.5 rounded">
@@ -1655,6 +1762,7 @@ export default function InteractiveGlobe() {
                               <div className="text-white text-[11px] font-medium truncate flex-1">
                                 {email.subject || 'No Subject'}
                               </div>
+                            </div>
                             </div>
                             <div className="text-[#8FA6C1] text-[11px] truncate mb-1">
                               To: {email.to} {email.agentName && `• ${email.agentName}`}

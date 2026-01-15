@@ -23,6 +23,7 @@ export default function OutreachPage() {
   const [outreachPage, setOutreachPage] = useState(0);
   const [selectedEmailForView, setSelectedEmailForView] = useState<any | null>(null);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<any | null>(null);
   const [editFollowUpDate, setEditFollowUpDate] = useState('');
   const [showMassEditModal, setShowMassEditModal] = useState(false);
@@ -420,30 +421,54 @@ export default function OutreachPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {selectedEmails.size > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-[#4FD1FF]/10 rounded border border-[#4FD1FF]/30">
-                    <span className="text-[#4FD1FF] text-[11px] font-medium">{selectedEmails.size} selected</span>
+                {!selectionMode ? (
+                  // Not in selection mode - show Select button
+                  <>
+                    <button
+                      onClick={() => setSelectionMode(true)}
+                      className="px-3 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-[11px] font-medium transition-colors border border-[#4FD1FF]/30"
+                    >
+                      Select
+                    </button>
+                    <span className="text-[11px] text-[#8FA6C1]">
+                      {activeTab === 'sent' && `${emailActivity.length} emails`}
+                      {activeTab === 'followups' && `${followUpEmails.length} follow-ups`}
+                    </span>
+                  </>
+                ) : (
+                  // In selection mode - show selected count and actions
+                  <>
                     <button
                       onClick={() => {
-                        setMassEditDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16));
-                        setShowMassEditModal(true);
+                        setSelectionMode(false);
+                        setSelectedEmails(new Set());
                       }}
-                      className="px-2 py-0.5 bg-[#4FD1FF]/20 hover:bg-[#4FD1FF]/30 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors"
+                      className="px-3 py-1 bg-white/10 hover:bg-white/20 text-[#8FA6C1] rounded text-[11px] font-medium transition-colors"
                     >
-                      Reschedule All
+                      Cancel
                     </button>
-                    <button
-                      onClick={() => setSelectedEmails(new Set())}
-                      className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] rounded transition-colors"
-                    >
-                      Clear
-                    </button>
-                  </div>
+                    {selectedEmails.size > 0 && (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-[#4FD1FF]/10 rounded border border-[#4FD1FF]/30">
+                        <span className="text-[#4FD1FF] text-[11px] font-medium">{selectedEmails.size} selected</span>
+                        <button
+                          onClick={() => {
+                            setMassEditDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16));
+                            setShowMassEditModal(true);
+                          }}
+                          className="px-2 py-0.5 bg-[#4FD1FF]/20 hover:bg-[#4FD1FF]/30 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors"
+                        >
+                          Reschedule All
+                        </button>
+                        <button
+                          onClick={() => setSelectedEmails(new Set())}
+                          className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] rounded transition-colors"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
-                <span className="text-[11px] text-[#8FA6C1]">
-                  {activeTab === 'sent' && `${emailActivity.length} emails`}
-                  {activeTab === 'followups' && `${followUpEmails.length} follow-ups`}
-                </span>
               </div>
             </div>
             )}
@@ -505,27 +530,29 @@ export default function OutreachPage() {
                     
                     return (
                       <>
-                        <div className="flex items-center justify-between mb-2">
-                          <button
-                            onClick={() => {
-                              const currentPageIds = new Set(paginated.map(e => e.trackingId || e.id).filter(Boolean));
-                              if (paginated.every(e => selectedEmails.has(e.trackingId || e.id))) {
-                                // Deselect all on page
-                                setSelectedEmails(prev => {
-                                  const newSet = new Set(prev);
-                                  currentPageIds.forEach(id => newSet.delete(id));
-                                  return newSet;
-                                });
-                              } else {
-                                // Select all on page
-                                setSelectedEmails(prev => new Set([...prev, ...currentPageIds]));
-                              }
-                            }}
-                            className="px-3 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors border border-[#4FD1FF]/30"
-                          >
-                            {paginated.every(e => selectedEmails.has(e.trackingId || e.id)) ? 'Deselect Page' : 'Select Page'}
-                          </button>
-                        </div>
+                        {selectionMode && (
+                          <div className="flex items-center justify-between mb-2">
+                            <button
+                              onClick={() => {
+                                const currentPageIds = new Set(paginated.map(e => e.trackingId || e.id).filter(Boolean));
+                                if (paginated.every(e => selectedEmails.has(e.trackingId || e.id))) {
+                                  // Deselect all on page
+                                  setSelectedEmails(prev => {
+                                    const newSet = new Set(prev);
+                                    currentPageIds.forEach(id => newSet.delete(id));
+                                    return newSet;
+                                  });
+                                } else {
+                                  // Select all on page
+                                  setSelectedEmails(prev => new Set([...prev, ...currentPageIds]));
+                                }
+                              }}
+                              className="px-3 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors border border-[#4FD1FF]/30"
+                            >
+                              {paginated.every(e => selectedEmails.has(e.trackingId || e.id)) ? 'Deselect Page' : 'Select Page'}
+                            </button>
+                          </div>
+                        )}
                         {paginated.map((email, idx) => {
                           const emailId = email.trackingId || email.id;
                           const hasOpened = email.analyticsStatus?.opened;
@@ -547,23 +574,25 @@ export default function OutreachPage() {
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedEmails.has(emailId)}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedEmails(prev => {
-                                        const newSet = new Set(prev);
-                                        if (newSet.has(emailId)) {
-                                          newSet.delete(emailId);
-                                        } else {
-                                          newSet.add(emailId);
-                                        }
-                                        return newSet;
-                                      });
-                                    }}
-                                    className="w-4 h-4 rounded border-[#4FD1FF]/40 bg-[#0A1525]/60 text-[#4FD1FF] focus:ring-[#4FD1FF]/40 focus:ring-offset-0"
-                                  />
+                                  {selectionMode && (
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedEmails.has(emailId)}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedEmails(prev => {
+                                          const newSet = new Set(prev);
+                                          if (newSet.has(emailId)) {
+                                            newSet.delete(emailId);
+                                          } else {
+                                            newSet.add(emailId);
+                                          }
+                                          return newSet;
+                                        });
+                                      }}
+                                      className="w-4 h-4 rounded-full border-2 border-[#4FD1FF]/60 bg-[#0A1525]/60 text-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF] focus:ring-offset-0 cursor-pointer"
+                                    />
+                                  )}
                                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                                     hasReplied ? 'bg-purple-400' : hasClicked ? 'bg-yellow-400' : hasOpened ? 'bg-green-400' : isBounced ? 'bg-red-400' : 'bg-blue-400'
                                   }`} />
