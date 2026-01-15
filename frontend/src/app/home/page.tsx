@@ -37,6 +37,17 @@ interface Agent {
   agentId: string;
   name: string;
   createdAt?: string;
+  personality?: {
+    type?: string;
+    avatar?: string;
+  };
+  settings?: {
+    emailBuilder?: {
+      useGmail?: boolean;
+    };
+  };
+  status?: string;
+  currentActivity?: string;
 }
 
 export default function HomePage() {
@@ -60,6 +71,13 @@ export default function HomePage() {
   });
   const [agents, setAgents] = useState<Agent[]>([]);
   const [agentActivity, setAgentActivity] = useState<{date: string, count: number}[]>([]);
+  const [statsChanges, setStatsChanges] = useState({
+    queued: 0,
+    sent: 0,
+    replied: 0,
+    opened: 0
+  });
+  const [agentStats, setAgentStats] = useState<{[key: string]: {queued: number, sent: number}}>({});
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -107,6 +125,40 @@ export default function HomePage() {
         if (agentsResponse.data?.agents) {
           setAgents(agentsResponse.data.agents);
           
+          // Fetch individual agent stats
+          const statsMap: {[key: string]: {queued: number, sent: number}} = {};
+          for (const agent of agentsResponse.data.agents) {
+            if (agent.agentId === 'orphan') continue;
+            
+            try {
+              // Fetch queued emails for this agent
+              const queueResponse = await api.get('/api/email-queue/queue', {
+                params: { agentId: agent.agentId }
+              });
+              const queuedEmails = Array.isArray(queueResponse.data) ? queueResponse.data : (queueResponse.data?.emails || []);
+              
+              // Fetch sent emails for this agent (last 7 days)
+              const sentResponse = await api.get('/api/email-queue/sent', {
+                params: { agentId: agent.agentId }
+              });
+              const agentSentEmails = Array.isArray(sentResponse.data) ? sentResponse.data : (sentResponse.data?.emails || []);
+              const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+              const recentSent = agentSentEmails.filter((email: any) => {
+                const emailDate = new Date(email.sentAt || email.timestamp);
+                return emailDate >= last7Days;
+              });
+              
+              statsMap[agent.agentId] = {
+                queued: queuedEmails.length,
+                sent: recentSent.length
+              };
+            } catch (error) {
+              console.error(`Error fetching stats for agent ${agent.agentId}:`, error);
+              statsMap[agent.agentId] = { queued: 0, sent: 0 };
+            }
+          }
+          setAgentStats(statsMap);
+          
           // Generate activity data based on sent emails for last 7 days
           const activity = [];
           const sentEmails = sentEmailsResponse.data || [];
@@ -128,6 +180,60 @@ export default function HomePage() {
             });
           }
           setAgentActivity(activity);
+
+          // Calculate percentage changes for last 7 days vs previous 7 days
+          const now = new Date();
+          const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const previous7Days = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+          // Fetch replied emails for change calculation
+          const repliedResponse = await api.get('/api/email-queue/replied?agentId=all');
+          const repliedEmails = Array.isArray(repliedResponse.data) ? repliedResponse.data : (repliedResponse.data?.emails || []);
+
+          // Calculate stats for current and previous periods
+          const calculateChange = (current: number, previous: number) => {
+            if (previous === 0) return current > 0 ? 100 : 0;
+            return Math.round(((current - previous) / previous) * 100);
+          };
+
+          // Current period (last 7 days)
+          const currentSent = sentEmails.filter((email: any) => {
+            const emailDate = new Date(email.sentAt || email.timestamp);
+            return emailDate >= last7Days;
+          }).length;
+
+          const currentReplied = repliedEmails.filter((email: any) => {
+            const emailDate = new Date(email.repliedAt || email.timestamp);
+            return emailDate >= last7Days;
+          }).length;
+
+          const currentOpened = sentEmails.filter((email: any) => {
+            const emailDate = new Date(email.sentAt || email.timestamp);
+            return emailDate >= last7Days && (email.opened === true || email.analytics?.opened === true);
+          }).length;
+
+          // Previous period (7-14 days ago)
+          const previousSent = sentEmails.filter((email: any) => {
+            const emailDate = new Date(email.sentAt || email.timestamp);
+            return emailDate >= previous7Days && emailDate < last7Days;
+          }).length;
+
+          const previousReplied = repliedEmails.filter((email: any) => {
+            const emailDate = new Date(email.repliedAt || email.timestamp);
+            return emailDate >= previous7Days && emailDate < last7Days;
+          }).length;
+
+          const previousOpened = sentEmails.filter((email: any) => {
+            const emailDate = new Date(email.sentAt || email.timestamp);
+            return emailDate >= previous7Days && emailDate < last7Days && (email.opened === true || email.analytics?.opened === true);
+          }).length;
+
+          setStatsChanges({
+            queued: 0, // Queue doesn't have historical data
+            sent: calculateChange(currentSent, previousSent),
+            replied: calculateChange(currentReplied, previousReplied),
+            opened: calculateChange(currentOpened, previousOpened)
+          });
         }
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -184,19 +290,52 @@ export default function HomePage() {
           <h1 className="text-3xl font-bold text-white">
             Welcome back, {getFirstName()}
           </h1>
-          <button
-            onClick={() => {
-              setNavigating(true);
-              router.push('/operations');
-            }}
-            disabled={navigating}
-            className="px-4 py-2 bg-[#4FD1FF] hover:bg-[#4FD1FF]/80 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {navigating ? 'Loading...' : 'Get Started'}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-3">
+            {/* CRM Connection Badge */}
+            <button
+              onClick={() => router.push('/profile')}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
+                crmStatus.connected
+                  ? 'bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20'
+                  : 'bg-[#4FD1FF]/10 border border-[#4FD1FF]/30 text-[#4FD1FF] hover:bg-[#4FD1FF]/20'
+              }`}
+            >
+              {crmStatus.connected ? (
+                crmStatus.integration === 'hubspot' ? (
+                  <svg className="w-4 h-4" viewBox="0 0 512 512" fill="currentColor">
+                    <path d="M267.4 211.6c-25.1 23.7-40.8 57.3-40.8 94.6 0 29.3 9.7 56.3 26 78L203.1 434c-4.4-1.6-9.1-2.5-14-2.5-10.8 0-20.9 4.2-28.5 11.8-7.6 7.6-11.8 17.8-11.8 28.6s4.2 20.9 11.8 28.5c7.6 7.6 17.8 11.6 28.5 11.6 10.8 0 20.9-3.9 28.6-11.6 7.6-7.6 11.8-17.8 11.8-28.5 0-4.2-.6-8.2-1.9-12.1l50-50.2c22 16.9 49.4 26.9 79.3 26.9 71.9 0 130-58.3 130-130.2 0-65.2-47.7-119.2-110.2-128.7V116c17.5-7.4 28.2-23.8 28.2-42.9 0-26.1-20.9-47.9-47-47.9S311.2 47 311.2 73.1c0 19.1 10.7 35.5 28.2 42.9v61.2c-15.2 2.1-29.6 6.7-42.7 13.6-27.6-20.9-117.5-85.7-168.9-124.8 1.2-4.4 2-9 2-13.8C129.8 23.4 106.3 0 77.4 0 48.6 0 25.2 23.4 25.2 52.2c0 28.9 23.4 52.3 52.2 52.3 9.8 0 18.9-2.9 26.8-7.6l163.2 114.7zm89.5 163.6c-38.1 0-69-30.9-69-69s30.9-69 69-69 69 30.9 69 69-30.9 69-69 69z"/>
+                  </svg>
+                ) : crmStatus.integration === 'salesforce' ? (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10.006 5.415a4.195 4.195 0 013.045-1.306c1.56 0 2.954.852 3.676 2.152.9-.472 1.923-.73 2.989-.73 3.639 0 6.59 2.951 6.59 6.59s-2.951 6.59-6.59 6.59c-.403 0-.803-.035-1.19-.104a4.878 4.878 0 01-4.134 2.284c-1.736 0-3.267-.903-4.133-2.265a4.19 4.19 0 01-2.405.762C3.455 19.388.5 16.433.5 12.998c0-2.846 1.912-5.242 4.524-5.99a4.195 4.195 0 014.982-1.593z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              )}
+              <span>{crmStatus.connected ? crmStatus.integration?.toUpperCase() : 'Connect CRM'}</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                setNavigating(true);
+                router.push('/operations');
+              }}
+              disabled={navigating}
+              className="px-4 py-2 bg-[#4FD1FF] hover:bg-[#4FD1FF]/80 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {navigating ? 'Loading...' : 'Get Started'}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards Grid */}
@@ -221,7 +360,9 @@ export default function HomePage() {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-white">{stats.queued.toLocaleString()}</p>
+            <div className="flex items-end gap-2">
+              <p className="text-3xl font-bold text-white">{stats.queued.toLocaleString()}</p>
+            </div>
           </div>
 
           {/* Emails Sent */}
@@ -244,7 +385,14 @@ export default function HomePage() {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-white">{stats.sent.toLocaleString()}</p>
+            <div className="flex items-end gap-2">
+              <p className="text-3xl font-bold text-white">{stats.sent.toLocaleString()}</p>
+              {statsChanges.sent !== 0 && (
+                <p className={`text-xs font-medium mb-1 ${statsChanges.sent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {statsChanges.sent >= 0 ? '↑' : '↓'} {Math.abs(statsChanges.sent)}%
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Emails Viewed */}
@@ -268,7 +416,14 @@ export default function HomePage() {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-white">{totalOpened.toLocaleString()}</p>
+            <div className="flex items-end gap-2">
+              <p className="text-3xl font-bold text-white">{totalOpened.toLocaleString()}</p>
+              {statsChanges.opened !== 0 && (
+                <p className={`text-xs font-medium mb-1 ${statsChanges.opened >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {statsChanges.opened >= 0 ? '↑' : '↓'} {Math.abs(statsChanges.opened)}%
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Emails Responded To */}
@@ -291,7 +446,125 @@ export default function HomePage() {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-white">{stats.replied.toLocaleString()}</p>
+            <div className="flex items-end gap-2">
+              <p className="text-3xl font-bold text-white">{stats.replied.toLocaleString()}</p>
+              {statsChanges.replied !== 0 && (
+                <p className={`text-xs font-medium mb-1 ${statsChanges.replied >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {statsChanges.replied >= 0 ? '↑' : '↓'} {Math.abs(statsChanges.replied)}%
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Current Ongoing Research */}
+        <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-white">Current Ongoing Research</h2>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-[#8FA6C1]">{agents.filter(a => a.agentId !== 'orphan').length} Active Agents</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            {agents.filter(a => a.agentId !== 'orphan').slice(0, 3).map((agent) => {
+              const stats = agentStats[agent.agentId] || { queued: 0, sent: 0 };
+              const total = stats.queued + stats.sent;
+              const progressPercent = total > 0 ? Math.round((stats.sent / total) * 100) : 0;
+              const isWorking = stats.queued > 0 || agent.status === 'running';
+              const typeMap: Record<string, string> = {
+                'hunter': 'Hunter',
+                'analyst': 'Analyst',
+                'consultant': 'Consultant',
+                'networker': 'Networker',
+                'relationship-builder': 'Relationship-Builder'
+              };
+              const avatarFile = typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
+              
+              return (
+                <div key={agent.agentId} className="bg-[#0A1525]/40 border border-[#4FD1FF]/10 rounded p-3 hover:border-[#4FD1FF]/30 transition-all cursor-pointer" onClick={() => router.push(`/agents?agent=${agent.agentId}`)}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${
+                        isWorking ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
+                      }`} />
+                      {(agent.personality?.avatar || agent.personality?.type) ? (
+                        <img
+                          src={`/avatars/${avatarFile}.png`}
+                          alt={agent.name}
+                          className="w-10 h-10 rounded-full border-2 border-[#4FD1FF]/60 object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4FD1FF] to-[#2A8FB9] flex items-center justify-center text-white font-bold text-sm border-2 border-[#4FD1FF]/60 flex-shrink-0">
+                          {agent.name.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-sm font-medium truncate">{agent.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className={`text-[10px] ${
+                            isWorking ? 'text-yellow-400' : 'text-[#8FA6C1]'
+                          }`}>{isWorking ? (agent.currentActivity || 'Processing queue') : 'Idle'}</p>
+                          {agent.settings?.emailBuilder?.useGmail === true ? (
+                            <span className="relative group/gmail inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-white/10 text-white text-[8px] border border-white/20">
+                              <svg className="w-3 h-3" viewBox="0 0 256 193" fill="none">
+                                <path d="M58.182 192.05V93.768L27.507 65.158L0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4"/>
+                                <path d="M197.818 192.05h40.727c9.659 0 17.455-7.854 17.455-17.455V49.504l-31.274 17.278-27.506 28.61Z" fill="#34A853"/>
+                                <path d="M197.818 49.504V93.768l58.182-44.264V34.91c0-21.585-24.641-33.89-41.89-20.945Z" fill="#FBBC04"/>
+                                <path d="M58.182 93.768V49.504L128 105.23l69.818-55.726v44.264L128 149.494Z" fill="#EA4335"/>
+                                <path d="M0 34.91v14.594l58.182 44.264V49.504L40.727 37.072C23.478 24.019-.001 36.324 0 34.91Z" fill="#C5221F"/>
+                              </svg>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/gmail:opacity-100 transition-opacity pointer-events-none z-50">
+                                Gmail enabled
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="relative group/domain inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[8px] border border-purple-500/40">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                              </svg>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/domain:opacity-100 transition-opacity pointer-events-none z-50">
+                                Meridian enabled
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-[#8FA6C1]">In queue</span>
+                      <span className="text-[#4FD1FF] font-medium">{stats.queued}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-[#8FA6C1]">Sent (7d)</span>
+                      <span className="text-green-400 font-medium">{stats.sent}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-[#8FA6C1]">Total</span>
+                      <span className="text-white font-medium">{total}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-[#4FD1FF]/10">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1 bg-[#0A1525]/60 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-[#4FD1FF] to-green-400 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${progressPercent}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-[9px] text-[#8FA6C1]">{progressPercent}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {agents.filter(a => a.agentId !== 'orphan').length === 0 && (
+              <div className="col-span-3 text-center py-6">
+                <p className="text-[#8FA6C1] text-sm">No active research sessions</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -449,106 +722,6 @@ export default function HomePage() {
               })}
             </div>
             <p className="text-[#8FA6C1] text-xs text-center mt-2">Last 7 days</p>
-          </div>
-        </div>
-
-        {/* CRM and Agents Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* CRM Connection Box */}
-          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-4">
-            <h2 className="text-xl font-bold text-white mb-4">CRM Connection</h2>
-            {crmStatus.connected ? (
-              <>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">{crmStatus.integration || 'Unknown CRM'}</p>
-                    <p className="text-[#8FA6C1] text-xs">Connected</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => router.push('/profile')}
-                  className="w-full px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded-lg text-xs font-medium transition-colors border border-[#4FD1FF]/30"
-                >
-                  Manage
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-[#4FD1FF]/10 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-[#8FA6C1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">Not Connected</p>
-                    <p className="text-[#8FA6C1] text-xs">Connect your CRM</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => router.push('/profile')}
-                  className="w-full px-3 py-1.5 bg-[#4FD1FF] hover:bg-[#4FD1FF]/80 text-white rounded-lg text-xs font-medium transition-colors"
-                >
-                  Connect CRM
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Total Agents Box */}
-          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xl font-bold text-white">Your Agents</h2>
-              <button
-                onClick={() => router.push('/agents-overview')}
-                className="px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-sm font-medium transition-colors"
-              >
-                View All
-              </button>
-            </div>
-            <div className="flex flex-col items-center justify-center gap-3">
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                {agents.slice(0, 5).map((agent, index) => {
-                  const typeMap: Record<string, string> = {
-                    'hunter': 'Hunter',
-                    'analyst': 'Analyst',
-                    'consultant': 'consultant',
-                    'networker': 'Networker',
-                    'relationship-builder': 'Relationship-Builder'
-                  };
-                  const avatarFile = typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
-                  return (
-                    <div
-                      key={agent.agentId}
-                      className="relative w-10 h-10 rounded-full bg-[#4FD1FF]/10 border-2 border-[#0A1525] flex items-center justify-center overflow-hidden"
-                      style={{ marginLeft: index > 0 ? '-8px' : '0' }}
-                    >
-                      <img
-                        src={`/avatars/${avatarFile}.png`}
-                        alt={agent.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  );
-                })}
-                {agents.length > 5 && (
-                  <div className="w-10 h-10 rounded-full bg-[#4FD1FF]/10 border-2 border-[#0A1525] flex items-center justify-center" style={{ marginLeft: '-8px' }}>
-                    <span className="text-[#4FD1FF] font-bold text-xs">+{agents.length - 5}</span>
-                  </div>
-                )}
-              </div>
-              <div className="text-center">
-                <p className="text-white font-medium text-lg">{agents.length}</p>
-                <p className="text-[#8FA6C1] text-xs">Total Agents</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
