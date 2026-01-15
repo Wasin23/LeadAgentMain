@@ -16,13 +16,12 @@ interface EmailStats {
 interface FollowUp {
   id: string;
   followUpDate: string;
-  leadData?: {
-    email?: string;
+  to?: string;
+  subject?: string;
+  lead?: {
     name?: string;
+    email?: string;
     company?: string;
-  };
-  emailData?: {
-    subject?: string;
   };
   agentId?: string;
 }
@@ -44,6 +43,7 @@ export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [navigating, setNavigating] = useState(false);
   const [stats, setStats] = useState<EmailStats>({
     queued: 0,
     sent: 0,
@@ -180,17 +180,42 @@ export default function HomePage() {
   return (
     <AppLayout>
       <div className="p-6">
-        <h1 className="text-3xl font-bold text-white mb-6">
-          Welcome back, {getFirstName()}
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-white">
+            Welcome back, {getFirstName()}
+          </h1>
+          <button
+            onClick={() => {
+              setNavigating(true);
+              router.push('/operations');
+            }}
+            disabled={navigating}
+            className="px-4 py-2 bg-[#4FD1FF] hover:bg-[#4FD1FF]/80 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {navigating ? 'Loading...' : 'Get Started'}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
+        </div>
 
         {/* Stats Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Emails Queued */}
-          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-colors">
+          <div 
+            onClick={() => {
+              setNavigating(true);
+              router.push('/operations?tab=queued');
+            }}
+            className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-all cursor-pointer hover:scale-105 group disabled:opacity-50"
+            style={{ opacity: navigating ? 0.5 : 1 }}
+          >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Queued</h3>
-              <div className="w-10 h-10 bg-[#4FD1FF]/10 rounded-lg flex items-center justify-center">
+              <div>
+                <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Queued</h3>
+                <p className="text-[#4FD1FF]/60 text-[10px] group-hover:text-[#4FD1FF] transition-colors">Click to view</p>
+              </div>
+              <div className="w-10 h-10 bg-[#4FD1FF]/10 rounded-lg flex items-center justify-center group-hover:bg-[#4FD1FF]/20 transition-colors">
                 <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
@@ -200,10 +225,20 @@ export default function HomePage() {
           </div>
 
           {/* Emails Sent */}
-          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-colors">
+          <div 
+            onClick={() => {
+              setNavigating(true);
+              router.push('/operations?tab=sent');
+            }}
+            className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-all cursor-pointer hover:scale-105 group"
+            style={{ opacity: navigating ? 0.5 : 1 }}
+          >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Sent</h3>
-              <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+              <div>
+                <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Sent</h3>
+                <p className="text-green-500/60 text-[10px] group-hover:text-green-500 transition-colors">Click to view</p>
+              </div>
+              <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
                 <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
@@ -213,10 +248,20 @@ export default function HomePage() {
           </div>
 
           {/* Emails Viewed */}
-          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-colors">
+          <div 
+            onClick={() => {
+              setNavigating(true);
+              router.push('/analytics');
+            }}
+            className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-all cursor-pointer hover:scale-105 group"
+            style={{ opacity: navigating ? 0.5 : 1 }}
+          >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Viewed</h3>
-              <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+              <div>
+                <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Viewed</h3>
+                <p className="text-purple-500/60 text-[10px] group-hover:text-purple-500 transition-colors">Click to view</p>
+              </div>
+              <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
                 <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -227,10 +272,20 @@ export default function HomePage() {
           </div>
 
           {/* Emails Responded To */}
-          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-colors">
+          <div 
+            onClick={() => {
+              setNavigating(true);
+              router.push('/operations?tab=replied');
+            }}
+            className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-all cursor-pointer hover:scale-105 group"
+            style={{ opacity: navigating ? 0.5 : 1 }}
+          >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Responded</h3>
-              <div className="w-10 h-10 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+              <div>
+                <h3 className="text-[#8FA6C1] text-sm font-medium">Emails Responded</h3>
+                <p className="text-yellow-500/60 text-[10px] group-hover:text-yellow-500 transition-colors">Click to view</p>
+              </div>
+              <div className="w-10 h-10 bg-yellow-500/10 rounded-lg flex items-center justify-center group-hover:bg-yellow-500/20 transition-colors">
                 <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                 </svg>
@@ -271,13 +326,13 @@ export default function HomePage() {
                         <div className="flex flex-col gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium truncate text-sm">
-                              {followUp.leadData?.name || followUp.leadData?.email || 'Unknown'}
+                              {followUp.lead?.name || followUp.to || 'Unknown'}
                             </p>
-                            {followUp.leadData?.company && (
-                              <span className="text-[#8FA6C1] text-xs truncate block">{followUp.leadData.company}</span>
+                            {followUp.lead?.company && (
+                              <span className="text-[#8FA6C1] text-xs truncate block">{followUp.lead.company}</span>
                             )}
                             <p className="text-[#8FA6C1] text-xs line-clamp-1 mt-1">
-                              {followUp.emailData?.subject || 'No subject'}
+                              {followUp.subject || 'No subject'}
                             </p>
                           </div>
                           
@@ -301,10 +356,22 @@ export default function HomePage() {
           </div>
 
           {/* Cycles Completed Graph */}
-          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-4 flex flex-col h-[calc(100vh-28rem)]">
-            <h2 className="text-xl font-bold text-white mb-4">Cycles Completed</h2>
-            <div className="flex-1 relative">
-              <svg className="w-full h-full" viewBox="0 0 300 120" preserveAspectRatio="none">
+          <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-4">
+            <h2 className="text-xl font-bold text-white mb-4">Total Cycles Across All Agents</h2>
+            <div className="relative flex gap-2 h-80">
+              <div className="flex flex-col justify-between text-[#8FA6C1] text-[10px] pr-1 w-8 flex-shrink-0">
+                {(() => {
+                  const maxCount = Math.max(...agentActivity.map(d => d.count), 1);
+                  const steps = 5;
+                  const yLabels = [];
+                  for (let i = 0; i < steps; i++) {
+                    const val = Math.round(maxCount * (steps - 1 - i) * 0.25);
+                    yLabels.push(<div key={i} className="text-right">{val}</div>);
+                  }
+                  return yLabels;
+                })()}
+              </div>
+              <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
                 {/* Gradient definition */}
                 <defs>
                   <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -322,23 +389,33 @@ export default function HomePage() {
                 {agentActivity.length > 0 && (() => {
                   const maxCount = Math.max(...agentActivity.map(d => d.count), 1);
                   const points = agentActivity.map((day, i) => {
-                    const x = (i * 300) / (agentActivity.length - 1);
-                    const y = 120 - ((day.count * 100) / maxCount);
+                    const xPos = i * 400;
+                    const xDiv = agentActivity.length - 1;
+                    const x = xPos / xDiv;
+                    const yCalc = day.count * 120;
+                    const y = 200 - (yCalc / maxCount);
                     return { x, y, count: day.count };
                   });
                   
-                  const lineCommands = points.map((p, i) => {
-                    const command = i === 0 ? 'M' : 'L';
-                    return command + ' ' + p.x + ',' + p.y;
-                  });
-                  const linePath = lineCommands.join(' ');
+                  const lineParts = [];
+                  const areaParts = ['M 0,200'];
                   
-                  const areaCommands = ['M 0,120'];
-                  points.forEach(p => {
-                    areaCommands.push('L ' + p.x + ',' + p.y);
+                  points.forEach((p, i) => {
+                    if (i === 0) {
+                      lineParts.push('M ' + p.x + ',' + p.y);
+                      areaParts.push('L ' + p.x + ',' + p.y);
+                    } else {
+                      const prev = points[i - 1];
+                      const controlX = (prev.x + p.x) * 0.5;
+                      const controlY = (prev.y + p.y) * 0.5;
+                      lineParts.push('Q ' + controlX + ',' + controlY + ' ' + p.x + ',' + p.y);
+                      areaParts.push('Q ' + controlX + ',' + controlY + ' ' + p.x + ',' + p.y);
+                    }
                   });
-                  areaCommands.push('L 300,120 Z');
-                  const areaPath = areaCommands.join(' ');
+                  
+                  const linePath = lineParts.join(' ');
+                  areaParts.push('L 400,200 Z');
+                  const areaPath = areaParts.join(' ');
                   
                   return (
                     <>
@@ -346,7 +423,7 @@ export default function HomePage() {
                       <path d={linePath} fill="none" stroke="url(#lineGradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       {points.map((p, i) => (
                         <g key={i}>
-                          <circle cx={p.x} cy={p.y} r="3" fill="#4FD1FF" className="cursor-pointer" />
+                          <circle cx={p.x} cy={p.y} r="2" fill="#4FD1FF" className="cursor-pointer" />
                           <title>{p.count} cycles</title>
                         </g>
                       ))}
@@ -421,25 +498,48 @@ export default function HomePage() {
           <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-bold text-white">Your Agents</h2>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#4FD1FF]/10 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-white font-medium text-lg">{agents.length}</p>
-                  <p className="text-[#8FA6C1] text-xs">Total Agents</p>
-                </div>
-              </div>
               <button
                 onClick={() => router.push('/agents-overview')}
                 className="px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-sm font-medium transition-colors"
               >
                 View All
               </button>
+            </div>
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                {agents.slice(0, 5).map((agent, index) => {
+                  const typeMap: Record<string, string> = {
+                    'hunter': 'Hunter',
+                    'analyst': 'Analyst',
+                    'consultant': 'consultant',
+                    'networker': 'Networker',
+                    'relationship-builder': 'Relationship-Builder'
+                  };
+                  const avatarFile = typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
+                  return (
+                    <div
+                      key={agent.agentId}
+                      className="relative w-10 h-10 rounded-full bg-[#4FD1FF]/10 border-2 border-[#0A1525] flex items-center justify-center overflow-hidden"
+                      style={{ marginLeft: index > 0 ? '-8px' : '0' }}
+                    >
+                      <img
+                        src={`/avatars/${avatarFile}.png`}
+                        alt={agent.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  );
+                })}
+                {agents.length > 5 && (
+                  <div className="w-10 h-10 rounded-full bg-[#4FD1FF]/10 border-2 border-[#0A1525] flex items-center justify-center" style={{ marginLeft: '-8px' }}>
+                    <span className="text-[#4FD1FF] font-bold text-xs">+{agents.length - 5}</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-center">
+                <p className="text-white font-medium text-lg">{agents.length}</p>
+                <p className="text-[#8FA6C1] text-xs">Total Agents</p>
+              </div>
             </div>
           </div>
         </div>
