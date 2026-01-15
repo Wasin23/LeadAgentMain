@@ -304,53 +304,61 @@ export default function HomePage() {
             </div>
             
             {upcomingFollowUps.length === 0 ? (
-              <div className="p-8 text-center flex-1 flex items-center justify-center">
-                <p className="text-[#8FA6C1]">No follow-ups scheduled</p>
+              <div className="p-8 text-center flex-1 flex flex-col items-center justify-center">
+                <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-lg flex items-center justify-center mb-3">
+                  <svg className="w-6 h-6 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-[#8FA6C1] text-sm">No follow-ups scheduled</p>
               </div>
             ) : (
-              <div className="overflow-hidden flex-1 min-h-0">
-                <div className="divide-y divide-[#4FD1FF]/10 overflow-y-auto h-full">
-                  {upcomingFollowUps.map((followUp) => {
-                    const followUpDate = new Date(followUp.followUpDate);
-                    const now = new Date();
-                    const daysUntil = Math.ceil((followUpDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    const isOverdue = daysUntil < 0;
-                    const isToday = daysUntil === 0;
-                    
-                    return (
-                      <div 
-                        key={followUp.id} 
-                        className="p-4 hover:bg-[#4FD1FF]/5 transition-colors cursor-pointer"
+              <div className="space-y-1.5 overflow-y-auto bg-[#0A1525]/40 rounded p-2 flex-1">
+                {upcomingFollowUps.map((followUp) => {
+                  const followUpDate = new Date(followUp.followUpDate);
+                  const now = new Date();
+                  const daysUntil = Math.ceil((followUpDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const isOverdue = daysUntil < 0;
+                  const isToday = daysUntil === 0;
+                  
+                  return (
+                    <div 
+                      key={followUp.id} 
+                      className="bg-[#0A1525]/60 rounded border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all overflow-hidden"
+                    >
+                      <div
+                        className="p-2.5 cursor-pointer hover:bg-white/5"
                         onClick={() => router.push('/outreach')}
                       >
-                        <div className="flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-white font-medium truncate text-sm">
-                              {followUp.lead?.name || followUp.to || 'Unknown'}
-                            </p>
-                            {followUp.lead?.company && (
-                              <span className="text-[#8FA6C1] text-xs truncate block">{followUp.lead.company}</span>
-                            )}
-                            <p className="text-[#8FA6C1] text-xs line-clamp-1 mt-1">
-                              {followUp.subject || 'No subject'}
-                            </p>
-                          </div>
-                          
-                          <div className="flex items-center justify-between pt-2 border-t border-[#4FD1FF]/10">
-                            <p className={`text-xs font-medium ${
-                              isOverdue ? 'text-red-400' : isToday ? 'text-yellow-400' : 'text-[#4FD1FF]'
-                            }`}>
-                              {isOverdue ? 'Overdue' : isToday ? 'Today' : `${daysUntil}d`}
-                            </p>
-                            <p className="text-[#8FA6C1] text-xs">
-                              {followUpDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                isOverdue ? 'bg-red-500/80 text-white' : 
+                                isToday ? 'bg-yellow-500/80 text-white' : 
+                                'bg-[#4FD1FF]/80 text-white'
+                              }`}>
+                                {isOverdue ? 'OVERDUE' : isToday ? 'TODAY' : `${daysUntil}d`}
+                              </span>
+                              <div className="text-white text-[11px] font-medium truncate flex-1">
+                                {followUp.subject || 'No Subject'}
+                              </div>
+                            </div>
+                            <div className="text-[#8FA6C1] text-[11px] truncate mb-1">
+                              To: {followUp.lead?.name || followUp.to || 'Unknown'}
+                              {followUp.lead?.company && ` • ${followUp.lead.company}`}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-[#8FA6C1]/70">
+                              <span>
+                                Follow-up: {followUpDate.toLocaleDateString()} {followUpDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

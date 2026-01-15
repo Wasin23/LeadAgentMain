@@ -271,19 +271,18 @@ router.post('/check-domain-health', authenticateToken, async (req, res) => {
 
     // Store domain health in user settings
     try {
+      const healthData = {
+        ...health,
+        lastChecked: new Date().toISOString()
+      };
+      
       const updateCommand = new UpdateCommand({
         TableName: tableName,
         Key: { userId },
-        UpdateExpression: 'SET #emailSettings.#domainHealth = :healthObj',
-        ExpressionAttributeNames: {
-          '#emailSettings': 'emailSettings',
-          '#domainHealth': 'domainHealth'
-        },
+        UpdateExpression: 'SET emailSettings = if_not_exists(emailSettings, :emptyObj), emailSettings.domainHealth = :healthObj',
         ExpressionAttributeValues: {
-          ':healthObj': {
-            ...health,
-            lastChecked: new Date().toISOString()
-          }
+          ':healthObj': healthData,
+          ':emptyObj': {}
         }
       });
       await dynamodb.send(updateCommand);

@@ -60,15 +60,17 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-colors backdrop-blur-sm border border-white/20"
+        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded-xl transition-colors backdrop-blur-sm border border-white/20 bg-[#0A1525]/80"
       >
-        <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-          <span className="text-white text-sm font-medium">
+        <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+          <span className="text-white text-base font-semibold">
             {userInitial}
           </span>
         </div>
-        <span className="hidden text-xs truncate max-w-[120px]">{displayName}</span>
-        <ChevronDownIcon className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <div className="flex-1 min-w-0 text-left">
+          <span className="text-sm font-semibold text-white truncate block">{displayName}</span>
+        </div>
+        <ChevronDownIcon className={`w-5 h-5 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>

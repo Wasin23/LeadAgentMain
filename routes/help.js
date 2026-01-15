@@ -3,6 +3,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { BufferMemory } from 'langchain/memory';
 import { ConversationChain } from 'langchain/chains';
 import { PromptTemplate } from '@langchain/core/prompts';
+import jwt from '../middleware/jwt.js';
+import { sendEmail } from '../utils/awsManager.js';
 
 const router = express.Router();
 
@@ -228,6 +230,71 @@ Provide a helpful, specific answer based on the Meridian platform knowledge abov
       error: 'Failed to process chat message',
       details: error.message 
     });
+  }
+});
+
+// POST /api/help/contact - Submit help/contact request
+router.post('/contact', jwt, async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+    const userId = req.user.id;
+
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    console.log('📧 [HELP CONTACT] Processing contact request from:', email);
+
+    // Send email to support team (Colton)
+    const emailBody = `
+Help Request from Meridian User
+
+From: ${name} (${email})
+User ID: ${userId}
+
+Subject: ${subject}
+
+Message:
+${message}
+
+---
+Sent from Meridian Help System
+    `.trim();
+
+    // Send to Colton's email
+    await sendEmail({
+      to: 'colton.fidd@gmail.com',
+      subject: `[Meridian Help] ${subject}`,
+      body: emailBody,
+      from: process.env.FROM_EMAIL || 'noreply@meridianagent.xyz'
+    });
+
+    // Send confirmation to user
+    const confirmationBody = `
+Hi ${name},
+
+Thank you for contacting Meridian support. We've received your message and will get back to you within 24-48 hours.
+
+Your request:
+Subject: ${subject}
+Message: ${message}
+
+Best regards,
+The Meridian Team
+    `.trim();
+
+    await sendEmail({
+      to: email,
+      subject: 'We received your help request',
+      body: confirmationBody,
+      from: process.env.FROM_EMAIL || 'support@meridianagent.xyz'
+    });
+
+    console.log('✅ [HELP CONTACT] Contact request processed successfully');
+    res.json({ success: true, message: 'Help request sent successfully' });
+  } catch (error) {
+    console.error('❌ [HELP CONTACT] Error processing help request:', error);
+    res.status(500).json({ error: 'Failed to send help request' });
   }
 });
 
