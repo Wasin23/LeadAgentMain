@@ -463,10 +463,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Current Ongoing Research */}
+        {/* Current Agent Activity */}
         <div className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-white">Current Ongoing Research</h2>
+            <h2 className="text-lg font-bold text-white">Current Agent Activity</h2>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-xs text-[#8FA6C1]">{agents.filter(a => a.agentId !== 'orphan').length} Active Agents</span>
