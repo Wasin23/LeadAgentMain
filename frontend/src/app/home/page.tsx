@@ -45,6 +45,12 @@ interface Agent {
     emailBuilder?: {
       useGmail?: boolean;
     };
+    targeting?: {
+      leadLimit?: number;
+    };
+    geographicSettings?: {
+      leadLimit?: number;
+    };
   };
   status?: string;
   currentActivity?: string;
@@ -470,8 +476,17 @@ export default function HomePage() {
             {agents.filter(a => a.agentId !== 'orphan').slice(0, 3).map((agent) => {
               const stats = agentStats[agent.agentId] || { queued: 0, sent: 0 };
               const total = stats.queued + stats.sent;
-              const progressPercent = total > 0 ? Math.round((stats.sent / total) * 100) : 0;
-              const isWorking = stats.queued > 0 || agent.status === 'running';
+              const isRunning = agent.status === 'running';
+              const isWorking = stats.queued > 0 || isRunning;
+              
+              // Get lead limit from settings
+              const leadLimit = agent.settings?.targeting?.leadLimit || agent.settings?.geographicSettings?.leadLimit || 10;
+              
+              // Calculate progress based on queued emails vs lead limit (only when running)
+              const cycleProgressPercent = isRunning && leadLimit > 0 
+                ? Math.min(Math.round((stats.queued / leadLimit) * 100), 100)
+                : 0;
+              
               const typeMap: Record<string, string> = {
                 'hunter': 'Hunter',
                 'analyst': 'Analyst',
@@ -546,17 +561,19 @@ export default function HomePage() {
                       <span className="text-white font-medium">{total}</span>
                     </div>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-[#4FD1FF]/10">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex-1 bg-[#0A1525]/60 rounded-full h-1.5 overflow-hidden">
-                        <div 
-                          className="bg-gradient-to-r from-[#4FD1FF] to-green-400 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${progressPercent}%` }}
-                        ></div>
+                  {isRunning && (
+                    <div className="mt-2 pt-2 border-t border-[#4FD1FF]/10">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 bg-[#0A1525]/60 rounded-full h-1.5 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-[#4FD1FF] to-green-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${cycleProgressPercent}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-[9px] text-[#8FA6C1]">{stats.queued}/{leadLimit}</span>
                       </div>
-                      <span className="text-[9px] text-[#8FA6C1]">{progressPercent}%</span>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
@@ -678,8 +695,8 @@ export default function HomePage() {
                     return { x, y, count: day.count };
                   });
                   
-                  const lineParts = [];
-                  const areaParts = ['M 0,200'];
+                  const lineParts: string[] = [];
+                  const areaParts: string[] = ['M 0,200'];
                   
                   points.forEach((p, i) => {
                     if (i === 0) {
