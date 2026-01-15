@@ -2894,7 +2894,7 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
       // Emit API call metric
       this.updateIntegrationStatus('apollo', { status: 'active' });
       
-      const searchResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+      const searchResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/api_search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2962,7 +2962,7 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
             fallbackPayload.q_organization_name = parameters.companyName;
           }
           
-          const fallbackResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+          const fallbackResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/api_search', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -4258,7 +4258,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         );
       }
 
-      const response = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+      const response = await fetch('https://api.apollo.io/api/v1/mixed_people/api_search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
