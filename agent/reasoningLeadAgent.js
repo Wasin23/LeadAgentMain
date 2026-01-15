@@ -1076,6 +1076,11 @@ Call the appropriate function to continue the workflow.`;
         
       case 'email':
         if (context.currentLead) {
+          // Skip unlock if email already exists (enriched during search)
+          if (context.currentLead.email) {
+            console.log('🔧 [FUNCTION CALL] Email already exists, skipping to build_personalized_email');
+            return { name: 'build_personalized_email' };
+          }
           console.log('🔧 [FUNCTION CALL] Forcing unlock_email');
           return { name: 'unlock_email' };
         }
@@ -1276,11 +1281,15 @@ Call the appropriate function to continue the workflow.`;
           });
           
           if (actionResult.qualified) {
-            // Qualification passed, proceed to email unlock
-            this.memory.currentCycle.processingPhase = 'email';
-            
-            const confidenceNote = actionResult.confidence === 'LOW' ? ' ⚠️ LOW CONFIDENCE - will mark for review' : '';
-            console.log(`✅ [CYCLE] Lead qualified (score: ${actionResult.score}/100)${confidenceNote}, proceeding to email unlock`);
+            // Qualification passed, check if we need email unlock or can skip to build
+            if (this.memory.currentCycle.currentLead?.email) {
+              console.log(`✅ [CYCLE] Lead qualified (score: ${actionResult.score}/100) - email already available, proceeding to build`);
+              this.memory.currentCycle.processingPhase = 'build';
+            } else {
+              this.memory.currentCycle.processingPhase = 'email';
+              const confidenceNote = actionResult.confidence === 'LOW' ? ' ⚠️ LOW CONFIDENCE - will mark for review' : '';
+              console.log(`✅ [CYCLE] Lead qualified (score: ${actionResult.score}/100)${confidenceNote}, proceeding to email unlock`);
+            }
           } else {
             // Qualification failed, skip lead and get next
             console.log(`❌ [CYCLE] Lead disqualified (score: ${actionResult.score}/100), skipping lead`);
@@ -2865,7 +2874,9 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
       // STEP 1: First search for the person to get their Apollo ID
       const searchPayload = {
         per_page: 10,
-        page: 1
+        page: 1,
+        reveal_personal_emails: true,
+        reveal_phone_number: true
       };
       
       // Only filter by location if we DON'T have a domain (domain is more specific)
@@ -2950,7 +2961,9 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
           console.log('🔄 [FALLBACK] Retrying without domain filter (global search)...');
           const fallbackPayload = {
             per_page: 10,
-            page: 1
+            page: 1,
+            reveal_personal_emails: true,
+            reveal_phone_number: true
             // NO location filter - search globally
           };
           
@@ -4184,7 +4197,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const searchPayload = {
         q_keywords: targetPosition,
         page: searchPage,
-        per_page: leadsToRequest
+        per_page: leadsToRequest,
+        reveal_personal_emails: true,
+        reveal_phone_number: true
       };
 
       // Use agent-reasoned company size or fall back to user settings
@@ -4275,21 +4290,81 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       }
 
       const rawLeads = data.people || [];
-      console.log(`🔍 [APOLLO] Found ${rawLeads.length} raw leads, checking for duplicates...`);
+      console.log(`🔍 [APOLLO] Found ${rawLeads.length} raw leads, enriching contacts...`);
       
-      // Debug: Check location data in first lead
-      if (rawLeads.length > 0 && rawLeads[0].organization) {
-        console.log(`🗺️ [APOLLO LOCATION DEBUG] First lead location:`, {
-          name: rawLeads[0].name,
-          company: rawLeads[0].organization.name,
-          city: rawLeads[0].organization.city,
-          state: rawLeads[0].organization.state,
-          country: rawLeads[0].organization.country,
-          primary_city: rawLeads[0].organization.primary_city,
-          primary_state: rawLeads[0].organization.primary_state,
-          primary_country: rawLeads[0].organization.primary_country
-        });
+      // Enrich leads to get actual email addresses and full names
+      const enrichedLeads = [];
+      for (const lead of rawLeads) {
+        try {
+          // Check if lead has email available
+          if (!lead.has_email) {
+            console.log(`⚠️ [APOLLO] Skipping ${lead.first_name} ${lead.last_name_obfuscated || lead.last_name || ''} at ${lead.organization?.name} - no email available`);
+            continue;
+          }
+
+          // Call people/enrich to get actual email and full name
+          console.log(`🔓 [APOLLO] Enriching ${lead.first_name} at ${lead.organization?.name}...`);
+          const enrichResponse = await fetch('https://api.apollo.io/api/v1/people/enrich', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'X-Api-Key': apiKey
+            },
+            body: JSON.stringify({
+              id: lead.id,
+              reveal_personal_emails: true
+            })
+          });
+
+          if (!enrichResponse.ok) {
+            console.log(`⚠️ [APOLLO] Failed to enrich lead ${lead.id}: ${enrichResponse.status}`);
+            continue;
+          }
+
+          const enrichedData = await enrichResponse.json();
+          const enrichedPerson = enrichedData.person;
+
+          // Build complete lead object with enriched data
+          const completeLead = {
+            id: lead.id,
+            name: `${enrichedPerson.first_name} ${enrichedPerson.last_name}`,
+            email: enrichedPerson.email,
+            title: enrichedPerson.title,
+            company: enrichedPerson.organization?.name || lead.organization?.name,
+            organization: enrichedPerson.organization || lead.organization,
+            city: enrichedPerson.city,
+            state: enrichedPerson.state,
+            country: enrichedPerson.country,
+            linkedin_url: enrichedPerson.linkedin_url,
+            phone: enrichedPerson.phone_number || enrichedPerson.direct_phone,
+            ...enrichedPerson // Include all other fields from enriched data
+          };
+
+          enrichedLeads.push(completeLead);
+          console.log(`✅ [APOLLO] Enriched: ${completeLead.name} (${completeLead.email}) at ${completeLead.company}`);
+
+          // Log each enrichment for API usage tracking
+          await this.awsManager.logApiUsage({
+            userId: this.userId,
+            agentId: this.agentId,
+            service: 'apollo',
+            operation: 'email_enrichment',
+            usage: 1,
+            metadata: {
+              personName: completeLead.name,
+              company: completeLead.company,
+              hasEmail: !!completeLead.email
+            }
+          }).catch(err => console.error('Failed to log enrichment:', err));
+
+        } catch (enrichError) {
+          console.error(`❌ [APOLLO] Error enriching lead ${lead.id}:`, enrichError.message);
+          continue;
+        }
       }
+
+      console.log(`📊 [APOLLO] Enrichment complete: ${enrichedLeads.length}/${rawLeads.length} leads have valid emails`);
 
       // Log Apollo search usage
       await this.awsManager.logApiUsage({
@@ -4318,22 +4393,22 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         checkRemaining(rateCheck.remaining.monthly, 'monthly');
       }
 
-      // Check for duplicates immediately after Apollo search
-      if (rawLeads.length > 0) {
+      // Check for duplicates immediately after enrichment
+      if (enrichedLeads.length > 0) {
         // Emit SSE progress for deduplication check start
         this.emit('progress', {
           id: this.generateUniqueId(),
           timestamp: new Date().toISOString(),
           operation: 'Deduplication Check',
-          details: `🔍 Checking ${rawLeads.length} leads for duplicates...`,
+          details: `🔍 Checking ${enrichedLeads.length} leads for duplicates...`,
           status: 'processing',
           data: { 
             phase: 'deduplication_start',
-            totalLeads: rawLeads.length
+            totalLeads: enrichedLeads.length
           }
         });
         
-        const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, rawLeads);
+        const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, enrichedLeads);
         
         if (deduplicationResult.success) {
           const { newLeads, duplicateLeads, summary } = deduplicationResult;
@@ -4448,22 +4523,24 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         } else {
           console.error('⚠️ [DEDUPLICATION] Check failed, proceeding with all leads:', deduplicationResult.error);
         }
+      } else {
+        console.log(`📦 [APOLLO] No enriched leads found after filtering ${rawLeads.length} raw results`);
       }
 
-      console.log(`📦 [APOLLO] Found ${rawLeads.length} leads from search`);
+      console.log(`📦 [APOLLO] Found ${enrichedLeads.length} usable leads from search`);
 
       // Update keyword tracking (fallback case when deduplication not used)
-      if (selectedKeyword && rawLeads.length > 0) {
-        this.memory.leadsFoundWithCurrentKeyword += rawLeads.length;
-        this.memory.industryExhaustion[selectedKeyword].leadsFound += rawLeads.length;
-        this.memory.totalLeadsFoundThisCycle += rawLeads.length;
+      if (selectedKeyword && enrichedLeads.length > 0) {
+        this.memory.leadsFoundWithCurrentKeyword += enrichedLeads.length;
+        this.memory.industryExhaustion[selectedKeyword].leadsFound += enrichedLeads.length;
+        this.memory.totalLeadsFoundThisCycle += enrichedLeads.length;
         console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/20 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
       }
 
-      // Return all leads from Apollo (deduplication will happen after email unlock)
+      // Return enriched leads with actual emails
       const results = {
-        found: rawLeads.length,
-        leads: rawLeads,
+        found: enrichedLeads.length,
+        leads: enrichedLeads,
         query: parameters.query,
         parameters: parameters
       };
