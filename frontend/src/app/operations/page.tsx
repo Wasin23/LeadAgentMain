@@ -1535,7 +1535,7 @@ export default function InteractiveGlobe() {
               )}
               
               {/* Selection Mode Controls */}
-              {selectedQueue?.type === 'queued' && (
+              {(selectedQueue?.type === 'queued' || !selectedQueue) && (
                 <>
                   {!selectionMode ? (
                     <button
@@ -1666,7 +1666,7 @@ export default function InteractiveGlobe() {
                   return (
                     <>
                       {/* Select Page Button - only show in selection mode and queued type */}
-                      {selectionMode && selectedQueue?.type === 'queued' && (
+                      {selectionMode && (selectedQueue?.type === 'queued' || !selectedQueue) && (
                         <div className="flex items-center justify-between mb-2 px-1">
                           <button
                             onClick={() => {
@@ -1720,9 +1720,9 @@ export default function InteractiveGlobe() {
                         }}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div className="flex items-start gap-2 flex-1 min-w-0">
                             {/* Checkbox - only show in selection mode for queued emails */}
-                            {selectionMode && selectedQueue?.type === 'queued' && (
+                            {selectionMode && (selectedQueue?.type === 'queued' || !selectedQueue) && (
                               <input
                                 type="checkbox"
                                 checked={selectedEmails.has(emailId)}
@@ -1738,7 +1738,7 @@ export default function InteractiveGlobe() {
                                     return newSet;
                                   });
                                 }}
-                                className="w-4 h-4 rounded-full border-2 border-[#4FD1FF]/60 bg-[#0A1525]/60 text-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF] focus:ring-offset-0 flex-shrink-0 cursor-pointer"
+                                className="w-4 h-4 rounded-full border-2 border-[#4FD1FF]/60 bg-[#0A1525]/60 text-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF] focus:ring-offset-0 flex-shrink-0 cursor-pointer mt-0.5"
                               />
                             )}
                             <div className="flex-1 min-w-0">
