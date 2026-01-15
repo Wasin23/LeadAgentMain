@@ -22,6 +22,11 @@ export default function OutreachPage() {
   const [outreachSearch, setOutreachSearch] = useState('');
   const [outreachPage, setOutreachPage] = useState(0);
   const [selectedEmailForView, setSelectedEmailForView] = useState<any | null>(null);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  const [editingFollowUp, setEditingFollowUp] = useState<any | null>(null);
+  const [editFollowUpDate, setEditFollowUpDate] = useState('');
+  const [showMassEditModal, setShowMassEditModal] = useState(false);
+  const [massEditDate, setMassEditDate] = useState('');
   const OUTREACH_PAGE_SIZE = 20;
   
   const [stats, setStats] = useState({
@@ -414,10 +419,32 @@ export default function OutreachPage() {
                 </button>
                 </div>
               </div>
-              <span className="text-[11px] text-[#8FA6C1]">
-                {activeTab === 'sent' && `${emailActivity.length} emails`}
-                {activeTab === 'followups' && `${followUpEmails.length} follow-ups`}
-              </span>
+              <div className="flex items-center gap-2">
+                {selectedEmails.size > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-[#4FD1FF]/10 rounded border border-[#4FD1FF]/30">
+                    <span className="text-[#4FD1FF] text-[11px] font-medium">{selectedEmails.size} selected</span>
+                    <button
+                      onClick={() => {
+                        setMassEditDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16));
+                        setShowMassEditModal(true);
+                      }}
+                      className="px-2 py-0.5 bg-[#4FD1FF]/20 hover:bg-[#4FD1FF]/30 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors"
+                    >
+                      Reschedule All
+                    </button>
+                    <button
+                      onClick={() => setSelectedEmails(new Set())}
+                      className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] rounded transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+                <span className="text-[11px] text-[#8FA6C1]">
+                  {activeTab === 'sent' && `${emailActivity.length} emails`}
+                  {activeTab === 'followups' && `${followUpEmails.length} follow-ups`}
+                </span>
+              </div>
             </div>
             )}
             
@@ -478,7 +505,29 @@ export default function OutreachPage() {
                     
                     return (
                       <>
+                        <div className="flex items-center justify-between mb-2">
+                          <button
+                            onClick={() => {
+                              const currentPageIds = new Set(paginated.map(e => e.trackingId || e.id).filter(Boolean));
+                              if (paginated.every(e => selectedEmails.has(e.trackingId || e.id))) {
+                                // Deselect all on page
+                                setSelectedEmails(prev => {
+                                  const newSet = new Set(prev);
+                                  currentPageIds.forEach(id => newSet.delete(id));
+                                  return newSet;
+                                });
+                              } else {
+                                // Select all on page
+                                setSelectedEmails(prev => new Set([...prev, ...currentPageIds]));
+                              }
+                            }}
+                            className="px-3 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors border border-[#4FD1FF]/30"
+                          >
+                            {paginated.every(e => selectedEmails.has(e.trackingId || e.id)) ? 'Deselect Page' : 'Select Page'}
+                          </button>
+                        </div>
                         {paginated.map((email, idx) => {
+                          const emailId = email.trackingId || email.id;
                           const hasOpened = email.analyticsStatus?.opened;
                           const hasProxy = email.analyticsStatus?.hasProxy;
                           const hasClicked = email.analyticsStatus?.clicked;
@@ -489,12 +538,32 @@ export default function OutreachPage() {
                           
                           return (
                             <div 
-                              key={email.trackingId || email.id || idx} 
+                              key={emailId || idx} 
                               className="bg-[#0A1525]/60 rounded p-2 border border-[#4FD1FF]/20 hover:border-[#4FD1FF]/40 transition-all cursor-pointer"
-                              onClick={() => setSelectedEmailForView(email)}
+                              onClick={(e) => {
+                                if ((e.target as HTMLElement).closest('input[type="checkbox"]') || (e.target as HTMLElement).closest('button')) return;
+                                setSelectedEmailForView(email);
+                              }}
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedEmails.has(emailId)}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedEmails(prev => {
+                                        const newSet = new Set(prev);
+                                        if (newSet.has(emailId)) {
+                                          newSet.delete(emailId);
+                                        } else {
+                                          newSet.add(emailId);
+                                        }
+                                        return newSet;
+                                      });
+                                    }}
+                                    className="w-4 h-4 rounded border-[#4FD1FF]/40 bg-[#0A1525]/60 text-[#4FD1FF] focus:ring-[#4FD1FF]/40 focus:ring-offset-0"
+                                  />
                                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                                     hasReplied ? 'bg-purple-400' : hasClicked ? 'bg-yellow-400' : hasOpened ? 'bg-green-400' : isBounced ? 'bg-red-400' : 'bg-blue-400'
                                   }`} />
@@ -513,9 +582,17 @@ export default function OutreachPage() {
                                         </span>
                                       )}
                                       {!email.isRebump && email.followUpScheduled && email.followUpDate && (
-                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-500/80 text-white border border-purple-500/40">
-                                          📅 {new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                        </span>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingFollowUp(email);
+                                            setEditFollowUpDate(new Date(email.followUpDate).toISOString().slice(0, 16));
+                                          }}
+                                          className="text-[10px] px-2 py-0.5 rounded bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] border border-[#4FD1FF]/30 hover:border-[#4FD1FF]/50 transition-colors font-medium"
+                                          title="Click to edit follow-up date"
+                                        >
+                                          Follow-up: {new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(email.followUpDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                        </button>
                                       )}
                                     </div>
                                   </div>
@@ -1038,6 +1115,114 @@ export default function OutreachPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>This will queue follow-ups for all eligible sent emails from this agent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit Follow-up Modal */}
+      {editingFollowUp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingFollowUp(null)}>
+          <div className="bg-[#0F1E35] rounded-xl border border-[#4FD1FF]/30 p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-lg">Edit Follow-up</h3>
+              <button onClick={() => setEditingFollowUp(null)} className="text-[#8FA6C1] hover:text-white">×</button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#8FA6C1] text-sm mb-1 block">Follow-up Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={editFollowUpDate}
+                  onChange={(e) => setEditFollowUpDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm focus:outline-none focus:border-[#4FD1FF]/40"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingFollowUp(null)}
+                  className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.put(`/api/email-queue/${editingFollowUp.id}/followup`, {
+                        agentId: editingFollowUp.agentId,
+                        followUpDate: new Date(editFollowUpDate).toISOString()
+                      });
+                      setEditingFollowUp(null);
+                      fetchEmailActivity();
+                    } catch (error) {
+                      console.error('Error updating follow-up:', error);
+                      alert('Failed to update follow-up');
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-[#4FD1FF] hover:bg-[#3FB8E8] text-black font-medium rounded transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Mass Edit Follow-up Modal */}
+      {showMassEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMassEditModal(false)}>
+          <div className="bg-[#0F1E35] rounded-xl border border-[#4FD1FF]/30 p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-lg">Reschedule {selectedEmails.size} Follow-ups</h3>
+              <button onClick={() => setShowMassEditModal(false)} className="text-[#8FA6C1] hover:text-white">×</button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#8FA6C1] text-sm mb-1 block">New Follow-up Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={massEditDate}
+                  onChange={(e) => setMassEditDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-sm focus:outline-none focus:border-[#4FD1FF]/40"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowMassEditModal(false)}
+                  className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const selectedEmailsList = emailActivity.filter(e => selectedEmails.has(e.trackingId || e.id));
+                      await Promise.all(
+                        selectedEmailsList.map(email =>
+                          api.put(`/api/email-queue/${email.id}/followup`, {
+                            agentId: email.agentId,
+                            followUpDate: new Date(massEditDate).toISOString()
+                          })
+                        )
+                      );
+                      setShowMassEditModal(false);
+                      setSelectedEmails(new Set());
+                      fetchEmailActivity();
+                    } catch (error) {
+                      console.error('Error updating follow-ups:', error);
+                      alert('Failed to update follow-ups');
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-[#4FD1FF] hover:bg-[#3FB8E8] text-black font-medium rounded transition-colors"
+                >
+                  Reschedule All
+                </button>
               </div>
             </div>
           </div>
