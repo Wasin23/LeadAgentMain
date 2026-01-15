@@ -512,6 +512,11 @@ export default function OutreachPage() {
                                           Follow-up #{email.rebumpNumber || 1}
                                         </span>
                                       )}
+                                      {!email.isRebump && email.followUpScheduled && email.followUpDate && (
+                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-500/80 text-white border border-purple-500/40">
+                                          📅 {new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>

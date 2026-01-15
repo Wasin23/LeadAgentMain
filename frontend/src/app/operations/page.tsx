@@ -1652,27 +1652,6 @@ export default function InteractiveGlobe() {
                                    '⏳'}
                                 </span>
                               )}
-                              {selectedQueue?.type === 'sent' && email.followUpScheduled && email.followUpDate && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    console.log('📅 [FOLLOW-UP BADGE] Clicked on email:', {
-                                      id: email.id,
-                                      followUpScheduled: email.followUpScheduled,
-                                      followUpDate: email.followUpDate,
-                                      assignedTemplateId: email.assignedTemplateId
-                                    });
-                                    setFollowUpModal(email);
-                                    setEditFollowUpDate(new Date(email.followUpDate).toISOString().slice(0, 16));
-                                    setEditTemplateId(email.assignedTemplateId || 0);
-                                    setEditingFollowUp(false);
-                                  }}
-                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-500/80 text-white hover:bg-purple-600/90 transition-colors cursor-pointer"
-                                  title={`Follow-up: ${new Date(email.followUpDate).toLocaleString()}`}
-                                >
-                                  📅 {new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </button>
-                              )}
                               <div className="text-white text-[11px] font-medium truncate flex-1">
                                 {email.subject || 'No Subject'}
                               </div>

@@ -69,9 +69,9 @@ function addTrackingToEmail(body, trackingId) {
   // Fix: Don't add protocol if domain already includes it
   let trackingUrl;
   if (trackingDomain.startsWith('http://') || trackingDomain.startsWith('https://')) {
-    trackingUrl = `${trackingDomain}/track/open/${trackingId}`;
+    trackingUrl = `${trackingDomain}/api/tracking/open/${trackingId}`;
   } else {
-    trackingUrl = `${protocol}://${trackingDomain}/track/open/${trackingId}`;
+    trackingUrl = `${protocol}://${trackingDomain}/api/tracking/open/${trackingId}`;
   }
   
   console.log('🎯 [TRACKING PIXEL] Injecting tracking pixel into email');
@@ -87,9 +87,9 @@ function addTrackingToEmail(body, trackingId) {
     /(https?:\/\/[^\s<>"]+)/gi,
     (match) => {
       if (trackingDomain.startsWith('http://') || trackingDomain.startsWith('https://')) {
-        return `${trackingDomain}/track/click/${trackingId}?url=${encodeURIComponent(match)}`;
+        return `${trackingDomain}/api/tracking/click/${trackingId}?url=${encodeURIComponent(match)}`;
       } else {
-        return `${protocol}://${trackingDomain}/track/click/${trackingId}?url=${encodeURIComponent(match)}`;
+        return `${protocol}://${trackingDomain}/api/tracking/click/${trackingId}?url=${encodeURIComponent(match)}`;
       }
     }
   );
