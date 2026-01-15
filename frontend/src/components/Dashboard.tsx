@@ -73,20 +73,20 @@ export default function Dashboard() {
       ) : showAgentOnboarding ? (
         <AgentOnboarding 
           onComplete={() => {
-            // Redirect to the new dashboard (globe page) after onboarding
-            router.push('/dashboard');
+            // Redirect to the new home page after onboarding
+            router.push('/home');
           }}
           onSkip={() => {
-            // Redirect to the new dashboard (globe page) after skipping
-            router.push('/dashboard');
+            // Redirect to the new home page after skipping
+            router.push('/home');
           }}
         />
       ) : (
-        // If somehow we get here (onboarding complete), redirect to dashboard
+        // If somehow we get here (onboarding complete), redirect to home
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 dark:border-neutral-600 border-t-blue-600 dark:border-t-blue-400 mx-auto mb-4"></div>
-            <p className="text-neutral-600 dark:text-neutral-400">Redirecting to operations...</p>
+            <p className="text-neutral-600 dark:text-neutral-400">Redirecting to home...</p>
           </div>
         </div>
       )}

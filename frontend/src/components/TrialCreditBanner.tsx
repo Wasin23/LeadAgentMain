@@ -141,7 +141,7 @@ export default function TrialCreditBanner() {
           )}
           <button
             onClick={() => {
-              router.push('/dashboard');
+              router.push('/home');
               // Use setTimeout to ensure navigation completes before triggering settings
               setTimeout(() => {
                 const settingsButton = document.querySelector('[data-settings-trigger]') as HTMLButtonElement;

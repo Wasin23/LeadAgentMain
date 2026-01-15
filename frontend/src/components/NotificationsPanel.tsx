@@ -161,7 +161,7 @@ export default function NotificationsPanel() {
   }, []);
 
   const handleAddPayment = () => {
-    router.push('/dashboard');
+    router.push('/home');
     setTimeout(() => {
       const settingsButton = document.querySelector('[data-settings-trigger]') as HTMLButtonElement;
       if (settingsButton) {

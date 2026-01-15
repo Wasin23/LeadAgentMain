@@ -99,7 +99,17 @@ router.get('/queue', async (req, res) => {
 // Get queue statistics
 router.get('/stats', async (req, res) => {
   try {
-    const agentId = req.query.agentId || null; // Optional agent-specific filtering
+    const agentId = req.query.agentId;
+    
+    // If agentId is 'all' or not provided, get stats across ALL agents
+    if (agentId === 'all' || !agentId) {
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      const stats = await awsQueue.getAllStats(req.user.userId);
+      return res.json(stats);
+    }
+    
+    // Otherwise, get stats for specific agent
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const stats = await userEmailQueue.getStats();
     res.json(stats);

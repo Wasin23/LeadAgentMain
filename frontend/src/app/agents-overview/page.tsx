@@ -530,7 +530,7 @@ export default function AgentsOverview() {
           {/* Header with Back Button and Title */}
           <div className="mb-4 flex items-center gap-4">
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/home')}
               className="p-2 rounded-lg bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all border border-[#4FD1FF]/30"
             >
               <ArrowLeftIcon className="w-5 h-5 text-white" />
