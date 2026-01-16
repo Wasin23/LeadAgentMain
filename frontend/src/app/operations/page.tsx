@@ -2020,6 +2020,218 @@ export default function InteractiveGlobe() {
       )}{/* End Email Queue Section */}
 
       {/* Tab Content */}
+      {activeTab === 'director' && (
+        <div 
+          className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl"
+          style={{ bottom: 'calc(9rem + 8px)' }}
+        >
+          {/* Today's Stats Bar */}
+          <div className="p-3 border-b border-[#4FD1FF]/10">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-white font-medium text-xs uppercase tracking-wider">System Metrics</h3>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                <span className="text-[#8FA6C1] text-[9px]">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {/* Emails Sent */}
+              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Sent</span>
+                </div>
+                <div className="text-white text-xl font-bold">{stats.totalEmailsSent}</div>
+                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Today</div>
+              </div>
+              
+              {/* Emails Queued */}
+              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Queue</span>
+                </div>
+                <div className="text-white text-xl font-bold">{stats.totalEmailsQueued}</div>
+                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Pending</div>
+              </div>
+              
+              {/* Meetings Scheduled */}
+              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Conv.</span>
+                </div>
+                <div className="text-white text-xl font-bold">
+                  {agents.reduce((sum, agent) => sum + (agent.meetingsScheduled || 0), 0)}
+                </div>
+                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Meetings</div>
+              </div>
+              
+              {/* Active Agents */}
+              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#4FD1FF] animate-pulse"></div>
+                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Agents</span>
+                </div>
+                <div className="text-white text-xl font-bold">
+                  {agents.filter(a => a.status === 'running').length}/{agents.filter(a => a.agentId !== 'orphan').length}
+                </div>
+                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Online</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Activity Stream */}
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex items-center justify-between p-3 border-b border-[#4FD1FF]/10">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                <h3 className="text-white font-medium text-xs uppercase tracking-wider">Activity Stream</h3>
+              </div>
+              <span className="text-[#8FA6C1] text-[9px] font-mono">
+                {new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+              </span>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {(() => {
+                // Collect all activity from all agents
+                const allActivities: Array<{
+                  agentId: string;
+                  agentName: string;
+                  activity: any;
+                  timestamp: number;
+                }> = [];
+
+                agents.forEach(agent => {
+                  if (agent.agentId === 'orphan') return;
+                  const activity = agentActivities[agent.agentId];
+                  if (activity && activity.isActive) {
+                    allActivities.push({
+                      agentId: agent.agentId,
+                      agentName: agent.name,
+                      activity: activity,
+                      timestamp: activity.timestamp || Date.now()
+                    });
+                  }
+                });
+
+                // Sort by timestamp (most recent first)
+                allActivities.sort((a, b) => b.timestamp - a.timestamp);
+
+                if (allActivities.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <div className="w-12 h-12 bg-[#4FD1FF]/5 border border-[#4FD1FF]/10 flex items-center justify-center mb-3">
+                        <svg className="w-6 h-6 text-[#4FD1FF]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <p className="text-[#8FA6C1] text-xs font-medium">No Active Operations</p>
+                      <p className="text-[#8FA6C1]/50 text-[10px] mt-1">Start agents to monitor activity</p>
+                    </div>
+                  );
+                }
+
+                return allActivities.map((item, idx) => {
+                  const { agentName, activity } = item;
+                  const agent = agents.find(a => a.agentId === item.agentId);
+                  const typeMap: Record<string, string> = {
+                    'hunter': 'Hunter',
+                    'analyst': 'Analyst',
+                    'consultant': 'Consultant',
+                    'networker': 'Networker',
+                    'relationship-builder': 'Relationship-Builder'
+                  };
+                  const avatarFile = typeMap[agent?.personality?.type || 'hunter'] || 'Hunter';
+                  
+                  return (
+                    <div 
+                      key={`${item.agentId}-${idx}`}
+                      className="border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-2 p-2.5">
+                        {/* Agent Avatar */}
+                        <div className="relative flex-shrink-0">
+                          <div className="w-8 h-8 border border-[#4FD1FF]/20 overflow-hidden bg-[#0A1525]/60">
+                            <img 
+                              src={`/avatars/${avatarFile}.png`}
+                              alt={agentName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 border border-[#0F1E35] animate-pulse"></div>
+                        </div>
+
+                        {/* Activity Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-white font-medium text-[11px]">{agentName}</span>
+                            <span className="text-[#8FA6C1]/50 text-[9px] font-mono">
+                              {activity.timestamp ? new Date(activity.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) : 'now'}
+                            </span>
+                          </div>
+                          
+                          <p className="text-[#8FA6C1] text-[10px] leading-relaxed">
+                            {activity.status || activity.message || 'Processing...'}
+                          </p>
+
+                          {/* Show location if available */}
+                          {activity.location && (
+                            <div className="mt-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 text-[9px] text-[#4FD1FF]">
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <span>
+                                {activity.location.city}, {activity.location.state}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Show targeting info if no location */}
+                          {!activity.location && agent?.settings && (
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                              {agent.settings.companyCriteria?.companyIndustries && agent.settings.companyCriteria.companyIndustries.length > 0 && (
+                                <span className="px-1.5 py-0.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 text-[9px] text-[#4FD1FF]">
+                                  {agent.settings.companyCriteria.companyIndustries[0]}
+                                </span>
+                              )}
+                              {agent.settings.contactCriteria?.targetPositions && agent.settings.contactCriteria.targetPositions.length > 0 && (
+                                <span className="px-1.5 py-0.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 text-[9px] text-[#4FD1FF]">
+                                  {agent.settings.contactCriteria.targetPositions[0]}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Agent Status Indicator */}
+                        <div className="flex-shrink-0">
+                          <svg className="animate-spin h-3 w-3 text-[#4FD1FF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+          
+          {/* Bottom border aligned with Quick Actions */}
+          <div className="border-t border-white/10"></div>
+        </div>
+      )}
+
       {activeTab === 'queue' && (
         <div className="pt-32">
           {/* Email Queue tab content */}
