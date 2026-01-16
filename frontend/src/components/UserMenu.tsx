@@ -68,7 +68,14 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
           </span>
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <span className="text-sm font-semibold text-white truncate block">{displayName}</span>
+          <span 
+            className="font-semibold text-white truncate block"
+            style={{
+              fontSize: displayName.length > 12 ? '0.75rem' : displayName.length > 8 ? '0.875rem' : '0.875rem'
+            }}
+          >
+            {displayName}
+          </span>
         </div>
         <ChevronDownIcon className={`w-5 h-5 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>

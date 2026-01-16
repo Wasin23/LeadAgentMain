@@ -299,7 +299,20 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             {/* CRM Connection Badge */}
             <button
-              onClick={() => router.push('/profile')}
+              onClick={async () => {
+                if (!crmStatus.connected) {
+                  try {
+                    const response = await api.post('/api/crm/link-token');
+                    const token = response.data.linkToken;
+                    // Trigger Merge Link (you'll need to add useMergeLink hook)
+                    window.location.href = `https://app.merge.dev/link?token=${token}`;
+                  } catch (error) {
+                    console.error('Error getting link token:', error);
+                  }
+                } else {
+                  router.push('/profile');
+                }
+              }}
               className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
                 crmStatus.connected
                   ? 'bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20'

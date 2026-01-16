@@ -527,18 +527,10 @@ export default function AgentsOverview() {
       <div className="h-full relative overflow-hidden">
         {/* Content */}
         <div className="relative z-10 p-4">
-          {/* Header with Back Button and Title */}
-          <div className="mb-4 flex items-center gap-4">
-            <button
-              onClick={() => router.push('/home')}
-              className="p-2 rounded-lg bg-[#1B2F52]/90 backdrop-blur-sm hover:bg-[#2A4472] transition-all border border-[#4FD1FF]/30"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-white" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Agent Management</h1>
-              <p className="text-[#A3B4CC] text-sm mt-1">Manage your agents and presets</p>
-            </div>
+          {/* Header with Title */}
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold text-white">Agent Management</h1>
+            <p className="text-[#A3B4CC] text-sm mt-1">Manage your agents and presets</p>
           </div>
 
         {/* Tabs */}
