@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMergeLink } from '@mergeapi/react-merge-link';
 import AppLayout from '@/components/AppLayout';
 import api from '@/lib/api';
 
@@ -84,6 +85,53 @@ export default function HomePage() {
     opened: 0
   });
   const [agentStats, setAgentStats] = useState<{[key: string]: {queued: number, sent: number}}>({});
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+
+  // Callback when user successfully connects CRM
+  const onMergeSuccess = useCallback(async (publicToken: string) => {
+    try {
+      console.log('[HOME CRM] Received public token:', publicToken);
+      
+      await api.post('/api/crm/exchange-token', {
+        publicToken,
+        integrationName: 'crm'
+      });
+      
+      // Refresh CRM status
+      const crmResponse = await api.get('/api/crm/status');
+      if (crmResponse.data) {
+        setCrmStatus({
+          connected: crmResponse.data.connected || false,
+          integration: crmResponse.data.integration || null,
+          connectedAt: crmResponse.data.connectedAt || null,
+          autoSync: crmResponse.data.autoSync !== undefined ? crmResponse.data.autoSync : true
+        });
+      }
+      
+      setLinkToken(null);
+      
+    } catch (error) {
+      console.error('[HOME CRM] Error exchanging token:', error);
+      alert('Failed to complete CRM connection. Please try again.');
+    }
+  }, []);
+
+  // Initialize Merge Link hook
+  const { open: openMergeLink, isReady: isMergeLinkReady } = useMergeLink({
+    linkToken: linkToken || '',
+    onSuccess: onMergeSuccess,
+    onExit: () => {
+      console.log('[HOME CRM] User closed Merge Link');
+      setLinkToken(null);
+    }
+  });
+
+  // Auto-open Merge Link when token is ready
+  useEffect(() => {
+    if (linkToken && isMergeLinkReady) {
+      openMergeLink();
+    }
+  }, [linkToken, isMergeLinkReady, openMergeLink]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -304,8 +352,7 @@ export default function HomePage() {
                   try {
                     const response = await api.post('/api/crm/link-token');
                     const token = response.data.linkToken;
-                    // Trigger Merge Link (you'll need to add useMergeLink hook)
-                    window.location.href = `https://app.merge.dev/link?token=${token}`;
+                    setLinkToken(token); // This will trigger Merge Link popup
                   } catch (error) {
                     console.error('Error getting link token:', error);
                   }
