@@ -746,24 +746,25 @@ export default function InteractiveGlobe() {
         hasEmailSettings: !!a.settings?.emailSettings
       })));
       
-      // Check for orphaned emails and add special agent if any exist
-      if (queueType === 'queued') {
-        try {
-          const orphanedRes = await api.get('/api/email-queue/queue?agentId=orphan');
-          const orphanedEmails = Array.isArray(orphanedRes.data) ? orphanedRes.data : (orphanedRes.data.emails || []);
-          
-          if (orphanedEmails.length > 0) {
-            // Add orphaned emails as a special agent at the top
-            agents = [{
-              agentId: 'orphan',
-              name: 'Orphaned Emails',
-              status: 'orphaned',
-              isOrphaned: true
-            }, ...agents];
-          }
-        } catch (error) {
-          console.error('Error fetching orphaned emails:', error);
+      // Always check for orphaned emails
+      try {
+        const orphanedRes = await api.get('/api/email-queue/queue?agentId=orphan');
+        const orphanedEmails = Array.isArray(orphanedRes.data) ? orphanedRes.data : (orphanedRes.data.emails || []);
+        
+        console.log('Orphaned emails check:', orphanedEmails.length, 'found');
+        
+        if (orphanedEmails.length > 0) {
+          // Add orphaned emails as a special agent at the top
+          agents = [{
+            agentId: 'orphan',
+            name: 'Orphaned Emails',
+            status: 'orphaned',
+            isOrphaned: true
+          }, ...agents];
+          console.log('Added orphaned emails agent to list');
         }
+      } catch (error) {
+        console.error('Error fetching orphaned emails:', error);
       }
       
       setAgents(agents);
