@@ -771,23 +771,29 @@ export default function InteractiveGlobe() {
       
       agents = enrichedAgents;
       
-      // Always check for orphaned emails
+      // Always check for orphaned emails (queued, sent, and replied)
       try {
-        const orphanedRes = await api.get('/api/email-queue/queue?agentId=orphan');
-        const orphanedEmails = Array.isArray(orphanedRes.data) ? orphanedRes.data : (orphanedRes.data.emails || []);
+        const [orphanedQueuedRes, orphanedSentRes] = await Promise.all([
+          api.get('/api/email-queue/queue?agentId=orphan'),
+          api.get('/api/email-queue/sent?agentId=orphan')
+        ]);
         
-        console.log('Orphaned emails check:', orphanedEmails.length, 'found');
+        const orphanedQueued = Array.isArray(orphanedQueuedRes.data) ? orphanedQueuedRes.data : (orphanedQueuedRes.data.emails || []);
+        const orphanedSent = Array.isArray(orphanedSentRes.data) ? orphanedSentRes.data : (orphanedSentRes.data.emails || []);
+        const orphanedReplied = orphanedSent.filter((e: any) => e.replied || e.hasReply);
         
-        if (orphanedEmails.length > 0) {
+        console.log('Orphaned emails check:', orphanedQueued.length, 'queued,', orphanedSent.length, 'sent,', orphanedReplied.length, 'replied');
+        
+        if (orphanedQueued.length > 0 || orphanedSent.length > 0) {
           // Add orphaned emails as a special agent at the top
           agents = [{
             agentId: 'orphan',
             name: 'Orphaned Emails',
             status: 'orphaned',
             isOrphaned: true,
-            queued: orphanedEmails.length,
-            sent: 0,
-            replied: 0
+            queued: orphanedQueued.length,
+            sent: orphanedSent.length,
+            replied: orphanedReplied.length
           }, ...agents];
           console.log('Added orphaned emails agent to list');
         }
