@@ -1797,7 +1797,7 @@ export default function InteractiveGlobe() {
                 className="w-full px-2 py-1 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-white text-[11px] focus:outline-none focus:border-[#4FD1FF]/40 transition-colors"
               >
                 <option value="all">All Agents</option>
-                {agents.filter(a => a.agentId !== 'orphan').map(agent => (
+                {agents.map(agent => (
                   <option key={agent.agentId} value={agent.agentId}>{agent.name}</option>
                 ))}
               </select>
@@ -2763,8 +2763,8 @@ export default function InteractiveGlobe() {
                 <p className="text-white text-3xl font-bold">{stats.emailsViewed}</p>
               </div>
               <div className="h-12 w-24 flex items-end gap-0.5">
-                {agents.filter(a => a.agentId !== 'orphan').slice(0, 10).map((agent, i) => {
-                  const maxReplied = Math.max(...agents.filter(a => a.agentId !== 'orphan').map(a => a.replied || 0), 1);
+                {agents.slice(0, 11).map((agent, i) => {
+                  const maxReplied = Math.max(...agents.map(a => a.replied || 0), 1);
                   const height = ((agent.replied || 0) / maxReplied) * 100;
                   return (
                     <div
@@ -2785,7 +2785,7 @@ export default function InteractiveGlobe() {
                 <p className="text-white text-3xl font-bold">{stats.emailsSent > 0 ? ((stats.emailsViewed / stats.emailsSent) * 100).toFixed(1) : '0'}%</p>
               </div>
               <div className="h-12 w-24 flex items-end gap-0.5">
-                {agents.filter(a => a.agentId !== 'orphan').slice(0, 10).map((agent, i) => {
+                {agents.slice(0, 11).map((agent, i) => {
                   const rate = (agent.sent || 0) > 0 ? ((agent.replied || 0) / (agent.sent || 1)) * 100 : 0;
                   return (
                     <div
@@ -2812,8 +2812,7 @@ export default function InteractiveGlobe() {
                 {/* Y-axis labels */}
                 <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
                   {(() => {
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    const maxQueued = Math.max(...filteredAgents.map(a => a.queued || 0), 1);
+                    const maxQueued = Math.max(...agents.map(a => a.queued || 0), 1);
                     let scale;
                     if (maxQueued >= 1000) scale = 400;
                     else if (maxQueued >= 400) scale = 200;
@@ -2840,13 +2839,12 @@ export default function InteractiveGlobe() {
                   {(() => {
                     const agentColors = [
                       '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                     ];
                     
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    if (filteredAgents.length === 0) return null;
+                    if (agents.length === 0) return null;
                     
-                    const maxQueued = Math.max(...filteredAgents.map(a => a.queued || 0), 1);
+                    const maxQueued = Math.max(...agents.map(a => a.queued || 0), 1);
                     let scale;
                     if (maxQueued >= 1000) scale = 400;
                     else if (maxQueued >= 400) scale = 200;
@@ -2857,8 +2855,8 @@ export default function InteractiveGlobe() {
                     
                     return (
                       <>
-                        {filteredAgents.map((agent, agentIdx) => {
-                          const color = agentColors[agentIdx % agentColors.length];
+                        {agents.map((agent, agentIdx) => {
+                          const color = agent.agentId === 'orphan' ? '#94a3b8' : agentColors[agentIdx % agentColors.length];
                           const queuedValue = agent.queued || 0;
                           const history = agentMetricsHistory[agent.agentId] || [];
                           
@@ -2920,11 +2918,11 @@ export default function InteractiveGlobe() {
                 {(() => {
                   const agentColors = [
                     '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                   ];
-                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                  return agents.map((agent, i) => (
                     <div key={i} className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agent.agentId === 'orphan' ? '#94a3b8' : agentColors[i % agentColors.length] }}></div>
                       <span className="text-white/70 text-xs">{agent.name}</span>
                     </div>
                   ));
@@ -2942,8 +2940,7 @@ export default function InteractiveGlobe() {
                 {/* Y-axis labels */}
                 <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
                   {(() => {
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    const maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
                     let scale;
                     if (maxSent >= 1000) scale = 400;
                     else if (maxSent >= 400) scale = 200;
@@ -2970,13 +2967,12 @@ export default function InteractiveGlobe() {
                   {(() => {
                     const agentColors = [
                       '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                     ];
                     
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    if (filteredAgents.length === 0) return null;
+                    if (agents.length === 0) return null;
                     
-                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    const maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
                     let scale;
                     if (maxSent >= 1000) scale = 400;
                     else if (maxSent >= 400) scale = 200;
@@ -2987,8 +2983,8 @@ export default function InteractiveGlobe() {
                     
                     return (
                       <>
-                        {filteredAgents.map((agent, agentIdx) => {
-                          const color = agentColors[agentIdx % agentColors.length];
+                        {agents.map((agent, agentIdx) => {
+                          const color = agent.agentId === 'orphan' ? '#94a3b8' : agentColors[agentIdx % agentColors.length];
                           const sentValue = agent.sent || 0;
                           const history = agentMetricsHistory[agent.agentId] || [];
                           
@@ -3050,11 +3046,11 @@ export default function InteractiveGlobe() {
                 {(() => {
                   const agentColors = [
                     '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                   ];
-                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                  return agents.map((agent, i) => (
                     <div key={i} className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agent.agentId === 'orphan' ? '#94a3b8' : agentColors[i % agentColors.length] }}></div>
                       <span className="text-white/70 text-xs">{agent.name}</span>
                     </div>
                   ));
@@ -3074,8 +3070,7 @@ export default function InteractiveGlobe() {
                 {/* Y-axis labels */}
                 <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
                   {(() => {
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    const maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
                     let scale;
                     if (maxSent >= 1000) scale = 400;
                     else if (maxSent >= 400) scale = 200;
@@ -3102,13 +3097,12 @@ export default function InteractiveGlobe() {
                   {(() => {
                     const agentColors = [
                       '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                     ];
                     
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    if (filteredAgents.length === 0) return null;
+                    if (agents.length === 0) return null;
                     
-                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    const maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
                     let scale;
                     if (maxSent >= 1000) scale = 400;
                     else if (maxSent >= 400) scale = 200;
@@ -3121,8 +3115,8 @@ export default function InteractiveGlobe() {
                     
                     return (
                       <>
-                        {filteredAgents.map((agent, agentIdx) => {
-                          const color = agentColors[agentIdx % agentColors.length];
+                        {agents.map((agent, agentIdx) => {
+                          const color = agent.agentId === 'orphan' ? '#94a3b8' : agentColors[agentIdx % agentColors.length];
                           const sentValue = agent.sent || 0;
                           const history = agentMetricsHistory[agent.agentId] || [];
                           
@@ -3175,11 +3169,11 @@ export default function InteractiveGlobe() {
                 {(() => {
                   const agentColors = [
                     '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                   ];
-                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                  return agents.map((agent, i) => (
                     <div key={i} className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agent.agentId === 'orphan' ? '#94a3b8' : agentColors[i % agentColors.length] }}></div>
                       <span className="text-white/70 text-xs">{agent.name}</span>
                     </div>
                   ));
@@ -3196,8 +3190,7 @@ export default function InteractiveGlobe() {
                 {/* Y-axis labels */}
                 <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
                   {(() => {
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    const maxReplied = Math.max(...filteredAgents.map(a => a.replied || 0), 1);
+                    const maxReplied = Math.max(...agents.map(a => a.replied || 0), 1);
                     let scale;
                     if (maxReplied >= 1000) scale = 400;
                     else if (maxReplied >= 400) scale = 200;
@@ -3224,13 +3217,12 @@ export default function InteractiveGlobe() {
                   {(() => {
                     const agentColors = [
                       '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                     ];
                     
-                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
-                    if (filteredAgents.length === 0) return null;
+                    if (agents.length === 0) return null;
                     
-                    const maxReplied = Math.max(...filteredAgents.map(a => a.replied || 0), 1);
+                    const maxReplied = Math.max(...agents.map(a => a.replied || 0), 1);
                     let scale;
                     if (maxReplied >= 1000) scale = 400;
                     else if (maxReplied >= 400) scale = 200;
@@ -3243,8 +3235,8 @@ export default function InteractiveGlobe() {
                     
                     return (
                       <>
-                        {filteredAgents.map((agent, agentIdx) => {
-                          const color = agentColors[agentIdx % agentColors.length];
+                        {agents.map((agent, agentIdx) => {
+                          const color = agent.agentId === 'orphan' ? '#94a3b8' : agentColors[agentIdx % agentColors.length];
                           const repliedValue = agent.replied || 0;
                           const history = agentMetricsHistory[agent.agentId] || [];
                           
@@ -3297,11 +3289,11 @@ export default function InteractiveGlobe() {
                 {(() => {
                   const agentColors = [
                     '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
-                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1', '#94a3b8'
                   ];
-                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                  return agents.map((agent, i) => (
                     <div key={i} className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agent.agentId === 'orphan' ? '#94a3b8' : agentColors[i % agentColors.length] }}></div>
                       <span className="text-white/70 text-xs">{agent.name}</span>
                     </div>
                   ));
