@@ -344,6 +344,12 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
             : 'Start All Agents'
           }
         </button>
+        
+        <p className="text-[#8FA6C1]/70 text-[10px] text-center mt-2 px-2">
+          {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
+            ? 'Immediately stops all running agents and clears their activity'
+            : 'Launches all configured agents simultaneously to begin prospecting'}
+        </p>
 
         {/* Active Agents Display */}
         <div className="mt-4 rounded-xl">
