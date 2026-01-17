@@ -571,17 +571,20 @@ export default function InteractiveGlobe() {
         const data = JSON.parse(event.data);
         console.log('📡 SSE Event received:', data);
         
-        // Handle cycle events for progress stream
-        if (data.type === 'cycle_complete' || data.type === 'cycle_start') {
-          const agent = agents.find(a => a.agentId === data.agentId);
+        // Handle cycle events for progress stream (check both direct and wrapped)
+        const eventType = data.type === 'activity_added' && data.data?.type ? data.data.type : data.type;
+        const eventData = data.type === 'activity_added' && data.data ? data.data : data;
+        
+        if (eventType === 'cycle_complete' || eventType === 'cycle_start') {
+          const agent = agents.find(a => a.agentId === eventData.agentId);
           const agentName = agent?.name || 'Agent';
           const cycleEvent = {
             id: `cycle-${Date.now()}-${Math.random()}`,
             agentName,
-            type: data.type,
-            message: data.type === 'cycle_complete' 
-              ? `Completed Cycle #${data.cycleNumber} → ${data.leadsFound || 0} leads found, ${data.qualified || 0} qualified`
-              : `Started Cycle #${data.cycleNumber} → Targeting: ${data.targeting || 'Mixed'}`,
+            type: eventType,
+            message: eventType === 'cycle_complete' 
+              ? `Completed Cycle #${eventData.cycleNumber} → ${eventData.leadsFound || 0} leads found, ${eventData.qualified || 0} qualified`
+              : `Started Cycle #${eventData.cycleNumber} → Targeting: ${eventData.targeting || 'Mixed'}`,
             timestamp: Date.now()
           };
           setCycleEvents(prev => [cycleEvent, ...prev].slice(0, 50)); // Keep last 50

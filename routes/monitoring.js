@@ -196,6 +196,28 @@ class MetricStore {
       }
     }
     
+    // Track agent stopped events
+    if (eventType === 'activity_added' && data.type === 'agent_stopped') {
+      if (data.agentId && this.metrics.agents[data.agentId]) {
+        this.metrics.agents[data.agentId].status = 'stopped';
+        this.metrics.agents[data.agentId].currentActivity = 'Stopped';
+        this.metrics.agents[data.agentId].lastActivity = Date.now();
+      }
+    }
+    
+    // Track cycle events
+    if (eventType === 'cycle_start' || eventType === 'cycle_complete') {
+      if (data.agentId) {
+        if (!this.metrics.agents[data.agentId]) {
+          this.metrics.agents[data.agentId] = {};
+        }
+        this.metrics.agents[data.agentId].lastActivity = Date.now();
+        this.metrics.agents[data.agentId].currentActivity = eventType === 'cycle_start' 
+          ? `Started Cycle #${data.cycleNumber}` 
+          : `Completed Cycle #${data.cycleNumber}`;
+      }
+    }
+    
     const sseData = `data: ${JSON.stringify(message)}\n\n`;
     
     this.clients.forEach(client => {
