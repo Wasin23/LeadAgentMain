@@ -705,70 +705,75 @@ router.delete('/activity/clear-all', authenticateToken, async (req, res) => {
 
 /**
  * GET /api/monitoring/ai-summary
- * AI-powered summary of current agent coordination state
+ * AI-generated summary of latest agent activity from real-time logs
  */
 router.get('/ai-summary', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     
-    // Get current agent metrics and activities from metricStore
+    // Get agents from metricStore (real-time data)
     const metrics = metricStore.getMetrics();
-    const recentIssues = metricStore.getIssues({ limit: 5 });
+    const agentData = metrics.agents || {};
     
-    // Count active agents
-    const activeAgents = Object.keys(metrics.agents || {}).length;
-    const runningAgents = Object.values(metrics.agents || {}).filter(a => a.status === 'running').length;
-    
-    // Build a concise summary
-    const summaries = [];
-    
-    if (runningAgents > 0) {
-      summaries.push(`${runningAgents}/${activeAgents} agents actively working`);
-    } else if (activeAgents > 0) {
-      summaries.push(`${activeAgents} agents idle`);
-    } else {
-      summaries.push('No agents running');
+    if (Object.keys(agentData).length === 0) {
+      return res.json({ success: true, summary: 'No agents configured. Create an agent to get started.' });
     }
     
-    // Add recent activity
-    if (metrics.leads?.searched > 0) {
-      summaries.push(`${metrics.leads.searched} leads searched today`);
-    }
+    // Find the most recent activity across all agents
+    let latestActivity = null;
+    let latestTime = 0;
+    let latestAgentId = null;
     
-    if (metrics.leads?.qualified > 0) {
-      summaries.push(`${metrics.leads.qualified} qualified contacts`);
-    }
-    
-    if (metrics.emails?.sent > 0) {
-      summaries.push(`${metrics.emails.sent} emails sent`);
-    }
-    
-    if (metrics.emails?.queued > 0) {
-      summaries.push(`${metrics.emails.queued} emails queued`);
-    }
-    
-    // Add issue alerts
-    const unresolvedIssues = recentIssues.filter(i => !i.resolved);
-    if (unresolvedIssues.length > 0) {
-      const errorCount = unresolvedIssues.filter(i => i.severity === 'error').length;
-      if (errorCount > 0) {
-        summaries.push(`⚠️ ${errorCount} active errors need attention`);
+    for (const [agentId, agent] of Object.entries(agentData)) {
+      if (agent.lastActivity && agent.lastActivity > latestTime) {
+        latestTime = agent.lastActivity;
+        latestAgentId = agentId;
+        latestActivity = agent;
       }
     }
     
-    // If nothing is happening
-    if (summaries.length === 0) {
-      summaries.push('System ready. Start agents to begin operations.');
-    }
+    // Build summary from latest activity
+    let summary = '';
     
-    const summary = summaries.join(' • ');
+    if (latestActivity && latestActivity.status === 'running') {
+      // Get agent name and current activity from AWS
+      const AWSManager = (await import('../utils/awsManager.js')).default;
+      const awsManager = new AWSManager();
+      const agentSettings = await awsManager.getAgentSettings(userId, latestAgentId);
+      const agentName = agentSettings?.name || 'Agent';
+      const currentActivity = agentSettings?.currentActivity || 'prospecting';
+      
+      // Use OpenAI to generate natural summary
+      try {
+        const { ChatOpenAI } = await import('@langchain/openai');
+        const model = new ChatOpenAI({
+          modelName: 'gpt-4o-mini',
+          temperature: 0.3,
+          maxTokens: 50
+        });
+        
+        const prompt = `Rewrite this agent activity into a single natural sentence (max 10 words): "${agentName}: ${currentActivity}"`;
+        const response = await model.invoke(prompt);
+        summary = response.content.trim();
+      } catch (aiError) {
+        console.error('AI summarization failed, using raw activity:', aiError);
+        summary = `${agentName}: ${currentActivity}`;
+      }
+    } else {
+      const runningCount = Object.values(agentData).filter(a => a.status === 'running').length;
+      if (runningCount > 0) {
+        summary = `${runningCount} agent${runningCount > 1 ? 's' : ''} running`;
+      } else {
+        summary = 'All agents idle. Start agents to begin operations.';
+      }
+    }
     
     res.json({ success: true, summary });
   } catch (error) {
-    console.error('❌ [MONITORING] Error generating AI summary:', error);
+    console.error('❌ [MONITORING] Error generating activity summary:', error);
     res.status(500).json({ 
       success: false, 
-      summary: 'Unable to generate coordination summary',
+      summary: 'Unable to fetch agent activity',
       error: error.message 
     });
   }

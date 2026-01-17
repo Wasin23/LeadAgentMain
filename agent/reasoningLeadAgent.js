@@ -640,6 +640,21 @@ IMPORTANT RULES:
       
       console.log(`📊 [CYCLE LOG] Logged cycle #${this.cycleCount} completion to DynamoDB`);
       
+      // Broadcast cycle completion event
+      try {
+        const { broadcastActivity } = await import('../routes/monitoring.js');
+        broadcastActivity({
+          type: 'cycle_complete',
+          agentId: this.agentId,
+          cycleNumber: this.cycleCount,
+          leadsFound: cycleData.leadsSearched || 0,
+          qualified: cycleData.leadsQualified || 0,
+          timestamp: Date.now()
+        });
+      } catch (err) {
+        console.error('Failed to broadcast cycle completion:', err);
+      }
+      
       // Get current total API usage from summary table and log it
       const apiUsage = await this.awsManager.getUserApiUsageSummary(this.userId);
       if (apiUsage.success && apiUsage.stats) {
@@ -6692,6 +6707,20 @@ Target Positions:`;
   async executeReasoningCycle() {
     this.cycleCount++;
     console.log(`🧠 [REASONING AGENT] Starting reasoning cycle #${this.cycleCount}`);
+    
+    // Broadcast cycle start event
+    try {
+      const { broadcastActivity } = await import('../routes/monitoring.js');
+      broadcastActivity({
+        type: 'cycle_start',
+        agentId: this.agentId,
+        cycleNumber: this.cycleCount,
+        targeting: this.settings?.companyCriteria?.companyIndustries?.[0] || 'Mixed',
+        timestamp: Date.now()
+      });
+    } catch (err) {
+      console.error('Failed to broadcast cycle start:', err);
+    }
     
     // CACHE CLEARING: Reset cycle tracking for new cycle (ensures fresh state)
     console.log('🧹 [CACHE CLEAR] Clearing cycle-specific cache for fresh start...');

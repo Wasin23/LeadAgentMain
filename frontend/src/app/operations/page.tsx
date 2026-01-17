@@ -645,7 +645,12 @@ export default function InteractiveGlobe() {
           // Update agent in agents list
           setAgents(prev => prev.map(agent => 
             agent.agentId === activityData.agentId
-              ? { ...agent, currentActivity: activityData.cardMessage || activityData.details, status: 'running' }
+              ? { 
+                  ...agent, 
+                  currentActivity: activityData.cardMessage || activityData.details, 
+                  status: 'running',
+                  lastActivity: Date.now()
+                }
               : agent
           ));
           
@@ -1519,6 +1524,11 @@ export default function InteractiveGlobe() {
             >
               {agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running') ? 'Stop All Agents' : 'Start All Agents'}
             </button>
+            <p className="text-[#8FA6C1]/70 text-[10px] text-center mt-2 px-4">
+              {agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running') 
+                ? 'Immediately stops all running agents and clears their activity'
+                : 'Launches all configured agents simultaneously to begin prospecting'}
+            </p>
           </div>
         </div>
       )}{/* End Mobile Navigation */}
@@ -2109,7 +2119,7 @@ export default function InteractiveGlobe() {
           <div className="p-3 border-b border-[#4FD1FF]/10">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></div>
-              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Coordination Intelligence</h3>
+              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity</h3>
             </div>
             <div className="bg-[#0A1525]/40 p-3 border border-[#4FD1FF]/10">
               <p className="text-[#8FA6C1] text-[11px] leading-relaxed">{aiSummary}</p>
@@ -2299,16 +2309,26 @@ export default function InteractiveGlobe() {
                 {(() => {
                   const rankedAgents = agents
                     .filter(a => a.agentId !== 'orphan')
-                    .map(agent => ({
-                      ...agent,
-                      score: (agent.meetingsScheduled || 0) * 10 + 
-                             (agent.emailsSent || 0) * 2 + 
-                             (agent.leadsFound || 0)
-                    }))
+                    .map(agent => {
+                      // Count cycle completions from cycleEvents
+                      const agentCycles = cycleEvents.filter(e => 
+                        e.agentName === agent.name && e.type === 'cycle_complete'
+                      ).length;
+                      
+                      // Simple score: just count cycles for now
+                      const score = agentCycles;
+                      
+                      return {
+                        ...agent,
+                        cycles: agentCycles,
+                        score
+                      };
+                    })
+                    .filter(a => a.score > 0) // Only show agents with activity
                     .sort((a, b) => b.score - a.score)
                     .slice(0, 4);
                   
-                  if (rankedAgents.length === 0 || rankedAgents.every(a => a.score === 0)) {
+                  if (rankedAgents.length === 0) {
                     return (
                       <div className="flex items-center justify-center h-full">
                         <span className="text-[#8FA6C1]/50 text-[9px]">No activity yet</span>
@@ -2351,14 +2371,8 @@ export default function InteractiveGlobe() {
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-[9px] font-medium truncate">{agent.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {agent.meetingsScheduled > 0 && (
-                              <span className="text-green-400 text-[8px]">{agent.meetingsScheduled}M</span>
-                            )}
-                            {agent.emailsSent > 0 && (
-                              <span className="text-blue-400 text-[8px]">{agent.emailsSent}E</span>
-                            )}
-                            {agent.leadsFound > 0 && (
-                              <span className="text-[#4FD1FF] text-[8px]">{agent.leadsFound}L</span>
+                            {agent.cycles > 0 && (
+                              <span className="text-[#4FD1FF] text-[8px]">{agent.cycles} cycle{agent.cycles !== 1 ? 's' : ''}</span>
                             )}
                           </div>
                         </div>
