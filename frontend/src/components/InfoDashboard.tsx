@@ -345,7 +345,7 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
           }
         </button>
         
-        <p className="text-[#8FA6C1]/70 text-[10px] text-center mt-2 px-2">
+        <p className="text-[#8FA6C1]/70 text-[11px] text-center mt-2 px-2">
           {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
             ? 'Immediately stops all running agents and clears their activity'
             : 'Launches all configured agents simultaneously to begin prospecting'}

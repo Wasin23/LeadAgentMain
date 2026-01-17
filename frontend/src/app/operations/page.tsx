@@ -1524,7 +1524,7 @@ export default function InteractiveGlobe() {
             >
               {agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running') ? 'Stop All Agents' : 'Start All Agents'}
             </button>
-            <p className="text-[#8FA6C1]/70 text-[10px] text-center mt-2 px-4">
+            <p className="text-[#8FA6C1]/70 text-[11px] text-center mt-2 px-4">
               {agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running') 
                 ? 'Immediately stops all running agents and clears their activity'
                 : 'Launches all configured agents simultaneously to begin prospecting'}

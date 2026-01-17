@@ -183,6 +183,19 @@ class MetricStore {
       timestamp: new Date().toISOString()
     };
     
+    // Track latest agent activity in memory for AI summary
+    if (eventType === 'agent_activity' || (eventType === 'activity_added' && data.type === 'agent_activity')) {
+      const activityData = eventType === 'agent_activity' ? data : data;
+      if (activityData.agentId) {
+        this.metrics.agents[activityData.agentId] = {
+          ...this.metrics.agents[activityData.agentId],
+          lastActivity: Date.now(),
+          currentActivity: activityData.cardMessage || activityData.details || 'Working',
+          status: 'running'
+        };
+      }
+    }
+    
     const sseData = `data: ${JSON.stringify(message)}\n\n`;
     
     this.clients.forEach(client => {
@@ -735,13 +748,12 @@ router.get('/ai-summary', authenticateToken, async (req, res) => {
     // Build summary from latest activity
     let summary = '';
     
-    if (latestActivity && latestActivity.status === 'running') {
-      // Get agent name and current activity from AWS
+    if (latestActivity && latestActivity.status === 'running' && latestActivity.currentActivity) {
+      // Get agent name from AWS
       const AWSManager = (await import('../utils/awsManager.js')).default;
       const awsManager = new AWSManager();
       const agentSettings = await awsManager.getAgentSettings(userId, latestAgentId);
       const agentName = agentSettings?.name || 'Agent';
-      const currentActivity = agentSettings?.currentActivity || 'prospecting';
       
       // Use OpenAI to generate natural summary
       try {
@@ -752,12 +764,12 @@ router.get('/ai-summary', authenticateToken, async (req, res) => {
           maxTokens: 50
         });
         
-        const prompt = `Rewrite this agent activity into a single natural sentence (max 10 words): "${agentName}: ${currentActivity}"`;
+        const prompt = `Rewrite this agent activity into a single natural sentence (max 10 words): "${agentName}: ${latestActivity.currentActivity}"`;
         const response = await model.invoke(prompt);
         summary = response.content.trim();
       } catch (aiError) {
         console.error('AI summarization failed, using raw activity:', aiError);
-        summary = `${agentName}: ${currentActivity}`;
+        summary = `${agentName}: ${latestActivity.currentActivity}`;
       }
     } else {
       const runningCount = Object.values(agentData).filter(a => a.status === 'running').length;
