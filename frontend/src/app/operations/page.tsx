@@ -1215,9 +1215,10 @@ export default function InteractiveGlobe() {
     rotationRef.current = rotation;
   }, [rotation]);
 
-  // Fetch agents on mount
+  // Fetch agents and metrics history on mount
   useEffect(() => {
     fetchAgents('queued');
+    fetchMetricsHistory();
   }, []);
 
   // Fetch all emails from all agents on initial load
