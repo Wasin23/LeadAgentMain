@@ -1034,6 +1034,26 @@ class AWSEmailQueue {
       throw error;
     }
   }
+
+  /**
+   * Helper: Get queued emails for agent (with caching)
+   */
+  async getQueuedEmailsForAgent(userId, agentId) {
+    const cacheKey = `${userId}#${agentId}#QUEUED`;
+    return await this._getCached(cacheKey, async () => {
+      return await this.getQueuedEmails(userId, agentId);
+    });
+  }
+
+  /**
+   * Helper: Get sent emails for agent (with caching)
+   */
+  async getSentEmailsForAgent(userId, agentId) {
+    const cacheKey = `${userId}#${agentId}#SENT`;
+    return await this._getCached(cacheKey, async () => {
+      return await this.getSentEmails(userId, agentId);
+    });
+  }
 }
 
 // Singleton instance

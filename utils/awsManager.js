@@ -36,7 +36,8 @@ class AWSManager {
       issuesAlerts: process.env.AWS_DYNAMODB_ISSUES_ALERTS_TABLE || 'meridian-issues-alerts',
       unsubscribes: process.env.AWS_DYNAMODB_UNSUBSCRIBES_TABLE || 'meridian-unsubscribes',
       searchHistory: process.env.AWS_DYNAMODB_SEARCH_HISTORY_TABLE || 'meridian-search-history',
-      paymentHistory: process.env.AWS_DYNAMODB_PAYMENT_HISTORY_TABLE || 'meridian-payment-history'
+      paymentHistory: process.env.AWS_DYNAMODB_PAYMENT_HISTORY_TABLE || 'meridian-payment-history',
+      agentMetrics: process.env.AWS_DYNAMODB_AGENT_METRICS_TABLE || 'meridian-agent-metrics'
     };
     
     // API Cost rates (estimated)
@@ -2988,6 +2989,50 @@ class AWSManager {
   // TABLE CREATION
   // ====================
   
+  async createAgentMetricsTable() {
+    try {
+      console.log('🔧 [AWS] Creating agent metrics table...');
+      
+      const command = new CreateTableCommand({
+        TableName: this.tables.agentMetrics,
+        KeySchema: [
+          { AttributeName: 'PK', KeyType: 'HASH' },  // Partition key: USER#{userId}#AGENT#{agentId}
+          { AttributeName: 'SK', KeyType: 'RANGE' }  // Sort key: METRICS#{timestamp}
+        ],
+        AttributeDefinitions: [
+          { AttributeName: 'PK', AttributeType: 'S' },
+          { AttributeName: 'SK', AttributeType: 'S' }
+        ],
+        BillingMode: 'PAY_PER_REQUEST', // On-demand pricing
+        TimeToLiveSpecification: {
+          AttributeName: 'ttl',
+          Enabled: true
+        },
+        Tags: [
+          { Key: 'Project', Value: 'Meridian' },
+          { Key: 'Purpose', Value: 'AgentMetrics' }
+        ]
+      });
+      
+      const ddbClient = new DynamoDBClient({
+        region: this.region,
+        credentials: fromNodeProviderChain()
+      });
+      
+      await ddbClient.send(command);
+      
+      console.log('✅ [AWS] Agent metrics table created successfully');
+      return { success: true, tableName: this.tables.agentMetrics };
+    } catch (error) {
+      if (error.name === 'ResourceInUseException') {
+        console.log('ℹ️ [AWS] Agent metrics table already exists');
+        return { success: true, tableName: this.tables.agentMetrics, alreadyExists: true };
+      }
+      console.error('❌ [AWS] Error creating agent metrics table:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async createSearchHistoryTable() {
     try {
       console.log('🔧 [AWS] Creating search history table...');
@@ -3100,6 +3145,72 @@ class AWSManager {
     } catch (error) {
       console.error(`❌ [AI-CONTROL] Error getting AI control state:`, error);
       return true; // Default to enabled on error
+    }
+  }
+
+  /**
+   * Record agent metrics snapshot
+   * PK: USER#userId#AGENT#agentId
+   * SK: METRICS#timestamp
+   */
+  async recordAgentMetrics({ userId, agentId, timestamp, metrics }) {
+    try {
+      const pk = `USER#${userId}#AGENT#${agentId}`;
+      const sk = `METRICS#${timestamp}`;
+      
+      const command = new PutCommand({
+        TableName: this.tables.agentMetrics,
+        Item: {
+          PK: pk,
+          SK: sk,
+          userId,
+          agentId,
+          timestamp,
+          queued: metrics.queued || 0,
+          sent: metrics.sent || 0,
+          replied: metrics.replied || 0,
+          ttl: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days TTL
+        }
+      });
+
+      await this.dynamodb.send(command);
+      console.log(`✅ Recorded metrics for ${agentId} at ${timestamp}`);
+    } catch (error) {
+      console.error('Error recording agent metrics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get agent metrics history
+   * Returns time-series data for queued/sent/replied counts
+   */
+  async getAgentMetricsHistory(userId, agentId, startTime) {
+    try {
+      const pk = `USER#${userId}#AGENT#${agentId}`;
+      const skStart = `METRICS#${startTime}`;
+      
+      const command = new QueryCommand({
+        TableName: this.tables.agentMetrics,
+        KeyConditionExpression: 'PK = :pk AND SK >= :sk',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+          ':sk': skStart
+        },
+        ScanIndexForward: true // Oldest first
+      });
+
+      const result = await this.dynamodb.send(command);
+      
+      return (result.Items || []).map(item => ({
+        timestamp: item.timestamp,
+        queued: item.queued || 0,
+        sent: item.sent || 0,
+        replied: item.replied || 0
+      }));
+    } catch (error) {
+      console.error('Error fetching agent metrics history:', error);
+      return [];
     }
   }
 }

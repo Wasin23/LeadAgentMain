@@ -20,6 +20,7 @@ import chatRoutes from './routes/chat.js';
 import billingRoutes from './routes/billing.js';
 import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
 import { startBillingCron } from './utils/billingCron.js';
+import { startMetricsCron } from './utils/agentMetricsCron.js';
 
 // Load and validate configuration
 const config = getConfig();
@@ -108,6 +109,15 @@ try {
 } catch (e) {
   console.log('Analytics routes not available:', e.message);
   analyticsRoutes = (req, res, next) => next(); // No-op if not present
+}
+
+// Import agent metrics routes
+let agentMetricsRoutes;
+try {
+  agentMetricsRoutes = (await import('./routes/agentMetrics.js')).default;
+} catch (e) {
+  console.log('Agent metrics routes not available:', e.message);
+  agentMetricsRoutes = (req, res, next) => next(); // No-op if not present
 }
 
 // Import webhook routes
@@ -515,6 +525,7 @@ app.use('/api/crm', crmRoutes); // CRM integration (Merge.dev)
 app.use('/api/calendar', calendarRoutes); // Calendar OAuth and integration
 app.use('/api/gmail-pubsub', gmailPubSubRoutes); // Gmail Pub/Sub push notifications
 app.use('/', analyticsRoutes); // Analytics routes include tracking endpoints
+app.use('/', agentMetricsRoutes); // Agent metrics historical data
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking
 app.use('/api/tracking', trackingRoutes); // Desktop email tracking (safe, no external deps)
@@ -620,6 +631,10 @@ const server = app.listen(PORT, async () => {
   
   // Start monthly billing cron job (runs 1st of month at 2 AM)
   startBillingCron();
+  
+  // Start agent metrics recording cron (runs every hour)
+  startMetricsCron();
+  console.log('✅ [METRICS] Agent metrics recording cron started');
   
   // Start rebump checker (runs every 6 hours)
   try {

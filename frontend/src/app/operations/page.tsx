@@ -231,11 +231,7 @@ export default function InteractiveGlobe() {
   useLayoutEffect(() => {
     if (showGlobe) {
       setIsAnimatingOut(false);
-      setGlobeLoading(true);
-      const timer = setTimeout(() => {
-        setGlobeLoading(false);
-      }, 2000);
-      return () => clearTimeout(timer);
+      setGlobeLoading(false);
     } else {
       setGlobeLoading(false);
     }
@@ -271,6 +267,7 @@ export default function InteractiveGlobe() {
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
+  const [agentMetricsHistory, setAgentMetricsHistory] = useState<{[agentId: string]: any[]}>({});
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [currentEmailPage, setCurrentEmailPage] = useState(1);
   const EMAILS_PER_PAGE = 20;
@@ -302,7 +299,7 @@ export default function InteractiveGlobe() {
   const [agentActivities, setAgentActivities] = useState<{[agentId: string]: any}>({});
 
   // Tab state for operations view
-  const [activeTab, setActiveTab] = useState<'director' | 'queue' | 'globe'>('director');
+  const [activeTab, setActiveTab] = useState<'director' | 'queue' | 'globe' | 'analytics'>('director');
   const [activityFilter, setActivityFilter] = useState<'all' | 'opened' | 'sent' | 'bounced'>('all');
   const [outreachSearch, setOutreachSearch] = useState('');
   const [outreachPage, setOutreachPage] = useState(0);
@@ -746,6 +743,34 @@ export default function InteractiveGlobe() {
         hasEmailSettings: !!a.settings?.emailSettings
       })));
       
+      // Enrich agents with queue stats
+      const enrichedAgents = await Promise.all(
+        agents.map(async (agent: any) => {
+          if (agent.agentId === 'orphan') return agent;
+          try {
+            const [queueRes, sentRes] = await Promise.all([
+              api.get(`/api/email-queue/queue?agentId=${agent.agentId}`),
+              api.get(`/api/email-queue/sent?agentId=${agent.agentId}`)
+            ]);
+            const queuedEmails = Array.isArray(queueRes.data) ? queueRes.data : [];
+            const sentEmails = Array.isArray(sentRes.data) ? sentRes.data : [];
+            const repliedEmails = sentEmails.filter((e: any) => e.replied || e.status === 'REPLIED');
+            
+            return {
+              ...agent,
+              queued: queuedEmails.length,
+              sent: sentEmails.length,
+              replied: repliedEmails.length
+            };
+          } catch (error) {
+            console.error(`Error fetching stats for ${agent.name}:`, error);
+            return { ...agent, queued: 0, sent: 0, replied: 0 };
+          }
+        })
+      );
+      
+      agents = enrichedAgents;
+      
       // Always check for orphaned emails
       try {
         const orphanedRes = await api.get('/api/email-queue/queue?agentId=orphan');
@@ -759,7 +784,10 @@ export default function InteractiveGlobe() {
             agentId: 'orphan',
             name: 'Orphaned Emails',
             status: 'orphaned',
-            isOrphaned: true
+            isOrphaned: true,
+            queued: orphanedEmails.length,
+            sent: 0,
+            replied: 0
           }, ...agents];
           console.log('Added orphaned emails agent to list');
         }
@@ -773,6 +801,23 @@ export default function InteractiveGlobe() {
       setAgents([]);
     } finally {
       setLoadingAgents(false);
+    }
+  };
+
+  // Fetch historical metrics for all agents
+  const fetchMetricsHistory = async () => {
+    try {
+      const response = await api.get('/api/agent-metrics/history?hours=12');
+      const metricsData: {[agentId: string]: any[]} = {};
+      
+      response.data.agents.forEach((agent: any) => {
+        metricsData[agent.agentId] = agent.history || [];
+      });
+      
+      setAgentMetricsHistory(metricsData);
+      console.log('📊 Fetched metrics history:', metricsData);
+    } catch (error) {
+      console.error('Error fetching metrics history:', error);
     }
   };
 
@@ -1217,6 +1262,7 @@ export default function InteractiveGlobe() {
       if (!document.hidden) {
         console.log('Page became visible, refetching agents...');
         fetchAgents();
+        fetchMetricsHistory();
       }
     };
 
@@ -1444,12 +1490,15 @@ export default function InteractiveGlobe() {
       <div className="flex items-center gap-2 mb-4 border-b border-[#4FD1FF]/20 pb-2">
         <button
           onClick={() => setActiveTab('director')}
-          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
+          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'director'
               ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
               : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
           Agent Director
         </button>
         <button
@@ -1457,12 +1506,15 @@ export default function InteractiveGlobe() {
             setActiveTab('queue');
             handleGlobeToggle(false);
           }}
-          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
+          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'queue'
               ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
               : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
           Email Queue
         </button>
         <button
@@ -1470,13 +1522,29 @@ export default function InteractiveGlobe() {
             setActiveTab('globe');
             handleGlobeToggle(true);
           }}
-          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
+          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'globe'
               ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
               : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+            activeTab === 'analytics'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Analytics
         </button>
       </div>
 
@@ -2116,7 +2184,7 @@ export default function InteractiveGlobe() {
       {activeTab === 'director' && (
         <>
           <div 
-            className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10"
+            className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10"
             style={{ bottom: 'calc(9rem + 8px)' }}
           >
           {/* AI Summary Box */}
@@ -2255,7 +2323,7 @@ export default function InteractiveGlobe() {
         </div>
         
         {/* Bottom Section: Warnings + Rankings */}
-        <div className="fixed left-[265px] lg:right-[calc(20%+10px)] bottom-0 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10 z-30" style={{ top: 'calc(100vh - 9rem - 8px)', height: 'calc(9rem + 8px)' }}>
+        <div className="fixed left-[265px] lg:right-[calc(20%+10px)] bottom-0 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10 z-30" style={{ top: 'calc(100vh - 9rem - 8px)', height: 'calc(9rem + 8px)' }}>
           <div className="flex h-full">
             {/* Recent Warnings */}
             <div className="flex-1 border-r border-[#4FD1FF]/10 flex flex-col">
@@ -2679,6 +2747,650 @@ export default function InteractiveGlobe() {
 
       </div>
       )}{/* End Globe Tab */}
+
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && (
+        <div 
+          className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] bottom-0 flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10 overflow-y-auto pb-4"
+        >
+          <div className="space-y-6 p-6">
+          {/* Top Stats - Replies Received and Reply Rate as thin boxes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+            {/* Replied Card - Thin */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all duration-300 flex items-center justify-between">
+              <div>
+                <p className="text-white/70 text-sm font-medium">Replies Received</p>
+                <p className="text-white text-3xl font-bold">{stats.emailsViewed}</p>
+              </div>
+              <div className="h-12 w-24 flex items-end gap-0.5">
+                {agents.filter(a => a.agentId !== 'orphan').slice(0, 10).map((agent, i) => {
+                  const maxReplied = Math.max(...agents.filter(a => a.agentId !== 'orphan').map(a => a.replied || 0), 1);
+                  const height = ((agent.replied || 0) / maxReplied) * 100;
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 bg-gradient-to-t from-green-400 to-green-300 rounded-t hover:opacity-80 transition-opacity"
+                      style={{ height: `${height}%` }}
+                      title={`${agent.name}: ${agent.replied}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Reply Rate Card - Thin */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all duration-300 flex items-center justify-between">
+              <div>
+                <p className="text-white/70 text-sm font-medium">Reply Rate</p>
+                <p className="text-white text-3xl font-bold">{stats.emailsSent > 0 ? ((stats.emailsViewed / stats.emailsSent) * 100).toFixed(1) : '0'}%</p>
+              </div>
+              <div className="h-12 w-24 flex items-end gap-0.5">
+                {agents.filter(a => a.agentId !== 'orphan').slice(0, 10).map((agent, i) => {
+                  const rate = (agent.sent || 0) > 0 ? ((agent.replied || 0) / (agent.sent || 1)) * 100 : 0;
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 bg-gradient-to-t from-blue-400 to-blue-300 rounded-t hover:opacity-80 transition-opacity"
+                      style={{ height: `${rate}%` }}
+                      title={`${agent.name}: ${rate.toFixed(1)}%`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Queued and Sent - Large detailed graphs */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+            {/* Queued Emails - Large Detailed */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-white">Queued Emails</h2>
+                <span className="text-white text-2xl font-bold">{stats.emailsQueued}</span>
+              </div>
+              <div className="h-40 relative flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
+                  {(() => {
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    const maxQueued = Math.max(...filteredAgents.map(a => a.queued || 0), 1);
+                    let scale;
+                    if (maxQueued >= 1000) scale = 400;
+                    else if (maxQueued >= 400) scale = 200;
+                    else if (maxQueued >= 100) scale = 40;
+                    else if (maxQueued >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxQueued / scale) * scale;
+                    const step = maxRounded / 4;
+                    return [maxRounded, maxRounded - step, maxRounded - step*2, maxRounded - step*3, 0].map((val, i) => (
+                      <span key={i} className="text-right">{val >= 1000 ? `${Math.floor(val/1000)}k` : Math.floor(val)}</span>
+                    ));
+                  })()}
+                </div>
+                <svg className="flex-1 h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Axes */}
+                  <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  
+                  {/* Grid lines */}
+                  <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="75" x2="100" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  
+                  {(() => {
+                    const agentColors = [
+                      '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    ];
+                    
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    if (filteredAgents.length === 0) return null;
+                    
+                    const maxQueued = Math.max(...filteredAgents.map(a => a.queued || 0), 1);
+                    let scale;
+                    if (maxQueued >= 1000) scale = 400;
+                    else if (maxQueued >= 400) scale = 200;
+                    else if (maxQueued >= 100) scale = 40;
+                    else if (maxQueued >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxQueued / scale) * scale;
+                    
+                    return (
+                      <>
+                        {filteredAgents.map((agent, agentIdx) => {
+                          const color = agentColors[agentIdx % agentColors.length];
+                          const queuedValue = agent.queued || 0;
+                          const history = agentMetricsHistory[agent.agentId] || [];
+                          
+                          // Generate points from real historical data or show current value only
+                          let points;
+                          if (history.length >= 2) {
+                            // Use real historical data
+                            const stepX = 100 / (history.length - 1);
+                            points = history.map((snapshot, i) => {
+                              const x = i * stepX;
+                              const value = snapshot.queued || 0;
+                              const y = 100 - (value / maxRounded) * 100;
+                              return `${x},${Math.max(0, Math.min(100, y))}`;
+                            }).join(' ');
+                          } else {
+                            // No history yet - show flat line at current value
+                            const y = 100 - (queuedValue / maxRounded) * 100;
+                            points = `0,${y} 100,${y}`;
+                          }
+                          
+                          return (
+                            <g key={agentIdx}>
+                              <polyline
+                                points={points}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth="1"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity="0.8"
+                              />
+                              <circle
+                                cx={100}
+                                cy={100 - (queuedValue / maxRounded) * 100}
+                                r="1.5"
+                                fill={color}
+                                className="cursor-pointer"
+                              >
+                                <title>{agent.name}: {queuedValue} queued</title>
+                              </circle>
+                            </g>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+              {/* X-axis time labels */}
+              <div className="flex justify-between text-[9px] text-white/40 mt-1 px-8">
+                <span>10h ago</span>
+                <span>8h</span>
+                <span>6h</span>
+                <span>4h</span>
+                <span>2h</span>
+                <span>Now</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                {(() => {
+                  const agentColors = [
+                    '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                  ];
+                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <span className="text-white/70 text-xs">{agent.name}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Emails Sent - Large Detailed */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-white">Emails Sent</h2>
+                <span className="text-white text-2xl font-bold">{stats.emailsSent}</span>
+              </div>
+              <div className="h-40 relative flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
+                  {(() => {
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    let scale;
+                    if (maxSent >= 1000) scale = 400;
+                    else if (maxSent >= 400) scale = 200;
+                    else if (maxSent >= 100) scale = 40;
+                    else if (maxSent >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxSent / scale) * scale;
+                    const step = maxRounded / 4;
+                    return [maxRounded, maxRounded - step, maxRounded - step*2, maxRounded - step*3, 0].map((val, i) => (
+                      <span key={i} className="text-right">{val >= 1000 ? `${Math.floor(val/1000)}k` : Math.floor(val)}</span>
+                    ));
+                  })()}
+                </div>
+                <svg className="flex-1 h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Axes */}
+                  <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  
+                  {/* Grid lines */}
+                  <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="75" x2="100" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  
+                  {(() => {
+                    const agentColors = [
+                      '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    ];
+                    
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    if (filteredAgents.length === 0) return null;
+                    
+                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    let scale;
+                    if (maxSent >= 1000) scale = 400;
+                    else if (maxSent >= 400) scale = 200;
+                    else if (maxSent >= 100) scale = 40;
+                    else if (maxSent >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxSent / scale) * scale;
+                    
+                    return (
+                      <>
+                        {filteredAgents.map((agent, agentIdx) => {
+                          const color = agentColors[agentIdx % agentColors.length];
+                          const sentValue = agent.sent || 0;
+                          const history = agentMetricsHistory[agent.agentId] || [];
+                          
+                          // Generate points from real historical data or show current value only
+                          let points;
+                          if (history.length >= 2) {
+                            // Use real historical data
+                            const stepX = 100 / (history.length - 1);
+                            points = history.map((snapshot, i) => {
+                              const x = i * stepX;
+                              const value = snapshot.sent || 0;
+                              const y = 100 - (value / maxRounded) * 100;
+                              return `${x},${Math.max(0, Math.min(100, y))}`;
+                            }).join(' ');
+                          } else {
+                            // No history yet - show flat line at current value
+                            const y = 100 - (sentValue / maxRounded) * 100;
+                            points = `0,${y} 100,${y}`;
+                          }
+                          
+                          return (
+                            <g key={agentIdx}>
+                              <polyline
+                                points={points}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth="1"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity="0.8"
+                              />
+                              <circle
+                                cx={100}
+                                cy={100 - (sentValue / maxRounded) * 100}
+                                r="1.5"
+                                fill={color}
+                                className="cursor-pointer"
+                              >
+                                <title>{agent.name}: {sentValue} sent</title>
+                              </circle>
+                            </g>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+              {/* X-axis time labels */}
+              <div className="flex justify-between text-[9px] text-white/40 mt-1 px-8">
+                <span>10h ago</span>
+                <span>8h</span>
+                <span>6h</span>
+                <span>4h</span>
+                <span>2h</span>
+                <span>Now</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                {(() => {
+                  const agentColors = [
+                    '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                  ];
+                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <span className="text-white/70 text-xs">{agent.name}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Emails Sent Comparison */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-white">Emails Sent Comparison</h2>
+              </div>
+              <div className="h-40 relative flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
+                  {(() => {
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    let scale;
+                    if (maxSent >= 1000) scale = 400;
+                    else if (maxSent >= 400) scale = 200;
+                    else if (maxSent >= 100) scale = 40;
+                    else if (maxSent >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxSent / scale) * scale;
+                    const step = maxRounded / 4;
+                    return [maxRounded, maxRounded - step, maxRounded - step*2, maxRounded - step*3, 0].map((val, i) => (
+                      <span key={i} className="text-right">{val >= 1000 ? `${Math.floor(val/1000)}k` : Math.floor(val)}</span>
+                    ));
+                  })()}
+                </div>
+                <svg className="flex-1 h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Axes */}
+                  <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  
+                  {/* Grid lines */}
+                  <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="75" x2="100" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  
+                  {(() => {
+                    const agentColors = [
+                      '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    ];
+                    
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    if (filteredAgents.length === 0) return null;
+                    
+                    const maxSent = Math.max(...filteredAgents.map(a => a.sent || 0), 1);
+                    let scale;
+                    if (maxSent >= 1000) scale = 400;
+                    else if (maxSent >= 400) scale = 200;
+                    else if (maxSent >= 100) scale = 40;
+                    else if (maxSent >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxSent / scale) * scale;
+                    const numPoints = 10;
+                    const stepX = 100 / (numPoints - 1);
+                    
+                    return (
+                      <>
+                        {filteredAgents.map((agent, agentIdx) => {
+                          const color = agentColors[agentIdx % agentColors.length];
+                          const sentValue = agent.sent || 0;
+                          const history = agentMetricsHistory[agent.agentId] || [];
+                          
+                          // Generate points from real historical data
+                          let points;
+                          if (history.length >= 2) {
+                            const stepX = 100 / (history.length - 1);
+                            points = history.map((snapshot, i) => {
+                              const x = i * stepX;
+                              const value = snapshot.sent || 0;
+                              const y = 100 - (value / maxRounded) * 100;
+                              return `${x},${Math.max(0, Math.min(100, y))}`;
+                            }).join(' ');
+                          } else {
+                            // No history - show flat line at current value
+                            const y = 100 - (sentValue / maxRounded) * 100;
+                            points = `0,${y} 100,${y}`;
+                          }
+                          
+                          return (
+                            <g key={agentIdx}>
+                              <polyline
+                                points={points}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth="1"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity="0.8"
+                              />
+                              {/* End point */}
+                              <circle
+                                cx={100}
+                                cy={100 - (sentValue / maxRounded) * 100}
+                                r="1.5"
+                                fill={color}
+                                className="cursor-pointer"
+                              >
+                                <title>{agent.name}: {sentValue} sent</title>
+                              </circle>
+                            </g>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                {(() => {
+                  const agentColors = [
+                    '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                  ];
+                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <span className="text-white/70 text-xs">{agent.name}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Emails Replied Comparison */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-white">Emails Replied Comparison</h2>
+              </div>
+              <div className="h-40 relative flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
+                  {(() => {
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    const maxReplied = Math.max(...filteredAgents.map(a => a.replied || 0), 1);
+                    let scale;
+                    if (maxReplied >= 1000) scale = 400;
+                    else if (maxReplied >= 400) scale = 200;
+                    else if (maxReplied >= 100) scale = 40;
+                    else if (maxReplied >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxReplied / scale) * scale;
+                    const step = maxRounded / 4;
+                    return [maxRounded, maxRounded - step, maxRounded - step*2, maxRounded - step*3, 0].map((val, i) => (
+                      <span key={i} className="text-right">{val >= 1000 ? `${Math.floor(val/1000)}k` : Math.floor(val)}</span>
+                    ));
+                  })()}
+                </div>
+                <svg className="flex-1 h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Axes */}
+                  <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                  
+                  {/* Grid lines */}
+                  <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  <line x1="0" y1="75" x2="100" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                  
+                  {(() => {
+                    const agentColors = [
+                      '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                    ];
+                    
+                    const filteredAgents = agents.filter(a => a.agentId !== 'orphan');
+                    if (filteredAgents.length === 0) return null;
+                    
+                    const maxReplied = Math.max(...filteredAgents.map(a => a.replied || 0), 1);
+                    let scale;
+                    if (maxReplied >= 1000) scale = 400;
+                    else if (maxReplied >= 400) scale = 200;
+                    else if (maxReplied >= 100) scale = 40;
+                    else if (maxReplied >= 40) scale = 20;
+                    else scale = 4;
+                    const maxRounded = Math.ceil(maxReplied / scale) * scale;
+                    const numPoints = 10;
+                    const stepX = 100 / (numPoints - 1);
+                    
+                    return (
+                      <>
+                        {filteredAgents.map((agent, agentIdx) => {
+                          const color = agentColors[agentIdx % agentColors.length];
+                          const repliedValue = agent.replied || 0;
+                          const history = agentMetricsHistory[agent.agentId] || [];
+                          
+                          // Generate points from real historical data
+                          let points;
+                          if (history.length >= 2) {
+                            const stepX = 100 / (history.length - 1);
+                            points = history.map((snapshot, i) => {
+                              const x = i * stepX;
+                              const value = snapshot.replied || 0;
+                              const y = 100 - (value / maxRounded) * 100;
+                              return `${x},${Math.max(0, Math.min(100, y))}`;
+                            }).join(' ');
+                          } else {
+                            // No history - show flat line at current value
+                            const y = 100 - (repliedValue / maxRounded) * 100;
+                            points = `0,${y} 100,${y}`;
+                          }
+                          
+                          return (
+                            <g key={agentIdx}>
+                              <polyline
+                                points={points}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth="1"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity="0.8"
+                              />
+                              {/* End point */}
+                              <circle
+                                cx={100}
+                                cy={100 - (repliedValue / maxRounded) * 100}
+                                r="1.5"
+                                fill={color}
+                                className="cursor-pointer"
+                              >
+                                <title>{agent.name}: {repliedValue} replied</title>
+                              </circle>
+                            </g>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                {(() => {
+                  const agentColors = [
+                    '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+                    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#6366f1'
+                  ];
+                  return agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: agentColors[i % agentColors.length] }}></div>
+                      <span className="text-white/70 text-xs">{agent.name}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Recent Sent Emails */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
+              <h2 className="text-base font-bold text-white mb-3">Recent Agent Activity</h2>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {agents.filter(a => a.agentId !== 'orphan').length === 0 ? (
+                  <div className="text-center py-8 text-white/60">
+                    <p className="text-xs">No agents configured</p>
+                  </div>
+                ) : (
+                  agents.filter(a => a.agentId !== 'orphan').map((agent, i) => (
+                    <div
+                      key={i}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg p-3 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            agent.status === 'running' ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
+                          }`}></div>
+                          <div className="text-white font-medium text-sm">{agent.name}</div>
+                        </div>
+                        <span className="text-[#8FA6C1] text-[10px] uppercase">{agent.personality?.type || 'Agent'}</span>
+                      </div>
+                      <div className="text-white/70 text-xs">
+                        {agent.status === 'running' ? (agent.currentActivity || 'Running') : 'Idle'}
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-[10px]">
+                        <span className="text-purple-300">{agent.sent || 0} sent</span>
+                        <span className="text-green-300">{agent.replied || 0} replied</span>
+                        <span className="text-orange-300">{agent.queued || 0} queued</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Activity Logs */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-white">Recent Activity</h2>
+              </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {cycleEvents.length === 0 ? (
+                  <div className="text-center py-8 text-white/60">
+                    <p className="text-xs">No activity yet</p>
+                  </div>
+                ) : (
+                  cycleEvents.slice(0, 20).map((activity, i) => {
+                    const isError = activity.type === 'error';
+                    const isCycle = activity.type === 'cycle_start' || activity.type === 'cycle_complete';
+                    
+                    return (
+                      <div
+                        key={i}
+                        className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg p-2 transition-all"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${
+                            isError ? 'bg-red-400' : isCycle ? 'bg-green-400' : 'bg-blue-400'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white text-xs font-medium">{activity.message}</div>
+                            <div className="flex items-center gap-2 text-[9px] text-white/50 mt-0.5">
+                              <span>{new Date(activity.timestamp).toLocaleDateString()}</span>
+                              <span>•</span>
+                              <span className="uppercase">{activity.agentName}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      )}{/* End Analytics Tab */}
 
       {/* AI Report Modal */}
       {viewingAiReport && (
