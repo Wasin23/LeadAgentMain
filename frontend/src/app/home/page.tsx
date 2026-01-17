@@ -235,10 +235,10 @@ export default function HomePage() {
           }
           setAgentActivity(activity);
 
-          // Calculate percentage changes for last 7 days vs previous 7 days
+          // Calculate percentage changes: today vs previous 3 days
           const now = new Date();
-          const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          const previous7Days = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const threeDaysAgo = new Date(todayStart.getTime() - 3 * 24 * 60 * 60 * 1000);
 
           // Fetch replied emails for change calculation
           const repliedResponse = await api.get('/api/email-queue/replied?agentId=all');
@@ -250,43 +250,43 @@ export default function HomePage() {
             return Math.round(((current - previous) / previous) * 100);
           };
 
-          // Current period (last 7 days)
-          const currentSent = sentEmails.filter((email: any) => {
+          // Today's stats
+          const todaySent = sentEmails.filter((email: any) => {
             const emailDate = new Date(email.sentAt || email.timestamp);
-            return emailDate >= last7Days;
+            return emailDate >= todayStart;
           }).length;
 
-          const currentReplied = repliedEmails.filter((email: any) => {
+          const todayReplied = repliedEmails.filter((email: any) => {
             const emailDate = new Date(email.repliedAt || email.timestamp);
-            return emailDate >= last7Days;
+            return emailDate >= todayStart;
           }).length;
 
-          const currentOpened = sentEmails.filter((email: any) => {
+          const todayOpened = sentEmails.filter((email: any) => {
             const emailDate = new Date(email.sentAt || email.timestamp);
-            return emailDate >= last7Days && (email.opened === true || email.analytics?.opened === true);
+            return emailDate >= todayStart && (email.opened === true || email.analytics?.opened === true);
           }).length;
 
-          // Previous period (7-14 days ago)
-          const previousSent = sentEmails.filter((email: any) => {
+          // Previous 3 days stats
+          const previous3DaysSent = sentEmails.filter((email: any) => {
             const emailDate = new Date(email.sentAt || email.timestamp);
-            return emailDate >= previous7Days && emailDate < last7Days;
+            return emailDate >= threeDaysAgo && emailDate < todayStart;
           }).length;
 
-          const previousReplied = repliedEmails.filter((email: any) => {
+          const previous3DaysReplied = repliedEmails.filter((email: any) => {
             const emailDate = new Date(email.repliedAt || email.timestamp);
-            return emailDate >= previous7Days && emailDate < last7Days;
+            return emailDate >= threeDaysAgo && emailDate < todayStart;
           }).length;
 
-          const previousOpened = sentEmails.filter((email: any) => {
+          const previous3DaysOpened = sentEmails.filter((email: any) => {
             const emailDate = new Date(email.sentAt || email.timestamp);
-            return emailDate >= previous7Days && emailDate < last7Days && (email.opened === true || email.analytics?.opened === true);
+            return emailDate >= threeDaysAgo && emailDate < todayStart && (email.opened === true || email.analytics?.opened === true);
           }).length;
 
           setStatsChanges({
             queued: 0, // Queue doesn't have historical data
-            sent: calculateChange(currentSent, previousSent),
-            replied: calculateChange(currentReplied, previousReplied),
-            opened: calculateChange(currentOpened, previousOpened)
+            sent: calculateChange(todaySent, previous3DaysSent / 3), // Compare to daily average
+            replied: calculateChange(todayReplied, previous3DaysReplied / 3),
+            opened: calculateChange(todayOpened, previous3DaysOpened / 3)
           });
         }
       } catch (error) {

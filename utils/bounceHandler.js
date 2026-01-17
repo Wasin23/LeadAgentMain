@@ -1,4 +1,4 @@
-/**
+40/**
  * Email Bounce Handler
  * Processes Mailgun webhook events for bounces, complaints, and failures
  */
