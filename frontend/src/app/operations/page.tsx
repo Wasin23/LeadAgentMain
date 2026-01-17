@@ -308,6 +308,12 @@ export default function InteractiveGlobe() {
   const [outreachPage, setOutreachPage] = useState(0);
   const OUTREACH_PAGE_SIZE = 20;
   
+  // AI Summary and cycle tracking
+  const [aiSummary, setAiSummary] = useState<string>('Initializing coordination intelligence...');
+  const [cycleEvents, setCycleEvents] = useState<Array<{id: string, agentName: string, type: string, message: string, timestamp: number}>>([]);
+  const [todayStart, setTodayStart] = useState(new Date().setHours(0, 0, 0, 0));
+  const [recentWarnings, setRecentWarnings] = useState<Array<{id: string, severity: string, message: string, agentId?: string, timestamp: number}>>([]);
+  
   // Follow-up modal state
   const [followUpModal, setFollowUpModal] = useState<any>(null);
   const [editingFollowUp, setEditingFollowUp] = useState(false);
@@ -512,6 +518,46 @@ export default function InteractiveGlobe() {
     return () => clearInterval(interval);
   }, []);
 
+  // Poll AI summary every 5 seconds
+  useEffect(() => {
+    if (!isMounted || activeTab !== 'director') return;
+    
+    const fetchSummary = async () => {
+      try {
+        const response = await api.get('/api/monitoring/ai-summary');
+        if (response.data?.summary) {
+          setAiSummary(response.data.summary);
+        }
+      } catch (error) {
+        console.error('Failed to fetch AI summary:', error);
+      }
+    };
+    
+    fetchSummary(); // Initial fetch
+    const interval = setInterval(fetchSummary, 5000);
+    return () => clearInterval(interval);
+  }, [isMounted, activeTab]);
+
+  // Check if we need to reset today's stats
+  useEffect(() => {
+    const checkDateReset = () => {
+      const now = new Date().setHours(0, 0, 0, 0);
+      if (now > todayStart) {
+        setTodayStart(now);
+        // Reset stats
+        setStats(prev => ({
+          ...prev,
+          totalEmailsQueued: 0,
+          totalEmailsSent: 0
+        }));
+      }
+    };
+    
+    checkDateReset();
+    const interval = setInterval(checkDateReset, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [todayStart]);
+
   // Connect to SSE for agent activities
   useEffect(() => {
     if (!isMounted) return;
@@ -524,6 +570,39 @@ export default function InteractiveGlobe() {
       try {
         const data = JSON.parse(event.data);
         console.log('📡 SSE Event received:', data);
+        
+        // Handle cycle events for progress stream
+        if (data.type === 'cycle_complete' || data.type === 'cycle_start') {
+          const agent = agents.find(a => a.agentId === data.agentId);
+          const agentName = agent?.name || 'Agent';
+          const cycleEvent = {
+            id: `cycle-${Date.now()}-${Math.random()}`,
+            agentName,
+            type: data.type,
+            message: data.type === 'cycle_complete' 
+              ? `Completed Cycle #${data.cycleNumber} → ${data.leadsFound || 0} leads found, ${data.qualified || 0} qualified`
+              : `Started Cycle #${data.cycleNumber} → Targeting: ${data.targeting || 'Mixed'}`,
+            timestamp: Date.now()
+          };
+          setCycleEvents(prev => [cycleEvent, ...prev].slice(0, 50)); // Keep last 50
+        }
+        
+        // Handle issue/warning events
+        if (data.type === 'issue_detected' || data.type === 'activity_added') {
+          const issueData = data.type === 'issue_detected' ? data : 
+                           (data.data?.type === 'issue' || data.data?.severity) ? data.data : null;
+          
+          if (issueData && (issueData.severity === 'error' || issueData.severity === 'warning')) {
+            const warning = {
+              id: issueData.id || `warning-${Date.now()}-${Math.random()}`,
+              severity: issueData.severity,
+              message: issueData.message || issueData.details || 'Unknown issue',
+              agentId: issueData.agentId,
+              timestamp: Date.now()
+            };
+            setRecentWarnings(prev => [warning, ...prev].slice(0, 10)); // Keep last 10
+          }
+        }
         
         // Handle agent stopped event
         if (data.type === 'activity_added' && data.data?.type === 'agent_stopped') {
@@ -2026,16 +2105,24 @@ export default function InteractiveGlobe() {
             className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10"
             style={{ bottom: 'calc(9rem + 8px)' }}
           >
-          {/* Today's Stats Bar */}
+          {/* AI Summary Box */}
+          <div className="p-3 border-b border-[#4FD1FF]/10">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></div>
+              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Coordination Intelligence</h3>
+            </div>
+            <div className="bg-[#0A1525]/40 p-3 border border-[#4FD1FF]/10">
+              <p className="text-[#8FA6C1] text-[11px] leading-relaxed">{aiSummary}</p>
+            </div>
+          </div>
+
+          {/* Today's Wins */}
           <div className="p-3 border-b border-[#4FD1FF]/10">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-white font-medium text-xs uppercase tracking-wider">System Metrics</h3>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
-                <span className="text-[#8FA6C1] text-[9px]">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                </span>
-              </div>
+              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Today's Wins</h3>
+              <span className="text-[#8FA6C1] text-[9px]">
+                Resets at midnight
+              </span>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {/* Emails Sent */}
@@ -2045,7 +2132,7 @@ export default function InteractiveGlobe() {
                   <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Sent</span>
                 </div>
                 <div className="text-white text-xl font-bold">{stats.totalEmailsSent}</div>
-                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Today</div>
+                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Emails</div>
               </div>
               
               {/* Emails Queued */}
@@ -2070,161 +2157,82 @@ export default function InteractiveGlobe() {
                 <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Meetings</div>
               </div>
               
-              {/* Active Agents */}
+              {/* Cycles Completed */}
               <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#4FD1FF] animate-pulse"></div>
-                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Agents</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#4FD1FF]"></div>
+                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Cycles</span>
                 </div>
                 <div className="text-white text-xl font-bold">
-                  {agents.filter(a => a.status === 'running').length}/{agents.filter(a => a.agentId !== 'orphan').length}
+                  {cycleEvents.filter(e => e.type === 'cycle_complete').length}
                 </div>
-                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Online</div>
+                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Complete</div>
               </div>
             </div>
           </div>
 
-          {/* Live Activity Stream */}
+          {/* Cycle Progress Stream */}
           <div className="flex flex-col flex-1 min-h-0">
             <div className="flex items-center justify-between p-3 border-b border-[#4FD1FF]/10">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
-                <h3 className="text-white font-medium text-xs uppercase tracking-wider">Activity Stream</h3>
+                <h3 className="text-white font-medium text-xs uppercase tracking-wider">Cycle Progress</h3>
               </div>
               <span className="text-[#8FA6C1] text-[9px] font-mono">
-                {new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+                {cycleEvents.length} events
               </span>
             </div>
             
             <div className="flex-1 overflow-y-auto">
-              {(() => {
-                // Collect all activity from all agents
-                const allActivities: Array<{
-                  agentId: string;
-                  agentName: string;
-                  activity: any;
-                  timestamp: number;
-                }> = [];
-
-                agents.forEach(agent => {
-                  if (agent.agentId === 'orphan') return;
-                  const activity = agentActivities[agent.agentId];
-                  if (activity && activity.isActive) {
-                    allActivities.push({
-                      agentId: agent.agentId,
-                      agentName: agent.name,
-                      activity: activity,
-                      timestamp: activity.timestamp || Date.now()
-                    });
-                  }
-                });
-
-                // Sort by timestamp (most recent first)
-                allActivities.sort((a, b) => b.timestamp - a.timestamp);
-
-                if (allActivities.length === 0) {
-                  return (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                      <div className="w-12 h-12 bg-[#4FD1FF]/5 border border-[#4FD1FF]/10 flex items-center justify-center mb-3">
-                        <svg className="w-6 h-6 text-[#4FD1FF]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
+              {cycleEvents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="w-12 h-12 bg-[#4FD1FF]/5 border border-[#4FD1FF]/10 flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-[#4FD1FF]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <p className="text-[#8FA6C1] text-xs font-medium">No Cycle Activity Yet</p>
+                  <p className="text-[#8FA6C1]/50 text-[10px] mt-1">Start agents to see cycle progress</p>
+                </div>
+              ) : (
+                cycleEvents.map((event) => (
+                  <div 
+                    key={event.id}
+                    className="border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/30 transition-colors"
+                  >
+                    <div className="flex items-start gap-2 p-2.5">
+                      <div className="flex-shrink-0">
+                        {event.type === 'cycle_complete' ? (
+                          <div className="w-6 h-6 bg-green-500/20 border border-green-500/40 flex items-center justify-center">
+                            <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 bg-[#4FD1FF]/20 border border-[#4FD1FF]/40 flex items-center justify-center">
+                            <svg className="w-3.5 h-3.5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-[#8FA6C1] text-xs font-medium">No Active Operations</p>
-                      <p className="text-[#8FA6C1]/50 text-[10px] mt-1">Start agents to monitor activity</p>
-                    </div>
-                  );
-                }
 
-                return allActivities.map((item, idx) => {
-                  const { agentName, activity } = item;
-                  const agent = agents.find(a => a.agentId === item.agentId);
-                  const typeMap: Record<string, string> = {
-                    'hunter': 'Hunter',
-                    'analyst': 'Analyst',
-                    'consultant': 'Consultant',
-                    'networker': 'Networker',
-                    'relationship-builder': 'Relationship-Builder'
-                  };
-                  const avatarFile = typeMap[agent?.personality?.type || 'hunter'] || 'Hunter';
-                  
-                  return (
-                    <div 
-                      key={`${item.agentId}-${idx}`}
-                      className="border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/30 transition-colors"
-                    >
-                      <div className="flex items-start gap-2 p-2.5">
-                        {/* Agent Avatar */}
-                        <div className="relative flex-shrink-0">
-                          <div className="w-8 h-8 border border-[#4FD1FF]/20 overflow-hidden bg-[#0A1525]/60">
-                            <img 
-                              src={`/avatars/${avatarFile}.png`}
-                              alt={agentName}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                          <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 border border-[#0F1E35] animate-pulse"></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-white font-medium text-[11px]">{event.agentName}</span>
+                          <span className="text-[#8FA6C1]/50 text-[9px] font-mono">
+                            {new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+                          </span>
                         </div>
-
-                        {/* Activity Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-white font-medium text-[11px]">{agentName}</span>
-                            <span className="text-[#8FA6C1]/50 text-[9px] font-mono">
-                              {activity.timestamp ? new Date(activity.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) : 'now'}
-                            </span>
-                          </div>
-                          
-                          <p className="text-[#8FA6C1] text-[10px] leading-relaxed">
-                            {activity.status || activity.message || 'Processing...'}
-                          </p>
-
-                          {/* Show location if available */}
-                          {activity.location && (
-                            <div className="mt-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 text-[9px] text-[#4FD1FF]">
-                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              <span>
-                                {activity.location.city}, {activity.location.state}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Show targeting info if no location */}
-                          {!activity.location && agent?.settings && (
-                            <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                              {agent.settings.companyCriteria?.companyIndustries && agent.settings.companyCriteria.companyIndustries.length > 0 && (
-                                <span className="px-1.5 py-0.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 text-[9px] text-[#4FD1FF]">
-                                  {agent.settings.companyCriteria.companyIndustries[0]}
-                                </span>
-                              )}
-                              {agent.settings.contactCriteria?.targetPositions && agent.settings.contactCriteria.targetPositions.length > 0 && (
-                                <span className="px-1.5 py-0.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/20 text-[9px] text-[#4FD1FF]">
-                                  {agent.settings.contactCriteria.targetPositions[0]}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Agent Status Indicator */}
-                        <div className="flex-shrink-0">
-                          <svg className="animate-spin h-3 w-3 text-[#4FD1FF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        </div>
+                        
+                        <p className="text-[#8FA6C1] text-[10px] leading-relaxed">
+                          {event.message}
+                        </p>
                       </div>
                     </div>
-                  );
-                });
-              })()}
+                  </div>
+                ))
+              )}
             </div>
           </div>
           
@@ -2232,8 +2240,138 @@ export default function InteractiveGlobe() {
           <div className="border-t border-white/10"></div>
         </div>
         
-        {/* Bottom fill to match command center */}
-        <div className="fixed left-[265px] lg:right-[calc(20%+10px)] bottom-0 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10 z-30" style={{ top: 'calc(100vh - 9rem - 8px)' }}></div>
+        {/* Bottom Section: Warnings + Rankings */}
+        <div className="fixed left-[265px] lg:right-[calc(20%+10px)] bottom-0 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10 z-30" style={{ top: 'calc(100vh - 9rem - 8px)', height: 'calc(9rem + 8px)' }}>
+          <div className="flex h-full">
+            {/* Recent Warnings */}
+            <div className="flex-1 border-r border-[#4FD1FF]/10 flex flex-col">
+              <div className="flex items-center justify-between p-2 border-b border-[#4FD1FF]/10">
+                <div className="flex items-center gap-1.5">
+                  <svg className="w-3 h-3 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <h3 className="text-white font-medium text-[10px] uppercase tracking-wider">Recent Warnings</h3>
+                </div>
+                <span className="text-[#8FA6C1] text-[8px] font-mono">{recentWarnings.length}</span>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto">
+                {recentWarnings.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-[#8FA6C1]/50 text-[9px]">No active warnings</span>
+                  </div>
+                ) : (
+                  recentWarnings.slice(0, 3).map((warning) => (
+                    <div key={warning.id} className="p-2 border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/20">
+                      <div className="flex items-start gap-1.5">
+                        <div className={`w-1 h-1 rounded-full mt-1 flex-shrink-0 ${
+                          warning.severity === 'error' ? 'bg-red-400' : 
+                          warning.severity === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'
+                        }`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[#8FA6C1] text-[9px] leading-relaxed">{warning.message}</p>
+                          {warning.agentId && (
+                            <span className="text-[#8FA6C1]/50 text-[8px] font-mono mt-0.5 inline-block">
+                              {agents.find(a => a.agentId === warning.agentId)?.name || 'Unknown'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            
+            {/* Agent Performance Ranking */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center justify-between p-2 border-b border-[#4FD1FF]/10">
+                <div className="flex items-center gap-1.5">
+                  <svg className="w-3 h-3 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <h3 className="text-white font-medium text-[10px] uppercase tracking-wider">Performance</h3>
+                </div>
+                <span className="text-[#8FA6C1] text-[8px]">Today</span>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto">
+                {(() => {
+                  const rankedAgents = agents
+                    .filter(a => a.agentId !== 'orphan')
+                    .map(agent => ({
+                      ...agent,
+                      score: (agent.meetingsScheduled || 0) * 10 + 
+                             (agent.emailsSent || 0) * 2 + 
+                             (agent.leadsFound || 0)
+                    }))
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 4);
+                  
+                  if (rankedAgents.length === 0 || rankedAgents.every(a => a.score === 0)) {
+                    return (
+                      <div className="flex items-center justify-center h-full">
+                        <span className="text-[#8FA6C1]/50 text-[9px]">No activity yet</span>
+                      </div>
+                    );
+                  }
+                  
+                  return rankedAgents.map((agent, idx) => (
+                    <div key={agent.agentId} className="p-2 border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/20">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold w-4 text-center ${
+                          idx === 0 ? 'text-yellow-400' : 
+                          idx === 1 ? 'text-[#8FA6C1]' : 
+                          idx === 2 ? 'text-[#8FA6C1]/60' : 'text-[#8FA6C1]/40'
+                        }`}>
+                          {idx + 1}
+                        </span>
+                        
+                        <div className="w-5 h-5 border border-[#4FD1FF]/20 overflow-hidden bg-[#0A1525]/60 flex-shrink-0">
+                          <img 
+                            src={`/avatars/${(() => {
+                              const typeMap: Record<string, string> = {
+                                'hunter': 'Hunter',
+                                'analyst': 'Analyst',
+                                'consultant': 'Consultant',
+                                'networker': 'Networker',
+                                'relationship-builder': 'Relationship-Builder'
+                              };
+                              return typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
+                            })()}.png`}
+                            alt={agent.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-[9px] font-medium truncate">{agent.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {agent.meetingsScheduled > 0 && (
+                              <span className="text-green-400 text-[8px]">{agent.meetingsScheduled}M</span>
+                            )}
+                            {agent.emailsSent > 0 && (
+                              <span className="text-blue-400 text-[8px]">{agent.emailsSent}E</span>
+                            )}
+                            {agent.leadsFound > 0 && (
+                              <span className="text-[#4FD1FF] text-[8px]">{agent.leadsFound}L</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="text-white text-[10px] font-bold">{agent.score}</div>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
         </>
       )}
 

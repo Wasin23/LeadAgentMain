@@ -2125,6 +2125,22 @@ class AWSManager {
 
       console.log(`✅ [AWS] Added ${type} issue (${severity}): ${title}`);
 
+      // Broadcast to SSE for real-time updates
+      try {
+        const { broadcastActivity } = await import('../routes/monitoring.js');
+        broadcastActivity({
+          type: 'issue',
+          severity: severity,
+          message: title,
+          details: message,
+          agentId: otherMetadata.agentId,
+          userId: userId,
+          timestamp: Date.now()
+        });
+      } catch (broadcastError) {
+        console.error('⚠️ [AWS] Failed to broadcast issue to SSE:', broadcastError.message);
+      }
+
       // Clean up old issues if over 100
       await this.cleanupOldIssues(userId);
 

@@ -703,5 +703,76 @@ router.delete('/activity/clear-all', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/monitoring/ai-summary
+ * AI-powered summary of current agent coordination state
+ */
+router.get('/ai-summary', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Get current agent metrics and activities from metricStore
+    const metrics = metricStore.getMetrics();
+    const recentIssues = metricStore.getIssues({ limit: 5 });
+    
+    // Count active agents
+    const activeAgents = Object.keys(metrics.agents || {}).length;
+    const runningAgents = Object.values(metrics.agents || {}).filter(a => a.status === 'running').length;
+    
+    // Build a concise summary
+    const summaries = [];
+    
+    if (runningAgents > 0) {
+      summaries.push(`${runningAgents}/${activeAgents} agents actively working`);
+    } else if (activeAgents > 0) {
+      summaries.push(`${activeAgents} agents idle`);
+    } else {
+      summaries.push('No agents running');
+    }
+    
+    // Add recent activity
+    if (metrics.leads?.searched > 0) {
+      summaries.push(`${metrics.leads.searched} leads searched today`);
+    }
+    
+    if (metrics.leads?.qualified > 0) {
+      summaries.push(`${metrics.leads.qualified} qualified contacts`);
+    }
+    
+    if (metrics.emails?.sent > 0) {
+      summaries.push(`${metrics.emails.sent} emails sent`);
+    }
+    
+    if (metrics.emails?.queued > 0) {
+      summaries.push(`${metrics.emails.queued} emails queued`);
+    }
+    
+    // Add issue alerts
+    const unresolvedIssues = recentIssues.filter(i => !i.resolved);
+    if (unresolvedIssues.length > 0) {
+      const errorCount = unresolvedIssues.filter(i => i.severity === 'error').length;
+      if (errorCount > 0) {
+        summaries.push(`⚠️ ${errorCount} active errors need attention`);
+      }
+    }
+    
+    // If nothing is happening
+    if (summaries.length === 0) {
+      summaries.push('System ready. Start agents to begin operations.');
+    }
+    
+    const summary = summaries.join(' • ');
+    
+    res.json({ success: true, summary });
+  } catch (error) {
+    console.error('❌ [MONITORING] Error generating AI summary:', error);
+    res.status(500).json({ 
+      success: false, 
+      summary: 'Unable to generate coordination summary',
+      error: error.message 
+    });
+  }
+});
+
 export default router;
 export { metricStore };
