@@ -2021,10 +2021,11 @@ export default function InteractiveGlobe() {
 
       {/* Tab Content */}
       {activeTab === 'director' && (
-        <div 
-          className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl"
-          style={{ bottom: 'calc(9rem + 8px)' }}
-        >
+        <>
+          <div 
+            className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10"
+            style={{ bottom: 'calc(9rem + 8px)' }}
+          >
           {/* Today's Stats Bar */}
           <div className="p-3 border-b border-[#4FD1FF]/10">
             <div className="flex items-center justify-between mb-2">
@@ -2230,6 +2231,10 @@ export default function InteractiveGlobe() {
           {/* Bottom border aligned with Quick Actions */}
           <div className="border-t border-white/10"></div>
         </div>
+        
+        {/* Bottom fill to match command center */}
+        <div className="fixed left-[265px] lg:right-[calc(20%+10px)] bottom-0 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-white/10 z-30" style={{ top: 'calc(100vh - 9rem - 8px)' }}></div>
+        </>
       )}
 
       {activeTab === 'queue' && (
