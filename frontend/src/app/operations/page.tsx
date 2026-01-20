@@ -2880,14 +2880,18 @@ export default function InteractiveGlobe() {
                           // Generate points from real historical data or show current value only
                           let points;
                           if (history.length >= 2) {
-                            // Use real historical data
-                            const stepX = 100 / (history.length - 1);
+                            // Use real historical data, but ensure last point matches current value
+                            const stepX = 100 / history.length;
                             points = history.map((snapshot, i) => {
                               const x = i * stepX;
                               const value = snapshot.queued || 0;
                               const y = 100 - (value / maxRounded) * 100;
                               return `${x},${Math.max(0, Math.min(100, y))}`;
-                            }).join(' ');
+                            });
+                            // Add current value as final point at x=100
+                            const currentY = 100 - (queuedValue / maxRounded) * 100;
+                            points.push(`100,${Math.max(0, Math.min(100, currentY))}`);
+                            points = points.join(' ');
                           } else {
                             // No history yet - show flat line at current value
                             const y = 100 - (queuedValue / maxRounded) * 100;
@@ -3013,14 +3017,18 @@ export default function InteractiveGlobe() {
                           // Generate points from real historical data or show current value only
                           let points;
                           if (history.length >= 2) {
-                            // Use real historical data
-                            const stepX = 100 / (history.length - 1);
+                            // Use real historical data, but ensure last point matches current value
+                            const stepX = 100 / history.length;
                             points = history.map((snapshot, i) => {
                               const x = i * stepX;
                               const value = snapshot.sent || 0;
                               const y = 100 - (value / maxRounded) * 100;
                               return `${x},${Math.max(0, Math.min(100, y))}`;
-                            }).join(' ');
+                            });
+                            // Add current value as final point at x=100
+                            const currentY = 100 - (sentValue / maxRounded) * 100;
+                            points.push(`100,${Math.max(0, Math.min(100, currentY))}`);
+                            points = points.join(' ');
                           } else {
                             // No history yet - show flat line at current value
                             const y = 100 - (sentValue / maxRounded) * 100;
@@ -3155,13 +3163,17 @@ export default function InteractiveGlobe() {
                           // Generate points from real historical data
                           let points;
                           if (history.length >= 2) {
-                            const stepX = 100 / (history.length - 1);
+                            const stepX = 100 / history.length;
                             points = history.map((snapshot, i) => {
                               const x = i * stepX;
                               const value = snapshot.sent || 0;
                               const y = 100 - (value / maxRounded) * 100;
                               return `${x},${Math.max(0, Math.min(100, y))}`;
-                            }).join(' ');
+                            });
+                            // Add current value as final point at x=100
+                            const currentY = 100 - (sentValue / maxRounded) * 100;
+                            points.push(`100,${Math.max(0, Math.min(100, currentY))}`);
+                            points = points.join(' ');
                           } else {
                             // No history - show flat line at current value
                             const y = 100 - (sentValue / maxRounded) * 100;
@@ -3294,13 +3306,17 @@ export default function InteractiveGlobe() {
                           // Generate points from real historical data
                           let points;
                           if (history.length >= 2) {
-                            const stepX = 100 / (history.length - 1);
+                            const stepX = 100 / history.length;
                             points = history.map((snapshot, i) => {
                               const x = i * stepX;
                               const value = snapshot.replied || 0;
                               const y = 100 - (value / maxRounded) * 100;
                               return `${x},${Math.max(0, Math.min(100, y))}`;
-                            }).join(' ');
+                            });
+                            // Add current value as final point at x=100
+                            const currentY = 100 - (repliedValue / maxRounded) * 100;
+                            points.push(`100,${Math.max(0, Math.min(100, currentY))}`);
+                            points = points.join(' ');
                           } else {
                             // No history - show flat line at current value
                             const y = 100 - (repliedValue / maxRounded) * 100;
