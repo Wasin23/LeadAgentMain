@@ -172,15 +172,15 @@ const getPersonalityColors = (color?: string) => {
       };
     default:
       return {
-        primary: 'text-neutral-700',
-        accent: 'bg-neutral-500',
-        button: 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100',
-        background: 'bg-neutral-50/30',
-        border: 'border-neutral-200',
-        text: 'text-neutral-600',
-        bgLight: 'bg-neutral-50',
-        bgHover: 'bg-neutral-50',
-        borderHover: 'border-neutral-300'
+        primary: 'text-[#8FA6C1]',
+        accent: 'bg-[#4FD1FF]',
+        button: 'bg-[#1B2F52] text-[#8FA6C1] border-[#4FD1FF]/20 hover:bg-[#2A4472]',
+        background: 'bg-[#1B2F52]/30',
+        border: 'border-[#4FD1FF]/20',
+        text: 'text-[#4FD1FF]',
+        bgLight: 'bg-[#1B2F52]',
+        bgHover: 'bg-[#2A4472]',
+        borderHover: 'border-[#4FD1FF]/40'
       };
   }
 };
@@ -1496,16 +1496,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   };
 
   const getStatusColor = () => {
-    if (!status) return 'text-neutral-500';
-    return status.isActive ? 'text-green-600' : 'text-neutral-600';
+    if (!status) return 'text-[#8FA6C1]';
+    return status.isActive ? 'text-green-400' : 'text-[#8FA6C1]';
   };
 
   const getLogColor = (level: LogEntry['level']) => {
     switch (level) {
-      case 'success': return 'text-green-600';
-      case 'error': return 'text-red-600';
-      case 'warning': return 'text-yellow-600';
-      default: return 'text-neutral-600';
+      case 'success': return 'text-green-400';
+      case 'error': return 'text-red-400';
+      case 'warning': return 'text-yellow-400';
+      default: return 'text-[#8FA6C1]';
     }
   };
 
@@ -1513,7 +1513,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
     return (
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-300 border-t-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#4FD1FF]/30 border-t-[#4FD1FF]"></div>
         </div>
       </div>
     );
@@ -1709,10 +1709,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <div className="grid grid-cols-4 gap-6 mb-8">
           <button
             onClick={() => setOutreachTab('conversations')}
-            className={`p-6 rounded-2xl transition-all border ${
+            className={`p-6 rounded-lg transition-all border ${
               outreachTab === 'conversations'
-                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
+                ? 'bg-[#4FD1FF]/20 backdrop-blur-md shadow-lg border-[#4FD1FF]/40'
+                : 'bg-[#0A1525]/60 backdrop-blur-md hover:bg-[#1B2F52] border-[#4FD1FF]/20'
             }`}
           >
             <div className="flex flex-col items-center gap-2">
@@ -1724,10 +1724,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </button>
           <button
             onClick={() => setOutreachTab('analytics')}
-            className={`p-6 rounded-2xl transition-all border ${
+            className={`p-6 rounded-lg transition-all border ${
               outreachTab === 'analytics'
-                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
+                ? 'bg-[#4FD1FF]/20 backdrop-blur-md shadow-lg border-[#4FD1FF]/40'
+                : 'bg-[#0A1525]/60 backdrop-blur-md hover:bg-[#1B2F52] border-[#4FD1FF]/20'
             }`}
           >
             <div className="flex flex-col items-center gap-2">
@@ -1739,10 +1739,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </button>
           <button
             onClick={() => setOutreachTab('viewed')}
-            className={`p-6 rounded-2xl transition-all border ${
+            className={`p-6 rounded-lg transition-all border ${
               outreachTab === 'viewed'
-                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
+                ? 'bg-[#4FD1FF]/20 backdrop-blur-md shadow-lg border-[#4FD1FF]/40'
+                : 'bg-[#0A1525]/60 backdrop-blur-md hover:bg-[#1B2F52] border-[#4FD1FF]/20'
             }`}
           >
             <div className="flex flex-col items-center gap-2">
@@ -1754,10 +1754,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           </button>
           <button
             onClick={() => setOutreachTab('settings')}
-            className={`p-6 rounded-2xl transition-all border ${
+            className={`p-6 rounded-lg transition-all border ${
               outreachTab === 'settings'
-                ? 'bg-white/20 backdrop-blur-md shadow-lg border-white/40'
-                : 'bg-white/10 backdrop-blur-md hover:bg-white/15 border-white/20'
+                ? 'bg-[#4FD1FF]/20 backdrop-blur-md shadow-lg border-[#4FD1FF]/40'
+                : 'bg-[#0A1525]/60 backdrop-blur-md hover:bg-[#1B2F52] border-[#4FD1FF]/20'
             }`}
           >
             <div className="flex flex-col items-center gap-2">
@@ -1776,10 +1776,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden shadow-xl`}
+            className={`bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg overflow-hidden shadow-xl`}
             style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
-            <div className="p-6 border-b border-white/20 bg-white/5 flex-shrink-0">
+            <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-white">Live Response Stream</h3>
@@ -1800,47 +1800,47 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <div className="space-y-3">
                   {streamingResponses.map((response) => {
                     // Color code message borders by event type
-                    let borderColor = 'border-neutral-200'; // default for generating
-                    if (response.status === 'sent') borderColor = 'border-green-300';
-                    if (response.status === 'viewed') borderColor = 'border-blue-300';
-                    if (response.status === 'meeting_booked') borderColor = 'border-purple-300';
+                    let borderColor = 'border-[#4FD1FF]/30'; // default for generating
+                    if (response.status === 'sent') borderColor = 'border-green-500/40';
+                    if (response.status === 'viewed') borderColor = 'border-[#4FD1FF]/50';
+                    if (response.status === 'meeting_booked') borderColor = 'border-purple-500/40';
                     
                     return (
                     <motion.div
                       key={response.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`p-3 border ${borderColor} rounded-lg bg-white/20 backdrop-blur-sm`}
+                      className={`p-3 border ${borderColor} rounded bg-[#1B2F52]/60 backdrop-blur-sm`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <div className="font-medium text-sm text-white">{response.leadName}</div>
-                          <div className="text-xs text-white/70">{response.leadEmail}</div>
+                          <div className="text-xs text-[#8FA6C1]">{response.leadEmail}</div>
                         </div>
                         {response.status === 'generating' && (
-                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                          <div className="flex items-center gap-1 text-xs text-[#4FD1FF]">
                             <div className="animate-pulse">●</div>
                             Typing...
                           </div>
                         )}
                         {response.status === 'sent' && (
-                          <div className="flex items-center gap-1 text-xs text-green-600">
+                          <div className="flex items-center gap-1 text-xs text-green-400">
                             <CheckIcon className="h-3 w-3" />
                             Sent
                           </div>
                         )}
                         {response.status === 'viewed' && (
-                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                          <div className="flex items-center gap-1 text-xs text-[#4FD1FF]">
                             <EyeIcon className="h-3 w-3" />
                             Viewed
                           </div>
                         )}
                       </div>
                       <div className="text-sm text-white/90 mt-2 whitespace-pre-wrap">
-                        {response.content || <span className="text-white/60 animate-pulse">Generating response...</span>}
+                        {response.content || <span className="text-[#8FA6C1] animate-pulse">Generating response...</span>}
                       </div>
                       {response.status === 'sent' && (
-                        <div className="text-xs text-white/60 mt-2">
+                        <div className="text-xs text-[#8FA6C1] mt-2">
                           Sent {formatTimeAgo(response.sentAt)}
                         </div>
                       )}
@@ -1856,17 +1856,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden shadow-xl`}
+            className={`bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg overflow-hidden shadow-xl`}
             style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
-            <div className="p-6 border-b border-white/20 bg-white/5">
+            <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-white">All Conversations</h3>
-                  <p className="text-sm text-white/60 mt-1">Ongoing threads with leads</p>
+                  <p className="text-sm text-[#8FA6C1] mt-1">Ongoing threads with leads</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                  <span className="text-sm font-medium text-[#4FD1FF] bg-[#4FD1FF]/20 px-3 py-1 rounded">
                     {filteredConversations.length} conversations
                   </span>
                   <button
@@ -1882,7 +1882,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         }
                       }
                     }}
-                    className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/20 hover:bg-red-500/30 rounded transition-colors"
                   >
                     Clear All
                   </button>
@@ -1892,13 +1892,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               {/* Search and Filter Controls */}
               <div className="mt-4 space-y-3">
                 <div className="relative">
-                  <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
+                  <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8FA6C1]" />
                   <input
                     type="text"
                     placeholder="Search by name, email, company..."
                     value={conversationSearch}
                     onChange={(e) => setConversationSearch(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 bg-white/10 border border-white/20 rounded-md text-sm text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full pl-10 pr-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded text-sm text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/30 focus:border-[#4FD1FF]/40"
                   />
                 </div>
 
@@ -1907,10 +1907,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     <button
                       key={filter}
                       onClick={() => setConversationFilter(filter as any)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
                         conversationFilter === filter
                           ? `${colors.button} text-white`
-                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                          : 'bg-[#1B2F52] text-[#8FA6C1] hover:bg-[#2A4472]'
                       }`}
                     >
                       {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -1920,12 +1920,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
             </div>
 
-            <div className="h-96 overflow-y-auto p-4 bg-neutral-50">
+            <div className="h-96 overflow-y-auto p-4 bg-[#0A1525]/60">
               {filteredConversations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-neutral-400">
-                  <FunnelIcon className="h-12 w-12 mb-3 text-neutral-300" />
+                <div className="flex flex-col items-center justify-center h-full text-[#8FA6C1]">
+                  <FunnelIcon className="h-12 w-12 mb-3 text-[#8FA6C1]/40" />
                   <p className="text-sm">No conversations found</p>
-                  <p className="text-xs mt-1">Try adjusting your filters</p>
+                  <p className="text-xs mt-1 text-[#8FA6C1]/70">Try adjusting your filters</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1935,22 +1935,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.02 }}
-                      className={`border border-white/20 rounded-lg bg-white/20 backdrop-blur-sm overflow-hidden`}
+                      className={`border border-[#4FD1FF]/20 rounded bg-[#1B2F52]/60 overflow-hidden`}
                     >
                       {/* Conversation Card - Click to open full thread */}
                       <div 
                         onClick={() => setSelectedConversation(conv)}
-                        className={`p-3 cursor-pointer hover:bg-neutral-50 transition-all`}
+                        className={`p-3 cursor-pointer hover:bg-[#4FD1FF]/10 transition-all`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-neutral-900 truncate">{conv.leadName}</div>
-                            <div className="text-xs text-neutral-600 truncate">{conv.leadEmail}</div>
+                            <div className="font-medium text-sm text-white truncate">{conv.leadName}</div>
+                            <div className="text-xs text-[#8FA6C1] truncate">{conv.leadEmail}</div>
                             {conv.company && (
-                              <div className="text-xs text-neutral-500 truncate mt-0.5">{conv.company}</div>
+                              <div className="text-xs text-[#8FA6C1]/70 truncate mt-0.5">{conv.company}</div>
                             )}
                           </div>
-                          <div className="text-xs text-neutral-500 whitespace-nowrap ml-2">{formatTimeAgo(conv.lastActivity)}</div>
+                          <div className="text-xs text-[#8FA6C1]/70 whitespace-nowrap ml-2">{formatTimeAgo(conv.lastActivity)}</div>
                         </div>
                         
                         {/* Latest Message Preview */}
@@ -1961,16 +1961,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                               return (
                                 <div className={`p-2 rounded text-xs ${
                                   latestMsg.type === 'outbound' || latestMsg.type === 'manual'
-                                    ? 'bg-blue-50 border border-blue-200'
+                                    ? 'bg-[#4FD1FF]/10 border border-[#4FD1FF]/30'
                                     : latestMsg.type === 'reply'
-                                    ? 'bg-white border border-neutral-300'
-                                    : 'bg-orange-50 border border-orange-200'
+                                    ? 'bg-[#1B2F52] border border-[#4FD1FF]/20'
+                                    : 'bg-orange-500/10 border border-orange-500/30'
                                 }`}>
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className={`font-medium ${
-                                      latestMsg.type === 'outbound' || latestMsg.type === 'manual' ? 'text-blue-700' : 
-                                      latestMsg.type === 'reply' ? 'text-neutral-700' : 
-                                      'text-orange-700'
+                                      latestMsg.type === 'outbound' || latestMsg.type === 'manual' ? 'text-[#4FD1FF]' : 
+                                      latestMsg.type === 'reply' ? 'text-white' : 
+                                      'text-orange-400'
                                     }`}>
                                       {latestMsg.type === 'outbound' || latestMsg.type === 'manual' ? '🤖 AI Agent' : 
                                        latestMsg.type === 'reply' ? '👤 Lead Reply' : 
@@ -1982,7 +1982,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-neutral-700 line-clamp-2">{latestMsg.content}</p>
+                                  <p className="text-[#8FA6C1] line-clamp-2">{latestMsg.content}</p>
                                 </div>
                               );
                             })()}
@@ -1990,7 +1990,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         )}
                         
                         <div className="flex items-center gap-2 flex-wrap mt-2">
-                          <span className="text-xs text-neutral-500">{conv.messageCount} msgs</span>
+                          <span className="text-xs text-[#8FA6C1]/70">{conv.messageCount} msgs</span>
                           {conv.status === 'meeting_booked' && (
                             <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">Meeting</span>
                           )}
@@ -1998,9 +1998,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">Replied</span>
                           )}
                           {conv.status === 'waiting_response' && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">Waiting</span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">Waiting</span>
                           )}
-                          <span className="text-xs text-neutral-400 ml-auto">Click to view full conversation →</span>
+                          <span className="text-xs text-[#8FA6C1]/60 ml-auto">Click to view full conversation →</span>
                         </div>
                       </div>
                     </motion.div>
@@ -2013,23 +2013,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'analytics' && (
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl">
+          <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 p-6 rounded-lg">
             <h3 className="text-lg font-semibold text-white mb-4">Analytics Overview</h3>
             <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
-                <p className="text-sm text-white/70">Messages Viewed</p>
+              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+                <p className="text-sm text-[#8FA6C1]">Messages Viewed</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.viewed}</p>
               </div>
-              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
-                <p className="text-sm text-white/70">Conversations</p>
+              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+                <p className="text-sm text-[#8FA6C1]">Conversations</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.replied}</p>
               </div>
-              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
-                <p className="text-sm text-white/70">Meetings Booked</p>
+              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+                <p className="text-sm text-[#8FA6C1]">Meetings Booked</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.meetings}</p>
               </div>
-              <div className="p-4 bg-white/5 border border-white/20 rounded-lg">
-                <p className="text-sm text-white/70">Conversion Rate</p>
+              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+                <p className="text-sm text-[#8FA6C1]">Conversion Rate</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.conversionRate}%</p>
               </div>
             </div>
@@ -2037,14 +2037,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'viewed' && (
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl">
+          <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 p-6 rounded-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Emails Viewed</h3>
               <div className="flex items-center gap-2">
                 {viewedEmails.length > 0 && (
                   <button
                     onClick={handleClearViewedEmails}
-                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg transition-colors"
+                    className="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-500/60 rounded transition-colors"
                   >
                     Clear All
                   </button>
@@ -2053,28 +2053,28 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
             {viewedEmails.length === 0 ? (
               <div className="text-center py-12">
-                <EyeIcon className="h-12 w-12 text-white/40 mx-auto mb-3" />
-                <p className="text-white/60">No viewed emails yet</p>
+                <EyeIcon className="h-12 w-12 text-[#8FA6C1]/40 mx-auto mb-3" />
+                <p className="text-[#8FA6C1]">No viewed emails yet</p>
               </div>
             ) : (
               <>
                 <div className="space-y-3">
                   {paginateArray(viewedEmails, viewedEmailsPage).map((email) => (
-                    <div key={email.trackingId} className="p-4 bg-white/5 border border-white/20 rounded-lg hover:border-white/30 transition-all">
+                    <div key={email.trackingId} className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded hover:border-[#4FD1FF]/40 transition-all">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h4 className="font-medium text-white">{email.leadName}</h4>
                             {email.replied && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Replied</span>
+                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">Replied</span>
                             )}
                           </div>
-                          <p className="text-sm text-white/70">{email.leadEmail}</p>
+                          <p className="text-sm text-[#8FA6C1]">{email.leadEmail}</p>
                           {email.company && (
-                            <p className="text-sm text-white/60 mt-1">{email.company}</p>
+                            <p className="text-sm text-[#8FA6C1]/70 mt-1">{email.company}</p>
                           )}
                           {email.subject && (
-                            <p className="text-sm text-white/70 mt-2 italic">"{email.subject}"</p>
+                            <p className="text-sm text-[#8FA6C1] mt-2 italic">"{email.subject}"</p>
                           )}
                           <button
                             onClick={() => {
@@ -2093,13 +2093,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                                 }
                               }, 100);
                             }}
-                            className="mt-2 px-3 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors flex items-center gap-1"
+                            className="mt-2 px-3 py-1 text-xs bg-[#4FD1FF]/10 text-[#4FD1FF] border border-[#4FD1FF]/30 rounded hover:bg-[#4FD1FF]/20 transition-colors flex items-center gap-1"
                           >
                             <EnvelopeIcon className="h-3 w-3" />
                             Take me to email
                           </button>
                         </div>
-                        <div className="text-right text-sm text-neutral-500">
+                        <div className="text-right text-sm text-[#8FA6C1]">
                           <div className="flex items-center gap-1 mb-1">
                             <EyeIcon className="h-4 w-4" />
                             <span>{email.openCount} {email.openCount === 1 ? 'view' : 'views'}</span>
@@ -2107,16 +2107,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           <div className="text-xs">
                             Opened: {new Date(email.openedAt).toLocaleDateString()}
                           </div>
-                          <div className="text-xs text-neutral-400">
+                          <div className="text-xs text-[#8FA6C1]/70">
                             {new Date(email.openedAt).toLocaleTimeString()}
                           </div>
                           {email.ipAddress && (
-                            <div className="text-xs text-neutral-400 mt-1">
+                            <div className="text-xs text-[#8FA6C1]/70 mt-1">
                               IP: {email.ipAddress}
                             </div>
                           )}
                           {email.userAgent && (
-                            <div className="text-xs text-neutral-400 mt-1 max-w-[200px] truncate" title={email.userAgent}>
+                            <div className="text-xs text-[#8FA6C1]/70 mt-1 max-w-[200px] truncate" title={email.userAgent}>
                               {email.userAgent.includes('Mobile') ? '📱' : '💻'} {email.userAgent.split(' ')[0]}
                             </div>
                           )}
@@ -2128,23 +2128,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 
                 {/* Pagination controls for viewed emails */}
                 {getTotalPages(viewedEmails.length) > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-200">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#4FD1FF]/20">
                     <button
                       onClick={() => setViewedEmailsPage(prev => Math.max(1, prev - 1))}
                       disabled={viewedEmailsPage === 1}
-                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="px-3 py-1.5 text-sm text-[#8FA6C1] border border-[#4FD1FF]/30 rounded hover:bg-[#4FD1FF]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       <ArrowLeftIcon className="h-4 w-4" />
                       Previous
                     </button>
-                    <span className="text-sm text-neutral-600">
+                    <span className="text-sm text-[#8FA6C1]">
                       Page {viewedEmailsPage} of {getTotalPages(viewedEmails.length)} 
-                      <span className="text-neutral-400 ml-2">({viewedEmails.length} total)</span>
+                      <span className="text-[#8FA6C1]/60 ml-2">({viewedEmails.length} total)</span>
                     </span>
                     <button
                       onClick={() => setViewedEmailsPage(prev => Math.min(getTotalPages(viewedEmails.length), prev + 1))}
                       disabled={viewedEmailsPage === getTotalPages(viewedEmails.length)}
-                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="px-3 py-1.5 text-sm text-[#8FA6C1] border border-[#4FD1FF]/30 rounded hover:bg-[#4FD1FF]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       Next
                       <ArrowPathIcon className="h-4 w-4 rotate-180" />
@@ -2157,15 +2157,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'settings' && (
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-b-2xl p-6 -mt-6 space-y-6 shadow-xl">
+          <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-b-lg p-6 -mt-6 space-y-6 shadow-xl">
             <h3 className={`text-lg font-semibold ${colors.primary} mb-6`}>Outreach Settings</h3>
             
             {/* AI Response Toggle */}
-            <div className="p-4 border border-neutral-200 rounded-lg">
+            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#1B2F52]/50">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h4 className="font-medium text-neutral-900">AI Auto-Response</h4>
-                  <p className="text-sm text-neutral-600">Automatically respond to lead replies with AI-generated emails</p>
+                  <h4 className="font-medium text-white">AI Auto-Response</h4>
+                  <p className="text-sm text-[#8FA6C1]">Automatically respond to lead replies with AI-generated emails</p>
                 </div>
                 <button
                   onClick={async () => {
@@ -2197,7 +2197,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     }
                   }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    outreachSettings.aiResponseEnabled ? 'bg-green-500' : 'bg-neutral-300'
+                    outreachSettings.aiResponseEnabled ? 'bg-green-500' : 'bg-[#1B2F52]'
                   }`}
                 >
                   <span
@@ -2210,11 +2210,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
 
             {/* Rebump Toggle */}
-            <div className="p-4 border border-neutral-200 rounded-lg">
+            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#1B2F52]/50">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h4 className="font-medium text-neutral-900">Auto-Rebump</h4>
-                  <p className="text-sm text-neutral-600">Automatically send follow-up emails if no reply is received</p>
+                  <h4 className="font-medium text-white">Auto-Rebump</h4>
+                  <p className="text-sm text-[#8FA6C1]">Automatically send follow-up emails if no reply is received</p>
                 </div>
                 <button
                   onClick={async () => {
@@ -2246,7 +2246,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     }
                   }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    outreachSettings.rebumpEnabled ? 'bg-blue-500' : 'bg-neutral-300'
+                    outreachSettings.rebumpEnabled ? 'bg-[#4FD1FF]' : 'bg-[#1B2F52]'
                   }`}
                 >
                   <span
@@ -2259,16 +2259,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
 
             {/* AI Response System Prompt */}
-            <div className="p-4 border border-neutral-200 rounded-lg">
+            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#1B2F52]/50">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h4 className="font-medium text-neutral-900">AI Response System Prompt</h4>
-                  <p className="text-sm text-neutral-600">Customize how the AI responds to lead emails</p>
+                  <h4 className="font-medium text-white">AI Response System Prompt</h4>
+                  <p className="text-sm text-[#8FA6C1]">Customize how the AI responds to lead emails</p>
                 </div>
                 {!editingSystemPrompt && (
                   <button
                     onClick={() => setEditingSystemPrompt(true)}
-                    className="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-md text-sm flex items-center gap-2"
+                    className="px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-sm flex items-center gap-2"
                   >
                     <PencilIcon className="h-4 w-4" />
                     Edit
@@ -2280,7 +2280,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <textarea
                     value={tempSystemPrompt}
                     onChange={(e) => setTempSystemPrompt(e.target.value)}
-                    className="w-full p-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px]"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-[#4FD1FF]/50 min-h-[120px]"
                     placeholder="Enter system prompt for AI responses..."
                   />
                   <div className="flex gap-2">
@@ -2307,7 +2307,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           showNotification('Failed to update system prompt', 'error');
                         }
                       }}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2"
+                      className="px-4 py-2 bg-[#4FD1FF] hover:bg-[#4FD1FF]/90 text-[#0A1525] font-medium rounded text-sm flex items-center gap-2"
                     >
                       <CheckIcon className="h-4 w-4" />
                       Save
@@ -2317,14 +2317,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         setTempSystemPrompt(outreachSettings.systemPrompt);
                         setEditingSystemPrompt(false);
                       }}
-                      className="px-4 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded-lg text-sm"
+                      className="px-4 py-2 bg-[#1B2F52] hover:bg-[#223A63] text-[#8FA6C1] rounded text-sm"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-neutral-600 bg-neutral-50 p-3 rounded-lg">
+                <div className="text-sm text-[#8FA6C1] bg-[#0A1525]/60 p-3 rounded">
                   {outreachSettings.systemPrompt || 'No system prompt set'}
                 </div>
               )}
@@ -2394,7 +2394,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+              className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
               {/* Modal Header */}
@@ -2402,21 +2402,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex-1">
                     <h2 className={`text-xl font-bold ${colors.primary}`}>{selectedConversation.leadName}</h2>
-                    <p className="text-sm text-neutral-600">{selectedConversation.leadEmail}</p>
+                    <p className="text-sm text-[#8FA6C1]">{selectedConversation.leadEmail}</p>
                     {selectedConversation.company && (
-                      <p className="text-sm text-neutral-500 mt-1">{selectedConversation.company}</p>
+                      <p className="text-sm text-[#8FA6C1]/70 mt-1">{selectedConversation.company}</p>
                     )}
                   </div>
-                  <button onClick={() => setSelectedConversation(null)} className="text-neutral-400 hover:text-neutral-600">
+                  <button onClick={() => setSelectedConversation(null)} className="text-[#8FA6C1] hover:text-white">
                     <XMarkIcon className="w-6 h-6" />
                   </button>
                 </div>
 
                 {/* AI Control Panel */}
-                <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                <div className="flex items-center gap-3 p-3 bg-[#1B2F52]/60 rounded border border-[#4FD1FF]/20">
                   <div className="flex items-center gap-2 flex-1">
                     <div className={`w-2 h-2 rounded-full ${aiResponseControl[selectedConversation.trackingId] === false ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-                    <span className="text-sm font-medium text-neutral-700">
+                    <span className="text-sm font-medium text-white">
                       AI Auto-Response: {aiResponseControl[selectedConversation.trackingId] === false ? 'PAUSED' : 'ACTIVE'}
                     </span>
                   </div>
@@ -2451,27 +2451,27 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
 
               {/* Message Thread */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-neutral-50">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#0F1E35]/80">
                 {isSendingManualReply && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="ml-8"
                   >
-                    <div className={`rounded-lg p-4 ${colors.bgLight} border ${colors.border}`}>
+                    <div className={`rounded p-4 ${colors.bgLight} border ${colors.border}`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="text-xs font-medium text-neutral-600">📤 Sent by Agent</div>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                          <div className="text-xs font-medium text-[#8FA6C1]">📤 Sent by Agent</div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4FD1FF]/20 text-[#4FD1FF] font-medium">
                             sent manually
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-blue-600">
-                          <div className="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                        <div className="flex items-center gap-1 text-xs text-[#4FD1FF]">
+                          <div className="animate-spin h-3 w-3 border-2 border-[#4FD1FF] border-t-transparent rounded-full"></div>
                           Sending...
                         </div>
                       </div>
-                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{manualReplyMessage}</p>
+                      <p className="text-sm text-white/90 whitespace-pre-wrap">{manualReplyMessage}</p>
                     </div>
                   </motion.div>
                 )}
@@ -2483,14 +2483,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     transition={{ delay: idx * 0.05 }}
                     className={`${msg.type === 'outbound' || msg.type === 'ai_response' ? 'ml-8' : 'mr-8'}`}
                   >
-                    <div className={`rounded-lg p-4 ${
+                    <div className={`rounded p-4 ${
                       msg.type === 'outbound' || msg.type === 'manual' ? `${colors.bgLight} border ${colors.border}` :
-                      msg.type === 'reply' ? 'bg-white/20 backdrop-blur-sm border border-white/30' :
-                      'bg-orange-50 border border-orange-200'
+                      msg.type === 'reply' ? 'bg-[#1B2F52]/60 backdrop-blur-sm border border-[#4FD1FF]/20' :
+                      'bg-orange-500/20 border border-orange-500/40'
                     }`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="text-xs font-medium text-neutral-600">
+                          <div className="text-xs font-medium text-[#8FA6C1]">
                             {msg.type === 'outbound' ? '📤 Sent by Agent' : 
                              msg.type === 'reply' ? `💬 ${selectedConversation.leadName}` : 
                              msg.type === 'manual' ? '📤 Sent by Agent' :
@@ -2498,34 +2498,34 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             {' • '}{formatTimeAgo(msg.timestamp)}
                           </div>
                           {msg.type === 'manual' && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4FD1FF]/20 text-[#4FD1FF] font-medium">
                               sent manually
                             </span>
                           )}
                         </div>
                         {msg.type === 'ai_response' && msg.status === 'generating' && (
-                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                          <div className="flex items-center gap-1 text-xs text-[#4FD1FF]">
                             <div className="animate-pulse">●</div>
                             Generating...
                           </div>
                         )}
                         {msg.type === 'ai_response' && msg.status === 'sent' && (
-                          <div className="flex items-center gap-1 text-xs text-green-600">
+                          <div className="flex items-center gap-1 text-xs text-green-400">
                             <CheckIcon className="h-3 w-3" />
                             Sent
                           </div>
                         )}
                       </div>
-                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm text-white/90 whitespace-pre-wrap">{msg.content}</p>
                       
                       {/* Real-time streaming for AI responses */}
                       {msg.type === 'ai_response' && msg.status === 'generating' && (
-                        <div className="mt-3 pt-3 border-t border-neutral-200">
-                          <div className="flex items-center gap-2 text-xs text-neutral-500">
+                        <div className="mt-3 pt-3 border-t border-[#4FD1FF]/20">
+                          <div className="flex items-center gap-2 text-xs text-[#8FA6C1]">
                             <div className="flex gap-1">
-                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                              <div className="w-1.5 h-1.5 bg-[#4FD1FF] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                              <div className="w-1.5 h-1.5 bg-[#4FD1FF] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                              <div className="w-1.5 h-1.5 bg-[#4FD1FF] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                             </div>
                             <span>AI is typing response...</span>
                           </div>
@@ -2535,17 +2535,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   </motion.div>
                 ))}
                 {!selectedConversation.messages || selectedConversation.messages.length === 0 ? (
-                  <div className="text-center py-12 text-neutral-500">
-                    <ChatBubbleLeftRightIcon className="h-12 w-12 mx-auto mb-3 text-neutral-300" />
+                  <div className="text-center py-12 text-[#8FA6C1]">
+                    <ChatBubbleLeftRightIcon className="h-12 w-12 mx-auto mb-3 text-[#8FA6C1]/40" />
                     <p>No messages in this conversation</p>
                   </div>
                 ) : null}
               </div>
 
               {/* Manual Reply Composer */}
-              <div className="p-4 border-t border-white/20 bg-white/5 backdrop-blur-sm">
+              <div className="p-4 border-t border-[#4FD1FF]/20 bg-[#1B2F52]/40 backdrop-blur-sm">
                 <div className="mb-3">
-                  <label className="text-sm font-medium text-neutral-700 mb-2 block">
+                  <label className="text-sm font-medium text-white mb-2 block">
                     💬 Send Manual Reply (AI will be paused)
                   </label>
                   <div className="flex gap-2 items-end">
@@ -2554,7 +2554,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       onChange={(e) => setManualReplyMessage(e.target.value)}
                       placeholder="Type your reply here..."
                       rows={3}
-                      className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="flex-1 px-3 py-2 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 text-sm focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/50 resize-none"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                           sendManualReply();
@@ -2564,15 +2564,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     <button
                       onClick={sendManualReply}
                       disabled={!manualReplyMessage.trim() || isSendingManualReply}
-                      className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 h-fit ${
+                      className={`px-6 py-2 rounded font-medium transition-all flex items-center gap-2 h-fit ${
                         !manualReplyMessage.trim() || isSendingManualReply
-                          ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                          : `bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-sm`
+                          ? 'bg-[#1B2F52] text-[#8FA6C1]/50 cursor-not-allowed'
+                          : `bg-[#4FD1FF] text-[#0A1525] hover:bg-[#4FD1FF]/90 shadow-sm`
                       }`}
                     >
                       {isSendingManualReply ? (
                         <>
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          <div className="animate-spin h-4 w-4 border-2 border-[#0A1525] border-t-transparent rounded-full"></div>
                           Sending...
                         </>
                       ) : (
@@ -2583,29 +2583,29 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       )}
                     </button>
                   </div>
-                  <p className="text-xs text-neutral-500 mt-1">Press Cmd/Ctrl + Enter to send</p>
+                  <p className="text-xs text-[#8FA6C1]/70 mt-1">Press Cmd/Ctrl + Enter to send</p>
                 </div>
 
                 {/* Conversation Stats */}
-                <div className="flex items-center gap-6 text-sm pt-3 border-t border-neutral-100">
+                <div className="flex items-center gap-6 text-sm pt-3 border-t border-[#4FD1FF]/10">
                   <div className="flex items-center gap-2">
-                    <EnvelopeIcon className="h-4 w-4 text-neutral-400" />
-                    <span className="text-neutral-600">{selectedConversation.messageCount || 0} messages</span>
+                    <EnvelopeIcon className="h-4 w-4 text-[#8FA6C1]" />
+                    <span className="text-[#8FA6C1]">{selectedConversation.messageCount || 0} messages</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4 text-neutral-400" />
-                    <span className="text-neutral-600">Last activity: {formatTimeAgo(selectedConversation.lastActivity)}</span>
+                    <ClockIcon className="h-4 w-4 text-[#8FA6C1]" />
+                    <span className="text-[#8FA6C1]">Last activity: {formatTimeAgo(selectedConversation.lastActivity)}</span>
                   </div>
                   {selectedConversation.status && (
                     <div className="ml-auto">
                       {selectedConversation.status === 'meeting_booked' && (
-                        <span className="text-xs px-3 py-1.5 rounded-full bg-green-100 text-green-700 font-medium">✓ Meeting Booked</span>
+                        <span className="text-xs px-3 py-1.5 rounded bg-green-500/20 text-green-400 font-medium">✓ Meeting Booked</span>
                       )}
                       {selectedConversation.status === 'ai_responded' && (
-                        <span className="text-xs px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 font-medium">AI Responded</span>
+                        <span className="text-xs px-3 py-1.5 rounded bg-[#4FD1FF]/20 text-[#4FD1FF] font-medium">AI Responded</span>
                       )}
                       {selectedConversation.status === 'waiting_response' && (
-                        <span className="text-xs px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">Awaiting Reply</span>
+                        <span className="text-xs px-3 py-1.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">Awaiting Reply</span>
                       )}
                     </div>
                   )}
@@ -2627,7 +2627,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-xl shadow-2xl border flex items-center gap-3 max-w-md backdrop-blur-md ${
+            className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-md shadow-2xl border flex items-center gap-3 max-w-md backdrop-blur-md ${
               notification.type === 'success'
                 ? 'bg-green-500/20 border-green-400/40 text-green-200'
                 : 'bg-red-500/20 border-red-400/40 text-red-200'
@@ -2648,14 +2648,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       </AnimatePresence>
 
       {/* Header */}
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-2xl">
+      <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 shadow-2xl">
         <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onBack}
-            className="p-2 text-white/70 hover:text-white hover:bg-white/10 active:bg-white/20 transition-all rounded-lg"
+            className="p-2 text-[#8FA6C1] hover:text-white hover:bg-[#4FD1FF]/10 active:bg-[#4FD1FF]/20 transition-all rounded-md"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </motion.button>
@@ -2664,12 +2664,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="flex items-center gap-6">
               <h1 className="text-2xl font-semibold flex-1 min-w-0 truncate text-white">{getAgentDisplayName()}</h1>
               <div className="flex items-center gap-4 flex-shrink-0">
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${status?.isActive ? 'bg-green-500/20 text-green-300 border border-green-500/40' : 'bg-white/10 text-white/70 border border-white/20'}`}>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm whitespace-nowrap ${status?.isActive ? 'bg-green-500/20 text-green-300 border border-green-500/40' : 'bg-[#1B2F52] text-[#8FA6C1] border border-[#4FD1FF]/20'}`}>
                   <div className={`h-2 w-2 rounded-full ${status?.isActive ? 'bg-green-400 animate-pulse' : 'bg-white/40'}`}></div>
                   {status?.isActive ? 'Running' : 'Stopped'}
                 </div>
                 {status?.lastRun && (
-                  <span className="text-sm text-white/60 whitespace-nowrap">
+                  <span className="text-sm text-[#8FA6C1] whitespace-nowrap">
                     Last run: {new Date(status.lastRun).toLocaleString()}
                   </span>
                 )}
@@ -2680,7 +2680,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
         <div className="flex items-center gap-3">
           {error && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-300 text-sm border border-red-500/40 rounded-lg backdrop-blur-sm">
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-300 text-sm border border-red-500/40 rounded backdrop-blur-sm">
               <ExclamationTriangleIcon className="h-4 w-4" />
               {error}
             </div>
@@ -2690,7 +2690,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => router.push(`/agents/${agentId}/settings`)}
-            className="flex items-center gap-2 px-4 py-2 text-white hover:text-white transition-colors bg-[#1B2F52]/90 hover:bg-[#2A4472] border border-[#4FD1FF]/30 rounded-lg"
+            className="flex items-center gap-2 px-4 py-2 text-white hover:text-white transition-colors bg-[#1B2F52]/90 hover:bg-[#2A4472] border border-[#4FD1FF]/30 rounded"
           >
             <CogIcon className="h-4 w-4" />
             Settings
@@ -2700,7 +2700,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={resetAgent}
-            className="flex items-center gap-2 px-4 py-2 text-white hover:text-white transition-colors bg-[#1B2F52]/90 hover:bg-[#2A4472] border border-[#4FD1FF]/30 rounded-lg"
+            className="flex items-center gap-2 px-4 py-2 text-white hover:text-white transition-colors bg-[#1B2F52]/90 hover:bg-[#2A4472] border border-[#4FD1FF]/30 rounded"
           >
             <ArrowPathIcon className="h-4 w-4" />
             Reset
@@ -2710,7 +2710,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={toggleAgent}
-            className={`flex items-center gap-2 px-4 py-2 transition-colors rounded-lg border-2 font-medium ${
+            className={`flex items-center gap-2 px-4 py-2 transition-colors rounded border-2 font-medium ${
               status?.isActive 
                 ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border-red-500/40' 
                 : 'bg-green-500/30 text-green-200 hover:bg-green-500/40 border-green-400/50'
@@ -2737,14 +2737,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
+          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
           onClick={() => setShowEmailQueue(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-white/80 flex items-center gap-2">
+              <p className="text-sm text-[#8FA6C1] flex items-center gap-2">
                 Emails Queued
-                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
               </p>
               <p className="text-3xl font-bold text-white mt-1">{emailQueue.length}</p>
             </div>
@@ -2756,13 +2756,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
+          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
           onClick={() => setShowOutreach(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-white/70 flex items-center gap-2">
-                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
+              <p className="text-sm text-[#8FA6C1] flex items-center gap-2">
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
               </p>
               <p className="text-2xl font-semibold text-white mt-1">Outreach</p>
             </div>
@@ -2775,14 +2775,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
+          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
           onClick={() => setShowRecentContacts(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-white/80 flex items-center gap-2">
+              <p className="text-sm text-[#8FA6C1] flex items-center gap-2">
                 Recent Contacts
-                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to view</span>
               </p>
               <p className="text-3xl font-bold text-white mt-1">{recentEmails.length}</p>
             </div>
@@ -2795,14 +2795,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/15 hover:border-white/30 shadow-xl"
+          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
           onClick={() => setShowIntervalModal(true)}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-white/80 flex items-center gap-2">
+              <p className="text-sm text-[#8FA6C1] flex items-center gap-2">
                 Cycle Interval
-                <span className={`text-xs px-2 py-1 rounded-lg ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to change</span>
+                <span className={`text-xs px-2 py-1 rounded ${colors.text} ${colors.bgLight} border ${colors.border}`}>click to change</span>
               </p>
               <p className="text-3xl font-bold text-white mt-1">{status?.currentInterval || 30}m</p>
             </div>
@@ -2817,13 +2817,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="border border-white/20 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-md self-start shadow-xl"
+          className="border border-[#4FD1FF]/20 rounded-lg overflow-hidden bg-[#0A1525]/80 backdrop-blur-md self-start shadow-xl"
         >
-          <div className="p-6 border-b border-white/20 bg-white/5">
+          <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-medium text-white">Activity Logs</h3>
-                <p className="text-sm text-white/60 mt-1">Real-time agent operations</p>
+                <p className="text-sm text-[#8FA6C1] mt-1">Real-time agent operations</p>
               </div>
               
               {/* Countdown Timer */}
@@ -2832,12 +2832,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
-                  className={`flex items-center gap-3 px-4 py-2.5 border rounded-lg ${
+                  className={`flex items-center gap-3 px-4 py-2.5 border rounded ${
                     countdownTime === 0
-                      ? 'bg-green-50 border-green-200'
+                      ? 'bg-green-500/20 border-green-500/40'
                       : countdownTime <= 30 
-                        ? 'bg-orange-50 border-orange-200' 
-                        : 'bg-blue-50 border-blue-200'
+                        ? 'bg-orange-500/20 border-orange-500/40' 
+                        : 'bg-[#4FD1FF]/20 border-[#4FD1FF]/40'
                   }`}
                 >
                   <div className="relative">
@@ -2855,17 +2855,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <div className="flex-1">
                     <div className={`text-xs font-bold ${
                       countdownTime === 0
-                        ? 'text-green-700'
+                        ? 'text-green-300'
                         : countdownTime <= 30 
-                          ? 'text-orange-700' 
-                          : 'text-blue-700'
+                          ? 'text-orange-300' 
+                          : 'text-[#4FD1FF]'
                     }`}>Next cycle in:</div>
                     <div className={`font-mono font-bold text-base ${
                       countdownTime === 0
-                        ? 'text-green-600'
+                        ? 'text-green-400'
                         : countdownTime <= 30 
-                          ? 'text-orange-600' 
-                          : 'text-blue-600'
+                          ? 'text-orange-400' 
+                          : 'text-[#4FD1FF]'
                     } ${countdownTime <= 10 && countdownTime > 0 ? 'animate-pulse' : ''}`}>
                       {countdownTime === 0 && showStarting && 'Starting...'}
                       {countdownTime === 0 && !showStarting && 'Running'}
@@ -2880,25 +2880,25 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="flex items-center gap-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg">
+                  className="flex items-center gap-3 px-4 py-2.5 bg-green-500/20 border border-green-500/40 rounded">
                   <span className="relative flex h-5 w-5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500"></span>
                   </span>
                   <div className="flex-1 text-sm">
-                    <div className="font-medium text-green-700">Agent Running</div>
-                    <div className="text-green-600">Waiting for first cycle...</div>
+                    <div className="font-medium text-green-300">Agent Running</div>
+                    <div className="text-green-400">Waiting for first cycle...</div>
                   </div>
                 </motion.div>
               )}
             </div>
           </div>
           
-          <div className="h-[475px] overflow-y-auto bg-gradient-to-br from-blue-50/90 via-cyan-50/80 to-indigo-50/70 font-mono text-sm">
+          <div className="h-[475px] overflow-y-auto bg-[#0A1525]/60 font-mono text-sm">
             {agentLogs.length === 0 ? (
-              <div className="text-center text-neutral-700 py-16 px-4">
+              <div className="text-center text-[#8FA6C1] py-16 px-4">
                 <p>No agent activity logs yet.</p>
-                <p className="text-xs mt-1 text-neutral-600">Start the agent to see detailed operations.</p>
+                <p className="text-xs mt-1 text-[#8FA6C1]/70">Start the agent to see detailed operations.</p>
               </div>
             ) : (
               <div className="space-y-0">
@@ -2907,33 +2907,33 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     key={log.id || index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-xs leading-relaxed px-4 py-2 border-b border-blue-100/50"
+                    className="text-xs leading-relaxed px-4 py-2 border-b border-[#4FD1FF]/10"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`font-medium ${
-                            log.status === 'completed' ? 'text-green-600' :
-                            log.status === 'error' ? 'text-red-600' :
-                            log.status === 'active' ? 'text-blue-600' :
-                            log.status === 'running' ? 'text-purple-600' :
-                            log.status === 'info' ? 'text-orange-600' :
-                            'text-neutral-700'
+                            log.status === 'completed' ? 'text-green-400' :
+                            log.status === 'error' ? 'text-red-400' :
+                            log.status === 'active' ? 'text-[#4FD1FF]' :
+                            log.status === 'running' ? 'text-purple-400' :
+                            log.status === 'info' ? 'text-orange-400' :
+                            'text-[#8FA6C1]'
                           }`}>
                             {log.operation}
                           </span>
-                          <span className={`px-1.5 py-0.5 text-xs rounded-full ${
-                            log.status === 'completed' ? 'bg-green-50 text-green-600' :
-                            log.status === 'error' ? 'bg-red-50 text-red-600' :
-                            log.status === 'active' ? 'bg-blue-50 text-blue-600' :
-                            log.status === 'running' ? 'bg-purple-50 text-purple-600' :
-                            log.status === 'info' ? 'bg-orange-50 text-orange-600' :
-                            'bg-neutral-50 text-neutral-600'
+                          <span className={`px-1.5 py-0.5 text-xs rounded ${
+                            log.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                            log.status === 'error' ? 'bg-red-500/20 text-red-400' :
+                            log.status === 'active' ? 'bg-[#4FD1FF]/20 text-[#4FD1FF]' :
+                            log.status === 'running' ? 'bg-purple-500/20 text-purple-400' :
+                            log.status === 'info' ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-[#1B2F52] text-[#8FA6C1]'
                           }`}>
                             {log.status}
                           </span>
                         </div>
-                        <div className="text-neutral-600 text-xs">
+                        <div className="text-[#8FA6C1] text-xs">
                           {(() => {
                             // Special formatting for AI research analysis
                             if (log.details && typeof log.details === 'object' && log.details.contentType === 'ai_research_analysis') {
@@ -2952,7 +2952,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           })()}
                         </div>
                       </div>
-                      <span className="text-neutral-400 text-xs whitespace-nowrap">
+                      <span className="text-[#8FA6C1]/60 text-xs whitespace-nowrap">
                         {new Date(log.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
@@ -2968,27 +2968,27 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl"
+          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg shadow-xl"
         >
-          <div className="p-6 border-b border-white/20 bg-white/5">
+          <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-medium text-white">Recently Contacted</h3>
-                <p className="text-sm text-white/60 mt-1">Latest outreach attempts</p>
+                <p className="text-sm text-[#8FA6C1] mt-1">Latest outreach attempts</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => fetchRecentEmails()}
-                  className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                  className="p-2 text-[#8FA6C1] hover:text-white hover:bg-[#4FD1FF]/10 rounded transition-colors"
                   title="Reload recent emails"
                 >
                   <ArrowPathIcon className="h-4 w-4" />
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/60">
+                  <span className="text-xs text-[#8FA6C1]">
                     Showing {filteredRecentEmails.length} of {recentEmails.length}
                   </span>
-                  <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                  <span className="text-sm font-medium text-[#4FD1FF] bg-[#4FD1FF]/20 px-3 py-1 rounded">
                     {status?.totalEmailsSent || 0} Total Sent
                   </span>
                 </div>
@@ -2998,13 +2998,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             {/* Search and Filter Controls */}
             <div className="mt-4 space-y-3">
               <div className="relative">
-                <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
+                <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8FA6C1]" />
                 <input
                   type="text"
                   placeholder="Search contacts..."
                   value={recentEmailsSearch}
                   onChange={(e) => setRecentEmailsSearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 bg-white/10 border border-white/20 text-white placeholder-white/50 rounded-md text-sm focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                  className="w-full pl-10 pr-3 py-2 bg-[#0A1525]/60 border border-[#4FD1FF]/20 text-white placeholder-[#8FA6C1]/50 rounded text-sm focus:ring-2 focus:ring-[#4FD1FF]/30 focus:border-[#4FD1FF]/40"
                 />
               </div>
               
@@ -3013,10 +3013,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   <button
                     key={filter}
                     onClick={() => setRecentEmailsFilter(filter)}
-                    className={`px-3 py-1 text-xs font-medium rounded-full transition-colors border ${
+                    className={`px-3 py-1 text-xs font-medium rounded transition-colors border ${
                       recentEmailsFilter === filter
                         ? `${colors.bgLight} ${colors.text} ${colors.border}`
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 border-neutral-200'
+                        : 'bg-[#1B2F52] text-[#8FA6C1] hover:bg-[#2A4472] border-[#4FD1FF]/20'
                     }`}
                   >
                     {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -3026,18 +3026,18 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
           </div>
           
-          <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
+          <div className="divide-y divide-[#4FD1FF]/10 max-h-96 overflow-y-auto">
             {recentEmails.length === 0 ? (
-              <div className="p-8 text-center text-white/70">
-                <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-white/40" />
+              <div className="p-8 text-center text-[#8FA6C1]">
+                <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-[#8FA6C1]/40" />
                 <p>No recent emails found.</p>
-                <p className="text-xs mt-1 text-white/60">Start the agent to begin outreach.</p>
+                <p className="text-xs mt-1 text-[#8FA6C1]/70">Start the agent to begin outreach.</p>
               </div>
             ) : filteredRecentEmails.length === 0 ? (
-              <div className="p-8 text-center text-white/70">
-                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-4 text-white/40" />
+              <div className="p-8 text-center text-[#8FA6C1]">
+                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-4 text-[#8FA6C1]/40" />
                 <p>No contacts match your search or filter.</p>
-                <p className="text-xs mt-1 text-white/60">Try adjusting your search terms or filters.</p>
+                <p className="text-xs mt-1 text-[#8FA6C1]/70">Try adjusting your search terms or filters.</p>
               </div>
             ) : (
               <>
@@ -3047,30 +3047,30 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     id={`email-${contact.trackingId || contact.id}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="p-4 hover:bg-white/10 cursor-pointer transition-all"
+                    className="p-4 hover:bg-[#4FD1FF]/10 cursor-pointer transition-all"
                     onClick={() => console.log('Navigate to contact:', contact.id)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center text-white font-medium">
+                        <div className="h-10 w-10 bg-[#1B2F52] rounded-full flex items-center justify-center text-white font-medium">
                           {contact.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <h4 className="font-medium text-white">{contact.name}</h4>
-                          <div className="flex items-center gap-1 text-sm text-white/70">
+                          <div className="flex items-center gap-1 text-sm text-[#8FA6C1]">
                             <BuildingOfficeIcon className="h-3 w-3" />
                             {contact.company}
                           </div>
-                          <p className="text-xs text-white/60">
+                          <p className="text-xs text-[#8FA6C1]/70">
                             {new Date(contact.dateSent).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs border ${
-                          contact.replied ? 'bg-green-50 text-green-600 border-green-200' :
-                          contact.opened ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                          'bg-neutral-50 text-neutral-600 border-neutral-200'
+                        <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded border ${
+                          contact.replied ? 'bg-green-500/20 text-green-400 border-green-500/40' :
+                          contact.opened ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-[#4FD1FF]/40' :
+                          'bg-[#1B2F52] text-[#8FA6C1] border-[#4FD1FF]/20'
                         }`}>
                           {contact.replied && <CheckCircleIcon className="h-3 w-3" />}
                           {contact.opened && !contact.replied && <EyeIcon className="h-3 w-3" />}
@@ -3084,23 +3084,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 
                 {/* Pagination controls for recent emails */}
                 {getTotalPages(filteredRecentEmails.length) > 1 && (
-                  <div className="flex items-center justify-between p-4 border-t border-neutral-200">
+                  <div className="flex items-center justify-between p-4 border-t border-[#4FD1FF]/20">
                     <button
                       onClick={() => setRecentEmailsPage(prev => Math.max(1, prev - 1))}
                       disabled={recentEmailsPage === 1}
-                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="px-3 py-1.5 text-sm border border-[#4FD1FF]/20 text-[#8FA6C1] rounded hover:bg-[#4FD1FF]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       <ArrowLeftIcon className="h-4 w-4" />
                       Previous
                     </button>
-                    <span className="text-sm text-neutral-600">
+                    <span className="text-sm text-[#8FA6C1]">
                       Page {recentEmailsPage} of {getTotalPages(filteredRecentEmails.length)}
-                      <span className="text-neutral-400 ml-2">({filteredRecentEmails.length} shown)</span>
+                      <span className="text-[#8FA6C1]/60 ml-2">({filteredRecentEmails.length} shown)</span>
                     </span>
                     <button
                       onClick={() => setRecentEmailsPage(prev => Math.min(getTotalPages(filteredRecentEmails.length), prev + 1))}
                       disabled={recentEmailsPage === getTotalPages(filteredRecentEmails.length)}
-                      className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="px-3 py-1.5 text-sm border border-[#4FD1FF]/20 text-[#8FA6C1] rounded hover:bg-[#4FD1FF]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       Next
                       <ArrowPathIcon className="h-4 w-4 rotate-180" />
@@ -3117,24 +3117,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Cycle Interval Modal */}
       {showIntervalModal && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-neutral-900">Change Cycle Interval</h3>
+              <h3 className="text-lg font-medium text-white">Change Cycle Interval</h3>
               <button
                 onClick={() => setShowIntervalModal(false)}
-                className="text-neutral-400 hover:text-neutral-600"
+                className="text-[#8FA6C1] hover:text-white"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
             
-            <p className="text-sm text-neutral-600 mb-4">
+            <p className="text-sm text-[#8FA6C1] mb-4">
               Select how often the agent should run a new cycle. The agent will restart with the new interval.
             </p>
             
@@ -3145,14 +3145,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   onClick={() => setNewInterval(minutes)}
                   className={`w-full text-left px-4 py-2 rounded border transition-colors ${
                     newInterval === minutes
-                      ? 'bg-blue-50 border-blue-200 text-blue-700'
-                      : 'border-neutral-200 hover:bg-neutral-50'
+                      ? 'bg-[#4FD1FF]/20 border-[#4FD1FF]/50 text-[#4FD1FF]'
+                      : 'border-[#4FD1FF]/20 text-[#8FA6C1] hover:bg-[#1B2F52]'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span>{minutes} {minutes === 1 ? 'minute' : 'minutes'}</span>
                     {newInterval === minutes && (
-                      <CheckCircleIcon className="h-5 w-5 text-blue-600" />
+                      <CheckCircleIcon className="h-5 w-5 text-[#4FD1FF]" />
                     )}
                   </div>
                 </button>
@@ -3162,13 +3162,13 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="flex gap-3">
               <button
                 onClick={() => setShowIntervalModal(false)}
-                className="flex-1 px-4 py-2 text-neutral-700 border border-neutral-300 rounded hover:bg-neutral-50 transition-colors modal-button-visible modal-button-cancel"
+                className="flex-1 px-4 py-2 text-[#8FA6C1] border border-[#4FD1FF]/20 rounded hover:bg-[#1B2F52] transition-colors modal-button-visible modal-button-cancel"
               >
                 Cancel
               </button>
               <button
                 onClick={handleIntervalChange}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors modal-button-visible modal-button-primary"
+                className="flex-1 px-4 py-2 bg-[#4FD1FF] text-[#0A1525] font-medium rounded hover:bg-[#4FD1FF]/90 transition-colors modal-button-visible modal-button-primary"
               >
                 Apply & Restart
               </button>
@@ -3179,36 +3179,35 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Queue Modal */}
       {showEmailQueue && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Email Queue</h2>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <h2 className="text-xl font-semibold text-white">Email Queue</h2>
+                  <p className="text-sm text-[#8FA6C1] mt-1">
                     {emailQueue.length} emails queued for sending
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowAddEmail(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 transition-colors text-black text-sm font-medium"
-                    style={{ color: 'black !important' }}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-500/20 border border-green-500/40 rounded hover:bg-green-500/30 transition-colors text-green-300 text-sm font-medium"
                   >
                     <div className="w-4 h-4 relative">
-                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 transform -translate-y-1/2"></div>
-                      <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-600 transform -translate-x-1/2"></div>
+                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-green-400 transform -translate-y-1/2"></div>
+                      <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-green-400 transform -translate-x-1/2"></div>
                     </div>
-                    <span style={{ color: 'black !important' }}>Add Email</span>
+                    <span>Add Email</span>
                   </button>
                   <button
                     onClick={() => setShowEmailQueue(false)}
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="text-[#8FA6C1] hover:text-white transition-colors"
                   >
                     <XMarkIcon className="h-6 w-6" />
                   </button>
@@ -3217,29 +3216,29 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
             
             {/* Filter Controls */}
-            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+            <div className="px-6 py-4 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+                    <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8FA6C1]" />
                     <input
                       type="text"
                       placeholder="Search by company, email, or subject..."
                       value={emailQueueSearch}
                       onChange={(e) => setEmailQueueSearch(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-4 py-2 text-sm border border-[#4FD1FF]/20 rounded bg-[#0A1525]/60 text-white placeholder-[#8FA6C1]/50 focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/30 focus:border-[#4FD1FF]/40"
                     />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-neutral-600">Sort:</label>
+                  <label className="text-sm text-[#8FA6C1]">Sort:</label>
                   <select
                     value={emailQueueSort}
                     onChange={(e) => setEmailQueueSort(e.target.value as 'newest' | 'oldest')}
-                    className="text-sm border border-neutral-300 rounded-md py-2 pl-3 pr-6 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="text-sm border border-[#4FD1FF]/20 rounded py-2 pl-3 pr-6 bg-[#0A1525]/60 text-white focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/30"
                     style={{
                       backgroundPosition: 'calc(100% - 4px) center',
-                      backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3c/svg%3e")',
+                      backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%238FA6C1\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3e%3c/svg%3e")',
                       backgroundRepeat: 'no-repeat',
                       backgroundSize: '1.25em 1.25em',
                       appearance: 'none'
@@ -3249,7 +3248,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     <option value="oldest">Oldest First</option>
                   </select>
                 </div>
-                <div className="text-sm text-neutral-500">
+                <div className="text-sm text-[#8FA6C1]">
                   {filteredAndSortedEmailQueue.length} of {emailQueue.length} emails
                 </div>
               </div>
@@ -3257,17 +3256,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             
             <div className="flex-1 overflow-y-auto scroll-smooth">
               {filteredAndSortedEmailQueue.length === 0 ? (
-                <div className="pt-58 text-center text-neutral-500">
-                  <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
+                <div className="pt-58 text-center text-[#8FA6C1]">
+                  <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-[#8FA6C1]/40" />
                   {emailQueue.length === 0 ? (
                     <>
                       <p>No emails in queue.</p>
-                      <p className="text-xs mt-1">The agent will add emails here when processing leads.</p>
+                      <p className="text-xs mt-1 text-[#8FA6C1]/70">The agent will add emails here when processing leads.</p>
                     </>
                   ) : (
                     <>
                       <p>No emails match your search.</p>
-                      <p className="text-xs mt-1">Try adjusting your search terms or filters.</p>
+                      <p className="text-xs mt-1 text-[#8FA6C1]/70">Try adjusting your search terms or filters.</p>
                     </>
                   )}
                 </div>
@@ -3277,7 +3276,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                     {paginateArray(filteredAndSortedEmailQueue, emailQueuePage).map((email, index) => (
                       <div
                         key={email.id || index}
-                        className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
+                        className="bg-[#1B2F52]/60 border border-[#4FD1FF]/20 rounded p-4 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           {/* Left side - Email info */}
@@ -3286,27 +3285,27 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             onClick={() => setSelectedEmail(email)}
                           >
                             <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium text-sm">
+                              <div className="h-8 w-8 bg-[#0A1525] rounded-full flex items-center justify-center text-white font-medium text-sm">
                                 {(email.leadData?.name || email.recipientName || email.leadData?.email || email.to || email.finalRecipient || 'U').charAt(0).toUpperCase()}
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-neutral-900 text-sm">
+                                  <span className="font-medium text-white text-sm">
                                     {email.lead?.company || email.leadInfo?.company || email.leadData?.company || email.company || 'Unknown Company'}
                                   </span>
                                   {(email.leadData?.title || email.leadInfo?.title || email.lead?.title) && (
-                                    <span className="text-xs text-neutral-500 font-medium">
+                                    <span className="text-xs text-[#8FA6C1] font-medium">
                                       • {email.leadData?.title || email.leadInfo?.title || email.lead?.title}
                                     </span>
                                   )}
-                                  <span className="text-xs text-neutral-500">
+                                  <span className="text-xs text-[#8FA6C1]">
                                     • {email.leadData?.email || email.to || email.finalRecipient || 'Unknown Email'}
                                   </span>
-                                  <span className="text-xs text-neutral-500">
+                                  <span className="text-xs text-[#8FA6C1]">
                                     • Queued {email.createdAt ? new Date(email.createdAt).toLocaleDateString() : 'today'}
                                   </span>
                                 </div>
-                                <p className="text-xs text-neutral-600 truncate mt-1">
+                                <p className="text-xs text-[#8FA6C1]/70 truncate mt-1">
                                   {email.emailData?.subject || email.subject || email.finalSubject || 'No Subject'}
                                 </p>
                               </div>
@@ -3320,7 +3319,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                                 e.stopPropagation();
                                 startEditingEmail(email);
                               }}
-                              className="p-2 text-neutral-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                              className="p-2 text-[#8FA6C1] hover:text-[#4FD1FF] hover:bg-[#4FD1FF]/10 rounded transition-colors"
                               title="Edit email"
                             >
                               <PencilIcon className="h-4 w-4" />
@@ -3330,7 +3329,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                                 e.stopPropagation();
                                 approveEmail(email.id);
                               }}
-                              className="p-2 text-neutral-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                              className="p-2 text-[#8FA6C1] hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
                               title="Approve & send"
                             >
                               <CheckIcon className="h-4 w-4" />
@@ -3340,7 +3339,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                                 e.stopPropagation();
                                 rejectEmail(email.id, 'Rejected by user');
                               }}
-                              className="p-2 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              className="p-2 text-[#8FA6C1] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
                               title="Reject email"
                             >
                               <XMarkIcon className="h-4 w-4" />
@@ -3353,23 +3352,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   
                   {/* Pagination controls for email queue */}
                   {getTotalPages(filteredAndSortedEmailQueue.length) > 1 && (
-                    <div className="flex items-center justify-between px-4 pb-4 border-t border-neutral-200 pt-4">
+                    <div className="flex items-center justify-between px-4 pb-4 border-t border-[#4FD1FF]/20 pt-4">
                       <button
                         onClick={() => setEmailQueuePage(prev => Math.max(1, prev - 1))}
                         disabled={emailQueuePage === 1}
-                        className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        className="px-3 py-1.5 text-sm border border-[#4FD1FF]/20 text-[#8FA6C1] rounded hover:bg-[#4FD1FF]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
                         <ArrowLeftIcon className="h-4 w-4" />
                         Previous
                       </button>
-                      <span className="text-sm text-neutral-600">
+                      <span className="text-sm text-[#8FA6C1]">
                         Page {emailQueuePage} of {getTotalPages(filteredAndSortedEmailQueue.length)}
-                        <span className="text-neutral-400 ml-2">({filteredAndSortedEmailQueue.length} shown)</span>
+                        <span className="text-[#8FA6C1]/60 ml-2">({filteredAndSortedEmailQueue.length} shown)</span>
                       </span>
                       <button
                         onClick={() => setEmailQueuePage(prev => Math.min(getTotalPages(filteredAndSortedEmailQueue.length), prev + 1))}
                         disabled={emailQueuePage === getTotalPages(filteredAndSortedEmailQueue.length)}
-                        className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        className="px-3 py-1.5 text-sm border border-[#4FD1FF]/20 text-[#8FA6C1] rounded hover:bg-[#4FD1FF]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
                         Next
                         <ArrowPathIcon className="h-4 w-4 rotate-180" />
@@ -3385,24 +3384,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
       {/* Email Detail Modal */}
       {selectedEmail && !editingEmail && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Email Preview</h2>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <h2 className="text-xl font-semibold text-white">Email Preview</h2>
+                  <p className="text-sm text-[#8FA6C1] mt-1">
                     To: {selectedEmail.leadData?.email || selectedEmail.to || selectedEmail.finalRecipient || 'Unknown'}
                   </p>
                 </div>
                 <button
                   onClick={() => setSelectedEmail(null)}
-                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -3412,16 +3411,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="h-[70vh] overflow-y-auto p-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Recipient Email</label>
-                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                  <label className="block text-sm font-medium text-white mb-2">Recipient Email</label>
+                  <div className="p-3 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
                     {selectedEmail.leadData?.email || selectedEmail.to || selectedEmail.finalRecipient || 'No recipient'}
                   </div>
                 </div>
                 
                 {(selectedEmail.cc || selectedEmail.emailData?.cc) && (
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">CC Email Addresses</label>
-                    <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                    <label className="block text-sm font-medium text-white mb-2">CC Email Addresses</label>
+                    <div className="p-3 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
                       {selectedEmail.cc || selectedEmail.emailData?.cc}
                     </div>
                   </div>
@@ -3429,8 +3428,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 
                 {(selectedEmail.bcc || selectedEmail.emailData?.bcc) && (
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">BCC Email Addresses</label>
-                    <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                    <label className="block text-sm font-medium text-white mb-2">BCC Email Addresses</label>
+                    <div className="p-3 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
                       {selectedEmail.bcc || selectedEmail.emailData?.bcc}
                     </div>
                   </div>
@@ -3439,12 +3438,12 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 {/* AI Confidence Report Box */}
                 {(selectedEmail.confidenceReport || selectedEmail.emailData?.confidenceReport) && (
                   <div className="mb-4">
-                    <div className={`p-4 rounded-lg border-2 ${
+                    <div className={`p-4 rounded border-2 ${
                       (selectedEmail.confidenceLevel || selectedEmail.emailData?.confidenceLevel) === 'high' 
-                        ? 'bg-green-50 border-green-300' 
+                        ? 'bg-green-500/10 border-green-500/40' 
                         : (selectedEmail.confidenceLevel || selectedEmail.emailData?.confidenceLevel) === 'low'
-                        ? 'bg-red-50 border-red-300'
-                        : 'bg-yellow-50 border-yellow-300'
+                        ? 'bg-red-500/10 border-red-500/40'
+                        : 'bg-yellow-500/10 border-yellow-500/40'
                     }`}>
                       <div className="flex items-start gap-3">
                         <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
@@ -3456,14 +3455,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                         }`} />
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
-                            <h4 className="text-sm font-semibold text-neutral-800">AI Confidence Report</h4>
-                            <span className="text-xs text-neutral-500 italic">Note: This report does not send with the email</span>
+                            <h4 className="text-sm font-semibold text-white">AI Confidence Report</h4>
+                            <span className="text-xs text-[#8FA6C1] italic">Note: This report does not send with the email</span>
                           </div>
-                          <div className="text-sm text-neutral-700 leading-relaxed prose prose-sm max-w-none">
+                          <div className="text-sm text-[#8FA6C1] leading-relaxed prose prose-sm prose-invert max-w-none">
                             <ReactMarkdown
                               components={{
                                 p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                                strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                                strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
                                 em: ({node, ...props}) => <em className="italic" {...props} />,
                               }}
                             >
@@ -3477,23 +3476,23 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 )}
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
-                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                  <label className="block text-sm font-medium text-white mb-2">Subject</label>
+                  <div className="p-3 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded text-white">
                     {selectedEmail.emailData?.subject || selectedEmail.subject || selectedEmail.finalSubject || 'No Subject'}
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Email Content</label>
-                  <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-md min-h-[300px] whitespace-pre-wrap">
+                  <label className="block text-sm font-medium text-white mb-2">Email Content</label>
+                  <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded min-h-[300px] whitespace-pre-wrap text-white">
                     {selectedEmail.emailData?.body || selectedEmail.personalizedEmail || selectedEmail.body || selectedEmail.finalBody || 'No content available'}
                   </div>
                 </div>
                 
                 {(selectedEmail.leadData?.company || selectedEmail.company) && (
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Company</label>
-                    <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                    <label className="block text-sm font-medium text-white mb-2">Company</label>
+                    <div className="p-3 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded text-white">
                       {selectedEmail.leadData?.company || selectedEmail.company}
                     </div>
                   </div>
@@ -3501,36 +3500,33 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
             </div>
             
-            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+            <div className="p-6 border-t border-[#4FD1FF]/20 bg-[#1B2F52]/40">
               <div className="flex items-center gap-4 justify-end">
                 <button
                   onClick={() => setSelectedEmail(null)}
-                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                  className="px-4 py-2 text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   Close
                 </button>
                 <button
                   onClick={() => startEditingEmail(selectedEmail)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors shadow-sm text-black font-medium"
-                  style={{ color: 'black !important' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4FD1FF]/20 border border-[#4FD1FF]/40 rounded hover:bg-[#4FD1FF]/30 transition-colors shadow-sm text-[#4FD1FF] font-medium"
                 >
-                  <PencilIcon className="h-4 w-4" style={{ color: 'black !important' }} />
+                  <PencilIcon className="h-4 w-4" />
                   Edit
                 </button>
                 <button
                   onClick={() => rejectEmail(selectedEmail.id, 'Rejected by user')}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors shadow-sm text-black font-medium"
-                  style={{ color: 'black !important' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/40 rounded hover:bg-red-500/30 transition-colors shadow-sm text-red-400 font-medium"
                 >
-                  <XMarkIcon className="h-4 w-4" style={{ color: 'black !important' }} />
+                  <XMarkIcon className="h-4 w-4" />
                   Reject
                 </button>
                 <button
                   onClick={() => approveEmail(selectedEmail.id)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 transition-colors shadow-sm text-black font-medium"
-                  style={{ color: 'black !important' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/40 rounded hover:bg-green-500/30 transition-colors shadow-sm text-green-400 font-medium"
                 >
-                  <CheckIcon className="h-4 w-4" style={{ color: 'black !important' }} />
+                  <CheckIcon className="h-4 w-4" />
                   Approve & Send
                 </button>
               </div>
@@ -3546,19 +3542,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Edit Email</h2>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <h2 className="text-xl font-semibold text-white">Edit Email</h2>
+                  <p className="text-sm text-[#8FA6C1] mt-1">
                     To: {editingEmail.leadData?.email || editingEmail.to || editingEmail.finalRecipient || 'Unknown'}
                   </p>
                 </div>
                 <button
                   onClick={() => setEditingEmail(null)}
-                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -3568,80 +3564,79 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="h-[70vh] overflow-y-auto p-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Recipient Email</label>
+                  <label className="block text-sm font-medium text-white mb-2">Recipient Email</label>
                   <input
                     type="email"
                     value={editedRecipient}
                     onChange={(e) => setEditedRecipient(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="recipient@email.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     CC Email Addresses
-                    <span className="text-xs text-neutral-500 ml-2">(optional, comma-separated)</span>
+                    <span className="text-xs text-[#8FA6C1] ml-2">(optional, comma-separated)</span>
                   </label>
                   <input
                     type="text"
                     value={editedCc}
                     onChange={(e) => setEditedCc(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="cc1@email.com, cc2@email.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     BCC Email Addresses
-                    <span className="text-xs text-neutral-500 ml-2">(optional, comma-separated, hidden from recipients)</span>
+                    <span className="text-xs text-[#8FA6C1] ml-2">(optional, comma-separated, hidden from recipients)</span>
                   </label>
                   <input
                     type="text"
                     value={editedBcc}
                     onChange={(e) => setEditedBcc(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="bcc1@email.com, bcc2@email.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
+                  <label className="block text-sm font-medium text-white mb-2">Subject</label>
                   <input
                     type="text"
                     value={editedSubject}
                     onChange={(e) => setEditedSubject(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="Email subject..."
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Email Content</label>
+                  <label className="block text-sm font-medium text-white mb-2">Email Content</label>
                   <textarea
                     value={editedContent}
                     onChange={(e) => setEditedContent(e.target.value)}
                     rows={15}
-                    className="w-full p-4 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    className="w-full p-4 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent font-mono text-sm"
                     placeholder="Email content..."
                   />
                 </div>
               </div>
             </div>
             
-            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+            <div className="p-6 border-t border-[#4FD1FF]/20 bg-[#1B2F52]/40">
               <div className="flex items-center gap-4 justify-end">
                 <button
                   onClick={() => setEditingEmail(null)}
-                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                  className="px-4 py-2 text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   Close Editor
                 </button>
                 <button
                   onClick={saveEmailEdits}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors shadow-sm text-black font-medium"
-                  style={{ color: 'black !important' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4FD1FF]/20 border border-[#4FD1FF]/40 rounded hover:bg-[#4FD1FF]/30 transition-colors shadow-sm text-[#4FD1FF] font-medium"
                 >
                   Save Changes
                 </button>
@@ -3658,19 +3653,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-5xl h-[95vh] overflow-hidden mx-4"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-2xl w-full max-w-5xl h-[95vh] overflow-hidden mx-4"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Add Custom Email</h2>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <h2 className="text-xl font-semibold text-white">Add Custom Email</h2>
+                  <p className="text-sm text-[#8FA6C1] mt-1">
                     Add a custom email to the queue for testing or manual outreach
                   </p>
                 </div>
                 <button
                   onClick={() => setShowAddEmail(false)}
-                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -3680,70 +3675,70 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="h-[60vh] overflow-y-auto p-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     Recipient Email *
                   </label>
                   <input
                     type="email"
                     value={newEmailRecipient}
                     onChange={(e) => setNewEmailRecipient(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="recipient@example.com"
                     required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     CC Email Addresses
-                    <span className="text-xs text-neutral-500 ml-2">(optional, comma-separated)</span>
+                    <span className="text-xs text-[#8FA6C1] ml-2">(optional, comma-separated)</span>
                   </label>
                   <input
                     type="text"
                     value={newEmailCc}
                     onChange={(e) => setNewEmailCc(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="cc1@example.com, cc2@example.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     BCC Email Addresses
-                    <span className="text-xs text-neutral-500 ml-2">(optional, comma-separated, hidden from recipients)</span>
+                    <span className="text-xs text-[#8FA6C1] ml-2">(optional, comma-separated, hidden from recipients)</span>
                   </label>
                   <input
                     type="text"
                     value={newEmailBcc}
                     onChange={(e) => setNewEmailBcc(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="bcc1@example.com, bcc2@example.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     Subject Line *
                   </label>
                   <input
                     type="text"
                     value={newEmailSubject}
                     onChange={(e) => setNewEmailSubject(e.target.value)}
-                    className="w-full p-3 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent"
                     placeholder="Email subject..."
                     required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-white mb-2">
                     Email Content *
                   </label>
                   <textarea
                     value={newEmailContent}
                     onChange={(e) => setNewEmailContent(e.target.value)}
                     rows={12}
-                    className="w-full p-4 border border-neutral-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    className="w-full p-4 bg-[#0A1525] border border-[#4FD1FF]/30 rounded text-white placeholder-[#8FA6C1]/50 focus:ring-2 focus:ring-[#4FD1FF]/50 focus:border-transparent font-mono text-sm"
                     placeholder="Email content here..."
                     required
                   />
@@ -3751,25 +3746,24 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               </div>
             </div>
             
-            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+            <div className="p-6 border-t border-[#4FD1FF]/20 bg-[#1B2F52]/40">
               <div className="flex items-center gap-4 justify-end">
                 <button
                   onClick={() => setShowAddEmail(false)}
-                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                  className="px-4 py-2 text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={addCustomEmail}
                   disabled={!newEmailRecipient || !newEmailSubject || !newEmailContent}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 transition-colors shadow-sm text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ color: 'black !important' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/40 rounded hover:bg-green-500/30 transition-colors shadow-sm text-green-400 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="w-4 h-4 relative">
-                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-600 transform -translate-y-1/2"></div>
-                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-600 transform -translate-x-1/2"></div>
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-green-400 transform -translate-y-1/2"></div>
+                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-green-400 transform -translate-x-1/2"></div>
                   </div>
-                  <span style={{ color: 'black !important' }}>Add to Queue</span>
+                  <span>Add to Queue</span>
                 </button>
               </div>
             </div>
@@ -3784,27 +3778,26 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[98vh] overflow-hidden mx-4"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-xl w-full max-w-7xl h-[98vh] overflow-hidden mx-4"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Recent Email Activity</h2>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <h2 className="text-xl font-semibold text-white">Recent Email Activity</h2>
+                  <p className="text-sm text-[#8FA6C1] mt-1">
                     {recentEmails.length} emails sent • Track opens, clicks, and replies
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={clearRecentEmails}
-                    className="flex items-center gap-2 px-3 py-2 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors text-black text-sm font-medium"
-                    style={{ color: 'black !important' }}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-500/20 border border-red-500/40 rounded hover:bg-red-500/30 transition-colors text-red-400 text-sm font-medium"
                   >
-                    <span style={{ color: 'black !important' }}>Clear All</span>
+                    <span>Clear All</span>
                   </button>
                   <button
                     onClick={() => setShowRecentContacts(false)}
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="text-[#8FA6C1] hover:text-white transition-colors"
                   >
                     <XMarkIcon className="h-6 w-6" />
                   </button>
@@ -3814,9 +3807,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             
             <div className="h-[75vh] overflow-y-auto">
               {recentEmails.length === 0 ? (
-                <div className="p-12 text-center text-neutral-500">
-                  <EnvelopeIcon className="h-16 w-16 mx-auto mb-4 text-neutral-300" />
-                  <h3 className="text-lg font-medium text-neutral-900 mb-2">No Recent Activity</h3>
+                <div className="p-12 text-center text-[#8FA6C1]">
+                  <EnvelopeIcon className="h-16 w-16 mx-auto mb-4 text-[#8FA6C1]/40" />
+                  <h3 className="text-lg font-medium text-white mb-2">No Recent Activity</h3>
                   <p>No emails have been sent yet.</p>
                   <p className="text-xs mt-1">Start the agent to begin outreach.</p>
                 </div>
@@ -3825,37 +3818,37 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                   {recentEmails.map((contact) => (
                     <div
                       key={contact.id}
-                      className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 hover:bg-neutral-100 cursor-pointer transition-colors"
+                      className="bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded p-4 hover:border-[#4FD1FF]/40 cursor-pointer transition-colors"
                       onClick={() => setSelectedRecentEmail(contact)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 bg-neutral-300 rounded-full flex items-center justify-center text-neutral-700 font-medium">
+                          <div className="h-12 w-12 bg-[#4FD1FF]/20 rounded-full flex items-center justify-center text-[#4FD1FF] font-medium">
                             {contact.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
-                              <h4 className="font-medium text-neutral-900">{contact.name}</h4>
-                              <span className="text-sm text-neutral-500">•</span>
-                              <span className="text-sm text-neutral-600">{contact.email}</span>
+                              <h4 className="font-medium text-white">{contact.name}</h4>
+                              <span className="text-sm text-[#8FA6C1]">•</span>
+                              <span className="text-sm text-[#8FA6C1]">{contact.email}</span>
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              <div className="flex items-center gap-1 text-sm text-neutral-500">
+                              <div className="flex items-center gap-1 text-sm text-[#8FA6C1]">
                                 <BuildingOfficeIcon className="h-3 w-3" />
                                 {contact.company}
                               </div>
-                              <span className="text-sm text-neutral-400">•</span>
-                              <span className="text-xs text-neutral-400">
+                              <span className="text-sm text-[#8FA6C1]/60">•</span>
+                              <span className="text-xs text-[#8FA6C1]/60">
                                 {contact.replied ? 'Replied' : contact.opened ? 'Opened' : 'Sent'} {new Date(contact.dateSent).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 text-sm rounded-full font-medium ${
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 text-sm rounded font-medium ${
                             contact.replied ? 'bg-green-100 text-green-700 border border-green-300' :
-                            contact.opened ? 'bg-blue-100 text-blue-700 border border-blue-300' :
-                            'bg-neutral-100 text-neutral-700 border border-neutral-300'
+                            contact.opened ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border border-[#4FD1FF]/40' :
+                            'bg-[#1B2F52] text-[#8FA6C1] border border-[#4FD1FF]/20'
                           }`}>
                             {contact.replied && <CheckCircleIcon className="h-4 w-4" />}
                             {contact.opened && !contact.replied && <EyeIcon className="h-4 w-4" />}
@@ -3863,7 +3856,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                             {contact.replied ? 'Replied' : 
                              contact.opened ? 'Opened' : 'Sent'}
                           </div>
-                          <div className="text-sm text-neutral-400">
+                          <div className="text-sm text-[#8FA6C1]">
                             →
                           </div>
                         </div>
@@ -3884,20 +3877,20 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-xl w-full max-w-6xl h-[98vh] overflow-hidden mx-4"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Email Details</h2>
+                  <h2 className="text-xl font-semibold text-white">Email Details</h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-neutral-600">
+                    <span className="text-sm text-[#8FA6C1]">
                       To: {selectedRecentEmail.name} ({selectedRecentEmail.email})
                     </span>
-                    <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${
-                      selectedRecentEmail.replied ? 'bg-green-100 text-green-700' :
-                      selectedRecentEmail.opened ? 'bg-blue-100 text-blue-700' :
-                      'bg-neutral-100 text-neutral-700'
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded font-medium ${
+                      selectedRecentEmail.replied ? 'bg-green-500/20 text-green-400' :
+                      selectedRecentEmail.opened ? 'bg-[#4FD1FF]/20 text-[#4FD1FF]' :
+                      'bg-[#1B2F52] text-[#8FA6C1]'
                     }`}>
                       {selectedRecentEmail.replied && <CheckCircleIcon className="h-3 w-3" />}
                       {selectedRecentEmail.opened && !selectedRecentEmail.replied && <EyeIcon className="h-3 w-3" />}
@@ -3908,7 +3901,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                 </div>
                 <button
                   onClick={() => setSelectedRecentEmail(null)}
-                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -3918,46 +3911,46 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="h-[70vh] overflow-y-auto p-6">
               <div className="space-y-6">
                 {/* Email Tracking Info */}
-                <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-neutral-900 mb-3">Tracking Information</h3>
+                <div className="bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded p-4">
+                  <h3 className="text-sm font-medium text-white mb-3">Tracking Information</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-neutral-500">Sent</p>
-                      <p className="text-sm font-medium text-neutral-900">
+                      <p className="text-xs text-[#8FA6C1]">Sent</p>
+                      <p className="text-sm font-medium text-white">
                         {new Date(selectedRecentEmail.dateSent).toLocaleString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-neutral-500">From</p>
-                      <p className="text-sm font-medium text-neutral-900">
+                      <p className="text-xs text-[#8FA6C1]">From</p>
+                      <p className="text-sm font-medium text-white">
                         {selectedRecentEmail.fromAccount || 'Mailgun'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-neutral-500">Status</p>
+                      <p className="text-xs text-[#8FA6C1]">Status</p>
                       <p className={`text-sm font-medium ${
-                        selectedRecentEmail.status === 'replied' ? 'text-green-600' :
-                        selectedRecentEmail.status === 'opened' ? 'text-blue-600' :
-                        'text-neutral-600'
+                        selectedRecentEmail.status === 'replied' ? 'text-green-400' :
+                        selectedRecentEmail.status === 'opened' ? 'text-[#4FD1FF]' :
+                        'text-[#8FA6C1]'
                       }`}>
                         {selectedRecentEmail.status.charAt(0).toUpperCase() + selectedRecentEmail.status.slice(1)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-neutral-500">Method</p>
-                      <p className="text-sm font-medium text-neutral-900">
+                      <p className="text-xs text-[#8FA6C1]">Method</p>
+                      <p className="text-sm font-medium text-white">
                         {selectedRecentEmail.sendMethod === 'gmail' ? 'Gmail OAuth' : 'Mailgun'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-neutral-500">Opened</p>
-                      <p className="text-sm font-medium text-neutral-900">
+                      <p className="text-xs text-[#8FA6C1]">Opened</p>
+                      <p className="text-sm font-medium text-white">
                         {selectedRecentEmail.opened ? 'Yes' : 'No'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-neutral-500">Replied</p>
-                      <p className="text-sm font-medium text-neutral-900">
+                      <p className="text-xs text-[#8FA6C1]">Replied</p>
+                      <p className="text-sm font-medium text-white">
                         {selectedRecentEmail.replied ? 'Yes' : 'No'}
                       </p>
                     </div>
@@ -3966,35 +3959,35 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
                 {/* Company Info */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Company</label>
-                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                  <label className="block text-sm font-medium text-white mb-2">Company</label>
+                  <div className="p-3 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded text-white">
                     {selectedRecentEmail.company}
                   </div>
                 </div>
 
                 {/* Email Subject - we might not have this in the current data structure */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Subject</label>
-                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-md">
+                  <label className="block text-sm font-medium text-white mb-2">Subject</label>
+                  <div className="p-3 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded text-white">
                     {selectedRecentEmail.subject || 'Email subject not available'}
                   </div>
                 </div>
 
                 {/* Email Content - we might not have this in the current data structure */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">Email Content</label>
-                  <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-md min-h-[200px] whitespace-pre-wrap">
+                  <label className="block text-sm font-medium text-white mb-2">Email Content</label>
+                  <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded min-h-[200px] whitespace-pre-wrap text-white">
                     {selectedRecentEmail.content || selectedRecentEmail.body || 'Email content not available'}
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+            <div className="p-6 border-t border-[#4FD1FF]/20 bg-[#1B2F52]/40">
               <div className="flex items-center gap-4 justify-end">
                 <button
                   onClick={() => setSelectedRecentEmail(null)}
-                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                  className="px-4 py-2 text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   Close
                 </button>
@@ -4011,19 +4004,19 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] overflow-hidden mx-4"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-xl w-full max-w-6xl h-[95vh] overflow-hidden mx-4"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Scheduled Events</h2>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <h2 className="text-xl font-semibold text-white">Scheduled Events</h2>
+                  <p className="text-sm text-[#8FA6C1] mt-1">
                     {scheduledEvents.length} events scheduled • Meetings and calls
                   </p>
                 </div>
                 <button
                   onClick={() => setShowScheduledEvents(false)}
-                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -4033,8 +4026,8 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="flex-1 overflow-y-auto p-6">
               {scheduledEvents.length === 0 ? (
                 <div className="text-center py-16">
-                  <p className="text-neutral-500">No scheduled events yet.</p>
-                  <p className="text-xs text-neutral-400 mt-1">Events will appear here when meetings are scheduled.</p>
+                  <p className="text-[#8FA6C1]">No scheduled events yet.</p>
+                  <p className="text-xs text-[#8FA6C1]/60 mt-1">Events will appear here when meetings are scheduled.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -4044,15 +4037,15 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:border-blue-300 cursor-pointer transition-colors"
+                      className="bg-[#1B2F52]/50 backdrop-blur-sm border border-[#4FD1FF]/20 rounded p-4 hover:border-[#4FD1FF]/40 cursor-pointer transition-colors"
                       onClick={() => setSelectedScheduledEvent(event)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-neutral-900">
+                          <h3 className="text-sm font-semibold text-white">
                             {event.title || `Meeting with ${event.contactName || event.company || 'Unknown'}`}
                           </h3>
-                          <div className="flex items-center gap-4 mt-2 text-xs text-neutral-600">
+                          <div className="flex items-center gap-4 mt-2 text-xs text-[#8FA6C1]">
                             <div className="flex items-center gap-1">
                               <CalendarIcon className="h-3 w-3" />
                               {new Date(event.scheduledTime).toLocaleDateString()}
@@ -4070,10 +4063,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
                           </div>
                         </div>
                         <div className="ml-4">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            event.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                            event.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-neutral-100 text-neutral-800'
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
+                            event.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                            event.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-[#1B2F52] text-[#8FA6C1]'
                           }`}>
                             {event.status || 'scheduled'}
                           </span>
@@ -4095,14 +4088,14 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl w-full max-w-4xl mx-4"
+            className="bg-[#0A1525]/95 backdrop-blur-xl border border-[#4FD1FF]/30 rounded-lg shadow-2xl w-full max-w-4xl mx-4"
           >
-            <div className="p-6 border-b border-neutral-200">
+            <div className="p-6 border-b border-[#4FD1FF]/20">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-neutral-900">Event Details</h2>
+                <h2 className="text-xl font-semibold text-white">Event Details</h2>
                 <button
                   onClick={() => setSelectedScheduledEvent(null)}
-                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -4112,37 +4105,37 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             <div className="p-6 space-y-6">
               {/* Event Information */}
               <div>
-                <h3 className="text-lg font-medium text-neutral-900 mb-4">
+                <h3 className="text-lg font-medium text-white mb-4">
                   {selectedScheduledEvent.title || `Meeting with ${selectedScheduledEvent.contactName || selectedScheduledEvent.company || 'Unknown'}`}
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-neutral-500 mb-1">Date & Time</p>
-                    <p className="text-sm font-medium text-neutral-900">
+                    <p className="text-xs text-[#8FA6C1] mb-1">Date & Time</p>
+                    <p className="text-sm font-medium text-white">
                       {new Date(selectedScheduledEvent.scheduledTime).toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-neutral-500 mb-1">Status</p>
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      selectedScheduledEvent.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                      selectedScheduledEvent.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-neutral-100 text-neutral-800'
+                    <p className="text-xs text-[#8FA6C1] mb-1">Status</p>
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
+                      selectedScheduledEvent.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                      selectedScheduledEvent.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-[#1B2F52] text-[#8FA6C1]'
                     }`}>
                       {selectedScheduledEvent.status || 'scheduled'}
                     </span>
                   </div>
                   {selectedScheduledEvent.company && (
                     <div>
-                      <p className="text-xs text-neutral-500 mb-1">Company</p>
-                      <p className="text-sm font-medium text-neutral-900">{selectedScheduledEvent.company}</p>
+                      <p className="text-xs text-[#8FA6C1] mb-1">Company</p>
+                      <p className="text-sm font-medium text-white">{selectedScheduledEvent.company}</p>
                     </div>
                   )}
                   {selectedScheduledEvent.contactName && (
                     <div>
-                      <p className="text-xs text-neutral-500 mb-1">Contact</p>
-                      <p className="text-sm font-medium text-neutral-900">{selectedScheduledEvent.contactName}</p>
+                      <p className="text-xs text-[#8FA6C1] mb-1">Contact</p>
+                      <p className="text-sm font-medium text-white">{selectedScheduledEvent.contactName}</p>
                     </div>
                   )}
                 </div>
@@ -4150,21 +4143,21 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
 
               {/* Calendar Link */}
               {selectedScheduledEvent.calendarLink && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">Calendar Link</h4>
+                <div className="bg-[#4FD1FF]/10 border border-[#4FD1FF]/30 rounded p-4">
+                  <h4 className="text-sm font-medium text-white mb-2">Calendar Link</h4>
                   <div className="flex items-center gap-3">
                     <a
                       href={selectedScheduledEvent.calendarLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#4FD1FF] text-[#0A1525] font-medium rounded hover:bg-[#4FD1FF]/90 transition-colors text-sm"
                     >
                       <CalendarIcon className="h-4 w-4" />
                       Open in Calendar
                     </a>
                     <button
                       onClick={() => navigator.clipboard.writeText(selectedScheduledEvent.calendarLink)}
-                      className="px-3 py-2 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm"
+                      className="px-3 py-2 border border-[#4FD1FF]/40 text-[#4FD1FF] rounded hover:bg-[#4FD1FF]/10 transition-colors text-sm"
                     >
                       Copy Link
                     </button>
@@ -4175,17 +4168,17 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               {/* Meeting Details */}
               {selectedScheduledEvent.description && (
                 <div>
-                  <h4 className="text-sm font-medium text-neutral-900 mb-2">Description</h4>
-                  <p className="text-sm text-neutral-600">{selectedScheduledEvent.description}</p>
+                  <h4 className="text-sm font-medium text-white mb-2">Description</h4>
+                  <p className="text-sm text-[#8FA6C1]">{selectedScheduledEvent.description}</p>
                 </div>
               )}
             </div>
             
-            <div className="p-6 border-t border-neutral-200 bg-neutral-50">
+            <div className="p-6 border-t border-[#4FD1FF]/20 bg-[#1B2F52]/40">
               <div className="flex items-center gap-4 justify-end">
                 <button
                   onClick={() => setSelectedScheduledEvent(null)}
-                  className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
+                  className="px-4 py-2 text-[#8FA6C1] hover:text-white transition-colors"
                 >
                   Close
                 </button>

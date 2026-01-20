@@ -364,10 +364,67 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [agentName, setAgentName] = useState('Agent');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedSettings, setLastSavedSettings] = useState<AgentSettings | null>(null);
+  
+  // Presets state
+  const [presets, setPresets] = useState<any[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [loadingPresets, setLoadingPresets] = useState(false);
 
   useEffect(() => {
     fetchSettings();
+    fetchPresets();
   }, [resolvedParams.agentId]);
+
+  const fetchPresets = async () => {
+    try {
+      setLoadingPresets(true);
+      const response = await api.get('/api/settings/presets');
+      setPresets(response.data.presets || []);
+    } catch (error) {
+      console.error('Error loading presets:', error);
+    } finally {
+      setLoadingPresets(false);
+    }
+  };
+
+  const applyPreset = async (preset: any) => {
+    setSelectedPreset(preset.id || preset._id);
+    
+    const updatedSettings: AgentSettings = {
+      ...settings,
+      specialInstructions: preset.specialInstructions || settings.specialInstructions,
+      companyCriteria: {
+        ...settings.companyCriteria,
+        companySizeMin: preset.companySizeMin || settings.companyCriteria.companySizeMin,
+        companySizeMax: preset.companySizeMax || settings.companyCriteria.companySizeMax,
+        companyIndustries: preset.targetIndustries || settings.companyCriteria.companyIndustries
+      },
+      contactCriteria: {
+        ...settings.contactCriteria,
+        targetPositions: preset.targetPositions || settings.contactCriteria.targetPositions
+      },
+      geographicSettings: {
+        ...settings.geographicSettings,
+        leadLimit: preset.leadLimit || settings.geographicSettings.leadLimit
+      },
+      emailBuilder: {
+        ...settings.emailBuilder,
+        length: preset.emailLength || settings.emailBuilder.length,
+        callToAction: preset.callToAction || settings.emailBuilder.callToAction,
+        personalization: preset.personalizationLevel || settings.emailBuilder.personalization,
+        ccEmails: preset.ccEmails || settings.emailBuilder.ccEmails,
+        bccEmails: preset.bccEmails || settings.emailBuilder.bccEmails,
+        rebumpIntervalDays: preset.followupIntervalDays || settings.emailBuilder.rebumpIntervalDays,
+        enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : settings.emailBuilder.enableAutoResponse,
+        useCustomSignature: preset.useCustomSignature !== undefined ? preset.useCustomSignature : settings.emailBuilder.useCustomSignature,
+        signatureName: preset.signatureName || settings.emailBuilder.signatureName,
+        signatureTitle: preset.signatureTitle || settings.emailBuilder.signatureTitle
+      }
+    };
+    
+    setSettings(updatedSettings);
+    setHasUnsavedChanges(true);
+  };
 
   // Track unsaved changes
   useEffect(() => {
@@ -616,6 +673,64 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+        
+        {/* Presets Section */}
+        {presets.length > 0 && (
+          <div className="bg-[#0F1E35] border border-[#1B2F52] rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Quick Presets</h3>
+                <p className="text-sm text-gray-400">Apply a saved configuration to quickly set up targeting</p>
+              </div>
+              {loadingPresets && (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#4FD1FF]"></div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {presets.map((preset) => (
+                <button
+                  key={preset.id || preset._id}
+                  onClick={() => applyPreset(preset)}
+                  className={`text-left p-4 rounded-lg border-2 transition-all ${
+                    selectedPreset === (preset.id || preset._id)
+                      ? 'border-[#4FD1FF] bg-[#1B2F52] ring-2 ring-[#4FD1FF]/30'
+                      : 'border-[#1B2F52] bg-[#0A1628] hover:border-[#3B82F6]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="text-sm font-semibold text-white">{preset.name}</h4>
+                    {selectedPreset === (preset.id || preset._id) && (
+                      <div className="w-5 h-5 bg-[#4FD1FF] rounded-full flex items-center justify-center flex-shrink-0">
+                        <CheckIcon className="w-3 h-3 text-[#0F1E35]" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      {(preset.targetIndustries || []).slice(0, 2).map((industry: string, idx: number) => (
+                        <span key={idx} className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-[10px] font-medium">
+                          {industry}
+                        </span>
+                      ))}
+                      {(preset.targetIndustries?.length || 0) > 2 && (
+                        <span className="px-2 py-0.5 bg-[#1B2F52] text-gray-400 rounded text-[10px] font-medium">
+                          +{preset.targetIndustries.length - 2}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span>{preset.companySizeMin}-{preset.companySizeMax} emp</span>
+                      <span>•</span>
+                      <span>{preset.leadLimit} leads/cycle</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* General Instructions - Always Visible */}
         <div className="bg-gradient-to-r from-[#4FD1FF]/10 to-[#3B82F6]/10 border border-[#4FD1FF]/30 rounded-xl p-6">
