@@ -2867,6 +2867,15 @@ export default function InteractiveGlobe() {
                           const queuedValue = agent.queued || 0;
                           const history = agentMetricsHistory[agent.agentId] || [];
                           
+                          // Debug: log what we're working with
+                          if (agentIdx === 0) {
+                            console.log(`📊 Graph debug for ${agent.name}:`, {
+                              historyLength: history.length,
+                              historyValues: history.map((h: any) => h.queued),
+                              currentValue: queuedValue
+                            });
+                          }
+                          
                           // Generate points from real historical data or show current value only
                           let points;
                           if (history.length >= 2) {
