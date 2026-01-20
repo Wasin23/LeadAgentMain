@@ -3,10 +3,13 @@ import { ChatOpenAI } from '@langchain/openai';
 import { BufferMemory } from 'langchain/memory';
 import { ConversationChain } from 'langchain/chains';
 import { PromptTemplate } from '@langchain/core/prompts';
-import jwt from '../middleware/jwt.js';
-import { sendEmail } from '../utils/awsManager.js';
+import jwt, { authenticateToken } from '../middleware/jwt.js';
+import AWSEmailQueue from '../utils/awsEmailQueue.js';
+import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
+const emailQueue = new AWSEmailQueue();
+const awsManager = new AWSManager();
 
 // System knowledge base about Meridian platform
 const SYSTEM_KNOWLEDGE = `You are Meridian's AI assistant, an expert on the platform's features and functionality.
@@ -162,13 +165,111 @@ When answering questions:
 4. Suggest best practices when relevant
 5. If unsure, acknowledge limitations but provide related helpful info`;
 
+// Helper function to fetch user data for context
+async function fetchUserContext(userId) {
+  try {
+    const context = {
+      agents: [],
+      queuedEmails: [],
+      sentEmails: [],
+      userSettings: null
+    };
+
+    // Fetch user's agents
+    try {
+      const userData = await awsManager.getUserById(userId);
+      if (userData) {
+        context.agents = userData.activeAgents || [];
+        context.userSettings = {
+          email: userData.email,
+          name: userData.name,
+          billingEnabled: userData.billingEnabled,
+          gmailConnected: !!userData.gmail?.accessToken
+        };
+      }
+    } catch (err) {
+      console.log('[HELP] Could not fetch user data:', err.message);
+    }
+
+    // Fetch queued emails (all agents including orphan)
+    try {
+      const allQueued = await emailQueue.getAllQueuedEmailsForUser(userId);
+      context.queuedEmails = allQueued.map(e => ({
+        id: e._id || e.emailId,
+        agentId: e.agentId,
+        recipientEmail: e.recipientEmail,
+        recipientName: e.recipientName,
+        company: e.company,
+        status: e.status,
+        createdAt: e.createdAt
+      }));
+    } catch (err) {
+      console.log('[HELP] Could not fetch queued emails:', err.message);
+    }
+
+    // Fetch sent emails (limit to recent 50)
+    try {
+      const allSent = await emailQueue.getAllSentEmailsForUser(userId);
+      context.sentEmails = allSent.slice(0, 50).map(e => ({
+        id: e._id || e.emailId,
+        agentId: e.agentId,
+        recipientEmail: e.recipientEmail,
+        recipientName: e.recipientName,
+        company: e.company,
+        status: e.status,
+        sentAt: e.sentAt,
+        opened: e.analyticsStatus?.opened || false,
+        replied: e.analyticsStatus?.replied || false
+      }));
+    } catch (err) {
+      console.log('[HELP] Could not fetch sent emails:', err.message);
+    }
+
+    return context;
+  } catch (error) {
+    console.error('[HELP] Error fetching user context:', error);
+    return null;
+  }
+}
+
 // POST /api/help/chat - Chat with AI assistant
-router.post('/chat', async (req, res) => {
+router.post('/chat', authenticateToken, async (req, res) => {
   try {
     const { messages, newMessage } = req.body;
+    const userId = req.user?.userId;
 
     if (!newMessage) {
       return res.status(400).json({ error: 'No message provided' });
+    }
+
+    // Fetch user-specific context from database
+    let userContextStr = '';
+    if (userId) {
+      const userContext = await fetchUserContext(userId);
+      if (userContext) {
+        userContextStr = `
+
+# USER'S CURRENT DATA (Real-time from database)
+## User Account
+- Email: ${userContext.userSettings?.email || 'Unknown'}
+- Name: ${userContext.userSettings?.name || 'Unknown'}
+- Gmail Connected: ${userContext.userSettings?.gmailConnected ? 'Yes' : 'No'}
+- Billing Enabled: ${userContext.userSettings?.billingEnabled ? 'Yes' : 'No'}
+
+## User's Agents (${userContext.agents.length} total)
+${userContext.agents.length > 0 ? userContext.agents.map(a => `- ${a.name} (ID: ${a.agentId}) - ${a.personality?.type || 'Standard'} agent`).join('\n') : '- No agents created yet'}
+
+## Email Queue (${userContext.queuedEmails.length} emails waiting)
+${userContext.queuedEmails.length > 0 ? 
+  `Top 10 queued:\n${userContext.queuedEmails.slice(0, 10).map(e => `- To: ${e.recipientName || e.recipientEmail} at ${e.company || 'Unknown company'} (Agent: ${e.agentId})`).join('\n')}` : 
+  '- No emails in queue'}
+
+## Sent Emails (${userContext.sentEmails.length} recent emails)
+${userContext.sentEmails.length > 0 ?
+  `Recent sends:\n${userContext.sentEmails.slice(0, 10).map(e => `- To: ${e.recipientName || e.recipientEmail} - ${e.opened ? 'Opened' : 'Not opened'}${e.replied ? ', Replied' : ''}`).join('\n')}` :
+  '- No emails sent yet'}
+`;
+      }
     }
 
     // Initialize OpenAI chat model
@@ -178,8 +279,9 @@ router.post('/chat', async (req, res) => {
       openAIApiKey: process.env.OPENAI_API_KEY
     });
 
-    // Create prompt template with system knowledge
+    // Create prompt template with system knowledge AND user-specific data
     const prompt = PromptTemplate.fromTemplate(`${SYSTEM_KNOWLEDGE}
+${userContextStr}
 
 # CONVERSATION HISTORY
 {history}
@@ -188,7 +290,7 @@ router.post('/chat', async (req, res) => {
 {input}
 
 # ASSISTANT RESPONSE
-Provide a helpful, specific answer based on the Meridian platform knowledge above. Be concise but thorough. Use bullet points when listing steps or features.`);
+Provide a helpful, specific answer based on the Meridian platform knowledge and the user's actual data above. When the user asks about their emails, agents, or account status, reference their real data. Be concise but thorough. Use bullet points when listing steps or features.`);
 
     // Initialize memory with conversation history
     const memory = new BufferMemory({
@@ -262,10 +364,10 @@ Sent from Meridian Help System
     `.trim();
 
     // Send to Colton's email
-    await sendEmail({
+    await awsManager.sendEmail({
       to: 'colton.fidd@gmail.com',
       subject: `[Meridian Help] ${subject}`,
-      body: emailBody,
+      textBody: emailBody,
       from: process.env.FROM_EMAIL || 'noreply@meridianagent.xyz'
     });
 
@@ -283,10 +385,10 @@ Best regards,
 The Meridian Team
     `.trim();
 
-    await sendEmail({
+    await awsManager.sendEmail({
       to: email,
       subject: 'We received your help request',
-      body: confirmationBody,
+      textBody: confirmationBody,
       from: process.env.FROM_EMAIL || 'support@meridianagent.xyz'
     });
 
