@@ -2819,7 +2819,12 @@ export default function InteractiveGlobe() {
                 {/* Y-axis labels */}
                 <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
                   {(() => {
-                    const maxQueued = Math.max(...agents.map(a => a.queued || 0), 1);
+                    // Calculate max from both current AND historical values
+                    let maxQueued = Math.max(...agents.map(a => a.queued || 0), 1);
+                    agents.forEach(a => {
+                      const hist = agentMetricsHistory[a.agentId] || [];
+                      hist.forEach((h: any) => { if ((h.queued || 0) > maxQueued) maxQueued = h.queued; });
+                    });
                     let scale;
                     if (maxQueued >= 1000) scale = 400;
                     else if (maxQueued >= 400) scale = 200;
@@ -2851,7 +2856,12 @@ export default function InteractiveGlobe() {
                     
                     if (agents.length === 0) return null;
                     
-                    const maxQueued = Math.max(...agents.map(a => a.queued || 0), 1);
+                    // Calculate max from both current AND historical values
+                    let maxQueued = Math.max(...agents.map(a => a.queued || 0), 1);
+                    agents.forEach(a => {
+                      const hist = agentMetricsHistory[a.agentId] || [];
+                      hist.forEach((h: any) => { if ((h.queued || 0) > maxQueued) maxQueued = h.queued; });
+                    });
                     let scale;
                     if (maxQueued >= 1000) scale = 400;
                     else if (maxQueued >= 400) scale = 200;
@@ -2979,7 +2989,12 @@ export default function InteractiveGlobe() {
                     
                     if (agents.length === 0) return null;
                     
-                    const maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
+                    // Calculate max from both current AND historical values
+                    let maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
+                    agents.forEach(a => {
+                      const hist = agentMetricsHistory[a.agentId] || [];
+                      hist.forEach((h: any) => { if ((h.sent || 0) > maxSent) maxSent = h.sent; });
+                    });
                     let scale;
                     if (maxSent >= 1000) scale = 400;
                     else if (maxSent >= 400) scale = 200;
@@ -3077,7 +3092,12 @@ export default function InteractiveGlobe() {
                 {/* Y-axis labels */}
                 <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
                   {(() => {
-                    const maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
+                    // Calculate max from both current AND historical values
+                    let maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
+                    agents.forEach(a => {
+                      const hist = agentMetricsHistory[a.agentId] || [];
+                      hist.forEach((h: any) => { if ((h.sent || 0) > maxSent) maxSent = h.sent; });
+                    });
                     let scale;
                     if (maxSent >= 1000) scale = 400;
                     else if (maxSent >= 400) scale = 200;
@@ -3109,7 +3129,12 @@ export default function InteractiveGlobe() {
                     
                     if (agents.length === 0) return null;
                     
-                    const maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
+                    // Calculate max from both current AND historical values
+                    let maxSent = Math.max(...agents.map(a => a.sent || 0), 1);
+                    agents.forEach(a => {
+                      const hist = agentMetricsHistory[a.agentId] || [];
+                      hist.forEach((h: any) => { if ((h.sent || 0) > maxSent) maxSent = h.sent; });
+                    });
                     let scale;
                     if (maxSent >= 1000) scale = 400;
                     else if (maxSent >= 400) scale = 200;
@@ -3172,6 +3197,15 @@ export default function InteractiveGlobe() {
                   })()}
                 </svg>
               </div>
+              {/* X-axis time labels */}
+              <div className="flex justify-between text-[9px] text-white/40 mt-1 px-8">
+                <span>10h ago</span>
+                <span>8h</span>
+                <span>6h</span>
+                <span>4h</span>
+                <span>2h</span>
+                <span>Now</span>
+              </div>
               <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
                 {(() => {
                   const agentColors = [
@@ -3197,7 +3231,12 @@ export default function InteractiveGlobe() {
                 {/* Y-axis labels */}
                 <div className="flex flex-col justify-between text-[10px] text-white/50 pr-1" style={{ width: '30px' }}>
                   {(() => {
-                    const maxReplied = Math.max(...agents.map(a => a.replied || 0), 1);
+                    // Calculate max from both current AND historical values
+                    let maxReplied = Math.max(...agents.map(a => a.replied || 0), 1);
+                    agents.forEach(a => {
+                      const hist = agentMetricsHistory[a.agentId] || [];
+                      hist.forEach((h: any) => { if ((h.replied || 0) > maxReplied) maxReplied = h.replied; });
+                    });
                     let scale;
                     if (maxReplied >= 1000) scale = 400;
                     else if (maxReplied >= 400) scale = 200;
@@ -3229,7 +3268,12 @@ export default function InteractiveGlobe() {
                     
                     if (agents.length === 0) return null;
                     
-                    const maxReplied = Math.max(...agents.map(a => a.replied || 0), 1);
+                    // Calculate max from both current AND historical values
+                    let maxReplied = Math.max(...agents.map(a => a.replied || 0), 1);
+                    agents.forEach(a => {
+                      const hist = agentMetricsHistory[a.agentId] || [];
+                      hist.forEach((h: any) => { if ((h.replied || 0) > maxReplied) maxReplied = h.replied; });
+                    });
                     let scale;
                     if (maxReplied >= 1000) scale = 400;
                     else if (maxReplied >= 400) scale = 200;
@@ -3291,6 +3335,15 @@ export default function InteractiveGlobe() {
                     );
                   })()}
                 </svg>
+              </div>
+              {/* X-axis time labels */}
+              <div className="flex justify-between text-[9px] text-white/40 mt-1 px-8">
+                <span>10h ago</span>
+                <span>8h</span>
+                <span>6h</span>
+                <span>4h</span>
+                <span>2h</span>
+                <span>Now</span>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
                 {(() => {
