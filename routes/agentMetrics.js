@@ -90,34 +90,130 @@ router.get('/api/agent-metrics/history/:agentId', authenticateToken, async (req,
 
 /**
  * Get historical metrics for all agents
- * Returns time-series data for all agents
+ * Computes time-series data directly from email timestamps
  */
 router.get('/api/agent-metrics/history', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
     const hours = parseInt(req.query.hours) || 12;
     
-    const startTime = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-    
     // Get all agents
     const agents = await awsManager.getAgents(userId);
     
-    // Fetch history for each agent
+    // Create time buckets (one per hour for the last N hours)
+    const now = Date.now();
+    const buckets = [];
+    for (let i = hours; i >= 0; i--) {
+      buckets.push({
+        start: now - (i + 1) * 60 * 60 * 1000,
+        end: now - i * 60 * 60 * 1000,
+        timestamp: new Date(now - i * 60 * 60 * 1000).toISOString()
+      });
+    }
+    
+    // Fetch history for each agent by computing from actual emails
     const historyPromises = agents.map(async (agent) => {
       try {
-        const history = await awsManager.getAgentMetricsHistory(userId, agent.agentId, startTime);
+        // Get all emails for this agent
+        const [queuedEmails, sentEmails] = await Promise.all([
+          awsQueue.getQueuedEmailsForAgent(userId, agent.agentId),
+          awsQueue.getSentEmailsForAgent(userId, agent.agentId)
+        ]);
+        
+        // Compute metrics for each time bucket
+        const history = buckets.map(bucket => {
+          // Count sent emails up to this time bucket
+          const sentByTime = sentEmails.filter(e => {
+            const sentTime = new Date(e.sentAt || e.timestamp || e.createdAt).getTime();
+            return sentTime <= bucket.end;
+          }).length;
+          
+          // Count replied emails up to this time bucket
+          const repliedByTime = sentEmails.filter(e => {
+            if (!e.replied && !e.repliedAt) return false;
+            const repliedTime = new Date(e.repliedAt || e.timestamp).getTime();
+            return repliedTime <= bucket.end;
+          }).length;
+          
+          // For queued, we need to estimate based on when emails were added vs sent
+          // Emails queued at time T = total added by T - total sent by T
+          const queuedAtTime = queuedEmails.filter(e => {
+            const addedTime = new Date(e.timestamp || e.createdAt || e.queuedAt).getTime();
+            return addedTime <= bucket.end;
+          }).length;
+          
+          return {
+            timestamp: bucket.timestamp,
+            queued: queuedAtTime,
+            sent: sentByTime,
+            replied: repliedByTime
+          };
+        });
+        
         return {
           agentId: agent.agentId,
           name: agent.name,
           history
         };
       } catch (error) {
-        console.error(`Error fetching history for agent ${agent.agentId}:`, error);
+        console.error(`Error computing history for agent ${agent.agentId}:`, error);
         return { agentId: agent.agentId, name: agent.name, history: [] };
       }
     });
     
-    const results = await Promise.all(historyPromises);
+    // Also compute for orphaned emails
+    const orphanHistoryPromise = (async () => {
+      try {
+        const [queuedEmails, sentEmails] = await Promise.all([
+          awsQueue.getQueuedEmailsForAgent(userId, 'orphan'),
+          awsQueue.getSentEmailsForAgent(userId, 'orphan')
+        ]);
+        
+        const history = buckets.map(bucket => {
+          const sentByTime = sentEmails.filter(e => {
+            const sentTime = new Date(e.sentAt || e.timestamp || e.createdAt).getTime();
+            return sentTime <= bucket.end;
+          }).length;
+          
+          const repliedByTime = sentEmails.filter(e => {
+            if (!e.replied && !e.repliedAt) return false;
+            const repliedTime = new Date(e.repliedAt || e.timestamp).getTime();
+            return repliedTime <= bucket.end;
+          }).length;
+          
+          const queuedAtTime = queuedEmails.filter(e => {
+            const addedTime = new Date(e.timestamp || e.createdAt || e.queuedAt).getTime();
+            return addedTime <= bucket.end;
+          }).length;
+          
+          return {
+            timestamp: bucket.timestamp,
+            queued: queuedAtTime,
+            sent: sentByTime,
+            replied: repliedByTime
+          };
+        });
+        
+        return {
+          agentId: 'orphan',
+          name: 'Orphaned Emails',
+          history
+        };
+      } catch (error) {
+        return { agentId: 'orphan', name: 'Orphaned Emails', history: [] };
+      }
+    })();
+    
+    const [agentResults, orphanResult] = await Promise.all([
+      Promise.all(historyPromises),
+      orphanHistoryPromise
+    ]);
+    
+    // Add orphan to results if it has data
+    const results = [...agentResults];
+    if (orphanResult.history.some(h => h.queued > 0 || h.sent > 0)) {
+      results.unshift(orphanResult);
+    }
     
     res.json({ success: true, agents: results });
   } catch (error) {
