@@ -18,6 +18,11 @@ export async function checkPaymentStatus(req, res, next) {
       return next();
     }
     
+    // If billing is enabled with valid payment method, allow through
+    if (userSettings.billingEnabled && userSettings.stripeCustomerId) {
+      return next();
+    }
+    
     const paymentStatus = userSettings.paymentStatus || 'active';
     
     // If payment failed, check grace period

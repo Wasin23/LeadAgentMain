@@ -1857,6 +1857,38 @@ export default function InteractiveGlobe() {
                           </button>
                         </div>
                       )}
+                      
+                      {/* Pagination Controls - Top */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between p-3 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg mb-3">
+                          <button
+                            onClick={() => setCurrentEmailPage(Math.max(1, currentEmailPage - 1))}
+                            disabled={currentEmailPage === 1}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Previous
+                          </button>
+                          
+                          <span className="text-[#8FA6C1] text-[11px]">
+                            Page {currentEmailPage} of {totalPages} ({queueEmails.length} total)
+                          </span>
+                          
+                          <button
+                            onClick={() => setCurrentEmailPage(Math.min(totalPages, currentEmailPage + 1))}
+                            disabled={currentEmailPage >= totalPages}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
+                          >
+                            Next
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                      
                       {paginatedEmails.map((email, idx) => {
                   const emailId = email._id || email.id;
                   const isExpanded = expandedEmailId === emailId;
@@ -2147,36 +2179,6 @@ export default function InteractiveGlobe() {
                     </div>
                   );
                 })}
-                
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between p-3 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg mt-3">
-                    <button
-                      onClick={() => setCurrentEmailPage(Math.max(1, currentEmailPage - 1))}
-                      disabled={currentEmailPage === 1}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
-                    >
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Previous
-                    </button>
-                    
-                    <span className="text-[#8FA6C1] text-[11px]">
-                      Page {currentEmailPage} of {totalPages} ({queueEmails.length} total)
-                    </span>
-                    
-                    <button
-                      onClick={() => setCurrentEmailPage(Math.min(totalPages, currentEmailPage + 1))}
-                      disabled={currentEmailPage >= totalPages}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
-                    >
-                      Next
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
                     </>
                   );
                 })()}

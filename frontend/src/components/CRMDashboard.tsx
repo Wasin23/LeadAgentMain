@@ -224,38 +224,29 @@ export default function CRMDashboard() {
           </div>
         </div>
       ) : (
-        // Not Connected State - Show CRM Options
-        <div className="p-6 space-y-3">
-          {crmOptions.map((crm) => (
-            <div
-              key={crm.id}
-              className="flex items-center justify-between p-3 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg hover:border-[#4FD1FF]/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 ${crm.color} rounded flex items-center justify-center text-white text-xs font-bold`}>
-                  {crm.abbr}
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-white">{crm.name}</div>
-                  <div className="text-xs text-[#8FA6C1]">Not connected</div>
-                </div>
-              </div>
-              <button
-                onClick={() => handleConnectCRM(crm.id)}
-                disabled={loading}
-                className="flex items-center gap-1 text-xs text-[#4FD1FF] hover:text-[#6BE3FF] disabled:opacity-50 font-medium"
-              >
-                Connect
-                <ArrowTopRightOnSquareIcon className="w-3 h-3" />
-              </button>
+        // Not Connected State - Single Connect CRM Button
+        <div className="p-6 space-y-4">
+          <div className="flex flex-col items-center justify-center p-6 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
+            <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-full flex items-center justify-center mb-4">
+              <ArrowTopRightOnSquareIcon className="w-6 h-6 text-[#4FD1FF]" />
             </div>
-          ))}
-          
-          <div className="mt-4 p-3 bg-[#12213B]/50 border border-[#4FD1FF]/20 rounded-lg">
-            <p className="text-xs text-[#8FA6C1] text-center">
+            <h3 className="text-sm font-medium text-white mb-1">No CRM Connected</h3>
+            <p className="text-xs text-[#8FA6C1] text-center mb-4">
               Connect your CRM to automatically sync leads when research completes
             </p>
+            <button
+              onClick={() => handleConnectCRM('crm')}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-[#4FD1FF] hover:bg-[#6BE3FF] text-[#0F1E35] rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+            >
+              Connect CRM
+              <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+            </button>
           </div>
+          
+          <p className="text-xs text-[#8FA6C1] text-center">
+            Supports Salesforce, HubSpot, Pipedrive, Zoho, and more
+          </p>
         </div>
       )}
     </div>
