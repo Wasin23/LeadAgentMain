@@ -133,33 +133,64 @@ router.get('/api/agent-metrics/history', authenticateToken, async (req, res) => 
           awsQueue.getSentEmailsForAgent(userId, agent.agentId)
         ]);
         
+        // Current totals
+        const currentQueued = queuedEmails.length;
+        const currentSent = sentEmails.length;
+        const currentReplied = sentEmails.filter(e => e.replied || e.repliedAt).length;
+        
         // Compute metrics for each time bucket
-        const history = buckets.map(bucket => {
-          // Count sent emails up to this time bucket
-          const sentByTime = sentEmails.filter(e => {
+        const history = buckets.map((bucket, bucketIdx) => {
+          // Count emails SENT in this time window (between bucket.start and bucket.end)
+          const sentInBucket = sentEmails.filter(e => {
+            const sentTime = new Date(e.sentAt || e.timestamp || e.createdAt).getTime();
+            return sentTime >= bucket.start && sentTime <= bucket.end;
+          }).length;
+          
+          // Count emails REPLIED in this time window
+          const repliedInBucket = sentEmails.filter(e => {
+            if (!e.replied && !e.repliedAt) return false;
+            const repliedTime = new Date(e.repliedAt || e.timestamp).getTime();
+            return repliedTime >= bucket.start && repliedTime <= bucket.end;
+          }).length;
+          
+          // Count emails ADDED TO QUEUE in this time window
+          const queuedInBucket = queuedEmails.filter(e => {
+            const addedTime = new Date(e.timestamp || e.createdAt || e.queuedAt).getTime();
+            return addedTime >= bucket.start && addedTime <= bucket.end;
+          }).length;
+          
+          // For cumulative sent/replied, count everything up to this bucket
+          const sentCumulative = sentEmails.filter(e => {
             const sentTime = new Date(e.sentAt || e.timestamp || e.createdAt).getTime();
             return sentTime <= bucket.end;
           }).length;
           
-          // Count replied emails up to this time bucket
-          const repliedByTime = sentEmails.filter(e => {
+          const repliedCumulative = sentEmails.filter(e => {
             if (!e.replied && !e.repliedAt) return false;
             const repliedTime = new Date(e.repliedAt || e.timestamp).getTime();
             return repliedTime <= bucket.end;
           }).length;
           
-          // For queued, we need to estimate based on when emails were added vs sent
-          // Emails queued at time T = total added by T - total sent by T
-          const queuedAtTime = queuedEmails.filter(e => {
-            const addedTime = new Date(e.timestamp || e.createdAt || e.queuedAt).getTime();
-            return addedTime <= bucket.end;
+          // Queue depth at this point = current queue + emails sent after this time - emails added after this time
+          // (working backwards from current state)
+          const sentAfterBucket = sentEmails.filter(e => {
+            const sentTime = new Date(e.sentAt || e.timestamp || e.createdAt).getTime();
+            return sentTime > bucket.end;
           }).length;
+          
+          const addedAfterBucket = queuedEmails.filter(e => {
+            const addedTime = new Date(e.timestamp || e.createdAt || e.queuedAt).getTime();
+            return addedTime > bucket.end;
+          }).length;
+          
+          // Queue at time T = current queue + (sent after T) - (added after T)
+          const queueAtTime = Math.max(0, currentQueued + sentAfterBucket - addedAfterBucket);
           
           return {
             timestamp: bucket.timestamp,
-            queued: queuedAtTime,
-            sent: sentByTime,
-            replied: repliedByTime
+            queued: queueAtTime,
+            sent: sentCumulative,
+            replied: repliedCumulative
           };
         });
         
@@ -182,28 +213,37 @@ router.get('/api/agent-metrics/history', authenticateToken, async (req, res) => 
           awsQueue.getSentEmailsForAgent(userId, 'orphan')
         ]);
         
+        const currentQueued = queuedEmails.length;
+        
         const history = buckets.map(bucket => {
-          const sentByTime = sentEmails.filter(e => {
+          const sentCumulative = sentEmails.filter(e => {
             const sentTime = new Date(e.sentAt || e.timestamp || e.createdAt).getTime();
             return sentTime <= bucket.end;
           }).length;
           
-          const repliedByTime = sentEmails.filter(e => {
+          const repliedCumulative = sentEmails.filter(e => {
             if (!e.replied && !e.repliedAt) return false;
             const repliedTime = new Date(e.repliedAt || e.timestamp).getTime();
             return repliedTime <= bucket.end;
           }).length;
           
-          const queuedAtTime = queuedEmails.filter(e => {
-            const addedTime = new Date(e.timestamp || e.createdAt || e.queuedAt).getTime();
-            return addedTime <= bucket.end;
+          const sentAfterBucket = sentEmails.filter(e => {
+            const sentTime = new Date(e.sentAt || e.timestamp || e.createdAt).getTime();
+            return sentTime > bucket.end;
           }).length;
+          
+          const addedAfterBucket = queuedEmails.filter(e => {
+            const addedTime = new Date(e.timestamp || e.createdAt || e.queuedAt).getTime();
+            return addedTime > bucket.end;
+          }).length;
+          
+          const queueAtTime = Math.max(0, currentQueued + sentAfterBucket - addedAfterBucket);
           
           return {
             timestamp: bucket.timestamp,
-            queued: queuedAtTime,
-            sent: sentByTime,
-            replied: repliedByTime
+            queued: queueAtTime,
+            sent: sentCumulative,
+            replied: repliedCumulative
           };
         });
         
