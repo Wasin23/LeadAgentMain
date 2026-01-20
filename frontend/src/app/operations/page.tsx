@@ -2904,10 +2904,10 @@ export default function InteractiveGlobe() {
                                 points={points}
                                 fill="none"
                                 stroke={color}
-                                strokeWidth="1"
+                                strokeWidth="0.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                opacity="0.8"
+                                opacity="0.9"
                               />
                               <circle
                                 cx={100}
@@ -3041,10 +3041,10 @@ export default function InteractiveGlobe() {
                                 points={points}
                                 fill="none"
                                 stroke={color}
-                                strokeWidth="1"
+                                strokeWidth="0.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                opacity="0.8"
+                                opacity="0.9"
                               />
                               <circle
                                 cx={100}
@@ -3186,10 +3186,10 @@ export default function InteractiveGlobe() {
                                 points={points}
                                 fill="none"
                                 stroke={color}
-                                strokeWidth="1"
+                                strokeWidth="0.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                opacity="0.8"
+                                opacity="0.9"
                               />
                               {/* End point */}
                               <circle
@@ -3329,10 +3329,10 @@ export default function InteractiveGlobe() {
                                 points={points}
                                 fill="none"
                                 stroke={color}
-                                strokeWidth="1"
+                                strokeWidth="0.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                opacity="0.8"
+                                opacity="0.9"
                               />
                               {/* End point */}
                               <circle
