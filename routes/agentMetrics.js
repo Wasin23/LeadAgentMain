@@ -100,6 +100,11 @@ router.get('/api/agent-metrics/history', authenticateToken, async (req, res) => 
     // Get all agents
     const agents = await awsManager.getAgents(userId);
     
+    // Handle case where no agents exist
+    if (!agents || agents.length === 0) {
+      return res.json({ success: true, agents: [] });
+    }
+    
     // Create time buckets (one per hour for the last N hours)
     const now = Date.now();
     const buckets = [];
@@ -218,7 +223,8 @@ router.get('/api/agent-metrics/history', authenticateToken, async (req, res) => 
     res.json({ success: true, agents: results });
   } catch (error) {
     console.error('Error fetching agent metrics history:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 
