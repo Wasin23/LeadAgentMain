@@ -51,6 +51,34 @@ async function recordAllMetrics() {
             console.error(`❌ [METRICS CRON] Error recording metrics for agent ${agent.agentId}:`, error.message);
           }
         }
+        
+        // Also record orphaned emails for this user
+        try {
+          const [orphanQueued, orphanSent] = await Promise.all([
+            awsQueue.getQueuedEmailsForAgent(user.userId, 'orphan'),
+            awsQueue.getSentEmailsForAgent(user.userId, 'orphan')
+          ]);
+          
+          if (orphanQueued.length > 0 || orphanSent.length > 0) {
+            const orphanReplied = orphanSent.filter(e => e.replied || e.status === 'REPLIED');
+            
+            await awsManager.recordAgentMetrics({
+              userId: user.userId,
+              agentId: 'orphan',
+              timestamp,
+              metrics: {
+                queued: orphanQueued.length,
+                sent: orphanSent.length,
+                replied: orphanReplied.length
+              }
+            });
+            
+            totalRecorded++;
+            console.log(`📊 [METRICS CRON] Recorded orphan metrics for user ${user.userId}: ${orphanQueued.length} queued, ${orphanSent.length} sent`);
+          }
+        } catch (error) {
+          console.error(`❌ [METRICS CRON] Error recording orphan metrics:`, error.message);
+        }
       } catch (error) {
         console.error(`❌ [METRICS CRON] Error processing user ${user.userId}:`, error.message);
       }
@@ -64,16 +92,17 @@ async function recordAllMetrics() {
 
 /**
  * Start the metrics recording cron job
- * Runs every hour at minute 0
+ * Runs every 10 minutes for testing, then can be changed to hourly
  */
 export function startMetricsCron() {
-  console.log('📊 [METRICS CRON] Initializing hourly metrics recording...');
+  console.log('📊 [METRICS CRON] Initializing metrics recording...');
   
-  // Run every hour at minute 0
-  cron.schedule('0 * * * *', recordAllMetrics);
+  // Run every 10 minutes (change to '0 * * * *' for hourly in production)
+  cron.schedule('*/10 * * * *', recordAllMetrics);
   
   // Also run immediately on startup
+  console.log('📊 [METRICS CRON] Running initial snapshot now...');
   recordAllMetrics();
   
-  console.log('✅ [METRICS CRON] Scheduled to run every hour');
+  console.log('✅ [METRICS CRON] Scheduled to run every 10 minutes');
 }
