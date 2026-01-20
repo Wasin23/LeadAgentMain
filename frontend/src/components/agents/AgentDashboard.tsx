@@ -1700,8 +1700,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   if (showOutreach) {
     return (
       <div className="p-6 space-y-6">
-        {/* Header without Back Button */}
+        {/* Header with Back Button */}
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowOutreach(false)}
+            className="p-2 rounded-lg bg-[#1B2F52]/60 border border-[#4FD1FF]/30 text-[#8FA6C1] hover:text-white hover:bg-[#2A4472]/70 hover:border-[#4FD1FF]/50 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
           <h1 className="text-2xl font-semibold text-white">{getAgentDisplayName()}'s Outreach</h1>
         </div>
 
