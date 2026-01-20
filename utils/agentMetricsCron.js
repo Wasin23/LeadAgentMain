@@ -1,6 +1,7 @@
 import AWSManager from './awsManager.js';
 import AWSEmailQueue from './awsEmailQueue.js';
 import cron from 'node-cron';
+import { getUserById } from '../lib/userManager.js';
 
 const awsManager = new AWSManager();
 const awsQueue = new AWSEmailQueue();
@@ -22,8 +23,9 @@ async function recordAllMetrics() {
     
     for (const user of users) {
       try {
-        // Get all agents for this user
-        const agents = await awsManager.getAgents(user.userId);
+        // Get all agents from user record
+        const userRecord = await getUserById(user.userId);
+        const agents = userRecord?.activeAgents || [];
         
         // Record metrics for each agent
         for (const agent of agents) {

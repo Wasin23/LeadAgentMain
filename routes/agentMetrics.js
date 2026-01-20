@@ -18,8 +18,14 @@ router.post('/api/agent-metrics/record', authenticateToken, async (req, res) => 
     
     console.log(`📊 Recording agent metrics for user ${userId} at ${timestamp}`);
     
-    // Get all agents for user
-    const agents = await awsManager.getAgents(userId);
+    // Get all agents from user record
+    const { getUserById } = await import('../lib/userManager.js');
+    const user = await getUserById(userId);
+    const agents = user?.activeAgents || [];
+    
+    if (!agents || agents.length === 0) {
+      return res.json({ success: true, recorded: 0, metrics: [] });
+    }
     
     // Record metrics for each agent
     const metricsPromises = agents.map(async (agent) => {
@@ -97,8 +103,10 @@ router.get('/api/agent-metrics/history', authenticateToken, async (req, res) => 
     const { userId } = req.user;
     const hours = parseInt(req.query.hours) || 12;
     
-    // Get all agents
-    const agents = await awsManager.getAgents(userId);
+    // Get all agents from user record
+    const { getUserById } = await import('../lib/userManager.js');
+    const user = await getUserById(userId);
+    const agents = user?.activeAgents || [];
     
     // Handle case where no agents exist
     if (!agents || agents.length === 0) {
