@@ -8,29 +8,24 @@ const router = express.Router();
 const awsManager = new AWSManager();
 const awsQueue = new AWSEmailQueue();
 
-// Tracking pixel endpoint (1x1 transparent PNG)
-// Both /pixel/ and /open/ routes for compatibility
-router.get('/open/:trackingId', async (req, res) => {
-  const { trackingId } = req.params;
-  const userAgent = req.get('User-Agent') || '';
-  const ip = req.ip || req.connection.remoteAddress || '';
-  
+// Helper function to handle open tracking (shared by multiple routes)
+async function handleOpenTracking(trackingId, userAgent, ip, res) {
   console.log('═══════════════════════════════════════════════════════════════');
-  console.log('🔔 [TRACKING PIXEL] /track/open/ endpoint hit!');
+  console.log('🔔 [TRACKING PIXEL] Open tracking endpoint hit!');
   console.log('🔑 [TRACKING PIXEL] Tracking ID:', trackingId);
   console.log('🌐 [TRACKING PIXEL] User Agent:', userAgent);
   console.log('📍 [TRACKING PIXEL] IP:', ip);
   console.log('═══════════════════════════════════════════════════════════════');
   
-  // NEW: Log to DynamoDB for AWS-based tracking
+  // Log to DynamoDB for AWS-based tracking
   try {
-    const userId = trackingId.split('_')[0].replace('tracking-', ''); // Extract userId
-    const agentId = trackingId.split('_')[1]; // Extract agentId
+    const userId = trackingId.split('_')[0].replace('tracking-', '');
+    const agentId = trackingId.split('_')[1];
     
     console.log('👤 [TRACKING] Extracted userId:', userId);
     console.log('🤖 [TRACKING] Extracted agentId:', agentId);
     
-    // Check if this is the first hit (proxy hit) - if so, skip recording
+    // Check if this is the first hit (proxy hit)
     let existingEvents = [];
     try {
       existingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
@@ -45,7 +40,7 @@ router.get('/open/:trackingId', async (req, res) => {
     console.log('📧 [TRACKING] Has been opened before:', hasBeenOpenedBefore);
     console.log('🔍 [TRACKING] Has proxy hit:', hasProxyHit);
     
-    // Get email sent time to determine if this is a proxy hit (immediate) or real open (delayed)
+    // Get email sent time
     let emailSentTime = null;
     console.log('⏰ [INBOX DETECTION] Fetching email sent time...');
     try {
@@ -168,6 +163,25 @@ router.get('/open/:trackingId', async (req, res) => {
   res.end(img);
   console.log('✅ [TRACKING] Pixel image sent');
   console.log('═══════════════════════════════════════════════════════════════');
+}
+
+// NEW: Disguised tracking pixel route - /r/:trackingId.gif (looks like a regular image)
+router.get('/:trackingId.gif', async (req, res) => {
+  let { trackingId } = req.params;
+  // Remove .gif extension if present in the trackingId
+  trackingId = trackingId.replace('.gif', '');
+  const userAgent = req.get('User-Agent') || '';
+  const ip = req.ip || req.connection.remoteAddress || '';
+  await handleOpenTracking(trackingId, userAgent, ip, res);
+});
+
+// Tracking pixel endpoint (1x1 transparent PNG)
+// Both /pixel/ and /open/ routes for compatibility
+router.get('/open/:trackingId', async (req, res) => {
+  const { trackingId } = req.params;
+  const userAgent = req.get('User-Agent') || '';
+  const ip = req.ip || req.connection.remoteAddress || '';
+  await handleOpenTracking(trackingId, userAgent, ip, res);
 });
 
 // Legacy /pixel/ route for backwards compatibility
@@ -409,16 +423,40 @@ router.get('/pixel/:trackingId.png', async (req, res) => {
   res.send(pixel);
 });
 
-// Click tracking endpoint
+// Click tracking endpoint - supports both /click/:trackingId and when mounted at /c/:trackingId
+// Accepts both ?url= (legacy) and ?u= (new disguised) parameters
 router.get('/click/:trackingId', async (req, res) => {
   const { trackingId } = req.params;
-  const { url, type = 'general' } = req.query;
+  const url = req.query.url || req.query.u; // Support both 'url' and 'u' params
+  const type = req.query.type || 'general';
   const userAgent = req.get('User-Agent') || '';
   const ip = req.ip || req.connection.remoteAddress || '';
   
   if (!url) {
     return res.status(400).send('Missing URL parameter');
   }
+  
+  // Record the click
+  await desktopEmailTracker.recordClick(trackingId, decodeURIComponent(url), type, userAgent, ip);
+  
+  // Redirect to original URL
+  res.redirect(decodeURIComponent(url));
+});
+
+// NEW: Disguised click tracking - /:trackingId (when mounted at /c)
+// This allows /c/trackingId123?u=https://... format
+router.get('/:trackingId', async (req, res, next) => {
+  const { trackingId } = req.params;
+  const url = req.query.url || req.query.u;
+  
+  // If no URL param, this might be a different route - pass to next handler
+  if (!url) {
+    return next();
+  }
+  
+  const type = req.query.type || 'general';
+  const userAgent = req.get('User-Agent') || '';
+  const ip = req.ip || req.connection.remoteAddress || '';
   
   // Record the click
   await desktopEmailTracker.recordClick(trackingId, decodeURIComponent(url), type, userAgent, ip);

@@ -529,6 +529,8 @@ app.use('/', agentMetricsRoutes); // Agent metrics historical data
 app.use('/', webhookRoutes); // Webhook routes for email replies
 app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domain tracking
 app.use('/api/tracking', trackingRoutes); // Desktop email tracking (safe, no external deps)
+app.use('/r', trackingRoutes); // Disguised tracking pixel route (bypasses corporate filters)
+app.use('/c', trackingRoutes); // Disguised click tracking route (bypasses corporate filters)
 app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
 app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 app.use('/api/issues', issuesRoutes); // Issues and alerts tracking

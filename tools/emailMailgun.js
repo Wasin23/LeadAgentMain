@@ -67,29 +67,32 @@ function addTrackingToEmail(body, trackingId) {
   const protocol = trackingDomain.includes('localhost') ? 'http' : 'https';
   
   // Fix: Don't add protocol if domain already includes it
+  // Using disguised path /r/ instead of /api/tracking/open/ to bypass corporate filters
   let trackingUrl;
   if (trackingDomain.startsWith('http://') || trackingDomain.startsWith('https://')) {
-    trackingUrl = `${trackingDomain}/api/tracking/open/${trackingId}`;
+    trackingUrl = `${trackingDomain}/r/${trackingId}.gif`;
   } else {
-    trackingUrl = `${protocol}://${trackingDomain}/api/tracking/open/${trackingId}`;
+    trackingUrl = `${protocol}://${trackingDomain}/r/${trackingId}.gif`;
   }
   
   console.log('🎯 [TRACKING PIXEL] Injecting tracking pixel into email');
   console.log('📍 Tracking URL:', trackingUrl);
   console.log('🔑 Tracking ID:', trackingId);
   
-  // Invisible tracking pixel (1x1 transparent PNG - Gmail friendly)
-  const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" border="0" alt="">`;
+  // Invisible tracking pixel (1x1 transparent - Outlook/Gmail friendly)
+  // Using multiple hiding techniques for max compatibility
+  const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" style="display:block;width:1px;height:1px;border:0;opacity:0;" alt="" />`;
   console.log('🖼️  Tracking pixel HTML:', trackingPixel);
   
   // Convert links to tracked links
+  // Using disguised path /c/ instead of /api/tracking/click/ to bypass corporate filters
   const trackedBody = body.replace(
     /(https?:\/\/[^\s<>"]+)/gi,
     (match) => {
       if (trackingDomain.startsWith('http://') || trackingDomain.startsWith('https://')) {
-        return `${trackingDomain}/api/tracking/click/${trackingId}?url=${encodeURIComponent(match)}`;
+        return `${trackingDomain}/c/${trackingId}?u=${encodeURIComponent(match)}`;
       } else {
-        return `${protocol}://${trackingDomain}/api/tracking/click/${trackingId}?url=${encodeURIComponent(match)}`;
+        return `${protocol}://${trackingDomain}/c/${trackingId}?u=${encodeURIComponent(match)}`;
       }
     }
   );
