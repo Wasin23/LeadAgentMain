@@ -52,7 +52,7 @@ class AWSEmailQueue {
   async _getCached(key, fetchFn) {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      console.log(`📦 [CACHE HIT] ${key}`);
+      // Cache hit - silent
       return cached.data;
     }
     

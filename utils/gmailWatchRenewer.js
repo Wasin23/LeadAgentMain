@@ -90,7 +90,7 @@ export class GmailWatchRenewer {
         }
       }
 
-      console.log(`✅ [GMAIL WATCH] Renewal check complete - Renewed: ${renewedCount}, Skipped: ${skippedCount}`);
+      // Renewal check complete - silent
     } catch (error) {
       console.error('❌ [GMAIL WATCH] Error in renewal check:', error);
     }

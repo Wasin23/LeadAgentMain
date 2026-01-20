@@ -70,7 +70,7 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       
       if (!result.Item) {
-        console.log('❌ [AWS] No user settings found for userId:', userId);
+        // No user settings - silent
         return null;
       }
       
@@ -121,7 +121,7 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       
       if (!result.Item) {
-        console.log('❌ [AWS] No user found with ID:', userId);
+        // No user found - silent
         return null;
       }
       
@@ -198,7 +198,7 @@ class AWSManager {
       };
       
       const result = await this.dynamodb.send(new ScanCommand(params));
-      console.log(`✅ [AWS] Retrieved ${result.Items ? result.Items.length : 0} users`);
+      // Retrieved users - silent
       return result.Items || [];
     } catch (error) {
       console.error('❌ [AWS] Error getting all users:', error);
@@ -2891,7 +2891,7 @@ class AWSManager {
       // console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
       
       if (!agentId) {
-        console.log(`⚠️ [EMAIL-TRACKING] agentId is null, scanning for all user tracking events`);
+        // Scanning all tracking events - silent
         // Scan for all events for this user across all agents
         const scanCommand = new ScanCommand({
           TableName: this.tables.emailTracking,
@@ -2902,7 +2902,7 @@ class AWSManager {
           Limit: limit
         });
         const result = await this.dynamodb.send(scanCommand);
-        console.log(`✅ [EMAIL-TRACKING] Scan found ${result.Items?.length || 0} tracking events for user across all agents`);
+        // Scan found events - silent
         return result.Items || [];
       }
       
@@ -3174,7 +3174,7 @@ class AWSManager {
       });
 
       await this.dynamodb.send(command);
-      console.log(`✅ Recorded metrics for ${agentId} at ${timestamp}`);
+      // Recorded metrics - silent
     } catch (error) {
       console.error('Error recording agent metrics:', error);
       throw error;

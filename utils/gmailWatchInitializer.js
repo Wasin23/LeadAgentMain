@@ -44,7 +44,7 @@ export async function initializeGmailWatches() {
         
         if (watch && !isExpired) {
           alreadyActive++;
-          console.log(`✅ [GMAIL WATCH INIT] User ${userId.substring(0, 8)}... already has active watch`);
+          // Already has active watch - silent
           continue;
         }
         
@@ -60,7 +60,7 @@ export async function initializeGmailWatches() {
       }
     }
     
-    console.log(`📬 [GMAIL WATCH INIT] Complete: ${usersChecked} users with Gmail, ${watchesCreated} new watches, ${alreadyActive} already active, ${errors} errors`);
+    // Gmail watch init complete - silent
     
   } catch (error) {
     console.error('❌ [GMAIL WATCH INIT] Fatal error:', error);

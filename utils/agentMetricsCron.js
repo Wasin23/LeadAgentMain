@@ -17,7 +17,7 @@ async function recordAllMetrics() {
     
     // Get all users
     const users = await awsManager.getAllUsers();
-    console.log(`📊 [METRICS CRON] Found ${users.length} users to process`);
+    // Reduced logging - removed user count
     
     let totalRecorded = 0;
     
@@ -76,7 +76,7 @@ async function recordAllMetrics() {
             });
             
             totalRecorded++;
-            console.log(`📊 [METRICS CRON] Recorded orphan metrics for user ${user.userId}: ${orphanQueued.length} queued, ${orphanSent.length} sent`);
+            // Recorded orphan metrics - silent
           }
         } catch (error) {
           console.error(`❌ [METRICS CRON] Error recording orphan metrics:`, error.message);
@@ -86,7 +86,7 @@ async function recordAllMetrics() {
       }
     }
     
-    console.log(`✅ [METRICS CRON] Completed! Recorded metrics for ${totalRecorded} agents`);
+    // Metrics cron completed - silent
   } catch (error) {
     console.error('❌ [METRICS CRON] Fatal error:', error);
   }

@@ -306,7 +306,7 @@ export async function checkForRebumps() {
           // Check if we've reached the follow-up date
           const followUpDate = new Date(email.followUpDate);
           if (now < followUpDate.getTime()) {
-            console.log(`⏳ [REBUMP] Skipping ${email.to} - scheduled for ${followUpDate.toISOString()}`);
+            // Skipping - not yet time for follow-up
             continue;
           }
 
@@ -385,7 +385,7 @@ export async function checkForRebumps() {
       }
     }
 
-    console.log(`✅ [REBUMP] Queued ${totalRebumpsQueued} follow-up emails`);
+    // Rebump check complete - silent
   } catch (error) {
     console.error('❌ [REBUMP] Error checking rebumps:', error);
   }

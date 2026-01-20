@@ -527,18 +527,18 @@ router.get('/sent', async (req, res) => {
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
     
-    console.log(`[EMAIL QUEUE API] Getting sent emails for agentId: ${agentId}, userId: ${req.user.userId}`);
+    // Getting sent emails - silent
     
     // If agentId is 'all', fetch from all agents using AWS
     if (agentId === 'all') {
       const emails = await awsQueue.getAllSentEmailsForUser(req.user.userId);
-      console.log(`[EMAIL QUEUE API] Found ${emails.length} sent emails for all agents`);
+      // Found sent emails - silent
       return res.json(emails);
     }
     
     // For specific agent, use AWS method (includes orphaned emails from deleted agents)
     const emails = await awsQueue.getSentEmails(req.user.userId, agentId);
-    console.log(`[EMAIL QUEUE API] Found ${emails.length} sent emails for agent ${agentId}`);
+    // Found sent emails - silent
     res.json(emails);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting sent emails:', error);
