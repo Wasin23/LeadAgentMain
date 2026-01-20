@@ -13,17 +13,26 @@ export async function checkPaymentStatus(req, res, next) {
     // Get user settings
     const userSettings = await awsManager.getUserSettings(userId);
     
+    console.log('[PAYMENT CHECK] userId:', userId, 'settings:', JSON.stringify({
+      billingEnabled: userSettings?.billingEnabled,
+      stripeCustomerId: userSettings?.stripeCustomerId,
+      paymentStatus: userSettings?.paymentStatus
+    }));
+    
     if (!userSettings) {
       // New user, allow through
+      console.log('[PAYMENT CHECK] No settings, allowing through');
       return next();
     }
     
     // If billing is enabled with valid payment method, allow through
     if (userSettings.billingEnabled && userSettings.stripeCustomerId) {
+      console.log('[PAYMENT CHECK] Billing enabled with stripe, allowing through');
       return next();
     }
     
     const paymentStatus = userSettings.paymentStatus || 'active';
+    console.log('[PAYMENT CHECK] Checking paymentStatus:', paymentStatus);
     
     // If payment failed, check grace period
     if (paymentStatus === 'payment_failed') {
@@ -77,6 +86,7 @@ export async function checkPaymentStatus(req, res, next) {
     }
     
     // Active or unknown status - allow through
+    console.log('[PAYMENT CHECK] Active/unknown status, allowing through');
     next();
     
   } catch (error) {
