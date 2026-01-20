@@ -1776,16 +1776,16 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg overflow-hidden shadow-xl`}
+            className={`bg-[#1B2F52]/70 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg overflow-hidden shadow-xl`}
             style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
-            <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50 flex-shrink-0">
+            <div className="p-6 border-b border-[#4FD1FF]/30 bg-[#2A4472]/60 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-white">Live Response Stream</h3>
-                  <p className="text-sm text-white/60 mt-1">Watch AI respond in real-time</p>
+                  <p className="text-sm text-white/70 mt-1">Watch AI respond in real-time</p>
                 </div>
-                <PaperAirplaneIcon className="h-5 w-5 text-white/60" />
+                <PaperAirplaneIcon className="h-5 w-5 text-white/70" />
               </div>
             </div>
             
@@ -1856,10 +1856,10 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg overflow-hidden shadow-xl`}
+            className={`bg-[#1B2F52]/70 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg overflow-hidden shadow-xl`}
             style={{ height: '550px', display: 'flex', flexDirection: 'column' }}
           >
-            <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50">
+            <div className="p-6 border-b border-[#4FD1FF]/30 bg-[#2A4472]/60">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-white">All Conversations</h3>
@@ -2013,22 +2013,22 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'analytics' && (
-          <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 p-6 rounded-lg">
+          <div className="bg-[#1B2F52]/70 backdrop-blur-md border border-[#4FD1FF]/30 p-6 rounded-lg">
             <h3 className="text-lg font-semibold text-white mb-4">Analytics Overview</h3>
             <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+              <div className="p-4 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded">
                 <p className="text-sm text-[#8FA6C1]">Messages Viewed</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.viewed}</p>
               </div>
-              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+              <div className="p-4 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded">
                 <p className="text-sm text-[#8FA6C1]">Conversations</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.replied}</p>
               </div>
-              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+              <div className="p-4 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded">
                 <p className="text-sm text-[#8FA6C1]">Meetings Booked</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.meetings}</p>
               </div>
-              <div className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded">
+              <div className="p-4 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded">
                 <p className="text-sm text-[#8FA6C1]">Conversion Rate</p>
                 <p className="text-3xl font-bold text-white mt-2">{agentOutreachStats.conversionRate}%</p>
               </div>
@@ -2037,7 +2037,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'viewed' && (
-          <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 p-6 rounded-lg">
+          <div className="bg-[#1B2F52]/70 backdrop-blur-md border border-[#4FD1FF]/30 p-6 rounded-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Emails Viewed</h3>
               <div className="flex items-center gap-2">
@@ -2060,7 +2060,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
               <>
                 <div className="space-y-3">
                   {paginateArray(viewedEmails, viewedEmailsPage).map((email) => (
-                    <div key={email.trackingId} className="p-4 bg-[#1B2F52]/50 border border-[#4FD1FF]/20 rounded hover:border-[#4FD1FF]/40 transition-all">
+                    <div key={email.trackingId} className="p-4 bg-[#0A1525]/80 border border-[#4FD1FF]/20 rounded hover:border-[#4FD1FF]/40 transition-all">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
@@ -2157,11 +2157,11 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         )}
 
         {outreachTab === 'settings' && (
-          <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-b-lg p-6 -mt-6 space-y-6 shadow-xl">
+          <div className="bg-[#1B2F52]/70 backdrop-blur-md border border-[#4FD1FF]/30 rounded-b-lg p-6 -mt-6 space-y-6 shadow-xl\">
             <h3 className={`text-lg font-semibold ${colors.primary} mb-6`}>Outreach Settings</h3>
             
             {/* AI Response Toggle */}
-            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#1B2F52]/50">
+            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#0A1525]/80\">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h4 className="font-medium text-white">AI Auto-Response</h4>
@@ -2210,7 +2210,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
 
             {/* Rebump Toggle */}
-            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#1B2F52]/50">
+            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#0A1525]/80">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h4 className="font-medium text-white">Auto-Rebump</h4>
@@ -2259,7 +2259,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
             </div>
 
             {/* AI Response System Prompt */}
-            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#1B2F52]/50">
+            <div className="p-4 border border-[#4FD1FF]/20 rounded bg-[#0A1525]/80">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h4 className="font-medium text-white">AI Response System Prompt</h4>
@@ -2648,7 +2648,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
       </AnimatePresence>
 
       {/* Header */}
-      <div className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 shadow-2xl">
+      <div className="bg-[#1B2F52]/70 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg p-6 shadow-2xl">
         <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <motion.button
@@ -2737,7 +2737,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
+          className="bg-[#1B2F52]/60 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#2A4472]/70 hover:border-[#4FD1FF]/50 shadow-xl"
           onClick={() => setShowEmailQueue(true)}
         >
           <div className="flex items-center justify-between">
@@ -2756,7 +2756,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
+          className="bg-[#1B2F52]/60 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#2A4472]/70 hover:border-[#4FD1FF]/50 shadow-xl"
           onClick={() => setShowOutreach(true)}
         >
           <div className="flex items-center justify-between">
@@ -2775,7 +2775,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
+          className="bg-[#1B2F52]/60 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#2A4472]/70 hover:border-[#4FD1FF]/50 shadow-xl"
           onClick={() => setShowRecentContacts(true)}
         >
           <div className="flex items-center justify-between">
@@ -2795,7 +2795,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#1B2F52]/80 hover:border-[#4FD1FF]/40 shadow-xl"
+          className="bg-[#1B2F52]/60 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg p-6 cursor-pointer transition-all duration-200 hover:bg-[#2A4472]/70 hover:border-[#4FD1FF]/50 shadow-xl"
           onClick={() => setShowIntervalModal(true)}
         >
           <div className="flex items-center justify-between">
@@ -2817,9 +2817,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="border border-[#4FD1FF]/20 rounded-lg overflow-hidden bg-[#0A1525]/80 backdrop-blur-md self-start shadow-xl"
+          className="border border-[#4FD1FF]/30 rounded-lg overflow-hidden bg-[#1B2F52]/70 backdrop-blur-md self-start shadow-xl"
         >
-          <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50">
+          <div className="p-6 border-b border-[#4FD1FF]/30 bg-[#2A4472]/60">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-medium text-white">Activity Logs</h3>
@@ -2968,9 +2968,9 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-[#0A1525]/80 backdrop-blur-md border border-[#4FD1FF]/20 rounded-lg shadow-xl"
+          className="bg-[#1B2F52]/70 backdrop-blur-md border border-[#4FD1FF]/30 rounded-lg shadow-xl"
         >
-          <div className="p-6 border-b border-[#4FD1FF]/20 bg-[#1B2F52]/50">
+          <div className="p-6 border-b border-[#4FD1FF]/30 bg-[#2A4472]/60">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-medium text-white">Recently Contacted</h3>
