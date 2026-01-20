@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { MonitoringView } from './MonitoringSidebar';
 import { 
   ChartBarIcon, 
@@ -16,7 +17,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../../lib/api';
-import AgentSettingsModal from './AgentSettingsModal';
 import RateLimitSettings from './RateLimitSettings';
 import KeywordMemoryPanel from './KeywordMemoryPanel';
 import NotificationBadge from '../NotificationBadge';
@@ -32,6 +32,7 @@ interface MonitoringContentProps {
 }
 
 export default function MonitoringContent({ view, metrics, issues, connected, onResolveIssue, onViewChange, agents: propsAgents }: MonitoringContentProps) {
+  const router = useRouter();
   const [agents, setAgents] = useState<any[]>(propsAgents || []);
   const [loading, setLoading] = useState(true);
   const [selectedAgentTab, setSelectedAgentTab] = useState<string>('all');
@@ -43,8 +44,6 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
   const [showIntervalModal, setShowIntervalModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [newInterval, setNewInterval] = useState<number>(30);
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsAgentId, setSettingsAgentId] = useState<string | null>(null);
   const [apiUsage, setApiUsage] = useState<{[key: string]: any}>({});
   const [totalApiUsage, setTotalApiUsage] = useState<any>(null);
   const [apiUsageTimeSeries, setApiUsageTimeSeries] = useState<any[]>([]);
@@ -1910,8 +1909,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSettingsAgentId(agent.id);
-                            setShowSettings(true);
+                            router.push(`/agents/${agent.id}/settings`);
                           }}
                           className="flex-1 px-3 py-2 bg-white border border-neutral-300 text-black text-sm font-medium rounded-lg hover:bg-neutral-50 transition-colors"
                         >
@@ -2029,21 +2027,7 @@ export default function MonitoringContent({ view, metrics, issues, connected, on
               </div>
             </div>
           </div>
-        )}
-
-        {/* Agent Settings Modal */}
-        {settingsAgentId && (
-          <AgentSettingsModal
-            isOpen={showSettings}
-            onClose={() => {
-              setShowSettings(false);
-              setSettingsAgentId(null);
-            }}
-            agentId={settingsAgentId}
-            compact={true}
-          />
-        )}
-      </div>
+        )}n      </div>
     );
   };
 

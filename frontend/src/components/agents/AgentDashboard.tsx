@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { 
@@ -28,7 +29,6 @@ import {
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
-import AgentSettingsModal from './AgentSettingsModal';
 
 interface AgentDashboardProps {
   agentId: string;
@@ -200,6 +200,7 @@ const getBorderColor = (personality: string): string => {
 };
 
 export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps) {
+  const router = useRouter();
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [agentLogs, setAgentLogs] = useState<any[]>([]);
@@ -207,7 +208,6 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
   const [emailQueue, setEmailQueue] = useState<any[]>([]);
   const [emailQueueSearch, setEmailQueueSearch] = useState('');
   const [emailQueueSort, setEmailQueueSort] = useState<'newest' | 'oldest'>('newest');
-  const [showSettings, setShowSettings] = useState(false);
   const [showEmailQueue, setShowEmailQueue] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -2689,7 +2689,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowSettings(true)}
+            onClick={() => router.push(`/agents/${agentId}/settings`)}
             className="flex items-center gap-2 px-4 py-2 text-white hover:text-white transition-colors bg-[#1B2F52]/90 hover:bg-[#2A4472] border border-[#4FD1FF]/30 rounded-lg"
           >
             <CogIcon className="h-4 w-4" />
@@ -3113,12 +3113,7 @@ export default function AgentDashboard({ agentId, onBack }: AgentDashboardProps)
         </motion.div>
       </div>
 
-      {/* Settings Modal */}
-      <AgentSettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        agentId={agentId}
-      />
+
 
       {/* Cycle Interval Modal */}
       {showIntervalModal && (

@@ -535,6 +535,12 @@ export async function scanUsersAndCharge() {
       const unpaidMonths = [];
       
       for (const summary of summaries || []) {
+        // Skip if no valid month field
+        if (!summary.month || typeof summary.month !== 'string') {
+          console.log(`⚠️ [BILLING] Skipping summary with invalid month:`, summary.month);
+          continue;
+        }
+        
         // Skip if already paid (month field, not monthKey)
         if (paidMonths.has(summary.month)) {
           continue;
@@ -613,7 +619,10 @@ export async function scanUsersAndCharge() {
         
           // Log payment for EACH unpaid month so they're marked as paid
           for (const month of unpaidMonths) {
-            if (!month) continue; // Skip if undefined
+            if (!month || typeof month !== 'string' || !month.includes('-')) {
+              console.log(`⚠️ [BILLING] Skipping invalid month in payment logging:`, month);
+              continue;
+            }
             const [year, monthNum] = month.split('-');
             const billingPeriod = new Date(parseInt(year), parseInt(monthNum) - 1, 1).toISOString();
             
@@ -645,6 +654,27 @@ export async function scanUsersAndCharge() {
           console.log(`✅ [BILLING] Charged ${userId}: $${totalCost.toFixed(2)}`);
           results.successful++;      } catch (chargeError) {
         console.error(`❌ [BILLING] Charge failed for ${userId}:`, chargeError.message);
+        
+        // Only trigger payment_failed for actual Stripe errors, not code bugs
+        const isStripeError = chargeError.type?.startsWith('Stripe') || 
+                              chargeError.code === 'card_declined' ||
+                              chargeError.code === 'insufficient_funds' ||
+                              chargeError.code === 'expired_card' ||
+                              chargeError.decline_code ||
+                              chargeError.raw?.type === 'card_error';
+        
+        if (!isStripeError) {
+          // This is a code bug, not a payment failure - don't suspend the user!
+          console.error(`🐛 [BILLING] Code error (not payment failure) for ${userId}:`, chargeError);
+          results.failed++;
+          results.errors.push({
+            userId,
+            amount: totalCost,
+            error: `Code error: ${chargeError.message}`,
+            isCodeBug: true
+          });
+          continue; // Skip to next user without marking as payment_failed
+        }
         
         // Log failed payment (just one record for the total)
         await awsManager.logPayment(userId, {
