@@ -317,10 +317,10 @@ export async function checkForRebumps() {
             
             // Use the assigned template from when email was sent
             let template = email.assignedTemplate;
+            let templateIndex = email.assignedTemplateId || 0;
             
             // Fallback to templates if assigned template is missing
             if (!template) {
-              const templateIndex = email.assignedTemplateId || 0;
               template = agentSettings.followUpTemplates?.templates[templateIndex];
             }
             
