@@ -31,10 +31,12 @@ export default function CRMDashboard() {
 
   // Supported CRMs with their logos/colors
   const crmOptions = [
-    { id: 'salesforce', name: 'Salesforce', color: 'bg-blue-600', abbr: 'SF' },
-    { id: 'hubspot', name: 'HubSpot', color: 'bg-orange-500', abbr: 'HS' },
-    { id: 'pipedrive', name: 'Pipedrive', color: 'bg-green-600', abbr: 'PD' },
-    { id: 'zoho', name: 'Zoho CRM', color: 'bg-red-600', abbr: 'ZC' }
+    { id: 'salesforce', name: 'Salesforce', color: 'bg-blue-600', abbr: 'SF', logo: 'https://c1.sfdcstatic.com/content/dam/web/en_us/www/images/nav/salesforce-cloud-logo-sm.png' },
+    { id: 'hubspot', name: 'HubSpot', color: 'bg-orange-500', abbr: 'HS', logo: 'https://www.hubspot.com/hubfs/HubSpot_Logos/HubSpot-Inversed-Favicon.png' },
+    { id: 'pipedrive', name: 'Pipedrive', color: 'bg-green-600', abbr: 'PD', logo: 'https://www.pipedrive.com/favicon.ico' },
+    { id: 'zoho', name: 'Zoho CRM', color: 'bg-red-600', abbr: 'ZC', logo: 'https://www.zohowebstatic.com/sites/zweb/images/favicon.ico' },
+    { id: 'copper', name: 'Copper', color: 'bg-amber-600', abbr: 'CP', logo: 'https://www.copper.com/favicon.ico' },
+    { id: 'close', name: 'Close', color: 'bg-purple-600', abbr: 'CL', logo: 'https://close.com/favicon.ico' }
   ];
 
   useEffect(() => {
@@ -78,8 +80,7 @@ export default function CRMDashboard() {
       
       // Exchange token with backend
       await api.post('/api/crm/exchange-token', {
-        publicToken,
-        integrationName: 'crm' // Merge will tell us which one they connected
+        publicToken
       });
       
       // Refresh status
@@ -142,7 +143,9 @@ export default function CRMDashboard() {
   };
 
   const getCRMInfo = (integration: string | null) => {
-    return crmOptions.find(crm => crm.id === integration?.toLowerCase());
+    if (!integration) return null;
+    const lower = integration.toLowerCase();
+    return crmOptions.find(crm => lower.includes(crm.id));
   };
 
   if (loading && !status.connected) {
@@ -174,12 +177,20 @@ export default function CRMDashboard() {
           {/* Connected CRM Info */}
           <div className="flex items-center justify-between p-4 bg-[#12213B] border border-green-500/30 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${getCRMInfo(status.integration)?.color} rounded-lg flex items-center justify-center text-white font-bold`}>
-                {getCRMInfo(status.integration)?.abbr}
-              </div>
+              {getCRMInfo(status.integration)?.logo ? (
+                <img 
+                  src={getCRMInfo(status.integration)?.logo} 
+                  alt={getCRMInfo(status.integration)?.name || 'CRM'} 
+                  className="w-10 h-10 rounded-lg object-contain bg-white/10 p-1"
+                />
+              ) : (
+                <div className={`w-10 h-10 ${getCRMInfo(status.integration)?.color || 'bg-gray-600'} rounded-lg flex items-center justify-center text-white font-bold`}>
+                  {getCRMInfo(status.integration)?.abbr || status.integration?.slice(0, 2).toUpperCase()}
+                </div>
+              )}
               <div>
                 <div className="text-sm font-medium text-white flex items-center gap-2">
-                  {getCRMInfo(status.integration)?.name}
+                  {getCRMInfo(status.integration)?.name || status.integration}
                   <CheckCircleIcon className="w-4 h-4 text-green-500" />
                 </div>
                 <div className="text-xs text-[#8FA6C1]">

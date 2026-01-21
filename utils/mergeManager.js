@@ -53,6 +53,9 @@ class MergeManager {
       const response = await this.client.get(`/api/integrations/account-token/${publicToken}`);
 
       console.log('✅ [MERGE] Exchanged token successfully');
+      console.log('✅ [MERGE] Full exchange response:', JSON.stringify(response.data, null, 2));
+      
+      // Response includes: account_token, integration (object with name, slug, etc)
       return response.data;
     } catch (error) {
       console.error('❌ [MERGE] Error exchanging token:', error.response?.data || error.message);
@@ -163,10 +166,23 @@ class MergeManager {
         crmIntegration: user.crmIntegration
       };
     } catch (error) {
-      console.error('❌ [MERGE] Error syncing lead to CRM:', error.response?.data || error.message);
+      const errorData = error.response?.data;
+      const errorDetail = errorData?.errors?.[0];
+      
+      // Check for unsupported operation error
+      if (errorDetail?.problem_type === 'UNSUPPORTED_OPERATION') {
+        console.warn(`⚠️ [MERGE] CRM "${user.crmIntegration}" does not support contact creation via Merge API`);
+        return { 
+          success: false, 
+          error: 'CRM does not support contact creation',
+          unsupported: true
+        };
+      }
+      
+      console.error('❌ [MERGE] Error syncing lead to CRM:', errorData || error.message);
       return { 
         success: false, 
-        error: error.response?.data?.message || error.message 
+        error: errorData?.message || error.message 
       };
     }
   }

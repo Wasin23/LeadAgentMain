@@ -68,8 +68,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
       console.log('[CRM ONBOARDING] Received public token:', publicToken);
       
       await api.post('/api/crm/exchange-token', {
-        publicToken,
-        integrationName: 'crm'
+        publicToken
       });
       
       setCrmConnected(true);

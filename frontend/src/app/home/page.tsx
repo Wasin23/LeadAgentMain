@@ -93,8 +93,7 @@ export default function HomePage() {
       console.log('[HOME CRM] Received public token:', publicToken);
       
       await api.post('/api/crm/exchange-token', {
-        publicToken,
-        integrationName: 'crm'
+        publicToken
       });
       
       // Refresh CRM status
@@ -367,14 +366,18 @@ export default function HomePage() {
               }`}
             >
               {crmStatus.connected ? (
-                crmStatus.integration === 'hubspot' ? (
-                  <svg className="w-4 h-4" viewBox="0 0 512 512" fill="currentColor">
-                    <path d="M267.4 211.6c-25.1 23.7-40.8 57.3-40.8 94.6 0 29.3 9.7 56.3 26 78L203.1 434c-4.4-1.6-9.1-2.5-14-2.5-10.8 0-20.9 4.2-28.5 11.8-7.6 7.6-11.8 17.8-11.8 28.6s4.2 20.9 11.8 28.5c7.6 7.6 17.8 11.6 28.5 11.6 10.8 0 20.9-3.9 28.6-11.6 7.6-7.6 11.8-17.8 11.8-28.5 0-4.2-.6-8.2-1.9-12.1l50-50.2c22 16.9 49.4 26.9 79.3 26.9 71.9 0 130-58.3 130-130.2 0-65.2-47.7-119.2-110.2-128.7V116c17.5-7.4 28.2-23.8 28.2-42.9 0-26.1-20.9-47.9-47-47.9S311.2 47 311.2 73.1c0 19.1 10.7 35.5 28.2 42.9v61.2c-15.2 2.1-29.6 6.7-42.7 13.6-27.6-20.9-117.5-85.7-168.9-124.8 1.2-4.4 2-9 2-13.8C129.8 23.4 106.3 0 77.4 0 48.6 0 25.2 23.4 25.2 52.2c0 28.9 23.4 52.3 52.2 52.3 9.8 0 18.9-2.9 26.8-7.6l163.2 114.7zm89.5 163.6c-38.1 0-69-30.9-69-69s30.9-69 69-69 69 30.9 69 69-30.9 69-69 69z"/>
-                  </svg>
-                ) : crmStatus.integration === 'salesforce' ? (
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M10.006 5.415a4.195 4.195 0 013.045-1.306c1.56 0 2.954.852 3.676 2.152.9-.472 1.923-.73 2.989-.73 3.639 0 6.59 2.951 6.59 6.59s-2.951 6.59-6.59 6.59c-.403 0-.803-.035-1.19-.104a4.878 4.878 0 01-4.134 2.284c-1.736 0-3.267-.903-4.133-2.265a4.19 4.19 0 01-2.405.762C3.455 19.388.5 16.433.5 12.998c0-2.846 1.912-5.242 4.524-5.99a4.195 4.195 0 014.982-1.593z"/>
-                  </svg>
+                crmStatus.integration?.toLowerCase().includes('hubspot') ? (
+                  <img src="https://www.hubspot.com/hubfs/HubSpot_Logos/HubSpot-Inversed-Favicon.png" alt="HubSpot" className="w-4 h-4 rounded" />
+                ) : crmStatus.integration?.toLowerCase().includes('salesforce') ? (
+                  <img src="https://c1.sfdcstatic.com/content/dam/web/en_us/www/images/nav/salesforce-cloud-logo-sm.png" alt="Salesforce" className="w-4 h-4" />
+                ) : crmStatus.integration?.toLowerCase().includes('pipedrive') ? (
+                  <img src="https://www.pipedrive.com/favicon.ico" alt="Pipedrive" className="w-4 h-4" />
+                ) : crmStatus.integration?.toLowerCase().includes('zoho') ? (
+                  <img src="https://www.zohowebstatic.com/sites/zweb/images/favicon.ico" alt="Zoho" className="w-4 h-4" />
+                ) : crmStatus.integration?.toLowerCase().includes('copper') ? (
+                  <img src="https://www.copper.com/favicon.ico" alt="Copper" className="w-4 h-4" />
+                ) : crmStatus.integration?.toLowerCase().includes('close') ? (
+                  <img src="https://close.com/favicon.ico" alt="Close" className="w-4 h-4" />
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -385,7 +388,7 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
               )}
-              <span>{crmStatus.connected ? crmStatus.integration?.toUpperCase() : 'Connect CRM'}</span>
+              <span>{crmStatus.connected ? crmStatus.integration : 'Connect CRM'}</span>
             </button>
             
             <button

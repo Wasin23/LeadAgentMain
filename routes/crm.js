@@ -46,14 +46,19 @@ router.post('/link-token', authenticateToken, async (req, res) => {
 router.post('/exchange-token', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { publicToken, integrationName } = req.body;
+    const { publicToken } = req.body;
     
     if (!publicToken) {
       return res.status(400).json({ error: 'Public token required' });
     }
     
-    const accountToken = await mergeManager.exchangeToken(publicToken);
-    await mergeManager.saveCRMConnection(userId, accountToken.account_token, integrationName);
+    const tokenResponse = await mergeManager.exchangeToken(publicToken);
+    
+    // Get integration name from Merge response (e.g. "HubSpot", "Salesforce")
+    const integrationName = tokenResponse.integration?.name || tokenResponse.integration?.slug || 'crm';
+    console.log('✅ [CRM] Integration name from Merge:', integrationName);
+    
+    await mergeManager.saveCRMConnection(userId, tokenResponse.account_token, integrationName);
     
     res.json({
       success: true,
