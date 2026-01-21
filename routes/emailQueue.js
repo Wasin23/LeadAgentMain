@@ -374,6 +374,13 @@ router.post('/:id/approve', async (req, res) => {
     console.log('🔑 [EMAIL QUEUE] userId:', userId);
     console.log('🔑 [EMAIL QUEUE] effectiveAgentId:', effectiveAgentId);
     
+    // Check for replyOptions (threading info for follow-up emails)
+    const replyOptions = approvedEmail.replyOptions || null;
+    if (replyOptions) {
+      console.log('🧵 [EMAIL QUEUE] This is a follow-up email - will send as reply to original thread');
+      console.log('🧵 [EMAIL QUEUE] Reply options:', replyOptions);
+    }
+    
     const sendResult = await leadEmail(
       finalRecipient,
       finalSubject,
@@ -383,7 +390,8 @@ router.post('/:id/approve', async (req, res) => {
       effectiveAgentId,
       ccEmails, // Pass CC emails to leadEmail
       bccEmails, // Pass BCC emails to leadEmail
-      senderName // Pass sender name for branding
+      senderName, // Pass sender name for branding
+      replyOptions // Pass reply options for threading
     );
     
     if (sendResult.success) {
@@ -420,9 +428,15 @@ router.post('/:id/approve', async (req, res) => {
             method: sendResult.method || 'mailgun',
             leadName: leadNameForTracking,
             subject: finalSubject,
-            to: finalRecipient
+            to: finalRecipient,
+            // Store message ID and thread ID for reply threading in follow-ups
+            messageId: sendResult.result.messageId || null,
+            threadId: sendResult.result.threadId || null
           });
           console.log(`[EMAIL QUEUE] 💾 Marked email ${id} as sent in AWS with tracking ID ${sendResult.result.trackingId} from ${sendResult.result.fromAccount || 'Mailgun'}`);
+          if (sendResult.result.threadId) {
+            console.log(`[EMAIL QUEUE] 🧵 Thread ID stored for reply threading: ${sendResult.result.threadId}`);
+          }
           
           // Auto-schedule follow-up if enabled for this agent
           try {

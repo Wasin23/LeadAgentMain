@@ -602,7 +602,10 @@ class AWSEmailQueue {
       mailgunMessage: mailgunData.message,
       trackingId: mailgunData.trackingId,  // Store the tracking ID for correlation with Zilliz events!
       fromAccount: mailgunData.fromAccount || null, // Track which email account sent it
-      sendMethod: mailgunData.method || 'mailgun' // Track send method (gmail/mailgun)
+      sendMethod: mailgunData.method || 'mailgun', // Track send method (gmail/mailgun)
+      // Store message ID and thread ID for reply threading in follow-ups
+      gmailMessageId: mailgunData.messageId || null,
+      gmailThreadId: mailgunData.threadId || null
     });
   }
 

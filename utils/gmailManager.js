@@ -104,10 +104,19 @@ class GmailManager {
 
   /**
    * Send email via Gmail API (with account cycling)
+   * @param {Object} options - Email options
+   * @param {string} options.inReplyTo - Message-ID of the email being replied to (for threading)
+   * @param {string} options.references - References header for threading
+   * @param {string} options.threadId - Gmail thread ID for threading
    */
-  async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true, trackingId = null }) {
+  async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true, trackingId = null, inReplyTo = null, references = null, threadId = null }) {
     try {
       console.log('📧 [GMAIL] Sending email via Gmail API to:', to);
+      if (inReplyTo || threadId) {
+        console.log('📧 [GMAIL] Threading enabled - sending as reply');
+        console.log('📧 [GMAIL] In-Reply-To:', inReplyTo);
+        console.log('📧 [GMAIL] Thread ID:', threadId);
+      }
 
       // Get user's Gmail credentials from DynamoDB
       const userSettings = await awsManager.getUserSettings(userId);
@@ -180,6 +189,19 @@ class GmailManager {
         'Content-Type: text/html; charset=utf-8',
       ];
 
+      // Add threading headers for follow-up emails (send as reply)
+      if (inReplyTo) {
+        messageParts.push(`In-Reply-To: ${inReplyTo}`);
+        console.log(`📧 [GMAIL] Adding In-Reply-To header: ${inReplyTo}`);
+      }
+      if (references) {
+        messageParts.push(`References: ${references}`);
+        console.log(`📧 [GMAIL] Adding References header: ${references}`);
+      } else if (inReplyTo) {
+        // If no references but we have inReplyTo, use that as references
+        messageParts.push(`References: ${inReplyTo}`);
+      }
+
       if (ccEmails) {
         messageParts.push(`Cc: ${ccEmails}`);
       }
@@ -211,14 +233,23 @@ class GmailManager {
         .replace(/=+$/, '');
 
       // Send via Gmail API
+      const requestBody = {
+        raw: encodedMessage
+      };
+      
+      // Add threadId for threading if provided (to reply in the same thread)
+      if (threadId) {
+        requestBody.threadId = threadId;
+        console.log(`📧 [GMAIL] Sending in thread: ${threadId}`);
+      }
+      
       const result = await gmail.users.messages.send({
         userId: 'me',
-        requestBody: {
-          raw: encodedMessage
-        }
+        requestBody
       });
 
       console.log('✅ [GMAIL] Email sent successfully. MessageId:', result.data.id);
+      console.log('✅ [GMAIL] Thread ID:', result.data.threadId);
       console.log('✅ [GMAIL] Email will appear in user\'s Gmail Sent folder');
 
       // Cycle to next account for future emails (if multiple accounts)
@@ -258,6 +289,7 @@ class GmailManager {
       return {
         success: true,
         messageId: result.data.id,
+        threadId: result.data.threadId, // Return threadId for future reply threading
         trackingId: finalTrackingId,
         sentFrom: currentAccount.email,
         provider: 'gmail'

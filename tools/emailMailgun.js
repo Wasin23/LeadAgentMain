@@ -159,7 +159,8 @@ async function buildEmailSignature(userId, userSettings) {
 
 export { logEmailToFile, updateEmailAnalytics, addTrackingToEmail, buildEmailSignature };
 
-export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
+export async function sendEmailMailgun(to, subject, body, enableTracking = true, personInfo = null, userId, agentId = null, ccEmails = null, bccEmails = null, senderName = null, replyOptions = null) {
+  // replyOptions: { inReplyTo: string, references: string, threadId: string } - for threading follow-up emails
   try {
     console.log('═══════════════════════════════════════════════════════════════');
     console.log('📧 [SEND EMAIL MAILGUN] Function called with:');
@@ -168,6 +169,9 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     console.log('📧 enableTracking:', enableTracking);
     console.log('📧 userId:', userId);
     console.log('📧 agentId:', agentId);
+    if (replyOptions) {
+      console.log('📧 replyOptions (threading):', replyOptions);
+    }
     console.log('═══════════════════════════════════════════════════════════════');
     
     // Ensure we always have HTML content for tracking
@@ -294,7 +298,11 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
               ccEmails,
               bccEmails,
               replyTo: null,
-              trackingId: trackingId
+              trackingId: trackingId,
+              // Threading options for follow-up emails (send as reply)
+              inReplyTo: replyOptions?.inReplyTo || null,
+              references: replyOptions?.references || null,
+              threadId: replyOptions?.threadId || null
             });
             
             // Get the email address for logging
@@ -312,6 +320,7 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
             return {
               success: true,
               messageId: gmailResult.messageId,
+              threadId: gmailResult.threadId, // Return threadId for reply threading
               trackingId: trackingId,
               provider: 'gmail',
               sentFrom: gmailEmail
@@ -376,6 +385,16 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       'o:tag': 'transactional', // Force classification as transactional email
       'o:require-tls': 'yes' // Require TLS for better deliverability
     };
+    
+    // Add threading headers for follow-up emails (send as reply to original thread)
+    if (replyOptions?.inReplyTo) {
+      emailData['h:In-Reply-To'] = replyOptions.inReplyTo;
+      console.log(`[MAILGUN] Adding In-Reply-To header for threading: ${replyOptions.inReplyTo}`);
+    }
+    if (replyOptions?.references) {
+      emailData['h:References'] = replyOptions.references;
+      console.log(`[MAILGUN] Adding References header for threading: ${replyOptions.references}`);
+    }
     
     // Add CC if provided
     if (ccEmails) {

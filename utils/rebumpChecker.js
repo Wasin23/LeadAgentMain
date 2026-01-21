@@ -346,7 +346,21 @@ export async function checkForRebumps() {
               .replace(/{topic}/g, topic)
               .replace(/{days_ago}/g, daysAgo);
 
-            // Queue the rebump email
+            // Build threading info for sending as a reply to the original email
+            const replyOptions = {
+              // Use original email's message ID for In-Reply-To header
+              inReplyTo: email.gmailMessageId ? `<${email.gmailMessageId}@gmail.com>` : 
+                        (email.trackingId ? `<tracking-${email.trackingId}@${process.env.MAILGUN_DOMAIN || 'mg.meridianagent.xyz'}>` : null),
+              // References header for threading
+              references: email.gmailMessageId ? `<${email.gmailMessageId}@gmail.com>` : 
+                         (email.trackingId ? `<tracking-${email.trackingId}@${process.env.MAILGUN_DOMAIN || 'mg.meridianagent.xyz'}>` : null),
+              // Gmail thread ID for threading in Gmail
+              threadId: email.gmailThreadId || null
+            };
+            
+            console.log(`🧵 [REBUMP] Threading info for follow-up:`, replyOptions);
+
+            // Queue the rebump email (with threading info for reply)
             await emailQueue.queueEmail(userId, agentId, {
               to: email.to,
               subject: subject,
@@ -360,7 +374,9 @@ export async function checkForRebumps() {
               templateUsed: template.name,
               aiReport: email.aiReport, // Keep original report
               confidenceLevel: 'medium',
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              // Threading info for sending as reply to original email
+              replyOptions: replyOptions
             });
 
             // Update original email with rebump info

@@ -48,8 +48,12 @@ function fixEncoding(text) {
 /**
  * Dedicated email tool for Lead Contact Agent
  * Sends emails via Mailgun with tracking enabled
+ * @param {Object} replyOptions - Optional threading options for follow-up emails
+ * @param {string} replyOptions.inReplyTo - Message-ID of original email for threading
+ * @param {string} replyOptions.references - References header for threading
+ * @param {string} replyOptions.threadId - Gmail thread ID for threading
  */
-export async function leadEmail(to, subject, body, personInfo = null, userId = null, agentId = null, ccEmails = null, bccEmails = null, senderName = null) {
+export async function leadEmail(to, subject, body, personInfo = null, userId = null, agentId = null, ccEmails = null, bccEmails = null, senderName = null, replyOptions = null) {
   // Fix encoding issues in subject and body
   subject = fixEncoding(subject);
   body = fixEncoding(body);
@@ -62,6 +66,9 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
   console.log('[LEAD EMAIL] CC:', ccEmails || 'None');
   console.log('[LEAD EMAIL] BCC:', bccEmails || 'None');
   console.log('[LEAD EMAIL] Sender Name:', senderName || 'Default');
+  if (replyOptions) {
+    console.log('[LEAD EMAIL] Reply Threading:', replyOptions);
+  }
   
   if (!to || !subject || !body) {
     const error = 'Missing required fields: to, subject, or body';
@@ -105,9 +112,9 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
       }
     }
     
-    // Send via Mailgun with tracking
+    // Send via Mailgun with tracking (and optional reply threading)
     console.log('[LEAD EMAIL] Sending via Mailgun...');
-    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId, ccEmails, bccEmails, fromName);
+    const result = await sendEmailMailgun(to, subject, body, true, personInfo, userId, agentId, ccEmails, bccEmails, fromName, replyOptions);
     console.log('[LEAD EMAIL] Mailgun result:', result);
     
     if (result.success) {

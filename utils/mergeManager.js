@@ -7,6 +7,10 @@ class MergeManager {
     this.baseURL = 'https://api.merge.dev';
     this.awsManager = new AWSManager();
     
+    // Log initialization status
+    console.log('🔧 [MERGE] MergeManager initialized');
+    console.log('🔧 [MERGE] API Key configured:', this.apiKey ? `***${this.apiKey.slice(-4)}` : 'NOT SET');
+    
     // Create axios instance with auth
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -84,14 +88,27 @@ class MergeManager {
    */
   async syncLeadToCRM(userId, leadData) {
     try {
+      console.log('🔄 [MERGE] syncLeadToCRM called for user:', userId);
+      console.log('🔄 [MERGE] Lead data:', JSON.stringify(leadData, null, 2));
+      
       const user = await this.awsManager.getUserById(userId);
       
-      if (!user.crmConnected || !user.crmAccountToken) {
+      console.log('🔍 [MERGE] User CRM settings:', {
+        crmConnected: user?.crmConnected,
+        crmAccountToken: user?.crmAccountToken ? '***exists***' : null,
+        crmIntegration: user?.crmIntegration,
+        crmAutoSync: user?.crmAutoSync
+      });
+      
+      if (!user?.crmConnected || !user?.crmAccountToken) {
+        console.log('⚠️ [MERGE] No CRM connected or missing account token');
         return { success: false, error: 'No CRM connected' };
       }
 
+      console.log(`📤 [MERGE] Creating contact in ${user.crmIntegration}...`);
+
       // Create contact in CRM using Merge API
-      const contactResponse = await this.client.post('/api/crm/v1/contacts', {
+      const contactPayload = {
         model: {
           first_name: leadData.firstName,
           last_name: leadData.lastName,
@@ -107,16 +124,23 @@ class MergeManager {
             name: leadData.companyName
           }
         }
-      }, {
+      };
+      
+      console.log('📤 [MERGE] Sending contact payload:', JSON.stringify(contactPayload, null, 2));
+      console.log('📤 [MERGE] Using account token:', user.crmAccountToken ? `***${user.crmAccountToken.slice(-8)}` : 'MISSING');
+      
+      const contactResponse = await this.client.post('/api/crm/v1/contacts', contactPayload, {
         headers: {
           'X-Account-Token': user.crmAccountToken
         }
       });
 
+      console.log('✅ [MERGE] Contact creation response:', JSON.stringify(contactResponse.data, null, 2));
       const contact = contactResponse.data;
 
       // Add research notes
       if (leadData.researchSummary) {
+        console.log('📝 [MERGE] Adding research notes to contact...');
         await this.client.post('/api/crm/v1/notes', {
           model: {
             content: `Research Summary:\n\n${leadData.researchSummary}`,
@@ -127,6 +151,7 @@ class MergeManager {
             'X-Account-Token': user.crmAccountToken
           }
         });
+        console.log('✅ [MERGE] Research notes added');
       }
 
       console.log(`✅ [MERGE] Synced lead ${leadData.email} to ${user.crmIntegration}`);

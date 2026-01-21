@@ -5936,7 +5936,14 @@ Target Positions:`;
       try {
         const user = await this.awsManager.getUserById(this.userId);
         
-        if (user.crmConnected && user.crmAutoSync) {
+        // Debug logging for CRM sync
+        console.log('🔍 [CRM SYNC] Checking CRM settings for user:', this.userId);
+        console.log('🔍 [CRM SYNC] user.crmConnected:', user?.crmConnected);
+        console.log('🔍 [CRM SYNC] user.crmAutoSync:', user?.crmAutoSync);
+        console.log('🔍 [CRM SYNC] user.crmIntegration:', user?.crmIntegration);
+        console.log('🔍 [CRM SYNC] user.crmAccountToken exists:', !!user?.crmAccountToken);
+        
+        if (user && user.crmConnected && user.crmAutoSync) {
           console.log(`🔄 [CRM SYNC] Auto-syncing lead ${leadData.email} to ${user.crmIntegration}...`);
           
           // Emit SSE progress for CRM sync
@@ -6000,7 +6007,10 @@ Target Positions:`;
             });
           }
         } else {
-          console.log('⏭️ [CRM SYNC] Skipped - CRM not connected or auto-sync disabled');
+          const skipReason = !user ? 'user not found' : 
+                            !user.crmConnected ? 'CRM not connected' : 
+                            !user.crmAutoSync ? 'auto-sync disabled' : 'unknown';
+          console.log(`⏭️ [CRM SYNC] Skipped - ${skipReason}`);
         }
       } catch (crmError) {
         console.error('❌ [CRM SYNC] Error syncing to CRM:', crmError.message);
