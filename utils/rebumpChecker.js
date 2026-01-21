@@ -147,11 +147,13 @@ export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
     }
 
     // Get interval days from settings
-    const intervalDays = agentSettings.emailBuilder.rebumpIntervalDays || 7;
-    console.log('🔄 [AUTO-SCHEDULE] Interval days:', intervalDays);
+    const rawIntervalDays = agentSettings.emailBuilder.rebumpIntervalDays;
+    const intervalDays = parseInt(rawIntervalDays, 10) || 7;
+    console.log('🔄 [AUTO-SCHEDULE] Raw interval days:', rawIntervalDays, 'type:', typeof rawIntervalDays);
+    console.log('🔄 [AUTO-SCHEDULE] Parsed interval days:', intervalDays);
     
-    // Calculate exact follow-up date
-    const sentDate = new Date(sentEmail.sentAt || Date.now());
+    // Calculate exact follow-up date - use current time since email was just sent
+    const sentDate = new Date(); // Use NOW since email was just sent moments ago
     const followUpDate = new Date(sentDate.getTime() + (intervalDays * 24 * 60 * 60 * 1000));
     
     console.log('🔄 [AUTO-SCHEDULE] Sent date:', sentDate.toISOString());
