@@ -281,6 +281,7 @@ export async function checkForRebumps() {
 
         // Get SENT emails for this agent
         const sentEmails = await emailQueue.getSentEmails(userId, agentId);
+        console.log(`🔍 [REBUMP] Agent ${agentId}: Found ${sentEmails?.length || 0} sent emails`);
         if (!sentEmails || sentEmails.length === 0) continue;
 
         const now = Date.now();
@@ -288,32 +289,71 @@ export async function checkForRebumps() {
 
         // Filter emails that need rebumps
         for (const email of sentEmails) {
+          const emailTo = email.to || 'unknown';
+          
           // Skip if no follow-up scheduled
-          if (!email.followUpScheduled) continue;
+          if (!email.followUpScheduled) {
+            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - followUpScheduled is false/undefined`);
+            continue;
+          }
           
           // Skip if already has reply
-          if (email.status === 'REPLIED') continue;
+          if (email.status === 'REPLIED') {
+            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - already replied`);
+            continue;
+          }
           
           // Skip if bounced
-          if (email.status === 'BOUNCED') continue;
+          if (email.status === 'BOUNCED') {
+            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - bounced`);
+            continue;
+          }
           
           // Skip if already rebumped (check rebumpCount)
           const rebumpCount = email.rebumpCount || 0;
           const maxRebumps = agentSettings.emailBuilder.maxRebumps || 1;
-          if (rebumpCount >= maxRebumps) continue;
-
-          // Skip if no follow-up date set
-          if (!email.followUpDate) continue;
-
-          // Check if we've reached the follow-up date
-          const followUpDate = new Date(email.followUpDate);
-          if (now < followUpDate.getTime()) {
-            // Skipping - not yet time for follow-up
+          if (rebumpCount >= maxRebumps) {
+            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - already rebumped ${rebumpCount}/${maxRebumps} times`);
             continue;
           }
 
-          // We've reached the follow-up date
-          const timeSinceLastContact = now - new Date(email.sentAt || email.timestamp).getTime();
+          // Skip if no follow-up date set
+          if (!email.followUpDate) {
+            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - no followUpDate set`);
+            continue;
+          }
+
+          // FIX: Check if followUpDate is BEFORE sentAt (bug from old code)
+          // If so, recalculate the follow-up date properly
+          let followUpDate = new Date(email.followUpDate);
+          const sentAt = new Date(email.sentAt || email.timestamp);
+          
+          if (followUpDate.getTime() < sentAt.getTime()) {
+            // BUG DETECTED: Follow-up date is before sent date, recalculate
+            console.log(`🐛 [REBUMP] ${emailTo}: BUG - followUpDate (${followUpDate.toISOString()}) is BEFORE sentAt (${sentAt.toISOString()})`);
+            console.log(`🔧 [REBUMP] ${emailTo}: Recalculating follow-up date...`);
+            
+            // Recalculate: sentAt + rebumpIntervalDays
+            followUpDate = new Date(sentAt.getTime() + rebumpIntervalMs);
+            
+            // Update the email with corrected follow-up date
+            await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+              followUpDate: followUpDate.toISOString(),
+              followUpDateFixed: true
+            });
+            console.log(`✅ [REBUMP] ${emailTo}: Fixed followUpDate to ${followUpDate.toISOString()}`);
+          }
+
+          // Check if we've reached the follow-up date
+          if (now < followUpDate.getTime()) {
+            const daysUntil = Math.ceil((followUpDate.getTime() - now) / (24 * 60 * 60 * 1000));
+            console.log(`⏳ [REBUMP] ${emailTo}: Not yet time - ${daysUntil} days until follow-up (${followUpDate.toISOString()})`);
+            continue;
+          }
+
+          // We've reached the follow-up date!
+          console.log(`✅ [REBUMP] ${emailTo}: READY for follow-up! (scheduled: ${followUpDate.toISOString()}, now: ${new Date(now).toISOString()})`);
+          const timeSinceLastContact = now - sentAt.getTime();
           {
             console.log(`📧 [REBUMP] Queueing rebump for ${email.to} (scheduled: ${followUpDate.toISOString()})`);
             
@@ -380,12 +420,18 @@ export async function checkForRebumps() {
               // Threading info for sending as reply to original email
               replyOptions: replyOptions
             });
+            
+            console.log(`📬 [REBUMP] Queued follow-up #${rebumpCount + 1} for ${email.to}`);
 
-            // Update original email with rebump info
+            // Update original email with rebump info - mark that follow-up was queued
             await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
               rebumpCount: rebumpCount + 1,
-              lastRebumpAt: new Date().toISOString()
+              lastRebumpAt: new Date().toISOString(),
+              lastRebumpQueuedAt: new Date().toISOString(),
+              followUpStatus: 'QUEUED' // Track follow-up status
             });
+            
+            console.log(`✅ [REBUMP] Updated original email ${email.id} with rebumpCount=${rebumpCount + 1}`);
 
             // Update template rotation
             const nextIndex = (templateIndex + 1) % agentSettings.followUpTemplates.templates.length;
@@ -403,9 +449,10 @@ export async function checkForRebumps() {
       }
     }
 
-    // Rebump check complete - silent
+    console.log(`📊 [REBUMP] Check complete - ${totalRebumpsQueued} follow-ups queued`);
   } catch (error) {
     console.error('❌ [REBUMP] Error checking rebumps:', error);
+    console.error('❌ [REBUMP] Stack:', error.stack);
   }
 }
 
