@@ -5951,11 +5951,11 @@ Target Positions:`;
             id: this.generateUniqueId(),
             timestamp: new Date().toISOString(),
             operation: '🔄 Syncing to CRM',
-            details: `Syncing ${leadInfo.name} to ${user.crmIntegration}...`,
+            details: `Syncing ${leadData.name || leadData.first_name} to ${user.crmIntegration}...`,
             status: 'processing',
             data: { 
               phase: 'crm_sync',
-              contactName: leadInfo.name,
+              contactName: leadData.name || leadData.first_name,
               crmIntegration: user.crmIntegration
             }
           });
@@ -5980,13 +5980,13 @@ Target Positions:`;
               id: this.generateUniqueId(),
               timestamp: new Date().toISOString(),
               operation: '✅ Synced to CRM',
-              details: `${leadInfo.name} synced to ${syncResult.crmIntegration}`,
+              details: `${leadData.name || leadData.first_name} synced to ${syncResult.crmIntegration}`,
               status: 'completed',
               data: { 
                 phase: 'crm_sync_complete',
                 crmContactId: syncResult.crmContactId,
                 crmIntegration: syncResult.crmIntegration,
-                contactName: leadInfo.name
+                contactName: leadData.name || leadData.first_name
               }
             });
           } else {
@@ -6002,7 +6002,7 @@ Target Positions:`;
               data: { 
                 phase: 'crm_sync_failed',
                 error: syncResult.error,
-                contactName: leadInfo.name
+                contactName: leadData.name || leadData.first_name
               }
             });
           }
