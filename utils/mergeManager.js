@@ -108,6 +108,8 @@ class MergeManager {
       console.log(`📤 [MERGE] Creating contact in ${user.crmIntegration}...`);
 
       // Create contact in CRM using Merge API
+      // Note: account field requires a valid Merge UUID, not a name object
+      // We'll create the contact without account association for now
       const contactPayload = {
         model: {
           first_name: leadData.firstName,
@@ -119,10 +121,7 @@ class MergeManager {
           phone_numbers: leadData.phone ? [{
             phone_number: leadData.phone,
             phone_number_type: 'WORK'
-          }] : [],
-          account: {
-            name: leadData.companyName
-          }
+          }] : []
         }
       };
       
@@ -138,21 +137,23 @@ class MergeManager {
       console.log('✅ [MERGE] Contact creation response:', JSON.stringify(contactResponse.data, null, 2));
       const contact = contactResponse.data;
 
-      // Add research notes
-      if (leadData.researchSummary) {
-        console.log('📝 [MERGE] Adding research notes to contact...');
-        await this.client.post('/api/crm/v1/notes', {
-          model: {
-            content: `Research Summary:\n\n${leadData.researchSummary}`,
-            contact: contact.id
-          }
-        }, {
-          headers: {
-            'X-Account-Token': user.crmAccountToken
-          }
-        });
-        console.log('✅ [MERGE] Research notes added');
-      }
+      // Add research notes (include company name since we don't associate with an account)
+      const notesContent = leadData.companyName 
+        ? `Company: ${leadData.companyName}\n\nResearch Summary:\n\n${leadData.researchSummary || 'No research summary available.'}`
+        : (leadData.researchSummary || 'No research summary available.');
+      
+      console.log('📝 [MERGE] Adding notes to contact...');
+      await this.client.post('/api/crm/v1/notes', {
+        model: {
+          content: notesContent,
+          contact: contact.id
+        }
+      }, {
+        headers: {
+          'X-Account-Token': user.crmAccountToken
+        }
+      });
+      console.log('✅ [MERGE] Notes added');
 
       console.log(`✅ [MERGE] Synced lead ${leadData.email} to ${user.crmIntegration}`);
       
