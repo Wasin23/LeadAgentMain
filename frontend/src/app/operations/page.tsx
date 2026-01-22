@@ -2564,7 +2564,16 @@ export default function InteractiveGlobe() {
                     >
                       <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border border-[#4FD1FF]/20">
                         <img 
-                          src="/avatars/mark.png"
+                          src={`/avatars/${(() => {
+                            const typeMap: Record<string, string> = {
+                              'hunter': 'Hunter',
+                              'analyst': 'Analyst',
+                              'consultant': 'consultant',
+                              'networker': 'Networker',
+                              'relationship-builder': 'Relationship-Builder'
+                            };
+                            return typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
+                          })()}.png`}
                           alt={agent.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -2668,7 +2677,16 @@ export default function InteractiveGlobe() {
                           {/* Agent Avatar */}
                           <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/30 flex-shrink-0 overflow-hidden bg-[#0A1525]/60">
                             <img 
-                              src="/avatars/mark.png"
+                              src={`/avatars/${(() => {
+                                const typeMap: Record<string, string> = {
+                                  'hunter': 'Hunter',
+                                  'analyst': 'Analyst',
+                                  'consultant': 'consultant',
+                                  'networker': 'Networker',
+                                  'relationship-builder': 'Relationship-Builder'
+                                };
+                                return typeMap[log.agentPersonality || 'hunter'] || 'Hunter';
+                              })()}.png`}
                               alt={log.agentName}
                               className="w-full h-full object-cover"
                               onError={(e) => {
