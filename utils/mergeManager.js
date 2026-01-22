@@ -464,16 +464,34 @@ class MergeManager {
         // Direct API integration
         const integration = user.crmIntegration?.toLowerCase();
         
-        if (integration === 'activecampaign') {
-          return await this.syncLeadToActiveCampaign(
-            user.crmApiUrl,
-            user.crmApiKey,
-            leadData
-          );
+        switch (integration) {
+          case 'activecampaign':
+            return await this.syncLeadToActiveCampaign(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'hubspot':
+            return await this.syncLeadToHubSpot(user.crmApiKey, leadData);
+          case 'pipedrive':
+            return await this.syncLeadToPipedrive(user.crmApiKey, leadData);
+          case 'close':
+            return await this.syncLeadToClose(user.crmApiKey, leadData);
+          case 'copper':
+            return await this.syncLeadToCopper(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'zoho':
+            return await this.syncLeadToZoho(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'salesforce':
+            return await this.syncLeadToSalesforce(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'affinity':
+            return await this.syncLeadToAffinity(user.crmApiKey, leadData);
+          case 'capsule':
+            return await this.syncLeadToCapsule(user.crmApiKey, leadData);
+          case 'insightly':
+            return await this.syncLeadToInsightly(user.crmApiKey, leadData);
+          case 'salesflare':
+            return await this.syncLeadToSalesflare(user.crmApiKey, leadData);
+          case 'zendesksell':
+            return await this.syncLeadToZendeskSell(user.crmApiKey, leadData);
+          default:
+            return { success: false, error: `Direct sync not implemented for ${user.crmIntegration}` };
         }
-        
-        // Add more direct integrations here as needed
-        return { success: false, error: `Direct sync not implemented for ${user.crmIntegration}` };
       }
       
       // Default: use Merge API
@@ -481,6 +499,385 @@ class MergeManager {
     } catch (error) {
       console.error('❌ [CRM] Error in unified sync:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Sync lead to HubSpot via direct API
+   */
+  async syncLeadToHubSpot(apiKey, leadData) {
+    try {
+      console.log('🔄 [HUBSPOT] Syncing lead:', leadData.email);
+      
+      const contactPayload = {
+        properties: {
+          email: leadData.email,
+          firstname: leadData.firstName,
+          lastname: leadData.lastName,
+          phone: leadData.phone || '',
+          company: leadData.companyName || '',
+          jobtitle: leadData.title || ''
+        }
+      };
+
+      const response = await axios.post('https://api.hubapi.com/crm/v3/objects/contacts', contactPayload, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ [HUBSPOT] Contact created:', response.data?.id);
+
+      // Add note with research data
+      if (response.data?.id) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post('https://api.hubapi.com/crm/v3/objects/notes', {
+          properties: {
+            hs_note_body: noteContent,
+            hs_timestamp: Date.now()
+          },
+          associations: [{
+            to: { id: response.data.id },
+            types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 202 }]
+          }]
+        }, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        console.log('✅ [HUBSPOT] Note added');
+      }
+
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'HubSpot' };
+    } catch (error) {
+      console.error('❌ [HUBSPOT] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Pipedrive via direct API
+   */
+  async syncLeadToPipedrive(apiKey, leadData) {
+    try {
+      console.log('🔄 [PIPEDRIVE] Syncing lead:', leadData.email);
+      
+      // Create person
+      const personPayload = {
+        name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim() || leadData.email,
+        email: leadData.email,
+        phone: leadData.phone || ''
+      };
+
+      const response = await axios.post(`https://api.pipedrive.com/v1/persons?api_token=${apiKey}`, personPayload);
+      console.log('✅ [PIPEDRIVE] Person created:', response.data?.data?.id);
+
+      // Add note
+      if (response.data?.data?.id) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post(`https://api.pipedrive.com/v1/notes?api_token=${apiKey}`, {
+          content: noteContent,
+          person_id: response.data.data.id
+        });
+        console.log('✅ [PIPEDRIVE] Note added');
+      }
+
+      return { success: true, crmContactId: response.data?.data?.id, crmIntegration: 'Pipedrive' };
+    } catch (error) {
+      console.error('❌ [PIPEDRIVE] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.error || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Close via direct API
+   */
+  async syncLeadToClose(apiKey, leadData) {
+    try {
+      console.log('🔄 [CLOSE] Syncing lead:', leadData.email);
+      
+      // Create lead first
+      const leadPayload = {
+        name: leadData.companyName || `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim(),
+        contacts: [{
+          name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim(),
+          title: leadData.title || '',
+          emails: [{ email: leadData.email, type: 'office' }],
+          phones: leadData.phone ? [{ phone: leadData.phone, type: 'office' }] : []
+        }]
+      };
+
+      const response = await axios.post('https://api.close.com/api/v1/lead/', leadPayload, {
+        auth: { username: apiKey, password: '' },
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      console.log('✅ [CLOSE] Lead created:', response.data?.id);
+
+      // Add note
+      if (response.data?.id) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post('https://api.close.com/api/v1/activity/note/', {
+          lead_id: response.data.id,
+          note: noteContent
+        }, {
+          auth: { username: apiKey, password: '' },
+          headers: { 'Content-Type': 'application/json' }
+        });
+        console.log('✅ [CLOSE] Note added');
+      }
+
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Close' };
+    } catch (error) {
+      console.error('❌ [CLOSE] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.error || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Copper via direct API
+   */
+  async syncLeadToCopper(userEmail, apiKey, leadData) {
+    try {
+      console.log('🔄 [COPPER] Syncing lead:', leadData.email);
+      
+      const headers = {
+        'X-PW-AccessToken': apiKey,
+        'X-PW-Application': 'developer_api',
+        'X-PW-UserEmail': userEmail,
+        'Content-Type': 'application/json'
+      };
+
+      const personPayload = {
+        name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim(),
+        emails: [{ email: leadData.email, category: 'work' }],
+        phone_numbers: leadData.phone ? [{ number: leadData.phone, category: 'work' }] : [],
+        title: leadData.title || ''
+      };
+
+      const response = await axios.post('https://api.copper.com/developer_api/v1/people', personPayload, { headers });
+      console.log('✅ [COPPER] Person created:', response.data?.id);
+
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Copper' };
+    } catch (error) {
+      console.error('❌ [COPPER] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Zoho CRM via direct API
+   */
+  async syncLeadToZoho(apiUrl, apiKey, leadData) {
+    try {
+      console.log('🔄 [ZOHO] Syncing lead:', leadData.email);
+      
+      const contactPayload = {
+        data: [{
+          Email: leadData.email,
+          First_Name: leadData.firstName || '',
+          Last_Name: leadData.lastName || leadData.email.split('@')[0],
+          Phone: leadData.phone || '',
+          Title: leadData.title || '',
+          Description: this.buildComprehensiveNotes(leadData)
+        }]
+      };
+
+      const response = await axios.post(`${apiUrl}/crm/v2/Contacts`, contactPayload, {
+        headers: { 'Authorization': `Zoho-oauthtoken ${apiKey}` }
+      });
+
+      console.log('✅ [ZOHO] Contact created:', response.data?.data?.[0]?.details?.id);
+      return { success: true, crmContactId: response.data?.data?.[0]?.details?.id, crmIntegration: 'Zoho CRM' };
+    } catch (error) {
+      console.error('❌ [ZOHO] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Salesforce via direct API
+   */
+  async syncLeadToSalesforce(instanceUrl, apiKey, leadData) {
+    try {
+      console.log('🔄 [SALESFORCE] Syncing lead:', leadData.email);
+      
+      const contactPayload = {
+        Email: leadData.email,
+        FirstName: leadData.firstName || '',
+        LastName: leadData.lastName || leadData.email.split('@')[0],
+        Phone: leadData.phone || '',
+        Title: leadData.title || '',
+        Description: this.buildComprehensiveNotes(leadData)
+      };
+
+      const response = await axios.post(`${instanceUrl}/services/data/v57.0/sobjects/Contact`, contactPayload, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ [SALESFORCE] Contact created:', response.data?.id);
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Salesforce' };
+    } catch (error) {
+      console.error('❌ [SALESFORCE] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.[0]?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Affinity via direct API
+   */
+  async syncLeadToAffinity(apiKey, leadData) {
+    try {
+      console.log('🔄 [AFFINITY] Syncing lead:', leadData.email);
+      
+      const personPayload = {
+        first_name: leadData.firstName || '',
+        last_name: leadData.lastName || '',
+        emails: [leadData.email],
+        phone_numbers: leadData.phone ? [leadData.phone] : []
+      };
+
+      const response = await axios.post('https://api.affinity.co/persons', personPayload, {
+        headers: { 'Authorization': `Basic ${Buffer.from(':' + apiKey).toString('base64')}` }
+      });
+
+      console.log('✅ [AFFINITY] Person created:', response.data?.id);
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Affinity' };
+    } catch (error) {
+      console.error('❌ [AFFINITY] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Capsule via direct API
+   */
+  async syncLeadToCapsule(apiKey, leadData) {
+    try {
+      console.log('🔄 [CAPSULE] Syncing lead:', leadData.email);
+      
+      const partyPayload = {
+        party: {
+          type: 'person',
+          firstName: leadData.firstName || '',
+          lastName: leadData.lastName || leadData.email.split('@')[0],
+          jobTitle: leadData.title || '',
+          emailAddresses: [{ type: 'Work', address: leadData.email }],
+          phoneNumbers: leadData.phone ? [{ type: 'Work', number: leadData.phone }] : []
+        }
+      };
+
+      const response = await axios.post('https://api.capsulecrm.com/api/v2/parties', partyPayload, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ [CAPSULE] Party created:', response.data?.party?.id);
+      return { success: true, crmContactId: response.data?.party?.id, crmIntegration: 'Capsule' };
+    } catch (error) {
+      console.error('❌ [CAPSULE] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Insightly via direct API
+   */
+  async syncLeadToInsightly(apiKey, leadData) {
+    try {
+      console.log('🔄 [INSIGHTLY] Syncing lead:', leadData.email);
+      
+      const contactPayload = {
+        FIRST_NAME: leadData.firstName || '',
+        LAST_NAME: leadData.lastName || leadData.email.split('@')[0],
+        EMAIL_ADDRESS: leadData.email,
+        PHONE: leadData.phone || '',
+        TITLE: leadData.title || '',
+        BACKGROUND: this.buildComprehensiveNotes(leadData)
+      };
+
+      const response = await axios.post('https://api.insightly.com/v3.1/Contacts', contactPayload, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(apiKey + ':').toString('base64')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ [INSIGHTLY] Contact created:', response.data?.CONTACT_ID);
+      return { success: true, crmContactId: response.data?.CONTACT_ID, crmIntegration: 'Insightly' };
+    } catch (error) {
+      console.error('❌ [INSIGHTLY] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.Message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Salesflare via direct API
+   */
+  async syncLeadToSalesflare(apiKey, leadData) {
+    try {
+      console.log('🔄 [SALESFLARE] Syncing lead:', leadData.email);
+      
+      const contactPayload = {
+        email: leadData.email,
+        firstname: leadData.firstName || '',
+        lastname: leadData.lastName || '',
+        phone_number: leadData.phone || '',
+        position: leadData.title || ''
+      };
+
+      const response = await axios.post('https://api.salesflare.com/contacts', contactPayload, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ [SALESFLARE] Contact created:', response.data?.id);
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Salesflare' };
+    } catch (error) {
+      console.error('❌ [SALESFLARE] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Zendesk Sell via direct API
+   */
+  async syncLeadToZendeskSell(apiKey, leadData) {
+    try {
+      console.log('🔄 [ZENDESK_SELL] Syncing lead:', leadData.email);
+      
+      const contactPayload = {
+        data: {
+          first_name: leadData.firstName || '',
+          last_name: leadData.lastName || leadData.email.split('@')[0],
+          email: leadData.email,
+          phone: leadData.phone || '',
+          title: leadData.title || '',
+          description: this.buildComprehensiveNotes(leadData)
+        }
+      };
+
+      const response = await axios.post('https://api.getbase.com/v2/contacts', contactPayload, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ [ZENDESK_SELL] Contact created:', response.data?.data?.id);
+      return { success: true, crmContactId: response.data?.data?.id, crmIntegration: 'Zendesk Sell' };
+    } catch (error) {
+      console.error('❌ [ZENDESK_SELL] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.errors?.[0]?.message || error.message };
     }
   }
 }
