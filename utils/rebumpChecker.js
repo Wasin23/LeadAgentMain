@@ -1,6 +1,7 @@
 import AWSManager from './awsManager.js';
 import AWSEmailQueue from './awsEmailQueue.js';
 import OpenAI from 'openai';
+import { leadEmail } from '../tools/leadEmail.js';
 
 const awsManager = new AWSManager();
 const emailQueue = new AWSEmailQueue();
@@ -32,32 +33,33 @@ Communication Style: ${personality.communicationStyle || 'direct and value-focus
 Company: ${companyInfo.companyName || 'our company'}
 Value Prop: ${companyInfo.valueProposition || 'our solution'}
 
-Generate 3 SHORT follow-up email templates (2-3 sentences max each) for leads who didn't respond to the initial outreach.
+Generate 3 short follow-up email templates (2-3 sentences each, MAX 4 sentences) for leads who didn't respond.
 
 Each template should:
-- Be brief and non-pushy
-- Match the agent's personality/tone
-- Use variables: {name}, {company}, {topic}, {days_ago}
-- Have a different angle (gentle nudge, value reminder, time-sensitive)
-- End with a simple question or call-to-action
+- Be SHORT and punchy - busy people don't read long emails
+- Use {name} (this will be replaced with FIRST NAME only)
+- Use other variables: {company}, {topic}, {days_ago}
+- Sound casual and human, not corporate
+- Have a different approach (value add, insight share, direct ask)
+- End with a simple question
 
 Return ONLY valid JSON with this structure:
 {
   "templates": [
     {
-      "name": "Gentle Nudge",
-      "subject": "Quick follow-up for {company}",
-      "body": "Template text here with {variables}"
+      "name": "Value Add",
+      "subject": "Quick thought on {company}",
+      "body": "Short 2-3 sentence template with {variables}"
     },
     {
-      "name": "Value Reminder", 
-      "subject": "Still relevant for {company}?",
-      "body": "Template text here with {variables}"
+      "name": "Insight Share", 
+      "subject": "Quick thought",
+      "body": "Short 2-3 sentence template with {variables}"
     },
     {
-      "name": "Time Sensitive",
-      "subject": "Last call, {name}",
-      "body": "Template text here with {variables}"
+      "name": "Direct Ask",
+      "subject": "Quick question, {name}?",
+      "body": "Short 2-3 sentence template with {variables}"
     }
   ]
 }`;
@@ -375,15 +377,18 @@ export async function checkForRebumps() {
             const lead = email.lead || {};
             const daysAgo = Math.floor(timeSinceLastContact / (24 * 60 * 60 * 1000));
             const topic = email.subject || 'our previous conversation';
+            
+            // Extract first name only (e.g., "John Smith" -> "John")
+            const firstName = (lead.name || 'there').split(' ')[0];
 
             const subject = template.subject
-              .replace(/{name}/g, lead.name || 'there')
+              .replace(/{name}/g, firstName)
               .replace(/{company}/g, lead.company || 'your company')
               .replace(/{topic}/g, topic)
               .replace(/{days_ago}/g, daysAgo);
 
             const body = template.body
-              .replace(/{name}/g, lead.name || 'there')
+              .replace(/{name}/g, firstName)
               .replace(/{company}/g, lead.company || 'your company')
               .replace(/{topic}/g, topic)
               .replace(/{days_ago}/g, daysAgo);
@@ -402,34 +407,50 @@ export async function checkForRebumps() {
             
             console.log(`🧵 [REBUMP] Threading info for follow-up:`, replyOptions);
 
-            // Queue the rebump email (with threading info for reply)
-            await emailQueue.queueEmail(userId, agentId, {
-              to: email.to,
-              subject: subject,
-              body: body,
-              html: body.replace(/\n/g, '<br>'),
-              lead: lead,
-              trackingId: email.trackingId, // Same thread
-              isRebump: true,
-              rebumpNumber: rebumpCount + 1,
-              originalEmailId: email.id,
-              templateUsed: template.name,
-              aiReport: email.aiReport, // Keep original report
-              confidenceLevel: 'medium',
-              timestamp: new Date().toISOString(),
-              // Threading info for sending as reply to original email
-              replyOptions: replyOptions
-            });
+            // SEND the rebump email directly (no queue - auto-send)
+            console.log(`📤 [REBUMP] Sending follow-up #${rebumpCount + 1} directly to ${email.to}`);
             
-            console.log(`📬 [REBUMP] Queued follow-up #${rebumpCount + 1} for ${email.to}`);
-
-            // Update original email with rebump info - mark that follow-up was queued
-            await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
-              rebumpCount: rebumpCount + 1,
-              lastRebumpAt: new Date().toISOString(),
-              lastRebumpQueuedAt: new Date().toISOString(),
-              followUpStatus: 'QUEUED' // Track follow-up status
-            });
+            try {
+              const sendResult = await leadEmail(
+                email.to,
+                subject,
+                body,
+                lead, // personInfo
+                userId,
+                agentId,
+                null, // ccEmails
+                null, // bccEmails
+                null, // senderName (will use agent settings)
+                replyOptions // threading info
+              );
+              
+              if (sendResult.success) {
+                console.log(`✅ [REBUMP] Successfully sent follow-up #${rebumpCount + 1} to ${email.to}`);
+                
+                // Update original email with rebump info - mark that follow-up was SENT
+                await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+                  rebumpCount: rebumpCount + 1,
+                  lastRebumpAt: new Date().toISOString(),
+                  lastFollowUpSentAt: new Date().toISOString(),
+                  followUpStatus: 'SENT'
+                });
+                
+                // Calculate next follow-up date if more follow-ups remaining
+                if (rebumpCount + 1 < maxRebumps) {
+                  const nextFollowUpDate = new Date(Date.now() + rebumpIntervalMs);
+                  await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+                    followUpDate: nextFollowUpDate.toISOString()
+                  });
+                  console.log(`📅 [REBUMP] Scheduled next follow-up for ${nextFollowUpDate.toISOString()}`);
+                }
+                
+                totalRebumpsQueued++; // Actually sent, but keeping the counter name
+              } else {
+                console.error(`❌ [REBUMP] Failed to send follow-up to ${email.to}:`, sendResult.error);
+              }
+            } catch (sendError) {
+              console.error(`❌ [REBUMP] Error sending follow-up to ${email.to}:`, sendError);
+            }
             
             console.log(`✅ [REBUMP] Updated original email ${email.id} with rebumpCount=${rebumpCount + 1}`);
 

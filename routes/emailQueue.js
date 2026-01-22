@@ -438,6 +438,25 @@ router.post('/:id/approve', async (req, res) => {
             console.log(`[EMAIL QUEUE] 🧵 Thread ID stored for reply threading: ${sendResult.result.threadId}`);
           }
           
+          // If this is a follow-up/rebump email, update the original email's followUpStatus
+          if (approvedEmail.isRebump && approvedEmail.originalEmailId) {
+            try {
+              console.log(`[EMAIL QUEUE] 🔄 This is a rebump email - updating original email ${approvedEmail.originalEmailId}`);
+              const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+              const awsQueue = getAWSEmailQueue();
+              
+              // Update the original email to mark that follow-up was actually SENT
+              await awsQueue.updateEmailStatus(userId, effectiveAgentId, approvedEmail.originalEmailId, 'SENT', 'SENT', {
+                followUpStatus: 'SENT',
+                lastFollowUpSentAt: new Date().toISOString()
+              });
+              console.log(`[EMAIL QUEUE] ✅ Updated original email ${approvedEmail.originalEmailId} followUpStatus to SENT`);
+            } catch (rebumpUpdateError) {
+              console.error('[EMAIL QUEUE] ⚠️ Failed to update original email after rebump:', rebumpUpdateError);
+              // Don't fail the whole operation if this fails
+            }
+          }
+          
           // Auto-schedule follow-up if enabled for this agent
           try {
             console.log('═══════════════════════════════════════════════════════════');

@@ -1982,41 +1982,50 @@ export default function InteractiveGlobe() {
                             {/* Follow-up Status Indicator - only show for sent emails */}
                             {selectedQueue?.type === 'sent' && email.followUpScheduled && (
                               <div className="flex items-center gap-2 mt-1">
-                                {/* Follow-up badge - use rebumpCount to determine if follow-ups were sent */}
+                                {/* Follow-up badge - use followUpStatus and rebumpCount to determine status */}
                                 {(() => {
                                   const rebumpCount = email.rebumpCount || 0;
                                   const maxFollowUps = email.maxFollowUps || 1;
-                                  const followUpsSent = rebumpCount > 0;
-                                  const allFollowUpsDone = rebumpCount >= maxFollowUps;
+                                  // followUpStatus: 'QUEUED' = follow-up is in queue waiting for approval
+                                  // followUpStatus: 'SENT' = follow-up was actually sent
+                                  // For backward compat: if rebumpCount > 0 but no followUpStatus, treat as QUEUED
+                                  const followUpStatus = email.followUpStatus || (rebumpCount > 0 ? 'QUEUED' : null);
+                                  const followUpActuallySent = followUpStatus === 'SENT';
+                                  const followUpQueued = followUpStatus === 'QUEUED';
+                                  const allFollowUpsDone = followUpActuallySent && rebumpCount >= maxFollowUps;
                                   
                                   return (
                                     <>
                                       <span className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded ${
                                         allFollowUpsDone
                                           ? 'bg-green-500/80 text-white' 
-                                          : followUpsSent
+                                          : followUpActuallySent
                                             ? 'bg-purple-500/80 text-white'
-                                            : email.followUpDate && new Date(email.followUpDate) <= new Date()
-                                              ? 'bg-orange-500/80 text-white animate-pulse'
-                                              : 'bg-blue-500/30 text-blue-300 border border-blue-500/40'
+                                            : followUpQueued
+                                              ? 'bg-yellow-500/80 text-black'
+                                              : email.followUpDate && new Date(email.followUpDate) <= new Date()
+                                                ? 'bg-orange-500/80 text-white animate-pulse'
+                                                : 'bg-blue-500/30 text-blue-300 border border-blue-500/40'
                                       }`}>
                                         <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                         {allFollowUpsDone
                                           ? `✓ ${rebumpCount}/${maxFollowUps} follow-ups complete`
-                                          : followUpsSent
+                                          : followUpActuallySent
                                             ? `Follow-up ${rebumpCount}/${maxFollowUps} sent`
-                                            : email.followUpDate && new Date(email.followUpDate) <= new Date()
-                                              ? 'Follow-up due!'
-                                              : `Follow-up scheduled (${rebumpCount}/${maxFollowUps})`
+                                            : followUpQueued
+                                              ? `Follow-up ${rebumpCount}/${maxFollowUps} queued for review`
+                                              : email.followUpDate && new Date(email.followUpDate) <= new Date()
+                                                ? 'Follow-up due!'
+                                                : `Follow-up scheduled (${rebumpCount}/${maxFollowUps})`
                                         }
                                       </span>
                                       {/* Next follow-up date - only show if not all done */}
                                       {email.followUpDate && !allFollowUpsDone && (
                                         <span className="text-[9px] text-[#8FA6C1]/60">
                                           {new Date(email.followUpDate) <= new Date() 
-                                            ? 'Due now'
+                                            ? followUpQueued ? 'Awaiting approval' : 'Due now'
                                             : `Next: ${new Date(email.followUpDate).toLocaleDateString()} ${new Date(email.followUpDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`
                                           }
                                         </span>
