@@ -5967,14 +5967,29 @@ Target Positions:`;
             }
           });
           
-          // Prepare lead data for CRM
+          // Prepare comprehensive lead data for CRM with full research and context
           const crmLeadData = {
             firstName: leadData.first_name || leadData.name?.split(' ')[0],
             lastName: leadData.last_name || leadData.name?.split(' ').slice(1).join(' '),
             email: leadData.email,
             phone: leadData.phone_number || null,
             companyName: leadData.company,
-            researchSummary: queueData.researchData?.summary || null
+            title: leadData.title || null,
+            linkedinUrl: leadData.linkedin_url || null,
+            // Timestamps
+            queuedAt: queueData.timestamp || new Date().toISOString(),
+            agentName: this.memory.personality?.name || 'Meridian Agent',
+            // Full AI Report
+            aiReport: queueData.aiReport || this.memory.currentQualification?.aiReport || null,
+            // Research data
+            researchSummary: queueData.researchData?.summary || null,
+            specificInsights: queueData.researchData?.specificInsights || [],
+            keyInsights: queueData.researchData?.keyInsights || [],
+            companyDetails: queueData.researchData?.companyDetails || null,
+            businessIntelligence: queueData.researchData?.businessIntelligence || null,
+            // Confidence data
+            confidenceLevel: queueData.confidenceLevel || leadData.confidenceLevel || null,
+            confidenceReport: queueData.confidenceReport || leadData.confidenceReport || null
           };
           
           // Use unified sync which handles both Merge and direct API integrations
