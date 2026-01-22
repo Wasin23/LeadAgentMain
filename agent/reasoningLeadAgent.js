@@ -1331,6 +1331,20 @@ Call the appropriate function to continue the workflow.`;
               console.log(`🔍 [CYCLE] Queue empty, searching for more leads`);
             }
           }
+        } else {
+          // Qualification FAILED (API error) - skip lead and move on
+          const failedLeadName = this.memory.currentCycle.currentLead?.name || 'Unknown';
+          console.log(`⚠️ [CYCLE] Qualification failed for ${failedLeadName}: ${actionResult?.error || 'Unknown error'}`);
+          this.memory.currentCycle.currentLead = null;
+          
+          if (this.memory.currentCycle.leadQueue.length > 0) {
+            this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+            this.memory.currentCycle.processingPhase = 'research';
+            console.log(`📋 [QUEUE] Processing next lead after qualification failure: ${this.memory.currentCycle.currentLead.name}`);
+          } else {
+            this.memory.currentCycle.processingPhase = 'search';
+            console.log(`🔍 [CYCLE] Queue empty after qualification failure, searching for more leads`);
+          }
         }
         break;
         
@@ -1528,6 +1542,67 @@ Call the appropriate function to continue the workflow.`;
           }
           
           console.log(`✉️ [CYCLE] Email built! Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue: ${this.memory.currentCycle.leadQueue.length}`);
+        } else {
+          // Email generation FAILED - skip this lead and move to next
+          const failedLeadName = this.memory.currentCycle.currentLead?.name || 'Unknown';
+          const failedLeadCompany = this.memory.currentCycle.currentLead?.company || 'Unknown';
+          const errorMsg = actionResult?.error || actionResult?.message || 'Unknown error';
+          
+          console.log(`⚠️ [CYCLE] Email generation failed for ${failedLeadName} at ${failedLeadCompany}: ${errorMsg}`);
+          console.log(`⏭️ [CYCLE] Skipping lead and moving to next...`);
+          
+          // Track the failed lead to avoid retrying
+          if (!this.memory.failedLeads) {
+            this.memory.failedLeads = [];
+          }
+          this.memory.failedLeads.push({
+            name: failedLeadName,
+            company: failedLeadCompany,
+            email: this.memory.currentCycle.currentLead?.email,
+            reason: errorMsg,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Broadcast skip event
+          this.broadcastAgentActivity({
+            agentId: this.agentId,
+            operation: 'Email Skip',
+            details: `⏭️ Skipped ${failedLeadName} at ${failedLeadCompany} - insufficient research data`,
+            status: 'warning',
+            timestamp: new Date()
+          }).catch(err => {
+            console.error('⚠️ [SSE] Failed to broadcast skip event:', err.message);
+          });
+          
+          // Clear current lead and move to next
+          this.memory.currentCycle.currentLead = null;
+          
+          // Get next lead from queue or search for more
+          if (this.memory.currentCycle.leadQueue.length > 0) {
+            // Process next lead from queue
+            this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+            this.memory.currentCycle.processingPhase = 'research';
+            console.log(`📋 [QUEUE] Processing next lead after skip: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
+            
+            // Broadcast location update
+            this.broadcastAgentActivity({
+              agentId: this.agentId,
+              operation: '💭 Agent Activity',
+              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              status: 'active',
+              timestamp: new Date()
+            }).catch(err => {
+              console.error('⚠️ [SSE] Failed to broadcast new lead activity:', err.message);
+            });
+          } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
+            // Need more leads - search again
+            this.memory.currentCycle.processingPhase = 'search';
+            console.log(`🔍 [CYCLE] Queue empty after skip, need ${this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed} more leads`);
+          } else {
+            // Cycle complete (all done, some skipped)
+            this.memory.currentCycle.processingPhase = 'complete';
+            console.log(`🏁 [CYCLE] Cycle complete after skip! Processed ${this.memory.currentCycle.leadsProcessed} leads, skipped ${this.memory.failedLeads?.length || 0}`);
+          }
         }
         break;
         
