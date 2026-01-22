@@ -3798,12 +3798,12 @@ Write like you're DMing someone on LinkedIn. Short, direct, human. Use line brea
 STRUCTURE (but make it flow naturally):
 
 OPENING (1-2 lines):
-Use a SPECIFIC finding from your research. Quote an actual number, event, or milestone you discovered.
+Use a SPECIFIC finding from YOUR research above. Quote actual numbers, events, or milestones YOU discovered.
 
-GOOD examples (using research):
-- "Saw CCB Technology serves 180+ employees across nonprofit IT — 30+ years in that space is rare."
-- "Noticed Premier Tech just announced expansion into 3 new markets last quarter."
-- "Your LinkedIn shows you went from 50 to 150 employees in 6 months. That's explosive growth."
+GOOD examples (using YOUR research):
+- "Saw [CompanyName] serves [X] employees across [industry] — [Y] years in that space is rare."
+- "Noticed [CompanyName] just announced [specific event] last quarter."
+- "Your team grew from [X] to [Y] employees in [Z] months. That's explosive growth."
 
 BAD examples (ignoring research):
 ❌ "As the visionary leader of a company deeply committed to digital transformation..."
@@ -3811,12 +3811,12 @@ BAD examples (ignoring research):
 ❌ Any opener that could apply to any CEO at any company
 
 THE HOOK (1 line):
-Connect their situation (from research) to a common challenge. If industry stats were found, use them.
+Connect THEIR situation (from research) to a common challenge. If industry stats were found, use them.
 
-Examples:
-- "As teams expand, many execs face the same challenge: funding growth while protecting operational focus."
-- "At that scale, most finance teams start drowning in contractor payments."
-- "That's when coordination overhead usually kills velocity — 73% of Series B companies report this (McKinsey)."
+Examples (use YOUR research, not these):
+- "At that scale, most execs face [challenge] that costs [metric]."
+- "Companies at [stage] typically hit [pain point] around this time."
+- "[Industry stat]% of [industry] companies report [challenge] (Source)."
 
 VALUE PROP (3-4 lines with bullet points):
 WHY your solution fits THEIR specific situation. Use simple dashes (-) not emojis. Be SPECIFIC with numbers and proof.
@@ -3881,16 +3881,15 @@ Format:
 
 - [Third-party stat or recent win if applicable]"
 
-GOOD Examples (specific, with proof):
-- "12-18% annual returns backed by physical real estate (outperforming REITs by 2.4x per PwC)"
-- "Start with $50 — PetSmart and Nortek diversified portfolios without disrupting ops"
-- "Just helped Stripe cut payment overhead 60% while scaling 5x"
+GOOD Examples (use YOUR data, not these):
+- "[X-Y]% returns backed by [proof] (cite source if available)"
+- "[CompanyName] saw [specific metric] without [disruption]"
+- "[Stat with source] shows [relevant data point]"
 
-BAD Examples (generic, no proof):
+BAD Examples (never do this):
 ❌ "Low investment threshold = Accessibility for all"
-❌ "Rigorous property selection = Quality assurance"  
-❌ "Consistent passive income = Financial stability"
-❌ Any bullet that's just "Feature = Generic benefit"
+❌ "Feature = Generic benefit" format
+❌ Vague claims without numbers or proof
 
 CLOSE (1-2 lines):
 Why now matters + simple CTA. One question, not multiple options.
@@ -3920,21 +3919,21 @@ DON'T:
 ❌ Write feature lists ("X = Y")
 ❌ Sound like a template
 
-EXAMPLE OF NEW STYLE:
+EXAMPLE STRUCTURE (use YOUR research, not this data):
 
-Hi Tom,
+Hi [FirstName],
 
-Saw Distribution Technology hit 50,000+ positions nationwide. That's serious scale in a space where most struggle to hit 10K.
+Saw [CompanyName] [specific metric/milestone from research]. That's [observation about scale/achievement].
 
-At that velocity, most execs hit the same wall: how to fund expansion without bleeding operational focus.
+At that [stage/velocity], [common challenge from industry].
 
-Here's how others at your stage are handling it:
+Here's how [solution fits]:
 
-- 12-18% annual returns from tokenized real estate (beating REITs by 2.4x per PwC)
-- PetSmart and Nortek diversified without ops disruption — $50 minimums, fully managed
-- Just helped a Series C fintech grow 5x while staying capital-efficient
+- [Specific % or $ benefit] for [their use case]
+- [CompanyName] saw [result] using [solution]
+- [Stat/win if available and verified]
 
-Worth 15 minutes next week to walk through the model?
+[CTA question]?
 
 Best,
 [Signature]
