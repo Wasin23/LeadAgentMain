@@ -96,9 +96,12 @@ try {
 // Import email queue routes
 let emailQueueRoutes;
 try {
+  console.log('🔄 [APP] Attempting to import email queue routes...');
   emailQueueRoutes = (await import('./routes/emailQueue.js')).default;
+  console.log('✅ [APP] Email queue routes loaded successfully');
 } catch (e) {
-  console.log('Email queue routes not available:', e.message);
+  console.error('❌ [APP] Email queue routes failed to load:', e.message);
+  console.error('❌ [APP] Stack trace:', e.stack);
   emailQueueRoutes = (req, res, next) => next(); // No-op if not present
 }
 
@@ -517,6 +520,7 @@ app.post('/api/research/debug', async (req, res) => {
 });
 
 app.use('/api/lead-agent', leadAgentRoutes);
+console.log('✅ [APP] Mounting email queue routes at /api/email-queue');
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/api/email-response-settings', emailResponseSettingsRoutes);
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
