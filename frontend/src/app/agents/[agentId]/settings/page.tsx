@@ -112,6 +112,7 @@ interface AgentSettings {
     useCustomSignature: boolean;
     signatureName: string;
     signatureTitle: string;
+    useGmail: boolean;
   };
 }
 
@@ -164,7 +165,8 @@ const defaultSettings: AgentSettings = {
     rebumpIntervalDays: 3,
     useCustomSignature: false,
     signatureName: '',
-    signatureTitle: ''
+    signatureTitle: '',
+    useGmail: false
   }
 };
 
@@ -525,7 +527,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             rebumpIntervalDays: emailSettings.rebumpIntervalDays || emailSettings.emailBuilder?.rebumpIntervalDays || 3,
             useCustomSignature: emailSettings.useCustomSignature ?? emailSettings.emailBuilder?.useCustomSignature ?? false,
             signatureName: emailSettings.signatureName || emailSettings.emailBuilder?.signatureName || '',
-            signatureTitle: emailSettings.signatureTitle || emailSettings.emailBuilder?.signatureTitle || ''
+            signatureTitle: emailSettings.signatureTitle || emailSettings.emailBuilder?.signatureTitle || '',
+            useGmail: emailSettings.useGmail ?? emailSettings.emailBuilder?.useGmail ?? false
           }
         };
         
@@ -1163,7 +1166,27 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   onChange={(checked) => updateEmail('enableAutoResponse', checked)}
                   description="Automatically respond to replies with AI"
                 />
-              </div>
+              </di
+
+            {/* Gmail Sending Toggle */}
+            <div className="border-t border-[#1B2F52] pt-4">
+              <Toggle
+                label="Use Gmail for Sending"
+                checked={settings.emailBuilder.useGmail}
+                onChange={(checked) => updateEmail('useGmail', checked)}
+                description="Send emails from your connected Gmail account instead of Mailgun (better deliverability)"
+              />
+              {settings.emailBuilder.useGmail && (
+                <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-300">
+                    ✓ Emails will be sent from your connected Gmail account
+                  </p>
+                  <p className="text-xs text-blue-300/70 mt-1">
+                    Make sure you've connected your Gmail account in Settings → Email → Gmail Connection
+                  </p>
+                </div>
+              )}
+            </div>v>
             </div>
 
             {/* Custom Signature */}
