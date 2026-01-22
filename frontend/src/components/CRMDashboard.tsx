@@ -302,6 +302,13 @@ export default function CRMDashboard() {
                 Supports Salesforce, HubSpot, Pipedrive, Zoho, Copper & Close
               </p>
               
+              {/* ActiveCampaign Warning */}
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-2">
+                <p className="text-xs text-yellow-400/90 text-center">
+                  <span className="font-semibold">ActiveCampaign users:</span> If you see ActiveCampaign in the popup above, it won't work for syncing contacts. Use the direct API option below instead.
+                </p>
+              </div>
+              
               {/* ActiveCampaign Direct Connect Option */}
               <div className="border-t border-[#4FD1FF]/20 pt-4">
                 <button
@@ -313,9 +320,12 @@ export default function CRMDashboard() {
                     alt="ActiveCampaign" 
                     className="w-5 h-5 rounded"
                   />
-                  Connect ActiveCampaign (API Key)
+                  Connect ActiveCampaign (Direct API)
                   <KeyIcon className="w-4 h-4 text-[#8FA6C1]" />
                 </button>
+                <p className="text-xs text-[#5a7a9a] text-center mt-2">
+                  Merge doesn't support write operations for ActiveCampaign
+                </p>
               </div>
             </>
           ) : (

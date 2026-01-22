@@ -33,10 +33,9 @@ class MergeManager {
         end_user_email_address: endUserEmail,
         end_user_organization_name: 'Meridian User',
         categories: ['crm'],
-        link_expiry_mins: 30,
-        // Only show CRMs that fully support contact creation via Merge
-        // Exclude ActiveCampaign as it doesn't support write operations
-        integration: 'hubspot,salesforce,pipedrive,zoho-crm,copper,close'
+        link_expiry_mins: 30
+        // Note: Can't filter integrations via API - users see all CRMs
+        // For ActiveCampaign, use the "Connect ActiveCampaign (API Key)" option instead
       });
 
       console.log('✅ [MERGE] Full response:', JSON.stringify(response.data, null, 2));
