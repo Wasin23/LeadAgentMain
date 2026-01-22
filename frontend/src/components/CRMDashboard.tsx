@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api from '@/lib/api';
 import { 
   CheckCircleIcon, 
@@ -272,6 +273,36 @@ export default function CRMDashboard() {
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Dropdown positioning refs
+  const dropdownButtonRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  // Update dropdown position when it opens
+  useEffect(() => {
+    if (showDropdown && dropdownButtonRef.current) {
+      const rect = dropdownButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, [showDropdown]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showDropdown && dropdownButtonRef.current && !dropdownButtonRef.current.contains(e.target as Node)) {
+        // Check if click is on the portal dropdown
+        const portal = document.querySelector('[class*="fixed z-[99999]"]');
+        if (portal && portal.contains(e.target as Node)) return;
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDropdown]);
 
   useEffect(() => {
     fetchCRMStatus();
@@ -375,7 +406,7 @@ export default function CRMDashboard() {
   }
 
   return (
-    <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20">
+    <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20" style={{ overflow: 'visible' }}>
       <div className="px-6 py-4 border-b border-[#4FD1FF]/20">
         <h2 className="text-xl font-semibold text-white">CRM Integration</h2>
         <p className="text-xs text-[#A3B4CC] mt-1">
@@ -448,20 +479,12 @@ export default function CRMDashboard() {
         </div>
       ) : (
         // Not Connected State - CRM Selection
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4" style={{ overflow: 'visible' }}>
           {!selectedCRM ? (
             // CRM Dropdown Selection
-            <div className="space-y-4">
-              <div className="flex flex-col items-center justify-center p-4 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
-                <KeyIcon className="w-10 h-10 text-[#4FD1FF] mb-3" />
-                <h3 className="text-sm font-medium text-white mb-1">Select Your CRM</h3>
-                <p className="text-xs text-[#8FA6C1] text-center mb-4">
-                  Choose your CRM and enter API credentials to sync leads
-                </p>
-              </div>
-
+            <div className="space-y-4" style={{ overflow: 'visible' }}>
               {/* CRM Dropdown */}
-              <div className="relative">
+              <div className="relative" ref={dropdownButtonRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="w-full flex items-center justify-between px-4 py-3 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg text-white hover:bg-[#1a2e4a] transition-colors"
@@ -470,8 +493,15 @@ export default function CRMDashboard() {
                   <ChevronDownIcon className={`w-5 h-5 text-[#8FA6C1] transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
                 </button>
 
-                {showDropdown && (
-                  <div className="absolute z-[100] w-full mt-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg shadow-2xl max-h-[400px] overflow-y-auto">
+                {showDropdown && typeof window !== 'undefined' && createPortal(
+                  <div 
+                    className="fixed z-[99999] bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg shadow-2xl max-h-[60vh] overflow-y-auto"
+                    style={{
+                      top: dropdownPosition.top,
+                      left: dropdownPosition.left,
+                      width: dropdownPosition.width,
+                    }}
+                  >
                     {CRM_CONFIGS.map((crm) => (
                       <button
                         key={crm.id}
@@ -495,7 +525,8 @@ export default function CRMDashboard() {
                         <span className="text-sm text-white">{crm.name}</span>
                       </button>
                     ))}
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
 

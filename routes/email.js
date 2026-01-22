@@ -276,13 +276,24 @@ router.post('/check-domain-health', authenticateToken, async (req, res) => {
         lastChecked: new Date().toISOString()
       };
       
+      // First ensure emailSettings exists
+      const initCommand = new UpdateCommand({
+        TableName: tableName,
+        Key: { userId },
+        UpdateExpression: 'SET emailSettings = if_not_exists(emailSettings, :emptyObj)',
+        ExpressionAttributeValues: {
+          ':emptyObj': {}
+        }
+      });
+      await dynamodb.send(initCommand);
+      
+      // Then set the nested domainHealth
       const updateCommand = new UpdateCommand({
         TableName: tableName,
         Key: { userId },
-        UpdateExpression: 'SET emailSettings = if_not_exists(emailSettings, :emptyObj), emailSettings.domainHealth = :healthObj',
+        UpdateExpression: 'SET emailSettings.domainHealth = :healthObj',
         ExpressionAttributeValues: {
-          ':healthObj': healthData,
-          ':emptyObj': {}
+          ':healthObj': healthData
         }
       });
       await dynamodb.send(updateCommand);
