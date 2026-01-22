@@ -3729,74 +3729,39 @@ Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved effici
 Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PERSONALITY-DRIVEN EMAIL STRATEGY
+WRITING STYLE BY PERSONALITY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Based on YOUR personality above, adapt your approach:
-
-🎯 THE HUNTER (high-energy, results-driven):
-- Lead with ROI/savings when financial data available
-- Subject lines: "Save X% on [specific thing]" or "Quick call this week?"
-- Get straight to value in sentence 1
-- Use direct CTAs: "Worth 15 minutes?" not "Would you be interested in exploring..."
-- Create urgency without being pushy
-
-💙 RELATIONSHIP BUILDER (warm, consultative):
-- Ask questions instead of pitching immediately  
-- Subject lines: "Question about [their company]'s [initiative]" or "Curious about your approach to [X]"
-- Show genuine interest in their work
-- Softer CTAs: "Curious if this fits your strategy?" or "Would love to learn more about..."
-- Build rapport first, sell second
-
-📊 ANALYST (data-driven, research-heavy):
-- Lead with specific data/insights from research
-- Subject lines: "Quick insight on [their industry]" or "Data on [specific challenge]"
-- Use numbers and concrete findings
-- Evidence-based recommendations
-- CTA should feel consultative: "Happy to share the research" or "Can walk you through the data"
-
-🧠 CONSULTANT (advisory, solution-focused):
-- Position as strategic peer, not vendor
-- Subject lines: "Strategic thought on [their challenge]" or "Solving [specific problem]"
-- Frame from their business perspective
-- Offer insights/guidance tone
-- CTA: "Happy to outline the approach" or "Can share how others solved this"
-
-🌐 NETWORKER (social, connection-based):
-- Reference connections, social proof, community
-- Subject lines: "Working with [similar company]" or "[Mutual connection] suggested I reach out"
-- Use conversational, friendly tone
-- Leverage LinkedIn, mutual contacts
-- CTA: "Mind if I share what's working?" or "Quick intro?"
+🎯 HUNTER: Direct, ROI-focused. Subject: "Save X% on [thing]" CTA: "Worth 15 minutes?"
+💙 RELATIONSHIP: Questions, consultative. Subject: "Question about [initiative]" CTA: "Curious if this fits?"
+📊 ANALYST: Data-led. Subject: "Data on [challenge]" CTA: "Happy to share the research"
+🧠 CONSULTANT: Strategic peer. Subject: "Strategic thought on [problem]" CTA: "Can outline the approach"
+🌐 NETWORKER: Social proof. Subject: "Working with [similar company]" CTA: "Mind if I share?"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RESEARCH-DRIVEN APPROACH
+CRITICAL RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚠️ CRITICAL: YOU JUST CONDUCTED DEEP RESEARCH ON THIS COMPANY
-The research data contains 4 searches:
-1. Company overview (verify criteria match)
-2. Recent news/developments (timely hooks)
-3. Industry statistics (third-party credibility)
-4. Your company's recent wins (optional social proof)
+✅ USE RESEARCH: Open with specific numbers/events from research findings above
+✅ CITE SOURCES: "According to [source]" or "(McKinsey, 2024)"
+✅ NUMBERS REQUIRED: "12-18% returns", "$200K savings", "60% faster"
+✅ NAME COMPANIES: "PetSmart saw X" not "Companies see X"
 
-YOU MUST USE THIS RESEARCH DATA IN THE EMAIL. Do not write generic pitches.
+❌ NEVER HALLUCINATE: If fact doesn't mention prospect's company name explicitly, skip it
+❌ NO GENERIC BULLETS: Never write "Feature = Benefit" format
+❌ NO MIXING: Don't confuse prospect's achievements with YOUR company's achievements
+❌ NO FLUFF: Skip "visionary leader" or "imagine you're looking for"
 
-STEP 1 - ANALYZE YOUR RESEARCH DATA:
-Look at the research results above. What's your BEST hook from the actual findings?
+STRUCTURE (5-7 sentences):
+1. HOOK: Specific research finding (number/event/milestone)
+2. CHALLENGE: Connect to common pain point (cite industry stat if available)
+3. VALUE (3 bullets):
+   - Specific number + their use case
+   - Proof: [Company] saw [result]
+   - Stat/win if impressive
+4. CTA: One question, why now matters
 
-Priority order (use REAL data from research):
-1. 💰 Financial data found (revenue, funding round, growth %) → Lead with specific number
-2. 🔥 Pain point mentioned in research → Quote or reference it
-3. 📰 Recent news (funding announcement, hiring spree, expansion) → Cite the actual event
-4. 🛠️ Tech stack/initiative mentioned → Reference it specifically
-5. 📈 Growth indicators (employee count change, market expansion) → Use the actual metric
-6. 🤷 Nothing specific found? → At minimum reference their company size/industry from research
-
-Examples of USING research:
-✅ "Saw CCB Technology just passed 180 employees — that's serious momentum in the nonprofit IT space"
-✅ "Noticed Premier Tech closed a $15M Series B last month"
-✅ "Your team grew from 50 to 150 in 6 months according to LinkedIn"
+Subject: Casual, <45 chars, lowercase/sentence case, match body content
 
 Examples of IGNORING research (DON'T DO THIS):
 ❌ "As a visionary leader committed to digital transformation..." (generic fluff)
@@ -3975,22 +3940,6 @@ Best,
 [Signature]
 
 LENGTH: Aim for 5-7 sentences total. Use line breaks to make it scannable.
-- Talking about yourself instead of their problems
-- Wasting sentences on fluff
-
-EXAMPLES OF VALUE-DRIVEN 7-SENTENCE EMAILS:
-
-Hunter: "Saw Codebridge raised $15M Series B and is scaling from 50 to 150 employees. At that growth rate, contractor payments typically become a 20-hour/week bottleneck for finance teams. We automate the entire workflow - approval, payment, compliance, and reconciliation in one system. Stripe scaled from 100 to 500 contractors without adding finance headcount using our platform. You're hiring 50+ people right now according to LinkedIn - that's exactly when this becomes critical. Most companies wait until it breaks, then spend 6 months fixing it. Worth a 15-minute call this week?"
-
-Relationship Builder: "Noticed you're expanding into EU markets with your Q4 announcement. Companies making that move typically hit multi-currency compliance issues around month 3-4 that cost $50K-100K to sort out retroactively. We've built tools specifically for US companies entering EU that handle VAT, GDPR, and multi-currency automatically. One of your competitors avoided that entire mess by setting this up during expansion planning. You're about 2-3 months from when this usually becomes urgent based on your timeline. Happy to share the playbook we've built from 20+ companies doing exactly this. Quick chat to walk through it?"
-
-Analyst: "Your Q3 report showed 200% revenue growth with a 35-person team. That ratio typically creates 25-30% cash flow gaps due to payment timing mismatches. We've analyzed this pattern across 150+ companies at your stage - the average impact is $200K-500K in working capital tied up unnecessarily. Our system cuts that by 60-70% by optimizing payment cycles and automating reconciliation. Given your growth velocity, you're likely 4-6 weeks from this becoming a board-level discussion. Want to see the financial model we've built? 20-minute call?"
-
-Analyst: "Your Q3 report showed 200% growth in contract work. That growth rate typically creates 25-35% cash flow timing issues - we've tracked this across 100+ companies. Here's the pattern we're seeing."
-
-Consultant: "Most Series B companies hit compliance bottlenecks around 75 employees - Codebridge is right at that threshold. The typical cost is $150K-300K in consulting fees plus 4-6 months of management distraction. We've mapped the exact pattern across 40+ companies at your stage and built automated compliance infrastructure. Two of your competitors used this to skip the entire mess and deploy resources elsewhere. You're about 8-12 weeks from when boards typically flag this as urgent. Want the compliance roadmap? It's a 25-minute walkthrough."
-
-Networker: "We're helping Stripe and Deel with contractor payments at scale - they mentioned companies like Codebridge might be facing similar challenges. At 50+ contractors, the typical pain point is payment reconciliation eating 15-20 hours/week. We've built integrations that cut that to under 2 hours while handling 10x more volume. Given your growth trajectory, this becomes critical in the next quarter. Mind a quick intro to compare notes?"
 
 FORMATTING:
 Opening: Hello ${leadData.first_name},
