@@ -2554,6 +2554,9 @@ Respond in JSON:
   async serperResearch(parameters) {
     const leadData = this.memory.currentCycle.currentLead;
     
+    // Get email settings for company name
+    const emailSettings = await this.zillizManager.getEmailResponseSettings(this.userId);
+    
     // Use provided parameters first, fallback to memory
     const companyName = parameters?.companyName || leadData?.organization?.name || leadData?.company || 'Unknown Company';
     const personName = parameters?.personName || leadData?.name || 'Unknown';
