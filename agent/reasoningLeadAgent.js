@@ -2554,9 +2554,6 @@ Respond in JSON:
   async serperResearch(parameters) {
     const leadData = this.memory.currentCycle.currentLead;
     
-    // Get email settings for company name
-    const emailSettings = await this.zillizManager.getEmailResponseSettings(this.userId);
-    
     // Use provided parameters first, fallback to memory
     const companyName = parameters?.companyName || leadData?.organization?.name || leadData?.company || 'Unknown Company';
     const personName = parameters?.personName || leadData?.name || 'Unknown';
@@ -2638,7 +2635,7 @@ Respond in JSON:
         }
         
         // Search 4: User's company recent successes (for social proof)
-        const userCompanyName = emailSettings?.companyBranding?.companyName || 'company';
+        const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'company';
         searchQueries.push({
           query: `${userCompanyName} news funding clients partnerships awards success 2025 2026`,
           purpose: 'user_company_success',
