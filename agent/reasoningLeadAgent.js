@@ -2628,7 +2628,7 @@ Respond in JSON:
         } else {
           console.log(`📊 [CACHE MISS] Fetching fresh industry statistics for "${industryKeyword}"`);
           searchQueries.push({
-            query: `${industryKeyword} industry statistics trends McKinsey Gartner report 2024 2025`,
+            query: `${industryKeyword} industry statistics trends data 2024 2025`,
             purpose: 'industry_statistics',
             description: 'Third-party industry data and statistics'
           });

@@ -1233,21 +1233,24 @@ class AWSManager {
 
         // STEP 1: Check if email is unsubscribed (blocks across ALL agents for this user)
         if (leadEmail) {
-          const unsubCheckCommand = new GetCommand({
-            TableName: this.tables.unsubscribes,
-            Key: {
-              email: leadEmail.toLowerCase()
-            }
-          });
-
+          const normalizedEmail = leadEmail.toLowerCase().trim();
+          
           try {
-            const unsubResult = await this.dynamodb.send(unsubCheckCommand);
-            if (unsubResult.Item && unsubResult.Item.userId === userId) {
+            const unsubResult = await this.dynamodb.send(new QueryCommand({
+              TableName: this.tables.unsubscribes,
+              KeyConditionExpression: 'PK = :pk',
+              ExpressionAttributeValues: {
+                ':pk': `UNSUBSCRIBE#${normalizedEmail}`
+              },
+              Limit: 1
+            }));
+            
+            if (unsubResult.Items && unsubResult.Items.length > 0) {
               console.log('🚫 [UNSUBSCRIBED]:', lead.name, '(', leadEmail, ') - BLOCKED');
               unsubscribedLeads.push({
                 ...lead,
-                unsubscribedAt: unsubResult.Item.timestamp,
-                reason: 'unsubscribed'
+                unsubscribedAt: unsubResult.Items[0].unsubscribedAt,
+                reason: unsubResult.Items[0].reason || 'unsubscribed'
               });
               continue; // Skip to next lead
             }
