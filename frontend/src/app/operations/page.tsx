@@ -275,6 +275,7 @@ export default function InteractiveGlobe() {
   const [agentMetricsHistory, setAgentMetricsHistory] = useState<{[agentId: string]: any[]}>({});
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [currentEmailPage, setCurrentEmailPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // 'desc' = latest first, 'asc' = earliest first
   const EMAILS_PER_PAGE = 20;
   
   // Auto-editor states
@@ -1669,28 +1670,38 @@ export default function InteractiveGlobe() {
             if (agents.length > 0) {
               setLoadingQueue(true);
               try {
-                const allEmails: any[] = [];
-                for (const agent of agents) {
-                  if (agent.agentId === 'orphan') continue;
-                  
-                  try {
-                    const response = await api.get(`/api/email-queue/queue`, {
-                      params: { agentId: agent.agentId }
-                    });
-                    const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
-                    allEmails.push(...emails.map((email: any) => ({
-                      ...email,
-                      agentName: agent.name
-                    })));
-                  } catch (err: any) {
-                    if (err?.response?.status !== 404) {
-                      console.error('Error fetching emails for agent', agent.name, ':', err);
+                // Check if "all agents" is selected or a specific agent
+                if (!selectedAgent) {
+                  // Fetch all emails from all agents
+                  const allEmails: any[] = [];
+                  for (const agent of agents) {
+                    if (agent.agentId === 'orphan') continue;
+                    
+                    try {
+                      const response = await api.get(`/api/email-queue/queue`, {
+                        params: { agentId: agent.agentId }
+                      });
+                      const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
+                      allEmails.push(...emails.map((email: any) => ({
+                        ...email,
+                        agentName: agent.name
+                      })));
+                    } catch (err: any) {
+                      if (err?.response?.status !== 404) {
+                        console.error('Error fetching emails for agent', agent.name, ':', err);
+                      }
                     }
                   }
+                  const sorted = allEmails.sort((a, b) => 
+                    sortOrder === 'desc' 
+                      ? new Date(b.queuedAt || b.timestamp).getTime() - new Date(a.queuedAt || a.timestamp).getTime()
+                      : new Date(a.queuedAt || a.timestamp).getTime() - new Date(b.queuedAt || b.timestamp).getTime()
+                  );
+                  setQueueEmails(sorted);
+                } else {
+                  // Fetch specific agent's emails
+                  fetchQueueEmails(selectedAgent.agentId, 'queued');
                 }
-                setQueueEmails(allEmails.sort((a, b) => 
-                  new Date(b.queuedAt || b.timestamp).getTime() - new Date(a.queuedAt || a.timestamp).getTime()
-                ));
               } catch (error) {
                 console.error('Error fetching queue emails:', error);
               } finally {
@@ -1930,6 +1941,24 @@ export default function InteractiveGlobe() {
                             Send All
                           </button>
                           <button
+                            onClick={async () => {
+                              if (!confirm(`Reject ${selectedEmails.size} email(s)?`)) return;
+                              
+                              for (const emailId of selectedEmails) {
+                                const email = queueEmails.find(e => (e._id || e.id) === emailId);
+                                if (email) {
+                                  await handleRejectEmailFromQueue(emailId, email.agentId);
+                                }
+                              }
+                              
+                              setSelectedEmails(new Set());
+                              setSelectionMode(false);
+                            }}
+                            className="px-2 py-0.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded text-xs font-medium transition-colors"
+                          >
+                            Reject All
+                          </button>
+                          <button
                             onClick={() => setSelectedEmails(new Set())}
                             className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded transition-colors"
                           >
@@ -1943,6 +1972,33 @@ export default function InteractiveGlobe() {
               )}
               
               <span className="text-[10px] text-[#8FA6C1] ml-2">{queueEmails.length} emails</span>
+              
+              {/* Sort Order Toggle */}
+              <button
+                onClick={() => {
+                  const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+                  setSortOrder(newOrder);
+                  setQueueEmails(prev => [...prev].reverse());
+                }}
+                className="ml-2 px-2 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-[10px] font-medium transition-colors flex items-center gap-1 border border-[#4FD1FF]/30"
+                title={sortOrder === 'desc' ? 'Latest first' : 'Earliest first'}
+              >
+                {sortOrder === 'desc' ? (
+                  <>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    Latest
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    Earliest
+                  </>
+                )}
+              </button>
             </div>
           </div>
           

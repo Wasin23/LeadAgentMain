@@ -3,7 +3,9 @@ import { EmailQueue } from '../lib/emailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSEmailQueue from '../utils/awsEmailQueue.js';
+import AWSManager from '../utils/awsManager.js';
 import { autoScheduleFollowUp } from '../utils/rebumpChecker.js';
+import { sendDesktopNotification } from '../utils/desktopNotifications.js';
 
 const router = express.Router();
 
@@ -397,6 +399,55 @@ router.post('/:id/approve', async (req, res) => {
     if (sendResult.success) {
       console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);
       console.log('📦 [EMAIL QUEUE] sendResult object:', JSON.stringify(sendResult, null, 2));
+      
+      // Create in-app notification for email approval/send
+      try {
+        const leadName = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName || 'Lead';
+        const companyName = approvedEmail.leadDetails?.companyName || 'Unknown Company';
+        
+        const awsManager = new AWSManager();
+        await awsManager.addIssue(
+          userId,
+          'email',
+          'low',
+          `✅ Email sent to ${leadName}`,
+          `Your email to ${leadName} at ${companyName} has been sent successfully.`,
+          {
+            emailId: id,
+            recipient: finalRecipient,
+            subject: finalSubject,
+            leadName,
+            companyName,
+            sentAt: new Date().toISOString()
+          }
+        );
+        console.log('[EMAIL QUEUE] 📬 In-app notification created for email send');
+      } catch (notifError) {
+        console.error('[EMAIL QUEUE] ⚠️ Failed to create notification:', notifError.message);
+      }
+      
+      // Send desktop notification
+      try {
+        const leadName = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName || 'Lead';
+        const companyName = approvedEmail.leadDetails?.companyName || 'Unknown Company';
+        await sendDesktopNotification(
+          userId,
+          '✅ Email Sent Successfully',
+          `Email to ${leadName} at ${companyName} has been sent`,
+          'email_sent',
+          { 
+            emailId: id, 
+            recipient: finalRecipient,
+            subject: finalSubject,
+            leadName,
+            companyName
+          }
+        );
+        console.log('[EMAIL QUEUE] 🔔 Desktop notification sent for approved email');
+      } catch (notifError) {
+        console.error('[EMAIL QUEUE] ⚠️ Failed to send desktop notification:', notifError.message);
+        // Don't fail the email send if notification fails
+      }
       
       // Mark email as sent in AWS DynamoDB
       if (sendResult.result) {
