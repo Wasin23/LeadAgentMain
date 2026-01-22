@@ -3,9 +3,9 @@ import { EmailQueue } from '../lib/emailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSEmailQueue from '../utils/awsEmailQueue.js';
-import AWSManager from '../utils/awsManager.js';
 import { autoScheduleFollowUp } from '../utils/rebumpChecker.js';
 import { sendDesktopNotification } from '../utils/desktopNotifications.js';
+import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
 
