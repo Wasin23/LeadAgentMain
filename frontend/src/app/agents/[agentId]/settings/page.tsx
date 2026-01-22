@@ -1166,7 +1166,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   onChange={(checked) => updateEmail('enableAutoResponse', checked)}
                   description="Automatically respond to replies with AI"
                 />
-              </di
+              </div>
+            </div>
 
             {/* Gmail Sending Toggle */}
             <div className="border-t border-[#1B2F52] pt-4">
@@ -1186,7 +1187,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   </p>
                 </div>
               )}
-            </div>v>
             </div>
 
             {/* Custom Signature */}
