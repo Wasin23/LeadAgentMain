@@ -3576,7 +3576,14 @@ SUBJECT LINE RULES:
 - NO generic pitches like "Transforming X with Y" or "Your Next Strategic Move"
 - NO name followed by dash format (NO "Filip - ...")
 - Be specific using research data, not vague
-- The email body MUST match what the subject line promises
+
+⚠️ CRITICAL - SUBJECT/BODY ALIGNMENT:
+- If subject says "Quick question about X" → The email MUST contain an actual question about X
+- If subject says "Question about [topic]" → Ask a genuine question in the body
+- If subject promises something specific → The body MUST deliver that specific thing
+- NEVER use "Quick question" as a subject if you don't ask a question in the email
+- Question-style subjects are engagement hooks - you MUST follow through with the actual question
+- Example: Subject "Quick question about your contractor workflow" → Body must include something like "How are you currently handling contractor payments at scale?"
 
 STEP 3 - WRITE EMAIL BODY (7 SENTENCES - MAKE EVERY WORD COUNT):
 
