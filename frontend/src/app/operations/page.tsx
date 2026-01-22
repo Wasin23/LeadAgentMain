@@ -2496,9 +2496,13 @@ export default function InteractiveGlobe() {
 
           {/* Activity Log & Control Center */}
           <div className="flex flex-col flex-1 min-h-0 relative">
-            {/* Stop All Agents Button - Top Right (only when agents are running) */}
-            {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length > 0 && (
-              <div className="absolute top-4 right-4 z-10">
+            {/* Activity Log Header */}
+            <div className="flex items-center justify-between p-3 border-b border-[#4FD1FF]/10">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity Log</h3>
+              </div>
+              {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length > 0 && (
                 <button
                   onClick={async () => {
                     // Optimistic update
@@ -2516,26 +2520,15 @@ export default function InteractiveGlobe() {
                     }
                     await fetchAgents();
                   }}
-                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border-2 border-red-500/40 hover:border-red-500/60 text-red-300 rounded-lg transition-all duration-300 flex items-center gap-2 text-sm font-semibold shadow-lg animate-fade-in"
+                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 hover:border-red-500/60 text-red-300 rounded transition-all flex items-center gap-2 text-xs font-semibold"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
                   </svg>
-                  Stop All Agents
+                  Stop All
                 </button>
-              </div>
-            )}
-
-            {/* Activity Log Header */}
-            <div className="flex items-center justify-between p-3 border-b border-[#4FD1FF]/10">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
-                <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity Log</h3>
-              </div>
-              <span className="text-[#8FA6C1] text-[9px] font-mono">
-                {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length} active
-              </span>
+              )}
             </div>
             
             {/* Activity Log Content */}
@@ -2557,22 +2550,67 @@ export default function InteractiveGlobe() {
                 </button>
                 <div className="h-px bg-[#4FD1FF]/10 my-2"></div>
                 {agents.filter(a => a.agentId !== 'orphan').map(agent => (
-                  <button
+                  <div
                     key={agent.agentId}
-                    onClick={() => setSelectedAgentFilter(agent.agentId)}
-                    className={`px-3 py-2 text-xs font-medium transition-all text-left flex items-center gap-2 ${
+                    className={`flex items-center transition-all ${
                       selectedAgentFilter === agent.agentId
-                        ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-r-2 border-[#4FD1FF]'
-                        : 'text-[#8FA6C1] hover:bg-white/5 hover:text-white'
+                        ? 'bg-[#4FD1FF]/20 border-r-2 border-[#4FD1FF]'
+                        : 'hover:bg-white/5'
                     }`}
                   >
-                    <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-[#4FD1FF]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 4.5C13.38 4.5 14.5 5.62 14.5 7C14.5 8.38 13.38 9.5 12 9.5C10.62 9.5 9.5 8.38 9.5 7C9.5 5.62 10.62 4.5 12 4.5ZM5.5 7C5.5 5.62 6.62 4.5 8 4.5C9.38 4.5 10.5 5.62 10.5 7C10.5 8.38 9.38 9.5 8 9.5C6.62 9.5 5.5 8.38 5.5 7ZM13.5 7C13.5 5.62 14.62 4.5 16 4.5C17.38 4.5 18.5 5.62 18.5 7C18.5 8.38 17.38 9.5 16 9.5C14.62 9.5 13.5 8.38 13.5 7ZM4 14C4 12.34 5.34 11 7 11C7.41 11 7.81 11.08 8.17 11.23C7.47 12.06 7 13.13 7 14.31V16H4V14ZM17 16V14.31C17 13.13 16.53 12.06 15.83 11.23C16.19 11.08 16.59 11 17 11C18.66 11 20 12.34 20 14V16H17ZM9 14C9 12.34 10.34 11 12 11C13.66 11 15 12.34 15 14V16H9V14Z"/>
-                      </svg>
-                    </div>
-                    <span className="truncate">{agent.name}</span>
-                  </button>
+                    <button
+                      onClick={() => setSelectedAgentFilter(agent.agentId)}
+                      className="flex-1 px-3 py-2 text-xs font-medium text-left flex items-center gap-2 text-[#8FA6C1] hover:text-white"
+                    >
+                      <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border border-[#4FD1FF]/20">
+                        <img 
+                          src="/avatars/mark.png"
+                          alt={agent.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                      <span className="truncate">{agent.name}</span>
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (agent.status === 'running') {
+                          // Stop agent
+                          setAgents(prev => prev.map(a => a.agentId === agent.agentId ? { ...a, status: 'stopped' } : a));
+                          try {
+                            await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
+                            await fetchAgents();
+                          } catch (error) {
+                            console.error('Error stopping agent:', error);
+                          }
+                        } else {
+                          // Start agent
+                          setAgents(prev => prev.map(a => a.agentId === agent.agentId ? { ...a, status: 'running' } : a));
+                          try {
+                            await api.post('/api/lead-agent/start', { agentId: agent.agentId });
+                            await fetchAgents();
+                          } catch (error) {
+                            console.error('Error starting agent:', error);
+                          }
+                        }
+                      }}
+                      className="px-2 py-2 hover:bg-white/10 transition-colors"
+                    >
+                      {agent.status === 'running' ? (
+                        <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                          <rect x="6" y="4" width="4" height="16" />
+                          <rect x="14" y="4" width="4" height="16" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -2625,13 +2663,19 @@ export default function InteractiveGlobe() {
                       .map((log, idx) => (
                         <div 
                           key={log.id || idx}
-                          className="flex items-start gap-3 p-3 bg-[#0A1525]/40 rounded border border-[#4FD1FF]/10 hover:border-[#4FD1FF]/30 transition-all animate-fade-in"
+                          className="flex items-start gap-3 p-3 bg-[#0A1525]/40 rounded border border-[#4FD1FF]/10 hover:border-[#4FD1FF]/20"
                         >
                           {/* Agent Avatar */}
-                          <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/30 flex-shrink-0 flex items-center justify-center bg-[#0A1525]/60">
-                            <svg className="w-5 h-5 text-[#4FD1FF]" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 4.5C13.38 4.5 14.5 5.62 14.5 7C14.5 8.38 13.38 9.5 12 9.5C10.62 9.5 9.5 8.38 9.5 7C9.5 5.62 10.62 4.5 12 4.5ZM5.5 7C5.5 5.62 6.62 4.5 8 4.5C9.38 4.5 10.5 5.62 10.5 7C10.5 8.38 9.38 9.5 8 9.5C6.62 9.5 5.5 8.38 5.5 7ZM13.5 7C13.5 5.62 14.62 4.5 16 4.5C17.38 4.5 18.5 5.62 18.5 7C18.5 8.38 17.38 9.5 16 9.5C14.62 9.5 13.5 8.38 13.5 7ZM4 14C4 12.34 5.34 11 7 11C7.41 11 7.81 11.08 8.17 11.23C7.47 12.06 7 13.13 7 14.31V16H4V14ZM17 16V14.31C17 13.13 16.53 12.06 15.83 11.23C16.19 11.08 16.59 11 17 11C18.66 11 20 12.34 20 14V16H17ZM9 14C9 12.34 10.34 11 12 11C13.66 11 15 12.34 15 14V16H9V14Z"/>
-                            </svg>
+                          <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/30 flex-shrink-0 overflow-hidden bg-[#0A1525]/60">
+                            <img 
+                              src="/avatars/mark.png"
+                              alt={log.agentName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
                           </div>
 
                           {/* Log Content */}
@@ -2644,9 +2688,6 @@ export default function InteractiveGlobe() {
                             </div>
                             <p className="text-[#8FA6C1] text-xs leading-relaxed">{log.message}</p>
                           </div>
-
-                          {/* Icon */}
-                          <div className="text-lg flex-shrink-0">{log.icon}</div>
                         </div>
                       ))
                     }
