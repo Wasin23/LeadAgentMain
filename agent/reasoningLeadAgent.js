@@ -2704,18 +2704,38 @@ Respond in JSON:
             for (const webpage of webpageContents) {
               if (webpage.success && webpage.content) {
                 try {
+                  // CRITICAL: Validate that the webpage actually mentions the company
+                  const companyMentioned = webpage.content.toLowerCase().includes(companyName.toLowerCase()) ||
+                                          webpage.title.toLowerCase().includes(companyName.toLowerCase());
+                  
+                  if (!companyMentioned && search.purpose === 'user_company_success') {
+                    console.log(`   ⚠️ Skipping ${webpage.title} - "${companyName}" not mentioned (avoiding hallucination)`);
+                    continue;
+                  }
+                  
                   // Use GPT-4 to extract only relevant business insights
-                  const insightPrompt = `Extract ONLY the most relevant and impressive business facts about ${companyName} from this webpage content. Focus on:
-- Recent achievements, growth, funding
-- Key partnerships or clients
+                  const insightPrompt = `Extract ONLY the most relevant and impressive business facts about ${companyName} from this webpage content.
+
+CRITICAL RULES:
+1. The webpage MUST explicitly mention "${companyName}" - if it doesn't, return "NO RELEVANT DATA"
+2. Do NOT infer, assume, or make connections to similar-sounding companies
+3. Only extract facts that directly reference "${companyName}" by name
+4. If you're not 100% certain the fact is about "${companyName}", DO NOT include it
+
+Focus on:
+- Recent achievements, growth, funding (with specific numbers/dates)
+- Key partnerships or clients (actual names)
 - Unique value propositions or innovations
-- Market position or awards
+- Market position or awards (with specific award names)
 - Leadership or company culture highlights
 
 Webpage: ${webpage.title}
 Content: ${webpage.content}
 
-Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and relevant facts. Skip generic marketing fluff. Format as:
+Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and relevant facts about ${companyName} specifically.
+If ${companyName} is not mentioned or you cannot confirm facts are about ${companyName}, return exactly: "NO RELEVANT DATA"
+
+Format as:
 - [fact 1]
 - [fact 2]
 - [fact 3]`;
@@ -2723,14 +2743,27 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
                   const insightResponse = await this.openai.chat.completions.create({
                     model: 'gpt-4o-mini', // Use mini for cost efficiency on extraction
                     messages: [{ role: 'user', content: insightPrompt }],
-                    temperature: 0.3,
+                    temperature: 0.1, // Lower temperature for more factual extraction
                     max_tokens: 300
                   });
                   
                   const extractedInsights = insightResponse.choices[0].message.content;
                   
+                  // Skip if no relevant data found
+                  if (extractedInsights.includes('NO RELEVANT DATA')) {
+                    console.log(`   ⚠️ No relevant data about ${companyName} found in: ${webpage.title}`);
+                    continue;
+                  }
+                  
                   // Parse insights and attach source URL to each fact
                   const insightLines = extractedInsights.split('\n').filter(line => line.trim().startsWith('-'));
+                  
+                  // Additional validation: skip if no bullet points extracted
+                  if (insightLines.length === 0) {
+                    console.log(`   ⚠️ No valid insights extracted from: ${webpage.title}`);
+                    continue;
+                  }
+                  
                   const citedInsights = insightLines.map(insight => ({
                     text: insight.replace(/^-\s*/, '').trim(),
                     source: webpage.url,
@@ -3640,7 +3673,7 @@ DO NOT write generic emails. Use this buyer motivation to show sophisticated und
         const searches = this.memory.lastResearch.searches;
         console.log(`🔍 [RESEARCH DEBUG] Found ${searches.length} searches in memory`);
         
-        researchFindings = '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 RESEARCH FINDINGS (USE THESE IN YOUR EMAIL)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        researchFindings = '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 RESEARCH FINDINGS (USE THESE IN YOUR EMAIL)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ CRITICAL ANTI-HALLUCINATION WARNING:\n- ONLY use facts that explicitly mention the prospect\'s company name\n- If a "fact" could apply to ANY company, it\'s probably hallucinated - DO NOT USE IT\n- When in doubt, skip the fact. Better to be conservative than confidently wrong.\n- NEVER attribute achievements from one company to another\n\n';
         
         searches.forEach((search, index) => {
           console.log(`   [Search ${index + 1}] Purpose: ${search.purpose}, Has results: ${!!search.results}, Organic count: ${search.results?.organic?.length || 0}`);
@@ -3648,19 +3681,26 @@ DO NOT write generic emails. Use this buyer motivation to show sophisticated und
           if (search.purpose === 'company_overview') {
             const facts = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
             console.log(`   [Company Overview] Extracted ${facts.split('\n').length} facts, length: ${facts.length}`);
-            if (facts) researchFindings += `COMPANY OVERVIEW:\n${facts}\n\n`;
+            if (facts) researchFindings += `📍 ABOUT THE PROSPECT'S COMPANY (${companyName}):\n${facts}\n\n`;
           } else if (search.purpose === 'recent_developments') {
             const news = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
             console.log(`   [Recent Developments] Extracted ${news.split('\n').length} news items, length: ${news.length}`);
-            if (news) researchFindings += `RECENT NEWS/DEVELOPMENTS:\n${news}\n\n`;
+            if (news) researchFindings += `📰 ${companyName}'S RECENT NEWS (use these for opening hooks):\n${news}\n\n`;
           } else if (search.purpose === 'industry_statistics') {
             const stats = search.webpageInsights?.slice(0, 2).map(insight => `• ${insight.insights}`).join('\n') || '';
             console.log(`   [Industry Stats] Extracted ${stats.split('\n').length} stats, length: ${stats.length}`);
-            if (stats) researchFindings += `INDUSTRY STATISTICS (cite these for credibility):\n${stats}\n\n`;
+            if (stats) researchFindings += `📊 INDUSTRY STATISTICS (neutral third-party data - cite for credibility):\n${stats}\n\n`;
           } else if (search.purpose === 'user_company_success') {
-            const wins = search.results?.organic?.slice(0, 2).map(r => `• ${r.snippet}`).join('\n') || '';
+            const wins = search.webpageInsights?.filter(w => w.insights && !w.insights.includes('NO RELEVANT DATA')).map(w => w.insights).join('\n') || '';
             console.log(`   [Company Wins] Extracted ${wins.split('\n').length} wins, length: ${wins.length}`);
-            if (wins) researchFindings += `YOUR COMPANY'S RECENT WINS (use if noteworthy):\n${wins}\n\n`;
+            
+            // Only include if we found actual verified wins
+            if (wins.length > 50) {
+              const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'Your Company';
+              researchFindings += `🏆 ${userCompanyName.toUpperCase()}'S RECENT WINS (about YOUR company - NOT the prospect):\n${wins}\n⚠️ Use ONLY if truly impressive and relevant. DO NOT confuse these with ${companyName}'s achievements.\n\n`;
+            } else {
+              console.log(`   ⚠️ No verified company wins found - will rely on value proposition only`);
+            }
           }
         });
         
@@ -3830,15 +3870,22 @@ When available from research, cite industry statistics to build credibility:
 - Anchor urgency: "90% of logistics firms report Q1 as peak expansion (Gartner)"
 - Check the research data for industry_statistics findings and weave them in naturally
 
-CRITICAL - USE YOUR COMPANY'S RECENT SUCCESSES (IF NOTEWORTHY):
-The research includes a "user_company_success" search about YOUR company's recent achievements.
+CRITICAL - USE YOUR COMPANY'S RECENT SUCCESSES (IF AVAILABLE AND NOTEWORTHY):
+The research MAY include verified achievements from "YOUR COMPANY'S RECENT WINS" section.
 
-⚠️ BE EXTREMELY SELECTIVE - ONLY include if it meets ALL criteria:
-1. ✅ Happened in last 6 months (2025-2026)
-2. ✅ Truly impressive (funding, major client win, partnership, product launch, significant award)
-3. ✅ Relevant to the lead's situation
-4. ❌ REJECT generic fluff: office moves, small hires, internal promotions, cafeteria upgrades, blog posts
-5. ❌ REJECT if you're not 100% confident it's noteworthy
+⚠️ BE EXTREMELY SELECTIVE - ONLY include if ALL criteria met:
+1. ✅ Wins section exists and has verified data
+2. ✅ Happened in last 6 months (2025-2026)
+3. ✅ Truly impressive (funding, major client win, partnership, product launch, significant award)
+4. ✅ Relevant to the lead's situation
+5. ❌ REJECT generic fluff: office moves, hires, promotions, blog posts
+6. ❌ REJECT if not 100% confident it's about YOUR company
+
+⚠️ IF NO VERIFIED WINS FOUND:
+- Focus on your core value proposition from "YOUR SOLUTION" section above
+- Use client success patterns: "Companies at your stage typically see X results"
+- Don't make up achievements or use vague statements
+- Better to showcase value prop than fabricate social proof
 
 Good examples to INCLUDE:
 - "We just closed a $50M Series B" → Yes, include
