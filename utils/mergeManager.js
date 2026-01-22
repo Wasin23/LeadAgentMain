@@ -33,7 +33,10 @@ class MergeManager {
         end_user_email_address: endUserEmail,
         end_user_organization_name: 'Meridian User',
         categories: ['crm'],
-        link_expiry_mins: 30
+        link_expiry_mins: 30,
+        // Only show CRMs that fully support contact creation via Merge
+        // Exclude ActiveCampaign as it doesn't support write operations
+        integration: 'hubspot,salesforce,pipedrive,zoho-crm,copper,close'
       });
 
       console.log('✅ [MERGE] Full response:', JSON.stringify(response.data, null, 2));
@@ -198,7 +201,8 @@ class MergeManager {
         connected: user.crmConnected || false,
         integration: user.crmIntegration || null,
         connectedAt: user.crmConnectedAt || null,
-        autoSync: user.crmAutoSync !== false // default true
+        autoSync: user.crmAutoSync !== false, // default true
+        crmType: user.crmType || 'merge' // 'merge' or 'direct'
       };
     } catch (error) {
       console.error('❌ [MERGE] Error getting CRM status:', error);
@@ -216,7 +220,10 @@ class MergeManager {
         crmAccountToken: null,
         crmIntegration: null,
         crmConnectedAt: null,
-        crmAutoSync: false
+        crmAutoSync: false,
+        crmApiKey: null,
+        crmApiUrl: null,
+        crmType: null // 'merge' or 'direct'
       });
 
       console.log('✅ [MERGE] Disconnected CRM for user:', userId);
@@ -224,6 +231,130 @@ class MergeManager {
     } catch (error) {
       console.error('❌ [MERGE] Error disconnecting CRM:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Save direct API CRM connection (ActiveCampaign, etc.)
+   */
+  async saveDirectCRMConnection(userId, integrationName, apiUrl, apiKey) {
+    try {
+      await this.awsManager.updateUser(userId, {
+        crmConnected: true,
+        crmIntegration: integrationName,
+        crmConnectedAt: new Date().toISOString(),
+        crmAutoSync: true,
+        crmType: 'direct',
+        crmApiUrl: apiUrl,
+        crmApiKey: apiKey,
+        crmAccountToken: null // Not using Merge
+      });
+
+      console.log(`✅ [CRM] Saved direct ${integrationName} connection for user:`, userId);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [CRM] Error saving direct CRM connection:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync lead to ActiveCampaign via direct API
+   */
+  async syncLeadToActiveCampaign(apiUrl, apiKey, leadData) {
+    try {
+      console.log('🔄 [ACTIVECAMPAIGN] Syncing lead:', leadData.email);
+      
+      // ActiveCampaign API endpoint
+      const endpoint = `${apiUrl}/api/3/contacts`;
+      
+      const contactPayload = {
+        contact: {
+          email: leadData.email,
+          firstName: leadData.firstName,
+          lastName: leadData.lastName,
+          phone: leadData.phone || ''
+        }
+      };
+
+      const response = await axios.post(endpoint, contactPayload, {
+        headers: {
+          'Api-Token': apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('✅ [ACTIVECAMPAIGN] Contact created:', response.data?.contact?.id);
+
+      // Add note with research summary if available
+      if (leadData.researchSummary && response.data?.contact?.id) {
+        const noteEndpoint = `${apiUrl}/api/3/notes`;
+        const noteContent = leadData.companyName 
+          ? `Company: ${leadData.companyName}\n\nResearch Summary:\n\n${leadData.researchSummary}`
+          : leadData.researchSummary;
+
+        await axios.post(noteEndpoint, {
+          note: {
+            note: noteContent,
+            relid: response.data.contact.id,
+            reltype: 'Subscriber'
+          }
+        }, {
+          headers: {
+            'Api-Token': apiKey,
+            'Content-Type': 'application/json'
+          }
+        });
+        console.log('✅ [ACTIVECAMPAIGN] Note added');
+      }
+
+      return {
+        success: true,
+        crmContactId: response.data?.contact?.id,
+        crmIntegration: 'ActiveCampaign'
+      };
+    } catch (error) {
+      console.error('❌ [ACTIVECAMPAIGN] Error syncing lead:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Sync lead to CRM - handles both Merge and direct API
+   */
+  async syncLeadToCRMUnified(userId, leadData) {
+    try {
+      const user = await this.awsManager.getUserById(userId);
+      
+      if (!user?.crmConnected) {
+        return { success: false, error: 'No CRM connected' };
+      }
+
+      // Check if using direct API or Merge
+      if (user.crmType === 'direct') {
+        // Direct API integration
+        const integration = user.crmIntegration?.toLowerCase();
+        
+        if (integration === 'activecampaign') {
+          return await this.syncLeadToActiveCampaign(
+            user.crmApiUrl,
+            user.crmApiKey,
+            leadData
+          );
+        }
+        
+        // Add more direct integrations here as needed
+        return { success: false, error: `Direct sync not implemented for ${user.crmIntegration}` };
+      }
+      
+      // Default: use Merge API
+      return await this.syncLeadToCRM(userId, leadData);
+    } catch (error) {
+      console.error('❌ [CRM] Error in unified sync:', error);
+      return { success: false, error: error.message };
     }
   }
 }

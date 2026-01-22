@@ -7,7 +7,8 @@ import {
   ArrowPathIcon, 
   CheckCircleIcon, 
   XCircleIcon,
-  ArrowTopRightOnSquareIcon
+  ArrowTopRightOnSquareIcon,
+  KeyIcon
 } from '@heroicons/react/24/outline';
 
 interface CRMStatus {
@@ -15,6 +16,7 @@ interface CRMStatus {
   integration: string | null;
   connectedAt: string | null;
   autoSync: boolean;
+  crmType?: 'merge' | 'direct';
 }
 
 export default function CRMDashboard() {
@@ -28,6 +30,13 @@ export default function CRMDashboard() {
   const [syncing, setIsSyncing] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [justConnected, setJustConnected] = useState(false);
+  
+  // Direct API connection state
+  const [showDirectConnect, setShowDirectConnect] = useState(false);
+  const [directApiUrl, setDirectApiUrl] = useState('');
+  const [directApiKey, setDirectApiKey] = useState('');
+  const [directConnecting, setDirectConnecting] = useState(false);
+  const [directError, setDirectError] = useState<string | null>(null);
 
   // Supported CRMs with their logos/colors
   const crmOptions = [
@@ -36,7 +45,8 @@ export default function CRMDashboard() {
     { id: 'pipedrive', name: 'Pipedrive', color: 'bg-green-600', abbr: 'PD', logo: 'https://www.pipedrive.com/favicon.ico' },
     { id: 'zoho', name: 'Zoho CRM', color: 'bg-red-600', abbr: 'ZC', logo: 'https://www.zohowebstatic.com/sites/zweb/images/favicon.ico' },
     { id: 'copper', name: 'Copper', color: 'bg-amber-600', abbr: 'CP', logo: 'https://www.copper.com/favicon.ico' },
-    { id: 'close', name: 'Close', color: 'bg-purple-600', abbr: 'CL', logo: 'https://close.com/favicon.ico' }
+    { id: 'close', name: 'Close', color: 'bg-purple-600', abbr: 'CL', logo: 'https://close.com/favicon.ico' },
+    { id: 'activecampaign', name: 'ActiveCampaign', color: 'bg-blue-500', abbr: 'AC', logo: 'https://www.activecampaign.com/favicon.ico', directOnly: true }
   ];
 
   useEffect(() => {
@@ -148,6 +158,37 @@ export default function CRMDashboard() {
     return crmOptions.find(crm => lower.includes(crm.id));
   };
 
+  const handleDirectConnect = async () => {
+    if (!directApiUrl || !directApiKey) {
+      setDirectError('Please enter both API URL and API Key');
+      return;
+    }
+    
+    setDirectConnecting(true);
+    setDirectError(null);
+    
+    try {
+      await api.post('/api/crm/connect-direct', {
+        integrationName: 'activecampaign',
+        apiUrl: directApiUrl.trim(),
+        apiKey: directApiKey.trim()
+      });
+      
+      // Refresh status
+      await fetchCRMStatus();
+      setShowDirectConnect(false);
+      setDirectApiUrl('');
+      setDirectApiKey('');
+      setJustConnected(true);
+      setTimeout(() => setJustConnected(false), 3000);
+    } catch (error: any) {
+      console.error('Error connecting ActiveCampaign:', error);
+      setDirectError(error.response?.data?.error || 'Failed to connect. Please check your credentials.');
+    } finally {
+      setDirectConnecting(false);
+    }
+  };
+
   if (loading && !status.connected) {
     return (
       <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20 overflow-hidden">
@@ -237,27 +278,122 @@ export default function CRMDashboard() {
       ) : (
         // Not Connected State - Single Connect CRM Button
         <div className="p-6 space-y-4">
-          <div className="flex flex-col items-center justify-center p-6 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
-            <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-full flex items-center justify-center mb-4">
-              <ArrowTopRightOnSquareIcon className="w-6 h-6 text-[#4FD1FF]" />
+          {!showDirectConnect ? (
+            <>
+              <div className="flex flex-col items-center justify-center p-6 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg">
+                <div className="w-12 h-12 bg-[#4FD1FF]/20 rounded-full flex items-center justify-center mb-4">
+                  <ArrowTopRightOnSquareIcon className="w-6 h-6 text-[#4FD1FF]" />
+                </div>
+                <h3 className="text-sm font-medium text-white mb-1">No CRM Connected</h3>
+                <p className="text-xs text-[#8FA6C1] text-center mb-4">
+                  Connect your CRM to automatically sync leads when research completes
+                </p>
+                <button
+                  onClick={() => handleConnectCRM('crm')}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4FD1FF] hover:bg-[#6BE3FF] text-[#0F1E35] rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+                >
+                  Connect CRM
+                  <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <p className="text-xs text-[#8FA6C1] text-center">
+                Supports Salesforce, HubSpot, Pipedrive, Zoho, Copper & Close
+              </p>
+              
+              {/* ActiveCampaign Direct Connect Option */}
+              <div className="border-t border-[#4FD1FF]/20 pt-4">
+                <button
+                  onClick={() => setShowDirectConnect(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#12213B] hover:bg-[#1a2e4a] border border-[#4FD1FF]/30 rounded-lg text-sm text-white transition-colors"
+                >
+                  <img 
+                    src="https://www.activecampaign.com/favicon.ico" 
+                    alt="ActiveCampaign" 
+                    className="w-5 h-5 rounded"
+                  />
+                  Connect ActiveCampaign (API Key)
+                  <KeyIcon className="w-4 h-4 text-[#8FA6C1]" />
+                </button>
+              </div>
+            </>
+          ) : (
+            // ActiveCampaign Direct Connect Form
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-[#4FD1FF]/20">
+                <img 
+                  src="https://www.activecampaign.com/favicon.ico" 
+                  alt="ActiveCampaign" 
+                  className="w-8 h-8 rounded"
+                />
+                <div>
+                  <h3 className="text-sm font-medium text-white">Connect ActiveCampaign</h3>
+                  <p className="text-xs text-[#8FA6C1]">Enter your API credentials</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-[#8FA6C1] mb-1">API URL</label>
+                  <input
+                    type="text"
+                    value={directApiUrl}
+                    onChange={(e) => setDirectApiUrl(e.target.value)}
+                    placeholder="https://youraccountname.api-us1.com"
+                    className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg text-white text-sm placeholder-[#5a7a9a] focus:border-[#4FD1FF] focus:outline-none"
+                  />
+                  <p className="text-xs text-[#5a7a9a] mt-1">Found in Settings → Developer</p>
+                </div>
+                
+                <div>
+                  <label className="block text-xs text-[#8FA6C1] mb-1">API Key</label>
+                  <input
+                    type="password"
+                    value={directApiKey}
+                    onChange={(e) => setDirectApiKey(e.target.value)}
+                    placeholder="Your ActiveCampaign API Key"
+                    className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg text-white text-sm placeholder-[#5a7a9a] focus:border-[#4FD1FF] focus:outline-none"
+                  />
+                </div>
+              </div>
+              
+              {directError && (
+                <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <XCircleIcon className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <p className="text-xs text-red-400">{directError}</p>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowDirectConnect(false);
+                    setDirectError(null);
+                    setDirectApiUrl('');
+                    setDirectApiKey('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-[#12213B] hover:bg-[#1a2e4a] border border-[#4FD1FF]/30 rounded-lg text-sm text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDirectConnect}
+                  disabled={directConnecting || !directApiUrl || !directApiKey}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4FD1FF] hover:bg-[#6BE3FF] text-[#0F1E35] rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+                >
+                  {directConnecting ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-[#0F1E35] border-t-transparent rounded-full"></div>
+                      Connecting...
+                    </>
+                  ) : (
+                    'Connect'
+                  )}
+                </button>
+              </div>
             </div>
-            <h3 className="text-sm font-medium text-white mb-1">No CRM Connected</h3>
-            <p className="text-xs text-[#8FA6C1] text-center mb-4">
-              Connect your CRM to automatically sync leads when research completes
-            </p>
-            <button
-              onClick={() => handleConnectCRM('crm')}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#4FD1FF] hover:bg-[#6BE3FF] text-[#0F1E35] rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
-            >
-              Connect CRM
-              <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <p className="text-xs text-[#8FA6C1] text-center">
-            Supports Salesforce, HubSpot, Pipedrive, Zoho, and more
-          </p>
+          )}
         </div>
       )}
     </div>

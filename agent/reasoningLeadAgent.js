@@ -5977,7 +5977,8 @@ Target Positions:`;
             researchSummary: queueData.researchData?.summary || null
           };
           
-          const syncResult = await this.mergeManager.syncLeadToCRM(this.userId, crmLeadData);
+          // Use unified sync which handles both Merge and direct API integrations
+          const syncResult = await this.mergeManager.syncLeadToCRMUnified(this.userId, crmLeadData);
           
           if (syncResult.success) {
             console.log(`✅ [CRM SYNC] Successfully synced to ${syncResult.crmIntegration}`);

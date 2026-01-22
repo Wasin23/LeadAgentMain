@@ -126,4 +126,43 @@ router.post('/toggle-auto-sync', authenticateToken, async (req, res) => {
   }
 });
 
+// Connect CRM via direct API (ActiveCampaign, etc.)
+router.post('/connect-direct', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { integrationName, apiUrl, apiKey } = req.body;
+    
+    if (!integrationName || !apiUrl || !apiKey) {
+      return res.status(400).json({ error: 'Integration name, API URL, and API key are required' });
+    }
+
+    // Test the connection first
+    if (integrationName.toLowerCase() === 'activecampaign') {
+      try {
+        const axios = (await import('axios')).default;
+        const testResponse = await axios.get(`${apiUrl}/api/3/users/me`, {
+          headers: { 'Api-Token': apiKey }
+        });
+        console.log('✅ [CRM] ActiveCampaign connection test successful:', testResponse.data?.user?.email);
+      } catch (testError) {
+        console.error('❌ [CRM] ActiveCampaign connection test failed:', testError.response?.data || testError.message);
+        return res.status(400).json({ 
+          error: 'Invalid API credentials. Please check your API URL and key.',
+          details: testError.response?.data?.message || testError.message
+        });
+      }
+    }
+
+    await mergeManager.saveDirectCRMConnection(userId, integrationName, apiUrl, apiKey);
+    
+    res.json({
+      success: true,
+      integration: integrationName
+    });
+  } catch (error) {
+    console.error('❌ [CRM] Error connecting direct CRM:', error);
+    res.status(500).json({ error: 'Failed to connect CRM' });
+  }
+});
+
 export default router;
