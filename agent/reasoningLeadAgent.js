@@ -2557,6 +2557,7 @@ Respond in JSON:
     // Use provided parameters first, fallback to memory
     const companyName = parameters?.companyName || leadData?.organization?.name || leadData?.company || 'Unknown Company';
     const personName = parameters?.personName || leadData?.name || 'Unknown';
+    const industry = leadData?.organization?.industry || leadData?.industry || '';
     
     console.log('🔍 [SERPER] Starting intelligent research for:', personName, 'at', companyName);
     
@@ -2629,6 +2630,14 @@ Respond in JSON:
           });
         }
         
+        // Search 4: User's company recent successes (for social proof)
+        const userCompanyName = emailSettings?.companyBranding?.companyName || 'company';
+        searchQueries.push({
+          query: `${userCompanyName} news funding clients partnerships awards success 2025 2026`,
+          purpose: 'user_company_success',
+          description: 'Recent noteworthy achievements of user\'s company (last 6 months only)'
+        });
+        
         // Execute searches and fetch webpages
         console.log(`🔍 [DEEP RESEARCH] Running ${searchQueries.length} searches + fetching top 3 webpages each`);
         
@@ -2674,17 +2683,17 @@ Respond in JSON:
               console.error(`   ⚠️ Failed to log API usage: ${logError.message}`);
             }
             
-            // Extract top 2 URLs from organic results
+            // Extract top 3 URLs from organic results
             const organicResults = results?.organic || results?.data?.organic || [];
             const topUrls = organicResults
-              .slice(0, 2)
+              .slice(0, 3)
               .map(r => r.link)
               .filter(url => url && !url.includes('youtube.com') && !url.includes('pdf')); // Skip videos and PDFs
             
             console.log(`   📄 Fetching ${topUrls.length} webpages...`);
             
             // Fetch webpage content
-            const webpageContents = await fetchMultipleWebpages(topUrls, 2);
+            const webpageContents = await fetchMultipleWebpages(topUrls, 3);
             
             // Extract relevant insights from each webpage using AI
             const webpageInsights = [];
@@ -3621,6 +3630,33 @@ DO NOT write generic emails. Use this buyer motivation to show sophisticated und
       
       console.log('🎯 [EMAIL] Incorporating validated buyer motivation into email context');
       
+      // Build research findings summary for the prompt
+      let researchFindings = '';
+      if (this.memory.lastResearch && this.memory.lastResearch.searches) {
+        const searches = this.memory.lastResearch.searches;
+        researchFindings = '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 RESEARCH FINDINGS (USE THESE IN YOUR EMAIL)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        
+        searches.forEach(search => {
+          if (search.purpose === 'company_overview') {
+            const facts = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
+            if (facts) researchFindings += `COMPANY OVERVIEW:\n${facts}\n\n`;
+          } else if (search.purpose === 'recent_developments') {
+            const news = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
+            if (news) researchFindings += `RECENT NEWS/DEVELOPMENTS:\n${news}\n\n`;
+          } else if (search.purpose === 'industry_statistics') {
+            const stats = search.webpageInsights?.slice(0, 2).map(insight => `• ${insight.insights}`).join('\n') || '';
+            if (stats) researchFindings += `INDUSTRY STATISTICS (cite these for credibility):\n${stats}\n\n`;
+          } else if (search.purpose === 'user_company_success') {
+            const wins = search.results?.organic?.slice(0, 2).map(r => `• ${r.snippet}`).join('\n') || '';
+            if (wins) researchFindings += `YOUR COMPANY'S RECENT WINS (use if noteworthy):\n${wins}\n\n`;
+          }
+        });
+        
+        if (researchFindings.length > 200) {
+          console.log('📊 [EMAIL] Added research findings summary to prompt');
+        }
+      }
+      
       // Common ruleset for email structure - ALWAYS include lead details and context
       const commonRuleset = `
 PROSPECT INFORMATION:
@@ -3628,7 +3664,7 @@ Company: ${companyName}
 Contact: ${leadData.first_name} ${leadData.last_name}
 Title: ${contactTitle}
 Industry: ${industry}
-Employee Count: ${employeeCount} employees${citedFactsContext}${qualificationInsights}${campaignStrategy}
+Employee Count: ${employeeCount} employees${citedFactsContext}${qualificationInsights}${campaignStrategy}${researchFindings}
 
 YOUR SOLUTION:
 Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
@@ -3680,16 +3716,35 @@ Based on YOUR personality above, adapt your approach:
 RESEARCH-DRIVEN APPROACH
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-STEP 1 - ANALYZE YOUR RESEARCH DATA:
-Look at the research above. What's your BEST hook?
+⚠️ CRITICAL: YOU JUST CONDUCTED DEEP RESEARCH ON THIS COMPANY
+The research data contains 4 searches:
+1. Company overview (verify criteria match)
+2. Recent news/developments (timely hooks)
+3. Industry statistics (third-party credibility)
+4. Your company's recent wins (optional social proof)
 
-Priority order:
-1. 💰 Financial data (revenue, funding, growth %) → Lead with ROI/savings angle
-2. 🔥 Pain point/challenge mentioned → Open with the problem
-3. 📰 Recent news (funding, hiring, expansion) → Timely relevance
-4. 🛠️ Tech stack/process info → Consultative insight
-5. 📈 Growth indicators → Scale/efficiency angle
-6. 🤷 Nothing specific? → Direct value prop
+YOU MUST USE THIS RESEARCH DATA IN THE EMAIL. Do not write generic pitches.
+
+STEP 1 - ANALYZE YOUR RESEARCH DATA:
+Look at the research results above. What's your BEST hook from the actual findings?
+
+Priority order (use REAL data from research):
+1. 💰 Financial data found (revenue, funding round, growth %) → Lead with specific number
+2. 🔥 Pain point mentioned in research → Quote or reference it
+3. 📰 Recent news (funding announcement, hiring spree, expansion) → Cite the actual event
+4. 🛠️ Tech stack/initiative mentioned → Reference it specifically
+5. 📈 Growth indicators (employee count change, market expansion) → Use the actual metric
+6. 🤷 Nothing specific found? → At minimum reference their company size/industry from research
+
+Examples of USING research:
+✅ "Saw CCB Technology just passed 180 employees — that's serious momentum in the nonprofit IT space"
+✅ "Noticed Premier Tech closed a $15M Series B last month"
+✅ "Your team grew from 50 to 150 in 6 months according to LinkedIn"
+
+Examples of IGNORING research (DON'T DO THIS):
+❌ "As a visionary leader committed to digital transformation..." (generic fluff)
+❌ "I imagine you're looking for innovative ways to..." (assumption, not research)
+❌ No specific numbers or findings mentioned
 
 STEP 2 - CRAFT SUBJECT LINE:
 Choose ONE of these proven high-open-rate patterns - keep it SHORT, casual, and direct:
@@ -3716,19 +3771,25 @@ STEP 3 - WRITE EMAIL BODY (SHORT & PUNCHY - 5-7 SENTENCES MAX):
 
 Write like you're DMing someone on LinkedIn. Short, direct, human. Use line breaks generously.
 
+⚠️ MANDATORY: Reference specific findings from your research. Do not write generic observations.
+
 STRUCTURE (but make it flow naturally):
 
 OPENING (1-2 lines):
-Specific observation about them. Include a real number or recent milestone. Keep it brief.
+Use a SPECIFIC finding from your research. Quote an actual number, event, or milestone you discovered.
 
-Examples:
-- "Saw that Distribution Technology is scaling fast — 50,000+ positions nationwide is no small feat."
-- "Noticed you just hit $50M ARR. Impressive growth in a competitive space."
-- "150 employees and growing fast based on your recent hiring spree."
+GOOD examples (using research):
+- "Saw CCB Technology serves 180+ employees across nonprofit IT — 30+ years in that space is rare."
+- "Noticed Premier Tech just announced expansion into 3 new markets last quarter."
+- "Your LinkedIn shows you went from 50 to 150 employees in 6 months. That's explosive growth."
+
+BAD examples (ignoring research):
+❌ "As the visionary leader of a company deeply committed to digital transformation..."
+❌ "I imagine you're always looking for innovative ways..."
+❌ Any opener that could apply to any CEO at any company
 
 THE HOOK (1 line):
-The common challenge companies at their stage face. Make it relatable, not salesy.
-If industry statistics are available from research, consider citing them for credibility.
+Connect their situation (from research) to a common challenge. If industry stats were found, use them.
 
 Examples:
 - "As teams expand, many execs face the same challenge: funding growth while protecting operational focus."
@@ -3736,7 +3797,14 @@ Examples:
 - "That's when coordination overhead usually kills velocity — 73% of Series B companies report this (McKinsey)."
 
 VALUE PROP (3-4 lines with bullet points):
-WHY your solution fits. Use emojis (🏗️ ⚖️ 📊) and bullet format. Keep bullets SHORT - 5-8 words each.
+WHY your solution fits THEIR specific situation. Use simple dashes (-) not emojis. Be SPECIFIC with numbers and proof.
+
+⚠️ CRITICAL RULES FOR BULLETS:
+❌ NEVER write generic feature lists like "Low investment threshold = Accessibility"
+❌ NEVER write vague benefits like "Quality assurance" or "Financial stability"
+✅ ALWAYS use specific numbers: "12-18% returns", "60% faster", "$200K savings"
+✅ ALWAYS connect to THEIR situation based on research
+✅ ALWAYS cite proof: company names, statistics, specific results
 
 CRITICAL - USE THIRD-PARTY DATA:
 When available from research, cite industry statistics to build credibility:
@@ -3745,24 +3813,55 @@ When available from research, cite industry statistics to build credibility:
 - Anchor urgency: "90% of logistics firms report Q1 as peak expansion (Gartner)"
 - Check the research data for industry_statistics findings and weave them in naturally
 
+CRITICAL - USE YOUR COMPANY'S RECENT SUCCESSES (IF NOTEWORTHY):
+The research includes a "user_company_success" search about YOUR company's recent achievements.
+
+⚠️ BE EXTREMELY SELECTIVE - ONLY include if it meets ALL criteria:
+1. ✅ Happened in last 6 months (2025-2026)
+2. ✅ Truly impressive (funding, major client win, partnership, product launch, significant award)
+3. ✅ Relevant to the lead's situation
+4. ❌ REJECT generic fluff: office moves, small hires, internal promotions, cafeteria upgrades, blog posts
+5. ❌ REJECT if you're not 100% confident it's noteworthy
+
+Good examples to INCLUDE:
+- "We just closed a $50M Series B" → Yes, include
+- "Recently partnered with Microsoft/Google/etc" → Yes, include  
+- "Helped Stripe reduce costs by 40%" → Yes, include
+- "Won Best AI Platform 2025 by TechCrunch" → Yes, include
+
+Bad examples to REJECT:
+- "Opened a new office in Austin" → NO, don't include
+- "Hired a new VP of Sales" → NO, don't include
+- "Published a new blog post" → NO, don't include
+- "Updated our website" → NO, don't include
+- "Celebrating 5 years" → NO, don't include
+
+If unsure, DON'T INCLUDE IT. Better to skip than look desperate.
+
+How to use it (if it passes the bar):
+- Weave into last bullet: "- Just helped Stripe cut payment processing time by 60%"
+- Or in hook: "We're fresh off helping Deel scale to 10M users without adding ops headcount"
+- Keep it brief and relevant to THEIR situation
+
 Format:
-"Why [Product] is a fit:
+"Why [Product] fits your situation:
 
-🏗️ [Benefit 1] = [Outcome]
+- [Specific benefit with number] for [their use case]
 
-⚖️ [Benefit 2], [descriptor], [result]
+- [Proof point]: [Company name] saw [specific result]
 
-📊 [Social proof with company name and metric]"
+- [Third-party stat or recent win if applicable]"
 
-Examples with third-party data:
-- "🏗️ Tokenized real estate = passive income + diversification (outperforming REITs by 2.4x per PwC)"
-- "⚖️ Fully automated, zero ops lift required"
-- "📊 Used by growth-phase companies like PetSmart and Nortek"
+GOOD Examples (specific, with proof):
+- "12-18% annual returns backed by physical real estate (outperforming REITs by 2.4x per PwC)"
+- "Start with $50 — PetSmart and Nortek diversified portfolios without disrupting ops"
+- "Just helped Stripe cut payment overhead 60% while scaling 5x"
 
-OR without third-party data:
-- "🏗️ Tokenized real estate = passive income + portfolio diversification"
-- "⚖️ Low minimums, fully managed, no ops disruption"
-- "📊 Used by growth-phase companies like PetSmart and Nortek"
+BAD Examples (generic, no proof):
+❌ "Low investment threshold = Accessibility for all"
+❌ "Rigorous property selection = Quality assurance"  
+❌ "Consistent passive income = Financial stability"
+❌ Any bullet that's just "Feature = Generic benefit"
 
 CLOSE (1-2 lines):
 Why now matters + simple CTA. One question, not multiple options.
@@ -3778,38 +3877,35 @@ DO:
 ✅ Use short sentences and paragraphs
 ✅ Add line breaks between thoughts
 ✅ Use em dashes (—) instead of formal punctuation
-✅ Include 2-3 emojis in bullet points only
+✅ Use simple dashes (-) for bullet points
 ✅ Sound casual but professional
-✅ Use specific company names in social proof
-✅ Keep bullets to 5-8 words max
+✅ Use specific numbers and company names
+✅ Make every bullet about THEM, not generic features
 
 DON'T:
 ❌ Write long paragraphs (break them up!)
-❌ Use corporate buzzwords
+❌ Use corporate buzzwords or generic benefits
+❌ Use emojis (dashes only: -)
 ❌ Say "I hope this email finds you well"
 ❌ Multiple questions in the close
-❌ Overuse emojis (bullets only)
+❌ Write feature lists ("X = Y")
 ❌ Sound like a template
 
 EXAMPLE OF NEW STYLE:
 
 Hi Tom,
 
-Saw that Distribution Technology is scaling fast — 50,000+ positions nationwide is no small feat. Impressive growth in a space that demands agility.
+Saw Distribution Technology hit 50,000+ positions nationwide. That's serious scale in a space where most struggle to hit 10K.
 
-As teams expand, many execs face the same challenge: how to fund growth while protecting operational focus. Here's one way others are navigating it:
+At that velocity, most execs hit the same wall: how to fund expansion without bleeding operational focus.
 
-Why SmartBlocks is a fit:
+Here's how others at your stage are handling it:
 
-🏗️ Tokenized real estate = passive income + portfolio diversification
+- 12-18% annual returns from tokenized real estate (beating REITs by 2.4x per PwC)
+- PetSmart and Nortek diversified without ops disruption — $50 minimums, fully managed
+- Just helped a Series C fintech grow 5x while staying capital-efficient
 
-⚖️ Low minimums, fully managed, no ops disruption
-
-📊 Used by growth-phase companies like PetSmart and Nortek
-
-It's helping teams like yours generate financial stability without diverting bandwidth from core ops.
-
-Open to a quick call next week to explore what this could look like for your team?
+Worth 15 minutes next week to walk through the model?
 
 Best,
 [Signature]

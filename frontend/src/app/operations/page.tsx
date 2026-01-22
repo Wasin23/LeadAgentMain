@@ -1335,12 +1335,24 @@ export default function InteractiveGlobe() {
       icon = '🎬';
       category = 'initialization';
     } else if (log.operation === '🔍 Web Research' || log.operation === 'Deep Research' || log.message?.includes('Researching') || log.message?.includes('research')) {
-      const company = log.details?.company || log.data?.company || 'company';
+      const company = log.details?.company || log.data?.company || log.message?.match(/researching (.+?)(?:\sto|$)/i)?.[1] || 'company';
       const purpose = log.details?.purpose || log.data?.purpose;
-      if (purpose === 'industry_statistics') {
-        friendlyMessage = `${agentName} is gathering industry statistics and third-party data`;
+      
+      // Check for 3rd research phase (industry statistics)
+      if (purpose === 'industry_statistics' || log.message?.includes('industry statistics') || log.message?.includes('third-party data')) {
+        const industry = log.details?.industry || log.data?.industry || '';
+        friendlyMessage = industry 
+          ? `${agentName} is gathering ${industry} industry statistics and third-party data`
+          : `${agentName} is gathering industry statistics and third-party data`;
         icon = '📊';
-      } else {
+      } 
+      // Check for company success research (4th phase)
+      else if (purpose === 'user_company_success' || log.message?.includes('company success')) {
+        friendlyMessage = `${agentName} is researching recent company wins for social proof`;
+        icon = '🏆';
+      }
+      // Regular company research
+      else {
         friendlyMessage = `${agentName} is researching ${company}`;
         icon = '🔍';
       }
@@ -1354,30 +1366,37 @@ export default function InteractiveGlobe() {
       const leadName = log.details?.leadName || log.data?.leadName || 'Lead';
       const qualified = log.details?.qualified !== false;
       friendlyMessage = qualified 
-        ? `✅ ${agentName} marked ${leadName} as qualified`
-        : `❌ ${agentName} marked ${leadName} as not qualified`;
+        ? `${agentName} marked ${leadName} as qualified`
+        : `${agentName} marked ${leadName} as not qualified`;
       icon = qualified ? '✅' : '❌';
       category = 'qualification';
-    } else if (log.operation === '✍️ Email Generation' || log.message?.includes('email') || log.message?.includes('Email')) {
-      const leadName = log.details?.leadName || log.data?.to || 'lead';
-      friendlyMessage = `${agentName} is writing personalized email to ${leadName}`;
+    } 
+    // Email building/writing
+    else if (log.operation === '✍️ Email Generation' || log.message?.includes('Writing personalized email') || log.message?.includes('email for')) {
+      // Extract lead name from various possible formats
+      const leadName = log.details?.leadName || log.data?.leadName || log.message?.match(/for (.+?) at/)?.[1] || 'lead';
+      const company = log.details?.company || log.data?.company || log.message?.match(/at (.+)/)?.[1] || '';
+      friendlyMessage = company 
+        ? `${agentName} is writing email for ${leadName} at ${company}`
+        : `${agentName} is writing personalized email to ${leadName}`;
       icon = '✍️';
       category = 'email';
-    } else if (log.operation === 'Email Queued' || log.message?.includes('Queued')) {
+    } 
+    else if (log.operation === 'Email Queued' || log.message?.includes('Queued')) {
       const leadName = log.details?.to || log.data?.to || 'lead';
-      friendlyMessage = `📧 ${agentName} added email to ${leadName} to queue for approval`;
+      friendlyMessage = `${agentName} added email to ${leadName} to queue for approval`;
       icon = '📧';
       category = 'email';
     } else if (log.message?.includes('CRM') || log.message?.includes('contact')) {
       const leadName = log.details?.leadName || log.data?.leadName || 'lead';
       const hasCRM = log.details?.hasCRM !== false;
       friendlyMessage = hasCRM
-        ? `💼 ${agentName} deposited ${leadName} into CRM`
-        : `⚠️ ${agentName} couldn't deposit ${leadName} - No CRM connected`;
+        ? `${agentName} deposited ${leadName} into CRM`
+        : `${agentName} couldn't deposit ${leadName} - No CRM connected`;
       icon = hasCRM ? '💼' : '⚠️';
       category = 'crm';
     } else if (log.operation === 'Cycle Completed' || log.message?.includes('Cycle') || log.message?.includes('Complete')) {
-      friendlyMessage = `🏁 ${agentName} completed outreach cycle`;
+      friendlyMessage = `${agentName} completed outreach cycle`;
       icon = '🏁';
       category = 'cycle';
     } else if (log.operation === '💭 Agent Activity' || log.details?.thinking) {
