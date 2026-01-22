@@ -2603,6 +2603,14 @@ Respond in JSON:
           description: 'Recent news, growth, and developments'
         });
         
+        // Search 3: Industry statistics and third-party data for credibility
+        const industryKeyword = industry || keyTerms.split(' ')[0] || 'business';
+        searchQueries.push({
+          query: `${industryKeyword} industry statistics trends McKinsey Gartner report 2024 2025`,
+          purpose: 'industry_statistics',
+          description: 'Third-party industry data and statistics'
+        });
+        
         // Execute searches and fetch webpages
         console.log(`🔍 [DEEP RESEARCH] Running ${searchQueries.length} searches + fetching top 3 webpages each`);
         
@@ -3638,117 +3646,129 @@ Priority order:
 6. 🤷 Nothing specific? → Direct value prop
 
 STEP 2 - CRAFT SUBJECT LINE:
-Choose ONE of these proven high-open-rate patterns with proper capitalization and grammar:
+Choose ONE of these proven high-open-rate patterns - keep it SHORT, casual, and direct:
 
-Pattern A - Value/Urgency: "Save [X]% on [their specific challenge]" OR "Cut [process] time by [X]%" OR "Reduce [their pain point] costs"
-Pattern B - Direct question: "Have time for a quick call?" OR "Quick chat this week?" OR "15 minutes to discuss [specific topic]?"
-Pattern C - Personal research: "Quick question about [specific thing from research]" OR "Saw [their recent news/achievement]" OR "Question about [their company]'s [specific initiative]"
-Pattern D - Name drop: "Working with [similar company] on [relevant topic]" OR "[Competitor/peer company] mentioned you"
+Pattern A - Casual idea pitch: "idea for [Company]'s [specific initiative]" OR "thought for [their challenge]"
+Pattern B - Direct observation: "Saw [Company] is [specific action]" OR "Noticed [specific milestone/news]"
+Pattern C - Simple question: "quick call next week?" OR "15 min to discuss [topic]?"
+Pattern D - Name drop: "re: [similar company name]" OR "working with [competitor]"
 
 SUBJECT LINE RULES:
-- Use proper Title Case or Sentence case (NO all lowercase)
-- Keep under 50 characters
-- NO generic pitches like "Transforming X with Y" or "Your Next Strategic Move"
-- NO name followed by dash format (NO "Filip - ...")
-- Be specific using research data, not vague
+- Use lowercase or sentence case (NO Title Case)
+- Keep under 45 characters
+- Make it feel like an internal email, not a pitch
+- Be specific using research data
+- Sound like a human typed it quickly
 
 ⚠️ CRITICAL - SUBJECT/BODY ALIGNMENT:
-- If subject says "Quick question about X" → The email MUST contain an actual question about X
-- If subject says "Question about [topic]" → Ask a genuine question in the body
-- If subject promises something specific → The body MUST deliver that specific thing
-- NEVER use "Quick question" as a subject if you don't ask a question in the email
-- Question-style subjects are engagement hooks - you MUST follow through with the actual question
-- Example: Subject "Quick question about your contractor workflow" → Body must include something like "How are you currently handling contractor payments at scale?"
+- If subject says "idea for X" → The email MUST explain the idea for X
+- If subject says "quick call" → The email MUST ask for a call with clear value
+- If subject mentions something specific → The body MUST deliver on that
+- Keep subject lines casual and lowercase - like you're emailing a colleague
 
-STEP 3 - WRITE EMAIL BODY (7 SENTENCES - MAKE EVERY WORD COUNT):
+STEP 3 - WRITE EMAIL BODY (SHORT & PUNCHY - 5-7 SENTENCES MAX):
 
-Write a natural, flowing email that feels like a real person researched them and has something genuinely valuable to say. Don't follow a rigid formula - let the conversation flow based on what you learned about them.
+Write like you're DMing someone on LinkedIn. Short, direct, human. Use line breaks generously.
 
-YOUR MISSION: Use the research to show you understand their business, then explain how your solution solves their specific problem with concrete proof.
+STRUCTURE (but make it flow naturally):
 
-OPENING (1-2 sentences):
-Start with something that proves you did homework. Use a specific number, recent news, or insight about their company. Make it conversational, not robotic.
-
-Examples of good openings:
-- "Noticed you just crossed $50M ARR - congrats. At that scale, most SaaS companies start drowning in contractor payments."
-- "Saw you're hiring 3 product managers this quarter. That's when coordination overhead usually kills velocity."
-- "You're in the sweet spot at 150 employees where manual expense tracking costs about 40 hours a week."
-
-TRANSITION TO PROBLEM (1-2 sentences):
-Connect their situation to a specific pain point. Use numbers to show the real cost. Don't guess - either cite research or use industry benchmarks.
+OPENING (1-2 lines):
+Specific observation about them. Include a real number or recent milestone. Keep it brief.
 
 Examples:
-- "Companies at your size typically waste 35% of finance bandwidth just processing contractor invoices."
-- "Teams your scale report 15-20 hours weekly lost to process bottlenecks between departments."
-- "At 150 people, expense approval loops average 4.2 days - that's killing your burn rate visibility."
+- "Saw that Distribution Technology is scaling fast — 50,000+ positions nationwide is no small feat."
+- "Noticed you just hit $50M ARR. Impressive growth in a competitive space."
+- "150 employees and growing fast based on your recent hiring spree."
 
-VALUE PROPOSITION (2-3 sentences):
-Explain HOW your solution fixes this. Be specific about the mechanism and the outcome. Include social proof with real numbers.
-
-Examples:
-- "We automate the entire contractor payment workflow. TechCorp processed 500 contractors without adding finance headcount, cutting processing time from 3 days to 4 hours."
-- "Our coordination layer sits between your tools and eliminates 90% of the back-and-forth. Notion went from 2-week feature cycles to 4-day sprints."
-- "Real-time expense tracking dashboard cuts approval time to under 6 hours. Stripe reduced month-end close from 12 days to 3."
-
-CLOSE WITH TIMING + CTA (1-2 sentences):
-Connect to their current situation (growth, funding, expansion, hiring) and why acting now matters. End with a simple, personality-appropriate ask.
+THE HOOK (1 line):
+The common challenge companies at their stage face. Make it relatable, not salesy.
+If industry statistics are available from research, consider citing them for credibility.
 
 Examples:
-- "Given your hiring pace, this gets more painful every quarter. Worth 15 minutes to walk through the numbers?"
-- "Post-Series B is when this typically becomes a board-level concern. Want to see how others solved it?"
-- "You'll hit 200 people in Q2 based on your job posts - that's when this breaks completely. Quick call to map it out?"
+- "As teams expand, many execs face the same challenge: funding growth while protecting operational focus."
+- "At that scale, most finance teams start drowning in contractor payments."
+- "That's when coordination overhead usually kills velocity — 73% of Series B companies report this (McKinsey)."
 
-WRITING GUIDELINES:
+VALUE PROP (3-4 lines with bullet points):
+WHY your solution fits. Use emojis (🏗️ ⚖️ 📊) and bullet format. Keep bullets SHORT - 5-8 words each.
+
+CRITICAL - USE THIRD-PARTY DATA:
+When available from research, cite industry statistics to build credibility:
+- Quote sources: "McKinsey reports X" or "(Gartner, 2024)"
+- Support bold claims: "Tokenized assets outperformed REITs by 2.4x (PwC, 2023)"
+- Anchor urgency: "90% of logistics firms report Q1 as peak expansion (Gartner)"
+- Check the research data for industry_statistics findings and weave them in naturally
+
+Format:
+"Why [Product] is a fit:
+
+🏗️ [Benefit 1] = [Outcome]
+
+⚖️ [Benefit 2], [descriptor], [result]
+
+📊 [Social proof with company name and metric]"
+
+Examples with third-party data:
+- "🏗️ Tokenized real estate = passive income + diversification (outperforming REITs by 2.4x per PwC)"
+- "⚖️ Fully automated, zero ops lift required"
+- "📊 Used by growth-phase companies like PetSmart and Nortek"
+
+OR without third-party data:
+- "🏗️ Tokenized real estate = passive income + portfolio diversification"
+- "⚖️ Low minimums, fully managed, no ops disruption"
+- "📊 Used by growth-phase companies like PetSmart and Nortek"
+
+CLOSE (1-2 lines):
+Why now matters + simple CTA. One question, not multiple options.
+
+Examples:
+- "Open to a quick call next week to explore what this could look like for your team?"
+- "Worth 15 minutes to walk through the numbers?"
+- "Quick call to map it out?"
+
+WRITING STYLE:
 
 DO:
-✅ Write like you're explaining to a smart friend over coffee
-✅ Use specific numbers from research or industry benchmarks
-✅ Name drop similar companies with real outcomes
-✅ Connect their current stage/situation to the solution timing
-✅ Make the value proposition crystal clear: "We do X, which saves Y, proven by Z"
-✅ Let sentences flow naturally into each other
+✅ Use short sentences and paragraphs
+✅ Add line breaks between thoughts
+✅ Use em dashes (—) instead of formal punctuation
+✅ Include 2-3 emojis in bullet points only
+✅ Sound casual but professional
+✅ Use specific company names in social proof
+✅ Keep bullets to 5-8 words max
 
 DON'T:
-❌ Follow a rigid sentence formula (this makes it sound like AI)
-❌ Use generic praise ("impressive company", "innovative work")
-❌ Include buzzwords without meaning ("transformative", "revolutionary", "cutting-edge")
-❌ Make vague claims ("we can help you", "solutions for your needs")
-❌ Sound like you're reading a script
-❌ Repeat the same sentence structure over and over
+❌ Write long paragraphs (break them up!)
+❌ Use corporate buzzwords
+❌ Say "I hope this email finds you well"
+❌ Multiple questions in the close
+❌ Overuse emojis (bullets only)
+❌ Sound like a template
 
-RESEARCH-DRIVEN PRIORITY:
-1. Financial data (revenue, funding, growth rate) → Lead with ROI angle
-2. Pain point from tech stack/process → Open with the problem
-3. Recent news (funding round, expansion, hiring) → Timely relevance hook
-4. Company stage/size benchmarks → Industry insight angle
-5. Nothing specific? → Direct value prop with social proof
+EXAMPLE OF NEW STYLE:
 
-VALUE PROPOSITION DEPTH:
-Don't just say "we help with X" - explain the mechanism and prove the outcome:
+Hi Tom,
 
-Shallow: "We help companies manage contractors better."
-Deep: "We automate contractor payment workflows. TechCorp processes 500 contractors monthly without finance headcount, cutting 3-day cycles to 4 hours. That's 120 hours back per month."
+Saw that Distribution Technology is scaling fast — 50,000+ positions nationwide is no small feat. Impressive growth in a space that demands agility.
 
-Shallow: "We improve team coordination."
-Deep: "Our system eliminates 90% of tool-switching overhead. Notion's product team went from 2-week feature cycles to 4-day sprints by connecting their scattered tools into one workflow."
+As teams expand, many execs face the same challenge: how to fund growth while protecting operational focus. Here's one way others are navigating it:
 
-Shallow: "We provide expense tracking solutions."
-Deep: "Real-time expense dashboard with instant approval flows. Stripe cut month-end close from 12 days to 3 by catching issues as they happen instead of reconciling 30 days later."
+Why SmartBlocks is a fit:
 
-MAKE THE CONNECTION OBVIOUS:
-Always connect three dots:
-1. Their current state (from research)
-2. The specific problem that causes
-3. How your solution fixes it (with proof)
+🏗️ Tokenized real estate = passive income + portfolio diversification
 
-Example full email flow:
-"You're at 250 employees based on LinkedIn - that's exactly when contractor payments start consuming 35% of finance team bandwidth. Most companies your size process 200-300 contractor invoices monthly, and each one takes 45 minutes on average with all the back-and-forth.
+⚖️ Low minimums, fully managed, no ops disruption
 
-We built an automation layer that handles the entire workflow. Stripe scaled from 100 to 500 contractors without adding finance headcount, cutting processing time from 3 days to under 4 hours per batch. They're saving about 120 hours monthly.
+📊 Used by growth-phase companies like PetSmart and Nortek
 
-Given your growth rate (30% YoY based on funding), you'll add another 75 people by Q3. That pushes you into the 300+ contractor range where this becomes a board-level concern. Worth 15 minutes to walk through how they did it?"
+It's helping teams like yours generate financial stability without diverting bandwidth from core ops.
 
-LENGTH: Target 7 sentences, but let it flow naturally. If you need 6 or 8 to make your point clearly, that's fine. Quality beats formula.
+Open to a quick call next week to explore what this could look like for your team?
+
+Best,
+[Signature]
+
+LENGTH: Aim for 5-7 sentences total. Use line breaks to make it scannable.
 - Talking about yourself instead of their problems
 - Wasting sentences on fluff
 
