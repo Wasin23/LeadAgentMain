@@ -2249,8 +2249,7 @@ export default function InteractiveGlobe() {
       {activeTab === 'director' && (
         <>
           <div 
-            className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10"
-            style={{ bottom: 'calc(9rem + 8px)' }}
+            className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] bottom-0 flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10"
           >
           {/* AI Summary Box */}
           <div className="p-3 border-b border-[#4FD1FF]/10">
@@ -2273,255 +2272,166 @@ export default function InteractiveGlobe() {
             </div>
             <div className="grid grid-cols-4 gap-2">
               {/* Emails Sent */}
-              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
+              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10 transition-all duration-300 hover:border-[#4FD1FF]/30">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
                   <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Sent</span>
                 </div>
-                <div className="text-white text-xl font-bold">{stats.totalEmailsSent}</div>
+                <div className="text-white text-xl font-bold transition-all duration-300">{stats.totalEmailsSent}</div>
                 <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Emails</div>
               </div>
               
               {/* Emails Queued */}
-              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
+              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10 transition-all duration-300 hover:border-[#4FD1FF]/30">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></div>
                   <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Queue</span>
                 </div>
-                <div className="text-white text-xl font-bold">{stats.totalEmailsQueued}</div>
+                <div className="text-white text-xl font-bold transition-all duration-300">{stats.totalEmailsQueued}</div>
                 <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Pending</div>
               </div>
               
-              {/* Meetings Scheduled */}
-              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Conv.</span>
-                </div>
-                <div className="text-white text-xl font-bold">
-                  {agents.reduce((sum, agent) => sum + (agent.meetingsScheduled || 0), 0)}
-                </div>
-                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Meetings</div>
-              </div>
-              
               {/* Cycles Completed */}
-              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10">
+              <div className="bg-[#0A1525]/40 p-2 border border-[#4FD1FF]/10 transition-all duration-300 hover:border-[#4FD1FF]/30">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#4FD1FF]"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#4FD1FF] animate-pulse"></div>
                   <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">Cycles</span>
                 </div>
-                <div className="text-white text-xl font-bold">
+                <div className="text-white text-xl font-bold transition-all duration-300">
                   {cycleEvents.filter(e => e.type === 'cycle_complete').length}
                 </div>
                 <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">Complete</div>
               </div>
+              
+              {/* Queued Emails Button */}
+              <button
+                onClick={() => {
+                  if (stats.totalEmailsQueued > 0) {
+                    setActiveTab('queue');
+                    handleGlobeToggle(false);
+                  }
+                }}
+                disabled={stats.totalEmailsQueued === 0}
+                className={`bg-[#0A1525]/40 p-2 border transition-all duration-300 text-left ${
+                  stats.totalEmailsQueued > 0
+                    ? 'border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:bg-[#4FD1FF]/10 cursor-pointer'
+                    : 'border-[#4FD1FF]/10 opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    stats.totalEmailsQueued > 0 ? 'bg-orange-400 animate-pulse' : 'bg-gray-400'
+                  }`}></div>
+                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">View Email Queue</span>
+                </div>
+                <div className={`text-xl font-bold transition-all duration-300 ${
+                  stats.totalEmailsQueued > 0 ? 'text-[#4FD1FF]' : 'text-[#8FA6C1]'
+                }`}>{stats.totalEmailsQueued}</div>
+                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">emails</div>
+              </button>
             </div>
           </div>
 
-          {/* Cycle Progress Stream */}
-          <div className="flex flex-col flex-1 min-h-0">
+          {/* Activity Log & Control Center */}
+          <div className="flex flex-col flex-1 min-h-0 relative">
+            {/* Stop All Agents Button - Top Right (only when agents are running) */}
+            {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length > 0 && (
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  onClick={async () => {
+                    // Optimistic update
+                    setAgents(prev => prev.map(a => ({ ...a, status: 'stopped' })));
+                    setAgentActivities({});
+                    
+                    // Stop all agents
+                    for (const agent of agents) {
+                      if (agent.agentId === 'orphan') continue;
+                      try {
+                        await api.post('/api/lead-agent/stop', { agentId: agent.agentId });
+                      } catch (error) {
+                        console.error('Error stopping agent:', error);
+                      }
+                    }
+                    await fetchAgents();
+                  }}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border-2 border-red-500/40 hover:border-red-500/60 text-red-300 rounded-lg transition-all duration-300 flex items-center gap-2 text-sm font-semibold shadow-lg animate-fade-in"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                  </svg>
+                  Stop All Agents
+                </button>
+              </div>
+            )}
+
+            {/* Activity Log Header */}
             <div className="flex items-center justify-between p-3 border-b border-[#4FD1FF]/10">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
-                <h3 className="text-white font-medium text-xs uppercase tracking-wider">Cycle Progress</h3>
+                <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity Log</h3>
               </div>
               <span className="text-[#8FA6C1] text-[9px] font-mono">
-                {cycleEvents.length} events
+                {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length} active
               </span>
             </div>
             
-            <div className="flex-1 overflow-y-auto">
-              {cycleEvents.length === 0 ? (
+            {/* Activity Log Content */}
+            <div className="flex-1 overflow-y-auto relative">
+              {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="w-12 h-12 bg-[#4FD1FF]/5 border border-[#4FD1FF]/10 flex items-center justify-center mb-3">
-                    <svg className="w-6 h-6 text-[#4FD1FF]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  {/* Thin Green Start All Agents Button */}
+                  <button
+                    onClick={async () => {
+                      // Optimistic update
+                      setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'running' }));
+                      
+                      // Start all agents
+                      for (const agent of agents) {
+                        if (agent.agentId === 'orphan') continue;
+                        if (agent.status !== 'running') {
+                          try {
+                            await api.post('/api/lead-agent/start', { agentId: agent.agentId });
+                          } catch (error) {
+                            console.error('Error starting agent:', error);
+                          }
+                        }
+                      }
+                      await fetchAgents();
+                    }}
+                    className="px-8 py-3 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-500/60 text-green-300 rounded-lg transition-all duration-300 flex items-center gap-2 text-sm font-semibold shadow-lg animate-fade-in"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
+                    Start All Agents
+                  </button>
+                  
+                  <div className="mt-8 space-y-2">
+                    <p className="text-[#8FA6C1] text-sm font-medium">No Active Agents</p>
+                    <p className="text-[#8FA6C1]/60 text-xs">Activity logs will appear here when agents are running</p>
                   </div>
-                  <p className="text-[#8FA6C1] text-xs font-medium">No Cycle Activity Yet</p>
-                  <p className="text-[#8FA6C1]/50 text-[10px] mt-1">Start agents to see cycle progress</p>
                 </div>
               ) : (
-                cycleEvents.map((event) => (
-                  <div 
-                    key={event.id}
-                    className="border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/30 transition-colors"
-                  >
-                    <div className="flex items-start gap-2 p-2.5">
-                      <div className="flex-shrink-0">
-                        {event.type === 'cycle_complete' ? (
-                          <div className="w-6 h-6 bg-green-500/20 border border-green-500/40 flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        ) : (
-                          <div className="w-6 h-6 bg-[#4FD1FF]/20 border border-[#4FD1FF]/40 flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-white font-medium text-[11px]">{event.agentName}</span>
-                          <span className="text-[#8FA6C1]/50 text-[9px] font-mono">
-                            {new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}
-                          </span>
-                        </div>
-                        
-                        <p className="text-[#8FA6C1] text-[10px] leading-relaxed">
-                          {event.message}
-                        </p>
-                      </div>
+                <div className="p-4 space-y-2">
+                  {/* Placeholder for future activity logs */}
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="w-16 h-16 bg-[#4FD1FF]/10 border-2 border-[#4FD1FF]/30 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                      <svg className="w-8 h-8 text-[#4FD1FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
                     </div>
+                    <p className="text-[#8FA6C1] text-sm font-medium">Activity Logs Coming Soon</p>
+                    <p className="text-[#8FA6C1]/60 text-xs mt-1">{agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length} agent{agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length !== 1 ? 's' : ''} currently running</p>
                   </div>
-                ))
+                </div>
               )}
             </div>
           </div>
           
           {/* Bottom border aligned with Quick Actions */}
           <div className="border-t border-white/10"></div>
-        </div>
-        
-        {/* Bottom Section: Warnings + Rankings */}
-        <div className="fixed left-[265px] lg:right-[calc(20%+10px)] bottom-0 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10 z-30" style={{ top: 'calc(100vh - 9rem - 8px)', height: 'calc(9rem + 8px)' }}>
-          <div className="flex h-full">
-            {/* Recent Warnings */}
-            <div className="flex-1 border-r border-[#4FD1FF]/10 flex flex-col">
-              <div className="flex items-center justify-between p-2 border-b border-[#4FD1FF]/10">
-                <div className="flex items-center gap-1.5">
-                  <svg className="w-3 h-3 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <h3 className="text-white font-medium text-[10px] uppercase tracking-wider">Recent Warnings</h3>
-                </div>
-                <span className="text-[#8FA6C1] text-[8px] font-mono">{recentWarnings.length}</span>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto">
-                {recentWarnings.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <span className="text-[#8FA6C1]/50 text-[9px]">No active warnings</span>
-                  </div>
-                ) : (
-                  recentWarnings.slice(0, 3).map((warning) => (
-                    <div key={warning.id} className="p-2 border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/20">
-                      <div className="flex items-start gap-1.5">
-                        <div className={`w-1 h-1 rounded-full mt-1 flex-shrink-0 ${
-                          warning.severity === 'error' ? 'bg-red-400' : 
-                          warning.severity === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'
-                        }`}></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[#8FA6C1] text-[9px] leading-relaxed">{warning.message}</p>
-                          {warning.agentId && (
-                            <span className="text-[#8FA6C1]/50 text-[8px] font-mono mt-0.5 inline-block">
-                              {agents.find(a => a.agentId === warning.agentId)?.name || 'Unknown'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-            
-            {/* Agent Performance Ranking */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex items-center justify-between p-2 border-b border-[#4FD1FF]/10">
-                <div className="flex items-center gap-1.5">
-                  <svg className="w-3 h-3 text-[#4FD1FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <h3 className="text-white font-medium text-[10px] uppercase tracking-wider">Performance</h3>
-                </div>
-                <span className="text-[#8FA6C1] text-[8px]">Today</span>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto">
-                {(() => {
-                  const rankedAgents = agents
-                    .filter(a => a.agentId !== 'orphan')
-                    .map(agent => {
-                      // Count cycle completions from cycleEvents
-                      const agentCycles = cycleEvents.filter(e => 
-                        e.agentName === agent.name && e.type === 'cycle_complete'
-                      ).length;
-                      
-                      // Simple score: just count cycles for now
-                      const score = agentCycles;
-                      
-                      return {
-                        ...agent,
-                        cycles: agentCycles,
-                        score
-                      };
-                    })
-                    .filter(a => a.score > 0) // Only show agents with activity
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, 4);
-                  
-                  if (rankedAgents.length === 0) {
-                    return (
-                      <div className="flex items-center justify-center h-full">
-                        <span className="text-[#8FA6C1]/50 text-[9px]">No activity yet</span>
-                      </div>
-                    );
-                  }
-                  
-                  return rankedAgents.map((agent, idx) => (
-                    <div key={agent.agentId} className="p-2 border-b border-[#4FD1FF]/5 hover:bg-[#1B2F52]/20">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold w-4 text-center ${
-                          idx === 0 ? 'text-yellow-400' : 
-                          idx === 1 ? 'text-[#8FA6C1]' : 
-                          idx === 2 ? 'text-[#8FA6C1]/60' : 'text-[#8FA6C1]/40'
-                        }`}>
-                          {idx + 1}
-                        </span>
-                        
-                        <div className="w-5 h-5 border border-[#4FD1FF]/20 overflow-hidden bg-[#0A1525]/60 flex-shrink-0">
-                          <img 
-                            src={`/avatars/${(() => {
-                              const typeMap: Record<string, string> = {
-                                'hunter': 'Hunter',
-                                'analyst': 'Analyst',
-                                'consultant': 'Consultant',
-                                'networker': 'Networker',
-                                'relationship-builder': 'Relationship-Builder'
-                              };
-                              return typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
-                            })()}.png`}
-                            alt={agent.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-[9px] font-medium truncate">{agent.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {agent.cycles > 0 && (
-                              <span className="text-[#4FD1FF] text-[8px]">{agent.cycles} cycle{agent.cycles !== 1 ? 's' : ''}</span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="text-white text-[10px] font-bold">{agent.score}</div>
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-          </div>
         </div>
         </>
       )}
