@@ -256,6 +256,11 @@ export default function InteractiveGlobe() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Activity Logs state
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [selectedAgentFilter, setSelectedAgentFilter] = useState<string>('all');
+  const activityLogsRef = useRef<EventSource | null>(null);
+
   // Modal states
   const [selectedQueue, setSelectedQueue] = useState<{agentId: string | 'all', type: 'queued' | 'sent' | 'replied', agentName: string} | null>(null);
   const [queueEmails, setQueueEmails] = useState<any[]>([]);
@@ -1276,6 +1281,151 @@ export default function InteractiveGlobe() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
+
+  // Setup SSE connection for activity logs when on director tab
+  useEffect(() => {
+    if (activeTab !== 'director') {
+      // Cleanup when leaving director tab
+      if (activityLogsRef.current) {
+        activityLogsRef.current.close();
+        activityLogsRef.current = null;
+      }
+      return;
+    }
+
+    // Setup SSE for activity logs
+    const setupActivityStream = () => {
+      try {
+        const authToken = localStorage.getItem('authToken');
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        const eventSource = new EventSource(`${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}`);
+        activityLogsRef.current = eventSource;
+        
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            // Only process progress events with agent activity data
+            if (data.type === 'progress' && data.data) {
+              const log = data.data;
+              
+              // Transform technical operations into user-friendly messages
+              const friendlyLog = transformActivityLog(log);
+              
+              if (friendlyLog) {
+                setActivityLogs(prev => [friendlyLog, ...prev.slice(0, 99)]); // Keep last 100 logs
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing activity log:', error);
+          }
+        };
+        
+        eventSource.onerror = () => {
+          console.error('Activity stream connection error');
+          eventSource.close();
+          // Retry connection after 5 seconds
+          setTimeout(() => {
+            if (activeTab === 'director' && !activityLogsRef.current) {
+              setupActivityStream();
+            }
+          }, 5000);
+        };
+      } catch (error) {
+        console.error('Error setting up activity stream:', error);
+      }
+    };
+
+    setupActivityStream();
+
+    return () => {
+      if (activityLogsRef.current) {
+        activityLogsRef.current.close();
+        activityLogsRef.current = null;
+      }
+    };
+  }, [activeTab, agents]);
+
+  // Transform technical log operations into user-friendly messages
+  const transformActivityLog = (log: any) => {
+    if (!log || !log.operation) return null;
+
+    const agentName = agents.find(a => a.agentId === log.agentId)?.name || 'Agent';
+    const agentPersonality = agents.find(a => a.agentId === log.agentId)?.personality?.type || 'hunter';
+    
+    let friendlyMessage = '';
+    let icon = '🤖';
+    let category = 'general';
+
+    // Map technical operations to friendly messages
+    if (log.operation === '🎬 Process Starting' || log.message?.includes('Starting')) {
+      friendlyMessage = `${agentName} is initializing and preparing to search for leads`;
+      icon = '🎬';
+      category = 'initialization';
+    } else if (log.operation === '🔍 Web Research' || log.message?.includes('Researching')) {
+      const company = log.details?.company || log.data?.company || 'company';
+      friendlyMessage = `${agentName} is researching ${company}`;
+      icon = '🔍';
+      category = 'research';
+    } else if (log.operation === 'pre_qualify' || log.message?.includes('pre-qualify') || log.message?.includes('Qualifying')) {
+      const leadName = log.details?.leadName || log.data?.leadName || 'lead';
+      friendlyMessage = `${agentName} is qualifying lead: ${leadName}`;
+      icon = '🎯';
+      category = 'qualification';
+    } else if (log.message?.includes('qualified') || log.message?.includes('Qualified')) {
+      const leadName = log.details?.leadName || log.data?.leadName || 'Lead';
+      const qualified = log.details?.qualified !== false;
+      friendlyMessage = qualified 
+        ? `✅ ${agentName} marked ${leadName} as qualified`
+        : `❌ ${agentName} marked ${leadName} as not qualified`;
+      icon = qualified ? '✅' : '❌';
+      category = 'qualification';
+    } else if (log.operation === '✍️ Email Generation' || log.message?.includes('email') || log.message?.includes('Email')) {
+      const leadName = log.details?.leadName || log.data?.to || 'lead';
+      friendlyMessage = `${agentName} is writing personalized email to ${leadName}`;
+      icon = '✍️';
+      category = 'email';
+    } else if (log.operation === 'Email Queued' || log.message?.includes('Queued')) {
+      const leadName = log.details?.to || log.data?.to || 'lead';
+      friendlyMessage = `📧 ${agentName} added email to ${leadName} to queue for approval`;
+      icon = '📧';
+      category = 'email';
+    } else if (log.message?.includes('CRM') || log.message?.includes('contact')) {
+      const leadName = log.details?.leadName || log.data?.leadName || 'lead';
+      const hasCRM = log.details?.hasCRM !== false;
+      friendlyMessage = hasCRM
+        ? `💼 ${agentName} deposited ${leadName} into CRM`
+        : `⚠️ ${agentName} couldn't deposit ${leadName} - No CRM connected`;
+      icon = hasCRM ? '💼' : '⚠️';
+      category = 'crm';
+    } else if (log.operation === 'Cycle Completed' || log.message?.includes('Cycle') || log.message?.includes('Complete')) {
+      friendlyMessage = `🏁 ${agentName} completed outreach cycle`;
+      icon = '🏁';
+      category = 'cycle';
+    } else if (log.operation === '💭 Agent Activity' || log.details?.thinking) {
+      // Agent thinking/reasoning
+      friendlyMessage = log.message || log.details?.thinking || `${agentName} is thinking`;
+      icon = '💭';
+      category = 'thinking';
+    } else {
+      // Generic fallback
+      friendlyMessage = log.message || log.details || log.operation;
+      icon = '📝';
+      category = 'general';
+    }
+
+    return {
+      id: log.id || `${Date.now()}-${Math.random()}`,
+      timestamp: log.timestamp || new Date().toISOString(),
+      agentId: log.agentId,
+      agentName,
+      agentPersonality,
+      message: friendlyMessage,
+      icon,
+      category,
+      raw: log // Keep original for debugging
+    };
+  };
 
   // Fetch real world data
   useEffect(() => {
@@ -2312,22 +2462,24 @@ export default function InteractiveGlobe() {
                   }
                 }}
                 disabled={stats.totalEmailsQueued === 0}
-                className={`bg-[#0A1525]/40 p-2 border transition-all duration-300 text-left ${
+                className={`bg-[#0A1525]/40 p-2 border transition-all duration-300 ${
                   stats.totalEmailsQueued > 0
                     ? 'border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:bg-[#4FD1FF]/10 cursor-pointer'
                     : 'border-[#4FD1FF]/10 opacity-50 cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    stats.totalEmailsQueued > 0 ? 'bg-orange-400 animate-pulse' : 'bg-gray-400'
-                  }`}></div>
-                  <span className="text-[#8FA6C1] text-[9px] uppercase tracking-wide">View Email Queue</span>
+                <div className="flex flex-col items-center justify-center h-full gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      stats.totalEmailsQueued > 0 ? 'bg-orange-400 animate-pulse' : 'bg-gray-400'
+                    }`}></div>
+                    <span className="text-[#8FA6C1] text-[8px] uppercase tracking-wide whitespace-nowrap">View Email</span>
+                  </div>
+                  <div className={`text-xl font-bold transition-all duration-300 ${
+                    stats.totalEmailsQueued > 0 ? 'text-[#4FD1FF]' : 'text-[#8FA6C1]'
+                  }`}>{stats.totalEmailsQueued}</div>
+                  <span className="text-[#8FA6C1] text-[8px] uppercase tracking-wide whitespace-nowrap">Queue</span>
                 </div>
-                <div className={`text-xl font-bold transition-all duration-300 ${
-                  stats.totalEmailsQueued > 0 ? 'text-[#4FD1FF]' : 'text-[#8FA6C1]'
-                }`}>{stats.totalEmailsQueued}</div>
-                <div className="text-[#8FA6C1]/60 text-[8px] mt-0.5">emails</div>
               </button>
             </div>
           </div>
@@ -2377,56 +2529,147 @@ export default function InteractiveGlobe() {
             </div>
             
             {/* Activity Log Content */}
-            <div className="flex-1 overflow-y-auto relative">
-              {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  {/* Thin Green Start All Agents Button */}
+            <div className="flex-1 overflow-hidden relative flex">
+              {/* Agent Filter Sidebar */}
+              <div className="w-32 border-r border-[#4FD1FF]/10 flex flex-col py-2">
+                <button
+                  onClick={() => setSelectedAgentFilter('all')}
+                  className={`px-3 py-2 text-xs font-medium transition-all text-left ${
+                    selectedAgentFilter === 'all'
+                      ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-r-2 border-[#4FD1FF]'
+                      : 'text-[#8FA6C1] hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  📊 All Agents
+                </button>
+                <div className="h-px bg-[#4FD1FF]/10 my-2"></div>
+                {agents.filter(a => a.agentId !== 'orphan').map(agent => (
                   <button
-                    onClick={async () => {
-                      // Optimistic update
-                      setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'running' }));
-                      
-                      // Start all agents
-                      for (const agent of agents) {
-                        if (agent.agentId === 'orphan') continue;
-                        if (agent.status !== 'running') {
-                          try {
-                            await api.post('/api/lead-agent/start', { agentId: agent.agentId });
-                          } catch (error) {
-                            console.error('Error starting agent:', error);
+                    key={agent.agentId}
+                    onClick={() => setSelectedAgentFilter(agent.agentId)}
+                    className={`px-3 py-2 text-xs font-medium transition-all text-left flex items-center gap-2 ${
+                      selectedAgentFilter === agent.agentId
+                        ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-r-2 border-[#4FD1FF]'
+                        : 'text-[#8FA6C1] hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full overflow-hidden border border-[#4FD1FF]/20 flex-shrink-0">
+                      <img 
+                        src={`/avatars/${(() => {
+                          const typeMap: Record<string, string> = {
+                            'hunter': 'Hunter',
+                            'analyst': 'Analyst',
+                            'consultant': 'Consultant',
+                            'networker': 'Networker',
+                            'relationship-builder': 'Relationship-Builder'
+                          };
+                          return typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
+                        })()}.png`}
+                        alt={agent.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <span className="truncate">{agent.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Activity Logs List */}
+              <div className="flex-1 overflow-y-auto">
+                {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                    <button
+                      onClick={async () => {
+                        setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'running' }));
+                        for (const agent of agents) {
+                          if (agent.agentId === 'orphan') continue;
+                          if (agent.status !== 'running') {
+                            try {
+                              await api.post('/api/lead-agent/start', { agentId: agent.agentId });
+                            } catch (error) {
+                              console.error('Error starting agent:', error);
+                            }
                           }
                         }
-                      }
-                      await fetchAgents();
-                    }}
-                    className="px-8 py-3 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-500/60 text-green-300 rounded-lg transition-all duration-300 flex items-center gap-2 text-sm font-semibold shadow-lg animate-fade-in"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Start All Agents
-                  </button>
-                  
-                  <div className="mt-8 space-y-2">
-                    <p className="text-[#8FA6C1] text-sm font-medium">No Active Agents</p>
-                    <p className="text-[#8FA6C1]/60 text-xs">Activity logs will appear here when agents are running</p>
+                        await fetchAgents();
+                      }}
+                      className="px-8 py-3 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-500/60 text-green-300 rounded-lg transition-all duration-300 flex items-center gap-2 text-sm font-semibold shadow-lg"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Start All Agents
+                    </button>
+                    <div className="mt-8 space-y-2">
+                      <p className="text-[#8FA6C1] text-sm font-medium">No Active Agents</p>
+                      <p className="text-[#8FA6C1]/60 text-xs">Activity logs will appear here when agents are running</p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="p-4 space-y-2">
-                  {/* Placeholder for future activity logs */}
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="w-16 h-16 bg-[#4FD1FF]/10 border-2 border-[#4FD1FF]/30 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                ) : activityLogs.filter(log => selectedAgentFilter === 'all' || log.agentId === selectedAgentFilter).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                    <div className="w-16 h-16 bg-[#4FD1FF]/10 border-2 border-[#4FD1FF]/30 rounded-full flex items-center justify-center mb-4">
                       <svg className="w-8 h-8 text-[#4FD1FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
-                    <p className="text-[#8FA6C1] text-sm font-medium">Activity Logs Coming Soon</p>
-                    <p className="text-[#8FA6C1]/60 text-xs mt-1">{agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length} agent{agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length !== 1 ? 's' : ''} currently running</p>
+                    <p className="text-[#8FA6C1] text-sm font-medium">Waiting for Activity...</p>
+                    <p className="text-[#8FA6C1]/60 text-xs mt-1">{agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length} agent{agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length !== 1 ? 's' : ''} running</p>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-1 p-3">
+                    {activityLogs
+                      .filter(log => selectedAgentFilter === 'all' || log.agentId === selectedAgentFilter)
+                      .map((log, idx) => (
+                        <div 
+                          key={log.id || idx}
+                          className="flex items-start gap-3 p-3 bg-[#0A1525]/40 rounded border border-[#4FD1FF]/10 hover:border-[#4FD1FF]/30 transition-all animate-fade-in"
+                        >
+                          {/* Agent Avatar */}
+                          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#4FD1FF]/30 flex-shrink-0">
+                            <img 
+                              src={`/avatars/${(() => {
+                                const typeMap: Record<string, string> = {
+                                  'hunter': 'Hunter',
+                                  'analyst': 'Analyst',
+                                  'consultant': 'Consultant',
+                                  'networker': 'Networker',
+                                  'relationship-builder': 'Relationship-Builder'
+                                };
+                                return typeMap[log.agentPersonality || 'hunter'] || 'Hunter';
+                              })()}.png`}
+                              alt={log.agentName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+
+                          {/* Log Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[#4FD1FF] text-xs font-semibold">{log.agentName}</span>
+                              <span className="text-[#8FA6C1]/50 text-[10px]">
+                                {new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+                              </span>
+                            </div>
+                            <p className="text-[#8FA6C1] text-xs leading-relaxed">{log.message}</p>
+                          </div>
+
+                          {/* Icon */}
+                          <div className="text-lg flex-shrink-0">{log.icon}</div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
