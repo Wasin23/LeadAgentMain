@@ -91,6 +91,7 @@ class ReasoningLeadAgent extends EventEmitter {
       successfulStrategies: [],
       failedStrategies: [],
       industryInsights: {},
+      industryStatsCache: {}, // Cache industry statistics: { "blockchain": { data: "...", timestamp: Date.now() }, ... }
       currentGoal: null,
       currentIndustryIndex: 0, // Track which industry to search next
       currentKeywordIndex: 0, // Track which keyword within industry (for & splits)
@@ -2605,11 +2606,28 @@ Respond in JSON:
         
         // Search 3: Industry statistics and third-party data for credibility
         const industryKeyword = industry || keyTerms.split(' ')[0] || 'business';
-        searchQueries.push({
-          query: `${industryKeyword} industry statistics trends McKinsey Gartner report 2024 2025`,
-          purpose: 'industry_statistics',
-          description: 'Third-party industry data and statistics'
-        });
+        
+        // Check cache first (valid for 7 days)
+        const cacheKey = industryKeyword.toLowerCase();
+        const cachedStats = this.memory.industryStatsCache[cacheKey];
+        const cacheMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+        
+        if (cachedStats && (Date.now() - cachedStats.timestamp) < cacheMaxAge) {
+          console.log(`📊 [CACHE HIT] Using cached industry statistics for "${industryKeyword}"`);
+          searchQueries.push({
+            query: null, // No search needed
+            purpose: 'industry_statistics',
+            description: 'Third-party industry data and statistics (cached)',
+            cachedData: cachedStats.data
+          });
+        } else {
+          console.log(`📊 [CACHE MISS] Fetching fresh industry statistics for "${industryKeyword}"`);
+          searchQueries.push({
+            query: `${industryKeyword} industry statistics trends McKinsey Gartner report 2024 2025`,
+            purpose: 'industry_statistics',
+            description: 'Third-party industry data and statistics'
+          });
+        }
         
         // Execute searches and fetch webpages
         console.log(`🔍 [DEEP RESEARCH] Running ${searchQueries.length} searches + fetching top 3 webpages each`);
@@ -2619,6 +2637,20 @@ Respond in JSON:
         
         for (const search of searchQueries) {
           console.log(`🔎 [${search.purpose.toUpperCase()}] ${search.description}`);
+          
+          // If using cached data, skip the search
+          if (search.cachedData) {
+            console.log(`   📊 Using cached industry statistics (${Object.keys(search.cachedData.insights || {}).length} insights)`);
+            allResearchData.searches.push({
+              purpose: search.purpose,
+              query: null,
+              description: search.description,
+              cached: true,
+              webpageInsights: search.cachedData.insights || []
+            });
+            continue; // Skip to next search
+          }
+          
           console.log(`   Query: "${search.query}"`);
           
           try {
@@ -2642,17 +2674,17 @@ Respond in JSON:
               console.error(`   ⚠️ Failed to log API usage: ${logError.message}`);
             }
             
-            // Extract top 3 URLs from organic results
+            // Extract top 2 URLs from organic results
             const organicResults = results?.organic || results?.data?.organic || [];
             const topUrls = organicResults
-              .slice(0, 3)
+              .slice(0, 2)
               .map(r => r.link)
               .filter(url => url && !url.includes('youtube.com') && !url.includes('pdf')); // Skip videos and PDFs
             
             console.log(`   📄 Fetching ${topUrls.length} webpages...`);
             
             // Fetch webpage content
-            const webpageContents = await fetchMultipleWebpages(topUrls, 3);
+            const webpageContents = await fetchMultipleWebpages(topUrls, 2);
             
             // Extract relevant insights from each webpage using AI
             const webpageInsights = [];
@@ -2731,6 +2763,20 @@ Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and 
               results: results,
               webpageInsights: webpageInsights // NEW: AI-extracted insights from full webpages
             });
+            
+            // Cache industry statistics for future use (if this was a stats search)
+            if (search.purpose === 'industry_statistics' && webpageInsights.length > 0) {
+              const cacheKey = industryKeyword.toLowerCase();
+              this.memory.industryStatsCache[cacheKey] = {
+                data: {
+                  insights: webpageInsights,
+                  query: search.query,
+                  industry: industryKeyword
+                },
+                timestamp: Date.now()
+              };
+              console.log(`   💾 Cached industry statistics for "${industryKeyword}" (valid for 7 days)`);
+            }
             
             // Extract findings from snippets (keep for quick reference)
             if (results?.organic && results.organic.length > 0) {

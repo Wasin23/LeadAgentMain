@@ -1226,48 +1226,6 @@ export default function InteractiveGlobe() {
     fetchMetricsHistory();
   }, []);
 
-  // Fetch all emails from all agents on initial load
-  useEffect(() => {
-    if (agents.length > 0) {
-      console.log('Fetching all emails for agents:', agents.map(a => a.name));
-      const fetchAllEmails = async () => {
-        try {
-          const allEmails: any[] = [];
-          for (const agent of agents) {
-            // Skip orphan agent - it doesn't have real emails
-            if (agent.agentId === 'orphan') continue;
-            
-            console.log('Fetching emails for agent:', agent.name, agent.agentId);
-            try {
-              const response = await api.get(`/api/email-queue/queue`, {
-                params: { agentId: agent.agentId }
-              });
-              console.log('Response for', agent.name, ':', response.data);
-              const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
-              console.log(`Got ${emails.length} emails for ${agent.name}`);
-              allEmails.push(...emails.map((email: any) => ({
-                ...email,
-                agentName: agent.name
-              })));
-            } catch (err: any) {
-              // Skip 404 errors for agents without queues
-              if (err?.response?.status !== 404) {
-                console.error('Error fetching emails for agent', agent.name, ':', err);
-              }
-            }
-          }
-          console.log('Total emails fetched:', allEmails.length);
-          setQueueEmails(allEmails.sort((a, b) => 
-            new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
-          ));
-        } catch (error) {
-          console.error('Error fetching all emails:', error);
-        }
-      };
-      fetchAllEmails();
-    }
-  }, [agents.length]);
-
   // Refetch agents when page becomes visible (when user navigates back)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -1376,10 +1334,16 @@ export default function InteractiveGlobe() {
       friendlyMessage = `${agentName} is initializing and preparing to search for leads`;
       icon = '🎬';
       category = 'initialization';
-    } else if (log.operation === '🔍 Web Research' || log.message?.includes('Researching')) {
+    } else if (log.operation === '🔍 Web Research' || log.operation === 'Deep Research' || log.message?.includes('Researching') || log.message?.includes('research')) {
       const company = log.details?.company || log.data?.company || 'company';
-      friendlyMessage = `${agentName} is researching ${company}`;
-      icon = '🔍';
+      const purpose = log.details?.purpose || log.data?.purpose;
+      if (purpose === 'industry_statistics') {
+        friendlyMessage = `${agentName} is gathering industry statistics and third-party data`;
+        icon = '📊';
+      } else {
+        friendlyMessage = `${agentName} is researching ${company}`;
+        icon = '🔍';
+      }
       category = 'research';
     } else if (log.operation === 'pre_qualify' || log.message?.includes('pre-qualify') || log.message?.includes('Qualifying')) {
       const leadName = log.details?.leadName || log.data?.leadName || 'lead';
@@ -1417,8 +1381,13 @@ export default function InteractiveGlobe() {
       icon = '🏁';
       category = 'cycle';
     } else if (log.operation === '💭 Agent Activity' || log.details?.thinking) {
-      // Agent thinking/reasoning
-      friendlyMessage = log.message || log.details?.thinking || `${agentName} is thinking`;
+      // Filter out repetitive thinking messages - only show if it's substantive
+      const thinkingText = log.message || log.details?.thinking || `${agentName} is thinking`;
+      // Skip generic "thinking" spam - only show if message has real content
+      if (thinkingText.length < 20 || thinkingText === `${agentName} is thinking`) {
+        return null; // Filter out noise
+      }
+      friendlyMessage = thinkingText;
       icon = '💭';
       category = 'thinking';
     } else {
@@ -1673,9 +1642,42 @@ export default function InteractiveGlobe() {
           Agent Director
         </button>
         <button
-          onClick={() => {
+          onClick={async () => {
             setActiveTab('queue');
             handleGlobeToggle(false);
+            
+            // Fetch queue emails when tab is clicked
+            if (agents.length > 0) {
+              setLoadingQueue(true);
+              try {
+                const allEmails: any[] = [];
+                for (const agent of agents) {
+                  if (agent.agentId === 'orphan') continue;
+                  
+                  try {
+                    const response = await api.get(`/api/email-queue/queue`, {
+                      params: { agentId: agent.agentId }
+                    });
+                    const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
+                    allEmails.push(...emails.map((email: any) => ({
+                      ...email,
+                      agentName: agent.name
+                    })));
+                  } catch (err: any) {
+                    if (err?.response?.status !== 404) {
+                      console.error('Error fetching emails for agent', agent.name, ':', err);
+                    }
+                  }
+                }
+                setQueueEmails(allEmails.sort((a, b) => 
+                  new Date(b.queuedAt || b.timestamp).getTime() - new Date(a.queuedAt || a.timestamp).getTime()
+                ));
+              } catch (error) {
+                console.error('Error fetching queue emails:', error);
+              } finally {
+                setLoadingQueue(false);
+              }
+            }
           }}
           className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'queue'
@@ -2723,7 +2725,16 @@ export default function InteractiveGlobe() {
 
       {activeTab === 'queue' && (
         <div className="pt-32">
-          {/* Email Queue tab content */}
+          {loadingQueue ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 border-4 border-[#4FD1FF]/20 border-t-[#4FD1FF] rounded-full animate-spin"></div>
+                <p className="text-[#8FA6C1] text-sm">Loading email queue...</p>
+              </div>
+            </div>
+          ) : (
+            <div>{/* Email Queue tab content */}</div>
+          )}
         </div>
       )}
 
