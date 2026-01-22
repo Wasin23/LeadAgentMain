@@ -158,13 +158,13 @@ class ReasoningLeadAgent extends EventEmitter {
       },
       {
         name: 'serper_research',
-        description: 'Research a lead/company using Serper to verify Apollo data and gather intelligence',
+        description: 'Research a lead/company. Leave searchQuery EMPTY to trigger automatic 4-phase deep research. Only provide searchQuery for specific ad-hoc queries.',
         parameters: {
           type: 'object',
           properties: {
             companyName: { type: 'string', description: 'Company name to research' },
             personName: { type: 'string', description: 'Person name if researching individual' },
-            searchQuery: { type: 'string', description: 'Specific search query for verification' }
+            searchQuery: { type: 'string', description: 'LEAVE EMPTY for deep research. Only use for specific verification.' }
           }
         }
       },
@@ -2572,8 +2572,12 @@ Respond in JSON:
         combinedFindings: []
       };
       
-      if (!parameters.searchQuery && this.campaignPlan && this.campaignPlan.qualificationCriteria) {
-        console.log(`🎯 [RESEARCH STRATEGY] Running deep research with ${personalityType} personality`);
+      // Always run deep research if campaign plan exists (ignore searchQuery parameter from GPT)
+      if (this.campaignPlan && this.campaignPlan.qualificationCriteria) {
+        if (parameters.searchQuery) {
+          console.log(`⚠️ [RESEARCH] Ignoring searchQuery parameter - running deep 4-phase research instead`);
+        }
+        console.log(`🎯 [RESEARCH STRATEGY] Running deep 4-phase research with ${personalityType} personality`);
         
         const criteria = this.campaignPlan.qualificationCriteria;
         const searchQueries = [];
@@ -3634,27 +3638,40 @@ DO NOT write generic emails. Use this buyer motivation to show sophisticated und
       let researchFindings = '';
       if (this.memory.lastResearch && this.memory.lastResearch.searches) {
         const searches = this.memory.lastResearch.searches;
+        console.log(`🔍 [RESEARCH DEBUG] Found ${searches.length} searches in memory`);
+        
         researchFindings = '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 RESEARCH FINDINGS (USE THESE IN YOUR EMAIL)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
         
-        searches.forEach(search => {
+        searches.forEach((search, index) => {
+          console.log(`   [Search ${index + 1}] Purpose: ${search.purpose}, Has results: ${!!search.results}, Organic count: ${search.results?.organic?.length || 0}`);
+          
           if (search.purpose === 'company_overview') {
             const facts = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
+            console.log(`   [Company Overview] Extracted ${facts.split('\n').length} facts, length: ${facts.length}`);
             if (facts) researchFindings += `COMPANY OVERVIEW:\n${facts}\n\n`;
           } else if (search.purpose === 'recent_developments') {
             const news = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
+            console.log(`   [Recent Developments] Extracted ${news.split('\n').length} news items, length: ${news.length}`);
             if (news) researchFindings += `RECENT NEWS/DEVELOPMENTS:\n${news}\n\n`;
           } else if (search.purpose === 'industry_statistics') {
             const stats = search.webpageInsights?.slice(0, 2).map(insight => `• ${insight.insights}`).join('\n') || '';
+            console.log(`   [Industry Stats] Extracted ${stats.split('\n').length} stats, length: ${stats.length}`);
             if (stats) researchFindings += `INDUSTRY STATISTICS (cite these for credibility):\n${stats}\n\n`;
           } else if (search.purpose === 'user_company_success') {
             const wins = search.results?.organic?.slice(0, 2).map(r => `• ${r.snippet}`).join('\n') || '';
+            console.log(`   [Company Wins] Extracted ${wins.split('\n').length} wins, length: ${wins.length}`);
             if (wins) researchFindings += `YOUR COMPANY'S RECENT WINS (use if noteworthy):\n${wins}\n\n`;
           }
         });
         
+        console.log(`📊 [RESEARCH DEBUG] Final researchFindings length: ${researchFindings.length}`);
         if (researchFindings.length > 200) {
-          console.log('📊 [EMAIL] Added research findings summary to prompt');
+          console.log('✅ [EMAIL] Added research findings summary to prompt');
+        } else {
+          console.log('⚠️ [EMAIL] Research findings too short or empty!');
         }
+      } else {
+        console.log('❌ [RESEARCH DEBUG] No research data found in memory!');
       }
       
       // Common ruleset for email structure - ALWAYS include lead details and context
