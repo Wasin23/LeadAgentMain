@@ -1298,22 +1298,31 @@ export default function InteractiveGlobe() {
       try {
         const authToken = localStorage.getItem('authToken');
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-        const eventSource = new EventSource(`${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}`);
+        const streamUrl = `${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}`;
+        console.log('🔌 Connecting to activity stream:', streamUrl);
+        const eventSource = new EventSource(streamUrl);
         activityLogsRef.current = eventSource;
         
         eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            console.log('📨 Received SSE event:', data);
             
             // Only process progress events with agent activity data
             if (data.type === 'progress' && data.data) {
               const log = data.data;
+              console.log('🔄 Processing activity log:', log);
               
               // Transform technical operations into user-friendly messages
               const friendlyLog = transformActivityLog(log);
+              console.log('✨ Transformed log:', friendlyLog);
               
               if (friendlyLog) {
-                setActivityLogs(prev => [friendlyLog, ...prev.slice(0, 99)]); // Keep last 100 logs
+                setActivityLogs(prev => {
+                  const newLogs = [friendlyLog, ...prev.slice(0, 99)];
+                  console.log('📋 Updated activity logs count:', newLogs.length);
+                  return newLogs;
+                });
               }
             }
           } catch (error) {
@@ -2401,17 +2410,6 @@ export default function InteractiveGlobe() {
           <div 
             className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] bottom-0 flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10"
           >
-          {/* AI Summary Box */}
-          <div className="p-3 border-b border-[#4FD1FF]/10">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></div>
-              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity</h3>
-            </div>
-            <div className="bg-[#0A1525]/40 p-3 border border-[#4FD1FF]/10">
-              <p className="text-[#8FA6C1] text-[11px] leading-relaxed">{aiSummary}</p>
-            </div>
-          </div>
-
           {/* Today's Wins */}
           <div className="p-3 border-b border-[#4FD1FF]/10">
             <div className="flex items-center justify-between mb-2">
@@ -2462,25 +2460,43 @@ export default function InteractiveGlobe() {
                   }
                 }}
                 disabled={stats.totalEmailsQueued === 0}
-                className={`bg-[#0A1525]/40 p-2 border transition-all duration-300 ${
+                className={`bg-[#0A1525]/40 p-2 border transition-all duration-300 flex items-center justify-center ${
                   stats.totalEmailsQueued > 0
                     ? 'border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:bg-[#4FD1FF]/10 cursor-pointer'
                     : 'border-[#4FD1FF]/10 opacity-50 cursor-not-allowed'
                 }`}
               >
-                <div className="flex flex-col items-center justify-center h-full gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      stats.totalEmailsQueued > 0 ? 'bg-orange-400 animate-pulse' : 'bg-gray-400'
-                    }`}></div>
-                    <span className="text-[#8FA6C1] text-[8px] uppercase tracking-wide whitespace-nowrap">View Email</span>
-                  </div>
-                  <div className={`text-xl font-bold transition-all duration-300 ${
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    stats.totalEmailsQueued > 0 ? 'bg-orange-400 animate-pulse' : 'bg-gray-400'
+                  }`}></div>
+                  <span className={`text-[10px] uppercase tracking-wide font-semibold ${
                     stats.totalEmailsQueued > 0 ? 'text-[#4FD1FF]' : 'text-[#8FA6C1]'
-                  }`}>{stats.totalEmailsQueued}</div>
-                  <span className="text-[#8FA6C1] text-[8px] uppercase tracking-wide whitespace-nowrap">Queue</span>
+                  }`}>View Email Queue</span>
                 </div>
               </button>
+            </div>
+          </div>
+
+          {/* AI Summary Box */}
+          <div className="p-3 border-b border-[#4FD1FF]/10">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></div>
+              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity Summary</h3>
+            </div>
+            <div className="bg-[#0A1525]/40 p-3 border border-[#4FD1FF]/10">
+              <p className="text-[#8FA6C1] text-[11px] leading-relaxed">{aiSummary}</p>
+            </div>
+          </div>
+
+          {/* AI Summary Box */}
+          <div className="p-3 border-b border-[#4FD1FF]/10">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></div>
+              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity Summary</h3>
+            </div>
+            <div className="bg-[#0A1525]/40 p-3 border border-[#4FD1FF]/10">
+              <p className="text-[#8FA6C1] text-[11px] leading-relaxed">{aiSummary}</p>
             </div>
           </div>
 
@@ -2534,13 +2550,16 @@ export default function InteractiveGlobe() {
               <div className="w-32 border-r border-[#4FD1FF]/10 flex flex-col py-2">
                 <button
                   onClick={() => setSelectedAgentFilter('all')}
-                  className={`px-3 py-2 text-xs font-medium transition-all text-left ${
+                  className={`px-3 py-2 text-xs font-medium transition-all text-left flex items-center gap-2 ${
                     selectedAgentFilter === 'all'
                       ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-r-2 border-[#4FD1FF]'
                       : 'text-[#8FA6C1] hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  📊 All Agents
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                  </svg>
+                  All Agents
                 </button>
                 <div className="h-px bg-[#4FD1FF]/10 my-2"></div>
                 {agents.filter(a => a.agentId !== 'orphan').map(agent => (
@@ -2553,25 +2572,10 @@ export default function InteractiveGlobe() {
                         : 'text-[#8FA6C1] hover:bg-white/5 hover:text-white'
                     }`}
                   >
-                    <div className="w-5 h-5 rounded-full overflow-hidden border border-[#4FD1FF]/20 flex-shrink-0">
-                      <img 
-                        src={`/avatars/${(() => {
-                          const typeMap: Record<string, string> = {
-                            'hunter': 'Hunter',
-                            'analyst': 'Analyst',
-                            'consultant': 'Consultant',
-                            'networker': 'Networker',
-                            'relationship-builder': 'Relationship-Builder'
-                          };
-                          return typeMap[agent.personality?.type || 'hunter'] || 'Hunter';
-                        })()}.png`}
-                        alt={agent.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
+                    <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-[#4FD1FF]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 4.5C13.38 4.5 14.5 5.62 14.5 7C14.5 8.38 13.38 9.5 12 9.5C10.62 9.5 9.5 8.38 9.5 7C9.5 5.62 10.62 4.5 12 4.5ZM5.5 7C5.5 5.62 6.62 4.5 8 4.5C9.38 4.5 10.5 5.62 10.5 7C10.5 8.38 9.38 9.5 8 9.5C6.62 9.5 5.5 8.38 5.5 7ZM13.5 7C13.5 5.62 14.62 4.5 16 4.5C17.38 4.5 18.5 5.62 18.5 7C18.5 8.38 17.38 9.5 16 9.5C14.62 9.5 13.5 8.38 13.5 7ZM4 14C4 12.34 5.34 11 7 11C7.41 11 7.81 11.08 8.17 11.23C7.47 12.06 7 13.13 7 14.31V16H4V14ZM17 16V14.31C17 13.13 16.53 12.06 15.83 11.23C16.19 11.08 16.59 11 17 11C18.66 11 20 12.34 20 14V16H17ZM9 14C9 12.34 10.34 11 12 11C13.66 11 15 12.34 15 14V16H9V14Z"/>
+                      </svg>
                     </div>
                     <span className="truncate">{agent.name}</span>
                   </button>
@@ -2630,25 +2634,10 @@ export default function InteractiveGlobe() {
                           className="flex items-start gap-3 p-3 bg-[#0A1525]/40 rounded border border-[#4FD1FF]/10 hover:border-[#4FD1FF]/30 transition-all animate-fade-in"
                         >
                           {/* Agent Avatar */}
-                          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#4FD1FF]/30 flex-shrink-0">
-                            <img 
-                              src={`/avatars/${(() => {
-                                const typeMap: Record<string, string> = {
-                                  'hunter': 'Hunter',
-                                  'analyst': 'Analyst',
-                                  'consultant': 'Consultant',
-                                  'networker': 'Networker',
-                                  'relationship-builder': 'Relationship-Builder'
-                                };
-                                return typeMap[log.agentPersonality || 'hunter'] || 'Hunter';
-                              })()}.png`}
-                              alt={log.agentName}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
+                          <div className="w-8 h-8 rounded-full border-2 border-[#4FD1FF]/30 flex-shrink-0 flex items-center justify-center bg-[#0A1525]/60">
+                            <svg className="w-5 h-5 text-[#4FD1FF]" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 4.5C13.38 4.5 14.5 5.62 14.5 7C14.5 8.38 13.38 9.5 12 9.5C10.62 9.5 9.5 8.38 9.5 7C9.5 5.62 10.62 4.5 12 4.5ZM5.5 7C5.5 5.62 6.62 4.5 8 4.5C9.38 4.5 10.5 5.62 10.5 7C10.5 8.38 9.38 9.5 8 9.5C6.62 9.5 5.5 8.38 5.5 7ZM13.5 7C13.5 5.62 14.62 4.5 16 4.5C17.38 4.5 18.5 5.62 18.5 7C18.5 8.38 17.38 9.5 16 9.5C14.62 9.5 13.5 8.38 13.5 7ZM4 14C4 12.34 5.34 11 7 11C7.41 11 7.81 11.08 8.17 11.23C7.47 12.06 7 13.13 7 14.31V16H4V14ZM17 16V14.31C17 13.13 16.53 12.06 15.83 11.23C16.19 11.08 16.59 11 17 11C18.66 11 20 12.34 20 14V16H17ZM9 14C9 12.34 10.34 11 12 11C13.66 11 15 12.34 15 14V16H9V14Z"/>
+                            </svg>
                           </div>
 
                           {/* Log Content */}
