@@ -171,7 +171,7 @@ class MergeManager {
       
       // Check for unsupported operation error
       if (errorDetail?.problem_type === 'UNSUPPORTED_OPERATION') {
-        console.warn(`⚠️ [MERGE] CRM "${user.crmIntegration}" does not support contact creation via Merge API`);
+        console.warn(`⚠️ [MERGE] CRM does not support contact creation via Merge API`);
         return { 
           success: false, 
           error: 'CRM does not support contact creation',
