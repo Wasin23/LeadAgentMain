@@ -259,7 +259,7 @@ export default function InteractiveGlobe() {
   // Activity Logs state
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<string>('all');
-  const activityLogsRef = useRef<EventSource | null>(null);
+  const activityLogsRef = useRef<Map<string, EventSource>>(new Map());
 
   // Modal states
   const [selectedQueue, setSelectedQueue] = useState<{agentId: string | 'all', type: 'queued' | 'sent' | 'replied', agentName: string} | null>(null);
@@ -1286,72 +1286,77 @@ export default function InteractiveGlobe() {
   useEffect(() => {
     if (activeTab !== 'director') {
       // Cleanup when leaving director tab
-      if (activityLogsRef.current) {
-        activityLogsRef.current.close();
-        activityLogsRef.current = null;
-      }
+      activityLogsRef.current.forEach((source) => source.close());
+      activityLogsRef.current.clear();
       return;
     }
 
-    // Setup SSE for activity logs
-    const setupActivityStream = () => {
+    // Setup SSE for each agent
+    const setupActivityStreams = () => {
       try {
         const authToken = localStorage.getItem('authToken');
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-        const streamUrl = `${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}`;
-        console.log('🔌 Connecting to activity stream:', streamUrl);
-        const eventSource = new EventSource(streamUrl);
-        activityLogsRef.current = eventSource;
         
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log('📨 Received SSE event:', data);
-            
-            // Only process progress events with agent activity data
-            if (data.type === 'progress' && data.data) {
-              const log = data.data;
-              console.log('🔄 Processing activity log:', log);
+        // Close any existing connections
+        activityLogsRef.current.forEach((source) => source.close());
+        activityLogsRef.current.clear();
+        
+        // Connect to each active agent's stream
+        agents.filter(a => a.agentId !== 'orphan').forEach(agent => {
+          const streamUrl = `${backendUrl}/api/lead-agent/progress-stream?token=${encodeURIComponent(authToken || '')}&agentId=${encodeURIComponent(agent.agentId)}`;
+          console.log(`🔌 Connecting to activity stream for agent ${agent.name}:`, streamUrl);
+          
+          const eventSource = new EventSource(streamUrl);
+          activityLogsRef.current.set(agent.agentId, eventSource);
+          
+          eventSource.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              console.log(`📨 Received SSE event from ${agent.name}:`, data);
               
-              // Transform technical operations into user-friendly messages
-              const friendlyLog = transformActivityLog(log);
-              console.log('✨ Transformed log:', friendlyLog);
-              
-              if (friendlyLog) {
-                setActivityLogs(prev => {
-                  const newLogs = [friendlyLog, ...prev.slice(0, 99)];
-                  console.log('📋 Updated activity logs count:', newLogs.length);
-                  return newLogs;
-                });
+              // Only process progress events with agent activity data
+              if (data.type === 'progress') {
+                const log = data.data || data;
+                console.log('🔄 Processing activity log:', log);
+                
+                // Add agentId to the log if not present
+                if (!log.agentId) {
+                  log.agentId = agent.agentId;
+                }
+                
+                // Transform technical operations into user-friendly messages
+                const friendlyLog = transformActivityLog(log);
+                console.log('✨ Transformed log:', friendlyLog);
+                
+                if (friendlyLog) {
+                  setActivityLogs(prev => {
+                    const newLogs = [friendlyLog, ...prev.slice(0, 99)];
+                    console.log('📋 Updated activity logs count:', newLogs.length);
+                    return newLogs;
+                  });
+                }
               }
+            } catch (error) {
+              console.error('Error parsing activity log:', error);
             }
-          } catch (error) {
-            console.error('Error parsing activity log:', error);
-          }
-        };
-        
-        eventSource.onerror = () => {
-          console.error('Activity stream connection error');
-          eventSource.close();
-          // Retry connection after 5 seconds
-          setTimeout(() => {
-            if (activeTab === 'director' && !activityLogsRef.current) {
-              setupActivityStream();
-            }
-          }, 5000);
-        };
+          };
+          
+          eventSource.onerror = (error) => {
+            console.error(`Activity stream connection error for ${agent.name}:`, error);
+            eventSource.close();
+            activityLogsRef.current.delete(agent.agentId);
+          };
+        });
       } catch (error) {
-        console.error('Error setting up activity stream:', error);
+        console.error('Error setting up activity streams:', error);
       }
     };
 
-    setupActivityStream();
+    setupActivityStreams();
 
     return () => {
-      if (activityLogsRef.current) {
-        activityLogsRef.current.close();
-        activityLogsRef.current = null;
-      }
+      activityLogsRef.current.forEach((source) => source.close());
+      activityLogsRef.current.clear();
     };
   }, [activeTab, agents]);
 
@@ -2475,17 +2480,6 @@ export default function InteractiveGlobe() {
                   }`}>View Email Queue</span>
                 </div>
               </button>
-            </div>
-          </div>
-
-          {/* AI Summary Box */}
-          <div className="p-3 border-b border-[#4FD1FF]/10">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></div>
-              <h3 className="text-white font-medium text-xs uppercase tracking-wider">Agent Activity Summary</h3>
-            </div>
-            <div className="bg-[#0A1525]/40 p-3 border border-[#4FD1FF]/10">
-              <p className="text-[#8FA6C1] text-[11px] leading-relaxed">{aiSummary}</p>
             </div>
           </div>
 
