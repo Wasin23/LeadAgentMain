@@ -362,7 +362,7 @@ export default function CRMDashboard() {
 
   if (loading && !status.connected) {
     return (
-      <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20 overflow-hidden">
+      <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20">
         <div className="px-6 py-4 border-b border-[#4FD1FF]/20">
           <h2 className="text-xl font-semibold text-white">CRM Integration</h2>
           <p className="text-xs text-[#A3B4CC] mt-1">Sync leads automatically</p>
@@ -375,7 +375,7 @@ export default function CRMDashboard() {
   }
 
   return (
-    <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20 overflow-hidden">
+    <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl shadow-lg border border-[#4FD1FF]/20">
       <div className="px-6 py-4 border-b border-[#4FD1FF]/20">
         <h2 className="text-xl font-semibold text-white">CRM Integration</h2>
         <p className="text-xs text-[#A3B4CC] mt-1">
@@ -471,7 +471,7 @@ export default function CRMDashboard() {
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute z-50 w-full mt-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg shadow-xl max-h-80 overflow-y-auto">
+                  <div className="absolute z-[100] w-full mt-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg shadow-2xl max-h-[400px] overflow-y-auto">
                     {CRM_CONFIGS.map((crm) => (
                       <button
                         key={crm.id}
