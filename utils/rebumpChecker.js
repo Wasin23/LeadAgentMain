@@ -283,7 +283,7 @@ export async function checkForRebumps() {
 
         // Get SENT emails for this agent
         const sentEmails = await emailQueue.getSentEmails(userId, agentId);
-        console.log(`🔍 [REBUMP] Agent ${agentId}: Found ${sentEmails?.length || 0} sent emails`);
+        // console.log(`🔍 [REBUMP] Agent ${agentId}: Found ${sentEmails?.length || 0} sent emails`);
         if (!sentEmails || sentEmails.length === 0) continue;
 
         const now = Date.now();
@@ -295,19 +295,19 @@ export async function checkForRebumps() {
           
           // Skip if no follow-up scheduled
           if (!email.followUpScheduled) {
-            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - followUpScheduled is false/undefined`);
+            // console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - followUpScheduled is false/undefined`);
             continue;
           }
           
           // Skip if already has reply
           if (email.status === 'REPLIED') {
-            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - already replied`);
+            // console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - already replied`);
             continue;
           }
           
           // Skip if bounced
           if (email.status === 'BOUNCED') {
-            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - bounced`);
+            // console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - bounced`);
             continue;
           }
           
@@ -315,13 +315,13 @@ export async function checkForRebumps() {
           const rebumpCount = email.rebumpCount || 0;
           const maxRebumps = agentSettings.emailBuilder.maxRebumps || 1;
           if (rebumpCount >= maxRebumps) {
-            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - already rebumped ${rebumpCount}/${maxRebumps} times`);
+            // console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - already rebumped ${rebumpCount}/${maxRebumps} times`);
             continue;
           }
 
           // Skip if no follow-up date set
           if (!email.followUpDate) {
-            console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - no followUpDate set`);
+            // console.log(`⏭️ [REBUMP] ${emailTo}: Skipped - no followUpDate set`);
             continue;
           }
 
@@ -349,7 +349,7 @@ export async function checkForRebumps() {
           // Check if we've reached the follow-up date
           if (now < followUpDate.getTime()) {
             const daysUntil = Math.ceil((followUpDate.getTime() - now) / (24 * 60 * 60 * 1000));
-            console.log(`⏳ [REBUMP] ${emailTo}: Not yet time - ${daysUntil} days until follow-up (${followUpDate.toISOString()})`);
+            // console.log(`⏳ [REBUMP] ${emailTo}: Not yet time - ${daysUntil} days until follow-up (${followUpDate.toISOString()})`);
             continue;
           }
 

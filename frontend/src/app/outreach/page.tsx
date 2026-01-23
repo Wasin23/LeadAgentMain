@@ -167,23 +167,12 @@ export default function OutreachPage() {
   const sendOverdueFollowUps = async () => {
     try {
       console.log('🚀 Checking for overdue follow-ups...');
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/outreach/send-overdue', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ agentId: 'all' })
-      });
+      const response = await api.post('/api/outreach/send-overdue', { agentId: 'all' });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.sent > 0) {
-          console.log(`✅ Sent ${data.sent} overdue follow-ups`);
-          // Refresh the email list to show updated status
-          setTimeout(() => fetchEmailActivity(), 2000);
-        }
+      if (response.data?.sent > 0) {
+        console.log(`✅ Sent ${response.data.sent} overdue follow-ups`);
+        // Refresh the email list to show updated status
+        setTimeout(() => fetchEmailActivity(), 2000);
       }
     } catch (err) {
       console.error('Error sending overdue follow-ups:', err);
