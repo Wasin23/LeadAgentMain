@@ -2864,6 +2864,8 @@ Format as:
             .map(w => w.insights)
             .join('\n');
           
+          console.log('📝 [METRICS] Raw insights text:', metricsText.substring(0, 500));
+          
           // Extract specific metrics using regex patterns
           const returnsMatch = metricsText.match(/\[METRIC\].*?(\d+[-–]\d+%.*?(?:return|yield|ROI))/i);
           const investorsMatch = metricsText.match(/\[METRIC\].*?(\d+[,\d]*\+?.*?(?:investor|user|customer|client))/i);
@@ -2871,13 +2873,32 @@ Format as:
           const propertiesMatch = metricsText.match(/\[METRIC\].*?(\d+\+?.*?(?:propert|location|market|countr))/i);
           const performanceMatch = metricsText.match(/\[METRIC\].*?(outperformed.*?by.*?\d+\.?\d*%)/i);
           
-          if (returnsMatch) platformMetrics.returns = returnsMatch[1].trim();
-          if (investorsMatch) platformMetrics.investors = investorsMatch[1].trim();
-          if (deployedMatch) platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
-          if (propertiesMatch) platformMetrics.properties = propertiesMatch[1].trim();
-          if (performanceMatch) platformMetrics.performance = performanceMatch[1].trim();
+          if (returnsMatch) {
+            platformMetrics.returns = returnsMatch[1].trim();
+            console.log('✅ [METRICS] Found returns:', platformMetrics.returns);
+          }
+          if (investorsMatch) {
+            platformMetrics.investors = investorsMatch[1].trim();
+            console.log('✅ [METRICS] Found investors:', platformMetrics.investors);
+          }
+          if (deployedMatch) {
+            platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
+            console.log('✅ [METRICS] Found deployed capital:', platformMetrics.deployed);
+          }
+          if (propertiesMatch) {
+            platformMetrics.properties = propertiesMatch[1].trim();
+            console.log('✅ [METRICS] Found properties:', platformMetrics.properties);
+          }
+          if (performanceMatch) {
+            platformMetrics.performance = performanceMatch[1].trim();
+            console.log('✅ [METRICS] Found performance:', platformMetrics.performance);
+          }
           
-          console.log('📊 [METRICS] Extracted platform metrics:', platformMetrics);
+          if (Object.keys(platformMetrics).length === 0) {
+            console.log('⚠️ [METRICS] No [METRIC] tags found in insights. Metrics extraction failed.');
+          } else {
+            console.log('📊 [METRICS] Extracted platform metrics:', platformMetrics);
+          }
           
           // Store in memory for email builder
           this.memory.platformMetrics = platformMetrics;
@@ -3912,12 +3933,19 @@ Examples of GOOD specificity (adapt these patterns with YOUR metrics above):
 ✅ "Join 50,000+ investors who've deployed $500M+ in tokenized real estate"
 ✅ "Current Dubai opportunities showing 14% projected 12-month returns"
 
-Examples of BAD vagueness (NEVER DO THIS):
+🚫 FORBIDDEN PHRASES (INSTANT REJECTION - DO NOT USE THESE EVER):
+❌ "Low investment threshold" or "starting from just $50"
+❌ "Rigorous property selection process" or "ensuring you invest only in the best"
+❌ "Flexible investment management" or "seamless control"
+❌ "Consistent passive income" or "steady income stream"
 ❌ "Access to curated global properties"
 ❌ "Earn consistent passive income"
-❌ "Rigorous selection process"
-❌ "Flexible investment management"
-❌ "Trusted by many investors"
+❌ "Quality assurance" or "Financial stability"
+❌ "Trusted by many investors" or "top-tier firms"
+❌ "Several companies have embraced our platform"
+
+IF YOU USE ANY OF THESE FORBIDDEN PHRASES, THE EMAIL WILL BE REJECTED.
+Instead, use SPECIFIC NUMBERS from YOUR PLATFORM'S VERIFIED METRICS section above.
 
 CRITICAL - USE THIRD-PARTY DATA:
 When available from research, cite industry statistics to build credibility:
@@ -3932,9 +3960,11 @@ CRITICAL - WRITING YOUR VALUE PROPOSITION:
    - Example: "- 12-18% average returns across 150+ properties in 25 countries"
    
 2. IF NO METRICS EXTRACTED:
-   - Focus on your core value proposition from "YOUR SOLUTION" section
-   - Use client success patterns: "Companies at your stage typically see X results"
-   - Better to be general than make up numbers
+   - DO NOT use the forbidden phrases listed above
+   - Connect YOUR SOLUTION section to THEIR specific situation from research
+   - Focus on how your offering solves their specific challenge
+   - Better to skip value prop bullets entirely than use vague generic phrases
+   - Example: "- Given your $2.5B portfolio, diversification across [specific use case]"
 
 3. THEN USE YOUR COMPANY'S RECENT SUCCESSES (IF AVAILABLE AND NOTEWORTHY):
    The research MAY include verified achievements from "YOUR COMPANY'S RECENT WINS" section.
