@@ -89,7 +89,7 @@ router.post('/send-overdue', async (req, res) => {
 
         // Check if overdue (follow-up date has passed)
         if (now < followUpDate.getTime()) {
-          console.log(`[SEND-OVERDUE] Skipping ${email.to}: Not yet time (${followUpDate.toISOString()})`);
+          // console.log(`[SEND-OVERDUE] Skipping ${email.to}: Not yet time (${followUpDate.toISOString()})`);
           continue;
         }
 
@@ -421,13 +421,13 @@ router.get('/conversations', async (req, res) => {
       }
       processedEventIds.add(event.eventId);
       
-      console.log(`🔍 [EVENT] Processing event:`, {
-        trackingId,
-        eventType: event.eventType,
-        eventId: event.eventId,
-        timestamp: event.timestamp,
-        leadEmail: event.recipientEmail
-      });
+      // console.log(`🔍 [EVENT] Processing event:`, {
+      //   trackingId,
+      //   eventType: event.eventType,
+      //   eventId: event.eventId,
+      //   timestamp: event.timestamp,
+      //   leadEmail: event.recipientEmail
+      // });
       
       if (!conversationMap[trackingId]) {
         conversationMap[trackingId] = {
