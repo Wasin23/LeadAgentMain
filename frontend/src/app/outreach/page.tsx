@@ -502,8 +502,8 @@ export default function OutreachPage() {
                                               const rebumpCount = email.rebumpCount || 0;
                                               const maxFollowUps = email.maxFollowUps || 1;
                                               const followUpStatus = email.followUpStatus;
-                                              const followUpActuallySent = followUpStatus === 'SENT';
-                                              const allFollowUpsDone = followUpActuallySent && rebumpCount >= maxFollowUps;
+                                              const followUpActuallySent = followUpStatus === 'SENT' || rebumpCount > 0;
+                                              const allFollowUpsDone = rebumpCount >= maxFollowUps;
                                               const isOverdue = email.followUpDate && new Date(email.followUpDate) <= new Date();
                                               
                                               if (allFollowUpsDone) return 'bg-green-500/20 border border-green-500/40 text-green-400 hover:bg-green-500/30';
@@ -518,8 +518,8 @@ export default function OutreachPage() {
                                             const rebumpCount = email.rebumpCount || 0;
                                             const maxFollowUps = email.maxFollowUps || 1;
                                             const followUpStatus = email.followUpStatus;
-                                            const followUpActuallySent = followUpStatus === 'SENT';
-                                            const allFollowUpsDone = followUpActuallySent && rebumpCount >= maxFollowUps;
+                                            const followUpActuallySent = followUpStatus === 'SENT' || rebumpCount > 0;
+                                            const allFollowUpsDone = rebumpCount >= maxFollowUps;
                                             const isOverdue = email.followUpDate && new Date(email.followUpDate) <= new Date();
                                             const dateStr = new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                                             const timeStr = new Date(email.followUpDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });

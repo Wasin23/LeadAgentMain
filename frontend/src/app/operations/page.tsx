@@ -1792,7 +1792,7 @@ export default function InteractiveGlobe() {
                 }
                 await fetchAgents();
               }}
-              className={`sm:hidden w-full px-3 py-2.5 rounded-lg backdrop-blur-md transition-all border-2 flex items-center justify-center gap-2 text-xs font-semibold shadow-lg ${
+              className={`sm:hidden w-full px-4 py-3.5 rounded-lg backdrop-blur-md transition-all border-2 flex items-center justify-center gap-2 text-sm font-bold shadow-lg ${
                 agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running')
                   ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border-red-500/40 hover:border-red-500/60'
                   : 'bg-[#4FD1FF]/20 hover:bg-[#4FD1FF]/30 text-[#4FD1FF] border-[#4FD1FF]/40 hover:border-[#4FD1FF]/60'

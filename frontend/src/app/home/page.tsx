@@ -165,8 +165,7 @@ export default function HomePage() {
               // Check if all follow-ups are complete
               const rebumpCount = email.rebumpCount || 0;
               const maxFollowUps = email.maxFollowUps || 1;
-              const followUpStatus = email.followUpStatus;
-              const allComplete = followUpStatus === 'SENT' && rebumpCount >= maxFollowUps;
+              const allComplete = rebumpCount >= maxFollowUps;
               
               // Exclude if all follow-ups are done
               return !allComplete;
