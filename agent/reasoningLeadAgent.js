@@ -2728,6 +2728,14 @@ Focus on:
 - Unique value propositions or innovations
 - Market position or awards (with specific award names)
 - Leadership or company culture highlights
+${search.purpose === 'user_company_success' ? `
+🎯 SPECIAL: Also extract PLATFORM METRICS if found (for ${companyName}):
+- Average returns/yields (e.g., "12-18% returns", "6-9% yields")
+- Number of customers/investors/users (e.g., "50,000+ investors")
+- Total capital/revenue deployed (e.g., "$500M+ deployed")
+- Number of properties/locations/markets (e.g., "150+ properties in 25 countries")
+- Performance comparisons (e.g., "outperformed REITs by 4.2%")
+If found, prefix these with "[METRIC]" for easy extraction.` : ''}
 
 Webpage: ${webpage.title}
 Content: ${webpage.content}
@@ -2844,6 +2852,38 @@ Format as:
           } catch (searchError) {
             console.error(`   ❌ Search failed: ${searchError.message}`);
           }
+        }
+        
+        // Extract platform metrics from user company success research
+        const platformMetrics = {};
+        const userCompanySuccessData = allResearchData.searches.find(s => s.purpose === 'user_company_success');
+        if (userCompanySuccessData?.webpageInsights) {
+          console.log('🔍 [METRICS] Extracting platform metrics from research...');
+          
+          const metricsText = userCompanySuccessData.webpageInsights
+            .map(w => w.insights)
+            .join('\n');
+          
+          // Extract specific metrics using regex patterns
+          const returnsMatch = metricsText.match(/\[METRIC\].*?(\d+[-–]\d+%.*?(?:return|yield|ROI))/i);
+          const investorsMatch = metricsText.match(/\[METRIC\].*?(\d+[,\d]*\+?.*?(?:investor|user|customer|client))/i);
+          const deployedMatch = metricsText.match(/\[METRIC\].*?\$(\d+[\d\.]*[KMB]\+?.*?(?:deployed|revenue|capital|AUM))/i);
+          const propertiesMatch = metricsText.match(/\[METRIC\].*?(\d+\+?.*?(?:propert|location|market|countr))/i);
+          const performanceMatch = metricsText.match(/\[METRIC\].*?(outperformed.*?by.*?\d+\.?\d*%)/i);
+          
+          if (returnsMatch) platformMetrics.returns = returnsMatch[1].trim();
+          if (investorsMatch) platformMetrics.investors = investorsMatch[1].trim();
+          if (deployedMatch) platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
+          if (propertiesMatch) platformMetrics.properties = propertiesMatch[1].trim();
+          if (performanceMatch) platformMetrics.performance = performanceMatch[1].trim();
+          
+          console.log('📊 [METRICS] Extracted platform metrics:', platformMetrics);
+          
+          // Store in memory for email builder
+          this.memory.platformMetrics = platformMetrics;
+        } else {
+          console.log('⚠️ [METRICS] No user company research data found - using generic value prop');
+          this.memory.platformMetrics = {};
         }
         
         // Build comprehensive cited facts database
@@ -3840,9 +3880,10 @@ WHY your solution fits THEIR specific situation. Use simple dashes (-) not emoji
 ⚠️ CRITICAL RULES FOR BULLETS:
 ❌ NEVER write generic feature lists like "Low investment threshold = Accessibility"
 ❌ NEVER write vague benefits like "Quality assurance" or "Financial stability"
-✅ ALWAYS use specific numbers: "12-18% returns", "60% faster", "$200K savings"
+✅ ALWAYS use specific numbers from YOUR PLATFORM'S VERIFIED METRICS section above
 ✅ ALWAYS connect to THEIR situation based on research
 ✅ ALWAYS cite proof: company names, statistics, specific results
+✅ USE THE EXTRACTED METRICS - if returns % was found, use it; if investor count was found, use it
 
 ⚠️ MANDATORY SPECIFICITY REQUIREMENTS:
 When mentioning ANY metric, you MUST include:
@@ -3852,7 +3893,19 @@ When mentioning ANY metric, you MUST include:
 4. COMPARISON DATA: Not "better than alternatives" but "outperformed REITs by 4.2% over 3 years"
 5. PLATFORM METRICS: Not "trusted by investors" but "50,000+ active investors, $500M+ deployed"
 
-Examples of GOOD specificity:
+${this.memory.platformMetrics && Object.keys(this.memory.platformMetrics).length > 0 ? `
+🎯 YOUR PLATFORM'S VERIFIED METRICS (use these exact numbers in your email):
+${this.memory.platformMetrics.returns ? `- Returns/Yields: ${this.memory.platformMetrics.returns}` : ''}
+${this.memory.platformMetrics.investors ? `- Customer Base: ${this.memory.platformMetrics.investors}` : ''}
+${this.memory.platformMetrics.deployed ? `- Capital/Revenue: ${this.memory.platformMetrics.deployed}` : ''}
+${this.memory.platformMetrics.properties ? `- Scale/Coverage: ${this.memory.platformMetrics.properties}` : ''}
+${this.memory.platformMetrics.performance ? `- Performance: ${this.memory.platformMetrics.performance}` : ''}
+
+USE THESE METRICS in your value proposition bullets. These are REAL, VERIFIED numbers from research.
+` : `
+⚠️ No platform metrics found in research. Use general value proposition from "YOUR SOLUTION" section.
+`}
+Examples of GOOD specificity (adapt these patterns with YOUR metrics above):
 ✅ "Access 150+ pre-vetted properties across 25 countries with $50 minimum investment"
 ✅ "12-18% average annual returns, compared to 8% traditional REIT average (2020-2024 data)"
 ✅ "6-9% rental yields from institutional-grade assets"
@@ -3869,12 +3922,22 @@ Examples of BAD vagueness (NEVER DO THIS):
 CRITICAL - USE THIRD-PARTY DATA:
 When available from research, cite industry statistics to build credibility:
 - Quote sources: "McKinsey reports X" or "(Gartner, 2024)"
-- Support bold claims: "Tokenized assets outperformed REITs by 2.4x (PwC, 2023)"
+- Support bold claims with YOUR PLATFORM'S VERIFIED METRICS above
 - Anchor urgency: "90% of logistics firms report Q1 as peak expansion (Gartner)"
 - Check the research data for industry_statistics findings and weave them in naturally
 
-CRITICAL - USE YOUR COMPANY'S RECENT SUCCESSES (IF AVAILABLE AND NOTEWORTHY):
-The research MAY include verified achievements from "YOUR COMPANY'S RECENT WINS" section.
+CRITICAL - WRITING YOUR VALUE PROPOSITION:
+1. START WITH YOUR PLATFORM'S VERIFIED METRICS (if extracted from research above)
+   - Use the exact returns %, investor count, capital deployed, property count found
+   - Example: "- 12-18% average returns across 150+ properties in 25 countries"
+   
+2. IF NO METRICS EXTRACTED:
+   - Focus on your core value proposition from "YOUR SOLUTION" section
+   - Use client success patterns: "Companies at your stage typically see X results"
+   - Better to be general than make up numbers
+
+3. THEN USE YOUR COMPANY'S RECENT SUCCESSES (IF AVAILABLE AND NOTEWORTHY):
+   The research MAY include verified achievements from "YOUR COMPANY'S RECENT WINS" section.
 
 ⚠️ BE EXTREMELY SELECTIVE - ONLY include if ALL criteria met:
 1. ✅ Wins section exists and has verified data
