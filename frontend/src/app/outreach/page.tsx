@@ -155,12 +155,40 @@ export default function OutreachPage() {
   useEffect(() => {
     fetchEmailActivity();
     fetchFollowUpTemplates();
+    sendOverdueFollowUps(); // Auto-send overdue follow-ups on load
     const interval = setInterval(() => {
       fetchEmailActivity();
       fetchFollowUpTemplates();
     }, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-send overdue follow-ups
+  const sendOverdueFollowUps = async () => {
+    try {
+      console.log('🚀 Checking for overdue follow-ups...');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/outreach/send-overdue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ agentId: 'all' })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.sent > 0) {
+          console.log(`✅ Sent ${data.sent} overdue follow-ups`);
+          // Refresh the email list to show updated status
+          setTimeout(() => fetchEmailActivity(), 2000);
+        }
+      }
+    } catch (err) {
+      console.error('Error sending overdue follow-ups:', err);
+    }
+  };
 
   return (
     <AppLayout>
@@ -474,8 +502,30 @@ export default function OutreachPage() {
                                         </span>
                                       )}
                                       {!email.isRebump && email.followUpScheduled && email.followUpDate && (
-                                        <>
-                                          {/* Follow-up Status Badge */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingFollowUp(email);
+                                            setEditFollowUpDate(new Date(email.followUpDate).toISOString().slice(0, 16));
+                                          }}
+                                          className={`text-[10px] px-2 py-0.5 rounded font-medium transition-colors ${
+                                            (() => {
+                                              const rebumpCount = email.rebumpCount || 0;
+                                              const maxFollowUps = email.maxFollowUps || 1;
+                                              const followUpStatus = email.followUpStatus || (rebumpCount > 0 ? 'QUEUED' : null);
+                                              const followUpActuallySent = followUpStatus === 'SENT';
+                                              const followUpQueued = followUpStatus === 'QUEUED';
+                                              const allFollowUpsDone = followUpActuallySent && rebumpCount >= maxFollowUps;
+                                              
+                                              if (allFollowUpsDone) return 'bg-green-500/20 border border-green-500/40 text-green-400 hover:bg-green-500/30';
+                                              if (followUpActuallySent) return 'bg-purple-500/20 border border-purple-500/40 text-purple-400 hover:bg-purple-500/30';
+                                              if (followUpQueued) return 'bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/30';
+                                              if (email.followUpDate && new Date(email.followUpDate) <= new Date()) return 'bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30 animate-pulse';
+                                              return 'bg-blue-500/20 border border-blue-500/40 text-blue-400 hover:bg-blue-500/30';
+                                            })()
+                                          }`}
+                                          title="Click to edit follow-up date"
+                                        >
                                           {(() => {
                                             const rebumpCount = email.rebumpCount || 0;
                                             const maxFollowUps = email.maxFollowUps || 1;
@@ -483,46 +533,16 @@ export default function OutreachPage() {
                                             const followUpActuallySent = followUpStatus === 'SENT';
                                             const followUpQueued = followUpStatus === 'QUEUED';
                                             const allFollowUpsDone = followUpActuallySent && rebumpCount >= maxFollowUps;
+                                            const dateStr = new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                            const timeStr = new Date(email.followUpDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                                             
-                                            return (
-                                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                                                allFollowUpsDone
-                                                  ? 'bg-green-500/80 text-white' 
-                                                  : followUpActuallySent
-                                                    ? 'bg-purple-500/80 text-white'
-                                                    : followUpQueued
-                                                      ? 'bg-yellow-500/80 text-black'
-                                                      : email.followUpDate && new Date(email.followUpDate) <= new Date()
-                                                        ? 'bg-orange-500/80 text-white animate-pulse'
-                                                        : 'bg-blue-500/30 text-blue-300 border border-blue-500/40'
-                                              }`}>
-                                                {allFollowUpsDone
-                                                  ? `✓ Completed ${rebumpCount}/${maxFollowUps}`
-                                                  : followUpActuallySent
-                                                    ? `Sent ${rebumpCount}/${maxFollowUps}`
-                                                    : followUpQueued
-                                                      ? `⏳ Follow-up Queued for Approval`
-                                                      : email.followUpDate && new Date(email.followUpDate) <= new Date()
-                                                        ? '⚠️ Follow-up Due Now'
-                                                        : `📅 Scheduled ${rebumpCount}/${maxFollowUps}`
-                                                }
-                                              </span>
-                                            );
+                                            if (allFollowUpsDone) return `✓ ${rebumpCount}/${maxFollowUps} followups completed`;
+                                            if (followUpActuallySent) return `${rebumpCount}/${maxFollowUps} followups sent`;
+                                            if (followUpQueued) return `⏳ ${rebumpCount}/${maxFollowUps} followup queued for approval on ${dateStr} at ${timeStr}`;
+                                            if (email.followUpDate && new Date(email.followUpDate) <= new Date()) return `⚠️ ${rebumpCount}/${maxFollowUps} followup overdue (${dateStr})`;
+                                            return `${rebumpCount}/${maxFollowUps} followups scheduled for automatic send on ${dateStr} at ${timeStr}`;
                                           })()}
-                                          
-                                          {/* Edit Follow-up Date Button */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditingFollowUp(email);
-                                              setEditFollowUpDate(new Date(email.followUpDate).toISOString().slice(0, 16));
-                                            }}
-                                            className="text-[10px] px-2 py-0.5 rounded bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] border border-[#4FD1FF]/30 hover:border-[#4FD1FF]/50 transition-colors font-medium"
-                                            title="Click to edit follow-up date"
-                                          >
-                                            {new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(email.followUpDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                          </button>
-                                        </>
+                                        </button>
                                       )}
                                     </div>
                                   </div>

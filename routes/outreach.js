@@ -1,6 +1,8 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSManager from '../utils/awsManager.js';
+import AWSEmailQueue from '../utils/awsEmailQueue.js';
+import { leadEmail } from '../tools/leadEmail.js';
 
 // Helper function to fix UTF-8 encoding issues
 function fixEncoding(text) {
@@ -22,9 +24,160 @@ function fixEncoding(text) {
 
 const router = express.Router();
 const awsManager = new AWSManager();
+const emailQueue = new AWSEmailQueue();
 
 // Apply JWT authentication to all routes
 router.use(authenticateToken);
+
+// Send overdue follow-ups immediately
+router.post('/send-overdue', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId } = req.body;
+
+    console.log(`🚀 [SEND-OVERDUE] Checking for overdue follow-ups for user ${userId}, agent ${agentId || 'all'}`);
+
+    // Get agents to check
+    let agents = [];
+    if (agentId && agentId !== 'all') {
+      agents = [{ agentId }];
+    } else {
+      agents = await awsManager.getUserAgents(userId);
+    }
+
+    let totalSent = 0;
+    const results = [];
+
+    for (const agent of agents) {
+      const currentAgentId = agent.agentId;
+      
+      // Get agent settings
+      const agentSettings = await awsManager.getLeadAgentSettings(userId, currentAgentId);
+      if (!agentSettings || !agentSettings.emailBuilder) continue;
+
+      const rebumpEnabled = agentSettings.emailBuilder.enableRebump !== false;
+      if (!rebumpEnabled) continue;
+
+      // Get sent emails with scheduled follow-ups
+      const sentEmails = await emailQueue.getSentEmails(userId, currentAgentId);
+      if (!sentEmails || sentEmails.length === 0) continue;
+
+      const now = Date.now();
+      const rebumpIntervalDays = agentSettings.emailBuilder.rebumpIntervalDays || 7;
+      const rebumpIntervalMs = rebumpIntervalDays * 24 * 60 * 60 * 1000;
+
+      for (const email of sentEmails) {
+        // Only process emails with scheduled follow-ups that are overdue
+        if (!email.followUpScheduled || !email.followUpDate) continue;
+        if (email.status === 'REPLIED' || email.status === 'BOUNCED') continue;
+
+        const rebumpCount = email.rebumpCount || 0;
+        const maxRebumps = agentSettings.emailBuilder.maxRebumps || 1;
+        if (rebumpCount >= maxRebumps) continue;
+
+        const followUpDate = new Date(email.followUpDate);
+        const sentAt = new Date(email.sentAt || email.timestamp);
+
+        // Check if overdue (follow-up date has passed)
+        if (now < followUpDate.getTime()) continue;
+
+        console.log(`📤 [SEND-OVERDUE] Sending overdue follow-up to ${email.to}`);
+
+        // Get template
+        let template = email.assignedTemplate;
+        let templateIndex = email.assignedTemplateId || 0;
+        
+        if (!template) {
+          template = agentSettings.followUpTemplates?.templates[templateIndex];
+        }
+
+        if (!template) {
+          console.log(`⚠️ [SEND-OVERDUE] No template available for email ${email.id}`);
+          continue;
+        }
+
+        // Fill in template variables
+        const lead = email.lead || {};
+        const timeSinceLastContact = now - sentAt.getTime();
+        const daysAgo = Math.floor(timeSinceLastContact / (24 * 60 * 60 * 1000));
+        const topic = email.subject || 'our previous conversation';
+        const firstName = (lead.name || 'there').split(' ')[0];
+
+        const subject = template.subject
+          .replace(/{name}/g, firstName)
+          .replace(/{company}/g, lead.company || 'your company')
+          .replace(/{topic}/g, topic)
+          .replace(/{days_ago}/g, daysAgo);
+
+        const body = template.body
+          .replace(/{name}/g, firstName)
+          .replace(/{company}/g, lead.company || 'your company')
+          .replace(/{topic}/g, topic)
+          .replace(/{days_ago}/g, daysAgo);
+
+        // Build threading info
+        const replyOptions = {
+          inReplyTo: email.gmailMessageId ? `<${email.gmailMessageId}@gmail.com>` : 
+                    (email.trackingId ? `<tracking-${email.trackingId}@${process.env.MAILGUN_DOMAIN || 'mg.meridianagent.xyz'}>` : null),
+          references: email.gmailMessageId ? `<${email.gmailMessageId}@gmail.com>` : 
+                     (email.trackingId ? `<tracking-${email.trackingId}@${process.env.MAILGUN_DOMAIN || 'mg.meridianagent.xyz'}>` : null),
+          threadId: email.gmailThreadId || null
+        };
+
+        // Send the follow-up
+        try {
+          const sendResult = await leadEmail(
+            email.to,
+            subject,
+            body,
+            lead,
+            userId,
+            currentAgentId,
+            null,
+            null,
+            null,
+            replyOptions
+          );
+
+          if (sendResult.success) {
+            console.log(`✅ [SEND-OVERDUE] Sent follow-up to ${email.to}`);
+            
+            // Update email status
+            await emailQueue.updateEmailStatus(userId, currentAgentId, email.id, 'SENT', 'SENT', {
+              rebumpCount: rebumpCount + 1,
+              lastRebumpAt: new Date().toISOString(),
+              lastFollowUpSentAt: new Date().toISOString(),
+              followUpStatus: 'SENT'
+            });
+
+            // Schedule next follow-up if more remaining
+            if (rebumpCount + 1 < maxRebumps) {
+              const nextFollowUpDate = new Date(Date.now() + rebumpIntervalMs);
+              await emailQueue.updateEmailStatus(userId, currentAgentId, email.id, 'SENT', 'SENT', {
+                followUpDate: nextFollowUpDate.toISOString()
+              });
+            }
+
+            totalSent++;
+            results.push({ email: email.to, success: true });
+          } else {
+            console.error(`❌ [SEND-OVERDUE] Failed to send to ${email.to}:`, sendResult.error);
+            results.push({ email: email.to, success: false, error: sendResult.error });
+          }
+        } catch (error) {
+          console.error(`❌ [SEND-OVERDUE] Error sending to ${email.to}:`, error);
+          results.push({ email: email.to, success: false, error: error.message });
+        }
+      }
+    }
+
+    console.log(`✅ [SEND-OVERDUE] Sent ${totalSent} overdue follow-ups`);
+    res.json({ success: true, sent: totalSent, results });
+  } catch (error) {
+    console.error('❌ [SEND-OVERDUE] Error:', error);
+    res.status(500).json({ error: 'Failed to send overdue follow-ups', details: error.message });
+  }
+});
 
 // DEBUG: Inspect tracking table contents
 router.get('/debug/tracking', async (req, res) => {
