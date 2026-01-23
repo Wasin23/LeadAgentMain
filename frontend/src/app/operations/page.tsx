@@ -2686,12 +2686,12 @@ export default function InteractiveGlobe() {
                       className="px-2 py-2 hover:bg-white/10 transition-colors"
                     >
                       {agent.status === 'running' ? (
-                        <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24">
                           <rect x="6" y="4" width="4" height="16" />
                           <rect x="14" y="4" width="4" height="16" />
                         </svg>
                       ) : (
-                        <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z"/>
                         </svg>
                       )}
