@@ -2408,13 +2408,13 @@ export default function InteractiveGlobe() {
                             /* View Mode */
                             <>
                               <div>
-                                <div className="text-[10px] text-[#8FA6C1] mb-1">Subject</div>
-                                <div className="text-white text-[11px]">{email.subject || 'No subject'}</div>
+                                <div className="text-[#8FA6C1] mb-1" style={{ fontSize: `${fontSize - 1}px` }}>Subject</div>
+                                <div className="text-white" style={{ fontSize: `${fontSize}px` }}>{email.subject || 'No subject'}</div>
                               </div>
 
                               <div>
-                                <div className="text-[10px] text-[#8FA6C1] mb-1">Email Body</div>
-                                <div className="bg-[#0A1525]/80 rounded p-2.5 text-white/90 text-[11px] whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto">
+                                <div className="text-[#8FA6C1] mb-1" style={{ fontSize: `${fontSize - 1}px` }}>Email Body</div>
+                                <div className="bg-[#0A1525]/80 rounded p-2.5 text-white/90 whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto" style={{ fontSize: `${fontSize}px` }}>
                                   {email.body || 'No content'}
                                 </div>
                               </div>
