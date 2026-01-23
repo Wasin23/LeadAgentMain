@@ -501,15 +501,14 @@ export default function OutreachPage() {
                                             (() => {
                                               const rebumpCount = email.rebumpCount || 0;
                                               const maxFollowUps = email.maxFollowUps || 1;
-                                              const followUpStatus = email.followUpStatus || (rebumpCount > 0 ? 'QUEUED' : null);
+                                              const followUpStatus = email.followUpStatus;
                                               const followUpActuallySent = followUpStatus === 'SENT';
-                                              const followUpQueued = followUpStatus === 'QUEUED';
                                               const allFollowUpsDone = followUpActuallySent && rebumpCount >= maxFollowUps;
+                                              const isOverdue = email.followUpDate && new Date(email.followUpDate) <= new Date();
                                               
                                               if (allFollowUpsDone) return 'bg-green-500/20 border border-green-500/40 text-green-400 hover:bg-green-500/30';
                                               if (followUpActuallySent) return 'bg-purple-500/20 border border-purple-500/40 text-purple-400 hover:bg-purple-500/30';
-                                              if (followUpQueued) return 'bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/30';
-                                              if (email.followUpDate && new Date(email.followUpDate) <= new Date()) return 'bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30 animate-pulse';
+                                              if (isOverdue) return 'bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30 animate-pulse';
                                               return 'bg-blue-500/20 border border-blue-500/40 text-blue-400 hover:bg-blue-500/30';
                                             })()
                                           }`}
@@ -518,17 +517,16 @@ export default function OutreachPage() {
                                           {(() => {
                                             const rebumpCount = email.rebumpCount || 0;
                                             const maxFollowUps = email.maxFollowUps || 1;
-                                            const followUpStatus = email.followUpStatus || (rebumpCount > 0 ? 'QUEUED' : null);
+                                            const followUpStatus = email.followUpStatus;
                                             const followUpActuallySent = followUpStatus === 'SENT';
-                                            const followUpQueued = followUpStatus === 'QUEUED';
                                             const allFollowUpsDone = followUpActuallySent && rebumpCount >= maxFollowUps;
+                                            const isOverdue = email.followUpDate && new Date(email.followUpDate) <= new Date();
                                             const dateStr = new Date(email.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                                             const timeStr = new Date(email.followUpDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                                             
                                             if (allFollowUpsDone) return `✓ ${rebumpCount}/${maxFollowUps} followups completed`;
                                             if (followUpActuallySent) return `${rebumpCount}/${maxFollowUps} followups sent`;
-                                            if (followUpQueued) return `⏳ ${rebumpCount}/${maxFollowUps} followup queued for approval on ${dateStr} at ${timeStr}`;
-                                            if (email.followUpDate && new Date(email.followUpDate) <= new Date()) return `⚠️ ${rebumpCount}/${maxFollowUps} followup overdue (${dateStr})`;
+                                            if (isOverdue) return `⚠️ ${rebumpCount}/${maxFollowUps} followup overdue (${dateStr} at ${timeStr})`;
                                             return `${rebumpCount}/${maxFollowUps} followups scheduled for automatic send on ${dateStr} at ${timeStr}`;
                                           })()}
                                         </button>

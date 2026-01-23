@@ -158,7 +158,19 @@ export default function HomePage() {
 
           // Get emails with scheduled follow-ups and sort by date
           const emailsWithFollowUps = sentEmailsResponse.data
-            .filter((email: any) => email.followUpScheduled && email.followUpDate)
+            .filter((email: any) => {
+              // Must have follow-up scheduled and date
+              if (!email.followUpScheduled || !email.followUpDate) return false;
+              
+              // Check if all follow-ups are complete
+              const rebumpCount = email.rebumpCount || 0;
+              const maxFollowUps = email.maxFollowUps || 1;
+              const followUpStatus = email.followUpStatus;
+              const allComplete = followUpStatus === 'SENT' && rebumpCount >= maxFollowUps;
+              
+              // Exclude if all follow-ups are done
+              return !allComplete;
+            })
             .sort((a: any, b: any) => 
               new Date(a.followUpDate).getTime() - new Date(b.followUpDate).getTime()
             )
@@ -295,7 +307,24 @@ export default function HomePage() {
       }
     };
 
+    // Auto-send overdue follow-ups
+    const sendOverdueFollowUps = async () => {
+      try {
+        console.log('🚀 [HOME] Checking for overdue follow-ups...');
+        const response = await api.post('/api/outreach/send-overdue', { agentId: 'all' });
+
+        if (response.data?.sent > 0) {
+          console.log(`✅ [HOME] Sent ${response.data.sent} overdue follow-ups`);
+          // Refresh stats to show updated follow-up list
+          setTimeout(() => fetchStats(), 2000);
+        }
+      } catch (err) {
+        console.error('Error sending overdue follow-ups:', err);
+      }
+    };
+
     fetchStats();
+    sendOverdueFollowUps();
   }, []);
 
   if (loading) {
