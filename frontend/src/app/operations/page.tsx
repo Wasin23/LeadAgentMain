@@ -276,6 +276,7 @@ export default function InteractiveGlobe() {
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [currentEmailPage, setCurrentEmailPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // 'desc' = latest first, 'asc' = earliest first
+  const [fontSize, setFontSize] = useState<number>(11); // Base font size in pixels
   const EMAILS_PER_PAGE = 20;
   
   // Auto-editor states
@@ -1842,51 +1843,6 @@ export default function InteractiveGlobe() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider">Email Queue</h3>
             <div className="flex items-center gap-3">
-              {/* Queue Type Dropdown */}
-              <select
-                value={selectedQueue?.type || 'queued'}
-                onChange={(e) => {
-                  const newType = e.target.value as 'queued' | 'sent' | 'replied';
-                  setSelectionMode(false);
-                  setSelectedEmails(new Set());
-                  if (selectedAgent) {
-                    setSelectedQueue({ agentId: selectedAgent.agentId, type: newType, agentName: selectedAgent.name });
-                    fetchQueueEmails(selectedAgent.agentId, newType);
-                  } else {
-                    // Fetch all emails for all agents
-                    setSelectedQueue({ agentId: 'all', type: newType, agentName: 'All Agents' });
-                    const fetchAllEmails = async () => {
-                      try {
-                        const allEmails: any[] = [];
-                        for (const agent of agents) {
-                          if (agent.agentId === 'orphan') continue;
-                          const endpoint = newType === 'sent' ? 'sent' : newType === 'replied' ? 'replied' : 'queue';
-                          const response = await api.get(`/api/email-queue/${endpoint}`, {
-                            params: { agentId: agent.agentId }
-                          });
-                          const emails = Array.isArray(response.data) ? response.data : (response.data.emails || []);
-                          allEmails.push(...emails.map((email: any) => ({
-                            ...email,
-                            agentName: agent.name
-                          })));
-                        }
-                        setQueueEmails(allEmails.sort((a, b) => 
-                          new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
-                        ));
-                      } catch (error) {
-                        console.error('Error fetching all emails:', error);
-                      }
-                    };
-                    fetchAllEmails();
-                  }
-                }}
-                className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] rounded border border-white/20 cursor-pointer font-medium"
-              >
-                <option value="queued">Queued</option>
-                <option value="sent">Sent</option>
-                <option value="replied">Replied</option>
-              </select>
-              
               {/* Auto-Editor Button (only for queued) */}
               {selectedQueue?.type === 'queued' && !selectionMode && (
                 <button
@@ -1999,6 +1955,25 @@ export default function InteractiveGlobe() {
                   </>
                 )}
               </button>
+              
+              {/* Font Size Controls */}
+              <div className="flex items-center gap-1 ml-2 border border-[#4FD1FF]/30 rounded">
+                <button
+                  onClick={() => setFontSize(prev => Math.max(8, prev - 1))}
+                  className="px-2 py-1 hover:bg-[#4FD1FF]/10 text-[#4FD1FF] text-xs font-bold transition-colors"
+                  title="Decrease font size"
+                >
+                  A-
+                </button>
+                <span className="text-[#4FD1FF] text-[9px] px-1 border-x border-[#4FD1FF]/30">{fontSize}px</span>
+                <button
+                  onClick={() => setFontSize(prev => Math.min(18, prev + 1))}
+                  className="px-2 py-1 hover:bg-[#4FD1FF]/10 text-[#4FD1FF] text-xs font-bold transition-colors"
+                  title="Increase font size"
+                >
+                  A+
+                </button>
+              </div>
             </div>
           </div>
           
@@ -2200,15 +2175,15 @@ export default function InteractiveGlobe() {
                                    '⏳'}
                                 </span>
                               )}
-                              <div className="text-white text-[11px] font-medium truncate flex-1">
+                              <div className="text-white font-medium truncate flex-1" style={{ fontSize: `${fontSize}px` }}>
                                 {email.subject || 'No Subject'}
                               </div>
                             </div>
                             </div>
-                            <div className="text-[#8FA6C1] text-[11px] truncate mb-1">
+                            <div className="text-[#8FA6C1] truncate mb-1" style={{ fontSize: `${fontSize}px` }}>
                               To: {email.to} {email.agentName && `• ${email.agentName}`}
                             </div>
-                            <div className="flex items-center gap-2 text-[10px] text-[#8FA6C1]/70">
+                            <div className="flex items-center gap-2 text-[#8FA6C1]/70" style={{ fontSize: `${fontSize - 1}px` }}>
                               {email.queuedAt && (
                                 <span>
                                   Queued: {new Date(email.queuedAt).toLocaleDateString()} {new Date(email.queuedAt).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
