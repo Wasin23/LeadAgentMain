@@ -68,18 +68,30 @@ router.post('/send-overdue', async (req, res) => {
 
       for (const email of sentEmails) {
         // Only process emails with scheduled follow-ups that are overdue
-        if (!email.followUpScheduled || !email.followUpDate) continue;
-        if (email.status === 'REPLIED' || email.status === 'BOUNCED') continue;
+        if (!email.followUpScheduled || !email.followUpDate) {
+          console.log(`[SEND-OVERDUE] Skipping ${email.to}: No follow-up scheduled`);
+          continue;
+        }
+        if (email.status === 'REPLIED' || email.status === 'BOUNCED') {
+          console.log(`[SEND-OVERDUE] Skipping ${email.to}: Status is ${email.status}`);
+          continue;
+        }
 
         const rebumpCount = email.rebumpCount || 0;
         const maxRebumps = agentSettings.emailBuilder.maxRebumps || 1;
-        if (rebumpCount >= maxRebumps) continue;
+        if (rebumpCount >= maxRebumps) {
+          console.log(`[SEND-OVERDUE] Skipping ${email.to}: Already sent ${rebumpCount}/${maxRebumps} follow-ups`);
+          continue;
+        }
 
         const followUpDate = new Date(email.followUpDate);
         const sentAt = new Date(email.sentAt || email.timestamp);
 
         // Check if overdue (follow-up date has passed)
-        if (now < followUpDate.getTime()) continue;
+        if (now < followUpDate.getTime()) {
+          console.log(`[SEND-OVERDUE] Skipping ${email.to}: Not yet time (${followUpDate.toISOString()})`);
+          continue;
+        }
 
         console.log(`📤 [SEND-OVERDUE] Sending overdue follow-up to ${email.to}`);
 
