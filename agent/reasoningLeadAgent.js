@@ -6104,9 +6104,11 @@ Target Positions:`;
   }
 
   async addToEmailQueue(leadData) {
+    console.log('🚀 [EMAIL QUEUE START] User:', this.userId, '| Agent:', this.agentId, '| Lead:', leadData.email);
+    
     try {
       if (!leadData.personalizedEmail || !leadData.emailSubject) {
-        console.log('⚠️ [EMAIL QUEUE] Skipping lead without personalized email');
+        console.log('❌ [EMAIL QUEUE FAILED] No email content generated for', leadData.email);
         this.logIssue('warning', 'Lead queued without email content', { leadData });
         return;
       }
@@ -6220,7 +6222,7 @@ Target Positions:`;
       });
 
       await this.emailQueue.addToQueue(queueData);
-      console.log(`📧 [EMAIL QUEUE] Added email for ${leadData.company} (${leadData.email})`);
+      console.log(`✅ [EMAIL QUEUE SUCCESS] ${leadData.company} (${leadData.email}) | User: ${this.userId} | Agent: ${this.agentId}`);
 
       // NOW track this contact in the database since email was successfully queued
       try {
@@ -6430,8 +6432,14 @@ Target Positions:`;
       return queueData.id;
     } catch (error) {
       console.error('❌ [EMAIL QUEUE] Error adding to queue:', error);
+      console.error('❌ [EMAIL QUEUE] Error type:', error.constructor.name);
+      console.error('❌ [EMAIL QUEUE] Error message:', error.message);
+      console.error('❌ [EMAIL QUEUE] Error stack:', error.stack);
+      console.log('🛑 [EMAIL QUEUE] ========== QUEUE PROCESS FAILED ==========');
       throw error;
     }
+    
+    console.log('✅ [EMAIL QUEUE] ========== QUEUE PROCESS COMPLETE ==========');
   }
 
   // ============================================================================

@@ -2612,7 +2612,7 @@ export default function InteractiveGlobe() {
                   >
                     <button
                       onClick={() => setSelectedAgentFilter(agent.agentId)}
-                      className="flex-1 px-3 py-2 text-xs font-medium text-left flex items-center gap-2 text-[#8FA6C1] hover:text-white"
+                      className="flex-1 min-w-0 px-3 py-2 text-xs font-medium text-left flex items-center gap-2 text-[#8FA6C1] hover:text-white"
                     >
                       <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border border-[#4FD1FF]/20">
                         <img 
@@ -2658,7 +2658,7 @@ export default function InteractiveGlobe() {
                           }
                         }
                       }}
-                      className="px-2 py-2 hover:bg-white/10 transition-colors"
+                      className="flex-shrink-0 px-2 py-2 hover:bg-white/10 transition-colors"
                     >
                       {agent.status === 'running' ? (
                         <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24">
