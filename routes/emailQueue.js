@@ -4,7 +4,7 @@ import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSEmailQueue from '../utils/awsEmailQueue.js';
 import { autoScheduleFollowUp } from '../utils/rebumpChecker.js';
-import { sendDesktopNotification } from '../utils/desktopNotifications.js';
+import { desktopNotifications } from '../utils/desktopNotifications.js';
 import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
@@ -430,7 +430,7 @@ router.post('/:id/approve', async (req, res) => {
       try {
         const leadName = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName || 'Lead';
         const companyName = approvedEmail.leadDetails?.companyName || 'Unknown Company';
-        await sendDesktopNotification(
+        await desktopNotifications.sendNotification(
           userId,
           '✅ Email Sent Successfully',
           `Email to ${leadName} at ${companyName} has been sent`,
