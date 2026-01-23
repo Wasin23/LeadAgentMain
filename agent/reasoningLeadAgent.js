@@ -2867,6 +2867,22 @@ Format as:
         console.log(`   - ${totalWebpageInsights} deep webpage insights`);
         console.log(`   - Total data sources: ${allResearchData.combinedFindings.length + totalWebpageInsights}`);
         
+        // Log to UI for visibility
+        this.logOperation('🔍 Phase 3: Deep Research Complete', 
+          `Gathered ${totalWebpageInsights} insights from ${allResearchData.searches.length} research streams:\n` +
+          `• Company Overview (${allResearchData.searches.find(s => s.purpose === 'company_overview')?.webpageInsights?.length || 0} insights)\n` +
+          `• Recent News (${allResearchData.searches.find(s => s.purpose === 'recent_developments')?.webpageInsights?.length || 0} insights)\n` +
+          `• Industry Stats (${allResearchData.searches.find(s => s.purpose === 'industry_statistics')?.webpageInsights?.length || 0} insights)\n` +
+          `• Your Company Wins (${allResearchData.searches.find(s => s.purpose === 'user_company_success')?.webpageInsights?.length || 0} insights)\n\n` +
+          `📚 Key Findings:\n${allCitedFacts.slice(0, 5).map((f, i) => `${i + 1}. ${f.text.substring(0, 80)}...`).join('\n')}`,
+          'success',
+          {
+            totalSources: allResearchData.totalSources,
+            citedFactsCount: allCitedFacts.length,
+            researchPhases: allResearchData.searches.map(s => s.purpose)
+          }
+        );
+        
       } else {
         // Fallback: Single generic search
         const searchQuery = parameters.searchQuery || `${companyName} company information business model products services`;
@@ -3827,6 +3843,28 @@ WHY your solution fits THEIR specific situation. Use simple dashes (-) not emoji
 ✅ ALWAYS use specific numbers: "12-18% returns", "60% faster", "$200K savings"
 ✅ ALWAYS connect to THEIR situation based on research
 ✅ ALWAYS cite proof: company names, statistics, specific results
+
+⚠️ MANDATORY SPECIFICITY REQUIREMENTS:
+When mentioning ANY metric, you MUST include:
+1. EXACT NUMBERS: Not "higher returns" but "12-18% average annual returns"
+2. TIME FRAMES: Not "quickly" but "within 90 days" or "same-day processing"
+3. SCALE CONTEXT: Not "many properties" but "150+ properties across 25 countries"
+4. COMPARISON DATA: Not "better than alternatives" but "outperformed REITs by 4.2% over 3 years"
+5. PLATFORM METRICS: Not "trusted by investors" but "50,000+ active investors, $500M+ deployed"
+
+Examples of GOOD specificity:
+✅ "Access 150+ pre-vetted properties across 25 countries with $50 minimum investment"
+✅ "12-18% average annual returns, compared to 8% traditional REIT average (2020-2024 data)"
+✅ "6-9% rental yields from institutional-grade assets"
+✅ "Join 50,000+ investors who've deployed $500M+ in tokenized real estate"
+✅ "Current Dubai opportunities showing 14% projected 12-month returns"
+
+Examples of BAD vagueness (NEVER DO THIS):
+❌ "Access to curated global properties"
+❌ "Earn consistent passive income"
+❌ "Rigorous selection process"
+❌ "Flexible investment management"
+❌ "Trusted by many investors"
 
 CRITICAL - USE THIRD-PARTY DATA:
 When available from research, cite industry statistics to build credibility:
