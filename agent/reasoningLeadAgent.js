@@ -6432,14 +6432,9 @@ Target Positions:`;
       return queueData.id;
     } catch (error) {
       console.error('❌ [EMAIL QUEUE] Error adding to queue:', error);
-      console.error('❌ [EMAIL QUEUE] Error type:', error.constructor.name);
-      console.error('❌ [EMAIL QUEUE] Error message:', error.message);
-      console.error('❌ [EMAIL QUEUE] Error stack:', error.stack);
-      console.log('🛑 [EMAIL QUEUE] ========== QUEUE PROCESS FAILED ==========');
+      console.error('❌ [EMAIL QUEUE FAILED] User:', this.userId, '| Agent:', this.agentId, '| Lead:', leadData.email, '| Error:', error.message);
       throw error;
     }
-    
-    console.log('✅ [EMAIL QUEUE] ========== QUEUE PROCESS COMPLETE ==========');
   }
 
   // ============================================================================
