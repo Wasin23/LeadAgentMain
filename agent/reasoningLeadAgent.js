@@ -2609,41 +2609,8 @@ Respond in JSON:
           description: 'Recent news, growth, and developments'
         });
         
-        // Search 3: Industry statistics and third-party data for credibility
-        const industryKeyword = industry || keyTerms.split(' ')[0] || 'business';
-        
-        // Check cache first (valid for 7 days)
-        const cacheKey = industryKeyword.toLowerCase();
-        const cachedStats = this.memory.industryStatsCache[cacheKey];
-        const cacheMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
-        
-        if (cachedStats && (Date.now() - cachedStats.timestamp) < cacheMaxAge) {
-          console.log(`📊 [CACHE HIT] Using cached industry statistics for "${industryKeyword}"`);
-          searchQueries.push({
-            query: null, // No search needed
-            purpose: 'industry_statistics',
-            description: 'Third-party industry data and statistics (cached)',
-            cachedData: cachedStats.data
-          });
-        } else {
-          console.log(`📊 [CACHE MISS] Fetching fresh industry statistics for "${industryKeyword}"`);
-          searchQueries.push({
-            query: `${industryKeyword} industry statistics trends data 2024 2025`,
-            purpose: 'industry_statistics',
-            description: 'Third-party industry data and statistics'
-          });
-        }
-        
-        // Search 4: User's company recent successes (for social proof)
-        const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'company';
-        searchQueries.push({
-          query: `${userCompanyName} news funding clients partnerships awards success 2025 2026`,
-          purpose: 'user_company_success',
-          description: 'Recent noteworthy achievements of user\'s company (last 6 months only)'
-        });
-        
-        // Execute searches and fetch webpages
-        console.log(`🔍 [DEEP RESEARCH] Running ${searchQueries.length} searches + fetching top 3 webpages each`);
+        // Execute searches and fetch webpages (Phase 1-2 only - qualification research)
+        console.log(`🔍 [PHASE 1-2 RESEARCH] Running ${searchQueries.length} searches for qualification + fetching top 3 webpages each`);
         
         // Import webpage fetcher
         const { fetchMultipleWebpages } = await import('../tools/webpageFetcher.js');
@@ -2854,60 +2821,7 @@ Format as:
           }
         }
         
-        // Extract platform metrics from user company success research
-        const platformMetrics = {};
-        const userCompanySuccessData = allResearchData.searches.find(s => s.purpose === 'user_company_success');
-        if (userCompanySuccessData?.webpageInsights) {
-          console.log('🔍 [METRICS] Extracting platform metrics from research...');
-          
-          const metricsText = userCompanySuccessData.webpageInsights
-            .map(w => w.insights)
-            .join('\n');
-          
-          console.log('📝 [METRICS] Raw insights text:', metricsText.substring(0, 500));
-          
-          // Extract specific metrics using regex patterns
-          const returnsMatch = metricsText.match(/\[METRIC\].*?(\d+[-–]\d+%.*?(?:return|yield|ROI))/i);
-          const investorsMatch = metricsText.match(/\[METRIC\].*?(\d+[,\d]*\+?.*?(?:investor|user|customer|client))/i);
-          const deployedMatch = metricsText.match(/\[METRIC\].*?\$(\d+[\d\.]*[KMB]\+?.*?(?:deployed|revenue|capital|AUM))/i);
-          const propertiesMatch = metricsText.match(/\[METRIC\].*?(\d+\+?.*?(?:propert|location|market|countr))/i);
-          const performanceMatch = metricsText.match(/\[METRIC\].*?(outperformed.*?by.*?\d+\.?\d*%)/i);
-          
-          if (returnsMatch) {
-            platformMetrics.returns = returnsMatch[1].trim();
-            console.log('✅ [METRICS] Found returns:', platformMetrics.returns);
-          }
-          if (investorsMatch) {
-            platformMetrics.investors = investorsMatch[1].trim();
-            console.log('✅ [METRICS] Found investors:', platformMetrics.investors);
-          }
-          if (deployedMatch) {
-            platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
-            console.log('✅ [METRICS] Found deployed capital:', platformMetrics.deployed);
-          }
-          if (propertiesMatch) {
-            platformMetrics.properties = propertiesMatch[1].trim();
-            console.log('✅ [METRICS] Found properties:', platformMetrics.properties);
-          }
-          if (performanceMatch) {
-            platformMetrics.performance = performanceMatch[1].trim();
-            console.log('✅ [METRICS] Found performance:', platformMetrics.performance);
-          }
-          
-          if (Object.keys(platformMetrics).length === 0) {
-            console.log('⚠️ [METRICS] No [METRIC] tags found in insights. Metrics extraction failed.');
-          } else {
-            console.log('📊 [METRICS] Extracted platform metrics:', platformMetrics);
-          }
-          
-          // Store in memory for email builder
-          this.memory.platformMetrics = platformMetrics;
-        } else {
-          console.log('⚠️ [METRICS] No user company research data found - using generic value prop');
-          this.memory.platformMetrics = {};
-        }
-        
-        // Build comprehensive cited facts database
+        // Build comprehensive cited facts database (Phase 1-2 only at this point)
         const allCitedFacts = allResearchData.searches
           .flatMap(search => search.webpageInsights || [])
           .flatMap(insight => insight.citedFacts || []);
@@ -2929,12 +2843,10 @@ Format as:
         console.log(`   - Total data sources: ${allResearchData.combinedFindings.length + totalWebpageInsights}`);
         
         // Log to UI for visibility
-        this.logOperation('🔍 Phase 3: Deep Research Complete', 
+        this.logOperation('🔍 Phase 1-2: Prospect Research Complete', 
           `Gathered ${totalWebpageInsights} insights from ${allResearchData.searches.length} research streams:\n` +
           `• Company Overview (${allResearchData.searches.find(s => s.purpose === 'company_overview')?.webpageInsights?.length || 0} insights)\n` +
-          `• Recent News (${allResearchData.searches.find(s => s.purpose === 'recent_developments')?.webpageInsights?.length || 0} insights)\n` +
-          `• Industry Stats (${allResearchData.searches.find(s => s.purpose === 'industry_statistics')?.webpageInsights?.length || 0} insights)\n` +
-          `• Your Company Wins (${allResearchData.searches.find(s => s.purpose === 'user_company_success')?.webpageInsights?.length || 0} insights)\n\n` +
+          `• Recent News (${allResearchData.searches.find(s => s.purpose === 'recent_developments')?.webpageInsights?.length || 0} insights)\n\n` +
           `📚 Key Findings:\n${allCitedFacts.slice(0, 5).map((f, i) => `${i + 1}. ${f.text.substring(0, 80)}...`).join('\n')}`,
           'success',
           {
@@ -3113,6 +3025,378 @@ Format as:
       return researchResults;
     } catch (error) {
       console.error('❌ [SERPER] Research failed:', error);
+      throw error;
+    }
+  }
+
+  // Phase 3: Supporting research (industry stats + user company wins) - Only runs AFTER qualification
+  async runSupportingResearch(parameters) {
+    const leadData = this.memory.currentCycle.currentLead;
+    const companyName = parameters?.companyName || leadData?.organization?.name || leadData?.company || 'Unknown Company';
+    const industry = leadData?.organization?.industry || leadData?.industry || '';
+    
+    console.log('🎯 [PHASE 3] Running supporting research (industry stats + user company wins)');
+    
+    try {
+      const supportingSearches = [];
+      
+      // Get key terms from campaign plan
+      const criteria = this.campaignPlan?.qualificationCriteria;
+      const keyTerms = criteria?.mustHave && criteria.mustHave.length > 0
+        ? criteria.mustHave
+            .join(' ')
+            .replace(/Active in|Company size between|Looking to|uses?|has|have|needs?|requires?|employees|[0-9-]+/gi, '')
+            .split(/\\s+/)
+            .filter(word => word.length > 3)
+            .slice(0, 2)
+            .join(' ')
+            .trim()
+        : '';
+      
+      // Search 1: Industry statistics and third-party data for credibility
+      const industryKeyword = industry || keyTerms.split(' ')[0] || 'business';
+      
+      // Check cache first (valid for 3 days)
+      const cacheKey = industryKeyword.toLowerCase();
+      const cachedStats = this.memory.industryStatsCache[cacheKey];
+      const cacheMaxAge = 3 * 24 * 60 * 60 * 1000; // 3 days in ms
+      
+      if (cachedStats && (Date.now() - cachedStats.timestamp) < cacheMaxAge) {
+        console.log(`📊 [CACHE HIT] Using cached industry statistics for \"${industryKeyword}\"`);
+        supportingSearches.push({
+          query: null,
+          purpose: 'industry_statistics',
+          description: 'Third-party industry data and statistics (cached)',
+          cachedData: cachedStats.data
+        });
+      } else {
+        console.log(`📊 [CACHE MISS] Fetching fresh industry statistics for \"${industryKeyword}\"`);
+        supportingSearches.push({
+          query: `${industryKeyword} industry statistics trends data 2024 2025`,
+          purpose: 'industry_statistics',
+          description: 'Third-party industry data and statistics'
+        });
+      }
+      
+      // Search 2: User's company recent successes (for social proof)
+      const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'company';
+      
+      // Check cache for user company wins (valid for 3 days)
+      const companyCacheKey = userCompanyName.toLowerCase().replace(/\s+/g, '_');
+      const cachedCompanyWins = this.memory.companyWinsCache?.[companyCacheKey];
+      const companyCacheMaxAge = 3 * 24 * 60 * 60 * 1000; // 3 days in ms
+      
+      // Initialize cache if doesn't exist
+      if (!this.memory.companyWinsCache) {
+        this.memory.companyWinsCache = {};
+      }
+      
+      if (cachedCompanyWins && (Date.now() - cachedCompanyWins.timestamp) < companyCacheMaxAge) {
+        console.log(`💾 [CACHE HIT] Using cached company wins for "${userCompanyName}"`);
+        supportingSearches.push({
+          query: null,
+          purpose: 'user_company_success',
+          description: 'Recent noteworthy achievements of user\'s company (cached)',
+          cachedData: cachedCompanyWins.data
+        });
+      } else {
+        console.log(`🔄 [CACHE MISS] Fetching fresh company wins for "${userCompanyName}"`);
+        supportingSearches.push({
+          query: `${userCompanyName} news funding clients partnerships awards success 2025 2026`,
+          purpose: 'user_company_success',
+          description: 'Recent noteworthy achievements of user\'s company (last 6 months only)'
+        });
+      }
+      
+      // Execute supporting searches
+      console.log(`🔍 [PHASE 3] Running ${supportingSearches.length} supporting searches + fetching top 3 webpages each`);
+      
+      const { fetchMultipleWebpages } = await import('../tools/webpageFetcher.js');
+      const { default: internetSearch } = await import('../tools/internetSearch.js');
+      
+      for (const search of supportingSearches) {
+        console.log(`🔎 [${search.purpose.toUpperCase()}] ${search.description}`);
+        
+        // If using cached data, skip the search
+        if (search.cachedData) {
+          console.log(`   📊 Using cached industry statistics (${Object.keys(search.cachedData.insights || {}).length} insights)`);
+          this.memory.lastResearch.searches.push({
+            purpose: search.purpose,
+            query: null,
+            description: search.description,
+            cached: true,
+            webpageInsights: search.cachedData.insights || []
+          });
+          continue;
+        }
+        
+        console.log(`   Query: \"${search.query}\"`);
+        
+        try {
+          const results = await internetSearch(search.query);
+          
+          // Log API usage
+          await this.awsManager.logApiUsage({
+            userId: this.userId,
+            agentId: this.agentId,
+            service: 'serper',
+            operation: 'search',
+            usage: 1,
+            metadata: {
+              companyName: companyName,
+              purpose: search.purpose,
+              timestamp: new Date().toISOString()
+            }
+          }).catch(err => console.error('⚠️ Failed to log API usage:', err));
+          
+          // Extract top 3 URLs
+          const organicResults = results?.organic || results?.data?.organic || [];
+          const topUrls = organicResults
+            .slice(0, 3)
+            .map(r => r.link)
+            .filter(url => url && !url.includes('youtube.com') && !url.includes('pdf'));
+          
+          console.log(`   📄 Fetching ${topUrls.length} webpages...`);
+          
+          // Fetch webpage content
+          const webpageContents = await fetchMultipleWebpages(topUrls, 3);
+          
+          // Extract insights from webpages
+          const webpageInsights = [];
+          for (const webpage of webpageContents) {
+            if (webpage.success && webpage.content) {
+              try {
+                const companyMentioned = webpage.content.toLowerCase().includes(userCompanyName.toLowerCase()) ||
+                                        webpage.title.toLowerCase().includes(userCompanyName.toLowerCase());
+                
+                if (!companyMentioned && search.purpose === 'user_company_success') {
+                  console.log(`   ⚠️ Skipping ${webpage.title} - \"${userCompanyName}\" not mentioned`);
+                  continue;
+                }
+                
+                // Extract insights with metrics tagging
+                const insightPrompt = `Extract ONLY the most relevant and impressive business facts about ${userCompanyName} from this webpage content.
+
+CRITICAL RULES:
+1. The webpage MUST explicitly mention \"${userCompanyName}\" - if it doesn't, return \"NO RELEVANT DATA\"
+2. Do NOT infer, assume, or make connections to similar-sounding companies
+3. Only extract facts that directly reference \"${userCompanyName}\" by name
+4. If you're not 100% certain the fact is about \"${userCompanyName}\", DO NOT include it
+
+Focus on:
+- Recent achievements, growth, funding (with specific numbers/dates)
+- Key partnerships or clients (actual names)
+- Unique value propositions or innovations
+- Market position or awards (with specific award names)
+- Leadership or company culture highlights
+${search.purpose === 'user_company_success' ? `
+🎯 SPECIAL: Also extract PLATFORM METRICS if found (for ${userCompanyName}):
+- Average returns/yields (e.g., \"12-18% returns\", \"6-9% yields\")
+- Number of customers/investors/users (e.g., \"50,000+ investors\")
+- Total capital/revenue deployed (e.g., \"$500M+ deployed\")
+- Number of properties/locations/markets (e.g., \"150+ properties in 25 countries\")
+- Performance comparisons (e.g., \"outperformed REITs by 4.2%\")
+If found, prefix these with \"[METRIC]\" for easy extraction.` : ''}
+
+Webpage: ${webpage.title}
+Content: ${webpage.content}
+
+Return 2-4 concise bullet points (max 50 words each) of the MOST impressive and relevant facts about ${userCompanyName} specifically.
+If ${userCompanyName} is not mentioned or you cannot confirm facts are about ${userCompanyName}, return exactly: \"NO RELEVANT DATA\"
+
+Format as:
+- [fact 1]
+- [fact 2]
+- [fact 3]`;
+
+                const insightResponse = await this.openai.chat.completions.create({
+                  model: 'gpt-4o-mini',
+                  messages: [{ role: 'user', content: insightPrompt }],
+                  temperature: 0.1,
+                  max_tokens: 300
+                });
+                
+                const extractedInsights = insightResponse.choices[0].message.content;
+                
+                if (extractedInsights.includes('NO RELEVANT DATA')) {
+                  console.log(`   ⚠️ No relevant data found in: ${webpage.title}`);
+                  continue;
+                }
+                
+                const insightLines = extractedInsights.split('\\n').filter(line => line.trim().startsWith('-'));
+                
+                if (insightLines.length === 0) {
+                  console.log(`   ⚠️ No valid insights extracted from: ${webpage.title}`);
+                  continue;
+                }
+                
+                const citedInsights = insightLines.map(insight => ({
+                  text: insight.replace(/^-\\s*/, '').trim(),
+                  source: webpage.url,
+                  sourceTitle: webpage.title,
+                  confidence: 0.9
+                }));
+                
+                webpageInsights.push({
+                  source: webpage.url,
+                  title: webpage.title,
+                  insights: extractedInsights,
+                  citedFacts: citedInsights
+                });
+                
+                console.log(`   ✅ Extracted insights from: ${webpage.title}`);
+                
+                // Log OpenAI usage
+                if (insightResponse.usage) {
+                  await this.awsManager.logApiUsage({
+                    userId: this.userId,
+                    agentId: this.agentId,
+                    service: 'openai',
+                    operation: 'insight_extraction',
+                    usage: insightResponse.usage.total_tokens,
+                    metadata: {
+                      model: 'gpt-4o-mini',
+                      companyName: userCompanyName,
+                      source: webpage.url
+                    }
+                  }).catch(err => console.error('Failed to log OpenAI usage:', err));
+                }
+                
+              } catch (aiError) {
+                console.error(`   ⚠️ Failed to extract insights:`, aiError.message);
+              }
+            }
+          }
+          
+          // Add to existing research
+          this.memory.lastResearch.searches.push({
+            purpose: search.purpose,
+            query: search.query,
+            description: search.description,
+            results: results,
+            webpageInsights: webpageInsights
+          });
+          
+          // Cache industry statistics
+          if (search.purpose === 'industry_statistics' && webpageInsights.length > 0) {
+            this.memory.industryStatsCache[cacheKey] = {
+              data: {
+                insights: webpageInsights,
+                query: search.query,
+                industry: industryKeyword
+              },
+              timestamp: Date.now()
+            };
+            console.log(`   💾 Cached industry statistics for \"${industryKeyword}\" (valid for 3 days)`);
+          }
+          
+          // Cache user company wins
+          if (search.purpose === 'user_company_success' && webpageInsights.length > 0) {
+            this.memory.companyWinsCache[companyCacheKey] = {
+              data: {
+                insights: webpageInsights,
+                query: search.query,
+                company: userCompanyName
+              },
+              timestamp: Date.now()
+            };
+            console.log(`   💾 Cached company wins for \"${userCompanyName}\" (valid for 3 days)`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+        } catch (searchError) {
+          console.error(`   ❌ Search failed: ${searchError.message}`);
+        }
+      }
+      
+      // Extract platform metrics from user company success research
+      const platformMetrics = {};
+      const userCompanySuccessData = this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success');
+      if (userCompanySuccessData?.webpageInsights) {
+        console.log('🔍 [METRICS] Extracting platform metrics from research...');
+        
+        const metricsText = userCompanySuccessData.webpageInsights
+          .map(w => w.insights)
+          .join('\\n');
+        
+        console.log('📝 [METRICS] Raw insights text:', metricsText.substring(0, 500));
+        
+        const returnsMatch = metricsText.match(/\\[METRIC\\].*?(\\d+[-–]\\d+%.*?(?:return|yield|ROI))/i);
+        const investorsMatch = metricsText.match(/\\[METRIC\\].*?(\\d+[,\\d]*\\+?.*?(?:investor|user|customer|client))/i);
+        const deployedMatch = metricsText.match(/\\[METRIC\\].*?\\$(\\d+[\\d\\.]*[KMB]\\+?.*?(?:deployed|revenue|capital|AUM))/i);
+        const propertiesMatch = metricsText.match(/\\[METRIC\\].*?(\\d+\\+?.*?(?:propert|location|market|countr))/i);
+        const performanceMatch = metricsText.match(/\\[METRIC\\].*?(outperformed.*?by.*?\\d+\\.?\\d*%)/i);
+        
+        if (returnsMatch) {
+          platformMetrics.returns = returnsMatch[1].trim();
+          console.log('✅ [METRICS] Found returns:', platformMetrics.returns);
+        }
+        if (investorsMatch) {
+          platformMetrics.investors = investorsMatch[1].trim();
+          console.log('✅ [METRICS] Found investors:', platformMetrics.investors);
+        }
+        if (deployedMatch) {
+          platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
+          console.log('✅ [METRICS] Found deployed capital:', platformMetrics.deployed);
+        }
+        if (propertiesMatch) {
+          platformMetrics.properties = propertiesMatch[1].trim();
+          console.log('✅ [METRICS] Found properties:', platformMetrics.properties);
+        }
+        if (performanceMatch) {
+          platformMetrics.performance = performanceMatch[1].trim();
+          console.log('✅ [METRICS] Found performance:', platformMetrics.performance);
+        }
+        
+        if (Object.keys(platformMetrics).length === 0) {
+          console.log('⚠️ [METRICS] No [METRIC] tags found in insights. Metrics extraction failed.');
+        } else {
+          console.log('📊 [METRICS] Extracted platform metrics:', platformMetrics);
+        }
+        
+        this.memory.platformMetrics = platformMetrics;
+      } else {
+        console.log('⚠️ [METRICS] No user company research data found');
+        this.memory.platformMetrics = {};
+      }
+      
+      // Build comprehensive cited facts
+      const allCitedFacts = this.memory.lastResearch.searches
+        .flatMap(search => search.webpageInsights || [])
+        .flatMap(insight => insight.citedFacts || []);
+      
+      this.memory.lastResearch.citedFacts = allCitedFacts;
+      this.memory.lastResearch.totalSources = this.memory.lastResearch.searches
+        .flatMap(s => s.webpageInsights || []).length;
+      
+      // Count insights by type
+      const totalWebpageInsights = this.memory.lastResearch.searches
+        .flatMap(s => s.webpageInsights || [])
+        .length;
+      
+      console.log(`✅ [PHASE 3] Supporting research complete`);
+      console.log(`   - Industry Stats: ${this.memory.lastResearch.searches.find(s => s.purpose === 'industry_statistics')?.webpageInsights?.length || 0} insights`);
+      console.log(`   - User Company Wins: ${this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success')?.webpageInsights?.length || 0} insights`);
+      
+      // Log to UI
+      this.logOperation('🎯 Phase 3: Supporting Research Complete',
+        `Gathered email supporting data:\\n` +
+        `• Industry Stats (${this.memory.lastResearch.searches.find(s => s.purpose === 'industry_statistics')?.webpageInsights?.length || 0} insights)\\n` +
+        `• Your Company Wins (${this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success')?.webpageInsights?.length || 0} insights)\\n` +
+        `${Object.keys(platformMetrics).length > 0 ? `\\n📊 Platform Metrics Extracted:\\n${Object.entries(platformMetrics).map(([k, v]) => `• ${k}: ${v}`).join('\\n')}` : ''}`,
+        'success',
+        {
+          platformMetrics: platformMetrics,
+          industryStatsCount: this.memory.lastResearch.searches.find(s => s.purpose === 'industry_statistics')?.webpageInsights?.length || 0,
+          companyWinsCount: this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success')?.webpageInsights?.length || 0
+        }
+      );
+      
+      return { success: true, platformMetrics };
+      
+    } catch (error) {
+      console.error('❌ [PHASE 3] Supporting research failed:', error);
       return {
         success: false,
         error: error.message,
@@ -3535,6 +3819,18 @@ Format as:
     console.log('📝 [EMAIL BUILDER] Creating adaptive personalized email...');
     
     try {
+      // Run Phase 3 supporting research (industry stats + user company wins) if not already done
+      const hasPhase3Data = this.memory.lastResearch?.searches?.some(s => 
+        s.purpose === 'industry_statistics' || s.purpose === 'user_company_success'
+      );
+      
+      if (!hasPhase3Data) {
+        console.log('🎯 [EMAIL BUILDER] Phase 3 supporting research not yet run - executing now');
+        await this.runSupportingResearch(parameters);
+      } else {
+        console.log('✅ [EMAIL BUILDER] Phase 3 supporting research already complete');
+      }
+      
       // Get data from current cycle state instead of parameters
       const leadData = this.memory.currentCycle.currentLead;
       const researchData = this.memory.lastResearch;

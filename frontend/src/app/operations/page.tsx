@@ -1800,11 +1800,6 @@ export default function InteractiveGlobe() {
             >
               {agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running') ? 'Stop All Agents' : 'Start All Agents'}
             </button>
-            <p className="text-[#8FA6C1]/70 text-[11px] text-center mt-2 px-4">
-              {agents.filter(a => a.agentId !== 'orphan').every(a => a.status === 'running') 
-                ? 'Immediately stops all running agents and clears their activity'
-                : 'Launches all configured agents simultaneously to begin prospecting'}
-            </p>
           </div>
         </div>
       )}{/* End Mobile Navigation */}
@@ -2694,9 +2689,9 @@ export default function InteractiveGlobe() {
                         }
                         await fetchAgents();
                       }}
-                      className="px-8 py-3 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-500/60 text-green-300 rounded-lg transition-all duration-300 flex items-center gap-2 text-sm font-semibold shadow-lg"
+                      className="px-16 py-8 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-500/60 text-green-300 rounded-lg transition-all duration-300 flex items-center gap-5 text-2xl font-bold shadow-lg"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>

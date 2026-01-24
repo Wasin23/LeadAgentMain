@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
 router.get('/queue', async (req, res) => {
   try {
     const agentId = req.query.agentId;
-    console.log(`📧 [EMAIL QUEUE] GET /queue - userId: ${req.user.userId}, agentId: ${agentId}`);
+    // console.log(`📧 [EMAIL QUEUE] GET /queue - userId: ${req.user.userId}, agentId: ${agentId}`);
     
     // If agentId is 'all', fetch from all agents using AWS
     if (agentId === 'all') {
@@ -89,7 +89,7 @@ router.get('/queue', async (req, res) => {
     console.log(`📧 [EMAIL QUEUE] Fetching for specific agent: ${agentId || 'null (legacy)'}`);
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
     const queue = await userEmailQueue.getQueue();
-    console.log(`📧 [EMAIL QUEUE] Found ${queue.length} emails in queue for agent ${agentId || 'null'}`);
+    // console.log(`📧 [EMAIL QUEUE] Found ${queue.length} emails in queue for agent ${agentId || 'null'}`);
     res.json(queue);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting queue:', error);
