@@ -2070,7 +2070,20 @@ Respond in JSON format:
         temperature: 0.3
       });
 
-      const result = JSON.parse(response.choices[0].message.content);
+      let result = JSON.parse(response.choices[0].message.content);
+      
+      // Penalize score if 0 insights were extracted (webpage fetch/analysis failures)
+      const totalWebpageInsights = researchData?.searches
+        ?.flatMap(s => s.webpageInsights || [])
+        ?.length || 0;
+      
+      if (totalWebpageInsights === 0) {
+        const penalty = 30;
+        const originalScore = result.score;
+        result.score = Math.max(0, result.score - penalty);
+        console.log(`⚠️ [PRE-QUALIFY] No webpage insights extracted - reducing score by ${penalty} points (${originalScore} → ${result.score})`);
+        result.reason += ` (Note: Limited research data available - ${penalty} point penalty applied)`;
+      }
       
       // Log API usage
       if (response.usage) {
@@ -2842,19 +2855,19 @@ Format as:
         console.log(`   - ${totalWebpageInsights} deep webpage insights`);
         console.log(`   - Total data sources: ${allResearchData.combinedFindings.length + totalWebpageInsights}`);
         
-        // Log to UI for visibility
-        this.logOperation('🔍 Phase 1-2: Prospect Research Complete', 
-          `Gathered ${totalWebpageInsights} insights from ${allResearchData.searches.length} research streams:\n` +
-          `• Company Overview (${allResearchData.searches.find(s => s.purpose === 'company_overview')?.webpageInsights?.length || 0} insights)\n` +
-          `• Recent News (${allResearchData.searches.find(s => s.purpose === 'recent_developments')?.webpageInsights?.length || 0} insights)\n\n` +
-          `📚 Key Findings:\n${allCitedFacts.slice(0, 5).map((f, i) => `${i + 1}. ${f.text.substring(0, 80)}...`).join('\n')}`,
-          'success',
-          {
-            totalSources: allResearchData.totalSources,
-            citedFactsCount: allCitedFacts.length,
-            researchPhases: allResearchData.searches.map(s => s.purpose)
-          }
-        );
+        // Log to UI for visibility (commented out - will show after qualification)
+        // this.logOperation('🔍 Phase 1-2: Prospect Research Complete', 
+        //   `Gathered ${totalWebpageInsights} insights from ${allResearchData.searches.length} research streams:\n` +
+        //   `• Company Overview (${allResearchData.searches.find(s => s.purpose === 'company_overview')?.webpageInsights?.length || 0} insights)\n` +
+        //   `• Recent News (${allResearchData.searches.find(s => s.purpose === 'recent_developments')?.webpageInsights?.length || 0} insights)\n\n` +
+        //   `📚 Key Findings:\n${allCitedFacts.slice(0, 5).map((f, i) => `${i + 1}. ${f.text.substring(0, 80)}...`).join('\n')}`,
+        //   'success',
+        //   {
+        //     totalSources: allResearchData.totalSources,
+        //     citedFactsCount: allCitedFacts.length,
+        //     researchPhases: allResearchData.searches.map(s => s.purpose)
+        //   }
+        // );
         
       } else {
         // Fallback: Single generic search
