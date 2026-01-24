@@ -40,13 +40,13 @@ class AWSManager {
       agentMetrics: process.env.AWS_DYNAMODB_AGENT_METRICS_TABLE || 'meridian-agent-metrics'
     };
     
-    // API Cost rates (estimated)
+    // API Cost rates (with 1.2x multiplier for platform margin)
     this.apiCosts = {
-      apollo: 0.026, // $0.026 per credit ($65 for 2500 credits)
-      openai: 0.0034 / 1000, // $0.0034 per 1K tokens for GPT-3.5 (1.7x)
-      mailgun: 0.00136, // $0.00136 per email (1.7x)
-      zerobounce: 0.0085, // $0.0085 per validation (1.7x)
-      serper: 0.001 // $0.001 per search query ($50 for 50k credits)
+      apollo: 0.026 * 1.2, // $0.0312 per credit ($65 for 2500 credits)
+      openai: (0.002 / 1000) * 1.2, // $0.0024 per 1K tokens for GPT-3.5
+      mailgun: 0.0008 * 1.2, // $0.00096 per email
+      zerobounce: 0.005 * 1.2, // $0.006 per validation
+      serper: 0.001 * 1.2 // $0.0012 per search query ($50 for 50k credits)
     };
     
     // Removed initialization logs to reduce console noise

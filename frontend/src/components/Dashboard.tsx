@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CompanyProfileOnboarding from './CompanyProfileOnboarding';
 import CalendarSetup from './CalendarSetup';
+import PaymentOnboarding from './PaymentOnboarding';
 import AgentOnboarding from './agents/AgentOnboarding';
 import api from '../lib/api';
 
@@ -12,6 +13,7 @@ export default function Dashboard() {
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [hasCompanyProfile, setHasCompanyProfile] = useState(false);
   const [hasCalendarSetup, setHasCalendarSetup] = useState<boolean | null>(null);
+  const [hasPaymentSetup, setHasPaymentSetup] = useState<boolean | null>(null);
   const [showAgentOnboarding, setShowAgentOnboarding] = useState(false);
 
   useEffect(() => {
@@ -20,21 +22,35 @@ export default function Dashboard() {
 
   // Redirect to home if onboarding is complete
   useEffect(() => {
-    if (!isCheckingProfile && hasCompanyProfile && hasCalendarSetup === true && !showAgentOnboarding) {
+    if (!isCheckingProfile && hasCompanyProfile && hasCalendarSetup === true && hasPaymentSetup === true && !showAgentOnboarding) {
       const timer = setTimeout(() => {
         router.push('/dashboard');
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isCheckingProfile, hasCompanyProfile, hasCalendarSetup, showAgentOnboarding, router]);
+  }, [isCheckingProfile, hasCompanyProfile, hasCalendarSetup, hasPaymentSetup, showAgentOnboarding, router]);
 
   const checkCompanyProfile = async () => {
     try {
       const response = await api.get('/api/company-profile');
-      setHasCompanyProfile(!!response.data?.profile);
+      const hasProfile = !!response.data?.profile;
+      setHasCompanyProfile(hasProfile);
       
-      if (response.data?.profile) {
+      if (hasProfile) {
+        // Skip calendar setup for existing profiles
         setHasCalendarSetup(true);
+        
+        // Check if user has payment method or trial credits
+        try {
+          const trialResponse = await api.get('/api/billing/trial-credits');
+          const hasPayment = trialResponse.data?.credits?.paymentMethodAdded || false;
+          
+          // If they have payment or are on trial, skip payment onboarding
+          setHasPaymentSetup(hasPayment || true); // Everyone gets trial access
+        } catch {
+          // If we can't check, assume they need payment setup
+          setHasPaymentSetup(false);
+        }
       }
     } catch (error: any) {
       // 404 means no profile exists yet, which is expected for new users
@@ -67,6 +83,13 @@ export default function Dashboard() {
         <div className="min-h-screen">
           <CalendarSetup onComplete={() => {
             setHasCalendarSetup(true);
+            setHasPaymentSetup(false);
+          }} />
+        </div>
+      ) : hasPaymentSetup === false ? (
+        <div className="min-h-screen">
+          <PaymentOnboarding onComplete={() => {
+            setHasPaymentSetup(true);
             setShowAgentOnboarding(true);
           }} />
         </div>

@@ -507,6 +507,17 @@ export async function scanUsersAndCharge() {
       
       const { Items: summaries } = await awsManager.dynamodb.send(summaryQuery);
       
+      console.log(`📊 [BILLING] User ${userId}: Found ${summaries?.length || 0} usage summaries`);
+      if (summaries && summaries.length > 0) {
+        summaries.forEach(s => {
+          let cost = 0;
+          ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
+            if (s[service]) cost += s[service].cost || 0;
+          });
+          console.log(`   📊 ${s.month}: $${cost.toFixed(2)}`);
+        });
+      }
+      
       // Get previously paid months from payment history
       const paymentsQuery = new QueryCommand({
         TableName: awsManager.tables.paymentHistory,
@@ -522,13 +533,21 @@ export async function scanUsersAndCharge() {
       });
       
       const { Items: payments } = await awsManager.dynamodb.send(paymentsQuery);
-      const paidMonths = new Set(
-        (payments || []).map(p => {
-          if (!p.billingPeriod) return null;
-          const date = new Date(p.billingPeriod);
-          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        }).filter(Boolean)
-      );
+      
+      // Build a map of payments by month
+      const paymentsByMonth = {};
+      (payments || []).forEach(p => {
+        if (!p.billingPeriod) return;
+        const date = new Date(p.billingPeriod);
+        const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!paymentsByMonth[month]) {
+          paymentsByMonth[month] = 0;
+        }
+        paymentsByMonth[month] += p.amount || 0;
+      });
+      
+      console.log(`💳 [BILLING] User ${userId}: Payment totals by month:`, paymentsByMonth);
       
       // Calculate total outstanding (all unpaid months)
       let totalCost = 0;
@@ -541,11 +560,6 @@ export async function scanUsersAndCharge() {
           continue;
         }
         
-        // Skip if already paid (month field, not monthKey)
-        if (paidMonths.has(summary.month)) {
-          continue;
-        }
-        
         // Sum costs from all services
         let monthCost = 0;
         ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
@@ -554,8 +568,14 @@ export async function scanUsersAndCharge() {
           }
         });
         
-        if (monthCost > 0) {
-          totalCost += monthCost;
+        // Calculate outstanding for this month (usage - payments)
+        const monthPayments = paymentsByMonth[summary.month] || 0;
+        const monthOutstanding = Math.max(0, monthCost - monthPayments);
+        
+        console.log(`💰 [BILLING] ${summary.month}: Usage=$${monthCost.toFixed(2)}, Payments=$${monthPayments.toFixed(2)}, Outstanding=$${monthOutstanding.toFixed(2)}`);
+        
+        if (monthOutstanding > 0) {
+          totalCost += monthOutstanding;
           unpaidMonths.push(summary.month);
         }
       }
@@ -792,6 +812,119 @@ router.get('/payment-stats', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('❌ [BILLING] Error getting payment stats:', error);
     res.status(500).json({ error: 'Failed to get payment stats' });
+  }
+});
+
+// Get credit balance
+router.get('/credit-balance', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await awsManager.getUserById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      success: true,
+      balance: user.creditBalance || 0
+    });
+    
+  } catch (error) {
+    console.error('❌ [BILLING] Error getting credit balance:', error);
+    res.status(500).json({ error: 'Failed to get credit balance' });
+  }
+});
+
+// Purchase credits
+router.post('/purchase-credits', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { tierId, amount, credits } = req.body;
+    
+    if (!tierId || !amount || !credits) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const user = await awsManager.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    if (!user.stripeCustomerId || !user.paymentMethodAdded) {
+      return res.status(400).json({ error: 'No payment method on file' });
+    }
+    
+    // Get default payment method
+    const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+    const paymentMethodId = customer.invoice_settings?.default_payment_method;
+    
+    if (!paymentMethodId) {
+      return res.status(400).json({ error: 'No default payment method found' });
+    }
+    
+    console.log(`💳 [BILLING] Creating payment intent for ${credits} credits ($${amount}) for user ${userId}`);
+    
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      customer: user.stripeCustomerId,
+      payment_method: paymentMethodId,
+      off_session: true,
+      confirm: true,
+      description: `Purchase ${credits.toLocaleString()} credits (Tier: ${tierId})`,
+      metadata: {
+        userId,
+        tierId,
+        credits: credits.toString()
+      }
+    });
+    
+    if (paymentIntent.status === 'succeeded') {
+      // Add credits to user balance
+      const currentBalance = user.creditBalance || 0;
+      const newBalance = currentBalance + credits;
+      
+      await awsManager.updateUser(userId, {
+        creditBalance: newBalance
+      });
+      
+      console.log(`✅ [BILLING] Payment successful - Added ${credits} credits to user ${userId} (New balance: ${newBalance})`);
+      
+      // Log successful payment
+      await logBillingActivity(userId, 'credit_purchase', {
+        amount,
+        credits,
+        tierId,
+        paymentIntentId: paymentIntent.id,
+        newBalance
+      }, 'success');
+      
+      res.json({
+        success: true,
+        message: `Successfully purchased ${credits.toLocaleString()} credits`,
+        newBalance,
+        paymentIntentId: paymentIntent.id
+      });
+    } else {
+      throw new Error(`Payment failed with status: ${paymentIntent.status}`);
+    }
+    
+  } catch (error) {
+    console.error('❌ [BILLING] Error purchasing credits:', error);
+    
+    // Log failed payment
+    await logBillingActivity(req.user.userId, 'credit_purchase', {
+      amount: req.body.amount,
+      credits: req.body.credits,
+      error: error.message
+    }, 'failed');
+    
+    res.status(500).json({ 
+      error: 'Failed to purchase credits',
+      message: error.message 
+    });
   }
 });
 

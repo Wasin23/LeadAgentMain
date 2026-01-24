@@ -77,7 +77,7 @@ export default function SettingsPage() {
       icon: CreditCardIcon,
       sections: [
         { id: 'payment-methods', label: 'Payment Methods', icon: CreditCardIcon },
-        { id: 'budget', label: 'Budget & Limits', icon: CurrencyDollarIcon },
+        { id: 'budget', label: 'Credits & Usage', icon: CurrencyDollarIcon },
         { id: 'payment-history', label: 'Payment History', icon: ClockIcon }
       ]
     },
@@ -248,8 +248,8 @@ export default function SettingsPage() {
       return (
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Budget & Limits</h1>
-            <p className="text-white/70 mb-8">Set monthly spending limits and track API usage</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Credits & Usage</h1>
+            <p className="text-white/70 mb-8">Manage your credit balance and track API usage</p>
           </div>
           <RateLimitSettings />
         </div>

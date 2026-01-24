@@ -4663,7 +4663,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         selectedKeyword = this.memory.campaignPriorityKeyword;
         keywordSource = 'campaign';
         selectedPositionIndex = 0; // Use first position for campaign priority
-        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (active until >50% duplicates)`);
+        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (active until >20% duplicates)`);
       } else {
         // Finished campaign priority OR no campaign priority set
         if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 999) {
@@ -4871,7 +4871,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         
         // Check if this keyword has high cumulative duplicate rate - if so, skip it entirely
         const tracker = this.memory.industryExhaustion[selectedKeyword];
-        if (tracker && tracker.cumulativeDuplicateRate > 50 && tracker.totalAttempts >= 5) {
+        if (tracker && tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
           console.log(`🔄 [EXHAUSTED] Keyword "${selectedKeyword}" has ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative duplicates - forcing rotation`);
           this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation to next keyword
           return {
@@ -5206,7 +5206,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               }
               
               // Rotate if CUMULATIVE duplicate rate exceeds 50%
-              if (tracker.cumulativeDuplicateRate > 50 && tracker.totalAttempts >= 5) {
+              if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
                 console.log(`🔄 [AUTO-ROTATE] Cumulative duplicate rate ${tracker.cumulativeDuplicateRate.toFixed(1)}% > 50% threshold (${tracker.totalAttempts} total attempts) - rotating to next keyword`);
                 this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation
                 
