@@ -254,106 +254,13 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
 
   return (
     <>
-      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20.75%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/10 flex flex-col overflow-y-auto sm:pt-4">
+      <div className="sm:fixed relative sm:left-auto sm:right-0 sm:top-0 h-auto sm:h-screen w-full lg:w-[20.75%] bg-[#0F1E35]/95 backdrop-blur-xl lg:border-l border-white/20 flex flex-col overflow-y-auto sm:pt-4 z-40">
       {/* Header */}
       <div className="px-6 py-5 border-b border-white/10 flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h2 className="text-white font-bold text-xl">Command Center</h2>
-            <p className="text-[#8FA6C1] text-sm mt-1">Monitor & Control</p>
-          </div>
-        </div>
-        
-        {/* Start All Agents Button */}
-        <button
-          onClick={async () => {
-            const runningAgents = agents.filter((a: any) => a.status === 'running');
-            const idleAgents = agents.filter((a: any) => a.status !== 'running');
-            
-            // If all agents are running, stop them all
-            if (idleAgents.length === 0 && runningAgents.length > 0) {
-              // Optimistically update UI immediately
-              setAgents(prev => prev.map(a => ({ ...a, status: 'idle', currentActivity: null })));
-              setAgentActivities({});
-              
-              try {
-                await Promise.all(
-                  runningAgents.map((agent: any) => 
-                    api.post('/api/lead-agent/stop', { agentId: agent.agentId })
-                  )
-                );
-                // Refresh after 2 seconds to ensure correct state
-                setTimeout(async () => {
-                  try {
-                    const response = await api.get('/api/auth/profile');
-                    if (response.data.user?.activeAgents) {
-                      setAgents(response.data.user.activeAgents);
-                    }
-                  } catch (error) {
-                    console.error('Failed to refresh agents:', error);
-                  }
-                }, 2000);
-              } catch (error) {
-                console.error('Failed to stop agents:', error);
-              }
-              return;
-            }
-            
-            // Otherwise, start all idle agents
-            if (idleAgents.length === 0) {
-              return;
-            }
-            
-            // Optimistically update UI immediately
-            setAgents(prev => prev.map(a => 
-              idleAgents.find(idle => idle.agentId === a.agentId)
-                ? { ...a, status: 'running' }
-                : a
-            ));
-            
-            const newActivities: {[key: string]: any} = {};
-            idleAgents.forEach(agent => {
-              newActivities[agent.agentId] = {
-                status: 'Starting...',
-                timestamp: Date.now(),
-                location: agent.targeting?.location || null,
-                targeting: agent.targeting || null,
-                isActive: true
-              };
-            });
-            setAgentActivities(prev => ({ ...prev, ...newActivities }));
-            
-            try {
-              await Promise.all(
-                idleAgents.map((agent: any) => 
-                  api.post('/api/lead-agent/start', { agentId: agent.agentId })
-                )
-              );
-            } catch (error) {
-              console.error('Failed to start agents:', error);
-            }
-          }}
-          className={`w-full mt-3 px-6 py-3 bg-transparent font-bold rounded-lg uppercase tracking-wider text-sm shadow-lg transition-all duration-200 active:scale-[0.98] border-2 ${
-            agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
-              ? 'text-red-400 border-red-400 hover:bg-red-500/10'
-              : 'text-green-400 border-green-400 hover:bg-green-500/10'
-          }`}
-        >
-          {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
-            ? 'Stop All Agents'
-            : 'Start All Agents'
-          }
-        </button>
-        
-        <p className="text-[#8FA6C1]/70 text-[11px] text-center mt-2 px-2">
-          {agents.filter(a => a.status !== 'running').length === 0 && agents.filter(a => a.status === 'running').length > 0
-            ? 'Immediately stops all running agents and clears their activity'
-            : 'Launches all configured agents simultaneously to begin prospecting'}
-        </p>
+        <h2 className="text-white font-bold text-xl">Active Agents</h2>
 
         {/* Active Agents Display */}
         <div className="mt-4 rounded-xl">
-          <div className="text-[#A3B4CC] text-xs uppercase tracking-wider mb-3 font-semibold">Active Agents</div>
           {agents.filter(a => a.agentId !== 'orphan' && (agentActivities[a.agentId]?.isActive || a.status === 'running')).length > 0 ? (
             <div className="flex flex-wrap gap-3">
               {agents

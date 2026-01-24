@@ -357,6 +357,7 @@ app.use((req, res, next) => {
   // Skip logging for polling endpoints
   const pollingEndpoints = [
     '/api/monitoring/metrics',
+    '/api/monitoring/ai-summary',
     '/api/lead-agent/status',
     '/api/lead-agent/api-usage/total',
     '/api/lead-agent/api-usage/timeseries',

@@ -83,11 +83,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <UserMenu />
       </div>
 
+      {/* Divider Line - On top of content */}
+      <div className="fixed left-[265px] top-0 bottom-0 w-[1px] bg-white/10 z-40"></div>
+
       {/* Content Area */}
-      <div className="fixed left-[265px] right-0 top-0 bottom-0 overflow-hidden bg-[#14304a] border-l border-white/10">
+      <div className="fixed left-[265px] right-0 top-0 bottom-0 overflow-hidden bg-[#14304a]">
         <div className="relative h-full overflow-y-auto overflow-x-hidden px-6 py-6">
           {navigating && (
-            <div className="absolute inset-0 bg-[#14304a] border-l border-white/10 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-[#14304a] z-50 flex items-center justify-center">
               <div className="text-center">
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>

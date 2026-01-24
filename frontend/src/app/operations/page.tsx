@@ -1643,17 +1643,17 @@ export default function InteractiveGlobe() {
 
   return (
     <AppLayout>
-      <div className="mb-3">
+      <div className="mb-3 lg:mr-[21.75%]">
         <h1 className="text-2xl font-bold text-white">Operations</h1>
       </div>
 
       {/* Top Tabs */}
-      <div className="flex items-center gap-2 mb-4 border-b border-[#4FD1FF]/20 pb-2">
+      <div className="flex items-center gap-2 mb-4 pb-2">
         <button
           onClick={() => setActiveTab('director')}
           className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'director'
-              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF]'
               : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
@@ -1712,7 +1712,7 @@ export default function InteractiveGlobe() {
           }}
           className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'queue'
-              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF]'
               : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
@@ -1728,7 +1728,7 @@ export default function InteractiveGlobe() {
           }}
           className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'globe'
-              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF]'
               : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
@@ -1741,7 +1741,7 @@ export default function InteractiveGlobe() {
           onClick={() => setActiveTab('analytics')}
           className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors flex items-center gap-2 ${
             activeTab === 'analytics'
-              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF] border-b-2 border-[#4FD1FF]'
+              ? 'bg-[#4FD1FF]/20 text-[#4FD1FF]'
               : 'text-[#8FA6C1] hover:text-white hover:bg-white/5'
           }`}
         >
@@ -2462,6 +2462,9 @@ export default function InteractiveGlobe() {
           <div 
             className="fixed left-[265px] lg:right-[calc(20%+10px)] top-[calc(8%+40px)] bottom-0 flex flex-col z-30 bg-[#0F1E35]/95 backdrop-blur-xl border-l border-r border-white/10"
           >
+          {/* Top Divider */}
+          <div className="border-t border-white/20"></div>
+          
           {/* Today's Wins */}
           <div className="p-3 border-b border-[#4FD1FF]/10">
             <div className="flex items-center justify-between mb-2">
