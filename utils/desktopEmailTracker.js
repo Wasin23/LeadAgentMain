@@ -649,12 +649,6 @@ class DesktopEmailTracker {
     }
   }
 
-  // OLD JSON-based sync function - DEPRECATED, keeping for backwards compatibility
-  async syncTrackingDataToApprovedEmails(eventsByTrackingId, userId, agentId = null) {
-    console.log(`📧 [DEPRECATED] syncTrackingDataToApprovedEmails called - redirecting to AWS sync`);
-    return this.syncTrackingDataToAWSApprovedEmails(eventsByTrackingId, userId, agentId);
-  }
-
   // Get tracking stats for analytics
   getTrackingStats() {
     const stats = {

@@ -3,20 +3,6 @@ import AWSManager from '../utils/awsManager.js';
 
 const awsManager = new AWSManager();
 
-// Cost per API call (in dollars) - DEPRECATED: Real costs now tracked in awsManager.logApiUsage()
-const API_COSTS = {
-  'openai-gpt4': 0.03,           // GPT-4 per request (average)
-  'openai-gpt35': 0.002,         // GPT-3.5 per request (average)
-  'openai-embedding': 0.0001,    // Embedding per request
-  'serper-search': 0.001,        // Serper per search
-  'apollo-enrichment': 0.01,     // Apollo per enrichment
-  'hunter-email': 0.01,          // Hunter per email verification
-  'zerobounce-verify': 0.01,     // ZeroBounce per verification
-  'mailgun-send': 0.0008,        // Mailgun per email sent
-  'openai-completion': 0.002     // Default OpenAI completion cost
-  // Removed fake agent-start and agent-cycle costs - using real tracking now
-};
-
 /**
  * Track API usage and deduct from user's trial credits
  * @param {string} userId - User ID

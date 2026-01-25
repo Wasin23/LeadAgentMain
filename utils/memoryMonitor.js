@@ -143,24 +143,6 @@ class MemoryMonitor extends EventEmitter {
       console.warn(`[MEMORY] ${alert.level.toUpperCase()}: ${alert.message}`);
       this.emit('alert', alert);
     });
-
-    // Force garbage collection if available and thresholds exceeded - DISABLED FOR RENDER
-    // if (alerts.some(a => a.level === 'critical') && global.gc) {
-    //   console.log('[MEMORY] Running garbage collection...');
-    //   global.gc();
-    //   // Run cleanup after GC
-    //   this.cleanupMemory();
-    // }
-  }
-
-  // Memory cleanup utility - DISABLED FOR RENDER
-  cleanupMemory() {
-    try {
-      // Disabled aggressive cleanup for Render - just log
-      console.log('[MEMORY] Memory cleanup skipped for Render compatibility');
-    } catch (error) {
-      console.error('[MEMORY] Cleanup error:', error);
-    }
   }
 
   // Get memory statistics
