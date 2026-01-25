@@ -7227,55 +7227,93 @@ Target Positions:`;
         return { canContinue: true, reason: 'user-lookup-failed' };
       }
 
-      // Users with payment methods get unlimited access
-      if (user.paymentMethodAdded) {
-        return { canContinue: true, reason: 'payment-method-active' };
-      }
+      // Check if user has the new creditBalance system or legacy trial credits
+      if (user.creditBalance !== undefined) {
+        // New credit balance system (purchased credits)
+        const remainingCredits = user.creditBalance || 0;
+        
+        if (remainingCredits <= 0) {
+          console.log('🚫 [CREDITS] Agent operation blocked - credit balance exhausted');
+          this.emit('progress', {
+            stage: 'credit-limit-reached',
+            message: 'Credit balance exhausted. Purchase more credits to continue.',
+            timestamp: new Date().toISOString(),
+            remainingCredits: 0
+          });
+          return { 
+            canContinue: false, 
+            reason: 'credits-exhausted',
+            remainingCredits: 0,
+            system: 'creditBalance'
+          };
+        }
 
-      const creditsUsed = user.trialCreditsUsed || 0;
-      const creditsLimit = user.trialCreditsLimit || 25;
-      const remainingCredits = creditsLimit - creditsUsed;
+        // Warn when getting low
+        if (remainingCredits <= 100) {
+          console.log(`⚠️ [CREDITS] Warning: Only ${remainingCredits.toFixed(2)} credits remaining in balance`);
+          this.emit('progress', {
+            stage: 'credit-warning',
+            message: `Warning: Only ${remainingCredits.toFixed(2)} credits remaining`,
+            timestamp: new Date().toISOString(),
+            remainingCredits
+          });
+        }
 
-      // Check if exhausted
-      if (remainingCredits <= 0) {
-        console.log('🚫 [CREDITS] Agent operation blocked - credits exhausted');
-        this.emit('progress', {
-          stage: 'credit-limit-reached',
-          message: 'Credits exhausted during operation. Agent stopping.',
-          timestamp: new Date().toISOString(),
-          creditsUsed,
-          creditsLimit,
-          remainingCredits: 0
-        });
         return { 
-          canContinue: false, 
-          reason: 'credits-exhausted',
+          canContinue: true, 
+          reason: 'sufficient-credits',
+          remainingCredits,
+          system: 'creditBalance'
+        };
+      } else {
+        // Legacy trial credits system
+        const creditsUsed = user.trialCreditsUsed || 0;
+        const creditsLimit = user.trialCreditsLimit || this.awsManager.plans[user.plan || 'free-trial'].initialCredits;
+        const remainingCredits = creditsLimit - creditsUsed;
+
+        // Check if exhausted
+        if (remainingCredits <= 0) {
+          console.log('🚫 [CREDITS] Agent operation blocked - trial credits exhausted');
+          this.emit('progress', {
+            stage: 'credit-limit-reached',
+            message: 'Trial credits exhausted. Please upgrade or purchase credits.',
+            timestamp: new Date().toISOString(),
+            creditsUsed,
+            creditsLimit,
+            remainingCredits: 0
+          });
+          return { 
+            canContinue: false, 
+            reason: 'credits-exhausted',
+            creditsUsed,
+            creditsLimit,
+            remainingCredits: 0,
+            system: 'trialCredits'
+          };
+        }
+
+        // Warn when getting low
+        if (remainingCredits <= 50) {
+          console.log(`⚠️ [CREDITS] Warning: Only ${remainingCredits.toFixed(2)} trial credits remaining`);
+          this.emit('progress', {
+            stage: 'credit-warning',
+            message: `Warning: Only ${remainingCredits.toFixed(2)} trial credits remaining`,
+            timestamp: new Date().toISOString(),
+            creditsUsed,
+            creditsLimit,
+            remainingCredits
+          });
+        }
+
+        return { 
+          canContinue: true, 
+          reason: 'sufficient-credits',
           creditsUsed,
           creditsLimit,
-          remainingCredits: 0
+          remainingCredits,
+          system: 'trialCredits'
         };
       }
-
-      // Warn when getting low
-      if (remainingCredits <= 2) {
-        console.log(`⚠️ [CREDITS] Warning: Only ${remainingCredits.toFixed(2)} credits remaining`);
-        this.emit('progress', {
-          stage: 'credit-warning',
-          message: `Warning: Only ${remainingCredits.toFixed(2)} credits remaining`,
-          timestamp: new Date().toISOString(),
-          creditsUsed,
-          creditsLimit,
-          remainingCredits
-        });
-      }
-
-      return { 
-        canContinue: true, 
-        reason: 'sufficient-credits',
-        creditsUsed,
-        creditsLimit,
-        remainingCredits
-      };
     } catch (error) {
       console.error('⚠️ [CREDITS] Error checking credit status:', error);
       // Allow operation to continue on error to prevent blocking

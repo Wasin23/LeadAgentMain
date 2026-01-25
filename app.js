@@ -248,6 +248,16 @@ try {
   companyProfileRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Plans routes
+let plansRoutes;
+try {
+  plansRoutes = (await import('./routes/plans.js')).default;
+  console.log('[APP] ✅ Plans routes loaded successfully');
+} catch (e) {
+  console.error('[APP] ❌ Plans routes failed to load:', e.message);
+  plansRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import Settings routes
 let settingsRoutes;
 try {
@@ -587,6 +597,7 @@ console.log('✅ [APP] Mounting email queue routes at /api/email-queue');
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/api/email-response-settings', emailResponseSettingsRoutes);
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
+app.use('/api/plans', plansRoutes); // User plans and credit management
 app.use('/api/settings', settingsRoutes); // Settings presets management
 app.use('/api/crm', crmRoutes); // CRM integration (Merge.dev)
 app.use('/api/calendar', calendarRoutes); // Calendar OAuth and integration

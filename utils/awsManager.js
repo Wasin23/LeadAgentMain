@@ -48,6 +48,41 @@ class AWSManager {
       zerobounce: 0.005 * 1.2, // $0.006 per validation
       serper: 0.001 * 1.2 // $0.0012 per search query ($50 for 50k credits)
     };
+
+    // Plan system with credit limits and purchase options
+    this.plans = {
+      'free-trial': {
+        name: 'Free Trial',
+        initialCredits: 500, // $25 worth
+        maxCredits: 500,
+        canPurchaseMore: false,
+        description: 'Try Meridian with 500 free credits'
+      },
+      'starter': {
+        name: 'Starter Plan',
+        initialCredits: 1000, // $50 worth
+        maxCredits: 10000, // $500 limit
+        canPurchaseMore: true,
+        creditPackages: [100, 500, 1000], // Purchase options in credits
+        description: 'Perfect for small teams and solo entrepreneurs'
+      },
+      'professional': {
+        name: 'Professional Plan',
+        initialCredits: 2000, // $100 worth
+        maxCredits: 50000, // $2500 limit
+        canPurchaseMore: true,
+        creditPackages: [500, 2000, 5000], // Purchase options in credits
+        description: 'Ideal for growing businesses and agencies'
+      },
+      'enterprise': {
+        name: 'Enterprise Plan',
+        initialCredits: 5000, // $250 worth
+        maxCredits: 200000, // $10,000 limit
+        canPurchaseMore: true,
+        creditPackages: [2000, 10000, 20000], // Purchase options in credits
+        description: 'Unlimited scale for large organizations'
+      }
+    };
     
     // Removed initialization logs to reduce console noise
     // console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
@@ -125,8 +160,20 @@ class AWSManager {
         return null;
       }
       
-      // User retrieved successfully (log removed for cleaner output)
-      return result.Item;
+      // Ensure user has a plan and proper credit limits
+      const user = result.Item;
+      if (!user.plan) {
+        user.plan = 'free-trial';
+      }
+      
+      const planConfig = this.plans[user.plan];
+      if (planConfig) {
+        user.trialCreditsLimit = user.trialCreditsLimit || planConfig.initialCredits;
+        user.maxCredits = planConfig.maxCredits;
+        user.canPurchaseMore = planConfig.canPurchaseMore;
+      }
+      
+      return user;
     } catch (error) {
       console.error('❌ [AWS] Error getting user by ID:', error);
       throw error;
@@ -1470,55 +1517,75 @@ class AWSManager {
       console.log(`📊 [AWS] Logged ${service} usage: ${usage} (${operation}) - $${(cost || 0).toFixed(4)}`);
       console.log(`✅ [AWS] DynamoDB write confirmed:`, JSON.stringify(writeResult.$metadata));
       
-      // DEDUCT TRIAL CREDITS based on real API costs (1 credit = $0.05)
+      // DEDUCT CREDITS based on real API costs (1 credit = $0.05)
       try {
         const user = await this.getUserById(userId);
-        if (user && !user.paymentMethodAdded && cost > 0) {
+        if (user && cost > 0) {
           const creditsToDeduct = cost / 0.05; // 1 credit = $0.05
-          const currentCreditsUsed = user.trialCreditsUsed || 0;
-          const newCreditsUsed = currentCreditsUsed + creditsToDeduct;
           
-          await this.updateUser(userId, {
-            trialCreditsUsed: newCreditsUsed
-          });
+          // Use creditBalance if available (new system), otherwise use trialCredits (legacy)
+          if (user.creditBalance !== undefined) {
+            // New credit balance system
+            const currentBalance = user.creditBalance || 0;
+            const newBalance = Math.max(0, currentBalance - creditsToDeduct);
+            
+            await this.updateUser(userId, {
+              creditBalance: newBalance
+            });
+            
+            console.log(`💳 [CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
+            console.log(`💳 [CREDITS] User balance: ${newBalance.toFixed(2)} credits (${user.plan || 'no-plan'} plan)`);
+            
+            // Warn when getting low
+            if (newBalance <= 100 && currentBalance > 100) {
+              console.log(`⚠️ [CREDITS] Warning: User ${userId} has only ${newBalance.toFixed(2)} credits remaining`);
+            }
+          } else {
+            // Legacy trial credits system
+            const currentCreditsUsed = user.trialCreditsUsed || 0;
+            const newCreditsUsed = currentCreditsUsed + creditsToDeduct;
+            const creditsLimit = user.trialCreditsLimit || this.plans[user.plan || 'free-trial'].initialCredits;
+            
+            await this.updateUser(userId, {
+              trialCreditsUsed: newCreditsUsed
+            });
+            
+            console.log(`💳 [CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
+            console.log(`💳 [CREDITS] User now at ${newCreditsUsed.toFixed(2)} / ${creditsLimit} credits (${user.plan || 'free-trial'} plan)`);
+            
+            const percentageUsed = (newCreditsUsed / creditsLimit) * 100;
           
-          console.log(`💳 [CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
-          console.log(`💳 [CREDITS] User now at ${newCreditsUsed.toFixed(2)} / ${user.trialCreditsLimit || 25} credits`);
-          
-          // Check credit thresholds for warnings
-          const creditsLimit = user.trialCreditsLimit || 25;
-          const percentageUsed = (newCreditsUsed / creditsLimit) * 100;
-          
-          // 90% critical threshold
-          if (currentCreditsUsed < (creditsLimit * 0.9) && newCreditsUsed >= (creditsLimit * 0.9)) {
-            await this.addIssue(
-              userId,
-              'billing',
-              '🚨 Trial Credits Almost Exhausted',
-              `You've used $${newCreditsUsed.toFixed(2)} of your $${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%). Service will be suspended when credits are depleted.`,
-              {
-                severity: 'critical',
-                creditsUsed: newCreditsUsed,
-                creditsLimit: creditsLimit,
-                percentageUsed: percentageUsed.toFixed(1)
-              }
-            );
-          }
-          
-          // 100% limit reached
-          if (currentCreditsUsed < creditsLimit && newCreditsUsed >= creditsLimit) {
-            await this.addIssue(
-              userId,
-              'billing',
-              '🚫 Trial Credits Exhausted',
-              `You've used all $${creditsLimit} of your trial credits. Add a payment method immediately to restore service.`,
-              {
-                severity: 'critical',
-                creditsUsed: newCreditsUsed,
-                creditsLimit: creditsLimit,
-                percentageUsed: 100
-              }
-            );
+            // 90% critical threshold
+            if (currentCreditsUsed < (creditsLimit * 0.9) && newCreditsUsed >= (creditsLimit * 0.9)) {
+              await this.addIssue(
+                userId,
+                'billing',
+                '🚨 Trial Credits Almost Exhausted',
+                `You've used $${newCreditsUsed.toFixed(2)} of your $${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%). Service will be suspended when credits are depleted.`,
+                {
+                  severity: 'critical',
+                  creditsUsed: newCreditsUsed,
+                  creditsLimit: creditsLimit,
+                  percentageUsed: percentageUsed.toFixed(1)
+                }
+              );
+            }
+            
+            // 100% limit reached
+            if (currentCreditsUsed < creditsLimit && newCreditsUsed >= creditsLimit) {
+              await this.addIssue(
+                userId,
+                'billing',
+                '🚫 Trial Credits Exhausted',
+                `You've used all $${creditsLimit} of your trial credits. Add a payment method immediately to restore service.`,
+                {
+                  severity: 'critical',
+                  creditsUsed: newCreditsUsed,
+                  creditsLimit: creditsLimit,
+                  percentageUsed: 100
+                }
+              );
+            }
           }
         }
       } catch (creditError) {
@@ -3269,6 +3336,144 @@ class AWSManager {
     } catch (error) {
       console.error('Error fetching agent metrics history:', error);
       return [];
+    }
+  }
+
+  // =====================
+  // PLAN MANAGEMENT METHODS
+  // =====================
+
+  /**
+   * Update user's plan
+   */
+  async updateUserPlan(userId, planType) {
+    try {
+      const planConfig = this.plans[planType];
+      if (!planConfig) {
+        throw new Error(`Invalid plan type: ${planType}`);
+      }
+
+      const user = await this.getUserById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Update user with new plan
+      await this.updateUser(userId, {
+        plan: planType,
+        trialCreditsLimit: planConfig.initialCredits,
+        maxCredits: planConfig.maxCredits,
+        planUpdatedAt: new Date().toISOString()
+      });
+
+      console.log(`📋 [PLANS] Updated user ${userId} to ${planConfig.name} plan`);
+      
+      return {
+        success: true,
+        plan: planConfig,
+        message: `Successfully upgraded to ${planConfig.name}`
+      };
+    } catch (error) {
+      console.error('❌ [PLANS] Error updating user plan:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Purchase additional credits for user
+   */
+  async purchaseCredits(userId, creditAmount) {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const planConfig = this.plans[user.plan || 'free-trial'];
+      
+      // Check if user can purchase more credits
+      if (!planConfig.canPurchaseMore) {
+        throw new Error(`${planConfig.name} does not allow credit purchases. Please upgrade your plan.`);
+      }
+
+      const currentLimit = user.trialCreditsLimit || planConfig.initialCredits;
+      const newLimit = currentLimit + creditAmount;
+
+      // Check against max credits for plan
+      if (newLimit > planConfig.maxCredits) {
+        throw new Error(`Cannot exceed ${planConfig.maxCredits} credits for ${planConfig.name}. You can purchase up to ${planConfig.maxCredits - currentLimit} more credits.`);
+      }
+
+      // Update user's credit limit
+      await this.updateUser(userId, {
+        trialCreditsLimit: newLimit,
+        lastCreditPurchase: {
+          amount: creditAmount,
+          cost: creditAmount * 0.05,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      console.log(`💳 [CREDITS] User ${userId} purchased ${creditAmount} credits ($${(creditAmount * 0.05).toFixed(2)})`);
+      console.log(`💳 [CREDITS] New credit limit: ${newLimit} (${planConfig.name} plan)`);
+
+      return {
+        success: true,
+        creditsPurchased: creditAmount,
+        cost: creditAmount * 0.05,
+        newLimit: newLimit,
+        remainingPurchaseCapacity: planConfig.maxCredits - newLimit
+      };
+    } catch (error) {
+      console.error('❌ [CREDITS] Error purchasing credits:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get available plans for user
+   */
+  getAvailablePlans() {
+    return Object.entries(this.plans).map(([key, config]) => ({
+      id: key,
+      ...config,
+      pricePerCredit: 0.05
+    }));
+  }
+
+  /**
+   * Get user's plan info with credit status
+   */
+  async getUserPlanStatus(userId) {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const planConfig = this.plans[user.plan || 'free-trial'];
+      const creditsUsed = user.trialCreditsUsed || 0;
+      const creditsLimit = user.trialCreditsLimit || planConfig.initialCredits;
+      const remainingCredits = creditsLimit - creditsUsed;
+
+      return {
+        plan: {
+          id: user.plan || 'free-trial',
+          ...planConfig
+        },
+        credits: {
+          used: creditsUsed,
+          limit: creditsLimit,
+          remaining: remainingCredits,
+          percentageUsed: (creditsUsed / creditsLimit) * 100
+        },
+        canPurchaseMore: planConfig.canPurchaseMore,
+        purchaseOptions: planConfig.canPurchaseMore ? planConfig.creditPackages : [],
+        maxAdditionalCredits: planConfig.canPurchaseMore ? planConfig.maxCredits - creditsLimit : 0
+      };
+    } catch (error) {
+      console.error('❌ [PLANS] Error getting user plan status:', error);
+      throw error;
     }
   }
 }
