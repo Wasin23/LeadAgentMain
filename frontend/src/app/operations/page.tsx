@@ -10,6 +10,7 @@ import api from '@/lib/api';
 import { geoOrthographic, geoPath, geoGraticule, geoMercator, geoAlbersUsa } from 'd3-geo';
 import { feature } from 'topojson-client';
 import dynamic from 'next/dynamic';
+import { useQueueCounts } from '@/contexts/QueueCountContext';
 
 // Dynamically import InfoDashboard
 const InfoDashboard = dynamic(() => import('@/components/InfoDashboard'), {
@@ -200,13 +201,14 @@ const worldData = {
 
 export default function InteractiveGlobe() {
   const router = useRouter();
+  const { counts: queueCounts, refreshCounts } = useQueueCounts();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState<[number, number]>([95, -15]);
   const rotationRef = useRef<[number, number]>([95, -15]);
   const [targetRotation, setTargetRotation] = useState<[number, number] | null>(null);
   const [isAnimatingToAgent, setIsAnimatingToAgent] = useState(false);
   const animationRef = useRef<number | undefined>(undefined);
-  const fetchStatsRef = useRef<(() => Promise<void>) | null>(null);
+  const fetchAgentsRef = useRef<((queueType?: 'queued' | 'sent' | 'replied') => Promise<void>) | null>(null);
   const [worldGeoData, setWorldGeoData] = useState<any>(null);
 
   // Globe view toggle
@@ -581,8 +583,9 @@ export default function InteractiveGlobe() {
         // Handle email_queued event - refresh counts immediately
         if (data.type === 'email_queued') {
           console.log('📧 Email queued event - refreshing counts immediately');
-          if (fetchStatsRef.current) {
-            fetchStatsRef.current();
+          refreshCounts();
+          if (fetchAgentsRef.current) {
+            fetchAgentsRef.current();
           }
         }
         
@@ -1267,45 +1270,17 @@ export default function InteractiveGlobe() {
     }
   };
 
+  // Sync stats state with context counts
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // Fetch all counts efficiently using count endpoints
-        const [queuedResponse, sentResponse, repliedResponse] = await Promise.all([
-          api.get('/api/email-queue/queue/count?agentId=all'),
-          api.get('/api/email-queue/sent/count?agentId=all'),
-          api.get('/api/email-queue/replied/count?agentId=all')
-        ]);
-        
-        const emailsQueued = queuedResponse.data?.count || 0;
-        const emailsSent = sentResponse.data?.count || 0;
-        const emailsViewed = repliedResponse.data?.count || 0;
-
-        // TODO: Fetch alerts from your alerts API
-        const alerts = 0;
-
-        setStats(prev => ({
-          emailsQueued,
-          emailsSent,
-          emailsViewed,
-          alerts,
-          // Use current emailsQueued count (includes all agents + orphans)
-          totalEmailsQueued: emailsQueued,
-          totalEmailsSent: Math.max(prev.totalEmailsSent, emailsSent)
-        }));
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      }
-    };
-    
-    // Store in ref so SSE listener can call it
-    fetchStatsRef.current = fetchStats;
-    
-    fetchStats();
-    // Refresh stats every 30 seconds
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    setStats(prev => ({
+      emailsQueued: queueCounts.queued,
+      emailsSent: queueCounts.sent,
+      emailsViewed: queueCounts.replied,
+      alerts: 0,
+      totalEmailsQueued: queueCounts.queued,
+      totalEmailsSent: Math.max(prev.totalEmailsSent, queueCounts.sent)
+    }));
+  }, [queueCounts]);
 
   // Keep rotationRef in sync with rotation state
   useEffect(() => {
@@ -1314,6 +1289,9 @@ export default function InteractiveGlobe() {
 
   // Fetch agents and metrics history on mount
   useEffect(() => {
+    // Store fetchAgents in ref so SSE listener can call it
+    fetchAgentsRef.current = fetchAgents;
+    
     fetchAgents('queued');
     fetchMetricsHistory();
   }, []);

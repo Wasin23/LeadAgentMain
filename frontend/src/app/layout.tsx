@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { QueueCountProvider } from "@/contexts/QueueCountContext";
 import QueryProvider from "@/components/QueryProvider";
 import ScrollRestoration from "@/components/ScrollRestoration";
 
@@ -31,8 +32,10 @@ export default function RootLayout({
         <QueryProvider>
           <ThemeProvider>
             <AuthProvider>
-              <ScrollRestoration />
-              {children}
+              <QueueCountProvider>
+                <ScrollRestoration />
+                {children}
+              </QueueCountProvider>
             </AuthProvider>
           </ThemeProvider>
         </QueryProvider>

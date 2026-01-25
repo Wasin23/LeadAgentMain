@@ -400,6 +400,44 @@ class AWSEmailQueue {
     }
   }
 
+  async getSentEmailCount(userId) {
+    try {
+      const gsipk = this._getGSIPK(userId, 'SENT');
+      const response = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tableName,
+        IndexName: this.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': gsipk
+        },
+        Select: 'COUNT'
+      }));
+      return response.Count || 0;
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error getting sent email count:', error);
+      throw error;
+    }
+  }
+
+  async getRepliedEmailCount(userId) {
+    try {
+      const gsipk = this._getGSIPK(userId, 'REPLIED');
+      const response = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tableName,
+        IndexName: this.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': gsipk
+        },
+        Select: 'COUNT'
+      }));
+      return response.Count || 0;
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error getting replied email count:', error);
+      throw error;
+    }
+  }
+
   /**
    * Get ALL queued emails across ALL agents for a user (using GSI)
    */
@@ -858,17 +896,18 @@ class AWSEmailQueue {
    */
   async getAllStats(userId) {
     try {
-      const [queued, sent, replied] = await Promise.all([
-        this.getAllQueuedEmailsForUser(userId),
-        this.getAllSentEmailsForUser(userId),
-        this.getAllRepliedEmailsForUser(userId)
+      // Use efficient count queries instead of fetching all emails
+      const [queuedCount, sentCount, repliedCount] = await Promise.all([
+        this.getQueuedEmailCount(userId),
+        this.getSentEmailCount(userId),
+        this.getRepliedEmailCount(userId)
       ]);
 
       return {
-        queued: queued.length,
-        sent: sent.length,
-        replied: replied.length,
-        total: queued.length + sent.length + replied.length
+        queued: queuedCount,
+        sent: sentCount,
+        replied: repliedCount,
+        total: queuedCount + sentCount + repliedCount
       };
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting all stats:', error);

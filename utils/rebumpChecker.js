@@ -395,12 +395,11 @@ export async function checkForRebumps() {
 
             // Build threading info for sending as a reply to the original email
             const replyOptions = {
-              // Use original email's message ID for In-Reply-To header
-              inReplyTo: email.gmailMessageId ? `<${email.gmailMessageId}@gmail.com>` : 
-                        (email.trackingId ? `<tracking-${email.trackingId}@${process.env.MAILGUN_DOMAIN || 'mg.meridianagent.xyz'}>` : null),
-              // References header for threading
-              references: email.gmailMessageId ? `<${email.gmailMessageId}@gmail.com>` : 
-                         (email.trackingId ? `<tracking-${email.trackingId}@${process.env.MAILGUN_DOMAIN || 'mg.meridianagent.xyz'}>` : null),
+              // Use original email's tracking ID for In-Reply-To header
+              // trackingId already contains the full tracking ID (e.g., "tracking-userId_agentId_timestamp_random")
+              inReplyTo: email.trackingId ? `<${email.trackingId}@gmail.com>` : null,
+              // References header for threading (same as In-Reply-To)
+              references: email.trackingId ? `<${email.trackingId}@gmail.com>` : null,
               // Gmail thread ID for threading in Gmail
               threadId: email.gmailThreadId || null
             };

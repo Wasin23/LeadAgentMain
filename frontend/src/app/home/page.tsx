@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueueCounts } from '@/contexts/QueueCountContext';
 import { useMergeLink } from '@mergeapi/react-merge-link';
 import AppLayout from '@/components/AppLayout';
 import api from '@/lib/api';
@@ -60,14 +61,9 @@ interface Agent {
 export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { counts: queueCounts } = useQueueCounts();
   const [loading, setLoading] = useState(true);
   const [navigating, setNavigating] = useState(false);
-  const [stats, setStats] = useState<EmailStats>({
-    queued: 0,
-    sent: 0,
-    replied: 0,
-    total: 0
-  });
   const [totalOpened, setTotalOpened] = useState(0);
   const [upcomingFollowUps, setUpcomingFollowUps] = useState<FollowUp[]>([]);
   const [crmStatus, setCrmStatus] = useState<CRMStatus>({
@@ -135,17 +131,8 @@ export default function HomePage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch email queue stats across ALL agents (pass no agentId - defaults to null)
-        const queueResponse = await api.get('/api/email-queue/stats');
-        if (queueResponse.data) {
-          setStats({
-            queued: queueResponse.data.queued || 0,
-            sent: queueResponse.data.sent || 0,
-            replied: queueResponse.data.replied || 0,
-            total: queueResponse.data.total || 0
-          });
-        }
-
+        // Stats come from context, just fetch opens and follow-ups
+        
         // Fetch ALL sent emails and count opens
         const sentEmailsResponse = await api.get('/api/email-queue/sent?agentId=all');
         if (sentEmailsResponse.data && Array.isArray(sentEmailsResponse.data)) {
@@ -464,7 +451,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-end gap-2">
-              <p className="text-3xl font-bold text-white">{stats.queued.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-white">{queueCounts.queued.toLocaleString()}</p>
             </div>
           </div>
 
@@ -489,7 +476,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-end gap-2">
-              <p className="text-3xl font-bold text-white">{stats.sent.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-white">{queueCounts.sent.toLocaleString()}</p>
               {statsChanges.sent !== 0 && (
                 <p className={`text-xs font-medium mb-1 ${statsChanges.sent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {statsChanges.sent >= 0 ? '↑' : '↓'} {Math.abs(statsChanges.sent)}%
@@ -550,7 +537,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-end gap-2">
-              <p className="text-3xl font-bold text-white">{stats.replied.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-white">{queueCounts.replied.toLocaleString()}</p>
               {statsChanges.replied !== 0 && (
                 <p className={`text-xs font-medium mb-1 ${statsChanges.replied >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {statsChanges.replied >= 0 ? '↑' : '↓'} {Math.abs(statsChanges.replied)}%
@@ -581,7 +568,7 @@ export default function HomePage() {
               
               // Calculate progress based on queued emails vs lead limit (only when running)
               const cycleProgressPercent = isRunning && leadLimit > 0 
-                ? Math.min(Math.round((stats.queued / leadLimit) * 100), 100)
+                ? Math.min(Math.round((queueCounts.queued / leadLimit) * 100), 100)
                 : 0;
               
               const typeMap: Record<string, string> = {
@@ -647,11 +634,11 @@ export default function HomePage() {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-[#8FA6C1]">In queue</span>
-                      <span className="text-[#4FD1FF] font-medium">{stats.queued}</span>
+                      <span className="text-[#4FD1FF] font-medium">{queueCounts.queued}</span>
                     </div>
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-[#8FA6C1]">Sent (7d)</span>
-                      <span className="text-green-400 font-medium">{stats.sent}</span>
+                      <span className="text-green-400 font-medium">{agentStats[agent.agentId]?.sent || 0}</span>
                     </div>
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-[#8FA6C1]">Total</span>
@@ -667,7 +654,7 @@ export default function HomePage() {
                             style={{ width: `${cycleProgressPercent}%` }}
                           ></div>
                         </div>
-                        <span className="text-[9px] text-[#8FA6C1]">{stats.queued}/{leadLimit}</span>
+                        <span className="text-[9px] text-[#8FA6C1]">{queueCounts.queued}/{leadLimit}</span>
                       </div>
                     </div>
                   )}
