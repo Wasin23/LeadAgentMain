@@ -192,6 +192,17 @@ const RateLimitSettings: React.FC = () => {
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
+            {/* Current Plan Display */}
+            {userPlan?.plan && (
+              <div className="mb-3">
+                <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-700/50 border border-blue-300/30 rounded-lg">
+                  <CheckIcon className="w-4 h-4 text-blue-300" />
+                  <span className="text-sm text-blue-300 font-medium">
+                    {userPlan.plan.name}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="flex items-baseline gap-3 mb-1">
               <p className="text-blue-100 text-sm font-medium">
                 Credit Balance
@@ -199,14 +210,6 @@ const RateLimitSettings: React.FC = () => {
               <p className="text-blue-200 text-xs">
                 1 credit = $0.05 in API costs
               </p>
-              {userPlan?.plan && (
-                <div className="ml-2 inline-flex items-center gap-1 px-2 py-1 bg-blue-700/50 border border-blue-300/30 rounded-full">
-                  <CheckIcon className="w-3 h-3 text-blue-300" />
-                  <span className="text-xs text-blue-300 font-medium">
-                    {userPlan.plan.name}
-                  </span>
-                </div>
-              )}
             </div>
             <div className="flex items-baseline gap-3">
               <p className="text-5xl font-bold">{Math.ceil(creditBalance).toLocaleString()}</p>
