@@ -164,7 +164,6 @@ class MetricStore {
     const clientId = Date.now();
     this.clients.push({ id: clientId, res });
     
-    // console.log(`📡 [MONITORING] SSE client connected: ${clientId} (Total: ${this.clients.length})`);
     
     return clientId;
   }
@@ -172,7 +171,6 @@ class MetricStore {
   // SSE: Remove client
   removeClient(clientId) {
     this.clients = this.clients.filter(c => c.id !== clientId);
-    // console.log(`📡 [MONITORING] SSE client disconnected: ${clientId} (Total: ${this.clients.length})`);
   }
   
   // SSE: Broadcast update
@@ -379,7 +377,6 @@ router.get('/metrics', async (req, res) => {
           clicked: metrics.emails.clicked || 0
         };
         
-        // console.log(`📊 [MONITORING] AWS Email Stats for user ${req.user.userId}:`, awsStats);
       } catch (awsError) {
         console.error('⚠️ [MONITORING] Error fetching AWS email stats:', awsError);
         // Continue with in-memory metrics if AWS fails
@@ -526,7 +523,6 @@ router.get('/activity', authenticateToken, async (req, res) => {
  * SSE endpoint for real-time updates with AWS email queue data
  */
 router.get('/stream', authenticateToken, async (req, res) => {
-  // console.log('📊 [MONITORING] New client connected, userId:', req.user?.userId);
   
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -558,7 +554,6 @@ router.get('/stream', authenticateToken, async (req, res) => {
         replied: awsStats.replied || 0
       };
       
-      // console.log(`📊 [MONITORING SSE] AWS Email Stats:`, awsStats);
     } catch (awsError) {
       console.error('⚠️ [MONITORING SSE] Error fetching AWS email stats:', awsError);
     }

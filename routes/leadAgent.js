@@ -31,14 +31,11 @@ router.post('/start', async (req, res) => {
     const userId = req.user.userId; // Get from JWT token
     const { minutes, agentId = 'reasoning-lead-agent' } = req.body || {}; // Get agentId from request body
     
-    // console.log('🚀 [LEAD AGENT API] START endpoint called for user:', userId, 'agentId:', agentId);
     
     // Get agent-specific instance
     const userAgent = getUserAgent(userId, agentId);
-    // console.log('🔧 [LEAD AGENT API] Got user agent, calling start method...');
     
     const result = await userAgent.start(minutes, userId);
-    // console.log('✅ [LEAD AGENT API] Start result:', result);
     
     // Update agent status in database if start was successful
     if (result.success || result.isActive) {
@@ -56,7 +53,6 @@ router.post('/start', async (req, res) => {
           const awsManager = (await import('../utils/awsManager.js')).default;
           const awsManagerInstance = new awsManager();
           await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
-          // console.log('✅ [LEAD AGENT API] Updated agent status to running in database');
         }
       } catch (dbError) {
         console.error('⚠️ [LEAD AGENT API] Failed to update agent status in database:', dbError);
@@ -158,14 +154,11 @@ router.post('/stop', async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
     const { agentId = 'reasoning-lead-agent' } = req.body || {};
-    // console.log('🛑 [LEAD AGENT API] STOP endpoint called for user:', userId, 'agentId:', agentId);
     
     // Get agent-specific instance
     const userAgent = getUserAgent(userId, agentId);
-    // console.log('🔧 [LEAD AGENT API] Got user agent, calling stop method...');
     
     const result = await userAgent.stop();
-    // console.log('✅ [LEAD AGENT API] Stop result:', result);
     
     // Update agent status in database if stop was successful
     if (result.success || !result.isActive) {
@@ -183,7 +176,6 @@ router.post('/stop', async (req, res) => {
           const awsManager = (await import('../utils/awsManager.js')).default;
           const awsManagerInstance = new awsManager();
           await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
-          // console.log('✅ [LEAD AGENT API] Updated agent status to idle in database');
           
           // Broadcast agent stop to all SSE clients for real-time UI update
           try {
@@ -199,7 +191,6 @@ router.post('/stop', async (req, res) => {
               status: 'idle',
               message: 'Agent stopped'
             });
-            // console.log('📡 [LEAD AGENT API] Broadcasted agent stop event via SSE');
           } catch (broadcastError) {
             console.error('⚠️ [LEAD AGENT API] Failed to broadcast agent stop:', broadcastError.message);
           }
@@ -1117,7 +1108,6 @@ router.get('/api-usage/timeseries', async (req, res) => {
     const cacheKey = `${userId}-${days}-${interval}`;
     const cached = apiUsageTimeSeriesCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      // console.log('[LEAD AGENT API] Returning cached API usage time series');
       return res.json({
         success: true,
         ...cached.data,

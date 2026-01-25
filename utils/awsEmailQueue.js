@@ -205,7 +205,6 @@ class AWSEmailQueue {
   async getQueuedEmails(userId, agentId) {
     try {
       const pk = this._getPK(userId, agentId);
-      // console.log(`[AWS EMAIL QUEUE] 🔍 getQueuedEmails - PK: ${pk}`);
       
       const response = await this.dynamodb.send(new QueryCommand({
         TableName: this.tableName,
@@ -216,7 +215,6 @@ class AWSEmailQueue {
         }
       }));
 
-      // console.log(`[AWS EMAIL QUEUE] ✅ Query returned ${response.Items?.length || 0} items`);
       return response.Items || [];
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] ❌ Error getting queued emails:', error);
@@ -237,7 +235,6 @@ class AWSEmailQueue {
 
       // Fetch tracking events for this user/agent
       const trackingEvents = await awsManager.getEmailTrackingByUser(userId, agentId);
-      // console.log(`📊 [AWS ENRICHMENT] Found ${trackingEvents.length} tracking events for ${emails.length} emails`);
 
       // Create a map of tracking events by trackingId
       const trackingMap = new Map();
@@ -280,7 +277,6 @@ class AWSEmailQueue {
         return email;
       });
 
-      // console.log(`✅ [AWS ENRICHMENT] Enriched ${enrichedEmails.filter(e => e.analytics).length} emails with tracking data`);
       return enrichedEmails;
       
     } catch (error) {
@@ -387,7 +383,6 @@ class AWSEmailQueue {
       }));
       totalCount += orphanResponse.Count || 0;
       
-      // console.log(`📊 [GET QUEUED COUNT] Total count (via PK queries): ${totalCount}`);
       return totalCount;
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting queued email count:', error);
@@ -641,13 +636,6 @@ class AWSEmailQueue {
   async updateEmailStatus(userId, agentId, emailId, oldStatus, newStatus, additionalData = {}) {
     return this._retryWithBackoff(async () => {
       try {
-        // console.log('═══════════════════════════════════════════════════════════════');
-        // console.log('💾 [UPDATE EMAIL STATUS] Starting update');
-        // console.log('💾 emailId:', emailId);
-        // console.log('💾 oldStatus:', oldStatus);
-        // console.log('💾 newStatus:', newStatus);
-        // console.log('💾 additionalData:', JSON.stringify(additionalData, null, 2));
-        // console.log('═══════════════════════════════════════════════════════════════');
         
         // First, find the email with the old status
         const response = await this.dynamodb.send(new QueryCommand({
@@ -667,7 +655,6 @@ class AWSEmailQueue {
         }
 
         const oldItem = response.Items[0];
-        // console.log('📧 [UPDATE EMAIL STATUS] Found existing email:', {
         //   id: oldItem.id,
         //   status: oldItem.status,
         //   hasFollowUpScheduled: oldItem.followUpScheduled,
@@ -688,7 +675,6 @@ class AWSEmailQueue {
           ...additionalData
         };
         
-        // console.log('📝 [UPDATE EMAIL STATUS] New item being saved:', {
         //   id: newItem.id,
         //   status: newItem.status,
         //   followUpScheduled: newItem.followUpScheduled,
@@ -719,7 +705,6 @@ class AWSEmailQueue {
           Item: newItem
         }));
         
-        // console.log('✅ [UPDATE EMAIL STATUS] DynamoDB PutCommand successful:', {
         //   httpStatusCode: putResult.$metadata?.httpStatusCode,
         //   savedFollowUpScheduled: newItem.followUpScheduled,
         //   savedFollowUpDate: newItem.followUpDate
@@ -728,8 +713,6 @@ class AWSEmailQueue {
         // Invalidate cache for this user
         this._invalidateCache(userId);
 
-        // console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} status updated: ${oldStatus} -> ${newStatus}`);
-        // console.log('═══════════════════════════════════════════════════════════════');
         return newItem;
       } catch (error) {
         console.error('[AWS EMAIL QUEUE] Error updating email status:', error);

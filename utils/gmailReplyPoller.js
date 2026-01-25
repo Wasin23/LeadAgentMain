@@ -28,13 +28,11 @@ export class GmailReplyPoller {
     return; // Disabled - no longer polling Gmail
     
     // if (this.isRunning) {
-    //   console.log('⏰ [GMAIL POLLER] Already running');
     //   return;
     // }
 
     // // Run every 40 seconds (*/40 * * * * * would be seconds, but node-cron doesn't support that)
     // // So we'll use setInterval for 40 seconds
-    // console.log('⏰ [GMAIL POLLER] Starting Gmail reply polling (every 40 seconds)');
     
     // // Run immediately on start
     // this.checkAllUsers();

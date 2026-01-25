@@ -89,7 +89,6 @@ router.post('/send-overdue', async (req, res) => {
 
         // Check if overdue (follow-up date has passed)
         if (now < followUpDate.getTime()) {
-          // console.log(`[SEND-OVERDUE] Skipping ${email.to}: Not yet time (${followUpDate.toISOString()})`);
           continue;
         }
 
@@ -421,7 +420,6 @@ router.get('/conversations', async (req, res) => {
       }
       processedEventIds.add(event.eventId);
       
-      // console.log(`🔍 [EVENT] Processing event:`, {
       //   trackingId,
       //   eventType: event.eventType,
       //   eventId: event.eventId,
@@ -925,7 +923,6 @@ export function broadcastAIResponse(userId, agentId, eventData) {
   const clients = global.outreachSSEClients.get(clientKey);
   
   if (!clients || clients.length === 0) {
-    // console.log(`⚠️ [OUTREACH-SSE] No connected clients for ${clientKey}`);
     return;
   }
   

@@ -280,11 +280,7 @@ const getConversationTool = new DynamicStructuredTool({
   }),
   func: async ({ tracking_id }) => {
     try {
-      // console.log(`\n🔧 [TOOL START] get_conversation_history`);
-      // console.log(`   Tracking ID: ${tracking_id}`);
       const history = await getConversationHistory(tracking_id);
-      // console.log(`   Found ${history.length} messages in history`);
-      // console.log(`✅ [TOOL END] get_conversation_history completed\n`);
       
       if (history.length === 0) {
         return JSON.stringify({
@@ -457,11 +453,6 @@ const sendEmailTool = new DynamicStructuredTool({
   }),
   func: async ({ tracking_id, to, subject, body, in_reply_to, references }) => {
     try {
-      // console.log(`\n🔧 [TOOL START] send_email_reply`);
-      // console.log(`   To: ${to}`);
-      // console.log(`   Subject: ${subject}`);
-      // console.log(`   Body length: ${body.length} chars`);
-      // console.log(`   Tracking ID: ${tracking_id}`);
       
       const userId = extractUserIdFromTrackingId(tracking_id);
       const agentId = extractAgentIdFromTrackingId(tracking_id);
@@ -932,13 +923,10 @@ Remember: You ARE ${personality.name}. Every email should sound like YOU, not a 
     
     // WORKAROUND: Manually execute tools since OpenAIFunctionsAgent is broken
     // Step 1: Get conversation history
-    // console.log('🔧 [STEP 1] Getting conversation history...');
     const historyResult = await getConversationTool.func({ tracking_id: trackingId });
     const history = JSON.parse(historyResult);
-    // console.log(`✅ [STEP 1] Retrieved ${history.history?.length || 0} messages\n`);
     
     // Step 2: Generate response using LLM
-    // console.log('🔧 [STEP 2] Generating AI response...');
     
     console.log(`📝 [AI-SIGNATURE] Sender name being used: "${senderName}" (NOT ${personality.name})`);
     
@@ -975,7 +963,6 @@ Response:`;
     ]);
     
     const responseBody = llmResponse.content;
-    // console.log(`✅ [STEP 2] Generated ${responseBody.length} char response\n`);
     
     // Step 3: Send the email
     console.log('🔧 [STEP 3] Sending email reply...');

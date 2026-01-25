@@ -523,18 +523,14 @@ app.use('/api/chat', chatRoutes);
 
 // Test route for deep research without authentication - with streaming
 app.post('/api/research/debug', async (req, res) => {
-  console.log('[DEBUG] Deep research debug route hit');
-  console.log('[DEBUG] Request body:', req.body);
-  
   try {
     const { query, mode, limit } = req.body;
     
     if (!query) {
-      console.log('[DEBUG] Missing query parameter');
       return res.status(400).json({ error: 'Missing required field: query' });
     }
 
-    console.log(`[DEBUG] Starting streamed research for: "${query}"`);
+    console.log(`[RESEARCH] Starting streamed research for: "${query}"`);
     
     // Set up Server-Sent Events for progress streaming
     res.writeHead(200, {
@@ -548,23 +544,19 @@ app.post('/api/research/debug', async (req, res) => {
     // Import and call the actual deep research function
     const { deepResearch } = await import('./tools/deepResearch.js');
     
-    console.log('[DEBUG] Deep research function imported successfully');
-    
     // Configure options for deep research with streaming progress
     const options = {
       mode: mode || 'fresh',
       limit: limit || 15,
       progressCallback: (progress) => {
-        console.log(`[DEBUG] Progress: ${progress.stage} - ${progress.progress}% - ${progress.message}`);
         res.write(`data: ${JSON.stringify(progress)}\n\n`);
       }
     };
 
-    console.log('[DEBUG] Calling deepResearch function...');
     const userId = req.user?.userId; // May be null for debug route
     const result = await deepResearch(query, options, userId);
     
-    console.log(`[DEBUG] Deep research completed: ${result.success ? 'SUCCESS' : 'FAILED'}`);
+    console.log(`[RESEARCH] Deep research completed: ${result.success ? 'SUCCESS' : 'FAILED'}`);
     
     // Send final result
     res.write(`data: ${JSON.stringify({ 

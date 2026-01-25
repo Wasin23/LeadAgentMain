@@ -85,8 +85,6 @@ class AWSManager {
     };
     
     // Removed initialization logs to reduce console noise
-    // console.log('🔧 [AWS] AWSManager initialized with region:', this.region);
-    // console.log('🔧 [AWS] Tables configured:', this.tables);
   }
 
   // =====================
@@ -3013,7 +3011,6 @@ class AWSManager {
   
   async getEmailTrackingByUser(userId, agentId = null, limit = 1000) {
     try {
-      // console.log(`🔍 [EMAIL-TRACKING] Retrieving events for userId: ${userId}`, { agentId, limit });
       
       if (!agentId) {
         // Scanning all tracking events - silent
@@ -3058,7 +3055,6 @@ class AWSManager {
         allEvents = allEvents.concat(events);
         lastEvaluatedKey = result.LastEvaluatedKey;
         
-        // console.log(`🔍 [EMAIL-TRACKING] Page ${pageCount}: Retrieved ${events.length} events, total so far: ${allEvents.length}, hasMore: ${!!lastEvaluatedKey}`);
         
         if (allEvents.length >= limit) {
           allEvents = allEvents.slice(0, limit);
@@ -3066,10 +3062,8 @@ class AWSManager {
         }
       } while (lastEvaluatedKey);
       
-      // console.log(`✅ [EMAIL-TRACKING] Retrieved ${allEvents.length} total events in ${pageCount} page(s)`);
       
       // if (allEvents.length > 0) {
-      //   console.log(`🔍 [EMAIL-TRACKING] Event types found:`, [...new Set(allEvents.map(e => e.eventType))].join(', '));
       // }
       
       return allEvents;
