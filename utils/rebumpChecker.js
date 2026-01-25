@@ -8,6 +8,30 @@ const emailQueue = new AWSEmailQueue();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
+ * Batch update email statuses with delay to prevent DynamoDB throttling
+ */
+async function updateEmailStatusWithDelay(userId, agentId, emailId, status, reasoning, metadata = {}, delay = 0) {
+  try {
+    if (delay > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    await emailQueue.updateEmailStatus(userId, agentId, emailId, status, reasoning, metadata);
+  } catch (error) {
+    if (error.name === 'ProvisionedThroughputExceededException') {
+      console.log(`⚠️ [REBUMP] DynamoDB throttled, retrying ${emailId} in 2s...`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        await emailQueue.updateEmailStatus(userId, agentId, emailId, status, reasoning, metadata);
+      } catch (retryError) {
+        console.error(`❌ [REBUMP] Retry failed for ${emailId}:`, retryError.message);
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
  * Generate follow-up templates for an agent (weekly)
  */
 async function generateFollowUpTemplates(userId, agentId) {
@@ -170,7 +194,7 @@ export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
 
     // Mark email with calculated follow-up date and assigned template
     // console.log('🔄 [AUTO-SCHEDULE] Calling updateEmailStatus...');
-    await emailQueue.updateEmailStatus(userId, agentId, sentEmail.id, 'SENT', 'SENT', {
+    await updateEmailStatusWithDelay(userId, agentId, sentEmail.id, 'SENT', 'SENT', {
       followUpScheduled: true,
       followUpScheduledAt: new Date().toISOString(),
       followUpDate: followUpDate.toISOString(),
@@ -205,10 +229,10 @@ export async function cancelScheduledFollowUps(userId, agentId) {
     // Update all emails that have scheduled follow-ups
     for (const email of sentEmails) {
       if (email.followUpScheduled) {
-        await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+        await updateEmailStatusWithDelay(userId, agentId, email.id, 'SENT', 'SENT', {
           followUpScheduled: false,
           followUpCanceledAt: new Date().toISOString()
-        });
+        }, 200);
         canceledCount++;
       }
     }
@@ -339,10 +363,10 @@ export async function checkForRebumps() {
             followUpDate = new Date(sentAt.getTime() + rebumpIntervalMs);
             
             // Update the email with corrected follow-up date
-            await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+            await updateEmailStatusWithDelay(userId, agentId, email.id, 'SENT', 'SENT', {
               followUpDate: followUpDate.toISOString(),
               followUpDateFixed: true
-            });
+            }, 400);
             console.log(`✅ [REBUMP] ${emailTo}: Fixed followUpDate to ${followUpDate.toISOString()}`);
           }
 
@@ -427,17 +451,17 @@ export async function checkForRebumps() {
                 console.log(`✅ [REBUMP] Successfully sent follow-up #${rebumpCount + 1} to ${email.to}`);
                 
                 // Update original email with rebump info - mark that follow-up was SENT
-                await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+                await updateEmailStatusWithDelay(userId, agentId, email.id, 'SENT', 'SENT', {
                   rebumpCount: rebumpCount + 1,
                   lastRebumpAt: new Date().toISOString(),
                   lastFollowUpSentAt: new Date().toISOString(),
                   followUpStatus: 'SENT'
-                });
+                }, 600);
                 
                 // Calculate next follow-up date if more follow-ups remaining
                 if (rebumpCount + 1 < maxRebumps) {
                   const nextFollowUpDate = new Date(Date.now() + rebumpIntervalMs);
-                  await emailQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', {
+                  await updateEmailStatusWithDelay(userId, agentId, email.id, 'SENT', 'SENT', {
                     followUpDate: nextFollowUpDate.toISOString()
                   });
                   console.log(`📅 [REBUMP] Scheduled next follow-up for ${nextFollowUpDate.toISOString()}`);

@@ -605,102 +605,137 @@ class AWSEmailQueue {
    * Update email status (QUEUED -> APPROVED -> SENT -> REPLIED)
    * This requires deleting old item and creating new one (because status is in SK)
    */
-  async updateEmailStatus(userId, agentId, emailId, oldStatus, newStatus, additionalData = {}) {
-    try {
-      // console.log('═══════════════════════════════════════════════════════════════');
-      // console.log('💾 [UPDATE EMAIL STATUS] Starting update');
-      // console.log('💾 emailId:', emailId);
-      // console.log('💾 oldStatus:', oldStatus);
-      // console.log('💾 newStatus:', newStatus);
-      // console.log('💾 additionalData:', JSON.stringify(additionalData, null, 2));
-      // console.log('═══════════════════════════════════════════════════════════════');
-      
-      // First, find the email with the old status
-      const response = await this.dynamodb.send(new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
-        FilterExpression: 'id = :emailId',
-        ExpressionAttributeValues: {
-          ':pk': this._getPK(userId, agentId),
-          ':status': `${oldStatus}#`,
-          ':emailId': emailId
+  /**
+   * Retry function with exponential backoff for DynamoDB throttling
+   */
+  async _retryWithBackoff(operation, maxRetries = 3) {
+    let retries = 0;
+    
+    while (retries <= maxRetries) {
+      try {
+        return await operation();
+      } catch (error) {
+        // Check if this is a throttling error
+        if (error.name === 'ProvisionedThroughputExceededException' || 
+            error.name === 'ThrottlingException' ||
+            error.__type === 'com.amazonaws.dynamodb.v20120810#ProvisionedThroughputExceededException') {
+          
+          if (retries === maxRetries) {
+            console.error(`❌ [AWS EMAIL QUEUE] Max retries (${maxRetries}) exceeded for DynamoDB operation`);
+            throw error;
+          }
+          
+          const delay = Math.min(1000 * Math.pow(2, retries), 10000); // Cap at 10 seconds
+          console.log(`⏳ [AWS EMAIL QUEUE] DynamoDB throttled, retrying in ${delay}ms (attempt ${retries + 1}/${maxRetries + 1})`);
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          retries++;
+        } else {
+          // Not a throttling error, throw immediately
+          throw error;
         }
-      }));
-
-      if (!response.Items || response.Items.length === 0) {
-        console.error(`❌ [UPDATE EMAIL STATUS] Email ${emailId} not found with status ${oldStatus}`);
-        throw new Error(`Email ${emailId} not found with status ${oldStatus}`);
       }
-
-      const oldItem = response.Items[0];
-      // console.log('📧 [UPDATE EMAIL STATUS] Found existing email:', {
-      //   id: oldItem.id,
-      //   status: oldItem.status,
-      //   hasFollowUpScheduled: oldItem.followUpScheduled,
-      //   hasFollowUpDate: oldItem.followUpDate
-      // });
-      
-      const newTimestamp = new Date().toISOString();
-
-      // Create new item with updated status
-      const newItem = {
-        ...oldItem,
-        PK: this._getPK(userId, agentId),
-        SK: this._getSK(newStatus, newTimestamp, emailId),
-        GSIPK: this._getGSIPK(userId, newStatus),
-        GSISK: this._getGSISK(newTimestamp, emailId),
-        status: newStatus,
-        updatedAt: newTimestamp,
-        ...additionalData
-      };
-      
-      // console.log('📝 [UPDATE EMAIL STATUS] New item being saved:', {
-      //   id: newItem.id,
-      //   status: newItem.status,
-      //   followUpScheduled: newItem.followUpScheduled,
-      //   followUpDate: newItem.followUpDate,
-      //   assignedTemplateId: newItem.assignedTemplateId
-      // });
-
-      // Add status-specific timestamps
-      if (newStatus === 'APPROVED') {
-        newItem.approvedAt = newTimestamp;
-      } else if (newStatus === 'SENT') {
-        newItem.sentAt = newTimestamp;
-      } else if (newStatus === 'REPLIED') {
-        newItem.repliedAt = newTimestamp;
-      }
-
-      // Delete old item and put new item (transactional would be better but using two operations)
-      await this.dynamodb.send(new DeleteCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: oldItem.PK,
-          SK: oldItem.SK
-        }
-      }));
-
-      const putResult = await this.dynamodb.send(new PutCommand({
-        TableName: this.tableName,
-        Item: newItem
-      }));
-      
-      // console.log('✅ [UPDATE EMAIL STATUS] DynamoDB PutCommand successful:', {
-      //   httpStatusCode: putResult.$metadata?.httpStatusCode,
-      //   savedFollowUpScheduled: newItem.followUpScheduled,
-      //   savedFollowUpDate: newItem.followUpDate
-      // });
-
-      // Invalidate cache for this user
-      this._invalidateCache(userId);
-
-      // console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} status updated: ${oldStatus} -> ${newStatus}`);
-      // console.log('═══════════════════════════════════════════════════════════════');
-      return newItem;
-    } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error updating email status:', error);
-      throw error;
     }
+  }
+
+  async updateEmailStatus(userId, agentId, emailId, oldStatus, newStatus, additionalData = {}) {
+    return this._retryWithBackoff(async () => {
+      try {
+        // console.log('═══════════════════════════════════════════════════════════════');
+        // console.log('💾 [UPDATE EMAIL STATUS] Starting update');
+        // console.log('💾 emailId:', emailId);
+        // console.log('💾 oldStatus:', oldStatus);
+        // console.log('💾 newStatus:', newStatus);
+        // console.log('💾 additionalData:', JSON.stringify(additionalData, null, 2));
+        // console.log('═══════════════════════════════════════════════════════════════');
+        
+        // First, find the email with the old status
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+          FilterExpression: 'id = :emailId',
+          ExpressionAttributeValues: {
+            ':pk': this._getPK(userId, agentId),
+            ':status': `${oldStatus}#`,
+            ':emailId': emailId
+          }
+        }));
+
+        if (!response.Items || response.Items.length === 0) {
+          console.error(`❌ [UPDATE EMAIL STATUS] Email ${emailId} not found with status ${oldStatus}`);
+          throw new Error(`Email ${emailId} not found with status ${oldStatus}`);
+        }
+
+        const oldItem = response.Items[0];
+        // console.log('📧 [UPDATE EMAIL STATUS] Found existing email:', {
+        //   id: oldItem.id,
+        //   status: oldItem.status,
+        //   hasFollowUpScheduled: oldItem.followUpScheduled,
+        //   hasFollowUpDate: oldItem.followUpDate
+        // });
+        
+        const newTimestamp = new Date().toISOString();
+
+        // Create new item with updated status
+        const newItem = {
+          ...oldItem,
+          PK: this._getPK(userId, agentId),
+          SK: this._getSK(newStatus, newTimestamp, emailId),
+          GSIPK: this._getGSIPK(userId, newStatus),
+          GSISK: this._getGSISK(newTimestamp, emailId),
+          status: newStatus,
+          updatedAt: newTimestamp,
+          ...additionalData
+        };
+        
+        // console.log('📝 [UPDATE EMAIL STATUS] New item being saved:', {
+        //   id: newItem.id,
+        //   status: newItem.status,
+        //   followUpScheduled: newItem.followUpScheduled,
+        //   followUpDate: newItem.followUpDate,
+        //   assignedTemplateId: newItem.assignedTemplateId
+        // });
+
+        // Add status-specific timestamps
+        if (newStatus === 'APPROVED') {
+          newItem.approvedAt = newTimestamp;
+        } else if (newStatus === 'SENT') {
+          newItem.sentAt = newTimestamp;
+        } else if (newStatus === 'REPLIED') {
+          newItem.repliedAt = newTimestamp;
+        }
+
+        // Delete old item and put new item (transactional would be better but using two operations)
+        await this.dynamodb.send(new DeleteCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: oldItem.PK,
+            SK: oldItem.SK
+          }
+        }));
+
+        const putResult = await this.dynamodb.send(new PutCommand({
+          TableName: this.tableName,
+          Item: newItem
+        }));
+        
+        // console.log('✅ [UPDATE EMAIL STATUS] DynamoDB PutCommand successful:', {
+        //   httpStatusCode: putResult.$metadata?.httpStatusCode,
+        //   savedFollowUpScheduled: newItem.followUpScheduled,
+        //   savedFollowUpDate: newItem.followUpDate
+        // });
+
+        // Invalidate cache for this user
+        this._invalidateCache(userId);
+
+        // console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} status updated: ${oldStatus} -> ${newStatus}`);
+        // console.log('═══════════════════════════════════════════════════════════════');
+        return newItem;
+      } catch (error) {
+        console.error('[AWS EMAIL QUEUE] Error updating email status:', error);
+        throw error;
+      }
+    });
   }
 
   /**
