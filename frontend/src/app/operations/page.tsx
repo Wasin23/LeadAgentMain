@@ -1092,16 +1092,13 @@ export default function InteractiveGlobe() {
     } catch (error) {
       console.error('Error approving email:', error);
       showToast('Failed to send email', 'error');
-      // Revert on error
+      // Revert on error and refresh counts from context
       fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
-      const [queuedResponse, sentResponse] = await Promise.all([
-        api.get('/api/email-queue/queue/count?agentId=all'),
-        api.get('/api/email-queue/sent?agentId=all')
-      ]);
+      await refreshCounts();
       setStats(prev => ({
         ...prev,
-        emailsQueued: queuedResponse.data?.count || 0,
-        emailsSent: Array.isArray(sentResponse.data) ? sentResponse.data.length : 0
+        emailsQueued: queueCounts.queued,
+        emailsSent: queueCounts.sent
       }));
     }
   };
@@ -1123,12 +1120,12 @@ export default function InteractiveGlobe() {
       });
     } catch (error) {
       console.error('Error rejecting email:', error);
-      // Revert on error
+      // Revert on error and refresh counts from context
       fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
-      const queuedResponse = await api.get('/api/email-queue/queue/count?agentId=all');
+      await refreshCounts();
       setStats(prev => ({
         ...prev,
-        emailsQueued: queuedResponse.data?.count || 0
+        emailsQueued: queueCounts.queued
       }));
     }
   };
@@ -1158,16 +1155,13 @@ export default function InteractiveGlobe() {
     } catch (error) {
       console.error('Error accepting email:', error);
       showToast('Failed to send email', 'error');
-      // Revert on error
+      // Revert on error and refresh counts from context
       fetchQueueEmails(agentId, selectedQueue?.type || 'queued');
-      const [queuedResponse, sentResponse] = await Promise.all([
-        api.get('/api/email-queue/queue/count?agentId=all'),
-        api.get('/api/email-queue/sent?agentId=all')
-      ]);
+      await refreshCounts();
       setStats(prev => ({
         ...prev,
-        emailsQueued: queuedResponse.data?.count || 0,
-        emailsSent: Array.isArray(sentResponse.data) ? sentResponse.data.length : 0
+        emailsQueued: queueCounts.queued,
+        emailsSent: queueCounts.sent
       }));
     }
   };
@@ -1190,12 +1184,12 @@ export default function InteractiveGlobe() {
     } catch (error) {
       console.error('Error rejecting email:', error);
       showToast('Failed to reject email', 'error');
-      // Revert on error
+      // Revert on error and refresh counts from context
       fetchQueueEmails(agentId, selectedQueue?.type || 'queued');
-      const queuedResponse = await api.get('/api/email-queue/queue/count?agentId=all');
+      await refreshCounts();
       setStats(prev => ({
         ...prev,
-        emailsQueued: queuedResponse.data?.count || 0
+        emailsQueued: queueCounts.queued
       }));
     }
   };
