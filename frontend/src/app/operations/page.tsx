@@ -1053,6 +1053,8 @@ export default function InteractiveGlobe() {
     setModalPosition({ x: Math.max(8, centerX), y: Math.max(8, centerY) });
     setModalSize({ width: 896, height: 600 });
     fetchAgents(type);
+    // Actually fetch the queue emails for display
+    fetchQueueEmails('all', type);
   };
 
   const handleAgentSelect = (agent: any) => {
