@@ -226,11 +226,11 @@ export default function CreditPurchaseModal({
                   )}
 
                   {/* Bonus Badge for full plans */}
-                  {'bonus' in tier && tier.bonus && (
+                  {mode === 'onboarding' && 'bonus' in tier && (tier as PricingTier).bonus && (
                     <div className="absolute -top-3 right-4">
                       <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
                         <SparklesIcon className="w-3 h-3" />
-                        +{tier.bonus.toLocaleString()} BONUS
+                        +{(tier as PricingTier).bonus!.toLocaleString()} BONUS
                       </span>
                     </div>
                   )}
@@ -251,17 +251,17 @@ export default function CreditPurchaseModal({
                         <span className="font-semibold">{tier.credits.toLocaleString()} credits</span>
                       </div>
                       
-                      {'bonus' in tier && tier.bonus && (
+                      {mode === 'onboarding' && 'bonus' in tier && (tier as PricingTier).bonus && (
                         <div className="flex items-center justify-center gap-2 text-green-400">
                           <SparklesIcon className="w-5 h-5" />
-                          <span className="font-semibold">+{tier.bonus.toLocaleString()} bonus credits</span>
+                          <span className="font-semibold">+{(tier as PricingTier).bonus!.toLocaleString()} bonus credits</span>
                         </div>
                       )}
 
-                      {'emails' in tier && tier.emails && (
+                      {mode === 'onboarding' && 'emails' in tier && (tier as PricingTier).emails && (
                         <div className="flex items-center justify-center gap-2 text-white/70">
                           <CheckIcon className="w-4 h-4 text-white/50" />
-                          <span className="text-sm">~{tier.emails.toLocaleString()} emails</span>
+                          <span className="text-sm">~{(tier as PricingTier).emails.toLocaleString()} emails</span>
                         </div>
                       )}
 
