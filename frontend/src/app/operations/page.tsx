@@ -2630,8 +2630,8 @@ export default function InteractiveGlobe() {
               <button
                 onClick={() => {
                   if (stats.totalEmailsQueued > 0) {
-                    setActiveTab('queue');
-                    handleGlobeToggle(false);
+                    console.log('🔘 [VIEW QUEUE BUTTON] Clicked! Calling handleQueueClick...');
+                    handleQueueClick('queued', 'Queued Emails');
                   }
                 }}
                 disabled={stats.totalEmailsQueued === 0}
