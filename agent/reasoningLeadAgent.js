@@ -564,8 +564,20 @@ IMPORTANT RULES:
     try {
       const { broadcastActivity } = await import('../routes/monitoring.js');
       
+      // Get agent name from settings
+      let agentName = 'Agent';
+      try {
+        const agentSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
+        if (agentSettings && agentSettings.name) {
+          agentName = agentSettings.name;
+        }
+      } catch (error) {
+        console.error('⚠️ [AGENT NAME] Could not fetch agent name:', error);
+      }
+      
       // Create concise card message
-      const cardMessage = this.translateToConciseCardMessage(activityData.operation, activityData.details);
+      const baseCardMessage = this.translateToConciseCardMessage(activityData.operation, activityData.details);
+      const cardMessage = `${agentName} is ${baseCardMessage}`;
       
       // Extract location from current lead if available
       let location = null;

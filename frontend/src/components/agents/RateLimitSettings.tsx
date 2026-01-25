@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { CreditCardIcon, SparklesIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { CreditCardIcon, SparklesIcon, PlusIcon, CheckIcon } from '@heroicons/react/24/outline';
 import api from '../../lib/api';
 import BillingContent from '../BillingContent';
 import CreditPurchaseModal from '../CreditPurchaseModal';
@@ -24,6 +24,7 @@ const RateLimitSettings: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
   const [trialCredits, setTrialCredits] = useState<any>(null);
+  const [userPlan, setUserPlan] = useState<any>(null);
   const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('day');
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
@@ -55,6 +56,16 @@ const RateLimitSettings: React.FC = () => {
       const trialResponse = await api.get('/api/billing/trial-credits');
       if (trialResponse.data.success) {
         setTrialCredits(trialResponse.data.credits);
+      }
+
+      // Fetch user plan information
+      try {
+        const planResponse = await api.get('/api/plans/status');
+        if (planResponse.data.success) {
+          setUserPlan(planResponse.data);
+        }
+      } catch (error) {
+        console.log('Plan info not available:', error);
       }
 
       // Fetch credit balance
@@ -188,9 +199,17 @@ const RateLimitSettings: React.FC = () => {
               <p className="text-blue-200 text-xs">
                 1 credit = $0.05 in API costs
               </p>
+              {userPlan?.plan && (
+                <div className="ml-2 inline-flex items-center gap-1 px-2 py-1 bg-blue-700/50 border border-blue-300/30 rounded-full">
+                  <CheckIcon className="w-3 h-3 text-blue-300" />
+                  <span className="text-xs text-blue-300 font-medium">
+                    {userPlan.plan.name}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-baseline gap-3">
-              <p className="text-5xl font-bold">{creditBalance.toLocaleString()}</p>
+              <p className="text-5xl font-bold">{Math.ceil(creditBalance).toLocaleString()}</p>
               <p className="text-blue-200 text-xl">credits</p>
             </div>
             <p className="text-blue-100 text-sm mt-2">
@@ -200,10 +219,10 @@ const RateLimitSettings: React.FC = () => {
           <div className="text-right">
             <button
               onClick={() => setShowCreditPurchaseModal(true)}
-              className="px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-lg font-semibold transition-all flex items-center gap-2 border border-white/30"
+              className="px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-lg font-semibold transition-all flex items-center gap-2 border border-white/30 hover:border-white/50 hover:scale-105"
             >
               <PlusIcon className="w-5 h-5" />
-              Buy Credits
+              Buy More Credits
             </button>
           </div>
         </div>
@@ -458,6 +477,8 @@ const RateLimitSettings: React.FC = () => {
       {/* Credit Purchase Modal */}
       {showCreditPurchaseModal && typeof window !== 'undefined' && ReactDOM.createPortal(
         <CreditPurchaseModal
+          mode="topup"
+          currentPlan={userPlan?.plan?.id}
           onClose={() => setShowCreditPurchaseModal(false)}
           onSuccess={() => {
             setShowCreditPurchaseModal(false);

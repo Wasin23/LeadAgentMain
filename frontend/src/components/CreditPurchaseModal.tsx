@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XMarkIcon, SparklesIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, SparklesIcon, CheckIcon, PlusIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 
 interface CreditPurchaseModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  mode?: 'onboarding' | 'topup'; // onboarding shows full plans, topup shows credit additions
+  currentPlan?: string; // current user plan to highlight
 }
 
 interface PricingTier {
@@ -20,10 +22,24 @@ interface PricingTier {
   emails: number;
 }
 
-export default function CreditPurchaseModal({ onClose, onSuccess }: CreditPurchaseModalProps) {
-  const [selectedTier, setSelectedTier] = useState<string>('growth');
+interface TopupOption {
+  id: string;
+  name: string;
+  price: number;
+  credits: number;
+  popular?: boolean;
+}
+
+export default function CreditPurchaseModal({ 
+  onClose, 
+  onSuccess, 
+  mode = 'onboarding',
+  currentPlan 
+}: CreditPurchaseModalProps) {
+  const [selectedTier, setSelectedTier] = useState<string>(mode === 'onboarding' ? 'growth' : 'small');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userPlanInfo, setUserPlanInfo] = useState<any>(null);
 
   const pricingTiers: PricingTier[] = [
     {
@@ -51,18 +67,66 @@ export default function CreditPurchaseModal({ onClose, onSuccess }: CreditPurcha
     },
   ];
 
+  const topupOptions: TopupOption[] = [
+    {
+      id: 'mini',
+      name: 'Mini Top-up',
+      price: 10,
+      credits: 200,
+    },
+    {
+      id: 'small',
+      name: 'Small Top-up',
+      price: 50,
+      credits: 1000,
+    },
+    {
+      id: 'medium',
+      name: 'Medium Top-up',
+      price: 100,
+      credits: 2000,
+      popular: true,
+    },
+    {
+      id: 'bulk',
+      name: 'Bulk Top-up',
+      price: 250,
+      credits: 5000,
+    },
+  ];
+
+  // Fetch user plan info on mount
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const response = await api.get('/api/plans/status');
+        if (response.data.success) {
+          setUserPlanInfo(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching user plan:', error);
+      }
+    };
+
+    fetchUserPlan();
+  }, []);
+
   const handlePurchase = async () => {
-    const tier = pricingTiers.find(t => t.id === selectedTier);
-    if (!tier) return;
+    const isOnboarding = mode === 'onboarding';
+    const options = isOnboarding ? pricingTiers : topupOptions;
+    const selectedOption = options.find(t => t.id === selectedTier);
+    if (!selectedOption) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await api.post('/api/billing/purchase-credits', {
-        tierId: tier.id,
-        amount: tier.price,
-        credits: tier.credits,
+      const endpoint = isOnboarding ? '/api/billing/purchase-credits' : '/api/billing/add-credits';
+      const response = await api.post(endpoint, {
+        tierId: selectedOption.id,
+        amount: selectedOption.price,
+        credits: selectedOption.credits,
+        mode: mode
       });
 
       if (response.data.success) {
@@ -95,9 +159,22 @@ export default function CreditPurchaseModal({ onClose, onSuccess }: CreditPurcha
           <div>
             <h2 className="text-3xl font-bold text-white flex items-center gap-3">
               <SparklesIcon className="w-8 h-8 text-[#4FD1FF]" />
-              Buy Credits
+              {mode === 'onboarding' ? 'Choose Your Plan' : 'Buy More Credits'}
             </h2>
-            <p className="text-white/70 mt-1">1 credit = $0.05 in API costs</p>
+            <p className="text-white/70 mt-1">
+              {mode === 'onboarding' 
+                ? '1 credit = $0.05 in API costs' 
+                : 'Add more credits to your existing plan'
+              }
+            </p>
+            {mode === 'topup' && userPlanInfo?.plan && (
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full">
+                <CheckIcon className="w-4 h-4 text-blue-400" />
+                <span className="text-sm text-blue-300 font-medium">
+                  Current Plan: {userPlanInfo.plan.name}
+                </span>
+              </div>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -109,95 +186,120 @@ export default function CreditPurchaseModal({ onClose, onSuccess }: CreditPurcha
 
         {/* Pricing Tiers */}
         <div className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {pricingTiers.map((tier, index) => (
-              <motion.div
-                key={tier.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => setSelectedTier(tier.id)}
-                className={`relative cursor-pointer rounded-xl p-6 border-2 transition-all ${
-                  selectedTier === tier.id
-                    ? 'border-[#4FD1FF] bg-[#4FD1FF]/10 shadow-lg shadow-[#4FD1FF]/20'
-                    : 'border-white/20 bg-white/5 hover:border-white/40'
-                }`}
-              >
-                {/* Popular Badge */}
-                {tier.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full">
-                      MOST POPULAR
-                    </span>
-                  </div>
-                )}
-
-                {/* Bonus Badge */}
-                {tier.bonus && (
-                  <div className="absolute -top-3 right-4">
-                    <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                      <SparklesIcon className="w-3 h-3" />
-                      +{tier.bonus.toLocaleString()} BONUS
-                    </span>
-                  </div>
-                )}
-
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-white mb-2">{tier.name}</h3>
-                  
-                  <div className="mb-4">
-                    <span className="text-5xl font-bold text-white">${tier.price}</span>
-                  </div>
-
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-center gap-2 text-white/90">
-                      <CheckIcon className="w-5 h-5 text-[#4FD1FF]" />
-                      <span className="font-semibold">{tier.credits.toLocaleString()} credits</span>
+          <div className={`grid gap-6 mb-8 ${
+            mode === 'onboarding' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+          }`}>
+            {(mode === 'onboarding' ? pricingTiers : topupOptions).map((tier, index) => {
+              const isCurrentPlan = mode === 'onboarding' && currentPlan === tier.id;
+              return (
+                <motion.div
+                  key={tier.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  onClick={() => setSelectedTier(tier.id)}
+                  className={`relative cursor-pointer rounded-xl p-6 border-2 transition-all ${
+                    selectedTier === tier.id
+                      ? 'border-[#4FD1FF] bg-[#4FD1FF]/10 shadow-lg shadow-[#4FD1FF]/20'
+                      : isCurrentPlan
+                      ? 'border-green-500 bg-green-500/10'
+                      : 'border-white/20 bg-white/5 hover:border-white/40'
+                  }`}
+                >
+                  {/* Popular Badge */}
+                  {tier.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full">
+                        {mode === 'onboarding' ? 'MOST POPULAR' : 'POPULAR'}
+                      </span>
                     </div>
-                    
-                    {tier.bonus && (
-                      <div className="flex items-center justify-center gap-2 text-green-400">
-                        <SparklesIcon className="w-5 h-5" />
-                        <span className="font-semibold">+{tier.bonus.toLocaleString()} bonus credits</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-center gap-2 text-white/70">
-                      <CheckIcon className="w-4 h-4 text-white/50" />
-                      <span className="text-sm">~{tier.emails.toLocaleString()} emails</span>
-                    </div>
-
-                    <div className="text-white/60 text-xs">
-                      ${(tier.price / tier.credits).toFixed(3)} per credit
-                    </div>
-                  </div>
-
-                  {selectedTier === tier.id && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-4 right-4"
-                    >
-                      <div className="w-8 h-8 bg-[#4FD1FF] rounded-full flex items-center justify-center">
-                        <CheckIcon className="w-5 h-5 text-white" />
-                      </div>
-                    </motion.div>
                   )}
-                </div>
-              </motion.div>
-            ))}
+
+                  {/* Current Plan Badge */}
+                  {isCurrentPlan && (
+                    <div className="absolute -top-3 right-4">
+                      <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        <CheckIcon className="w-3 h-3" />
+                        CURRENT
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Bonus Badge for full plans */}
+                  {'bonus' in tier && tier.bonus && (
+                    <div className="absolute -top-3 right-4">
+                      <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        <SparklesIcon className="w-3 h-3" />
+                        +{tier.bonus.toLocaleString()} BONUS
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-white mb-2 flex items-center justify-center gap-2">
+                      {mode === 'topup' && <PlusIcon className="w-5 h-5 text-[#4FD1FF]" />}
+                      {tier.name}
+                    </h3>
+                    
+                    <div className="mb-4">
+                      <span className="text-4xl font-bold text-white">${tier.price}</span>
+                    </div>
+
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center justify-center gap-2 text-white/90">
+                        <CheckIcon className="w-5 h-5 text-[#4FD1FF]" />
+                        <span className="font-semibold">{tier.credits.toLocaleString()} credits</span>
+                      </div>
+                      
+                      {'bonus' in tier && tier.bonus && (
+                        <div className="flex items-center justify-center gap-2 text-green-400">
+                          <SparklesIcon className="w-5 h-5" />
+                          <span className="font-semibold">+{tier.bonus.toLocaleString()} bonus credits</span>
+                        </div>
+                      )}
+
+                      {'emails' in tier && tier.emails && (
+                        <div className="flex items-center justify-center gap-2 text-white/70">
+                          <CheckIcon className="w-4 h-4 text-white/50" />
+                          <span className="text-sm">~{tier.emails.toLocaleString()} emails</span>
+                        </div>
+                      )}
+
+                      <div className="text-white/60 text-xs">
+                        ${(tier.price / tier.credits).toFixed(3)} per credit
+                      </div>
+                    </div>
+
+                    {selectedTier === tier.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-4 right-4"
+                      >
+                        <div className="w-8 h-8 bg-[#4FD1FF] rounded-full flex items-center justify-center">
+                          <CheckIcon className="w-5 h-5 text-white" />
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* Info Box */}
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
             <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
               <SparklesIcon className="w-5 h-5 text-[#4FD1FF]" />
-              How Credits Work
+              {mode === 'onboarding' ? 'How Credits Work' : 'About Additional Credits'}
             </h4>
             <ul className="text-sm text-white/80 space-y-1">
               <li>• <strong>1 credit = $0.05</strong> in tracked API costs (transparent pricing)</li>
               <li>• <strong>~0.67 credits per email</strong> on average (includes AI research, enrichment, validation, sending)</li>
               <li>• Credits never expire and roll over month-to-month</li>
+              {mode === 'topup' && (
+                <li>• <strong>Top-ups are added instantly</strong> to your current balance</li>
+              )}
               <li>• Track exact usage in real-time on your dashboard</li>
             </ul>
           </div>
@@ -220,7 +322,13 @@ export default function CreditPurchaseModal({ onClose, onSuccess }: CreditPurcha
                 Processing...
               </span>
             ) : (
-              `Purchase ${pricingTiers.find(t => t.id === selectedTier)?.credits.toLocaleString()} Credits for $${pricingTiers.find(t => t.id === selectedTier)?.price}`
+              (() => {
+                const options = mode === 'onboarding' ? pricingTiers : topupOptions;
+                const selectedOption = options.find(t => t.id === selectedTier);
+                return mode === 'onboarding' 
+                  ? `Choose ${selectedOption?.name} - ${selectedOption?.credits.toLocaleString()} Credits for $${selectedOption?.price}`
+                  : `Add ${selectedOption?.credits.toLocaleString()} Credits for $${selectedOption?.price}`;
+              })()
             )}
           </button>
 

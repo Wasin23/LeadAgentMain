@@ -213,6 +213,7 @@ export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps
 
         {showCreditPurchase && (
           <CreditPurchaseModal
+            mode="onboarding"
             onClose={() => setShowCreditPurchase(false)}
             onSuccess={handleCreditsPurchased}
           />

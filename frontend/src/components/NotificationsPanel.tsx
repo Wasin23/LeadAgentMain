@@ -74,8 +74,8 @@ export default function NotificationsPanel() {
             
             setCredits({
               ...trialData,
-              creditsUsed: actualSpent.toFixed(2),
-              creditsRemaining: creditsRemaining.toFixed(2),
+              creditsUsed: Math.ceil(actualSpent).toString(),
+              creditsRemaining: Math.ceil(creditsRemaining).toString(),
               percentageUsed: percentageUsed.toFixed(1),
               limitReached: actualSpent >= creditsLimit,
               warningThreshold: percentageUsed >= 80

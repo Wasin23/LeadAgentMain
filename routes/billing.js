@@ -928,4 +928,99 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
   }
 });
 
+// Add additional credits (top-up) to existing account
+router.post('/add-credits', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { tierId, amount, credits, mode } = req.body;
+    
+    if (!tierId || !amount || !credits) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const user = await awsManager.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    if (!user.stripeCustomerId || !user.paymentMethodAdded) {
+      return res.status(400).json({ error: 'No payment method on file' });
+    }
+    
+    // Get default payment method
+    const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+    const paymentMethodId = customer.invoice_settings?.default_payment_method;
+    
+    if (!paymentMethodId) {
+      return res.status(400).json({ error: 'No default payment method found' });
+    }
+    
+    console.log(`💳 [BILLING] Adding ${credits} credits ($${amount}) to user ${userId} balance`);
+    
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      customer: user.stripeCustomerId,
+      payment_method: paymentMethodId,
+      off_session: true,
+      confirm: true,
+      description: `Add ${credits.toLocaleString()} credits (Top-up: ${tierId})`,
+      metadata: {
+        userId,
+        tierId,
+        credits: credits.toString(),
+        type: 'credit_topup'
+      }
+    });
+    
+    if (paymentIntent.status === 'succeeded') {
+      // Add credits to existing user balance
+      const currentBalance = user.creditBalance || 0;
+      const newBalance = currentBalance + credits;
+      
+      await awsManager.updateUser(userId, {
+        creditBalance: newBalance
+      });
+      
+      console.log(`✅ [BILLING] Credit top-up successful - Added ${credits} credits to user ${userId} (New balance: ${newBalance})`);
+      
+      // Log successful payment
+      await logBillingActivity(userId, 'credit_topup', {
+        amount,
+        credits,
+        tierId,
+        paymentIntentId: paymentIntent.id,
+        previousBalance: currentBalance,
+        newBalance
+      }, 'success');
+      
+      res.json({
+        success: true,
+        message: `Successfully added ${credits.toLocaleString()} credits to your account`,
+        newBalance,
+        creditsAdded: credits,
+        paymentIntentId: paymentIntent.id
+      });
+    } else {
+      throw new Error(`Payment failed with status: ${paymentIntent.status}`);
+    }
+    
+  } catch (error) {
+    console.error('❌ [BILLING] Error adding credits:', error);
+    
+    // Log failed payment
+    await logBillingActivity(req.user.userId, 'credit_topup', {
+      amount: req.body.amount,
+      credits: req.body.credits,
+      error: error.message
+    }, 'failed');
+    
+    res.status(500).json({ 
+      error: 'Failed to add credits',
+      message: error.message 
+    });
+  }
+});
+
 export default router;
