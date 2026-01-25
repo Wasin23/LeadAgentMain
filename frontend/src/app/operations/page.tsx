@@ -842,6 +842,7 @@ export default function InteractiveGlobe() {
 
   // Fetch queue emails when agent is selected
   const fetchQueueEmails = async (agentId: string, type: 'queued' | 'sent' | 'replied') => {
+    console.log('🔍 [FETCH QUEUE] Starting fetch:', { agentId, type });
     setLoadingQueue(true);
     setCurrentEmailPage(1); // Reset to first page when fetching new emails
     try {
@@ -857,17 +858,27 @@ export default function InteractiveGlobe() {
         endpoint = `/api/email-queue/replied?agentId=${agentId}`;
       }
       
+      console.log('🔍 [FETCH QUEUE] Calling endpoint:', endpoint);
       const response = await api.get(endpoint);
+      console.log('🔍 [FETCH QUEUE] Response received:', {
+        hasData: !!response.data,
+        isArray: Array.isArray(response.data),
+        hasEmails: !!(response.data?.emails),
+        dataKeys: response.data ? Object.keys(response.data) : [],
+        emailCount: response.data?.emails?.length || (Array.isArray(response.data) ? response.data.length : 0)
+      });
       
       // Handle paginated response for queued emails
       if (type === 'queued' && response.data && typeof response.data === 'object' && 'emails' in response.data) {
         const { emails, total, hasMore } = response.data;
+        console.log('🔍 [FETCH QUEUE] Paginated response:', { emailsLength: emails?.length, total, hasMore });
         setQueueEmails(Array.isArray(emails) ? emails : []);
         setTotalQueuedEmails(total || 0);
         setHasMoreEmails(hasMore || false);
       } else {
         // Handle non-paginated response for sent/replied
         const emails = Array.isArray(response.data) ? response.data : [];
+        console.log('🔍 [FETCH QUEUE] Non-paginated response:', { emailsLength: emails.length });
         setQueueEmails(emails);
         setTotalQueuedEmails(emails.length);
         setHasMoreEmails(false);
