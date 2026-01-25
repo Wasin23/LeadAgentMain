@@ -13,7 +13,9 @@ const API_COSTS = {
   'hunter-email': 0.01,          // Hunter per email verification
   'zerobounce-verify': 0.01,     // ZeroBounce per verification
   'mailgun-send': 0.0008,        // Mailgun per email sent
-  'openai-completion': 0.002     // Default OpenAI completion cost
+  'openai-completion': 0.002,    // Default OpenAI completion cost
+  'agent-start': 0.05,           // Agent startup operations (1 credit)
+  'agent-cycle': 0.10            // Agent cycle operations (2 credits)
 };
 
 /**
