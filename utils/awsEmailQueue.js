@@ -60,16 +60,10 @@ class AWSEmailQueue {
   }
 
   /**
-   * Invalidate cache for a user
+   * Invalidate cache for a user (no-op since cache removed)
    */
   _invalidateCache(userId) {
-    const keysToDelete = [];
-    for (const key of this.cache.keys()) {
-      if (key.startsWith(userId)) {
-        keysToDelete.push(key);
-      }
-    }
-    keysToDelete.forEach(key => this.cache.delete(key));
+    // Cache removed - this is now a no-op
   }
 
   /**
