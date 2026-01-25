@@ -380,20 +380,44 @@ class AWSEmailQueue {
    */
   async getQueuedEmailCount(userId) {
     try {
-      const gsipk = this._getGSIPK(userId, 'QUEUED');
-      console.log(`📊 [GET QUEUED COUNT] GSIPK: ${gsipk}`);
-      const response = await this.dynamodb.send(new QueryCommand({
+      // GSI is out of sync - use direct PK queries instead
+      // Get all agents for this user and sum their counts
+      const { default: awsManager } = await import('./awsManager.js');
+      const awsManagerInstance = new awsManager();
+      const agents = await awsManagerInstance.getUserAgents(userId);
+      
+      let totalCount = 0;
+      
+      // Count for each agent
+      for (const agent of agents) {
+        const pk = this._getPK(userId, agent.agentId);
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+          ExpressionAttributeValues: {
+            ':pk': pk,
+            ':status': 'QUEUED#'
+          },
+          Select: 'COUNT'
+        }));
+        totalCount += response.Count || 0;
+      }
+      
+      // Also count orphans
+      const orphanPK = this._getPK(userId, 'orphan');
+      const orphanResponse = await this.dynamodb.send(new QueryCommand({
         TableName: this.tableName,
-        IndexName: this.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
         ExpressionAttributeValues: {
-          ':gsipk': gsipk
+          ':pk': orphanPK,
+          ':status': 'QUEUED#'
         },
         Select: 'COUNT'
       }));
-
-      console.log(`📊 [GET QUEUED COUNT] Total count: ${response.Count || 0}`);
-      return response.Count || 0;
+      totalCount += orphanResponse.Count || 0;
+      
+      console.log(`📊 [GET QUEUED COUNT] Total count (via PK queries): ${totalCount}`);
+      return totalCount;
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting queued email count:', error);
       throw error;

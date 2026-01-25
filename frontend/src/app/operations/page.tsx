@@ -761,39 +761,14 @@ export default function InteractiveGlobe() {
         hasActivity: !!agentActivities[a.agentId],
         isActive: agentActivities[a.agentId]?.isActive,
         useGmail: a.settings?.emailSettings?.useGmail,
-        hasEmailSettings: !!a.settings?.emailSettings
+        hasEmailSettings: !!a.settings?.emailSettings,
+        // Use placeholder counts - actual counts come from context
+        queued: 0,
+        sent: 0,
+        replied: 0
       })));
       
-      // Enrich agents with queue stats using efficient count endpoints
-      const enrichedAgents = await Promise.all(
-        agents.map(async (agent: any) => {
-          if (agent.agentId === 'orphan') return agent;
-          try {
-            const [queueRes, sentRes, repliedRes] = await Promise.all([
-              api.get(`/api/email-queue/queue/count?agentId=${agent.agentId}`),
-              api.get(`/api/email-queue/sent/count?agentId=${agent.agentId}`),
-              api.get(`/api/email-queue/replied/count?agentId=${agent.agentId}`)
-            ]);
-            const queuedCount = queueRes.data?.count || 0;
-            const sentCount = sentRes.data?.count || 0;
-            const repliedCount = repliedRes.data?.count || 0;
-            
-            return {
-              ...agent,
-              queued: queuedCount,
-              sent: sentCount,
-              replied: repliedCount
-            };
-          } catch (error) {
-            console.error(`Error fetching stats for ${agent.name}:`, error);
-            return { ...agent, queued: 0, sent: 0, replied: 0 };
-          }
-        })
-      );
-      
-      agents = enrichedAgents;
-      
-      // Always check for orphaned emails (queued, sent, and replied) using count endpoints
+      // Check for orphaned emails using count endpoints
       try {
         console.log('🔍 Fetching orphan counts...');
         const [orphanedQueuedRes, orphanedSentRes, orphanedRepliedRes] = await Promise.all([
