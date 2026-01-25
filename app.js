@@ -307,6 +307,7 @@ const smartLimiter = (req, res, next) => {
     '/r/',           // Tracking pixels
     '/c/',           // Click tracking  
     '/api/unsubscribe', // Unsubscribe links
+    '/api/gmail-pubsub', // Google Gmail Pub/Sub push notifications
     '/api/tracking',    // Desktop tracking
     '/webhooks',        // Email webhooks
     '/api/webhooks',    // Email response webhooks
@@ -476,6 +477,7 @@ const publicEmailEndpoints = [
   '/c/',           // Click tracking  
   '/api/unsubscribe', // Unsubscribe links
   '/api/email-queue/counts', // Queue counts (may be accessed by email clients)
+  '/api/gmail-pubsub', // Google Gmail Pub/Sub push notifications
   '/webhooks',     // Mailgun/email webhooks
   '/api/webhooks', // Email response webhooks
   '/api/tracking', // Desktop tracking
