@@ -380,16 +380,19 @@ class AWSEmailQueue {
    */
   async getQueuedEmailCount(userId) {
     try {
+      const gsipk = this._getGSIPK(userId, 'QUEUED');
+      console.log(`📊 [GET QUEUED COUNT] GSIPK: ${gsipk}`);
       const response = await this.dynamodb.send(new QueryCommand({
         TableName: this.tableName,
         IndexName: this.gsiName,
         KeyConditionExpression: 'GSIPK = :gsipk',
         ExpressionAttributeValues: {
-          ':gsipk': this._getGSIPK(userId, 'QUEUED')
+          ':gsipk': gsipk
         },
         Select: 'COUNT'
       }));
 
+      console.log(`📊 [GET QUEUED COUNT] Total count: ${response.Count || 0}`);
       return response.Count || 0;
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting queued email count:', error);
