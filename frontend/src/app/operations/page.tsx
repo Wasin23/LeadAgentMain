@@ -2203,14 +2203,16 @@ export default function InteractiveGlobe() {
                       
                       {/* Loading State */}
                       {loadingQueue ? (
-                        <div className="space-y-3">
-                          {[...Array(3)].map((_, i) => (
-                            <div key={i} className="p-4 bg-[#0A1525]/40 border border-[#4FD1FF]/20 rounded-lg animate-pulse">
-                              <div className="h-4 bg-[#4FD1FF]/10 rounded w-3/4 mb-3"></div>
-                              <div className="h-3 bg-[#4FD1FF]/10 rounded w-1/2 mb-2"></div>
-                              <div className="h-3 bg-[#4FD1FF]/10 rounded w-2/3"></div>
-                            </div>
-                          ))}
+                        <div className="flex items-center justify-center py-20">
+                          <div className="space-y-3 w-full max-w-2xl">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={i} className="p-4 bg-[#0A1525]/40 border border-[#4FD1FF]/20 rounded-lg animate-pulse">
+                                <div className="h-4 bg-[#4FD1FF]/10 rounded w-3/4 mb-3"></div>
+                                <div className="h-3 bg-[#4FD1FF]/10 rounded w-1/2 mb-2"></div>
+                                <div className="h-3 bg-[#4FD1FF]/10 rounded w-2/3"></div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ) : paginatedEmails.length === 0 ? (
                         <div className="text-center text-[#8FA6C1]/60 py-8">

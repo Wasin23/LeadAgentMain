@@ -61,7 +61,7 @@ router.get('/queue/count', async (req, res) => {
     }
     
     // For specific agent, count directly
-    const pk = `USER#${req.user.userId}#AGENT#${agentId}`;
+    const pk = `${req.user.userId}#${agentId}`;
     const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
@@ -101,7 +101,7 @@ router.get('/sent/count', async (req, res) => {
     }
     
     // For specific agent, count directly
-    const pk = `USER#${req.user.userId}#AGENT#${agentId}`;
+    const pk = `${req.user.userId}#${agentId}`;
     const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
@@ -141,7 +141,7 @@ router.get('/replied/count', async (req, res) => {
     }
     
     // For specific agent, count directly
-    const pk = `USER#${req.user.userId}#AGENT#${agentId}`;
+    const pk = `${req.user.userId}#${agentId}`;
     const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
