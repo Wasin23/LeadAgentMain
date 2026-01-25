@@ -9,13 +9,17 @@ import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
 
-// Rate limiting for counts endpoint - kill spam requests
+// Rate limiting for counts endpoint - more lenient for email clients
 const countRequestTracker = new Map();
 function rateLimitCounts(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress;
+  const userAgent = req.get('User-Agent') || '';
   const now = Date.now();
   const windowMs = 60000; // 1 minute window
-  const maxRequests = 10; // Max 10 requests per minute per IP
+  
+  // More lenient limits for mobile/email clients
+  const isMobileEmailClient = /iPhone|Android|Mobile|Mail/i.test(userAgent);
+  const maxRequests = isMobileEmailClient ? 30 : 10; // 30 for mobile, 10 for others
   
   if (!countRequestTracker.has(ip)) {
     countRequestTracker.set(ip, []);
@@ -26,8 +30,8 @@ function rateLimitCounts(req, res, next) {
   const validRequests = requests.filter(time => now - time < windowMs);
   
   if (validRequests.length >= maxRequests) {
-    console.log(`🚫 [RATE LIMIT] Blocked ${ip} - ${validRequests.length} requests in 1 minute`);
-    return res.status(429).json({ error: 'Rate limit exceeded. Max 10 requests per minute.' });
+    console.log(`🚫 [RATE LIMIT] Blocked ${ip} (${userAgent}) - ${validRequests.length} requests in 1 minute (limit: ${maxRequests})`);
+    return res.status(429).json({ error: `Rate limit exceeded. Max ${maxRequests} requests per minute.` });
   }
   
   validRequests.push(now);

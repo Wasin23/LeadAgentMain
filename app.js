@@ -299,7 +299,34 @@ const app = express();
 // Security Configuration
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Rate Limiting
+// Rate Limiting with exemptions for email-related endpoints
+const smartLimiter = (req, res, next) => {
+  // Define public email endpoints that should bypass global rate limiting
+  const emailExemptEndpoints = [
+    '/r/',           // Tracking pixels
+    '/c/',           // Click tracking  
+    '/api/unsubscribe', // Unsubscribe links
+    '/api/tracking',    // Desktop tracking
+    '/webhooks',        // Email webhooks
+    '/api/webhooks',    // Email response webhooks
+    '/health',          // Health checks
+    '/ready'            // Readiness checks
+  ];
+  
+  // Check if this is an email-related endpoint
+  const isEmailEndpoint = emailExemptEndpoints.some(endpoint => 
+    req.path.startsWith(endpoint)
+  );
+  
+  if (isEmailEndpoint) {
+    console.log(`📧 [RATE LIMIT] Bypassing rate limit for email endpoint: ${req.path}`);
+    return next(); // Skip rate limiting for email endpoints
+  }
+  
+  // Apply normal rate limiting for other endpoints
+  return limiter(req, res, next);
+};
+
 const limiter = rateLimit({
   windowMs: config.security.rateLimitWindowMs,
   max: config.security.rateLimitMax,
@@ -319,7 +346,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(limiter);
+app.use(smartLimiter);
 
 // Session Management
 app.use(session({
@@ -442,10 +469,42 @@ app.get('/ready', (req, res) => {
   res.json({ status: 'ready', timestamp: new Date().toISOString() });
 });
 
-// Add server session endpoint
-app.get('/api/session', (req, res) => {
-  res.json({ sessionId: SERVER_SESSION_ID });
+// Public endpoints that don't require authentication (for emails)
+const publicEmailEndpoints = [
+  '/r/',           // Tracking pixels
+  '/c/',           // Click tracking  
+  '/api/unsubscribe', // Unsubscribe links
+  '/api/email-queue/counts', // Queue counts (may be accessed by email clients)
+  '/webhooks',     // Mailgun/email webhooks
+  '/api/webhooks', // Email response webhooks
+  '/api/tracking', // Desktop tracking
+  '/health',       // Health checks
+  '/ready',        // Readiness checks
+  '/api/metrics',  // Public metrics
+  '/api/session'   // Session info
+];
+
+// Middleware to check if endpoint should be public
+const isPublicEndpoint = (req) => {
+  return publicEmailEndpoints.some(endpoint => 
+    req.path.startsWith(endpoint)
+  );
+};
+
+// Apply JWT authentication to non-public endpoints only
+app.use((req, res, next) => {
+  if (isPublicEndpoint(req)) {
+    console.log(`📧 [PUBLIC] Allowing public access to: ${req.path}`);
+    return next(); // Skip JWT for public email endpoints
+  }
+  
+  // Apply JWT for all other endpoints
+  return jwtMiddleware(req, res, next);
 });
+
+// PUBLIC EMAIL-RELATED ROUTES (NO AUTH REQUIRED)
+app.use('/r', trackingRoutes); // Disguised tracking pixel route (bypasses corporate filters)
+app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe links in emails
 
 app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking for polling - MUST BE FIRST
 app.use('/api', emailRoutes);
