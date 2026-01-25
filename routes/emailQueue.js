@@ -205,8 +205,9 @@ router.get('/queue', async (req, res) => {
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
     
-    // Get paginated emails for specific agent
-    const pk = `USER#${req.user.userId}#AGENT#${agentId || 'null'}`;
+    // Get paginated emails for specific agent using proper PK format
+    const pk = `${req.user.userId}#${agentId || 'null'}`;
+    console.log(`📧 [EMAIL QUEUE] Querying with PK: ${pk}`);
     const response = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
