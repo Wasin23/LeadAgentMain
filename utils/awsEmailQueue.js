@@ -1161,7 +1161,7 @@ class AWSEmailQueue {
    */
   async getQueuedEmailsForAgent(userId, agentId) {
     const cacheKey = `${userId}#${agentId}#QUEUED`;
-    return await this._getCached(cacheKey, async () => {
+    return await this._fetch(cacheKey, async () => {
       return await this.getQueuedEmails(userId, agentId);
     });
   }
