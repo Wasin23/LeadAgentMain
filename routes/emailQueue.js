@@ -9,6 +9,45 @@ import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
 
+// Rate limiting for counts endpoint - kill spam requests
+const countRequestTracker = new Map();
+function rateLimitCounts(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  const windowMs = 60000; // 1 minute window
+  const maxRequests = 10; // Max 10 requests per minute per IP
+  
+  if (!countRequestTracker.has(ip)) {
+    countRequestTracker.set(ip, []);
+  }
+  
+  const requests = countRequestTracker.get(ip);
+  // Remove old requests outside the window
+  const validRequests = requests.filter(time => now - time < windowMs);
+  
+  if (validRequests.length >= maxRequests) {
+    console.log(`🚫 [RATE LIMIT] Blocked ${ip} - ${validRequests.length} requests in 1 minute`);
+    return res.status(429).json({ error: 'Rate limit exceeded. Max 10 requests per minute.' });
+  }
+  
+  validRequests.push(now);
+  countRequestTracker.set(ip, validRequests);
+  
+  // Clean up old entries periodically
+  if (Math.random() < 0.01) { // 1% chance to cleanup
+    for (const [key, times] of countRequestTracker.entries()) {
+      const validTimes = times.filter(time => now - time < windowMs);
+      if (validTimes.length === 0) {
+        countRequestTracker.delete(key);
+      } else {
+        countRequestTracker.set(key, validTimes);
+      }
+    }
+  }
+  
+  next();
+}
+
 // Apply JWT authentication middleware to all routes
 router.use(authenticateToken);
 
@@ -49,7 +88,7 @@ router.get('/', async (req, res) => {
 });
 
 // Universal counts endpoint - gets all counts in one request to reduce AWS calls
-router.get('/counts', async (req, res) => {
+router.get('/counts', rateLimitCounts, async (req, res) => {
   try {
     const agentId = req.query.agentId;
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');

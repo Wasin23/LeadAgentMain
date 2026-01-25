@@ -30,8 +30,9 @@ export function authenticateToken(req, res, next) {
                          req.path.includes('/internal/events');
 
   if (!token) {
+    const ip = req.ip || req.connection.remoteAddress;
     if (!isPollingRoute) {
-      console.log(`[JWT] No token provided for ${req.method} ${req.path}`);
+      console.log(`[JWT] ⚠️  UNAUTHORIZED ACCESS: ${req.method} ${req.path} from ${ip}`);
     }
     return res.status(401).json({ 
       error: 'Access denied. No token provided.',
