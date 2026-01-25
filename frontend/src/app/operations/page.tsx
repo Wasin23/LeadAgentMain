@@ -2764,42 +2764,34 @@ export default function InteractiveGlobe() {
 
               {/* Activity Logs List */}
               <div className="flex-1 overflow-y-auto">
-                {/* Start All Agents Button */}
-                <div className="p-8">
-                  <button
-                    onClick={async () => {
-                      setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'running' }));
-                      for (const agent of agents) {
-                        if (agent.agentId === 'orphan') continue;
-                        if (agent.status !== 'running') {
-                          try {
-                            await api.post('/api/lead-agent/start', { agentId: agent.agentId });
-                          } catch (error) {
-                            console.error('Error starting agent:', error);
-                          }
-                        }
-                      }
-                      await fetchAgents();
-                    }}
-                    className="px-16 py-8 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-500/60 text-green-300 rounded-lg transition-all duration-300 flex items-center gap-5 text-2xl font-bold shadow-lg"
-                  >
-                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Start All Agents
-                  </button>
-                </div>
                 {agents.filter(a => a.agentId !== 'orphan' && a.status === 'running').length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                    <div className="w-16 h-16 bg-[#4FD1FF]/10 border-2 border-[#4FD1FF]/30 rounded-full flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-[#4FD1FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <button
+                      onClick={async () => {
+                        setAgents(prev => prev.map(a => a.agentId === 'orphan' ? a : { ...a, status: 'running' }));
+                        for (const agent of agents) {
+                          if (agent.agentId === 'orphan') continue;
+                          if (agent.status !== 'running') {
+                            try {
+                              await api.post('/api/lead-agent/start', { agentId: agent.agentId });
+                            } catch (error) {
+                              console.error('Error starting agent:', error);
+                            }
+                          }
+                        }
+                        await fetchAgents();
+                      }}
+                      className="px-16 py-8 bg-green-500/20 hover:bg-green-500/30 border-2 border-green-500/40 hover:border-green-500/60 text-green-300 rounded-lg transition-all duration-300 flex items-center gap-5 text-2xl font-bold shadow-lg"
+                    >
+                      <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                    </div>
-                    <div className="space-y-2">
+                      Start All Agents
+                    </button>
+                    <div className="mt-8 space-y-2">
                       <p className="text-[#8FA6C1] text-sm font-medium">No Active Agents</p>
-                      <p className="text-[#8FA6C1]/60 text-xs">Use the Start All Agents button above to begin operations</p>
+                      <p className="text-[#8FA6C1]/60 text-xs">Activity logs will appear here when agents are running</p>
                     </div>
                   </div>
                 ) : activityLogs.filter(log => selectedAgentFilter === 'all' || log.agentId === selectedAgentFilter).length === 0 ? (
