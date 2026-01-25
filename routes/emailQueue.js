@@ -92,21 +92,49 @@ router.get('/queue', async (req, res) => {
       const activeAgentIds = allAgents.map(a => a.agentId);
       // console.log(`📧 [EMAIL QUEUE] Active agent IDs: ${activeAgentIds.join(', ')}`);
       
-      // Get all emails and filter for orphaned ones
-      const allEmails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
+      // Get paginated emails and filter for orphaned ones
+      const result = await awsQueue.getAllQueuedEmailsForUser(req.user.userId, limit + offset, 0);
+      const allEmails = result.emails || [];
       const orphanedEmails = allEmails.filter(email => !activeAgentIds.includes(email.agentId));
+      const paginatedOrphaned = orphanedEmails.slice(offset, offset + limit);
       
       // console.log(`📧 [EMAIL QUEUE] Found ${orphanedEmails.length} orphaned emails (from ${allEmails.length} total)`);
-      return res.json(orphanedEmails);
+      return res.json({ emails: paginatedOrphaned, total: orphanedEmails.length, hasMore: offset + limit < orphanedEmails.length });
     }
     
-    // Otherwise, fetch for specific agent (or null for legacy)
-    // console.log(`📧 [EMAIL QUEUE] Fetching for specific agent: ${agentId || 'null (legacy)'}`);
-    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
-    const queue = await userEmailQueue.getQueue();
-    // Apply pagination
-    const total = queue.length;
-    const paginatedQueue = queue.slice(offset, offset + limit);
+    // Otherwise, fetch for specific agent using AWS directly to avoid full fetch
+    // console.log(`📧 [EMAIL QUEUE] Fetching for specific agent: ${agentId || 'null (legacy)'} with pagination`);
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    
+    // Get paginated emails for specific agent
+    const pk = `USER#${req.user.userId}#AGENT#${agentId || 'null'}`;
+    const response = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
+      TableName: awsQueue.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+        ':status': 'QUEUED#'
+      },
+      Limit: limit + offset, // Fetch enough to skip offset
+      ScanIndexForward: false // Newest first
+    }));
+    
+    const allItems = response.Items || [];
+    const paginatedQueue = allItems.slice(offset, offset + limit);
+    
+    // Get count for total
+    const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
+      TableName: awsQueue.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+        ':status': 'QUEUED#'
+      },
+      Select: 'COUNT'
+    }));
+    
+    const total = countResponse.Count || 0;
     // console.log(`📧 [EMAIL QUEUE] Found ${paginatedQueue.length} emails (${total} total) for agent ${agentId || 'null'}`);
     res.json({ emails: paginatedQueue, total, hasMore: offset + limit < total });
   } catch (error) {
