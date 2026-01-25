@@ -3,6 +3,19 @@ import AWSManager from '../utils/awsManager.js';
 
 const awsManager = new AWSManager();
 
+// Internal API costs for trial credit estimation (deprecated for real usage tracking)
+const API_COSTS = {
+  'openai-gpt4': 0.03,
+  'openai-gpt35': 0.002,
+  'openai-embedding': 0.0001,
+  'serper-search': 0.001,
+  'apollo-enrichment': 0.01,
+  'hunter-email': 0.01,
+  'zerobounce-verify': 0.01,
+  'mailgun-send': 0.0008,
+  'openai-completion': 0.002
+};
+
 /**
  * Track API usage and deduct from user's trial credits
  * @param {string} userId - User ID
@@ -245,6 +258,5 @@ export default {
   trackApiUsage,
   checkTrialCredits,
   getTrialCreditStatus,
-  requireTrialCredits,
-  API_COSTS
+  requireTrialCredits
 };
