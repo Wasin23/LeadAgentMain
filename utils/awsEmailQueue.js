@@ -704,17 +704,35 @@ class AWSEmailQueue {
   }
 
   /**
-   * Approve a queued email
+   * Approve a queued email (stays QUEUED - will be marked SENT after sending)
    */
   async approveEmail(userId, agentId, emailId) {
-    return this.updateEmailStatus(userId, agentId, emailId, 'QUEUED', 'APPROVED');
+    // Don't change status here - let markEmailAsSent do it after actual sending
+    const response = await this.dynamodb.send(new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+      FilterExpression: 'id = :emailId',
+      ExpressionAttributeValues: {
+        ':pk': this._getPK(userId, agentId),
+        ':status': 'QUEUED#',
+        ':emailId': emailId
+      }
+    }));
+
+    if (!response.Items || response.Items.length === 0) {
+      throw new Error(`Email ${emailId} not found in QUEUED status`);
+    }
+
+    const email = response.Items[0];
+    console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} approved for sending`);
+    return email;
   }
 
   /**
-   * Mark email as sent
+   * Mark email as sent (moves from QUEUED to SENT)
    */
   async markEmailAsSent(userId, agentId, emailId, mailgunData = {}) {
-    return this.updateEmailStatus(userId, agentId, emailId, 'APPROVED', 'SENT', {
+    return this.updateEmailStatus(userId, agentId, emailId, 'QUEUED', 'SENT', {
       mailgunId: mailgunData.id,
       mailgunMessage: mailgunData.message,
       trackingId: mailgunData.trackingId,  // Store the tracking ID for correlation with Zilliz events!
