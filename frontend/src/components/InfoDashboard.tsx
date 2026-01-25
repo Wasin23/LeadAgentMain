@@ -153,28 +153,28 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
           };
           
           try {
-            // Fetch queued and sent emails separately
+            // Use count endpoints for accurate numbers instead of fetching all emails
             const [queuedRes, sentRes] = await Promise.all([
-              api.get(`/api/email-queue/queue?agentId=${normalizedAgent.agentId}`).catch(err => {
-                console.error(`Failed to fetch queue for ${normalizedAgent.agentId}:`, err);
-                return { data: [] };
+              api.get(`/api/email-queue/queue/count?agentId=${normalizedAgent.agentId}`).catch(err => {
+                console.error(`Failed to fetch queue count for ${normalizedAgent.agentId}:`, err);
+                return { data: { count: 0 } };
               }),
-              api.get(`/api/email-queue/sent?agentId=${normalizedAgent.agentId}`).catch(err => {
-                console.error(`Failed to fetch sent for ${normalizedAgent.agentId}:`, err);
-                return { data: [] };
+              api.get(`/api/email-queue/sent/count?agentId=${normalizedAgent.agentId}`).catch(err => {
+                console.error(`Failed to fetch sent count for ${normalizedAgent.agentId}:`, err);
+                return { data: { count: 0 } };
               })
             ]);
             
-            const queuedEmails = Array.isArray(queuedRes.data) ? queuedRes.data : (queuedRes.data.emails || []);
-            const sentEmails = Array.isArray(sentRes.data) ? sentRes.data : (sentRes.data.emails || []);
-            const totalBuilt = queuedEmails.length + sentEmails.length;
+            const queuedCount = queuedRes.data?.count || 0;
+            const sentCount = sentRes.data?.count || 0;
+            const totalBuilt = queuedCount + sentCount;
             
             return {
               ...normalizedAgent,
               emailStats: {
                 built: totalBuilt,
-                queued: queuedEmails.length,
-                sent: sentEmails.length
+                queued: queuedCount,
+                sent: sentCount
               }
             };
           } catch (error) {

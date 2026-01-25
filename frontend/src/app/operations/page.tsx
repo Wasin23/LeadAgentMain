@@ -1279,8 +1279,8 @@ export default function InteractiveGlobe() {
           emailsSent,
           emailsViewed,
           alerts,
-          // Initialize cumulative totals on first load, otherwise keep existing values
-          totalEmailsQueued: Math.max(prev.totalEmailsQueued, emailsQueued),
+          // Use current emailsQueued count (includes all agents + orphans)
+          totalEmailsQueued: emailsQueued,
           totalEmailsSent: Math.max(prev.totalEmailsSent, emailsSent)
         }));
       } catch (error) {
@@ -2065,7 +2065,6 @@ export default function InteractiveGlobe() {
                       try {
                         const allEmails: any[] = [];
                         for (const agent of agents) {
-                          if (agent.agentId === 'orphan') continue;
                           const response = await api.get(`/api/email-queue/${selectedQueue?.type === 'sent' ? 'sent' : selectedQueue?.type === 'replied' ? 'replied' : 'queue'}`, {
                             params: { agentId: agent.agentId }
                           });
