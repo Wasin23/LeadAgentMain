@@ -55,13 +55,17 @@ router.get('/queue/count', async (req, res) => {
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
     
+    console.log(`📊 [QUEUE COUNT] agentId: ${agentId}, userId: ${req.user.userId}`);
+    
     if (agentId === 'all' || !agentId) {
       const count = await awsQueue.getQueuedEmailCount(req.user.userId);
+      console.log(`📊 [QUEUE COUNT] ALL agents: ${count}`);
       return res.json({ count });
     }
     
     // For specific agent, count directly
     const pk = `${req.user.userId}#${agentId}`;
+    console.log(`📊 [QUEUE COUNT] Specific agent PK: ${pk}`);
     const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
@@ -72,6 +76,7 @@ router.get('/queue/count', async (req, res) => {
       Select: 'COUNT'
     }));
     
+    console.log(`📊 [QUEUE COUNT] Result for ${agentId}: ${countResponse.Count || 0}`);
     res.json({ count: countResponse.Count || 0 });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting queue count:', error);

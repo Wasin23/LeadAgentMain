@@ -783,6 +783,7 @@ export default function InteractiveGlobe() {
       
       // Always check for orphaned emails (queued, sent, and replied) using count endpoints
       try {
+        console.log('🔍 Fetching orphan counts...');
         const [orphanedQueuedRes, orphanedSentRes, orphanedRepliedRes] = await Promise.all([
           api.get('/api/email-queue/queue/count?agentId=orphan'),
           api.get('/api/email-queue/sent/count?agentId=orphan'),
@@ -793,9 +794,10 @@ export default function InteractiveGlobe() {
         const orphanedSentCount = orphanedSentRes.data?.count || 0;
         const orphanedRepliedCount = orphanedRepliedRes.data?.count || 0;
         
-        console.log('Orphaned emails check:', orphanedQueuedCount, 'queued,', orphanedSentCount, 'sent,', orphanedRepliedCount, 'replied');
+        console.log('🔍 Orphaned emails check:', orphanedQueuedCount, 'queued,', orphanedSentCount, 'sent,', orphanedRepliedCount, 'replied');
+        console.log('🔍 Raw responses:', { queued: orphanedQueuedRes.data, sent: orphanedSentRes.data, replied: orphanedRepliedRes.data });
         
-        if (orphanedQueuedCount > 0 || orphanedSentCount > 0) {
+        if (orphanedQueuedCount > 0 || orphanedSentCount > 0 || orphanedRepliedCount > 0) {
           // Add orphaned emails as a special agent at the top
           agents = [{
             agentId: 'orphan',
@@ -806,7 +808,9 @@ export default function InteractiveGlobe() {
             sent: orphanedSentCount,
             replied: orphanedRepliedCount
           }, ...agents];
-          console.log('Added orphaned emails agent to list');
+          console.log('✅ Added orphaned emails agent to list with counts:', { queued: orphanedQueuedCount, sent: orphanedSentCount, replied: orphanedRepliedCount });
+        } else {
+          console.log('❌ No orphaned emails found, not adding to list');
         }
       } catch (error) {
         console.error('Error fetching orphaned emails:', error);
@@ -2881,13 +2885,11 @@ export default function InteractiveGlobe() {
       )}
 
       {activeTab === 'queue' && (
-        <div className="pt-32">
+        <div className="pt-32 flex items-center justify-center min-h-[calc(100vh-200px)]">
           {loadingQueue ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-12 h-12 border-4 border-[#4FD1FF]/20 border-t-[#4FD1FF] rounded-full animate-spin"></div>
-                <p className="text-[#8FA6C1] text-sm">Loading email queue...</p>
-              </div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 border-4 border-[#4FD1FF]/20 border-t-[#4FD1FF] rounded-full animate-spin"></div>
+              <p className="text-[#8FA6C1] text-sm">Loading email queue...</p>
             </div>
           ) : (
             <div>{/* Email Queue tab content */}</div>
