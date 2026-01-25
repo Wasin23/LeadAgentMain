@@ -16,6 +16,7 @@ import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { getConfig } from './utils/config.js';
 import { memoryMonitor, performanceMiddleware } from './utils/memoryMonitor.js';
+import { authenticateToken } from './middleware/jwt.js';
 import chatRoutes from './routes/chat.js';
 import billingRoutes from './routes/billing.js';
 import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
@@ -499,7 +500,7 @@ app.use((req, res, next) => {
   }
   
   // Apply JWT for all other endpoints
-  return jwtMiddleware(req, res, next);
+  return authenticateToken(req, res, next);
 });
 
 // PUBLIC EMAIL-RELATED ROUTES (NO AUTH REQUIRED)
