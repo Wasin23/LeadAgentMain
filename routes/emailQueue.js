@@ -51,13 +51,111 @@ router.get('/', async (req, res) => {
 // Get count of queued emails (lightweight - no data transfer)
 router.get('/queue/count', async (req, res) => {
   try {
+    const agentId = req.query.agentId;
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
-    const count = await awsQueue.getQueuedEmailCount(req.user.userId);
-    res.json({ count });
+    
+    if (agentId === 'all' || !agentId) {
+      const count = await awsQueue.getQueuedEmailCount(req.user.userId);
+      return res.json({ count });
+    }
+    
+    // For specific agent, count directly
+    const pk = `USER#${req.user.userId}#AGENT#${agentId}`;
+    const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
+      TableName: awsQueue.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+        ':status': 'QUEUED#'
+      },
+      Select: 'COUNT'
+    }));
+    
+    res.json({ count: countResponse.Count || 0 });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting queue count:', error);
     res.status(500).json({ error: 'Failed to get queue count' });
+  }
+});
+
+// Get count of sent emails (lightweight - no data transfer)
+router.get('/sent/count', async (req, res) => {
+  try {
+    const agentId = req.query.agentId;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    
+    if (agentId === 'all' || !agentId) {
+      // Count all sent for user via GSI
+      const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
+        TableName: awsQueue.tableName,
+        IndexName: awsQueue.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': `${req.user.userId}#SENT`
+        },
+        Select: 'COUNT'
+      }));
+      return res.json({ count: countResponse.Count || 0 });
+    }
+    
+    // For specific agent, count directly
+    const pk = `USER#${req.user.userId}#AGENT#${agentId}`;
+    const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
+      TableName: awsQueue.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+        ':status': 'SENT#'
+      },
+      Select: 'COUNT'
+    }));
+    
+    res.json({ count: countResponse.Count || 0 });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error getting sent count:', error);
+    res.status(500).json({ error: 'Failed to get sent count' });
+  }
+});
+
+// Get count of replied emails (lightweight - no data transfer)
+router.get('/replied/count', async (req, res) => {
+  try {
+    const agentId = req.query.agentId;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    
+    if (agentId === 'all' || !agentId) {
+      // Count all replied for user via GSI
+      const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
+        TableName: awsQueue.tableName,
+        IndexName: awsQueue.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': `${req.user.userId}#REPLIED`
+        },
+        Select: 'COUNT'
+      }));
+      return res.json({ count: countResponse.Count || 0 });
+    }
+    
+    // For specific agent, count directly
+    const pk = `USER#${req.user.userId}#AGENT#${agentId}`;
+    const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
+      TableName: awsQueue.tableName,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+        ':status': 'REPLIED#'
+      },
+      Select: 'COUNT'
+    }));
+    
+    res.json({ count: countResponse.Count || 0 });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error getting replied count:', error);
+    res.status(500).json({ error: 'Failed to get replied count' });
   }
 });
 

@@ -752,24 +752,25 @@ export default function InteractiveGlobe() {
         hasEmailSettings: !!a.settings?.emailSettings
       })));
       
-      // Enrich agents with queue stats
+      // Enrich agents with queue stats using efficient count endpoints
       const enrichedAgents = await Promise.all(
         agents.map(async (agent: any) => {
           if (agent.agentId === 'orphan') return agent;
           try {
-            const [queueRes, sentRes] = await Promise.all([
+            const [queueRes, sentRes, repliedRes] = await Promise.all([
               api.get(`/api/email-queue/queue/count?agentId=${agent.agentId}`),
-              api.get(`/api/email-queue/sent?agentId=${agent.agentId}`)
+              api.get(`/api/email-queue/sent/count?agentId=${agent.agentId}`),
+              api.get(`/api/email-queue/replied/count?agentId=${agent.agentId}`)
             ]);
             const queuedCount = queueRes.data?.count || 0;
-            const sentEmails = Array.isArray(sentRes.data) ? sentRes.data : [];
-            const repliedEmails = sentEmails.filter((e: any) => e.replied || e.status === 'REPLIED');
+            const sentCount = sentRes.data?.count || 0;
+            const repliedCount = repliedRes.data?.count || 0;
             
             return {
               ...agent,
               queued: queuedCount,
-              sent: sentEmails.length,
-              replied: repliedEmails.length
+              sent: sentCount,
+              replied: repliedCount
             };
           } catch (error) {
             console.error(`Error fetching stats for ${agent.name}:`, error);
@@ -780,20 +781,21 @@ export default function InteractiveGlobe() {
       
       agents = enrichedAgents;
       
-      // Always check for orphaned emails (queued, sent, and replied)
+      // Always check for orphaned emails (queued, sent, and replied) using count endpoints
       try {
-        const [orphanedQueuedRes, orphanedSentRes] = await Promise.all([
+        const [orphanedQueuedRes, orphanedSentRes, orphanedRepliedRes] = await Promise.all([
           api.get('/api/email-queue/queue/count?agentId=orphan'),
-          api.get('/api/email-queue/sent?agentId=orphan')
+          api.get('/api/email-queue/sent/count?agentId=orphan'),
+          api.get('/api/email-queue/replied/count?agentId=orphan')
         ]);
         
         const orphanedQueuedCount = orphanedQueuedRes.data?.count || 0;
-        const orphanedSent = Array.isArray(orphanedSentRes.data) ? orphanedSentRes.data : (orphanedSentRes.data.emails || []);
-        const orphanedReplied = orphanedSent.filter((e: any) => e.replied || e.hasReply);
+        const orphanedSentCount = orphanedSentRes.data?.count || 0;
+        const orphanedRepliedCount = orphanedRepliedRes.data?.count || 0;
         
-        console.log('Orphaned emails check:', orphanedQueuedCount, 'queued,', orphanedSent.length, 'sent,', orphanedReplied.length, 'replied');
+        console.log('Orphaned emails check:', orphanedQueuedCount, 'queued,', orphanedSentCount, 'sent,', orphanedRepliedCount, 'replied');
         
-        if (orphanedQueuedCount > 0 || orphanedSent.length > 0) {
+        if (orphanedQueuedCount > 0 || orphanedSentCount > 0) {
           // Add orphaned emails as a special agent at the top
           agents = [{
             agentId: 'orphan',
@@ -801,8 +803,8 @@ export default function InteractiveGlobe() {
             status: 'orphaned',
             isOrphaned: true,
             queued: orphanedQueuedCount,
-            sent: orphanedSent.length,
-            replied: orphanedReplied.length
+            sent: orphanedSentCount,
+            replied: orphanedRepliedCount
           }, ...agents];
           console.log('Added orphaned emails agent to list');
         }
@@ -1253,17 +1255,16 @@ export default function InteractiveGlobe() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch queued emails count efficiently
-        const queuedResponse = await api.get('/api/email-queue/queue/count?agentId=all');
+        // Fetch all counts efficiently using count endpoints
+        const [queuedResponse, sentResponse, repliedResponse] = await Promise.all([
+          api.get('/api/email-queue/queue/count?agentId=all'),
+          api.get('/api/email-queue/sent/count?agentId=all'),
+          api.get('/api/email-queue/replied/count?agentId=all')
+        ]);
+        
         const emailsQueued = queuedResponse.data?.count || 0;
-
-        // Fetch sent emails
-        const sentResponse = await api.get('/api/email-queue/sent?agentId=all');
-        const emailsSent = Array.isArray(sentResponse.data) ? sentResponse.data.length : 0;
-
-        // Fetch replied/viewed emails
-        const repliedResponse = await api.get('/api/email-queue/replied?agentId=all');
-        const emailsViewed = Array.isArray(repliedResponse.data) ? repliedResponse.data.length : 0;
+        const emailsSent = sentResponse.data?.count || 0;
+        const emailsViewed = repliedResponse.data?.count || 0;
 
         // TODO: Fetch alerts from your alerts API
         const alerts = 0;
