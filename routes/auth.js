@@ -255,10 +255,10 @@ router.get('/profile', authenticateToken, async (req, res) => {
 router.get('/settings', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log(`[AUTH] GET /settings - Request received for user: ${userId}`);
+    // console.log(`[AUTH] GET /settings - Request received for user: ${userId}`);
     
     const settings = await getUserSettings(userId);
-    console.log(`[AUTH] Raw settings for ${userId}:`, settings);
+    // console.log(`[AUTH] Raw settings for ${userId}:`, settings);
     
     // Remove API keys from settings before sending to frontend
     const { apiKeys, ...safeSettings } = settings;
@@ -385,10 +385,10 @@ router.post('/verify-master-password', (req, res) => {
 router.get('/settings/domain-settings', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log(`[AUTH] GET /settings/domain-settings - Request received for user: ${userId}`);
+    // console.log(`[AUTH] GET /settings/domain-settings - Request received for user: ${userId}`);
     
     const settings = await getUserSettings(userId);
-    console.log(`[AUTH] Domain settings for ${userId}:`, settings.domainSettings);
+    // console.log(`[AUTH] Domain settings for ${userId}:`, settings.domainSettings);
     
     res.json({
       success: true,
@@ -407,11 +407,11 @@ router.post('/settings/domain-settings', authenticateToken, async (req, res) => 
     const userId = req.user.userId; // Get from JWT token
     const { domainSettings } = req.body;
     
-    console.log(`[AUTH] POST /settings/domain-settings - Request received for user: ${userId}`);
-    console.log('[AUTH] Domain settings to save:', domainSettings);
+    // console.log(`[AUTH] POST /settings/domain-settings - Request received for user: ${userId}`);
+    // console.log('[AUTH] Domain settings to save:', domainSettings);
     
     await updateUserSettings(userId, { domainSettings });
-    console.log('[AUTH] ✅ Domain settings updated successfully');
+    // console.log('[AUTH] ✅ Domain settings updated successfully');
     
     res.json({ success: true, message: 'Domain settings saved successfully' });
   } catch (error) {
@@ -424,8 +424,8 @@ router.post('/settings/domain-settings', authenticateToken, async (req, res) => 
 router.get('/settings/lead-contact-settings', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log(`[AUTH] GET /settings/lead-contact-settings - Request received for user: ${userId}`);
-    console.log(`[AUTH] User object from token:`, req.user);
+    // console.log(`[AUTH] GET /settings/lead-contact-settings - Request received for user: ${userId}`);
+    // console.log(`[AUTH] User object from token:`, req.user);
     
     // Import the Zilliz settings manager
     const { default: zillizSettingsManager } = await import('../utils/zillizSettingsManager.js');

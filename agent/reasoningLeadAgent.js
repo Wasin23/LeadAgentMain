@@ -7218,39 +7218,86 @@ Target Positions:`;
   /**
    * Run a single cycle (for testing/manual execution)
    */
+  // Monitor credits during agent operation
+  async checkCreditsStatus() {
+    try {
+      const user = await this.awsManager.getUserById(this.userId);
+      if (!user) {
+        console.log('⚠️ [CREDITS] Could not find user for credit check');
+        return { canContinue: true, reason: 'user-lookup-failed' };
+      }
+
+      // Users with payment methods get unlimited access
+      if (user.paymentMethodAdded) {
+        return { canContinue: true, reason: 'payment-method-active' };
+      }
+
+      const creditsUsed = user.trialCreditsUsed || 0;
+      const creditsLimit = user.trialCreditsLimit || 25;
+      const remainingCredits = creditsLimit - creditsUsed;
+
+      // Check if exhausted
+      if (remainingCredits <= 0) {
+        console.log('🚫 [CREDITS] Agent operation blocked - credits exhausted');
+        this.emit('progress', {
+          stage: 'credit-limit-reached',
+          message: 'Credits exhausted during operation. Agent stopping.',
+          timestamp: new Date().toISOString(),
+          creditsUsed,
+          creditsLimit,
+          remainingCredits: 0
+        });
+        return { 
+          canContinue: false, 
+          reason: 'credits-exhausted',
+          creditsUsed,
+          creditsLimit,
+          remainingCredits: 0
+        };
+      }
+
+      // Warn when getting low
+      if (remainingCredits <= 2) {
+        console.log(`⚠️ [CREDITS] Warning: Only ${remainingCredits.toFixed(2)} credits remaining`);
+        this.emit('progress', {
+          stage: 'credit-warning',
+          message: `Warning: Only ${remainingCredits.toFixed(2)} credits remaining`,
+          timestamp: new Date().toISOString(),
+          creditsUsed,
+          creditsLimit,
+          remainingCredits
+        });
+      }
+
+      return { 
+        canContinue: true, 
+        reason: 'sufficient-credits',
+        creditsUsed,
+        creditsLimit,
+        remainingCredits
+      };
+    } catch (error) {
+      console.error('⚠️ [CREDITS] Error checking credit status:', error);
+      // Allow operation to continue on error to prevent blocking
+      return { canContinue: true, reason: 'credit-check-error' };
+    }
+  }
+
   async runCycle() {
     try {
       console.log('🔄 [REASONING AGENT] Running manual cycle...');
       
-      // Check trial credits before running expensive operations
-      try {
-        const user = await this.awsManager.getUserById(this.userId);
-        if (user && !user.paymentMethodAdded) {
-          const creditsUsed = user.trialCreditsUsed || 0;
-          const creditsLimit = user.trialCreditsLimit || 25;
-          
-          if (creditsUsed >= creditsLimit) {
-            console.log('🚫 [CREDITS] Agent cycle blocked - trial credits exhausted');
-            this.emit('progress', {
-              stage: 'credit-limit-reached',
-              message: 'Trial credits exhausted. Please add a payment method to continue.',
-              timestamp: new Date().toISOString(),
-              creditsUsed,
-              creditsLimit
-            });
-            return { 
-              success: false, 
-              error: 'Trial credits exhausted. Please add a payment method to continue.',
-              creditsUsed,
-              creditsLimit
-            };
-          }
-          
-          console.log(`💳 [CREDITS] Agent cycle starting with ${(creditsLimit - creditsUsed).toFixed(2)} credits remaining`);
-        }
-      } catch (creditCheckError) {
-        console.error('⚠️ [CREDITS] Failed to check credits, allowing cycle:', creditCheckError);
+      // Check credits before running
+      const creditCheck = await this.checkCreditsStatus();
+      if (!creditCheck.canContinue) {
+        return { 
+          success: false, 
+          error: 'Credits exhausted',
+          ...creditCheck
+        };
       }
+
+      console.log(`💳 [CREDITS] Agent cycle starting with ${creditCheck.remainingCredits?.toFixed(2) || 'unlimited'} credits remaining`);
       
       // Emit progress update
       this.emit('progress', {
@@ -7581,6 +7628,21 @@ Target Positions:`;
       
       while (stepCount < maxSteps && this.isRunning) {
         stepCount++;
+        
+        // Check credits every 5 steps to prevent expensive operations with insufficient credits
+        if (stepCount % 5 === 0) {
+          const creditCheck = await this.checkCreditsStatus();
+          if (!creditCheck.canContinue) {
+            console.log(`🚫 [CREDITS] Stopping agent at step ${stepCount} - credits exhausted`);
+            this.logOperation('🚫 Agent Stopped', 'Credits exhausted during operation', 'error', creditCheck);
+            return { 
+              success: false, 
+              reason: 'credits-exhausted-mid-cycle',
+              stepsCompleted: stepCount,
+              ...creditCheck
+            };
+          }
+        }
         
         // Check if agent was stopped
         if (!this.isRunning) {
