@@ -599,7 +599,7 @@ router.post('/:id/approve', async (req, res) => {
         // Don't fail the email send if notification fails
       }
       
-      // Mark email as sent in AWS DynamoDB
+      // Mark email as sent in AWS DynamoDB - use AWS queue directly
       if (sendResult.result) {
         try {
           const leadNameForTracking = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName;
@@ -621,7 +621,8 @@ router.post('/:id/approve', async (req, res) => {
             sentVia: sendResult.method || 'mailgun'
           });
           
-          await userEmailQueue.markEmailAsSent(id, {
+          // Use AWS queue directly with original agentId (not wrapper class)
+          await awsEmailQueue.markEmailAsSent(req.user.userId, originalAgentId, id, {
             id: sendResult.result.mailgunId || sendResult.result.messageId || null,
             message: sendResult.result.messageId || sendResult.result.trackingId,
             trackingId: sendResult.result.trackingId,  // This is the tracking pixel ID

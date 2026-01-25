@@ -1,5 +1,8 @@
+import dotenv from 'dotenv';
 import { google } from 'googleapis';
 import AWSManager from './awsManager.js';
+
+dotenv.config();
 
 const awsManager = new AWSManager();
 
