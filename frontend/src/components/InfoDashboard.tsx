@@ -329,13 +329,13 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
 
           {/* Agent List */}
           <div className="space-y-2">
-            {agents.filter(a => !(a.status === 'orphaned' && a.agentId !== 'orphan')).length === 0 ? (
+            {agents.filter(a => a.agentId !== 'orphan').length === 0 ? (
               <div className="text-center py-8">
                 <Bot className="w-12 h-12 text-[#4FD1FF]/30 mx-auto mb-3" />
                 <p className="text-[#8FA6C1] text-sm">No agents created yet</p>
               </div>
             ) : (
-              agents.filter(a => !(a.status === 'orphaned' && a.agentId !== 'orphan')).map(agent => {
+              agents.filter(a => a.agentId !== 'orphan').map(agent => {
                 const activity = agentActivities[agent.agentId];
                 const isRunning = agent.status === 'running';
                 const isOrphaned = agent.status === 'orphaned';
