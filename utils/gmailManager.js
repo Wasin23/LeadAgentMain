@@ -111,15 +111,30 @@ class GmailManager {
    */
   async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true, trackingId = null, inReplyTo = null, references = null, threadId = null }) {
     try {
-      console.log('📧 [GMAIL] Sending email via Gmail API to:', to);
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('📧 [GMAIL SEND] Starting Gmail send process');
+      console.log('📧 [GMAIL SEND] To:', to);
+      console.log('📧 [GMAIL SEND] Subject:', subject);
+      console.log('📧 [GMAIL SEND] User ID:', userId);
+      console.log('📧 [GMAIL SEND] Agent ID:', agentId);
+      console.log('📧 [GMAIL SEND] Tracking ID:', trackingId);
+      console.log('📧 [GMAIL SEND] CC:', ccEmails || 'None');
+      console.log('📧 [GMAIL SEND] BCC:', bccEmails || 'None');
+      console.log('📧 [GMAIL SEND] HTML Body Length:', htmlBody?.length || 0);
+      console.log('═══════════════════════════════════════════════════════════════');
       if (inReplyTo || threadId) {
-        console.log('📧 [GMAIL] Threading enabled - sending as reply');
-        console.log('📧 [GMAIL] In-Reply-To:', inReplyTo);
-        console.log('📧 [GMAIL] Thread ID:', threadId);
+        console.log('🧵 [GMAIL THREADING] Threading enabled - sending as reply');
+        console.log('🧵 [GMAIL THREADING] In-Reply-To:', inReplyTo);
+        console.log('🧵 [GMAIL THREADING] Thread ID:', threadId);
       }
 
       // Get user's Gmail credentials from DynamoDB
+      console.log('📥 [GMAIL ACCOUNTS] Fetching user settings from DynamoDB...');
       const userSettings = await awsManager.getUserSettings(userId);
+      console.log('📥 [GMAIL ACCOUNTS] User settings retrieved');
+      console.log('📥 [GMAIL ACCOUNTS] Has gmailAuth:', !!userSettings?.gmailAuth);
+      console.log('📥 [GMAIL ACCOUNTS] Has gmailAccounts:', !!userSettings?.gmailAccounts);
+      console.log('📥 [GMAIL ACCOUNTS] Has calendarTokens:', !!userSettings?.calendarTokens);
       
       // Support both old gmailAuth format, new gmailAccounts array, and calendarTokens with Gmail scopes
       let gmailAccounts = [];
@@ -127,19 +142,27 @@ class GmailManager {
       
       if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
         // New multi-account format
+        console.log('✅ [GMAIL ACCOUNTS] Using gmailAccounts format');
         gmailAccounts = userSettings.gmailAccounts;
         currentAccountIndex = userSettings.activeGmailIndex || 0;
+        console.log('📧 [GMAIL ACCOUNTS] Found', gmailAccounts.length, 'accounts, active index:', currentAccountIndex);
+        gmailAccounts.forEach((acc, idx) => {
+          console.log(`   Account ${idx + 1}: ${acc.email} (Active: ${acc.isActive}, Has Token: ${!!acc.refreshToken})`);
+        });
       } else if (userSettings?.gmailAuth?.refreshToken) {
         // Legacy single account format - convert to array
+        console.log('✅ [GMAIL ACCOUNTS] Using legacy gmailAuth format');
         gmailAccounts = [{
           email: userSettings.gmailAuth.email,
           refreshToken: userSettings.gmailAuth.refreshToken,
           isActive: true
         }];
         currentAccountIndex = 0;
+        console.log('📧 [GMAIL ACCOUNTS] Legacy account:', userSettings.gmailAuth.email);
       } else if (userSettings?.calendarTokens?.refresh_token && 
                  userSettings?.calendarTokens?.scope?.includes('gmail')) {
         // Calendar OAuth includes Gmail scopes
+        console.log('✅ [GMAIL ACCOUNTS] Using calendarTokens with Gmail scopes');
         const emailAddress = await this.getUserEmailFromTokens(userSettings.calendarTokens);
         gmailAccounts = [{
           email: emailAddress,
@@ -147,19 +170,32 @@ class GmailManager {
           isActive: true
         }];
         currentAccountIndex = 0;
-        console.log('[GMAIL] Using calendarTokens for Gmail sending');
+        console.log('📧 [GMAIL ACCOUNTS] Calendar token email:', emailAddress);
       } else {
+        console.error('❌ [GMAIL ACCOUNTS] No Gmail accounts found!');
+        console.error('❌ [GMAIL ACCOUNTS] User settings:', {
+          hasGmailAuth: !!userSettings?.gmailAuth,
+          hasGmailAccounts: !!userSettings?.gmailAccounts,
+          hasCalendarTokens: !!userSettings?.calendarTokens,
+          calendarScopes: userSettings?.calendarTokens?.scope
+        });
         throw new Error('Gmail not connected. Please connect your Gmail account in settings.');
       }
 
       // Get the current account for this email
       const currentAccount = gmailAccounts[currentAccountIndex];
-      console.log(`📧 [GMAIL] Using account ${currentAccountIndex + 1}/${gmailAccounts.length}: ${currentAccount.email}`);
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log(`📧 [GMAIL ACCOUNT] Using account ${currentAccountIndex + 1}/${gmailAccounts.length}: ${currentAccount.email}`);
+      console.log(`📧 [GMAIL ACCOUNT] Has refresh token: ${!!currentAccount.refreshToken}`);
+      console.log(`📧 [GMAIL ACCOUNT] Token length: ${currentAccount.refreshToken?.length || 0}`);
+      console.log('═══════════════════════════════════════════════════════════════');
 
       // Set credentials
+      console.log('🔐 [GMAIL AUTH] Setting OAuth2 credentials...');
       this.oauth2Client.setCredentials({
         refresh_token: currentAccount.refreshToken
       });
+      console.log('✅ [GMAIL AUTH] Credentials set successfully');
 
       // Create Gmail API client
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });

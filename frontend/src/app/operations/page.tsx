@@ -754,18 +754,43 @@ export default function InteractiveGlobe() {
       console.log('Fetched agents:', response.data.agents);
       console.log('Agent activities:', agentActivities);
       let agents = response.data.agents || [];
-      console.log('Agents status check:', agents.map((a: any) => ({
+      
+      // Fetch actual counts for each agent
+      const agentsWithCounts = await Promise.all(agents.map(async (agent: any) => {
+        try {
+          const [queuedRes, sentRes, repliedRes] = await Promise.all([
+            api.get(`/api/email-queue/queue/count?agentId=${agent.agentId}`),
+            api.get(`/api/email-queue/sent/count?agentId=${agent.agentId}`),
+            api.get(`/api/email-queue/replied/count?agentId=${agent.agentId}`)
+          ]);
+          return {
+            ...agent,
+            queued: queuedRes.data?.count || 0,
+            sent: sentRes.data?.count || 0,
+            replied: repliedRes.data?.count || 0
+          };
+        } catch (error) {
+          console.error(`Error fetching counts for agent ${agent.agentId}:`, error);
+          return {
+            ...agent,
+            queued: 0,
+            sent: 0,
+            replied: 0
+          };
+        }
+      }));
+      
+      agents = agentsWithCounts;
+      console.log('Agents with counts:', agents.map((a: any) => ({
         name: a.name,
         status: a.status,
         agentId: a.agentId,
+        queued: a.queued,
+        sent: a.sent,
+        replied: a.replied,
         hasActivity: !!agentActivities[a.agentId],
         isActive: agentActivities[a.agentId]?.isActive,
-        useGmail: a.settings?.emailSettings?.useGmail,
-        hasEmailSettings: !!a.settings?.emailSettings,
-        // Use placeholder counts - actual counts come from context
-        queued: 0,
-        sent: 0,
-        replied: 0
+        useGmail: a.settings?.emailSettings?.useGmail
       })));
       
       // Check for orphaned emails using count endpoints
