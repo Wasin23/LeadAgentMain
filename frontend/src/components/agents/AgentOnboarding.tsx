@@ -24,7 +24,7 @@ interface AgentOnboardingProps {
   onSkip: () => void;
 }
 
-type OnboardingStep = 'intro' | 'select-personality' | 'name-agent' | 'choose-preset' | 'name-preset' | 'gmail-setup' | 'crm-setup' | 'payment-setup' | 'review' | 'creating';
+type OnboardingStep = 'intro' | 'select-personality' | 'name-agent' | 'choose-preset' | 'name-preset' | 'gmail-setup' | 'crm-setup' | 'plan-selection' | 'payment-setup' | 'review' | 'creating';
 
 export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingProps) {
   const router = useRouter();
@@ -37,13 +37,15 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [useGmail, setUseGmail] = useState(false);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [crmConnected, setCrmConnected] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>('free-trial');
   const [paymentAdded, setPaymentAdded] = useState(false);
+  const [planPurchased, setPlanPurchased] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'gmail-setup', 'crm-setup', 'payment-setup', 'review', 'creating'];
+  const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'gmail-setup', 'crm-setup', 'plan-selection', 'payment-setup', 'review', 'creating'];
   const currentStepIndex = steps.indexOf(currentStep);
 
   // Load user's default Gmail preference on mount
@@ -382,13 +384,36 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               onBack={prevStep}
             />
           )}
+          {currentStep === 'plan-selection' && (
+            <PlanSelectionStep
+              key="plan-selection"
+              selectedPlan={selectedPlan}
+              onSelectPlan={setSelectedPlan}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
           {currentStep === 'payment-setup' && (
             <PaymentSetupStep
               key="payment-setup"
+              selectedPlan={selectedPlan}
               paymentAdded={paymentAdded}
+              planPurchased={planPurchased}
               onAddPayment={() => {
                 // Redirect to billing page to add payment method
                 window.open('/billing', '_blank');
+              }}
+              onPurchasePlan={async () => {
+                try {
+                  // Purchase the selected plan
+                  if (selectedPlan !== 'free-trial') {
+                    // Navigate to purchase flow
+                    setPlanPurchased(true);
+                    setPaymentAdded(true);
+                  }
+                } catch (error) {
+                  console.error('Failed to purchase plan:', error);
+                }
               }}
               onNext={nextStep}
               onBack={prevStep}
@@ -1858,18 +1883,223 @@ function CRMSetupStep({
   );
 }
 
-// Payment Setup Step
-function PaymentSetupStep({
-  paymentAdded,
-  onAddPayment,
+// Plan Selection Step
+function PlanSelectionStep({
+  selectedPlan,
+  onSelectPlan,
   onNext,
   onBack
 }: {
-  paymentAdded: boolean;
-  onAddPayment: () => void;
+  selectedPlan: string;
+  onSelectPlan: (plan: string) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
+  const plans = [
+    {
+      id: 'free-trial',
+      name: 'Free Trial',
+      price: 0,
+      credits: 500,
+      description: 'Perfect for trying out Meridian',
+      features: [
+        '500 free credits ($25 value)',
+        'All core features included',
+        'No credit card required',
+        'Perfect for testing'
+      ],
+      color: 'green',
+      popular: false
+    },
+    {
+      id: 'starter',
+      name: 'Starter',
+      price: 500,
+      credits: 10000,
+      description: 'Great for solo entrepreneurs',
+      features: [
+        '10,000 credits (~15,000 emails)',
+        'All features unlocked', 
+        'Priority support',
+        'Can purchase more credits'
+      ],
+      color: 'blue',
+      popular: false
+    },
+    {
+      id: 'growth',
+      name: 'Growth',
+      price: 1000,
+      credits: 20000,
+      description: 'Perfect for growing teams',
+      features: [
+        '20,000 credits (~30,000 emails)',
+        'Everything in Starter',
+        'Advanced analytics',
+        'Team collaboration'
+      ],
+      color: 'purple',
+      popular: true
+    },
+    {
+      id: 'scale',
+      name: 'Scale',
+      price: 2500,
+      credits: 70000,
+      description: 'For high-volume operations',
+      features: [
+        '70,000 credits + 20,000 bonus',
+        'Everything in Growth',
+        'Dedicated support',
+        'Custom integrations'
+      ],
+      color: 'orange',
+      popular: false
+    }
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="w-full max-w-6xl"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-4xl font-bold text-white mb-3">Choose Your Plan</h2>
+        <p className="text-xl text-white/90">
+          Start with free trial or jump right into a paid plan
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {plans.map((plan) => (
+          <motion.div
+            key={plan.id}
+            whileHover={{ scale: 1.02 }}
+            className={`relative bg-white rounded-2xl p-6 cursor-pointer transition-all border-4 ${
+              selectedPlan === plan.id 
+                ? 'border-[#4FD1FF] shadow-2xl shadow-[#4FD1FF]/20' 
+                : 'border-white/10 hover:border-[#4FD1FF]/50'
+            }`}
+            onClick={() => onSelectPlan(plan.id)}
+          >
+            {plan.popular && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                  Most Popular
+                </span>
+              </div>
+            )}
+            
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+              <p className="text-gray-600 mb-4">{plan.description}</p>
+              
+              <div className="mb-4">
+                <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
+                {plan.price > 0 && <span className="text-gray-600">/one-time</span>}
+              </div>
+              
+              <div className="text-lg font-bold text-[#4FD1FF] mb-4">
+                {plan.credits.toLocaleString()} credits
+              </div>
+              
+              <ul className="space-y-2 text-sm text-gray-600 mb-6">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <CheckIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              {selectedPlan === plan.id && (
+                <div className="flex items-center justify-center gap-2 text-[#4FD1FF] font-bold">
+                  <CheckIcon className="w-5 h-5" />
+                  Selected
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="px-6 py-3 border-2 border-white/20 text-white rounded-xl hover:bg-white/10 transition-all"
+        >
+          Back
+        </button>
+        <button
+          onClick={onNext}
+          className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-xl hover:shadow-[#4FD1FF]/30 transition-all inline-flex items-center gap-2"
+        >
+          Continue with {plans.find(p => p.id === selectedPlan)?.name}
+          <ArrowRightIcon className="w-5 h-5" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// Payment Setup Step
+function PaymentSetupStep({
+  selectedPlan,
+  paymentAdded,
+  planPurchased,
+  onAddPayment,
+  onPurchasePlan,
+  onNext,
+  onBack
+}: {
+  selectedPlan: string;
+  paymentAdded: boolean;
+  planPurchased: boolean;
+  onAddPayment: () => void;
+  onPurchasePlan: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  
+  const planDetails = {
+    'free-trial': { name: 'Free Trial', credits: 500, price: 0 },
+    'starter': { name: 'Starter', credits: 10000, price: 500 },
+    'growth': { name: 'Growth', credits: 20000, price: 1000 },
+    'scale': { name: 'Scale', credits: 70000, price: 2500 }
+  }[selectedPlan] || planDetails['free-trial'];
+
+  const handlePurchase = async () => {
+    if (selectedPlan === 'free-trial') {
+      onNext();
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Use the existing credit purchase system
+      const response = await api.post('/api/billing/purchase-credits', {
+        tierId: selectedPlan,
+        amount: planDetails.price,
+        credits: planDetails.credits,
+      });
+
+      if (response.data.success) {
+        onPurchasePlan();
+        onNext();
+      } else {
+        throw new Error(response.data.error || 'Purchase failed');
+      }
+    } catch (error: any) {
+      console.error('Purchase failed:', error);
+      alert('Purchase failed: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1878,89 +2108,98 @@ function PaymentSetupStep({
       className="w-full max-w-2xl"
     >
       <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold text-white mb-3">Add Payment Method (Optional)</h2>
+        <h2 className="text-4xl font-bold text-white mb-3">
+          {selectedPlan === 'free-trial' ? 'Start Your Free Trial' : 'Complete Your Purchase'}
+        </h2>
         <p className="text-xl text-white/90">
-          Get started with $25 in free trial credits
+          Selected: {planDetails.name} - {planDetails.credits.toLocaleString()} credits
         </p>
       </div>
 
       <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
-        <div className="space-y-6">
-          <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <svg className="w-8 h-8 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <h3 className="font-bold text-green-900 text-lg mb-2">Trial Credits Included</h3>
-                <p className="text-sm text-green-800 mb-3">
-                  Start with $25 in free credits to test the platform. Only pay when you're ready to scale.
-                </p>
-                <ul className="space-y-2 text-sm text-green-800">
-                  <li>✓ No credit card required to start</li>
-                  <li>✓ Pay-as-you-go pricing after trial</li>
-                  <li>✓ Only charged for API usage (leads researched, emails sent)</li>
-                  <li>✓ Cancel anytime, no commitments</li>
-                </ul>
+        {selectedPlan === 'free-trial' ? (
+          <div className="space-y-6">
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <svg className="w-8 h-8 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0 2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 className="font-bold text-green-900 text-lg mb-2">Free Trial Ready!</h3>
+                  <p className="text-sm text-green-800 mb-3">
+                    Start with 500 free credits ($25 value) to test the platform. Only pay when you're ready to scale.
+                  </p>
+                  <ul className="space-y-2 text-sm text-green-800">
+                    <li>✓ No credit card required</li>
+                    <li>✓ Full access to all features</li>
+                    <li>✓ Real cost tracking</li>
+                    <li>✓ Upgrade anytime</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+              <div className="text-center">
+                <h3 className="font-bold text-blue-900 text-xl mb-2">{planDetails.name} Plan</h3>
+                <p className="text-3xl font-bold text-blue-600 mb-2">${planDetails.price}</p>
+                <p className="text-blue-800 mb-4">{planDetails.credits.toLocaleString()} credits included</p>
+                
+                {!paymentAdded && (
+                  <div className="space-y-4">
+                    <button
+                      onClick={onAddPayment}
+                      className="w-full px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all"
+                    >
+                      Add Payment Method First
+                    </button>
+                    <p className="text-sm text-blue-600">
+                      You'll need a payment method on file before purchasing
+                    </p>
+                  </div>
+                )}
 
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold text-blue-900">Trial Credits Remaining</p>
-                <p className="text-2xl font-bold text-blue-600">$25.00</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-blue-700">No payment required yet</p>
+                {paymentAdded && !planPurchased && (
+                  <button
+                    onClick={handlePurchase}
+                    disabled={loading}
+                    className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                  >
+                    {loading ? 'Processing...' : `Purchase ${planDetails.name} Plan`}
+                  </button>
+                )}
+
+                {planPurchased && (
+                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <CheckIcon className="w-6 h-6 text-green-600" />
+                      <p className="text-sm text-green-800 font-semibold">
+                        Plan purchased successfully! {planDetails.credits.toLocaleString()} credits added.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-
-          {!paymentAdded && (
-            <div className="text-center py-4">
-              <button
-                onClick={onAddPayment}
-                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all"
-              >
-                Add Payment Method
-              </button>
-              <p className="text-sm text-neutral-500 mt-3">
-                You can also add this later from the Billing page
-              </p>
-            </div>
-          )}
-
-          {paymentAdded && (
-            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <CheckIcon className="w-6 h-6 text-green-600" />
-                <p className="text-sm text-green-800 font-semibold">
-                  Payment method added successfully!
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="px-6 py-3 text-white hover:bg-white/10 rounded-xl font-semibold transition-all"
+          className="px-6 py-3 border-2 border-white/20 text-white rounded-xl hover:bg-white/10 transition-all"
         >
-          ← Back
+          Back
         </button>
         <button
-          onClick={onNext}
-          className="px-10 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-xl hover:scale-105 inline-flex items-center gap-2"
-          style={{
-            backgroundColor: 'white',
-            color: 'rgb(147, 51, 234)'
-          }}
+          onClick={selectedPlan === 'free-trial' ? onNext : (planPurchased ? onNext : () => {})}
+          disabled={selectedPlan !== 'free-trial' && !planPurchased}
+          className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-xl hover:shadow-[#4FD1FF]/30 transition-all inline-flex items-center gap-2 disabled:opacity-50"
         >
-          {paymentAdded ? 'Continue' : 'Skip for now'}
+          Continue
           <ArrowRightIcon className="w-5 h-5" />
         </button>
       </div>
