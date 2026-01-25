@@ -1052,20 +1052,8 @@ export default function InteractiveGlobe() {
   }, [isDraggingModal, isResizing, dragStart, resizeStart, modalPosition, modalSize, resizeDirection]);
 
   const handleQueueClick = (type: 'queued' | 'sent' | 'replied', label: string) => {
-    // Reset loading states immediately
-    setLoadingAgents(false);
-    setLoadingQueue(false);
-    
-    setSelectedQueue({ agentId: 'all', type, agentName: label });
-    setSelectedAgent(null);
-    // Reset modal position and size when opening - center it on screen
-    const centerX = (window.innerWidth - 896) / 2;
-    const centerY = (window.innerHeight - 600) / 2;
-    setModalPosition({ x: Math.max(8, centerX), y: Math.max(8, centerY) });
-    setModalSize({ width: 896, height: 600 });
-    fetchAgents(type);
-    // Actually fetch the queue emails for display
-    fetchQueueEmails('all', type);
+    // Just switch to queue tab
+    setActiveTab('queue');
   };
 
   const handleAgentSelect = (agent: any) => {
@@ -1927,10 +1915,10 @@ export default function InteractiveGlobe() {
               {selectedQueue?.type === 'queued' && !selectionMode && (
                 <button
                   onClick={() => setShowAutoEditor(true)}
-                  className="px-3 py-1 bg-blue-500/80 hover:bg-blue-600 text-white rounded text-xs border border-blue-400/50 transition-colors font-medium"
+                  className="px-3 py-1 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 text-[#4FD1FF] rounded text-xs font-medium transition-colors border border-[#4FD1FF]/30"
                   title="Find and replace text across all queued emails"
                 >
-                  🔧 Bulk Edit
+                  Bulk Edit
                 </button>
               )}
               
@@ -2632,8 +2620,7 @@ export default function InteractiveGlobe() {
               <button
                 onClick={() => {
                   if (stats.totalEmailsQueued > 0) {
-                    console.log('🔘 [VIEW QUEUE BUTTON] Clicked! Calling handleQueueClick...');
-                    handleQueueClick('queued', 'Queued Emails');
+                    setActiveTab('queue');
                   }
                 }}
                 disabled={stats.totalEmailsQueued === 0}
