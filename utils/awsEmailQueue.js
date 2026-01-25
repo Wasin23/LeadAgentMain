@@ -39,43 +39,20 @@ class AWSEmailQueue {
     this.tableName = process.env.AWS_DYNAMODB_EMAIL_QUEUE_TABLE || 'meridian-email-queue';
     this.gsiName = 'UserStatusIndex';
     
-    // Add in-memory cache to reduce DynamoDB queries
-    this.cache = new Map();
-    this.cacheTimeout = 30000; // 30 seconds cache (increased from 5)
-    
     console.log(`📧 [AWS EMAIL QUEUE] Initialized with table: ${this.tableName}`);
   }
 
   /**
-   * Get cached data or fetch from DB with error handling
+   * Fetch from DB with error handling
    */
-  async _getCached(key, fetchFn) {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      // Cache hit - silent
-      return cached.data;
-    }
-    
+  async _fetch(key, fetchFn) {
     try {
       const data = await fetchFn();
-      this.cache.set(key, { data, timestamp: Date.now() });
-      
-      // Clear old cache entries (keep last 100)
-      if (this.cache.size > 100) {
-        const firstKey = this.cache.keys().next().value;
-        this.cache.delete(firstKey);
-      }
-      
       return data;
     } catch (error) {
-      // If we hit throughput limits and have stale cache, use it
-      if (error.name === 'ProvisionedThroughputExceededException' && cached) {
-        console.log(`⚠️ [CACHE] Using stale cache for ${key} due to throughput limit`);
-        return cached.data;
-      }
-      // If no cache available, return empty array instead of throwing
+      // If we hit throughput limits, return empty array
       if (error.name === 'ProvisionedThroughputExceededException') {
-        console.log(`⚠️ [CACHE] Returning empty data for ${key} due to throughput limit`);
+        console.log(`⚠️ [FETCH] Returning empty data for ${key} due to throughput limit`);
         return [];
       }
       throw error;
@@ -523,7 +500,7 @@ class AWSEmailQueue {
    * Includes both SENT and BOUNCED emails
    */
   async getAllSentEmailsForUser(userId) {
-    return this._getCached(`${userId}:sent`, async () => {
+    return this._fetch(`${userId}:sent`, async () => {
       try {
         // Query for SENT emails across all agents
         const sentResponse = await this.dynamodb.send(new QueryCommand({
@@ -560,7 +537,7 @@ class AWSEmailQueue {
    * Get ALL replied emails across ALL agents for a user (using GSI)
    */
   async getAllRepliedEmailsForUser(userId) {
-    return this._getCached(`${userId}:replied`, async () => {
+    return this._fetch(`${userId}:replied`, async () => {
       try {
         const response = await this.dynamodb.send(new QueryCommand({
           TableName: this.tableName,
@@ -1200,7 +1177,7 @@ class AWSEmailQueue {
    */
   async getSentEmailsForAgent(userId, agentId) {
     const cacheKey = `${userId}#${agentId}#SENT`;
-    return await this._getCached(cacheKey, async () => {
+    return await this._fetch(cacheKey, async () => {
       return await this.getSentEmails(userId, agentId);
     });
   }

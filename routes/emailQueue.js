@@ -411,8 +411,8 @@ router.post('/:id/approve', async (req, res) => {
       }
     }
     
-    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
-    const queue = await userEmailQueue.getQueue();
+    const awsEmailQueue = new AWSEmailQueue();
+    const queue = await awsEmailQueue.getQueuedEmails(req.user.userId, agentId);
     const email = queue.find(e => e.id === id);
     
     if (!email) {
@@ -420,7 +420,7 @@ router.post('/:id/approve', async (req, res) => {
     }
     
     // Approve the email (moves it from queue to approved)
-    const approvedEmail = await userEmailQueue.approveEmail(id);
+    const approvedEmail = await awsEmailQueue.approveEmail(req.user.userId, agentId, id);
     
     // Handle both old format (direct fields) and new format (nested in emailData)
     const emailData = approvedEmail.emailData || {};
