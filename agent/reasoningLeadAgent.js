@@ -7222,6 +7222,36 @@ Target Positions:`;
     try {
       console.log('🔄 [REASONING AGENT] Running manual cycle...');
       
+      // Check trial credits before running expensive operations
+      try {
+        const user = await this.awsManager.getUserById(this.userId);
+        if (user && !user.paymentMethodAdded) {
+          const creditsUsed = user.trialCreditsUsed || 0;
+          const creditsLimit = user.trialCreditsLimit || 25;
+          
+          if (creditsUsed >= creditsLimit) {
+            console.log('🚫 [CREDITS] Agent cycle blocked - trial credits exhausted');
+            this.emit('progress', {
+              stage: 'credit-limit-reached',
+              message: 'Trial credits exhausted. Please add a payment method to continue.',
+              timestamp: new Date().toISOString(),
+              creditsUsed,
+              creditsLimit
+            });
+            return { 
+              success: false, 
+              error: 'Trial credits exhausted. Please add a payment method to continue.',
+              creditsUsed,
+              creditsLimit
+            };
+          }
+          
+          console.log(`💳 [CREDITS] Agent cycle starting with ${(creditsLimit - creditsUsed).toFixed(2)} credits remaining`);
+        }
+      } catch (creditCheckError) {
+        console.error('⚠️ [CREDITS] Failed to check credits, allowing cycle:', creditCheckError);
+      }
+      
       // Emit progress update
       this.emit('progress', {
         stage: 'manual-cycle',

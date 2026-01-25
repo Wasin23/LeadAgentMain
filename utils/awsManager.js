@@ -1470,6 +1470,61 @@ class AWSManager {
       console.log(`📊 [AWS] Logged ${service} usage: ${usage} (${operation}) - $${(cost || 0).toFixed(4)}`);
       console.log(`✅ [AWS] DynamoDB write confirmed:`, JSON.stringify(writeResult.$metadata));
       
+      // DEDUCT TRIAL CREDITS based on real API costs (1 credit = $0.05)
+      try {
+        const user = await this.getUserById(userId);
+        if (user && !user.paymentMethodAdded && cost > 0) {
+          const creditsToDeduct = cost / 0.05; // 1 credit = $0.05
+          const currentCreditsUsed = user.trialCreditsUsed || 0;
+          const newCreditsUsed = currentCreditsUsed + creditsToDeduct;
+          
+          await this.updateUser(userId, {
+            trialCreditsUsed: newCreditsUsed
+          });
+          
+          console.log(`💳 [CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
+          console.log(`💳 [CREDITS] User now at ${newCreditsUsed.toFixed(2)} / ${user.trialCreditsLimit || 25} credits`);
+          
+          // Check credit thresholds for warnings
+          const creditsLimit = user.trialCreditsLimit || 25;
+          const percentageUsed = (newCreditsUsed / creditsLimit) * 100;
+          
+          // 90% critical threshold
+          if (currentCreditsUsed < (creditsLimit * 0.9) && newCreditsUsed >= (creditsLimit * 0.9)) {
+            await this.addIssue(
+              userId,
+              'billing',
+              '🚨 Trial Credits Almost Exhausted',
+              `You've used $${newCreditsUsed.toFixed(2)} of your $${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%). Service will be suspended when credits are depleted.`,
+              {
+                severity: 'critical',
+                creditsUsed: newCreditsUsed,
+                creditsLimit: creditsLimit,
+                percentageUsed: percentageUsed.toFixed(1)
+              }
+            );
+          }
+          
+          // 100% limit reached
+          if (currentCreditsUsed < creditsLimit && newCreditsUsed >= creditsLimit) {
+            await this.addIssue(
+              userId,
+              'billing',
+              '🚫 Trial Credits Exhausted',
+              `You've used all $${creditsLimit} of your trial credits. Add a payment method immediately to restore service.`,
+              {
+                severity: 'critical',
+                creditsUsed: newCreditsUsed,
+                creditsLimit: creditsLimit,
+                percentageUsed: 100
+              }
+            );
+          }
+        }
+      } catch (creditError) {
+        console.error('❌ [CREDITS] Failed to deduct trial credits:', creditError);
+      }
+      
       // Update summary table asynchronously (don't wait)
       this.updateApiUsageSummary(userId, service, usage, cost || 0).catch(err => {
         console.error('⚠️  [AWS] Failed to update summary:', err.message);

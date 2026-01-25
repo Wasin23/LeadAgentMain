@@ -3,7 +3,6 @@ import { getUserAgent } from '../agent/reasoningLeadAgent.js';
 import { AgentSettingsManager } from '../utils/agentSettingsManager.js';
 import { authenticateToken } from '../middleware/jwt.js';
 import { checkPaymentStatus } from '../middleware/paymentStatus.js';
-import { checkTrialCredits, getTrialCreditStatus, trackApiUsage } from '../middleware/apiCostTracker.js';
 import AWSManager from '../utils/awsManager.js';
 import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
@@ -32,28 +31,6 @@ router.post('/start', async (req, res) => {
     const userId = req.user.userId; // Get from JWT token
     const { minutes, agentId = 'reasoning-lead-agent' } = req.body || {}; // Get agentId from request body
     
-    // Check if user has sufficient credits before starting agent
-    const creditStatus = await getTrialCreditStatus(userId);
-    if (!creditStatus.paymentMethodAdded && creditStatus.limitReached) {
-      return res.status(402).json({
-        success: false,
-        error: 'Insufficient credits',
-        message: 'Trial credits exhausted. Please add a payment method to continue.',
-        credits: creditStatus
-      });
-    }
-    
-    // Additional check for API calls (estimate 1 credit for starting)
-    const creditCheck = await checkTrialCredits(userId, 'agent-start', 1);
-    if (!creditCheck.allowed) {
-      return res.status(402).json({
-        success: false,
-        error: 'Insufficient credits',
-        message: creditCheck.message,
-        credits: creditCheck
-      });
-    }
-    
     // console.log('🚀 [LEAD AGENT API] START endpoint called for user:', userId, 'agentId:', agentId);
     
     // Get agent-specific instance
@@ -62,16 +39,6 @@ router.post('/start', async (req, res) => {
     
     const result = await userAgent.start(minutes, userId);
     // console.log('✅ [LEAD AGENT API] Start result:', result);
-    
-    // Track credit usage for successful start
-    if (result.success || result.isActive) {
-      try {
-        await trackApiUsage(userId, 'agent-start', 1);
-        console.log('💳 [CREDITS] Tracked 1 credit for agent start');
-      } catch (trackingError) {
-        console.error('❌ [CREDITS] Failed to track agent start usage:', trackingError);
-      }
-    }
     
     // Update agent status in database if start was successful
     if (result.success || result.isActive) {
@@ -334,40 +301,10 @@ router.post('/run-cycle', async (req, res) => {
     const userId = req.user.userId; // Get from JWT token
     const { agentId = 'reasoning-lead-agent' } = req.body || {};
     
-    // Check if user has sufficient credits before running cycle
-    const creditStatus = await getTrialCreditStatus(userId);
-    if (!creditStatus.paymentMethodAdded && creditStatus.limitReached) {
-      return res.status(402).json({
-        success: false,
-        error: 'Insufficient credits',
-        message: 'Trial credits exhausted. Please add a payment method to continue.',
-        credits: creditStatus
-      });
-    }
-    
-    // Additional check for cycle operations (estimate 2 credits per cycle)
-    const creditCheck = await checkTrialCredits(userId, 'agent-cycle', 2);
-    if (!creditCheck.allowed) {
-      return res.status(402).json({
-        success: false,
-        error: 'Insufficient credits',
-        message: creditCheck.message,
-        credits: creditCheck
-      });
-    }
-    
     console.log('[LEAD AGENT API] Force running cycle for user:', userId, 'agentId:', agentId);
     
     // Get agent-specific instance
     const userAgent = getUserAgent(userId, agentId);
-    
-    // Track credit usage for manual cycle
-    try {
-      await trackApiUsage(userId, 'agent-cycle', 2);
-      console.log('💳 [CREDITS] Tracked 2 credits for agent cycle');
-    } catch (trackingError) {
-      console.error('❌ [CREDITS] Failed to track agent cycle usage:', trackingError);
-    }
     
     // Start the cycle asynchronously (don't wait for completion)
     userAgent.runCycle().catch(error => {
