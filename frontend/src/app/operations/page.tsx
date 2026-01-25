@@ -278,6 +278,8 @@ export default function InteractiveGlobe() {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // 'desc' = latest first, 'asc' = earliest first
   const [fontSize, setFontSize] = useState<number>(11); // Base font size in pixels
   const EMAILS_PER_PAGE = 20;
+  const [totalQueuedEmails, setTotalQueuedEmails] = useState(0);
+  const [hasMoreEmails, setHasMoreEmails] = useState(false);
   
   // Auto-editor states
   const [showAutoEditor, setShowAutoEditor] = useState(false);
@@ -756,16 +758,16 @@ export default function InteractiveGlobe() {
           if (agent.agentId === 'orphan') return agent;
           try {
             const [queueRes, sentRes] = await Promise.all([
-              api.get(`/api/email-queue/queue?agentId=${agent.agentId}`),
+              api.get(`/api/email-queue/queue/count?agentId=${agent.agentId}`),
               api.get(`/api/email-queue/sent?agentId=${agent.agentId}`)
             ]);
-            const queuedEmails = Array.isArray(queueRes.data) ? queueRes.data : [];
+            const queuedCount = queueRes.data?.count || 0;
             const sentEmails = Array.isArray(sentRes.data) ? sentRes.data : [];
             const repliedEmails = sentEmails.filter((e: any) => e.replied || e.status === 'REPLIED');
             
             return {
               ...agent,
-              queued: queuedEmails.length,
+              queued: queuedCount,
               sent: sentEmails.length,
               replied: repliedEmails.length
             };
@@ -781,24 +783,24 @@ export default function InteractiveGlobe() {
       // Always check for orphaned emails (queued, sent, and replied)
       try {
         const [orphanedQueuedRes, orphanedSentRes] = await Promise.all([
-          api.get('/api/email-queue/queue?agentId=orphan'),
+          api.get('/api/email-queue/queue/count?agentId=orphan'),
           api.get('/api/email-queue/sent?agentId=orphan')
         ]);
         
-        const orphanedQueued = Array.isArray(orphanedQueuedRes.data) ? orphanedQueuedRes.data : (orphanedQueuedRes.data.emails || []);
+        const orphanedQueuedCount = orphanedQueuedRes.data?.count || 0;
         const orphanedSent = Array.isArray(orphanedSentRes.data) ? orphanedSentRes.data : (orphanedSentRes.data.emails || []);
         const orphanedReplied = orphanedSent.filter((e: any) => e.replied || e.hasReply);
         
-        console.log('Orphaned emails check:', orphanedQueued.length, 'queued,', orphanedSent.length, 'sent,', orphanedReplied.length, 'replied');
+        console.log('Orphaned emails check:', orphanedQueuedCount, 'queued,', orphanedSent.length, 'sent,', orphanedReplied.length, 'replied');
         
-        if (orphanedQueued.length > 0 || orphanedSent.length > 0) {
+        if (orphanedQueuedCount > 0 || orphanedSent.length > 0) {
           // Add orphaned emails as a special agent at the top
           agents = [{
             agentId: 'orphan',
             name: 'Orphaned Emails',
             status: 'orphaned',
             isOrphaned: true,
-            queued: orphanedQueued.length,
+            queued: orphanedQueuedCount,
             sent: orphanedSent.length,
             replied: orphanedReplied.length
           }, ...agents];
@@ -842,17 +844,37 @@ export default function InteractiveGlobe() {
     setCurrentEmailPage(1); // Reset to first page when fetching new emails
     try {
       let endpoint = '';
-      if (type === 'queued') endpoint = `/api/email-queue/queue?agentId=${agentId}`;
-      else if (type === 'sent') endpoint = `/api/email-queue/sent?agentId=${agentId}`;
-      else if (type === 'replied') endpoint = `/api/email-queue/replied?agentId=${agentId}`;
+      const offset = 0; // Always start from first page on new fetch
+      const limit = EMAILS_PER_PAGE;
+      
+      if (type === 'queued') {
+        endpoint = `/api/email-queue/queue?agentId=${agentId}&limit=${limit}&offset=${offset}`;
+      } else if (type === 'sent') {
+        endpoint = `/api/email-queue/sent?agentId=${agentId}`;
+      } else if (type === 'replied') {
+        endpoint = `/api/email-queue/replied?agentId=${agentId}`;
+      }
       
       const response = await api.get(endpoint);
-      const emails = Array.isArray(response.data) ? response.data : [];
+      
+      // Handle paginated response for queued emails
+      if (type === 'queued' && response.data && typeof response.data === 'object' && 'emails' in response.data) {
+        const { emails, total, hasMore } = response.data;
+        setQueueEmails(Array.isArray(emails) ? emails : []);
+        setTotalQueuedEmails(total || 0);
+        setHasMoreEmails(hasMore || false);
+      } else {
+        // Handle non-paginated response for sent/replied
+        const emails = Array.isArray(response.data) ? response.data : [];
+        setQueueEmails(emails);
+        setTotalQueuedEmails(emails.length);
+        setHasMoreEmails(false);
+      }
       
       // Debug: Log follow-up data for sent emails
-      if (type === 'sent' && emails.length > 0) {
-        console.log('📅 [FOLLOW-UP DEBUG] Fetched sent emails:', emails.length);
-        const emailsWithFollowUp = emails.filter(e => e.followUpScheduled || e.followUpDate);
+      if (type === 'sent' && response.data.length > 0) {
+        console.log('📅 [FOLLOW-UP DEBUG] Fetched sent emails:', response.data.length);
+        const emailsWithFollowUp = response.data.filter((e: any) => e.followUpScheduled || e.followUpDate);
         console.log('📅 [FOLLOW-UP DEBUG] Emails with follow-up data:', emailsWithFollowUp.length);
         if (emailsWithFollowUp.length > 0) {
           console.log('📅 [FOLLOW-UP DEBUG] Sample email with follow-up:', {
@@ -863,11 +885,56 @@ export default function InteractiveGlobe() {
           });
         }
       }
-      
-      setQueueEmails(emails);
     } catch (error) {
       console.error('Error fetching queue emails:', error);
       setQueueEmails([]);
+      setTotalQueuedEmails(0);
+      setHasMoreEmails(false);
+    } finally {
+      setLoadingQueue(false);
+    }
+  };
+
+  // Fetch paginated emails when page changes
+  const fetchEmailPage = async (page: number) => {
+    if (!selectedAgent) return;
+    
+    setLoadingQueue(true);
+    try {
+      const offset = (page - 1) * EMAILS_PER_PAGE;
+      const limit = EMAILS_PER_PAGE;
+      const agentId = selectedAgent.agentId;
+      const type = selectedQueue?.type || 'queued';
+      
+      let endpoint = '';
+      if (type === 'queued') {
+        endpoint = `/api/email-queue/queue?agentId=${agentId}&limit=${limit}&offset=${offset}`;
+      } else if (type === 'sent') {
+        endpoint = `/api/email-queue/sent?agentId=${agentId}`;
+      } else if (type === 'replied') {
+        endpoint = `/api/email-queue/replied?agentId=${agentId}`;
+      }
+      
+      const response = await api.get(endpoint);
+      
+      // Handle paginated response for queued emails
+      if (type === 'queued' && response.data && typeof response.data === 'object' && 'emails' in response.data) {
+        const { emails, total, hasMore } = response.data;
+        setQueueEmails(Array.isArray(emails) ? emails : []);
+        setTotalQueuedEmails(total || 0);
+        setHasMoreEmails(hasMore || false);
+      } else {
+        // Handle non-paginated response for sent/replied
+        const emails = Array.isArray(response.data) ? response.data : [];
+        setQueueEmails(emails);
+        setTotalQueuedEmails(emails.length);
+        setHasMoreEmails(false);
+      }
+    } catch (error) {
+      console.error('Error fetching email page:', error);
+      setQueueEmails([]);
+      setTotalQueuedEmails(0);
+      setHasMoreEmails(false);
     } finally {
       setLoadingQueue(false);
     }
@@ -1032,11 +1099,13 @@ export default function InteractiveGlobe() {
       showToast('Failed to send email', 'error');
       // Revert on error
       fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
-      const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
-      const sentResponse = await api.get('/api/email-queue/sent?agentId=all');
+      const [queuedResponse, sentResponse] = await Promise.all([
+        api.get('/api/email-queue/queue/count?agentId=all'),
+        api.get('/api/email-queue/sent?agentId=all')
+      ]);
       setStats(prev => ({
         ...prev,
-        emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0,
+        emailsQueued: queuedResponse.data?.count || 0,
         emailsSent: Array.isArray(sentResponse.data) ? sentResponse.data.length : 0
       }));
     }
@@ -1061,10 +1130,10 @@ export default function InteractiveGlobe() {
       console.error('Error rejecting email:', error);
       // Revert on error
       fetchQueueEmails(selectedAgent.agentId, selectedQueue.type);
-      const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
+      const queuedResponse = await api.get('/api/email-queue/queue/count?agentId=all');
       setStats(prev => ({
         ...prev,
-        emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0
+        emailsQueued: queuedResponse.data?.count || 0
       }));
     }
   };
@@ -1096,11 +1165,13 @@ export default function InteractiveGlobe() {
       showToast('Failed to send email', 'error');
       // Revert on error
       fetchQueueEmails(agentId, selectedQueue?.type || 'queued');
-      const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
-      const sentResponse = await api.get('/api/email-queue/sent?agentId=all');
+      const [queuedResponse, sentResponse] = await Promise.all([
+        api.get('/api/email-queue/queue/count?agentId=all'),
+        api.get('/api/email-queue/sent?agentId=all')
+      ]);
       setStats(prev => ({
         ...prev,
-        emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0,
+        emailsQueued: queuedResponse.data?.count || 0,
         emailsSent: Array.isArray(sentResponse.data) ? sentResponse.data.length : 0
       }));
     }
@@ -1126,10 +1197,10 @@ export default function InteractiveGlobe() {
       showToast('Failed to reject email', 'error');
       // Revert on error
       fetchQueueEmails(agentId, selectedQueue?.type || 'queued');
-      const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
+      const queuedResponse = await api.get('/api/email-queue/queue/count?agentId=all');
       setStats(prev => ({
         ...prev,
-        emailsQueued: Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0
+        emailsQueued: queuedResponse.data?.count || 0
       }));
     }
   };
@@ -1182,9 +1253,9 @@ export default function InteractiveGlobe() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch queued emails
-        const queuedResponse = await api.get('/api/email-queue/queue?agentId=all');
-        const emailsQueued = Array.isArray(queuedResponse.data) ? queuedResponse.data.length : 0;
+        // Fetch queued emails count efficiently
+        const queuedResponse = await api.get('/api/email-queue/queue/count?agentId=all');
+        const emailsQueued = queuedResponse.data?.count || 0;
 
         // Fetch sent emails
         const sentResponse = await api.get('/api/email-queue/sent?agentId=all');
@@ -1922,7 +1993,9 @@ export default function InteractiveGlobe() {
                 </>
               )}
               
-              <span className="text-[10px] text-[#8FA6C1] ml-2">{queueEmails.length} emails</span>
+              <span className="text-[10px] text-[#8FA6C1] ml-2">
+                {selectedQueue?.type === 'queued' ? totalQueuedEmails : queueEmails.length} emails
+              </span>
               
               {/* Sort Order Toggle */}
               <button
@@ -2037,10 +2110,16 @@ export default function InteractiveGlobe() {
               <>
                 {(() => {
                   const EMAILS_PER_PAGE = 20;
-                  const startIndex = (currentEmailPage - 1) * EMAILS_PER_PAGE;
-                  const endIndex = startIndex + EMAILS_PER_PAGE;
-                  const totalPages = Math.ceil(queueEmails.length / EMAILS_PER_PAGE);
-                  const paginatedEmails = queueEmails.slice(startIndex, endIndex);
+                  const type = selectedQueue?.type || 'queued';
+                  // For backend pagination (queued emails), we already have the right page
+                  // For client-side pagination (sent/replied), use slice
+                  const totalPages = type === 'queued' 
+                    ? Math.ceil(totalQueuedEmails / EMAILS_PER_PAGE)
+                    : Math.ceil(queueEmails.length / EMAILS_PER_PAGE);
+                  
+                  const paginatedEmails = type === 'queued'
+                    ? queueEmails // Already paginated by backend
+                    : queueEmails.slice((currentEmailPage - 1) * EMAILS_PER_PAGE, currentEmailPage * EMAILS_PER_PAGE);
                   
                   return (
                     <>
@@ -2073,26 +2152,34 @@ export default function InteractiveGlobe() {
                       {totalPages > 1 && (
                         <div className="flex items-center justify-between p-3 bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg mb-3">
                           <button
-                            onClick={() => setCurrentEmailPage(Math.max(1, currentEmailPage - 1))}
-                            disabled={currentEmailPage === 1}
+                            onClick={async () => {
+                              const newPage = Math.max(1, currentEmailPage - 1);
+                              setCurrentEmailPage(newPage);
+                              await fetchEmailPage(newPage);
+                            }}
+                            disabled={currentEmailPage === 1 || loadingQueue}
                             className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
                           >
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
-                            Previous
+                            {loadingQueue ? 'Loading...' : 'Previous'}
                           </button>
                           
                           <span className="text-[#8FA6C1] text-[11px]">
-                            Page {currentEmailPage} of {totalPages} ({queueEmails.length} total)
+                            Page {currentEmailPage} of {totalPages} ({totalQueuedEmails} total)
                           </span>
                           
                           <button
-                            onClick={() => setCurrentEmailPage(Math.min(totalPages, currentEmailPage + 1))}
-                            disabled={currentEmailPage >= totalPages}
+                            onClick={async () => {
+                              const newPage = Math.min(totalPages, currentEmailPage + 1);
+                              setCurrentEmailPage(newPage);
+                              await fetchEmailPage(newPage);
+                            }}
+                            disabled={currentEmailPage >= totalPages || loadingQueue}
                             className="flex items-center gap-2 px-3 py-1.5 bg-[#4FD1FF]/10 hover:bg-[#4FD1FF]/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors text-[#4FD1FF] text-[11px] font-medium"
                           >
-                            Next
+                            {loadingQueue ? 'Loading...' : 'Next'}
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -2100,6 +2187,23 @@ export default function InteractiveGlobe() {
                         </div>
                       )}
                       
+                      {/* Loading State */}
+                      {loadingQueue ? (
+                        <div className="space-y-3">
+                          {[...Array(3)].map((_, i) => (
+                            <div key={i} className="p-4 bg-[#0A1525]/40 border border-[#4FD1FF]/20 rounded-lg animate-pulse">
+                              <div className="h-4 bg-[#4FD1FF]/10 rounded w-3/4 mb-3"></div>
+                              <div className="h-3 bg-[#4FD1FF]/10 rounded w-1/2 mb-2"></div>
+                              <div className="h-3 bg-[#4FD1FF]/10 rounded w-2/3"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : paginatedEmails.length === 0 ? (
+                        <div className="text-center text-[#8FA6C1]/60 py-8">
+                          No emails in queue
+                        </div>
+                      ) : (
+                        <>
                       {paginatedEmails.map((email, idx) => {
                   const emailId = email._id || email.id;
                   const isExpanded = expandedEmailId === emailId;
@@ -2446,6 +2550,8 @@ export default function InteractiveGlobe() {
                     </div>
                   );
                 })}
+                        </>
+                      )}
                     </>
                   );
                 })()}

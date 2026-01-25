@@ -48,20 +48,35 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get all emails in queue
+// Get count of queued emails (lightweight - no data transfer)
+router.get('/queue/count', async (req, res) => {
+  try {
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    const count = await awsQueue.getQueuedEmailCount(req.user.userId);
+    res.json({ count });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error getting queue count:', error);
+    res.status(500).json({ error: 'Failed to get queue count' });
+  }
+});
+
+// Get all emails in queue (with pagination)
 router.get('/queue', async (req, res) => {
   try {
     const agentId = req.query.agentId;
-    // console.log(`📧 [EMAIL QUEUE] GET /queue - userId: ${req.user.userId}, agentId: ${agentId}`);
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+    // console.log(`📧 [EMAIL QUEUE] GET /queue - userId: ${req.user.userId}, agentId: ${agentId}, limit: ${limit}, offset: ${offset}`);
     
     // If agentId is 'all', fetch from all agents using AWS
     if (agentId === 'all') {
       // console.log(`📧 [EMAIL QUEUE] Fetching ALL queued emails for user ${req.user.userId}`);
       const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
       const awsQueue = getAWSEmailQueue();
-      const emails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
-      // console.log(`📧 [EMAIL QUEUE] Found ${emails.length} queued emails across all agents`);
-      return res.json(emails);
+      const result = await awsQueue.getAllQueuedEmailsForUser(req.user.userId, limit, offset);
+      // console.log(`📧 [EMAIL QUEUE] Found ${result.emails.length} queued emails (total: ${result.total})`);
+      return res.json(result);
     }
     
     // If agentId is 'orphan', fetch orphaned emails (from deleted agents)
@@ -89,8 +104,11 @@ router.get('/queue', async (req, res) => {
     // console.log(`📧 [EMAIL QUEUE] Fetching for specific agent: ${agentId || 'null (legacy)'}`);
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId || null);
     const queue = await userEmailQueue.getQueue();
-    // console.log(`📧 [EMAIL QUEUE] Found ${queue.length} emails in queue for agent ${agentId || 'null'}`);
-    res.json(queue);
+    // Apply pagination
+    const total = queue.length;
+    const paginatedQueue = queue.slice(offset, offset + limit);
+    // console.log(`📧 [EMAIL QUEUE] Found ${paginatedQueue.length} emails (${total} total) for agent ${agentId || 'null'}`);
+    res.json({ emails: paginatedQueue, total, hasMore: offset + limit < total });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting queue:', error);
     console.error('[EMAIL QUEUE API] Stack:', error.stack);

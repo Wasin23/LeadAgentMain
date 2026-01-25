@@ -350,26 +350,81 @@ class AWSEmailQueue {
   }
 
   /**
+   * Get count of queued emails for a user (using GSI with COUNT - no data transfer)
+   */
+  async getQueuedEmailCount(userId) {
+    try {
+      const response = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tableName,
+        IndexName: this.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': this._getGSIPK(userId, 'QUEUED')
+        },
+        Select: 'COUNT'
+      }));
+
+      return response.Count || 0;
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error getting queued email count:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get ALL queued emails across ALL agents for a user (using GSI)
    */
-  async getAllQueuedEmailsForUser(userId) {
-    return this._getCached(`${userId}:queued`, async () => {
-      try {
-        const response = await this.dynamodb.send(new QueryCommand({
-          TableName: this.tableName,
-          IndexName: this.gsiName,
-          KeyConditionExpression: 'GSIPK = :gsipk',
-          ExpressionAttributeValues: {
-            ':gsipk': this._getGSIPK(userId, 'QUEUED')
-          }
-        }));
+  async getAllQueuedEmailsForUser(userId, limit = 20, offset = 0) {
+    // Don't cache paginated results
+    try {
+      // First get the total count efficiently
+      const total = await this.getQueuedEmailCount(userId);
+      
+      // Calculate how many items to skip using DynamoDB pagination
+      let items = [];
+      let lastEvaluatedKey = null;
+      let scannedCount = 0;
+      
+      const params = {
+        TableName: this.tableName,
+        IndexName: this.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': this._getGSIPK(userId, 'QUEUED')
+        },
+        ScanIndexForward: false, // Sort by timestamp descending (newest first)
+        Limit: limit + offset // Fetch enough to skip offset items
+      };
 
-        return response.Items || [];
-      } catch (error) {
-        console.error('[AWS EMAIL QUEUE] Error getting all queued emails for user:', error);
-        throw error;
-      }
-    });
+      // Fetch items until we have enough to skip the offset
+      do {
+        if (lastEvaluatedKey) {
+          params.ExclusiveStartKey = lastEvaluatedKey;
+        }
+        
+        const response = await this.dynamodb.send(new QueryCommand(params));
+        items = items.concat(response.Items || []);
+        lastEvaluatedKey = response.LastEvaluatedKey;
+        scannedCount += response.Items?.length || 0;
+        
+        // Stop if we have enough items or no more to fetch
+        if (scannedCount >= limit + offset || !lastEvaluatedKey) {
+          break;
+        }
+      } while (lastEvaluatedKey);
+      
+      // Apply offset and limit
+      const paginatedItems = items.slice(offset, offset + limit);
+      
+      return {
+        emails: paginatedItems,
+        total,
+        hasMore: offset + limit < total
+      };
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error getting all queued emails for user:', error);
+      throw error;
+    }
   }
 
   /**
