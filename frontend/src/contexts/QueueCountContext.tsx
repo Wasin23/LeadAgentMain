@@ -30,17 +30,13 @@ export function QueueCountProvider({ children }: { children: React.ReactNode }) 
   const refreshCounts = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch total counts
-      const [queuedRes, sentRes, repliedRes] = await Promise.all([
-        api.get('/api/email-queue/queue/count?agentId=all'),
-        api.get('/api/email-queue/sent/count?agentId=all'),
-        api.get('/api/email-queue/replied/count?agentId=all')
-      ]);
+      // Fetch all counts in one request
+      const countsRes = await api.get('/api/email-queue/counts?agentId=all');
 
       setCounts({
-        queued: queuedRes.data?.count || 0,
-        sent: sentRes.data?.count || 0,
-        replied: repliedRes.data?.count || 0,
+        queued: countsRes.data?.queued || 0,
+        sent: countsRes.data?.sent || 0,
+        replied: countsRes.data?.replied || 0,
         byAgent: {} // Will be populated by operations page
       });
     } catch (error) {

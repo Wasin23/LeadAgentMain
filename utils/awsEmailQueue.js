@@ -387,7 +387,7 @@ class AWSEmailQueue {
       }));
       totalCount += orphanResponse.Count || 0;
       
-      console.log(`📊 [GET QUEUED COUNT] Total count (via PK queries): ${totalCount}`);
+      // console.log(`📊 [GET QUEUED COUNT] Total count (via PK queries): ${totalCount}`);
       return totalCount;
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting queued email count:', error);
@@ -607,13 +607,13 @@ class AWSEmailQueue {
    */
   async updateEmailStatus(userId, agentId, emailId, oldStatus, newStatus, additionalData = {}) {
     try {
-      console.log('═══════════════════════════════════════════════════════════════');
-      console.log('💾 [UPDATE EMAIL STATUS] Starting update');
-      console.log('💾 emailId:', emailId);
-      console.log('💾 oldStatus:', oldStatus);
-      console.log('💾 newStatus:', newStatus);
-      console.log('💾 additionalData:', JSON.stringify(additionalData, null, 2));
-      console.log('═══════════════════════════════════════════════════════════════');
+      // console.log('═══════════════════════════════════════════════════════════════');
+      // console.log('💾 [UPDATE EMAIL STATUS] Starting update');
+      // console.log('💾 emailId:', emailId);
+      // console.log('💾 oldStatus:', oldStatus);
+      // console.log('💾 newStatus:', newStatus);
+      // console.log('💾 additionalData:', JSON.stringify(additionalData, null, 2));
+      // console.log('═══════════════════════════════════════════════════════════════');
       
       // First, find the email with the old status
       const response = await this.dynamodb.send(new QueryCommand({
@@ -633,12 +633,12 @@ class AWSEmailQueue {
       }
 
       const oldItem = response.Items[0];
-      console.log('📧 [UPDATE EMAIL STATUS] Found existing email:', {
-        id: oldItem.id,
-        status: oldItem.status,
-        hasFollowUpScheduled: oldItem.followUpScheduled,
-        hasFollowUpDate: oldItem.followUpDate
-      });
+      // console.log('📧 [UPDATE EMAIL STATUS] Found existing email:', {
+      //   id: oldItem.id,
+      //   status: oldItem.status,
+      //   hasFollowUpScheduled: oldItem.followUpScheduled,
+      //   hasFollowUpDate: oldItem.followUpDate
+      // });
       
       const newTimestamp = new Date().toISOString();
 
@@ -654,13 +654,13 @@ class AWSEmailQueue {
         ...additionalData
       };
       
-      console.log('📝 [UPDATE EMAIL STATUS] New item being saved:', {
-        id: newItem.id,
-        status: newItem.status,
-        followUpScheduled: newItem.followUpScheduled,
-        followUpDate: newItem.followUpDate,
-        assignedTemplateId: newItem.assignedTemplateId
-      });
+      // console.log('📝 [UPDATE EMAIL STATUS] New item being saved:', {
+      //   id: newItem.id,
+      //   status: newItem.status,
+      //   followUpScheduled: newItem.followUpScheduled,
+      //   followUpDate: newItem.followUpDate,
+      //   assignedTemplateId: newItem.assignedTemplateId
+      // });
 
       // Add status-specific timestamps
       if (newStatus === 'APPROVED') {
@@ -685,17 +685,17 @@ class AWSEmailQueue {
         Item: newItem
       }));
       
-      console.log('✅ [UPDATE EMAIL STATUS] DynamoDB PutCommand successful:', {
-        httpStatusCode: putResult.$metadata?.httpStatusCode,
-        savedFollowUpScheduled: newItem.followUpScheduled,
-        savedFollowUpDate: newItem.followUpDate
-      });
+      // console.log('✅ [UPDATE EMAIL STATUS] DynamoDB PutCommand successful:', {
+      //   httpStatusCode: putResult.$metadata?.httpStatusCode,
+      //   savedFollowUpScheduled: newItem.followUpScheduled,
+      //   savedFollowUpDate: newItem.followUpDate
+      // });
 
       // Invalidate cache for this user
       this._invalidateCache(userId);
 
-      console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} status updated: ${oldStatus} -> ${newStatus}`);
-      console.log('═══════════════════════════════════════════════════════════════');
+      // console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} status updated: ${oldStatus} -> ${newStatus}`);
+      // console.log('═══════════════════════════════════════════════════════════════');
       return newItem;
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error updating email status:', error);

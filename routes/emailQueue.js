@@ -48,6 +48,75 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Universal counts endpoint - gets all counts in one request to reduce AWS calls
+router.get('/counts', async (req, res) => {
+  try {
+    const agentId = req.query.agentId;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    if (agentId === 'all' || !agentId) {
+      // Get all counts for user via GSI and custom queued count
+      const [queuedCount, sentResponse, repliedResponse] = await Promise.all([
+        awsQueue.getQueuedEmailCount(req.user.userId), // Custom logic for orphaned emails
+        awsQueue.dynamodb.send(new QueryCommand({
+          TableName: awsQueue.tableName,
+          IndexName: awsQueue.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: { ':gsipk': `${req.user.userId}#SENT` },
+          Select: 'COUNT'
+        })),
+        awsQueue.dynamodb.send(new QueryCommand({
+          TableName: awsQueue.tableName,
+          IndexName: awsQueue.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: { ':gsipk': `${req.user.userId}#REPLIED` },
+          Select: 'COUNT'
+        }))
+      ]);
+      
+      return res.json({
+        queued: queuedCount,
+        sent: sentResponse.Count || 0,
+        replied: repliedResponse.Count || 0
+      });
+    }
+    
+    // For specific agent, get all counts in parallel
+    const pk = `${req.user.userId}#${agentId}`;
+    const [queuedResponse, sentResponse, repliedResponse] = await Promise.all([
+      awsQueue.dynamodb.send(new QueryCommand({
+        TableName: awsQueue.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+        ExpressionAttributeValues: { ':pk': pk, ':status': 'QUEUED#' },
+        Select: 'COUNT'
+      })),
+      awsQueue.dynamodb.send(new QueryCommand({
+        TableName: awsQueue.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+        ExpressionAttributeValues: { ':pk': pk, ':status': 'SENT#' },
+        Select: 'COUNT'
+      })),
+      awsQueue.dynamodb.send(new QueryCommand({
+        TableName: awsQueue.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+        ExpressionAttributeValues: { ':pk': pk, ':status': 'REPLIED#' },
+        Select: 'COUNT'
+      }))
+    ]);
+    
+    res.json({
+      queued: queuedResponse.Count || 0,
+      sent: sentResponse.Count || 0,
+      replied: repliedResponse.Count || 0
+    });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error getting counts:', error);
+    res.status(500).json({ error: 'Failed to get counts' });
+  }
+});
+
 // Get count of queued emails (lightweight - no data transfer)
 router.get('/queue/count', async (req, res) => {
   try {
@@ -55,17 +124,17 @@ router.get('/queue/count', async (req, res) => {
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
     
-    console.log(`📊 [QUEUE COUNT] agentId: ${agentId}, userId: ${req.user.userId}`);
+    // console.log(`📊 [QUEUE COUNT] agentId: ${agentId}, userId: ${req.user.userId}`);
     
     if (agentId === 'all' || !agentId) {
       const count = await awsQueue.getQueuedEmailCount(req.user.userId);
-      console.log(`📊 [QUEUE COUNT] ALL agents: ${count}`);
+      // console.log(`📊 [QUEUE COUNT] ALL agents: ${count}`);
       return res.json({ count });
     }
     
     // For specific agent, count directly
     const pk = `${req.user.userId}#${agentId}`;
-    console.log(`📊 [QUEUE COUNT] Specific agent PK: ${pk}`);
+    // console.log(`📊 [QUEUE COUNT] Specific agent PK: ${pk}`);
     const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
@@ -76,7 +145,7 @@ router.get('/queue/count', async (req, res) => {
       Select: 'COUNT'
     }));
     
-    console.log(`📊 [QUEUE COUNT] Result for ${agentId}: ${countResponse.Count || 0}`);
+    // console.log(`📊 [QUEUE COUNT] Result for ${agentId}: ${countResponse.Count || 0}`);
     res.json({ count: countResponse.Count || 0 });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting queue count:', error);
@@ -212,7 +281,7 @@ router.get('/queue', async (req, res) => {
     
     // Get paginated emails for specific agent using proper PK format
     const pk = `${req.user.userId}#${agentId || 'null'}`;
-    console.log(`📧 [EMAIL QUEUE] Querying with PK: ${pk}`);
+    // console.log(`📧 [EMAIL QUEUE] Querying with PK: ${pk}`);
     const response = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
@@ -273,11 +342,11 @@ router.get('/stats', async (req, res) => {
 
 // Add custom email to queue
 router.post('/custom', async (req, res) => {
-  console.log('[EMAIL QUEUE] 🚀 CUSTOM EMAIL ENDPOINT HIT!');
-  console.log('[EMAIL QUEUE] Raw body type:', typeof req.body);
-  console.log('[EMAIL QUEUE] Raw body:', req.body);
-  console.log('[EMAIL QUEUE] Headers:', req.headers);
-  console.log('[EMAIL QUEUE] User from JWT:', req.user);
+  // console.log('[EMAIL QUEUE] 🚀 CUSTOM EMAIL ENDPOINT HIT!');
+  // console.log('[EMAIL QUEUE] Raw body type:', typeof req.body);
+  // console.log('[EMAIL QUEUE] Raw body:', req.body);
+  // console.log('[EMAIL QUEUE] Headers:', req.headers);
+  // console.log('[EMAIL QUEUE] User from JWT:', req.user);
   try {
     const { to, subject, body, cc, bcc, leadContext, source = 'custom' } = req.body;
     
@@ -337,16 +406,16 @@ router.post('/custom', async (req, res) => {
     };
     
     // Add to queue (this will add id and timestamp)
-    console.log(`[EMAIL QUEUE] req.user object:`, req.user);
-    console.log(`[EMAIL QUEUE] req.user.userId:`, req.user?.userId);
-    console.log(`[EMAIL QUEUE] Creating user queue for userId: ${req.user?.userId}`);
+    // console.log(`[EMAIL QUEUE] req.user object:`, req.user);
+    // console.log(`[EMAIL QUEUE] req.user.userId:`, req.user?.userId);
+    // console.log(`[EMAIL QUEUE] Creating user queue for userId: ${req.user?.userId}`);
     const agentId = req.body.agentId || null; // Optional agent-specific queue
     const userEmailQueue = getUserEmailQueue(req.user?.userId, agentId);
-    console.log(`[EMAIL QUEUE] Adding email to queue (agentId: ${agentId})...`);
+    // console.log(`[EMAIL QUEUE] Adding email to queue (agentId: ${agentId})...`);
     const addedEmail = await userEmailQueue.addToQueue(customEmail);
-    console.log(`[EMAIL QUEUE] Email added successfully:`, addedEmail);
+    // console.log(`[EMAIL QUEUE] Email added successfully:`, addedEmail);
     
-    console.log(`[EMAIL QUEUE] ✏️ Added custom email to queue: ${to} - ${subject}`);
+    // console.log(`[EMAIL QUEUE] ✏️ Added custom email to queue: ${to} - ${subject}`);
     
     res.json({ 
       success: true, 
@@ -397,14 +466,14 @@ router.post('/:id/approve', async (req, res) => {
     
     // For orphaned emails, we need to get all queued emails and find this one
     if (isOrphaned || agentId === 'orphan') {
-      console.log('[EMAIL QUEUE] 🏴 Processing ORPHANED email:', id);
+      // console.log('[EMAIL QUEUE] 🏴 Processing ORPHANED email:', id);
       const awsQueue = new AWSEmailQueue();
       const allQueuedEmails = await awsQueue.getAllQueuedEmailsForUser(req.user.userId);
       const orphanedEmail = allQueuedEmails.find(e => e.id === id);
       
       if (orphanedEmail) {
         agentId = orphanedEmail.agentId;
-        console.log('[EMAIL QUEUE] Found orphaned email with original agentId:', agentId);
+        // console.log('[EMAIL QUEUE] Found orphaned email with original agentId:', agentId);
       } else {
         console.error('[EMAIL QUEUE] Orphaned email not found in queued emails');
         return res.status(404).json({ error: 'Orphaned email not found' });
@@ -446,25 +515,22 @@ router.post('/:id/approve', async (req, res) => {
     // Otherwise use the original agentId for agent-specific settings
     const effectiveAgentId = (isOrphaned || agentId === 'orphan') ? null : originalAgentId;
     
-    console.log('[EMAIL QUEUE] Email routing info:', {
-      isOrphaned,
-      originalAgentId,
-      effectiveAgentId: effectiveAgentId || 'null (will use user-level settings)',
-      willUseUserLevelSettings: effectiveAgentId === null
-    });
-    
-    console.log('[EMAIL QUEUE] Person/Lead info for tracking:', {
+    console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {
+      emailId: id,
+      userId: req.user.userId,
+      originalAgentId: originalAgentId,
+      effectiveAgentId: effectiveAgentId || 'null (user-level settings)',
+      trackingId: sendResult.result?.trackingId || 'No tracking ID',
+      leadNameForTracking: personInfo?.fullName || 'Unknown',
       personInfo: personInfo ? {
         fullName: personInfo.fullName,
-        name: personInfo.name,
-        firstName: personInfo.firstName,
-        lastName: personInfo.lastName
+        name: personInfo.name
       } : null,
-      leadDetails: approvedEmail.leadDetails ? Object.keys(approvedEmail.leadDetails) : null,
-      recipientName: approvedEmail.recipientName,
-      leadName: approvedEmail.leadName,
-      to: finalRecipient
+      approvedEmail: { leadName: approvedEmail?.leadName, recipientName: approvedEmail?.recipientName },
+      sentVia: sendResult.method || 'Unknown'
     });
+
+    // console.log('EMAIL QUEUE routing info and person info (commented out for cleaner logs)');
     
     // Get CC, BCC emails and sender name from settings
     let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
@@ -481,20 +547,20 @@ router.post('/:id/approve', async (req, res) => {
             // Get CC emails if not already set
             if (!ccEmails && agentSettings.emailBuilder && agentSettings.emailBuilder.ccEmails) {
               ccEmails = agentSettings.emailBuilder.ccEmails;
-              console.log('[EMAIL QUEUE] Found CC emails in agent settings:', ccEmails);
+              // console.log('[EMAIL QUEUE] Found CC emails in agent settings:', ccEmails);
             }
             // Get BCC emails if not already set
             if (!bccEmails && agentSettings.emailBuilder && agentSettings.emailBuilder.bccEmails) {
               bccEmails = agentSettings.emailBuilder.bccEmails;
-              console.log('[EMAIL QUEUE] Found BCC emails in agent settings:', bccEmails);
+              // console.log('[EMAIL QUEUE] Found BCC emails in agent settings:', bccEmails);
             }
             // Get sender name for branding
             if (agentSettings.companyName) {
               senderName = agentSettings.companyName;
-              console.log('[EMAIL QUEUE] Found sender name in agent settings:', senderName);
+              // console.log('[EMAIL QUEUE] Found sender name in agent settings:', senderName);
             } else if (agentSettings.emailBuilder && agentSettings.emailBuilder.companyName) {
               senderName = agentSettings.emailBuilder.companyName;
-              console.log('[EMAIL QUEUE] Found sender name in emailBuilder settings:', senderName);
+              // console.log('[EMAIL QUEUE] Found sender name in emailBuilder settings:', senderName);
             }
           }
         }
@@ -604,10 +670,10 @@ router.post('/:id/approve', async (req, res) => {
         try {
           const leadNameForTracking = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.recipientName;
           
-          console.log('═══════════════════════════════════════════════════════════');
-          console.log('🎯 [TRACKING PIXEL] Tracking ID from sendResult:', sendResult.result.trackingId);
-          console.log('🎯 [TRACKING PIXEL] Has tracking ID?', !!sendResult.result.trackingId);
-          console.log('═══════════════════════════════════════════════════════════');
+          // console.log('═══════════════════════════════════════════════════════════');
+          // console.log('🎯 [TRACKING PIXEL] Tracking ID from sendResult:', sendResult.result.trackingId);
+          // console.log('🎯 [TRACKING PIXEL] Has tracking ID?', !!sendResult.result.trackingId);
+          // console.log('═══════════════════════════════════════════════════════════');
           
           console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {
             emailId: id,
@@ -643,7 +709,7 @@ router.post('/:id/approve', async (req, res) => {
           // If this is a follow-up/rebump email, update the original email's followUpStatus
           if (approvedEmail.isRebump && approvedEmail.originalEmailId) {
             try {
-              console.log(`[EMAIL QUEUE] 🔄 This is a rebump email - updating original email ${approvedEmail.originalEmailId}`);
+              // console.log(`[EMAIL QUEUE] 🔄 This is a rebump email - updating original email ${approvedEmail.originalEmailId}`);
               const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
               const awsQueue = getAWSEmailQueue();
               
@@ -652,7 +718,7 @@ router.post('/:id/approve', async (req, res) => {
                 followUpStatus: 'SENT',
                 lastFollowUpSentAt: new Date().toISOString()
               });
-              console.log(`[EMAIL QUEUE] ✅ Updated original email ${approvedEmail.originalEmailId} followUpStatus to SENT`);
+              // console.log(`[EMAIL QUEUE] ✅ Updated original email ${approvedEmail.originalEmailId} followUpStatus to SENT`);
             } catch (rebumpUpdateError) {
               console.error('[EMAIL QUEUE] ⚠️ Failed to update original email after rebump:', rebumpUpdateError);
               // Don't fail the whole operation if this fails
@@ -674,24 +740,24 @@ router.post('/:id/approve', async (req, res) => {
             
             console.log('📅 [FOLLOW-UP] Fetching sent emails from AWS...');
             const sentEmails = await awsQueue.getSentEmails(userId, effectiveAgentId);
-            console.log('📅 [FOLLOW-UP] Found', sentEmails.length, 'sent emails');
+            // console.log('📅 [FOLLOW-UP] Found', sentEmails.length, 'sent emails');
             
             const sentEmail = sentEmails.find(e => e.id === id);
-            console.log('📅 [FOLLOW-UP] Found sent email?', !!sentEmail);
+            // console.log('📅 [FOLLOW-UP] Found sent email?', !!sentEmail);
             
             if (sentEmail) {
-              console.log('📅 [FOLLOW-UP] Sent email details:', {
-                id: sentEmail.id,
-                to: sentEmail.to,
-                subject: sentEmail.subject,
-                sentAt: sentEmail.sentAt,
-                hasTrackingId: !!sentEmail.trackingId
-              });
+              // console.log('📅 [FOLLOW-UP] Sent email details:', {
+              //   id: sentEmail.id,
+              //   to: sentEmail.to,
+              //   subject: sentEmail.subject,
+              //   sentAt: sentEmail.sentAt,
+              //   hasTrackingId: !!sentEmail.trackingId
+              // });
               
-              console.log('📅 [FOLLOW-UP] Calling autoScheduleFollowUp...');
+              // console.log('📅 [FOLLOW-UP] Calling autoScheduleFollowUp...');
               const result = await autoScheduleFollowUp(userId, effectiveAgentId, sentEmail);
-              console.log('📅 [FOLLOW-UP] autoScheduleFollowUp result:', result);
-              console.log(`[EMAIL QUEUE] 📅 Auto-scheduled follow-up for email ${id}`);
+              // console.log('📅 [FOLLOW-UP] autoScheduleFollowUp result:', result);
+              // console.log(`[EMAIL QUEUE] 📅 Auto-scheduled follow-up for email ${id}`);
             } else {
               console.log('⚠️ [FOLLOW-UP] Could not find sent email with id:', id);
               console.log('⚠️ [FOLLOW-UP] Available sent email IDs:', sentEmails.map(e => e.id));

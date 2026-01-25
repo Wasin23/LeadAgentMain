@@ -758,16 +758,12 @@ export default function InteractiveGlobe() {
       // Fetch actual counts for each agent
       const agentsWithCounts = await Promise.all(agents.map(async (agent: any) => {
         try {
-          const [queuedRes, sentRes, repliedRes] = await Promise.all([
-            api.get(`/api/email-queue/queue/count?agentId=${agent.agentId}`),
-            api.get(`/api/email-queue/sent/count?agentId=${agent.agentId}`),
-            api.get(`/api/email-queue/replied/count?agentId=${agent.agentId}`)
-          ]);
+          const countsRes = await api.get(`/api/email-queue/counts?agentId=${agent.agentId}`);
           return {
             ...agent,
-            queued: queuedRes.data?.count || 0,
-            sent: sentRes.data?.count || 0,
-            replied: repliedRes.data?.count || 0
+            queued: countsRes.data?.queued || 0,
+            sent: countsRes.data?.sent || 0,
+            replied: countsRes.data?.replied || 0
           };
         } catch (error) {
           console.error(`Error fetching counts for agent ${agent.agentId}:`, error);
@@ -796,18 +792,14 @@ export default function InteractiveGlobe() {
       // Check for orphaned emails using count endpoints
       try {
         console.log('🔍 Fetching orphan counts...');
-        const [orphanedQueuedRes, orphanedSentRes, orphanedRepliedRes] = await Promise.all([
-          api.get('/api/email-queue/queue/count?agentId=orphan'),
-          api.get('/api/email-queue/sent/count?agentId=orphan'),
-          api.get('/api/email-queue/replied/count?agentId=orphan')
-        ]);
+        const orphanedCountsRes = await api.get('/api/email-queue/counts?agentId=orphan');
         
-        const orphanedQueuedCount = orphanedQueuedRes.data?.count || 0;
-        const orphanedSentCount = orphanedSentRes.data?.count || 0;
-        const orphanedRepliedCount = orphanedRepliedRes.data?.count || 0;
+        const orphanedQueuedCount = orphanedCountsRes.data?.queued || 0;
+        const orphanedSentCount = orphanedCountsRes.data?.sent || 0;
+        const orphanedRepliedCount = orphanedCountsRes.data?.replied || 0;
         
         console.log('🔍 Orphaned emails check:', orphanedQueuedCount, 'queued,', orphanedSentCount, 'sent,', orphanedRepliedCount, 'replied');
-        console.log('🔍 Raw responses:', { queued: orphanedQueuedRes.data, sent: orphanedSentRes.data, replied: orphanedRepliedRes.data });
+        console.log('🔍 Raw response:', orphanedCountsRes.data);
         
         if (orphanedQueuedCount > 0 || orphanedSentCount > 0 || orphanedRepliedCount > 0) {
           // Add orphaned emails as a special agent at the top
