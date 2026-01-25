@@ -206,6 +206,7 @@ export default function InteractiveGlobe() {
   const [targetRotation, setTargetRotation] = useState<[number, number] | null>(null);
   const [isAnimatingToAgent, setIsAnimatingToAgent] = useState(false);
   const animationRef = useRef<number | undefined>(undefined);
+  const fetchStatsRef = useRef<(() => Promise<void>) | null>(null);
   const [worldGeoData, setWorldGeoData] = useState<any>(null);
 
   // Globe view toggle
@@ -576,6 +577,14 @@ export default function InteractiveGlobe() {
       try {
         const data = JSON.parse(event.data);
         console.log('📡 SSE Event received:', data);
+        
+        // Handle email_queued event - refresh counts immediately
+        if (data.type === 'email_queued') {
+          console.log('📧 Email queued event - refreshing counts immediately');
+          if (fetchStatsRef.current) {
+            fetchStatsRef.current();
+          }
+        }
         
         // Handle cycle events for progress stream (check both direct and wrapped)
         const eventType = data.type === 'activity_added' && data.data?.type ? data.data.type : data.type;
@@ -1288,6 +1297,9 @@ export default function InteractiveGlobe() {
         console.error('Failed to fetch stats:', error);
       }
     };
+    
+    // Store in ref so SSE listener can call it
+    fetchStatsRef.current = fetchStats;
     
     fetchStats();
     // Refresh stats every 30 seconds

@@ -2,13 +2,13 @@ import 'dotenv/config';
 import AWSEmailQueue from './utils/awsEmailQueue.js';
 
 const queue = new AWSEmailQueue();
-const userId = '5781c511-2307-4fcf-a763-33e8ec64a638';
+const userId = '5344c009-768d-4d7f-a399-4704507bf852'; // Dad's account
 
 async function checkOrphanAgentIds() {
   console.log('Checking all queued emails for user:', userId);
   
   try {
-    const result = await queue.getAllQueuedEmailsForUser(userId, 100, 0);
+    const result = await queue.getAllQueuedEmailsForUser(userId, 200, 0);
     const allQueued = result.emails || result || [];
     console.log('Total queued emails:', allQueued.length);
     

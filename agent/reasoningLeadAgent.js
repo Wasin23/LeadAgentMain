@@ -6549,6 +6549,16 @@ Target Positions:`;
       console.log(`✅ [EMAIL QUEUE SUCCESS] ${leadData.company} (${leadData.email}) | User: ${this.userId} | Agent: ${this.agentId}`);
       console.log(`✅ [EMAIL QUEUE SUCCESS] Email ID: ${queueData.id}`);
 
+      // Emit SSE event so frontend updates count immediately
+      this.emit('email_queued', {
+        type: 'email_queued',
+        agentId: this.agentId,
+        emailId: queueData.id,
+        to: queueData.to,
+        company: leadData.company,
+        timestamp: new Date().toISOString()
+      });
+
       // NOW track this contact in the database since email was successfully queued
       try {
         const leadInfo = {
@@ -7761,7 +7771,23 @@ export function getUserAgent(userId, agentId = 'reasoning-lead-agent') {
 
   if (!userAgents.has(agentKey)) {
     console.log('🔧 [AGENT MANAGER] Creating new ReasoningLeadAgent for user:', userId, 'agentId:', agentId);
-    userAgents.set(agentKey, new ReasoningLeadAgent(userId, agentId));
+    const agent = new ReasoningLeadAgent(userId, agentId);
+    
+    // Set up listener to broadcast email_queued events through monitoring stream
+    agent.on('email_queued', async (eventData) => {
+      try {
+        const { broadcastActivity } = await import('../routes/monitoring.js');
+        broadcastActivity({
+          type: 'email_queued',
+          ...eventData
+        });
+        console.log('📡 [AGENT MANAGER] Broadcasted email_queued event via SSE');
+      } catch (error) {
+        console.error('⚠️ [AGENT MANAGER] Failed to broadcast email_queued event:', error);
+      }
+    });
+    
+    userAgents.set(agentKey, agent);
   }
 
   return userAgents.get(agentKey);
