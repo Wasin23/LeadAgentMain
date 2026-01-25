@@ -136,13 +136,26 @@ class AWSEmailQueue {
    */
   async queueEmail(userId, agentId, emailData) {
     try {
+      console.log('[AWS EMAIL QUEUE] 📥 queueEmail called:', {
+        userId,
+        agentId,
+        to: emailData.to,
+        hasSubject: !!emailData.subject,
+        hasBody: !!emailData.body,
+        emailDataKeys: Object.keys(emailData)
+      });
+      
       const emailId = emailData.id || uuidv4();
       const timestamp = new Date().toISOString();
       const status = 'QUEUED';
 
+      const pk = this._getPK(userId, agentId);
+      const sk = this._getSK(status, timestamp, emailId);
+      console.log('[AWS EMAIL QUEUE] 🔑 Keys generated:', { PK: pk, SK: sk });
+
       const item = {
-        PK: this._getPK(userId, agentId),
-        SK: this._getSK(status, timestamp, emailId),
+        PK: pk,
+        SK: sk,
         GSIPK: this._getGSIPK(userId, status),
         GSISK: this._getGSISK(timestamp, emailId),
         
@@ -186,10 +199,20 @@ class AWSEmailQueue {
         ttl: Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60)
       };
 
+      console.log('[AWS EMAIL QUEUE] 🔄 Writing to DynamoDB:', {
+        TableName: this.tableName,
+        PK: item.PK,
+        SK: item.SK,
+        to: item.to,
+        subject: item.subject?.substring(0, 50)
+      });
+
       await this.dynamodb.send(new PutCommand({
         TableName: this.tableName,
         Item: item
       }));
+
+      console.log('[AWS EMAIL QUEUE] ✅ DynamoDB write successful');
 
       // Invalidate cache for this user
       this._invalidateCache(userId);
@@ -197,7 +220,10 @@ class AWSEmailQueue {
       console.log(`✅ [AWS EMAIL QUEUE] Email queued: ${emailId} for agent ${agentId}`);
       return item;
     } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error queueing email:', error);
+      console.error('[AWS EMAIL QUEUE] ❌ Error queueing email:', error);
+      console.error('[AWS EMAIL QUEUE] ❌ Error name:', error.name);
+      console.error('[AWS EMAIL QUEUE] ❌ Error message:', error.message);
+      console.error('[AWS EMAIL QUEUE] ❌ Error stack:', error.stack);
       throw error;
     }
   }

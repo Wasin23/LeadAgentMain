@@ -2630,11 +2630,11 @@ export default function InteractiveGlobe() {
                     : 'border-[#4FD1FF]/10 opacity-50 cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-1.5 h-1.5 rounded-full ${
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
                     stats.totalEmailsQueued > 0 ? 'bg-orange-400 animate-pulse' : 'bg-gray-400'
                   }`}></div>
-                  <span className={`text-[10px] uppercase tracking-wide font-semibold ${
+                  <span className={`text-base uppercase tracking-wide font-bold ${
                     stats.totalEmailsQueued > 0 ? 'text-[#4FD1FF]' : 'text-[#8FA6C1]'
                   }`}>View Email Queue</span>
                 </div>

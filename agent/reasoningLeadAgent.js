@@ -6414,10 +6414,16 @@ Target Positions:`;
 
   async addToEmailQueue(leadData) {
     console.log('🚀 [EMAIL QUEUE START] User:', this.userId, '| Agent:', this.agentId, '| Lead:', leadData.email);
+    console.log('🔍 [EMAIL QUEUE DEBUG] leadData keys:', Object.keys(leadData));
+    console.log('🔍 [EMAIL QUEUE DEBUG] Has personalizedEmail:', !!leadData.personalizedEmail, '| Length:', leadData.personalizedEmail?.length);
+    console.log('🔍 [EMAIL QUEUE DEBUG] Has emailSubject:', !!leadData.emailSubject, '| Value:', leadData.emailSubject);
     
     try {
       if (!leadData.personalizedEmail || !leadData.emailSubject) {
         console.log('❌ [EMAIL QUEUE FAILED] No email content generated for', leadData.email);
+        console.log('❌ [EMAIL QUEUE FAILED] personalizedEmail:', leadData.personalizedEmail?.substring(0, 100));
+        console.log('❌ [EMAIL QUEUE FAILED] emailSubject:', leadData.emailSubject);
+        console.log('❌ [EMAIL QUEUE FAILED] Full leadData:', JSON.stringify(leadData, null, 2));
         this.logIssue('warning', 'Lead queued without email content', { leadData });
         return;
       }
@@ -6432,7 +6438,6 @@ Target Positions:`;
       console.log('📧 [EMAIL QUEUE] BCC Emails from settings:', bccEmails);
       console.log('📧 [EMAIL QUEUE] Confidence Report:', leadData.confidenceReport);
       console.log('📧 [EMAIL QUEUE] Confidence Level:', leadData.confidenceLevel);
-      console.log('📧 [EMAIL QUEUE] Full emailSettings:', JSON.stringify(this.memory.emailSettings, null, 2));
 
       const queueData = {
         id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -6530,8 +6535,19 @@ Target Positions:`;
         aiReportCitedEvidence: queueData.aiReport?.citedEvidence?.length || 0
       });
 
+      console.log('📧 [DEBUG QUEUE DATA] About to call emailQueue.addToQueue with:', {
+        userId: this.userId,
+        agentId: this.agentId,
+        to: queueData.to,
+        subject: queueData.subject?.substring(0, 50),
+        bodyLength: queueData.body?.length,
+        hasConfidenceReport: !!queueData.confidenceReport,
+        hasAiReport: !!queueData.aiReport
+      });
+
       await this.emailQueue.addToQueue(queueData);
       console.log(`✅ [EMAIL QUEUE SUCCESS] ${leadData.company} (${leadData.email}) | User: ${this.userId} | Agent: ${this.agentId}`);
+      console.log(`✅ [EMAIL QUEUE SUCCESS] Email ID: ${queueData.id}`);
 
       // NOW track this contact in the database since email was successfully queued
       try {
