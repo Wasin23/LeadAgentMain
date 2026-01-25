@@ -142,55 +142,29 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
 
   const enrichAgentsWithStats = async (agentsList: Agent[]) => {
     try {
-      // Fetch email stats for each agent
-      const agentsWithStats = await Promise.all(
-        agentsList.map(async (agent: any) => {
-          // Normalize agent data structure
-          const normalizedAgent = {
-            ...agent,
-            agentName: agent.agentName || agent.name,
-            agentId: agent.agentId
-          };
-          
-          try {
-            // Use count endpoints for accurate numbers instead of fetching all emails
-            const [queuedRes, sentRes] = await Promise.all([
-              api.get(`/api/email-queue/queue/count?agentId=${normalizedAgent.agentId}`).catch(err => {
-                console.error(`Failed to fetch queue count for ${normalizedAgent.agentId}:`, err);
-                return { data: { count: 0 } };
-              }),
-              api.get(`/api/email-queue/sent/count?agentId=${normalizedAgent.agentId}`).catch(err => {
-                console.error(`Failed to fetch sent count for ${normalizedAgent.agentId}:`, err);
-                return { data: { count: 0 } };
-              })
-            ]);
-            
-            const queuedCount = queuedRes.data?.count || 0;
-            const sentCount = sentRes.data?.count || 0;
-            const totalBuilt = queuedCount + sentCount;
-            
-            return {
-              ...normalizedAgent,
-              emailStats: {
-                built: totalBuilt,
-                queued: queuedCount,
-                sent: sentCount
-              }
-            };
-          } catch (error) {
-            console.error(`Error fetching stats for ${normalizedAgent.agentId}:`, error);
-            // Always return emailStats even on error to prevent disappearing
-            return {
-              ...normalizedAgent,
-              emailStats: {
-                built: 0,
-                queued: 0,
-                sent: 0
-              }
-            };
+      // Agents from operations page already have queued/sent/replied counts
+      // Just format them into the emailStats structure expected by the UI
+      const agentsWithStats = agentsList.map((agent: any) => {
+        const normalizedAgent = {
+          ...agent,
+          agentName: agent.agentName || agent.name,
+          agentId: agent.agentId
+        };
+        
+        // Use existing counts from parent (operations page already fetched these)
+        const queuedCount = agent.queued || 0;
+        const sentCount = agent.sent || 0;
+        const totalBuilt = queuedCount + sentCount;
+        
+        return {
+          ...normalizedAgent,
+          emailStats: {
+            built: totalBuilt,
+            queued: queuedCount,
+            sent: sentCount
           }
-        })
-      );
+        };
+      });
       
       setAgents(agentsWithStats);
       setIsLoading(false);

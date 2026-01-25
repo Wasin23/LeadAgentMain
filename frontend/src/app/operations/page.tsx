@@ -869,7 +869,8 @@ export default function InteractiveGlobe() {
         isArray: Array.isArray(response.data),
         hasEmails: !!(response.data?.emails),
         dataKeys: response.data ? Object.keys(response.data) : [],
-        emailCount: response.data?.emails?.length || (Array.isArray(response.data) ? response.data.length : 0)
+        emailCount: response.data?.emails?.length || (Array.isArray(response.data) ? response.data.length : 0),
+        rawData: agentId === 'orphan' ? response.data : undefined
       });
       
       // Handle paginated response for queued emails
