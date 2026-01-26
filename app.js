@@ -239,8 +239,9 @@ try {
 let companyProfileRoutes;
 try {
   companyProfileRoutes = (await import('./routes/companyProfile.js')).default;
+  console.log('[APP] ✅ Company profile routes loaded successfully');
 } catch (e) {
-  console.log('Company profile routes not available:', e.message);
+  console.error('[APP] ❌ Company profile routes failed to load:', e.message);
   companyProfileRoutes = (req, res, next) => next(); // No-op if not present
 }
 
@@ -589,6 +590,7 @@ app.use('/api/lead-agent', leadAgentRoutes);
 console.log('✅ [APP] Mounting email queue routes at /api/email-queue');
 app.use('/api/email-queue', emailQueueRoutes);
 app.use('/api/email-response-settings', emailResponseSettingsRoutes);
+console.log('✅ [APP] Mounting company profile routes at /api/company-profile');
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
 app.use('/api/plans', plansRoutes); // User plans and credit management
 app.use('/api/settings', settingsRoutes); // Settings presets management

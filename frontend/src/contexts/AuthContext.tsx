@@ -98,6 +98,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     console.log('[AUTH CONTEXT] Starting registration for:', username, email);
     try {
+      // Clear any existing session data before registration
+      localStorage.clear();
+      sessionStorage.clear();
+      Cookies.remove('authToken');
+      
       console.log('[AUTH CONTEXT] Calling authAPI.register...');
       const response = await authAPI.register({ username, email, password });
       console.log('[AUTH CONTEXT] Registration response:', response.data);

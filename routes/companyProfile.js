@@ -556,6 +556,9 @@ router.put('/complete-onboarding', async (req, res) => {
  * Delete company profile (reset account data)
  */
 router.delete('/', async (req, res) => {
+  console.log('[COMPANY PROFILE] DELETE / endpoint hit');
+  console.log('[COMPANY PROFILE] User:', req.user?.userId);
+  
   try {
     const userId = req.user.userId;
     const awsManager = new AWSManager();

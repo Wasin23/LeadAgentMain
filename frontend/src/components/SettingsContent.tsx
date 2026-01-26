@@ -490,16 +490,25 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                       onClick={async () => {
                         if (window.confirm('Are you sure you want to reset your account data? This will clear ALL data including agents, emails, analytics, and company profile. You will be redirected to onboarding. This action cannot be undone.')) {
                           try {
-                            await api.delete('/api/company-profile');
+                            console.log('[SETTINGS] Attempting to reset account...');
+                            const response = await api.delete('/api/company-profile');
+                            console.log('[SETTINGS] Reset successful:', response.data);
+                            alert('Account reset successful! Redirecting to onboarding...');
                             // Redirect to setup page which will show full onboarding flow
                             window.location.href = '/setup';
-                          } catch (error) {
-                            console.error('Failed to reset account data:', error);
-                            alert('Failed to reset account data. Please try again.');
+                          } catch (error: any) {
+                            console.error('[SETTINGS] Failed to reset account data:', error);
+                            console.error('[SETTINGS] Error details:', {
+                              message: error.message,
+                              response: error.response?.data,
+                              status: error.response?.status,
+                              url: error.config?.url
+                            });
+                            alert(`Failed to reset account data: ${error.response?.data?.error || error.message}. Please contact support.`);
                           }
                         }
                       }}
-                      className="px-4 py-2 !bg-red-600 text-white rounded-lg hover:!bg-red-700 transition-colors font-medium border border-red-700"
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium border border-red-700"
                     >
                       Reset Account Data
                     </button>
