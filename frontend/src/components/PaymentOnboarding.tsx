@@ -3,12 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCardIcon, SparklesIcon, CheckIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import BillingContent from './BillingContent';
 import CreditPurchaseModal from './CreditPurchaseModal';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
 interface PaymentOnboardingProps {
   onComplete: () => void;
@@ -16,7 +11,6 @@ interface PaymentOnboardingProps {
 
 export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps) {
   const [selectedOption, setSelectedOption] = useState<'trial' | 'credits' | null>(null);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
 
   const handleTrialSelection = () => {
@@ -27,11 +21,6 @@ export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps
 
   const handleCreditsSelection = () => {
     setSelectedOption('credits');
-    setShowPaymentForm(true);
-  };
-
-  const handlePaymentAdded = () => {
-    setShowPaymentForm(false);
     setShowCreditPurchase(true);
   };
 
@@ -43,7 +32,7 @@ export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A1628] via-[#14304a] to-[#0A1628] flex items-center justify-center p-4">
       <AnimatePresence mode="wait">
-        {!showPaymentForm && !showCreditPurchase && (
+        {!showCreditPurchase && (
           <motion.div
             key="selection"
             initial={{ opacity: 0, y: 20 }}
@@ -138,7 +127,11 @@ export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps
                     <div className="space-y-4 mb-8">
                       <div className="flex items-start gap-3">
                         <CheckIcon className="w-5 h-5 text-[#4FD1FF] flex-shrink-0 mt-0.5" />
-                        <span className="text-white/80">Start with 10,000+ credits</span>
+                        <span className="text-white/80">Choose from 7 credit packages</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckIcon className="w-5 h-5 text-[#4FD1FF] flex-shrink-0 mt-0.5" />
+                        <span className="text-white/80">Starting at just $10</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <CheckIcon className="w-5 h-5 text-[#4FD1FF] flex-shrink-0 mt-0.5" />
@@ -150,24 +143,40 @@ export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps
                       </div>
                       <div className="flex items-start gap-3">
                         <CheckIcon className="w-5 h-5 text-[#4FD1FF] flex-shrink-0 mt-0.5" />
-                        <span className="text-white/80">Volume discounts available</span>
+                        <span className="text-white/80">Secure payment with Stripe</span>
                       </div>
                     </div>
 
                     <div className="bg-[#4FD1FF]/10 border border-[#4FD1FF]/30 rounded-lg p-4 mb-6">
-                      <div className="text-sm text-white/90 mb-2">Starting at:</div>
-                      <div className="text-3xl font-bold text-white">$500</div>
-                      <div className="text-sm text-white/60">10,000 credits (~15,000 emails)</div>
+                      <div className="text-sm text-white/90 mb-2">Popular packages:</div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Mini Top-up</span>
+                          <span className="text-white font-semibold">$10 - 200 credits</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Starter Plan</span>
+                          <span className="text-white font-semibold">$500 - 10,000 credits</span>
+                        </div>
+                        <div className="flex justify-between text-sm border-t border-white/10 pt-2">
+                          <span className="text-[#4FD1FF]">Growth Plan</span>
+                          <span className="text-[#4FD1FF] font-bold">$1,000 - 20,000 credits ⭐</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Scale Plan</span>
+                          <span className="text-white font-semibold">$2,500 - 90,000 credits</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="text-sm text-white/60">
-                      Best for immediate high-volume usage
+                      View all options and choose what fits your needs
                     </div>
                   </div>
 
                   <button className="w-full mt-6 px-6 py-4 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all flex items-center justify-center gap-2">
                     <CreditCardIcon className="w-5 h-5" />
-                    Purchase Credits
+                    View All Plans & Purchase
                   </button>
                 </div>
               </motion.div>
@@ -175,38 +184,8 @@ export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps
 
             <div className="text-center mt-8">
               <p className="text-white/60 text-sm">
-                💡 You can always upgrade from the free trial later
+                💡 No charge until you select a plan and confirm payment
               </p>
-            </div>
-          </motion.div>
-        )}
-
-        {showPaymentForm && (
-          <motion.div
-            key="payment-form"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="max-w-2xl w-full"
-          >
-            <div className="bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-2xl p-8">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-white mb-2">Add Payment Method</h2>
-                <p className="text-white/70">Securely add your card to purchase credits</p>
-              </div>
-
-              <Elements stripe={stripePromise}>
-                <BillingContent />
-              </Elements>
-
-              <div className="mt-6 text-center">
-                <button
-                  onClick={handlePaymentAdded}
-                  className="px-6 py-3 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all"
-                >
-                  Continue to Purchase Credits
-                </button>
-              </div>
             </div>
           </motion.div>
         )}
