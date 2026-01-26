@@ -243,7 +243,11 @@ export default function SignInPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#1B2F52]/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-[#4FD1FF]/20 w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10"
+        className="bg-[#1B2F52]/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-[#4FD1FF]/20 w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10 scrollbar-hide"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
       >
         {/* Back to Home Button */}
         <button
@@ -586,15 +590,15 @@ export default function SignInPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-6 pt-6 border-t border-neutral-200"
+                  className="mt-6 pt-6 border-t border-white/20"
                 >
-                  <h3 className="text-lg font-medium text-neutral-900 mb-4">
+                  <h3 className="text-lg font-medium text-white mb-4">
                     Enter Reset Code
                   </h3>
                   
                   <form onSubmit={handleResetPassword} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                      <label className="block text-xs font-medium text-white uppercase tracking-wider mb-2">
                         Reset Code
                       </label>
                       <input
@@ -606,12 +610,12 @@ export default function SignInPage() {
                           setResetForm({ ...resetForm, code: newCode });
                           validateResetCode(newCode);
                         }}
-                        className={`w-full px-4 py-3 border bg-white text-sm text-neutral-900 transition-colors focus:outline-none focus:ring-4 ${
+                        className={`w-full px-4 py-3 border bg-[#12213B] text-sm text-white transition-colors focus:outline-none focus:ring-4 placeholder-[#8FA6C1] rounded-xl ${
                           codeValidation.isValid 
                             ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10' 
                             : resetForm.code && !codeValidation.isChecking && codeValidation.message && !codeValidation.isValid
                             ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
-                            : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-500/10'
+                            : 'border-[#4FD1FF]/30 focus:border-[#4FD1FF] focus:ring-[#4FD1FF]/20'
                         }`}
                         placeholder="Enter the code from your email"
                       />
@@ -632,7 +636,7 @@ export default function SignInPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                      <label className="block text-xs font-medium text-white uppercase tracking-wider mb-2">
                         New Password
                       </label>
                       <input
@@ -646,16 +650,16 @@ export default function SignInPage() {
                       {resetForm.newPassword && (
                         <div className="mt-2">
                           <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="text-neutral-600">Password strength</span>
+                            <span className="text-[#A3B4CC]">Password strength</span>
                             <span className={`capitalize ${
-                              getPasswordStrength(resetForm.newPassword).strength === 'weak' ? 'text-red-600' :
-                              getPasswordStrength(resetForm.newPassword).strength === 'medium' ? 'text-yellow-600' :
-                              'text-green-600'
+                              getPasswordStrength(resetForm.newPassword).strength === 'weak' ? 'text-red-400' :
+                              getPasswordStrength(resetForm.newPassword).strength === 'medium' ? 'text-yellow-400' :
+                              'text-green-400'
                             }`}>
                               {getPasswordStrength(resetForm.newPassword).strength}
                             </span>
                           </div>
-                          <div className="w-full bg-neutral-200 rounded-full h-1">
+                          <div className="w-full bg-white/20 rounded-full h-1">
                             <div 
                               className={`h-1 rounded-full transition-all duration-300 ${
                                 getPasswordStrength(resetForm.newPassword).strength === 'weak' ? 'bg-red-500' :
@@ -670,7 +674,7 @@ export default function SignInPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+                      <label className="block text-xs font-medium text-white uppercase tracking-wider mb-2">
                         Confirm New Password
                       </label>
                       <input
@@ -683,7 +687,7 @@ export default function SignInPage() {
                       {resetForm.confirmPassword && (
                         <p className={`text-xs mt-1 ${
                           resetForm.newPassword === resetForm.confirmPassword 
-                            ? 'text-green-600' : 'text-red-600'
+                            ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {resetForm.newPassword === resetForm.confirmPassword 
                             ? 'Passwords match' : 'Passwords do not match'}
