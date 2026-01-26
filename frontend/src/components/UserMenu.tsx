@@ -9,7 +9,7 @@ import {
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface UserMenuProps {
   onSettingsClick?: () => void;
@@ -20,6 +20,10 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Determine if we're in the setup/onboarding flow
+  const isSetupPage = pathname?.startsWith('/setup');
 
   // Set mounted on client side only
   useEffect(() => {
@@ -94,7 +98,11 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="absolute left-0 bottom-full mb-2 w-96 bg-white border border-neutral-200 rounded-2xl shadow-2xl z-20"
+              className={`absolute w-96 bg-white border border-neutral-200 rounded-2xl shadow-2xl z-20 ${
+                isSetupPage 
+                  ? 'left-0 top-full mt-2'    // /setup: dropdown opens down-left
+                  : 'right-0 bottom-full mb-2' // normal: dropdown opens up-right
+              }`}
             >
               {/* User Info */}
               <div className="px-4 py-3 border-b border-neutral-200">
