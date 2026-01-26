@@ -78,7 +78,7 @@ export default function PaymentOnboarding({ onComplete }: PaymentOnboardingProps
                     <div className="space-y-4 mb-8">
                       <div className="flex items-start gap-3">
                         <CheckIcon className="w-5 h-5 text-[#4FD1FF] flex-shrink-0 mt-0.5" />
-                        <span className="text-white/80">$25 in free trial credits</span>
+                        <span className="text-white/80">500 free trial credits</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <CheckIcon className="w-5 h-5 text-[#4FD1FF] flex-shrink-0 mt-0.5" />

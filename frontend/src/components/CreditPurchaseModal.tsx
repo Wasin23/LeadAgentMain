@@ -230,16 +230,16 @@ export default function CreditPurchaseModal({
                           : 'border-white/20 bg-white/5 hover:border-white/40'
                       }`}
                     >
-                      {tier.popular && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                          <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full">
+                      {tier.popular && !isCurrentPlan && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                          <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full whitespace-nowrap">
                             MOST POPULAR
                           </span>
                         </div>
                       )}
                       {isCurrentPlan && (
-                        <div className="absolute -top-3 right-4">
-                          <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                          <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1 whitespace-nowrap">
                             <CheckIcon className="w-3 h-3" />
                             Current Plan
                           </span>
@@ -292,8 +292,8 @@ export default function CreditPurchaseModal({
                 >
                   {/* Popular Badge */}
                   {tier.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full whitespace-nowrap">
                         POPULAR
                       </span>
                     </div>

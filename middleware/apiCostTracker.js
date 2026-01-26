@@ -34,7 +34,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
     }
 
     const currentCreditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 25;
+    const creditsLimit = user.trialCreditsLimit || 500;
     const newCreditsUsed = currentCreditsUsed + cost;
     const percentageUsed = (newCreditsUsed / creditsLimit) * 100;
 
@@ -131,7 +131,7 @@ export async function checkTrialCredits(userId, apiType, quantity = 1) {
     }
 
     const currentCreditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 25;
+    const creditsLimit = user.trialCreditsLimit || 500;
     const estimatedCost = (API_COSTS[apiType] || 0.001) * quantity;
     const wouldExceedLimit = (currentCreditsUsed + estimatedCost) > creditsLimit;
 
@@ -183,11 +183,12 @@ export async function getTrialCreditStatus(userId) {
     });
 
     // MIGRATION: If user doesn't have trial credit fields, add them
-    if (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined) {
-      console.log('⚠️ [TRIAL] User missing trial fields, migrating...');
+    // Also upgrade old 25-credit trial users to 500 credits
+    if (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined || user.trialCreditsLimit === 25) {
+      console.log('⚠️ [TRIAL] User missing trial fields or has old 25-credit limit, migrating...');
       await awsManager.updateUser(userId, {
         trialCreditsUsed: user.trialCreditsUsed || 0,
-        trialCreditsLimit: user.trialCreditsLimit || 25,
+        trialCreditsLimit: 500,  // Always set to 500, even for old users
         paymentMethodAdded: user.paymentMethodAdded || false,
         stripeCustomerId: user.stripeCustomerId || null
       });
@@ -198,7 +199,7 @@ export async function getTrialCreditStatus(userId) {
     }
 
     const creditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 25;
+    const creditsLimit = user.trialCreditsLimit || 500;
     const creditsRemaining = Math.max(0, creditsLimit - creditsUsed);
     const percentageUsed = (creditsUsed / creditsLimit) * 100;
 
