@@ -496,7 +496,10 @@ const publicEmailEndpoints = [
   '/api/auth/register', // Registration endpoint
   '/api/auth/forgot-password', // Password reset request
   '/api/auth/reset-password', // Password reset
-  '/api/auth/test' // Auth test endpoint
+  '/api/auth/test', // Auth test endpoint
+  '/api/calendar/oauth-callback', // Google OAuth callback
+  '/api/auth/gmail/authorize', // Gmail OAuth authorize
+  '/api/auth/gmail/callback' // Gmail OAuth callback
 ];
 
 // Middleware to check if endpoint should be public
