@@ -28,6 +28,12 @@ export function QueueCountProvider({ children }: { children: React.ReactNode }) 
   const [isLoading, setIsLoading] = useState(false);
 
   const refreshCounts = useCallback(async () => {
+    // Don't make API calls if no auth token
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Fetch all counts in one request
