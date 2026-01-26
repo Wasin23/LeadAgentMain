@@ -490,7 +490,12 @@ const publicEmailEndpoints = [
   '/health',       // Health checks
   '/ready',        // Readiness checks
   '/api/metrics',  // Public metrics
-  '/api/session'   // Session info
+  '/api/session',  // Session info
+  '/api/auth/login', // Login endpoint
+  '/api/auth/register', // Registration endpoint
+  '/api/auth/forgot-password', // Password reset request
+  '/api/auth/reset-password', // Password reset
+  '/api/auth/test' // Auth test endpoint
 ];
 
 // Middleware to check if endpoint should be public
