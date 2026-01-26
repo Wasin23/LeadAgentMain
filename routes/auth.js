@@ -103,18 +103,24 @@ router.post('/register', async (req, res) => {
 
 // User login
 router.post('/login', async (req, res) => {
+  console.log('[AUTH] Login request received');
+  console.log('[AUTH] Request body:', { username: req.body.username, hasPassword: !!req.body.password });
+  
   try {
     const { username, password } = req.body;
     
     if (!username || !password) {
+      console.log('[AUTH] Missing username or password');
       return res.status(400).json({ error: 'Username and password are required' });
     }
     
+    console.log('[AUTH] Calling loginUser...');
     const user = await loginUser(username, password);
-    console.log(`[AUTH] User logged in: ${username}`);
+    console.log(`[AUTH] ✅ User logged in: ${username}`);
     
     // Generate JWT token
     const token = generateToken(user);
+    console.log('[AUTH] JWT token generated');
     
     // Note: Polling will be started automatically when user becomes active via activity tracker
     

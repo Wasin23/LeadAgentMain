@@ -54,11 +54,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
+    console.log('[AUTH CONTEXT] Starting login for:', username);
     try {
+      console.log('[AUTH CONTEXT] Calling authAPI.login...');
       const response = await authAPI.login({ username, password });
+      console.log('[AUTH CONTEXT] Login response:', response.data);
       
       if (response.data.success) {
         const { user, token } = response.data;
+        console.log('[AUTH CONTEXT] Login successful, storing auth data');
         
         // Store auth data
         localStorage.setItem('currentUser', JSON.stringify(user));
@@ -68,9 +72,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(user);
         return true;
       }
+      console.log('[AUTH CONTEXT] Login failed - success:false in response');
+      // Clear any stale auth data
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      Cookies.remove('authToken');
+      setUser(null);
       return false;
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (error: any) {
+      console.error('[AUTH CONTEXT] Login error:', error);
+      console.error('[AUTH CONTEXT] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      // Clear any stale auth data
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      Cookies.remove('authToken');
+      setUser(null);
       return false;
     }
   };
@@ -95,6 +115,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       }
       console.log('[AUTH CONTEXT] Registration failed - success:false in response');
+      // Clear any stale auth data
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      Cookies.remove('authToken');
+      setUser(null);
       return false;
     } catch (error: any) {
       console.error('[AUTH CONTEXT] Registration error:', error);
@@ -103,6 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         response: error.response?.data,
         status: error.response?.status
       });
+      // Clear any stale auth data
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      Cookies.remove('authToken');
+      setUser(null);
       return false;
     }
   };
