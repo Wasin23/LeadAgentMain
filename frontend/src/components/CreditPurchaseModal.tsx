@@ -230,13 +230,6 @@ export default function CreditPurchaseModal({
                           : 'border-white/20 bg-white/5 hover:border-white/40'
                       }`}
                     >
-                      {tier.popular && !isCurrentPlan && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                          <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full whitespace-nowrap">
-                            MOST POPULAR
-                          </span>
-                        </div>
-                      )}
                       {isCurrentPlan && (
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                           <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1 whitespace-nowrap">
@@ -290,15 +283,6 @@ export default function CreditPurchaseModal({
                       : 'border-white/20 bg-white/5 hover:border-white/40'
                   }`}
                 >
-                  {/* Popular Badge */}
-                  {tier.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                      <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full whitespace-nowrap">
-                        POPULAR
-                      </span>
-                    </div>
-                  )}
-
                   <div className="text-center">
                     <h3 className="text-xl font-bold text-white mb-2 flex items-center justify-center gap-2">
                       {mode === 'topup' && <PlusIcon className="w-5 h-5 text-[#4FD1FF]" />}

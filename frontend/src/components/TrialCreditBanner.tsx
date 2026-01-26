@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ExclamationTriangleIcon, GiftIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import api from '@/lib/api';
+import PaymentMethodModal from './PaymentMethodModal';
 
 interface TrialCredits {
   creditsUsed: string;
@@ -25,6 +26,7 @@ export default function TrialCreditBanner() {
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
   const [hasCompanyProfile, setHasCompanyProfile] = useState<boolean | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Only show in main app after onboarding is complete
   const isMainApp = pathname?.startsWith('/dashboard') || pathname?.startsWith('/settings') || pathname?.startsWith('/agents');
@@ -140,38 +142,22 @@ export default function TrialCreditBanner() {
             </button>
           )}
           <button
-            onClick={() => {
-              router.push('/home');
-              // Use setTimeout to ensure navigation completes before triggering settings
-              setTimeout(() => {
-                const settingsButton = document.querySelector('[data-settings-trigger]') as HTMLButtonElement;
-                if (settingsButton) {
-                  settingsButton.click();
-                  // Poll for budget tab to appear (wait for React to render)
-                  let attempts = 0;
-                  const checkForBudgetTab = setInterval(() => {
-                    attempts++;
-                    const budgetTab = document.querySelector('[data-tab="budget"]') as HTMLButtonElement;
-                    if (budgetTab) {
-                      clearInterval(checkForBudgetTab);
-                      budgetTab.click();
-                      setDismissed(true);
-                      console.log('Budget tab clicked successfully');
-                    } else if (attempts > 20) {
-                      // Give up after 2 seconds (20 * 100ms)
-                      clearInterval(checkForBudgetTab);
-                      console.log('Budget tab not found after 2 seconds');
-                    }
-                  }, 100);
-                }
-              }, 300);
-            }}
+            onClick={() => setShowPaymentModal(true)}
             className="bg-white text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Add Payment Method
           </button>
         </div>
       </div>
+
+      <PaymentMethodModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setDismissed(true);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

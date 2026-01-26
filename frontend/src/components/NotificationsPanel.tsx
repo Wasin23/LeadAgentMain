@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, AlertTriangle, Info, CheckCircle, X, DollarSign, Bot, Mail, Settings, Gift } from 'lucide-react';
 import api from '@/lib/api';
+import PaymentMethodModal from './PaymentMethodModal';
 
 interface Issue {
   issueId: string;
@@ -33,6 +34,7 @@ export default function NotificationsPanel() {
   const [filter, setFilter] = useState<'all' | 'unread'>('unread');
   const [credits, setCredits] = useState<TrialCredits | null>(null);
   const [trialDismissed, setTrialDismissed] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const fetchIssues = async () => {
     try {
@@ -161,24 +163,7 @@ export default function NotificationsPanel() {
   }, []);
 
   const handleAddPayment = () => {
-    router.push('/home');
-    setTimeout(() => {
-      const settingsButton = document.querySelector('[data-settings-trigger]') as HTMLButtonElement;
-      if (settingsButton) {
-        settingsButton.click();
-        let attempts = 0;
-        const checkForBudgetTab = setInterval(() => {
-          attempts++;
-          const budgetTab = document.querySelector('[data-tab="budget"]') as HTMLButtonElement;
-          if (budgetTab) {
-            clearInterval(checkForBudgetTab);
-            budgetTab.click();
-          } else if (attempts > 20) {
-            clearInterval(checkForBudgetTab);
-          }
-        }, 100);
-      }
-    }, 300);
+    setShowPaymentModal(true);
   };
 
   const getSeverityIcon = (severity: string) => {
@@ -376,6 +361,15 @@ export default function NotificationsPanel() {
           Stay updated with important alerts
         </p>
       </div>
+
+      <PaymentMethodModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setTrialDismissed(true);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
