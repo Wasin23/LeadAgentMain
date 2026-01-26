@@ -59,26 +59,34 @@ router.get('/test', (req, res) => {
 
 // User registration
 router.post('/register', async (req, res) => {
+  console.log('[AUTH] Registration request received');
+  console.log('[AUTH] Request body:', { username: req.body.username, email: req.body.email, hasPassword: !!req.body.password });
+  
   try {
     const { username, email, password } = req.body;
     
     if (!username || !email || !password) {
+      console.log('[AUTH] Missing required fields');
       return res.status(400).json({ error: 'Username, email, and password are required' });
     }
     
     if (username.length > 24) {
+      console.log('[AUTH] Username too long:', username.length);
       return res.status(400).json({ error: 'Username must be 24 characters or less' });
     }
     
     if (password.length < 6) {
+      console.log('[AUTH] Password too short');
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
     
+    console.log('[AUTH] Calling registerUser...');
     const user = await registerUser(username, email, password);
-    console.log(`[AUTH] New user registered: ${username} (${email})`);
+    console.log(`[AUTH] ✅ New user registered: ${username} (${email})`);
     
     // Generate JWT token
     const token = generateToken(user);
+    console.log('[AUTH] JWT token generated');
     
     res.json({ 
       success: true, 
@@ -87,7 +95,8 @@ router.post('/register', async (req, res) => {
       user: { userId: user.userId, username: user.username, email: user.email }
     });
   } catch (error) {
-    console.error('[AUTH] Registration error:', error.message);
+    console.error('[AUTH] ❌ Registration error:', error.message);
+    console.error('[AUTH] Error stack:', error.stack);
     res.status(400).json({ error: error.message });
   }
 });

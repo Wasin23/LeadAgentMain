@@ -76,11 +76,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
+    console.log('[AUTH CONTEXT] Starting registration for:', username, email);
     try {
+      console.log('[AUTH CONTEXT] Calling authAPI.register...');
       const response = await authAPI.register({ username, email, password });
+      console.log('[AUTH CONTEXT] Registration response:', response.data);
       
       if (response.data.success) {
         const { user, token } = response.data;
+        console.log('[AUTH CONTEXT] Registration successful, storing auth data');
         
         // Store auth data
         localStorage.setItem('currentUser', JSON.stringify(user));
@@ -90,9 +94,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(user);
         return true;
       }
+      console.log('[AUTH CONTEXT] Registration failed - success:false in response');
       return false;
-    } catch (error) {
-      console.error('Registration error:', error);
+    } catch (error: any) {
+      console.error('[AUTH CONTEXT] Registration error:', error);
+      console.error('[AUTH CONTEXT] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       return false;
     }
   };
