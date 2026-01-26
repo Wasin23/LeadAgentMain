@@ -20,6 +20,35 @@ export default function Dashboard() {
     checkCompanyProfile();
   }, []);
 
+  // Save onboarding progress to localStorage
+  useEffect(() => {
+    if (!isCheckingProfile) {
+      const progress = {
+        hasCompanyProfile,
+        hasCalendarSetup,
+        hasPaymentSetup,
+        showAgentOnboarding
+      };
+      localStorage.setItem('onboardingProgress', JSON.stringify(progress));
+    }
+  }, [isCheckingProfile, hasCompanyProfile, hasCalendarSetup, hasPaymentSetup, showAgentOnboarding]);
+
+  // Restore onboarding progress from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('onboardingProgress');
+    if (saved) {
+      try {
+        const progress = JSON.parse(saved);
+        if (progress.hasCompanyProfile) setHasCompanyProfile(true);
+        if (progress.hasCalendarSetup !== null) setHasCalendarSetup(progress.hasCalendarSetup);
+        if (progress.hasPaymentSetup !== null) setHasPaymentSetup(progress.hasPaymentSetup);
+        if (progress.showAgentOnboarding) setShowAgentOnboarding(true);
+      } catch (e) {
+        console.error('Failed to restore onboarding progress:', e);
+      }
+    }
+  }, []);
+
   // Redirect to home if onboarding is complete
   useEffect(() => {
     if (!isCheckingProfile && hasCompanyProfile && hasCalendarSetup === true && hasPaymentSetup === true && !showAgentOnboarding) {
@@ -32,7 +61,7 @@ export default function Dashboard() {
 
   const checkCompanyProfile = async () => {
     try {
-      const response = await api.get('/api/company-profile');
+      const response = await api.get('/api/company-profile/check');
       const hasProfile = !!response.data?.profile;
       setHasCompanyProfile(hasProfile);
       
@@ -96,6 +125,8 @@ export default function Dashboard() {
       ) : showAgentOnboarding ? (
         <AgentOnboarding 
           onComplete={() => {
+            // Clear onboarding progress since they completed setup
+            localStorage.removeItem('onboardingProgress');
             // Redirect to the new home page after onboarding
             router.push('/home');
           }}

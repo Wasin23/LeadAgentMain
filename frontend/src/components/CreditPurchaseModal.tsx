@@ -20,6 +20,7 @@ interface PricingTier {
   bonus?: number;
   popular?: boolean;
   emails: number;
+  features: string[];
 }
 
 interface TopupOption {
@@ -48,6 +49,12 @@ export default function CreditPurchaseModal({
       price: 500,
       credits: 10000,
       emails: 15000,
+      features: [
+        '10,000 credits',
+        '~15,000 emails',
+        'Basic AI features',
+        'Email support'
+      ],
     },
     {
       id: 'growth',
@@ -56,6 +63,13 @@ export default function CreditPurchaseModal({
       credits: 20000,
       emails: 30000,
       popular: true,
+      features: [
+        '20,000 credits',
+        '~30,000 emails',
+        'Advanced AI features',
+        'Priority support',
+        'Custom integrations'
+      ],
     },
     {
       id: 'scale',
@@ -64,6 +78,14 @@ export default function CreditPurchaseModal({
       credits: 70000,
       bonus: 20000,
       emails: 105000,
+      features: [
+        '70,000 credits',
+        '+20,000 bonus credits',
+        '~105,000 emails',
+        'All AI features',
+        'Dedicated support',
+        'Custom workflows'
+      ],
     },
   ];
 
@@ -186,11 +208,75 @@ export default function CreditPurchaseModal({
 
         {/* Pricing Tiers */}
         <div className="p-8">
+          {/* Show Main Plans */}
+          {mode === 'onboarding' && (
+            <>
+              <h3 className="text-xl font-semibold text-white mb-4">Starter Plans</h3>
+              <div className="grid gap-6 mb-8 grid-cols-1 md:grid-cols-3">
+                {pricingTiers.map((tier, index) => {
+                  const isCurrentPlan = currentPlan === tier.id;
+                  return (
+                    <motion.div
+                      key={tier.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      onClick={() => setSelectedTier(tier.id)}
+                      className={`relative cursor-pointer rounded-xl p-6 border-2 transition-all ${
+                        selectedTier === tier.id
+                          ? 'border-[#4FD1FF] bg-[#4FD1FF]/10 shadow-lg shadow-[#4FD1FF]/20'
+                          : isCurrentPlan
+                          ? 'border-green-500 bg-green-500/10'
+                          : 'border-white/20 bg-white/5 hover:border-white/40'
+                      }`}
+                    >
+                      {tier.popular && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                          <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full">
+                            MOST POPULAR
+                          </span>
+                        </div>
+                      )}
+                      {isCurrentPlan && (
+                        <div className="absolute -top-3 right-4">
+                          <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                            <CheckIcon className="w-3 h-3" />
+                            Current Plan
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-center">
+                        <h3 className="text-2xl font-bold text-white mb-2">{tier.name}</h3>
+                        <div className="mb-4">
+                          <span className="text-4xl font-bold text-[#4FD1FF]">${tier.price}</span>
+                          <span className="text-white/70 ml-2">one-time</span>
+                        </div>
+                        <div className="mb-6">
+                          <div className="text-3xl font-bold text-white">{tier.credits.toLocaleString()}</div>
+                          <div className="text-white/70 text-sm">credits</div>
+                        </div>
+                        <ul className="space-y-3 text-left">
+                          {tier.features.map((feature: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm text-white/80">
+                              <CheckIcon className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-4">Quick Top-Ups</h3>
+            </>
+          )}
+          
+          {/* Show Top-Up Options or just topup options for topup mode */}
           <div className={`grid gap-6 mb-8 ${
-            mode === 'onboarding' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+            mode === 'onboarding' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
           }`}>
-            {(mode === 'onboarding' ? pricingTiers : topupOptions).map((tier, index) => {
-              const isCurrentPlan = mode === 'onboarding' && currentPlan === tier.id;
+            {topupOptions.map((tier, index) => {
               return (
                 <motion.div
                   key={tier.id}
@@ -201,8 +287,6 @@ export default function CreditPurchaseModal({
                   className={`relative cursor-pointer rounded-xl p-6 border-2 transition-all ${
                     selectedTier === tier.id
                       ? 'border-[#4FD1FF] bg-[#4FD1FF]/10 shadow-lg shadow-[#4FD1FF]/20'
-                      : isCurrentPlan
-                      ? 'border-green-500 bg-green-500/10'
                       : 'border-white/20 bg-white/5 hover:border-white/40'
                   }`}
                 >
@@ -210,27 +294,7 @@ export default function CreditPurchaseModal({
                   {tier.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <span className="px-4 py-1 bg-gradient-to-r from-[#4FD1FF] to-blue-500 text-white text-xs font-bold rounded-full">
-                        {mode === 'onboarding' ? 'MOST POPULAR' : 'POPULAR'}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Current Plan Badge */}
-                  {isCurrentPlan && (
-                    <div className="absolute -top-3 right-4">
-                      <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                        <CheckIcon className="w-3 h-3" />
-                        CURRENT
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Bonus Badge for full plans */}
-                  {mode === 'onboarding' && 'bonus' in tier && (tier as PricingTier).bonus && (
-                    <div className="absolute -top-3 right-4">
-                      <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                        <SparklesIcon className="w-3 h-3" />
-                        +{(tier as PricingTier).bonus!.toLocaleString()} BONUS
+                        POPULAR
                       </span>
                     </div>
                   )}

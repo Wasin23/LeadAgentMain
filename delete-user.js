@@ -3,12 +3,32 @@ import AWSManager from './utils/awsManager.js';
 
 dotenv.config();
 
-const userId = '97e1072f-cbc1-4909-a0b5-3de3976422d8';
+const userEmail = 'coltonfidelman@g.ucla.edu';
 
 async function deleteUser() {
   const awsManager = new AWSManager();
   
   try {
+    console.log(`Finding user with email: ${userEmail}...`);
+    
+    // Find user by email
+    const users = await awsManager.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).ScanCommand({
+      TableName: awsManager.tables.users,
+      FilterExpression: 'email = :email',
+      ExpressionAttributeValues: {
+        ':email': userEmail
+      }
+    }));
+    
+    if (!users.Items || users.Items.length === 0) {
+      console.log('❌ No user found with that email');
+      process.exit(1);
+    }
+    
+    const user = users.Items[0];
+    const userId = user.userId;
+    
+    console.log(`Found user: ${user.username} (${userId})`);
     console.log(`Starting deletion of user ${userId}...`);
     
     // Delete user record from Users table
