@@ -841,8 +841,11 @@ export default function HomePage() {
       {/* Onboarding Modal for New Users */}
       {showOnboardingModal && (
         <CreditPurchaseModal
-          isOpen={showOnboardingModal}
           onClose={() => setShowOnboardingModal(false)}
+          onSuccess={() => {
+            setShowOnboardingModal(false);
+            window.location.reload();
+          }}
           mode="onboarding"
         />
       )}
