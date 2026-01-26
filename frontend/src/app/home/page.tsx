@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueueCounts } from '@/contexts/QueueCountContext';
 import { useMergeLink } from '@mergeapi/react-merge-link';
 import AppLayout from '@/components/AppLayout';
-import CreditPurchaseModal from '@/components/CreditPurchaseModal';
 import api from '@/lib/api';
 
 interface EmailStats {
@@ -83,16 +82,6 @@ export default function HomePage() {
   });
   const [agentStats, setAgentStats] = useState<{[key: string]: {queued: number, sent: number}}>({});
   const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-
-  // Check if new user for onboarding
-  useEffect(() => {
-    const isNewUser = localStorage.getItem('newUser');
-    if (isNewUser === 'true') {
-      setShowOnboardingModal(true);
-      localStorage.removeItem('newUser');
-    }
-  }, []);
 
   // Callback when user successfully connects CRM
   const onMergeSuccess = useCallback(async (publicToken: string) => {
@@ -837,18 +826,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-
-      {/* Onboarding Modal for New Users */}
-      {showOnboardingModal && (
-        <CreditPurchaseModal
-          onClose={() => setShowOnboardingModal(false)}
-          onSuccess={() => {
-            setShowOnboardingModal(false);
-            window.location.reload();
-          }}
-          mode="onboarding"
-        />
-      )}
     </AppLayout>
   );
 }

@@ -98,8 +98,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     console.log('[AUTH CONTEXT] Starting registration for:', username, email);
     try {
-      // Clear any existing session data before registration
-      localStorage.clear();
+      // Clear any existing AUTH session data before registration (but preserve other localStorage)
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
       sessionStorage.clear();
       Cookies.remove('authToken');
       

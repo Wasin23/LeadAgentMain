@@ -81,10 +81,9 @@ export default function SignInPage() {
     try {
       const success = await register(signUpForm.username, signUpForm.email, signUpForm.password);
       if (success) {
-        setSuccess('Account created successfully! Redirecting...');
-        // Set flag for new user onboarding
-        localStorage.setItem('newUser', 'true');
-        setTimeout(() => router.push('/home'), 1500);
+        setSuccess('Account created successfully! Redirecting to onboarding...');
+        // Redirect to setup page for onboarding flow
+        setTimeout(() => router.push('/setup'), 1500);
       } else {
         setError('Registration failed. Username or email may already exist.');
       }
