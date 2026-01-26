@@ -731,10 +731,19 @@ router.delete('/', async (req, res) => {
       });
       console.log(`[COMPANY PROFILE] Response sent successfully!`);
     } else {
-      console.log(`[COMPANY PROFILE] ERROR: User settings not found!`);
-      res.status(404).json({
-        success: false,
-        error: 'User settings not found'
+      console.log(`[COMPANY PROFILE] No user settings found - creating empty settings and clearing user record`);
+      
+      // No settings exist, but still clear the user record
+      await awsManager.updateUser(userId, { 
+        activeAgents: [],
+        hasCompletedOnboarding: false 
+      });
+      
+      console.log(`[COMPANY PROFILE] User record cleared successfully`);
+      
+      res.json({
+        success: true,
+        message: 'Account reset successfully (no existing data found)'
       });
     }
   } catch (error) {
