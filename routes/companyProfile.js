@@ -564,11 +564,14 @@ router.delete('/', async (req, res) => {
     const awsManager = new AWSManager();
     
     console.log(`[COMPANY PROFILE] Resetting ALL account data for user ${userId}`);
+    console.log('[COMPANY PROFILE] Step 1: Getting user settings...');
     
     // Get user settings
     const userSettings = await awsManager.getUserSettings(userId);
+    console.log('[COMPANY PROFILE] Step 2: User settings retrieved:', !!userSettings);
     
     if (userSettings) {
+      console.log('[COMPANY PROFILE] Step 3: Clearing company profile data...');
       // Clear company profile
       delete userSettings.companyProfile;
       delete userSettings.recommendedAgentPreset;
@@ -594,15 +597,19 @@ router.delete('/', async (req, res) => {
       // - userSettings.billingHistory
       // - userSettings.paymentMethod
       
+      console.log('[COMPANY PROFILE] Step 4: Saving updated settings...');
       // Save updated (cleared) settings
       await awsManager.saveUserSettings(userId, userSettings);
       
+      console.log('[COMPANY PROFILE] Step 5: Updating user record...');
       // Clear activeAgents from the user record (this is where agents are actually stored!)
       await awsManager.updateUser(userId, { 
         activeAgents: [],
         hasCompletedOnboarding: false 
       });
       
+      console.log('[COMPANY PROFILE] Step 6: Clearing AWS database tables...');
+      console.log('[COMPANY PROFILE] Step 6: Clearing AWS database tables...');
       // Clear all AWS database tables for this user (except billing)
       console.log(`[COMPANY PROFILE] Clearing AWS database tables for user ${userId}...`);
       
@@ -646,6 +653,7 @@ router.delete('/', async (req, res) => {
         // Continue execution - don't fail the whole reset if database cleanup has issues
       }
       
+      console.log('[COMPANY PROFILE] Step 7: Clearing email queue files...');
       // Clear email queue files (local JSON files)
       console.log(`[COMPANY PROFILE] Clearing email queue files for user ${userId}...`);
       try {
@@ -678,6 +686,7 @@ router.delete('/', async (req, res) => {
         // Continue execution
       }
       
+      console.log('[COMPANY PROFILE] Step 8: Clearing Zilliz tracking data...');
       // Clear Zilliz tracking data
       try {
         console.log(`[COMPANY PROFILE] Clearing Zilliz tracking data...`);
@@ -701,6 +710,7 @@ router.delete('/', async (req, res) => {
         // Continue execution
       }
       
+      console.log('[COMPANY PROFILE] Step 9: Clearing desktop tracking data...');
       // Clear desktop tracking data
       try {
         const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
@@ -711,20 +721,25 @@ router.delete('/', async (req, res) => {
         // Continue execution
       }
       
+      console.log(`[COMPANY PROFILE] Step 10: All operations complete!`);
       console.log(`[COMPANY PROFILE] All account data reset successfully for user ${userId}`);
+      console.log(`[COMPANY PROFILE] Sending success response...`);
       
       res.json({
         success: true,
         message: 'All account data reset successfully'
       });
+      console.log(`[COMPANY PROFILE] Response sent successfully!`);
     } else {
+      console.log(`[COMPANY PROFILE] ERROR: User settings not found!`);
       res.status(404).json({
         success: false,
         error: 'User settings not found'
       });
     }
   } catch (error) {
-    console.error('Error resetting account data:', error);
+    console.error('[COMPANY PROFILE] FATAL ERROR in delete endpoint:', error);
+    console.error('[COMPANY PROFILE] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       error: error.message
