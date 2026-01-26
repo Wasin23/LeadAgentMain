@@ -25,7 +25,11 @@ api.interceptors.response.use(
       localStorage.removeItem('authToken');
       localStorage.removeItem('currentUser');
       Cookies.remove('authToken');
-      window.location.href = '/signin';
+      
+      // Only redirect if not already on signin page
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/signin')) {
+        window.location.href = '/signin';
+      }
     }
     return Promise.reject(error);
   }
