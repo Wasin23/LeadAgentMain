@@ -394,11 +394,25 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                   };
                   window.addEventListener('message', handleMessage);
                   
-                  // Check if popup closed
-                  const checkPopup = setInterval(() => {
+                  // Check if popup closed and verify with backend
+                  const checkPopup = setInterval(async () => {
                     if (popup?.closed) {
                       clearInterval(checkPopup);
                       window.removeEventListener('message', handleMessage);
+                      
+                      // After popup closes, check backend to confirm connection
+                      console.log('[ONBOARDING] Popup closed, checking Gmail status with backend...');
+                      try {
+                        const statusResponse = await api.get('/api/auth/gmail/status');
+                        if (statusResponse.data?.connected) {
+                          setGmailConnected(true);
+                          console.log('[ONBOARDING] ✅ Gmail connection confirmed by backend after popup close');
+                        } else {
+                          console.log('[ONBOARDING] ⚠️ Gmail not connected according to backend');
+                        }
+                      } catch (error) {
+                        console.error('[ONBOARDING] Failed to verify Gmail status after popup:', error);
+                      }
                     }
                   }, 500);
                 } catch (error) {
