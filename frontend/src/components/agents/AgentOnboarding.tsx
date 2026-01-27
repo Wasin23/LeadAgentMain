@@ -50,6 +50,22 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const steps: OnboardingStep[] = ['intro', 'select-personality', 'name-agent', 'choose-preset', 'name-preset', 'gmail-setup', 'crm-setup', 'plan-selection', 'payment-setup', 'review', 'creating'];
   const currentStepIndex = steps.indexOf(currentStep);
 
+  // Load user's payment status on mount
+  useEffect(() => {
+    const checkPaymentStatus = async () => {
+      try {
+        const response = await api.get('/api/auth/me');
+        if (response.data?.paymentMethodAdded) {
+          setPaymentAdded(true);
+          console.log('[ONBOARDING] User already has payment method');
+        }
+      } catch (error) {
+        console.error('[ONBOARDING] Failed to check payment status:', error);
+      }
+    };
+    checkPaymentStatus();
+  }, []);
+
   // Load user's default Gmail preference on mount
   useEffect(() => {
     const loadUserPreferences = async () => {
@@ -1996,14 +2012,6 @@ function PlanSelectionStep({
             }`}
             onClick={() => onSelectPlan(plan.id)}
           >
-            {plan.popular && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-                  Most Popular
-                </span>
-              </div>
-            )}
-            
             <div className="text-center">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
               <p className="text-gray-600 mb-4">{plan.description}</p>

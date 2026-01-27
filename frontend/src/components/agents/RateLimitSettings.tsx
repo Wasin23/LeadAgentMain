@@ -56,6 +56,9 @@ const RateLimitSettings: React.FC = () => {
       const trialResponse = await api.get('/api/billing/trial-credits');
       if (trialResponse.data.success) {
         setTrialCredits(trialResponse.data.credits);
+        // Use trial credits remaining as the credit balance if available
+        const remainingCredits = parseFloat(trialResponse.data.credits.creditsRemaining) || 0;
+        setCreditBalance(remainingCredits);
       }
 
       // Fetch user plan information
@@ -63,15 +66,20 @@ const RateLimitSettings: React.FC = () => {
         const planResponse = await api.get('/api/plans/status');
         if (planResponse.data.success) {
           setUserPlan(planResponse.data);
+          // If user has a plan with credits, add those to the balance
+          if (planResponse.data.plan?.remainingCredits) {
+            setCreditBalance(prev => prev + planResponse.data.plan.remainingCredits);
+          }
         }
       } catch (error) {
         console.log('Plan info not available:', error);
       }
 
-      // Fetch credit balance
+      // Only fetch credit balance if not using trial credits
+      // (paid balance is separate from trial)
       const balanceResponse = await api.get('/api/billing/credit-balance');
-      if (balanceResponse.data.success) {
-        setCreditBalance(balanceResponse.data.balance || 0);
+      if (balanceResponse.data.success && balanceResponse.data.balance) {
+        setCreditBalance(prev => prev + (balanceResponse.data.balance || 0));
       }
 
       // Fetch total spending and convert to credits (1 credit = $0.05)
