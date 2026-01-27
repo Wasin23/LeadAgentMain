@@ -100,8 +100,8 @@ export default function UserMenu({ onSettingsClick }: UserMenuProps) {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className={`absolute w-96 bg-white border border-neutral-200 rounded-2xl shadow-2xl z-20 ${
                 isSetupPage 
-                  ? 'left-0 top-full mt-2'    // /setup: dropdown opens down-left
-                  : 'right-0 bottom-full mb-2' // normal: dropdown opens up-right
+                  ? 'right-0 top-full mt-2'    // /setup: dropdown opens down-left (button in top-right)
+                  : 'left-0 bottom-full mb-2'  // normal: dropdown opens up-right (button in bottom-left)
               }`}
             >
               {/* User Info */}

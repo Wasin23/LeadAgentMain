@@ -17,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import UserMenu from '@/components/UserMenu';
+import PaymentMethodModal from '@/components/PaymentMethodModal';
 import { PERSONALITY_TYPES } from './AgentPersonalitySelector';
 
 interface AgentOnboardingProps {
@@ -40,6 +41,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [selectedPlan, setSelectedPlan] = useState<string>('free-trial');
   const [paymentAdded, setPaymentAdded] = useState(false);
   const [planPurchased, setPlanPurchased] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
@@ -400,8 +402,8 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               paymentAdded={paymentAdded}
               planPurchased={planPurchased}
               onAddPayment={() => {
-                // Redirect to billing page to add payment method
-                window.open('/billing', '_blank');
+                // Open payment method modal
+                setShowPaymentModal(true);
               }}
               onPurchasePlan={async () => {
                 try {
@@ -443,6 +445,16 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
           )}
         </AnimatePresence>
       </div>
+
+      {/* Payment Method Modal */}
+      <PaymentMethodModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          setPaymentAdded(true);
+        }}
+      />
     </div>
   );
 }
