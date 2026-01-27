@@ -54,8 +54,8 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   useEffect(() => {
     const checkPaymentStatus = async () => {
       try {
-        const response = await api.get('/api/auth/me');
-        if (response.data?.paymentMethodAdded) {
+        const response = await api.get('/api/auth/profile');
+        if (response.data?.user?.paymentMethodAdded) {
           setPaymentAdded(true);
           console.log('[ONBOARDING] User already has payment method');
         }
@@ -498,8 +498,8 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
           setPaymentAdded(true);
           // Double-check with backend to ensure it's synced
           try {
-            const response = await api.get('/api/auth/me');
-            if (response.data?.paymentMethodAdded) {
+            const response = await api.get('/api/auth/profile');
+            if (response.data?.user?.paymentMethodAdded) {
               console.log('[ONBOARDING] Payment method confirmed by backend');
             }
           } catch (error) {
