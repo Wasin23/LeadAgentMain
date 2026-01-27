@@ -82,6 +82,22 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
     loadUserPreferences();
   }, []);
 
+  // Check Gmail connection status on mount
+  useEffect(() => {
+    const checkGmailStatus = async () => {
+      try {
+        const response = await api.get('/api/auth/gmail/status');
+        if (response.data?.connected) {
+          setGmailConnected(true);
+          console.log('[ONBOARDING] User already has Gmail connected');
+        }
+      } catch (error) {
+        console.error('[ONBOARDING] Failed to check Gmail status:', error);
+      }
+    };
+    checkGmailStatus();
+  }, []);
+
   // Merge Link callback for CRM connection
   const onMergeLinkSuccess = useCallback(async (publicToken: string) => {
     try {
@@ -363,6 +379,17 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                       setGmailConnected(true);
                       console.log('[ONBOARDING] Gmail connected successfully');
                       window.removeEventListener('message', handleMessage);
+                      
+                      // Double-check with backend to ensure it's synced
+                      api.get('/api/auth/gmail/status')
+                        .then(response => {
+                          if (response.data?.connected) {
+                            console.log('[ONBOARDING] Gmail connection confirmed by backend');
+                          }
+                        })
+                        .catch(error => {
+                          console.error('[ONBOARDING] Failed to verify Gmail status:', error);
+                        });
                     }
                   };
                   window.addEventListener('message', handleMessage);
@@ -466,9 +493,18 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
       <PaymentMethodModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
-        onSuccess={() => {
+        onSuccess={async () => {
           setShowPaymentModal(false);
           setPaymentAdded(true);
+          // Double-check with backend to ensure it's synced
+          try {
+            const response = await api.get('/api/auth/me');
+            if (response.data?.paymentMethodAdded) {
+              console.log('[ONBOARDING] Payment method confirmed by backend');
+            }
+          } catch (error) {
+            console.error('[ONBOARDING] Failed to verify payment status:', error);
+          }
         }}
       />
     </div>
