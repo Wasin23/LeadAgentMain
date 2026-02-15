@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import Cookies from 'js-cookie';
 
 type TabType = 'signin' | 'signup';
 
@@ -42,6 +43,58 @@ export default function SignInPage() {
       localStorage.removeItem('justLoggedOut');
     }
   }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const hash = window.location.hash;
+    if (!hash || !hash.startsWith('#')) {
+      return;
+    }
+
+    const params = new URLSearchParams(hash.slice(1));
+    const googleStatus = params.get('google');
+
+    if (googleStatus === 'error') {
+      setError('Google sign-in failed. Please try again.');
+      return;
+    }
+
+    if (googleStatus === 'denied') {
+      setError('Google sign-in was canceled.');
+      return;
+    }
+
+    if (googleStatus !== 'success') {
+      return;
+    }
+
+    const token = params.get('token');
+    const encodedUser = params.get('user');
+    const redirectPath = params.get('redirect') || '/home';
+
+    if (!token || !encodedUser) {
+      setError('Google sign-in failed. Please try again.');
+      return;
+    }
+
+    try {
+      const userJson = atob(encodedUser);
+      const userData = JSON.parse(userJson);
+
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+      localStorage.setItem('authToken', token);
+      Cookies.set('authToken', token, { expires: 7 });
+
+      setSuccess('Google sign-in successful! Redirecting...');
+      router.replace(redirectPath);
+    } catch (error) {
+      console.error('Failed to process Google sign-in payload:', error);
+      setError('Google sign-in failed. Please try again.');
+    }
+  }, [router]);
 
   const clearMessages = () => {
     setError('');

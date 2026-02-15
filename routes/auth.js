@@ -151,23 +151,10 @@ router.get('/google/callback', async (req, res) => {
       username: user.username,
       email: user.email
     });
+    const encodedUser = Buffer.from(userPayload).toString('base64');
+    const redirectUrl = `${FRONTEND_URL}/signin#google=success&token=${encodeURIComponent(token)}&user=${encodeURIComponent(encodedUser)}&redirect=${encodeURIComponent(redirectPath)}`;
 
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Signing you in...</title>
-        </head>
-        <body>
-          <script>
-            localStorage.setItem('currentUser', ${userPayload});
-            localStorage.setItem('authToken', '${token}');
-            document.cookie = 'authToken=${token}; path=/; max-age=604800';
-            window.location.href = '${FRONTEND_URL}${redirectPath}';
-          </script>
-        </body>
-      </html>
-    `);
+    res.redirect(redirectUrl);
   } catch (callbackError) {
     console.error('[AUTH] Google callback error:', callbackError.message);
     res.redirect(`${FRONTEND_URL}/signin?google=error`);
