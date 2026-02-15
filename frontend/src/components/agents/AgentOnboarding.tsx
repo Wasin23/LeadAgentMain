@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMergeLink } from '@mergeapi/react-merge-link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   XMarkIcon, 
@@ -42,7 +41,6 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [paymentAdded, setPaymentAdded] = useState(false);
   const [planPurchased, setPlanPurchased] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,40 +95,6 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
     };
     checkGmailStatus();
   }, []);
-
-  // Merge Link callback for CRM connection
-  const onMergeLinkSuccess = useCallback(async (publicToken: string) => {
-    try {
-      console.log('[CRM ONBOARDING] Received public token:', publicToken);
-      
-      await api.post('/api/crm/exchange-token', {
-        publicToken
-      });
-      
-      setCrmConnected(true);
-      setLinkToken(null);
-      
-    } catch (error) {
-      console.error('[CRM ONBOARDING] Error exchanging token:', error);
-    }
-  }, []);
-
-  // Initialize Merge Link hook
-  const { open: openMergeLink, isReady: isMergeLinkReady } = useMergeLink({
-    linkToken: linkToken || '',
-    onSuccess: onMergeLinkSuccess,
-    onExit: () => {
-      console.log('[CRM ONBOARDING] User closed Merge Link');
-      setLinkToken(null);
-    }
-  });
-
-  // Auto-open Merge Link when token is ready
-  useEffect(() => {
-    if (linkToken && isMergeLinkReady) {
-      openMergeLink();
-    }
-  }, [linkToken, isMergeLinkReady, openMergeLink]);
 
   const createAgent = async () => {
     setIsCreating(true);
@@ -377,24 +341,13 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                   const handleMessage = (event: MessageEvent) => {
                     if (event.data?.type === 'GMAIL_CONNECTED') {
                       setGmailConnected(true);
-                      console.log('[ONBOARDING] Gmail connected successfully');
+                      console.log('[ONBOARDING] Gmail connected successfully via message');
                       window.removeEventListener('message', handleMessage);
-                      
-                      // Double-check with backend to ensure it's synced
-                      api.get('/api/auth/gmail/status')
-                        .then(response => {
-                          if (response.data?.connected) {
-                            console.log('[ONBOARDING] Gmail connection confirmed by backend');
-                          }
-                        })
-                        .catch(error => {
-                          console.error('[ONBOARDING] Failed to verify Gmail status:', error);
-                        });
                     }
                   };
                   window.addEventListener('message', handleMessage);
                   
-                  // Check if popup closed and verify with backend
+                  // Poll for popup close and verify with backend
                   const checkPopup = setInterval(async () => {
                     if (popup?.closed) {
                       clearInterval(checkPopup);
@@ -403,6 +356,9 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                       // After popup closes, check backend to confirm connection
                       console.log('[ONBOARDING] Popup closed, checking Gmail status with backend...');
                       try {
+                        // Add a small delay to allow backend to process
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
                         const statusResponse = await api.get('/api/auth/gmail/status');
                         if (statusResponse.data?.connected) {
                           setGmailConnected(true);
@@ -428,16 +384,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               key="crm-setup"
               crmConnected={crmConnected}
               onConnect={async () => {
-                try {
-                  const response = await api.post('/api/crm/link-token');
-                  const token = response.data.linkToken;
-                  
-                  console.log('[CRM ONBOARDING] Got link token:', token);
-                  setLinkToken(token); // This will trigger Merge Link to open
-                  
-                } catch (error) {
-                  console.error('[CRM ONBOARDING] Error connecting CRM:', error);
-                }
+                // No longer needed - CRM connection is handled within the component
               }}
               onNext={nextStep}
               onBack={prevStep}
@@ -508,13 +455,20 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onSuccess={async () => {
+          console.log('[ONBOARDING] Payment method modal success callback triggered');
           setShowPaymentModal(false);
+          
+          // Force state update
           setPaymentAdded(true);
+          
           // Double-check with backend to ensure it's synced
           try {
             const response = await api.get('/api/auth/profile');
             if (response.data?.user?.paymentMethodAdded) {
               console.log('[ONBOARDING] Payment method confirmed by backend');
+              setPaymentAdded(true); // Ensure it's set
+            } else {
+              console.warn('[ONBOARDING] Backend says payment method not added yet');
             }
           } catch (error) {
             console.error('[ONBOARDING] Failed to verify payment status:', error);
@@ -1289,67 +1243,23 @@ function ChoosePresetStep({
             <div className="flex items-center justify-between">
               <span className="text-white font-medium">Estimated Cost:</span>
               <span className="text-green-400 font-bold text-xl">
-                ${((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 0.18).toFixed(2)} per cycle
+                ~{Math.ceil(((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 2) / 3)} credits per cycle
               </span>
             </div>
             <p className="text-white/70 text-sm mt-2">
-              ~$0.18 per lead • {settings.leadsPerCycle || 0} leads = ${((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 0.18).toFixed(2)}
+              Average: 3 leads per 2 credits • {settings.leadsPerCycle || 0} leads = ~{Math.ceil(((typeof settings.leadsPerCycle === 'number' ? settings.leadsPerCycle : parseInt(settings.leadsPerCycle) || 0) * 2) / 3)} credits
             </p>
           </div>
         </div>
 
-        {/* Email Response Settings */}
+        {/* CC and BCC Emails */}
         <div className="border-t border-white/20 pt-6">
-          <h3 className="text-white font-bold text-2xl mb-4">Email Response Settings</h3>
+          <h3 className="text-white font-bold text-2xl mb-4">Email Settings</h3>
           <p className="text-white/70 text-sm mb-6">
-            Configure how your agent communicates with leads
+            Optional CC/BCC recipients for all outgoing emails
           </p>
 
           <div className="space-y-6">
-            {/* Email Length, Call to Action, Personalization Level - Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-white font-semibold mb-2">Email Length</label>
-                <select
-                  value={settings.emailLength}
-                  onChange={(e) => setSettings({ ...settings, emailLength: e.target.value as 'short' | 'medium' | 'long' })}
-                  className="w-[calc(100%-8px)] px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium appearance-none"
-                >
-                  <option value="short">Short (concise)</option>
-                  <option value="medium">Medium (balanced)</option>
-                  <option value="long">Long (detailed)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-white font-semibold mb-2">Call to Action</label>
-                <select
-                  value={settings.callToAction}
-                  onChange={(e) => setSettings({ ...settings, callToAction: e.target.value as any })}
-                  className="w-[calc(100%-8px)] px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium appearance-none"
-                >
-                  <option value="schedule-meeting">Schedule Meeting</option>
-                  <option value="request-demo">Request Demo</option>
-                  <option value="learn-more">Learn More</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-white font-semibold mb-2">Personalization Level</label>
-                <select
-                  value={settings.personalizationLevel}
-                  onChange={(e) => setSettings({ ...settings, personalizationLevel: e.target.value as 'low' | 'medium' | 'high' })}
-                  className="w-[calc(100%-8px)] px-4 py-3 rounded-lg bg-white text-neutral-900 font-medium appearance-none"
-                >
-                  <option value="low">Low (generic)</option>
-                  <option value="medium">Medium (personalized)</option>
-                  <option value="high">High (hyper-personalized)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* CC and BCC Emails */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-white font-semibold mb-2">CC Email Addresses</label>
@@ -1652,48 +1562,32 @@ function ReviewStep({
                       <span className="font-semibold text-neutral-900">{settings.leadsPerCycle}</span>
                     </div>
                     
-                    {/* Email Response Settings */}
-                    <div className="border-t border-neutral-200 pt-3 mt-3">
-                      <p className="text-sm font-bold text-neutral-700 mb-2">Email Response Settings</p>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-neutral-600">Email Length:</span>
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-semibold uppercase">
-                            {settings.emailLength || 'medium'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-neutral-600">Call to Action:</span>
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
-                            {(settings.callToAction || 'schedule-meeting').replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-neutral-600">Personalization:</span>
-                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold uppercase">
-                            {settings.personalizationLevel || 'high'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-neutral-600">Follow-up Interval:</span>
-                          <span className="font-semibold text-neutral-900">{settings.followupIntervalDays || 7} days</span>
-                        </div>
-                        {(settings.ccEmails || settings.bccEmails) && (
-                          <div className="text-xs text-neutral-500 mt-2">
-                            {settings.ccEmails && <div>CC: {settings.ccEmails}</div>}
-                            {settings.bccEmails && <div>BCC: {settings.bccEmails}</div>}
+                    {/* Email Settings */}
+                    {(settings.ccEmails || settings.bccEmails || settings.followupIntervalDays || settings.enableAutoResponse) && (
+                      <div className="border-t border-neutral-200 pt-3 mt-3">
+                        <p className="text-sm font-bold text-neutral-700 mb-2">Email Settings</p>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-neutral-600">Follow-up Interval:</span>
+                            <span className="font-semibold text-neutral-900">{settings.followupIntervalDays || 7} days</span>
                           </div>
-                        )}
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-neutral-600">Auto-Response:</span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                            settings.enableAutoResponse ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'
-                          }`}>
-                            {settings.enableAutoResponse ? 'Enabled' : 'Disabled'}
-                          </span>
+                          {(settings.ccEmails || settings.bccEmails) && (
+                            <div className="text-xs text-neutral-500 mt-2">
+                              {settings.ccEmails && <div>CC: {settings.ccEmails}</div>}
+                              {settings.bccEmails && <div>BCC: {settings.bccEmails}</div>}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-neutral-600">Auto-Response:</span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                              settings.enableAutoResponse ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'
+                            }`}>
+                              {settings.enableAutoResponse ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               } catch {
@@ -1866,7 +1760,7 @@ function GmailSetupStep({
   );
 }
 
-// CRM Setup Step
+// CRM Setup Step (using custom API key input)
 function CRMSetupStep({
   crmConnected,
   onConnect,
@@ -1878,6 +1772,81 @@ function CRMSetupStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const [selectedCRM, setSelectedCRM] = useState<any>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState(crmConnected);
+
+  // CRM configs (simplified from CRMDashboard)
+  const CRM_CONFIGS = [
+    {
+      id: 'hubspot',
+      name: 'HubSpot',
+      logo: 'https://www.hubspot.com/hubfs/HubSpot_Logos/HubSpot-Inversed-Favicon.png',
+      fields: [
+        { name: 'Private App Access Token', key: 'apiKey', type: 'password', placeholder: 'pat-na1-xxxxxxxx', helpText: 'Create in Settings → Integrations → Private Apps' }
+      ]
+    },
+    {
+      id: 'salesforce',
+      name: 'Salesforce',
+      logo: 'https://c1.sfdcstatic.com/content/dam/web/en_us/www/images/nav/salesforce-cloud-logo-sm.png',
+      fields: [
+        { name: 'Instance URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourinstance.salesforce.com' },
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your access token' }
+      ]
+    },
+    {
+      id: 'pipedrive',
+      name: 'Pipedrive',
+      logo: 'https://www.pipedrive.com/favicon.ico',
+      fields: [
+        { name: 'API Token', key: 'apiKey', type: 'password', placeholder: 'Your API token', helpText: 'Settings → Personal preferences → API' }
+      ]
+    },
+    {
+      id: 'zoho',
+      name: 'Zoho CRM',
+      logo: 'https://www.zohowebstatic.com/sites/zweb/images/favicon.ico',
+      fields: [
+        { name: 'Data Center', key: 'apiUrl', type: 'text', placeholder: 'https://www.zohoapis.com' },
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your OAuth access token' }
+      ]
+    }
+  ];
+
+  const handleConnect = async () => {
+    if (!selectedCRM) return;
+    
+    const missingFields = selectedCRM.fields.filter((f: any) => !credentials[f.key]?.trim());
+    if (missingFields.length > 0) {
+      setError(`Please fill in: ${missingFields.map((f: any) => f.name).join(', ')}`);
+      return;
+    }
+    
+    setConnecting(true);
+    setError(null);
+    
+    try {
+      await api.post('/api/crm/connect-direct', {
+        integrationName: selectedCRM.id,
+        apiUrl: credentials.apiUrl?.trim() || '',
+        apiKey: credentials.apiKey?.trim() || ''
+      });
+      
+      setConnected(true);
+      setSelectedCRM(null);
+      setCredentials({});
+    } catch (error: any) {
+      console.error('Error connecting CRM:', error);
+      setError(error.response?.data?.error || 'Failed to connect. Please check your credentials.');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1905,27 +1874,120 @@ function CRMSetupStep({
                   <li>✓ Automatically sync researched leads</li>
                   <li>✓ Keep your CRM up-to-date effortlessly</li>
                   <li>✓ Research summaries attached as notes</li>
-                  <li>✓ Works with Salesforce, HubSpot, Pipedrive, Zoho & more</li>
+                  <li>✓ Works with HubSpot, Salesforce, Pipedrive, Zoho & more</li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {!crmConnected && (
-            <div className="text-center py-4">
-              <button
-                onClick={onConnect}
-                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all"
-              >
-                Connect CRM Platform
-              </button>
-              <p className="text-sm text-neutral-500 mt-3">
-                You can also connect this later from your Profile page
+          {!connected && !selectedCRM && (
+            <div className="space-y-4">
+              <label className="block text-neutral-700 font-semibold text-sm mb-2">Choose your CRM</label>
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-50 border-2 border-neutral-200 rounded-xl text-neutral-700 hover:bg-neutral-100 transition-colors"
+                >
+                  <span className="text-sm">Select a CRM platform...</span>
+                  <svg className={`w-5 h-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showDropdown && (
+                  <div className="absolute z-50 w-full mt-2 bg-white border-2 border-neutral-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+                    {CRM_CONFIGS.map((crm) => (
+                      <button
+                        key={crm.id}
+                        onClick={() => {
+                          setSelectedCRM(crm);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-b-0"
+                      >
+                        {crm.logo && (
+                          <img 
+                            src={crm.logo} 
+                            alt={crm.name}
+                            className="w-6 h-6 rounded object-contain"
+                          />
+                        )}
+                        <span className="text-sm text-neutral-700 font-medium">{crm.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-neutral-500 text-center">
+                You can also connect this later from Settings
               </p>
             </div>
           )}
 
-          {crmConnected && (
+          {!connected && selectedCRM && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-200">
+                <div className="flex items-center gap-3">
+                  {selectedCRM.logo && (
+                    <img 
+                      src={selectedCRM.logo} 
+                      alt={selectedCRM.name}
+                      className="w-8 h-8 rounded object-contain"
+                    />
+                  )}
+                  <div>
+                    <h4 className="text-sm font-semibold text-neutral-900">{selectedCRM.name}</h4>
+                    <p className="text-xs text-neutral-500">Enter your credentials</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedCRM(null);
+                    setCredentials({});
+                    setError(null);
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Change
+                </button>
+              </div>
+
+              {selectedCRM.fields.map((field: any) => (
+                <div key={field.key}>
+                  <label className="block text-xs text-neutral-600 font-medium mb-1">{field.name}</label>
+                  <input
+                    type={field.type}
+                    value={credentials[field.key] || ''}
+                    onChange={(e) => setCredentials({ ...credentials, [field.key]: e.target.value })}
+                    placeholder={field.placeholder}
+                    className="w-full px-4 py-2.5 bg-neutral-50 border-2 border-neutral-200 rounded-lg text-neutral-900 text-sm placeholder-neutral-400 focus:border-blue-500 focus:outline-none"
+                  />
+                  {field.helpText && (
+                    <p className="text-xs text-neutral-500 mt-1">{field.helpText}</p>
+                  )}
+                </div>
+              ))}
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+                  <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <p className="text-xs text-red-600">{error}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleConnect}
+                disabled={connecting}
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+              >
+                {connecting ? 'Connecting...' : 'Connect CRM'}
+              </button>
+            </div>
+          )}
+
+          {connected && (
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <CheckIcon className="w-6 h-6 text-green-600" />
@@ -1953,7 +2015,7 @@ function CRMSetupStep({
             color: 'rgb(147, 51, 234)'
           }}
         >
-          {crmConnected ? 'Continue' : 'Skip for now'}
+          {connected ? 'Continue' : 'Skip for now'}
           <ArrowRightIcon className="w-5 h-5" />
         </button>
       </div>
@@ -2226,19 +2288,42 @@ function PaymentSetupStep({
                       Add Payment Method First
                     </button>
                     <p className="text-sm text-blue-600">
-                      You'll need a payment method on file before purchasing
+                      Payment method required before purchasing
                     </p>
                   </div>
                 )}
 
                 {paymentAdded && !planPurchased && (
-                  <button
-                    onClick={handlePurchase}
-                    disabled={loading}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50"
-                  >
-                    {loading ? 'Processing...' : `Purchase ${planDetails.name} Plan`}
-                  </button>
+                  <div className="space-y-4">
+                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-center gap-2 justify-center">
+                        <CheckIcon className="w-5 h-5 text-green-600" />
+                        <p className="text-sm text-green-700 font-semibold">
+                          Payment method added
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handlePurchase}
+                      disabled={loading}
+                      className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : (
+                        `Purchase ${planDetails.name} - $${planDetails.price}`
+                      )}
+                    </button>
+                    <p className="text-xs text-blue-600 text-center">
+                      One-time purchase • {planDetails.credits.toLocaleString()} credits added immediately
+                    </p>
+                  </div>
                 )}
 
                 {planPurchased && (
