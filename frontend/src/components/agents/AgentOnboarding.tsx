@@ -1320,35 +1320,35 @@ function ChoosePresetStep({
                 <div>
                   <label className="text-white font-semibold text-lg">Use Custom Email Signature</label>
                   <p className="text-white/70 text-sm mt-1">
-                    {settings.useCustomSignature 
+                    {false 
                       ? 'Emails will be signed with your custom name and title' 
                       : 'Emails will be signed as the AI agent'}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSettings({ ...settings, useCustomSignature: !settings.useCustomSignature })}
+                  onClick={() => {}}
                   className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200`}
                   style={{
-                    backgroundColor: settings.useCustomSignature ? '#4ade80' : '#52525b'
+                    backgroundColor: '#52525b'
                   }}
                 >
                   <span
                     className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
-                      settings.useCustomSignature ? 'translate-x-7' : 'translate-x-1'
+                      'translate-x-1'
                     }`}
                   />
                 </button>
               </div>
 
-              {settings.useCustomSignature && (
+              {false && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-white font-semibold mb-2">Your Name</label>
                     <input
                       type="text"
-                      value={settings.signatureName || ''}
-                      onChange={(e) => setSettings({ ...settings, signatureName: e.target.value })}
+                      value={''}
+                      onChange={(e) => {}}
                       className="w-full px-4 py-3 rounded-lg bg-white/90 text-neutral-900 font-medium placeholder:text-neutral-500"
                       placeholder="e.g., John Smith"
                     />
@@ -1359,8 +1359,8 @@ function ChoosePresetStep({
                     <label className="block text-white font-semibold mb-2">Your Title</label>
                     <input
                       type="text"
-                      value={settings.signatureTitle || ''}
-                      onChange={(e) => setSettings({ ...settings, signatureTitle: e.target.value })}
+                      value={''}
+                      onChange={(e) => {}}
                       className="w-full px-4 py-3 rounded-lg bg-white/90 text-neutral-900 font-medium placeholder:text-neutral-500"
                       placeholder="e.g., CEO, Sales Director"
                     />
@@ -1638,29 +1638,6 @@ function GmailSetupStep({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const [verifying, setVerifying] = useState(false);
-  const [localConnected, setLocalConnected] = useState(gmailConnected);
-
-  const verifyGmailConnection = async () => {
-    setVerifying(true);
-    try {
-      const response = await api.get('/api/auth/gmail/status');
-      if (response.data?.connected) {
-        setLocalConnected(true);
-        onToggle(true); // Also update parent state
-      } else {
-        setLocalConnected(false);
-      }
-    } catch (error) {
-      console.error('Failed to verify Gmail connection:', error);
-      setLocalConnected(false);
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const displayConnected = localConnected || gmailConnected;
-
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1677,12 +1654,12 @@ function GmailSetupStep({
 
       <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl border-2 border-[#4FD1FF]/30">
         <div className="space-y-6">
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+          <div className="bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-xl p-6">
             <div className="flex items-start gap-4">
-              <EnvelopeIcon className="w-8 h-8 text-blue-600 flex-shrink-0" />
+              <EnvelopeIcon className="w-8 h-8 text-[#4FD1FF] flex-shrink-0" />
               <div>
-                <h3 className="font-bold text-blue-900 text-lg mb-2">Why use Gmail?</h3>
-                <ul className="space-y-2 text-sm text-blue-800">
+                <h3 className="font-bold text-white text-lg mb-2">Why use Gmail?</h3>
+                <ul className="space-y-2 text-sm text-[#A3B4CC]">
                   <li>✓ Better inbox placement (Primary vs Promotions)</li>
                   <li>✓ Automatic reply tracking via push notifications</li>
                   <li>✓ Emails appear in your sent folder</li>
@@ -1711,10 +1688,10 @@ function GmailSetupStep({
             </button>
           </div>
 
-          {useGmail && !displayConnected && (
+          {useGmail && !gmailConnected && (
             <div className="space-y-4">
-              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
-                <p className="text-sm text-yellow-800 mb-3">
+              <div className="bg-[#4F3B1F]/50 border-2 border-[#FFB800]/30 rounded-xl p-4">
+                <p className="text-sm text-[#FFB800] mb-3">
                   Gmail not connected. Click below to connect your Google account.
                 </p>
                 <button
@@ -1724,17 +1701,10 @@ function GmailSetupStep({
                   Connect Gmail
                 </button>
               </div>
-              <button
-                onClick={verifyGmailConnection}
-                disabled={verifying}
-                className="w-full px-6 py-3 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 text-[#4FD1FF] rounded-xl font-semibold hover:bg-[#0F1E35]/70 transition-all disabled:opacity-50"
-              >
-                {verifying ? 'Saving...' : 'Save Gmail Connection'}
-              </button>
             </div>
           )}
 
-          {useGmail && displayConnected && (
+          {useGmail && gmailConnected && (
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
               <div className="flex items-center gap-3 justify-center">
                 <CheckIcon className="w-6 h-6 text-green-600" />
@@ -2022,14 +1992,14 @@ function CRMSetupStep({
 
       <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl border-2 border-[#4FD1FF]/30">
         <div className="space-y-6">
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+          <div className="bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-xl p-6">
             <div className="flex items-start gap-4">
-              <svg className="w-8 h-8 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-8 h-8 text-[#4FD1FF] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <div>
-                <h3 className="font-bold text-blue-900 text-lg mb-2">Why connect a CRM?</h3>
-                <ul className="space-y-2 text-sm text-blue-800">
+                <h3 className="font-bold text-white text-lg mb-2">Why connect a CRM?</h3>
+                <ul className="space-y-2 text-sm text-[#A3B4CC]">
                   <li>✓ Automatically sync researched leads</li>
                   <li>✓ Keep your CRM up-to-date effortlessly</li>
                   <li>✓ Research summaries attached as notes</li>
@@ -2354,34 +2324,15 @@ function PaymentSetupStep({
   onBack: () => void;
 }) {
   const [loading, setLoading] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [localPaymentAdded, setLocalPaymentAdded] = useState(paymentAdded);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
   
-  const planDetails = {
+  const planDetailsMap = {
     'free-trial': { name: 'Free Trial', credits: 500, price: 0 },
     'starter': { name: 'Starter', credits: 10000, price: 500 },
     'growth': { name: 'Growth', credits: 20000, price: 1000 },
     'scale': { name: 'Scale', credits: 70000, price: 2500 }
-  }[selectedPlan] || planDetails['free-trial'];
-
-  const verifyPaymentMethod = async () => {
-    setVerifying(true);
-    try {
-      const response = await api.get('/api/auth/profile');
-      if (response.data?.user?.paymentMethodAdded) {
-        setLocalPaymentAdded(true);
-      } else {
-        setLocalPaymentAdded(false);
-      }
-    } catch (error) {
-      console.error('Failed to verify payment method:', error);
-      setLocalPaymentAdded(false);
-    } finally {
-      setVerifying(false);
-    }
   };
-
-  const displayPaymentAdded = localPaymentAdded || paymentAdded;
+  const planDetails = planDetailsMap[selectedPlan as keyof typeof planDetailsMap] || planDetailsMap['free-trial'];
 
   const handlePurchase = async () => {
     if (selectedPlan === 'free-trial') {
@@ -2390,6 +2341,7 @@ function PaymentSetupStep({
     }
 
     setLoading(true);
+    setPurchaseError(null);
     try {
       // Use the existing credit purchase system
       const response = await api.post('/api/billing/purchase-credits', {
@@ -2405,8 +2357,9 @@ function PaymentSetupStep({
         throw new Error(response.data.error || 'Purchase failed');
       }
     } catch (error: any) {
-      console.error('Purchase failed:', error);
-      alert('Purchase failed: ' + (error.response?.data?.error || error.message));
+      const errorMsg = error.response?.data?.error || error.message || 'Purchase failed';
+      console.error('Purchase failed:', errorMsg);
+      setPurchaseError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -2453,13 +2406,13 @@ function PaymentSetupStep({
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+            <div className="bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-xl p-6">
               <div className="text-center">
-                <h3 className="font-bold text-blue-900 text-xl mb-2">{planDetails.name} Plan</h3>
-                <p className="text-3xl font-bold text-blue-600 mb-2">${planDetails.price}</p>
-                <p className="text-blue-800 mb-4">{planDetails.credits.toLocaleString()} credits included</p>
+                <h3 className="font-bold text-white text-xl mb-2">{planDetails.name} Plan</h3>
+                <p className="text-3xl font-bold text-[#4FD1FF] mb-2">${planDetails.price}</p>
+                <p className="text-[#A3B4CC] mb-4">{planDetails.credits.toLocaleString()} credits included</p>
                 
-                {!displayPaymentAdded && (
+                {!paymentAdded && (
                   <div className="space-y-4">
                     <button
                       onClick={onAddPayment}
@@ -2467,20 +2420,13 @@ function PaymentSetupStep({
                     >
                       Add Payment Method
                     </button>
-                    <button
-                      onClick={verifyPaymentMethod}
-                      disabled={verifying}
-                      className="w-full px-6 py-3 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 text-[#4FD1FF] rounded-xl font-semibold hover:bg-[#0F1E35]/70 transition-all disabled:opacity-50"
-                    >
-                      {verifying ? 'Saving...' : 'Save Payment Method'}
-                    </button>
                     <p className="text-sm text-[#A3B4CC]">
                       Payment method required before purchasing
                     </p>
                   </div>
                 )}
 
-                {displayPaymentAdded && !planPurchased && (
+                {paymentAdded && !planPurchased && (
                   <div className="space-y-4">
                     <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 mb-3">
                       <div className="flex items-center gap-2 justify-center">
@@ -2507,6 +2453,19 @@ function PaymentSetupStep({
                         `Purchase ${planDetails.name} - $${planDetails.price}`
                       )}
                     </button>
+                    {purchaseError && (
+                      <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm text-red-800 font-semibold">Purchase Failed</p>
+                            <p className="text-xs text-red-700 mt-1">{purchaseError}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <p className="text-xs text-blue-600 text-center">
                       One-time purchase • {planDetails.credits.toLocaleString()} credits added immediately
                     </p>
