@@ -17,8 +17,29 @@ import {
 import { sendPasswordResetEmail } from '../tools/emailMailgun.js';
 import { generateToken, authenticateToken } from '../middleware/jwt.js';
 import { cancelScheduledFollowUps } from '../utils/rebumpChecker.js';
+import { google } from 'googleapis';
 
 const router = express.Router();
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_SIGNIN_REDIRECT_URI || 'https://meridian-kdew.onrender.com/api/auth/google/callback';
+const googleOAuthClient = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI
+);
+
+const buildUsernameCandidate = (base, attempt) => {
+  const suffix = Math.floor(1000 + Math.random() * 9000);
+  const trimmed = base.slice(0, 18);
+  const candidate = `${trimmed}${suffix}`;
+  return candidate.slice(0, 24);
+};
+
+const normalizeUsernameBase = (value) => {
+  const sanitized = value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  return sanitized.length >= 3 ? sanitized : 'user';
+};
 
 // Helper function to generate personality-themed email response prompts
 function getEmailResponsePromptForPersonality(personality) {
@@ -55,6 +76,102 @@ router.use((req, res, next) => {
 router.get('/test', (req, res) => {
   console.log('[AUTH] Test endpoint hit');
   res.json({ message: 'Auth routes are working!', timestamp: new Date().toISOString() });
+});
+
+// Google OAuth authorize
+router.get('/google/authorize', (req, res) => {
+  try {
+    const authUrl = googleOAuthClient.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['openid', 'email', 'profile'],
+      prompt: 'select_account'
+    });
+
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error('[AUTH] Google authorize error:', error.message);
+    res.redirect(`${FRONTEND_URL}/signin?google=error`);
+  }
+});
+
+// Google OAuth callback
+router.get('/google/callback', async (req, res) => {
+  try {
+    const { code, error } = req.query;
+
+    if (error) {
+      return res.redirect(`${FRONTEND_URL}/signin?google=denied`);
+    }
+
+    if (!code) {
+      return res.status(400).json({ error: 'Missing authorization code' });
+    }
+
+    const { tokens } = await googleOAuthClient.getToken(code);
+    googleOAuthClient.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({ version: 'v2', auth: googleOAuthClient });
+    const { data } = await oauth2.userinfo.get();
+
+    const email = data.email?.toLowerCase();
+    if (!email) {
+      return res.redirect(`${FRONTEND_URL}/signin?google=error`);
+    }
+
+    let user = await getUserByEmail(email);
+    let isNewUser = false;
+
+    if (!user) {
+      isNewUser = true;
+      const base = normalizeUsernameBase(data.name || email.split('@')[0]);
+      const password = crypto.randomBytes(18).toString('hex');
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const candidate = buildUsernameCandidate(base, attempt);
+        try {
+          user = await registerUser(candidate, email, password);
+          break;
+        } catch (registerError) {
+          if (attempt === 4) {
+            throw registerError;
+          }
+        }
+      }
+    }
+
+    const token = generateToken({
+      userId: user.userId,
+      username: user.username,
+      email: user.email
+    });
+
+    const redirectPath = isNewUser ? '/setup' : '/home';
+    const userPayload = JSON.stringify({
+      userId: user.userId,
+      username: user.username,
+      email: user.email
+    });
+
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Signing you in...</title>
+        </head>
+        <body>
+          <script>
+            localStorage.setItem('currentUser', ${userPayload});
+            localStorage.setItem('authToken', '${token}');
+            document.cookie = 'authToken=${token}; path=/; max-age=604800';
+            window.location.href = '${FRONTEND_URL}${redirectPath}';
+          </script>
+        </body>
+      </html>
+    `);
+  } catch (callbackError) {
+    console.error('[AUTH] Google callback error:', callbackError.message);
+    res.redirect(`${FRONTEND_URL}/signin?google=error`);
+  }
 });
 
 // User registration

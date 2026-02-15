@@ -483,7 +483,7 @@ function IntroStep({ onNext }: { onNext: () => void }) {
           </li>
           <li className="flex items-start gap-3">
             <PaperAirplaneIcon className="w-6 h-6 flex-shrink-0 mt-0.5" />
-            <span>Send outreach automatically 24/7</span>
+            <span>Write research reports directly into your CRM</span>
           </li>
           <li className="flex items-start gap-3">
             <ChartBarIcon className="w-6 h-6 flex-shrink-0 mt-0.5" />
@@ -1532,23 +1532,23 @@ function ReviewStep({
                     
                     {/* Email Settings */}
                     {(settings.ccEmails || settings.bccEmails || settings.followupIntervalDays || settings.enableAutoResponse) && (
-                      <div className="border-t border-neutral-200 pt-3 mt-3">
-                        <p className="text-sm font-bold text-neutral-700 mb-2">Email Settings</p>
+                      <div className="border-t border-white/10 pt-3 mt-3">
+                        <p className="text-sm font-bold text-white mb-2">Email Settings</p>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="text-neutral-600">Follow-up Interval:</span>
-                            <span className="font-semibold text-neutral-900">{settings.followupIntervalDays || 7} days</span>
+                            <span className="text-[#A3B4CC]">Follow-up Interval:</span>
+                            <span className="font-semibold text-white">{settings.followupIntervalDays || 7} days</span>
                           </div>
                           {(settings.ccEmails || settings.bccEmails) && (
-                            <div className="text-xs text-neutral-500 mt-2">
+                            <div className="text-xs text-[#A3B4CC] mt-2">
                               {settings.ccEmails && <div>CC: {settings.ccEmails}</div>}
                               {settings.bccEmails && <div>BCC: {settings.bccEmails}</div>}
                             </div>
                           )}
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="text-neutral-600">Auto-Response:</span>
+                            <span className="text-[#A3B4CC]">Auto-Response:</span>
                             <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                              settings.enableAutoResponse ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'
+                              settings.enableAutoResponse ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/60'
                             }`}>
                               {settings.enableAutoResponse ? 'Enabled' : 'Disabled'}
                             </span>
@@ -1565,14 +1565,14 @@ function ReviewStep({
           </div>
           
           <div>
-            <p className="text-sm text-neutral-500 mb-2">Email Sending</p>
+            <p className="text-sm text-[#A3B4CC] mb-2">Email Sending</p>
             <div className="flex items-center gap-2">
-              <EnvelopeIcon className="w-5 h-5 text-neutral-600" />
-              <span className="font-semibold text-neutral-900">
+              <EnvelopeIcon className="w-5 h-5 text-[#A3B4CC]" />
+              <span className="font-semibold text-white">
                 {useGmail ? 'Gmail (Primary inbox, better deliverability)' : 'Mailgun (Standard sending)'}
               </span>
               {useGmail && (
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs font-semibold">
                   RECOMMENDED
                 </span>
               )}
@@ -2299,7 +2299,7 @@ function PaymentSetupStep({
   
   const planDetailsMap = {
     'free-trial': { name: 'Free Trial', credits: 500, uiPrice: 0, purchasePrice: 0 },
-    'starter': { name: 'Starter', credits: 10000, uiPrice: 500, purchasePrice: 1 },
+    'starter': { name: 'Starter', credits: 10000, uiPrice: 500, purchasePrice: 500 },
     'growth': { name: 'Growth', credits: 20000, uiPrice: 1000, purchasePrice: 1000 },
     'scale': { name: 'Scale', credits: 70000, uiPrice: 2500, purchasePrice: 2500 }
   };

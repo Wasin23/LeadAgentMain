@@ -188,8 +188,8 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="mt-4 p-4 bg-neutral-100 dark:bg-neutral-700 rounded-lg">
               <p className="text-neutral-900 dark:text-neutral-100 font-medium">Meridian Privacy Team</p>
-              <p className="text-neutral-700 dark:text-neutral-300">Email: privacy@meridian.com</p>
-              <p className="text-neutral-700 dark:text-neutral-300">Address: [Your Company Address]</p>
+              <p className="text-neutral-700 dark:text-neutral-300">Email: coltonfidelman@g.ucla.edu</p>
+              <p className="text-neutral-700 dark:text-neutral-300">Address: 35 S Village Dr, 13035, NY</p>
             </div>
           </section>
         </div>

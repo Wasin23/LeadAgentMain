@@ -497,6 +497,8 @@ const publicEmailEndpoints = [
   '/api/auth/forgot-password', // Password reset request
   '/api/auth/reset-password', // Password reset
   '/api/auth/test', // Auth test endpoint
+  '/api/auth/google/authorize', // Google OAuth authorize
+  '/api/auth/google/callback', // Google OAuth callback
   '/api/calendar/oauth-callback', // Google OAuth callback
   '/api/auth/gmail/authorize', // Gmail OAuth authorize
   '/api/auth/gmail/callback' // Gmail OAuth callback

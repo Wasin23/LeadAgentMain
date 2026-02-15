@@ -273,6 +273,10 @@ export default function CRMDashboard() {
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [testMessage, setTestMessage] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
   // Dropdown positioning refs
   const dropdownButtonRef = useRef<HTMLDivElement>(null);
@@ -385,6 +389,40 @@ export default function CRMDashboard() {
     }
   };
 
+  const handleRunTest = async () => {
+    if (!testMessage.trim()) {
+      setTestResult({ type: 'error', message: 'Please enter a test message.' });
+      return;
+    }
+
+    setTestLoading(true);
+    setTestResult(null);
+
+    const now = new Date();
+    const leadData = {
+      firstName: 'Meridian',
+      lastName: 'Test',
+      email: `test+${Date.now()}@meridian.ai`,
+      title: 'CRM Write Test',
+      companyName: 'Meridian Test',
+      aiReport: testMessage.trim(),
+      researchSummary: `Manual CRM test created at ${now.toISOString()}`
+    };
+
+    try {
+      const response = await api.post('/api/crm/sync-lead', { leadData });
+      if (response.data?.success) {
+        setTestResult({ type: 'success', message: 'Test write succeeded. Check your CRM for the new contact.' });
+      } else {
+        setTestResult({ type: 'error', message: response.data?.error || 'Test write failed.' });
+      }
+    } catch (err: any) {
+      setTestResult({ type: 'error', message: err.response?.data?.error || 'Test write failed.' });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   const getCRMInfo = (integration: string | null) => {
     if (!integration) return null;
     const lower = integration.toLowerCase();
@@ -475,6 +513,18 @@ export default function CRMDashboard() {
           {/* Sync Info */}
           <div className="text-xs text-[#8FA6C1] text-center">
             Leads will be synced to {getCRMInfo(status.integration)?.name || status.integration} when research completes
+          </div>
+
+          <div className="flex items-center justify-center">
+            <button
+              onClick={() => {
+                setShowTestModal(true);
+                setTestResult(null);
+              }}
+              className="px-4 py-2 text-xs sm:text-sm bg-[#12213B] border border-[#4FD1FF]/30 text-white rounded-lg hover:bg-[#1a2e4a] transition-colors"
+            >
+              Write Test
+            </button>
           </div>
         </div>
       ) : (
@@ -624,6 +674,58 @@ export default function CRMDashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {showTestModal && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowTestModal(false)}
+          />
+          <div className="relative w-full max-w-lg rounded-2xl bg-[#0A1628] border border-white/10 shadow-2xl">
+            <div className="px-6 py-4 border-b border-white/10">
+              <h3 className="text-lg font-semibold text-white">Test CRM Connection</h3>
+              <p className="text-xs text-[#8FA6C1] mt-1">
+                This will write a test lead to your CRM with the message below.
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <label className="block text-xs text-[#8FA6C1]">Test CRM Connection</label>
+              <textarea
+                rows={5}
+                value={testMessage}
+                onChange={(e) => setTestMessage(e.target.value)}
+                placeholder="Write a short test note for the CRM entry..."
+                className="w-full px-3 py-2 bg-[#12213B] border border-[#4FD1FF]/30 rounded-lg text-white text-sm placeholder-[#5a7a9a] focus:border-[#4FD1FF] focus:outline-none"
+              />
+
+              {testResult && (
+                <div className={`p-3 rounded-lg text-xs ${
+                  testResult.type === 'success'
+                    ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                }`}>
+                  {testResult.message}
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowTestModal(false)}
+                className="px-4 py-2 text-sm text-white/80 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRunTest}
+                disabled={testLoading}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-lg font-medium hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all disabled:opacity-50"
+              >
+                {testLoading ? 'Testing...' : 'Run Test'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

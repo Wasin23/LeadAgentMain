@@ -80,7 +80,7 @@ router.post('/sync-lead', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Lead data required' });
     }
     
-    const result = await mergeManager.syncLeadToCRM(userId, leadData);
+    const result = await mergeManager.syncLeadToCRMUnified(userId, leadData);
     
     res.json(result);
   } catch (error) {
