@@ -18,6 +18,7 @@ import { sendPasswordResetEmail } from '../tools/emailMailgun.js';
 import { generateToken, authenticateToken } from '../middleware/jwt.js';
 import { cancelScheduledFollowUps } from '../utils/rebumpChecker.js';
 import { google } from 'googleapis';
+import crypto from 'crypto';
 
 const router = express.Router();
 
