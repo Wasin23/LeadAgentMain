@@ -4453,16 +4453,54 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       console.log(emailContent);
       console.log('---END EMAIL---');
       
+      const maxSubjectLength = 45;
+      const patternPrefixRegex = /^(idea for|thought for|saw|noticed|quick call|15 min|re:|working with|question about|data on)\b/i;
+
+      const normalizeSubject = (value) => {
+        if (!value) return value;
+        return value.replace(/\s+/g, ' ').trim();
+      };
+
+      const trimSubject = (value) => {
+        if (!value) return value;
+        const normalized = normalizeSubject(value);
+        if (normalized.length <= maxSubjectLength) return normalized;
+        return normalized.slice(0, maxSubjectLength).trim();
+      };
+
+      const buildPatternSubject = () => {
+        const safeCompany = (companyName || 'your team').trim();
+        const safeIndustry = (industry && industry !== 'Unknown') ? industry : 'growth';
+        const topic = safeIndustry.toLowerCase().includes('growth') ? safeIndustry : `${safeIndustry} growth`;
+
+        const candidates = [
+          `idea for ${safeCompany}'s ${topic}`,
+          `saw ${safeCompany} is expanding`,
+          `15 min to discuss ${topic}?`,
+          `question about ${topic}`
+        ];
+
+        for (const candidate of candidates) {
+          const trimmed = trimSubject(candidate);
+          if (trimmed && trimmed.length > 0) return trimmed;
+        }
+
+        return 'question about growth';
+      };
+
       // Extract subject and body if formatted properly
       let subject, body;
       if (emailContent.includes('SUBJECT:') && emailContent.includes('BODY:')) {
         const parts = emailContent.split('BODY:');
-        subject = parts[0].replace('SUBJECT:', '').trim();
+        subject = normalizeSubject(parts[0].replace('SUBJECT:', ''));
         body = parts[1].trim();
       } else {
-        // Fallback subject generation
-        subject = `Quick question about ${companyName}'s ${industry} strategy`;
         body = emailContent;
+      }
+
+      subject = trimSubject(subject);
+      if (!subject || !patternPrefixRegex.test(subject)) {
+        subject = buildPatternSubject();
       }
       
       // Clean up body - remove any stray "SUBJECT:" prefix that AI might have included
