@@ -2298,10 +2298,10 @@ function PaymentSetupStep({
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   
   const planDetailsMap = {
-    'free-trial': { name: 'Free Trial', credits: 500, price: 0 },
-    'starter': { name: 'Starter', credits: 10000, price: 0 },
-    'growth': { name: 'Growth', credits: 20000, price: 1000 },
-    'scale': { name: 'Scale', credits: 70000, price: 2500 }
+    'free-trial': { name: 'Free Trial', credits: 500, uiPrice: 0, purchasePrice: 0 },
+    'starter': { name: 'Starter', credits: 10000, uiPrice: 500, purchasePrice: 1 },
+    'growth': { name: 'Growth', credits: 20000, uiPrice: 1000, purchasePrice: 1000 },
+    'scale': { name: 'Scale', credits: 70000, uiPrice: 2500, purchasePrice: 2500 }
   };
   const planDetails = planDetailsMap[selectedPlan as keyof typeof planDetailsMap] || planDetailsMap['free-trial'];
 
@@ -2317,7 +2317,7 @@ function PaymentSetupStep({
       // Use the existing credit purchase system
       const response = await api.post('/api/billing/purchase-credits', {
         tierId: selectedPlan,
-        amount: planDetails.price,
+        amount: planDetails.purchasePrice,
         credits: planDetails.credits,
       });
 
@@ -2380,7 +2380,7 @@ function PaymentSetupStep({
             <div className="bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-xl p-6">
               <div className="text-center">
                 <h3 className="font-bold text-white text-xl mb-2">{planDetails.name} Plan</h3>
-                <p className="text-3xl font-bold text-[#4FD1FF] mb-2">${planDetails.price}</p>
+                <p className="text-3xl font-bold text-[#4FD1FF] mb-2">${planDetails.uiPrice}</p>
                 <p className="text-[#A3B4CC] mb-4">{planDetails.credits.toLocaleString()} credits included</p>
                 
                 {!paymentAdded && (
@@ -2421,7 +2421,7 @@ function PaymentSetupStep({
                           Processing...
                         </span>
                       ) : (
-                        `Purchase ${planDetails.name} - $${planDetails.price}`
+                        `Purchase ${planDetails.name} - $${planDetails.uiPrice}`
                       )}
                     </button>
                     {purchaseError && (

@@ -163,38 +163,66 @@ router.get('/callback', async (req, res) => {
           <title>Gmail Connected</title>
           <style>
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              font-family: system-ui, -apple-system, sans-serif;
               display: flex;
-              justify-content: center;
               align-items: center;
+              justify-content: center;
               height: 100vh;
               margin: 0;
               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
             }
-            .message {
+            .container {
               text-align: center;
-              padding: 2rem;
-              background: rgba(255, 255, 255, 0.1);
-              border-radius: 1rem;
-              backdrop-filter: blur(10px);
+              background: white;
+              padding: 40px;
+              border-radius: 20px;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             }
             .checkmark {
-              font-size: 4rem;
-              animation: scale 0.5s ease-out;
+              width: 80px;
+              height: 80px;
+              border-radius: 50%;
+              background: #10b981;
+              margin: 0 auto 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              animation: scaleIn 0.3s ease-out;
             }
-            @keyframes scale {
-              0% { transform: scale(0); }
-              100% { transform: scale(1); }
+            .checkmark svg {
+              width: 50px;
+              height: 50px;
+              stroke: white;
+              stroke-width: 3;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              fill: none;
+              animation: drawCheck 0.5s ease-out 0.2s forwards;
+              stroke-dasharray: 100;
+              stroke-dashoffset: 100;
             }
+            @keyframes scaleIn {
+              from { transform: scale(0); }
+              to { transform: scale(1); }
+            }
+            @keyframes drawCheck {
+              to { stroke-dashoffset: 0; }
+            }
+            h1 { color: #1f2937; margin: 0 0 10px; font-size: 28px; }
+            p { color: #6b7280; margin: 0; font-size: 16px; }
+            .email { color: #1f2937; font-weight: 600; margin-bottom: 6px; }
           </style>
         </head>
         <body>
-          <div class="message">
-            <div class="checkmark">✓</div>
-            <h2>Gmail Connected!</h2>
-            <p>${gmailAddress}</p>
-            <p style="opacity: 0.7; font-size: 0.9rem;">This window will close automatically...</p>
+          <div class="container">
+            <div class="checkmark">
+              <svg viewBox="0 0 52 52">
+                <polyline points="14 27 22 35 38 17"/>
+              </svg>
+            </div>
+            <h1>Gmail Connected!</h1>
+            <p class="email">${gmailAddress}</p>
+            <p>This window will close automatically...</p>
           </div>
           <script>
             // Try multiple methods to signal success

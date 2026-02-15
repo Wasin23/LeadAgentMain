@@ -49,7 +49,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isCheckingProfile && hasCompanyProfile && hasCalendarSetup === true && !showAgentOnboarding) {
       const timer = setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/home');
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -90,28 +90,25 @@ export default function Dashboard() {
           <CompanyProfileOnboarding onComplete={() => {
             setHasCompanyProfile(true);
             setHasCalendarSetup(false);
-          }} />
-        </div>
-      ) : hasCalendarSetup === false ? (
-        <div className="min-h-screen">
-          <CalendarSetup onComplete={() => {
-            setHasCalendarSetup(true);
             setShowAgentOnboarding(true);
           }} />
         </div>
       ) : showAgentOnboarding ? (
         <AgentOnboarding 
           onComplete={() => {
-            // Clear onboarding progress since they completed setup
-            localStorage.removeItem('onboardingProgress');
-            // Redirect to the new home page after onboarding
-            router.push('/home');
+            setShowAgentOnboarding(false);
           }}
           onSkip={() => {
-            // Redirect to the new home page after skipping
-            router.push('/home');
+            setShowAgentOnboarding(false);
           }}
         />
+      ) : hasCalendarSetup === false ? (
+        <div className="min-h-screen">
+          <CalendarSetup onComplete={() => {
+            setHasCalendarSetup(true);
+            localStorage.removeItem('onboardingProgress');
+          }} />
+        </div>
       ) : (
         // If somehow we get here (onboarding complete), redirect to home
         <div className="flex items-center justify-center h-screen">

@@ -842,7 +842,7 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const { tierId, amount, credits } = req.body;
     
-    if (!tierId || !amount || !credits) {
+    if (!tierId || amount === undefined || amount === null || !credits) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
@@ -851,8 +851,31 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    if (!user.stripeCustomerId || !user.paymentMethodAdded) {
+    if (amount > 0 && (!user.stripeCustomerId || !user.paymentMethodAdded)) {
       return res.status(400).json({ error: 'No payment method on file' });
+    }
+
+    if (amount === 0) {
+      const currentBalance = user.creditBalance || 0;
+      const newBalance = currentBalance + credits;
+
+      await awsManager.updateUser(userId, {
+        creditBalance: newBalance
+      });
+
+      await logBillingActivity(userId, 'credit_purchase', {
+        amount,
+        credits,
+        tierId,
+        newBalance
+      }, 'success');
+
+      return res.json({
+        success: true,
+        message: `Successfully purchased ${credits.toLocaleString()} credits`,
+        newBalance,
+        paymentIntentId: null
+      });
     }
     
     // Get default payment method
