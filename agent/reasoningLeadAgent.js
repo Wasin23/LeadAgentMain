@@ -4453,7 +4453,7 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       console.log(emailContent);
       console.log('---END EMAIL---');
       
-      const maxSubjectLength = 45;
+      const maxSubjectLength = 80;
       const patternPrefixRegex = /^(idea for|thought for|saw|noticed|quick call|15 min|re:|working with|question about|data on)\b/i;
 
       const normalizeSubject = (value) => {
@@ -4465,7 +4465,12 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
         if (!value) return value;
         const normalized = normalizeSubject(value);
         if (normalized.length <= maxSubjectLength) return normalized;
-        return normalized.slice(0, maxSubjectLength).trim();
+        const clipped = normalized.slice(0, maxSubjectLength).trim();
+        const lastSpace = clipped.lastIndexOf(' ');
+        if (lastSpace > 6) {
+          return clipped.slice(0, lastSpace).trim();
+        }
+        return clipped;
       };
 
       const buildPatternSubject = () => {
@@ -4482,7 +4487,7 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
 
         for (const candidate of candidates) {
           const trimmed = trimSubject(candidate);
-          if (trimmed && trimmed.length > 0) return trimmed;
+          if (trimmed && trimmed.length > 0 && trimmed.length <= maxSubjectLength) return trimmed;
         }
 
         return 'question about growth';
