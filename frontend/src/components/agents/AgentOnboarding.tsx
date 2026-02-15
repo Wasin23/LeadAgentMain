@@ -1649,6 +1649,9 @@ function GmailSetupStep({
                 <p className="text-sm sm:text-base text-[#A3B4CC] mb-4">
                   Send emails from your Gmail for better deliverability and reply tracking
                 </p>
+                <p className="text-xs sm:text-sm text-[#4FD1FF] mb-4">
+                  Recommended for best inbox placement and reply accuracy.
+                </p>
                 <button
                   onClick={() => {
                     onToggle(true);
@@ -2296,7 +2299,7 @@ function PaymentSetupStep({
   
   const planDetailsMap = {
     'free-trial': { name: 'Free Trial', credits: 500, price: 0 },
-    'starter': { name: 'Starter', credits: 10000, price: 500 },
+    'starter': { name: 'Starter', credits: 10000, price: 0 },
     'growth': { name: 'Growth', credits: 20000, price: 1000 },
     'scale': { name: 'Scale', credits: 70000, price: 2500 }
   };
@@ -2396,10 +2399,10 @@ function PaymentSetupStep({
 
                 {paymentAdded && !planPurchased && (
                   <div className="space-y-4">
-                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 mb-3">
+                    <div className="bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg p-3 mb-3">
                       <div className="flex items-center gap-2 justify-center">
-                        <CheckIcon className="w-5 h-5 text-green-600" />
-                        <p className="text-sm text-green-700 font-semibold">
+                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                        <p className="text-sm font-semibold">
                           Payment method added
                         </p>
                       </div>
