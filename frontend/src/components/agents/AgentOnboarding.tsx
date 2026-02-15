@@ -213,27 +213,13 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-6 z-10">
         {/* Meridian Logo + Title */}
         <div className="flex items-center gap-3">
-    ``          <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
-            <defs>
-              <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{ stopColor: '#4FD1FF', stopOpacity: 1 }} />
-                <stop offset="50%" style={{ stopColor: '#55C7F7', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: '#6BE3FF', stopOpacity: 1 }} />
-              </linearGradient>
-            </defs>
-            
-            {/* Globe circle */}
-            <circle cx="24" cy="24" r="20" fill="white"/>
-            
-            {/* Vertical meridian lines */}
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-            
-            {/* Horizontal latitude lines */}
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradient)" strokeWidth="1"/>
+          <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
+            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
           </svg>
           <h1 className="text-3xl font-bold text-white drop-shadow-lg">Meridian</h1>
         </div>
@@ -1476,11 +1462,11 @@ function ReviewStep({
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
+      <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl border-2 border-[#4FD1FF]/30">
         <div className="space-y-6">
           <div>
-            <p className="text-sm text-neutral-500 mb-2">Agent Name</p>
-            <p className="text-2xl font-bold text-neutral-900">{name}</p>
+            <p className="text-sm text-[#A3B4CC] mb-2">Agent Name</p>
+            <p className="text-2xl font-bold text-white">{name}</p>
           </div>
           
           {instructions && instructions.trim() && (
@@ -1498,7 +1484,7 @@ function ReviewStep({
           )}
           
           <div>
-            <p className="text-sm text-neutral-500 mb-2">Personality</p>
+            <p className="text-sm text-[#A3B4CC] mb-2">Personality</p>
             <div className="flex items-center gap-4">
               <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${
                 personality?.color === 'red' ? 'from-red-500 to-red-600' :
@@ -1514,28 +1500,28 @@ function ReviewStep({
                 />
               </div>
               <div>
-                <p className="font-bold text-neutral-900">{personality?.name}</p>
-                <p className="text-sm text-neutral-600">{personality?.description}</p>
+                <p className="font-bold text-white">{personality?.name}</p>
+                <p className="text-sm text-[#A3B4CC]">{personality?.description}</p>
               </div>
             </div>
           </div>
           <div>
-            <p className="text-sm text-neutral-500 mb-2">Settings Preset</p>
-            <p className="text-lg font-bold text-neutral-900 mb-2">{presetName}</p>
+            <p className="text-sm text-[#A3B4CC] mb-2">Settings Preset</p>
+            <p className="text-lg font-bold text-white mb-2">{presetName}</p>
             {(() => {
               try {
                 const settings = JSON.parse(preset);
                 return (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-neutral-600">Company Size:</span>
-                      <span className="font-semibold text-neutral-900">
+                      <span className="text-[#A3B4CC]">Company Size:</span>
+                      <span className="font-semibold text-white">
                         {settings.companySizeMin?.toLocaleString()} - {settings.companySizeMax?.toLocaleString()} employees
                       </span>
                     </div>
                     {settings.industries?.length > 0 && (
                       <div>
-                        <span className="text-neutral-600 text-sm">Industries:</span>
+                        <span className="text-[#A3B4CC] text-sm">Industries:</span>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {settings.industries.map((industry: string, idx: number) => (
                             <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
@@ -1547,7 +1533,7 @@ function ReviewStep({
                     )}
                     {settings.jobTitles?.length > 0 && (
                       <div>
-                        <span className="text-neutral-600 text-sm">Positions:</span>
+                        <span className="text-[#A3B4CC] text-sm">Positions:</span>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {settings.jobTitles.map((title: string, idx: number) => (
                             <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
@@ -1558,8 +1544,8 @@ function ReviewStep({
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-neutral-600">Leads per cycle:</span>
-                      <span className="font-semibold text-neutral-900">{settings.leadsPerCycle}</span>
+                      <span className="text-[#A3B4CC]">Leads per cycle:</span>
+                      <span className="font-semibold text-white">{settings.leadsPerCycle}</span>
                     </div>
                     
                     {/* Email Settings */}
@@ -1652,6 +1638,29 @@ function GmailSetupStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const [verifying, setVerifying] = useState(false);
+  const [localConnected, setLocalConnected] = useState(gmailConnected);
+
+  const verifyGmailConnection = async () => {
+    setVerifying(true);
+    try {
+      const response = await api.get('/api/auth/gmail/status');
+      if (response.data?.connected) {
+        setLocalConnected(true);
+        onToggle(true); // Also update parent state
+      } else {
+        setLocalConnected(false);
+      }
+    } catch (error) {
+      console.error('Failed to verify Gmail connection:', error);
+      setLocalConnected(false);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const displayConnected = localConnected || gmailConnected;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1666,7 +1675,7 @@ function GmailSetupStep({
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
+      <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl border-2 border-[#4FD1FF]/30">
         <div className="space-y-6">
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
             <div className="flex items-start gap-4">
@@ -1683,15 +1692,15 @@ function GmailSetupStep({
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl">
+          <div className="flex items-center justify-between p-4 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/20 rounded-xl">
             <div>
-              <p className="font-bold text-neutral-900">Use Gmail for sending</p>
-              <p className="text-sm text-neutral-600">Toggle to enable Gmail integration</p>
+              <p className="font-bold text-white">Use Gmail for sending</p>
+              <p className="text-sm text-[#A3B4CC]">Toggle to enable Gmail integration</p>
             </div>
             <button
               onClick={() => onToggle(!useGmail)}
               className={`relative w-16 h-8 rounded-full transition-colors ${
-                useGmail ? 'bg-green-500' : 'bg-neutral-300'
+                useGmail ? 'bg-green-500' : 'bg-neutral-500'
               }`}
             >
               <div
@@ -1702,23 +1711,32 @@ function GmailSetupStep({
             </button>
           </div>
 
-          {useGmail && !gmailConnected && (
-            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
-              <p className="text-sm text-yellow-800 mb-3">
-                Gmail not connected. Click below to connect your Google account.
-              </p>
+          {useGmail && !displayConnected && (
+            <div className="space-y-4">
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+                <p className="text-sm text-yellow-800 mb-3">
+                  Gmail not connected. Click below to connect your Google account.
+                </p>
+                <button
+                  onClick={onConnect}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-semibold hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all"
+                >
+                  Connect Gmail
+                </button>
+              </div>
               <button
-                onClick={onConnect}
-                className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                onClick={verifyGmailConnection}
+                disabled={verifying}
+                className="w-full px-6 py-3 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 text-[#4FD1FF] rounded-xl font-semibold hover:bg-[#0F1E35]/70 transition-all disabled:opacity-50"
               >
-                Connect Gmail
+                {verifying ? 'Saving...' : 'Save Gmail Connection'}
               </button>
             </div>
           )}
 
-          {useGmail && gmailConnected && (
+          {useGmail && displayConnected && (
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 justify-center">
                 <CheckIcon className="w-6 h-6 text-green-600" />
                 <p className="text-sm text-green-800 font-semibold">
                   Gmail connected successfully!
@@ -1728,8 +1746,8 @@ function GmailSetupStep({
           )}
 
           {!useGmail && (
-            <div className="bg-neutral-50 border-2 border-neutral-200 rounded-xl p-4">
-              <p className="text-sm text-neutral-600">
+            <div className="bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/20 rounded-xl p-4">
+              <p className="text-sm text-[#A3B4CC]">
                 Will use Mailgun for sending. Replies will be tracked via webhooks.
               </p>
             </div>
@@ -1746,11 +1764,7 @@ function GmailSetupStep({
         </button>
         <button
           onClick={onNext}
-          className="px-10 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-xl hover:scale-105 inline-flex items-center gap-2"
-          style={{
-            backgroundColor: 'white',
-            color: 'rgb(147, 51, 234)'
-          }}
+          className="px-10 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-xl hover:scale-105 inline-flex items-center gap-2 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35]"
         >
           Continue
           <ArrowRightIcon className="w-5 h-5" />
@@ -1779,14 +1793,23 @@ function CRMSetupStep({
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(crmConnected);
 
-  // CRM configs (simplified from CRMDashboard)
+  // CRM configs (all 21 integrations)
   const CRM_CONFIGS = [
+    {
+      id: 'activecampaign',
+      name: 'ActiveCampaign',
+      logo: 'https://www.activecampaign.com/favicon.ico',
+      fields: [
+        { name: 'API URL', key: 'apiUrl', type: 'text', placeholder: 'https://youraccountname.api-us1.com', helpText: 'Found in Settings → Developer' },
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your ActiveCampaign API Key' }
+      ]
+    },
     {
       id: 'hubspot',
       name: 'HubSpot',
       logo: 'https://www.hubspot.com/hubfs/HubSpot_Logos/HubSpot-Inversed-Favicon.png',
       fields: [
-        { name: 'Private App Access Token', key: 'apiKey', type: 'password', placeholder: 'pat-na1-xxxxxxxx', helpText: 'Create in Settings → Integrations → Private Apps' }
+        { name: 'Private App Access Token', key: 'apiKey', type: 'password', placeholder: 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', helpText: 'Create a Private App in Settings → Integrations → Private Apps' }
       ]
     },
     {
@@ -1794,8 +1817,8 @@ function CRMSetupStep({
       name: 'Salesforce',
       logo: 'https://c1.sfdcstatic.com/content/dam/web/en_us/www/images/nav/salesforce-cloud-logo-sm.png',
       fields: [
-        { name: 'Instance URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourinstance.salesforce.com' },
-        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your access token' }
+        { name: 'Instance URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourinstance.salesforce.com', helpText: 'Your Salesforce domain' },
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Salesforce access token', helpText: 'Create a Connected App or use OAuth' }
       ]
     },
     {
@@ -1803,7 +1826,7 @@ function CRMSetupStep({
       name: 'Pipedrive',
       logo: 'https://www.pipedrive.com/favicon.ico',
       fields: [
-        { name: 'API Token', key: 'apiKey', type: 'password', placeholder: 'Your API token', helpText: 'Settings → Personal preferences → API' }
+        { name: 'API Token', key: 'apiKey', type: 'password', placeholder: 'Your Pipedrive API token', helpText: 'Found in Settings → Personal preferences → API' }
       ]
     },
     {
@@ -1811,8 +1834,144 @@ function CRMSetupStep({
       name: 'Zoho CRM',
       logo: 'https://www.zohowebstatic.com/sites/zweb/images/favicon.ico',
       fields: [
-        { name: 'Data Center', key: 'apiUrl', type: 'text', placeholder: 'https://www.zohoapis.com' },
-        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your OAuth access token' }
+        { name: 'Data Center', key: 'apiUrl', type: 'text', placeholder: 'https://www.zohoapis.com (or .eu, .in, .com.au)', helpText: 'Based on your account region' },
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Zoho OAuth access token' }
+      ]
+    },
+    {
+      id: 'copper',
+      name: 'Copper',
+      logo: 'https://www.copper.com/favicon.ico',
+      fields: [
+        { name: 'User Email', key: 'apiUrl', type: 'text', placeholder: 'your@email.com', helpText: 'Email associated with your Copper account' },
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Copper API key', helpText: 'Found in Settings → Integrations → API Keys' }
+      ]
+    },
+    {
+      id: 'close',
+      name: 'Close',
+      logo: 'https://close.com/favicon.ico',
+      fields: [
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'api_xxxxxxxxxxxxxxxx', helpText: 'Found in Settings → API Keys' }
+      ]
+    },
+    {
+      id: 'affinity',
+      name: 'Affinity',
+      logo: 'https://www.affinity.co/favicon.ico',
+      fields: [
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Affinity API key', helpText: 'Found in Settings → API' }
+      ]
+    },
+    {
+      id: 'capsule',
+      name: 'Capsule',
+      logo: 'https://capsulecrm.com/favicon.ico',
+      fields: [
+        { name: 'API Token', key: 'apiKey', type: 'password', placeholder: 'Your Capsule API token', helpText: 'Found in My Preferences → API Authentication Tokens' }
+      ]
+    },
+    {
+      id: 'insightly',
+      name: 'Insightly',
+      logo: 'https://www.insightly.com/favicon.ico',
+      fields: [
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Insightly API key', helpText: 'Found in User Settings → API' }
+      ]
+    },
+    {
+      id: 'keap',
+      name: 'Keap (Infusionsoft)',
+      logo: 'https://keap.com/favicon.ico',
+      fields: [
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Keap access token', helpText: 'OAuth access token from Keap Developer Portal' }
+      ]
+    },
+    {
+      id: 'dynamics365',
+      name: 'Microsoft Dynamics 365',
+      logo: 'https://dynamics.microsoft.com/favicon.ico',
+      fields: [
+        { name: 'Organization URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourorg.crm.dynamics.com', helpText: 'Your Dynamics 365 instance URL' },
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Azure AD access token' }
+      ]
+    },
+    {
+      id: 'nutshell',
+      name: 'Nutshell',
+      logo: 'https://www.nutshell.com/favicon.ico',
+      fields: [
+        { name: 'User Email', key: 'apiUrl', type: 'text', placeholder: 'your@email.com' },
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Nutshell API key', helpText: 'Found in Setup → API Keys' }
+      ]
+    },
+    {
+      id: 'pipeliner',
+      name: 'Pipeliner',
+      logo: 'https://www.pipelinersales.com/favicon.ico',
+      fields: [
+        { name: 'Space ID', key: 'apiUrl', type: 'text', placeholder: 'Your Pipeliner Space ID' },
+        { name: 'API Token', key: 'apiKey', type: 'password', placeholder: 'Your Pipeliner API token' }
+      ]
+    },
+    {
+      id: 'salesflare',
+      name: 'Salesflare',
+      logo: 'https://salesflare.com/favicon.ico',
+      fields: [
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Salesflare API key', helpText: 'Found in Settings → API keys' }
+      ]
+    },
+    {
+      id: 'sugarcrm',
+      name: 'SugarCRM',
+      logo: 'https://www.sugarcrm.com/favicon.ico',
+      fields: [
+        { name: 'Instance URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourinstance.sugarcrm.com' },
+        { name: 'OAuth Token', key: 'apiKey', type: 'password', placeholder: 'Your SugarCRM OAuth token' }
+      ]
+    },
+    {
+      id: 'teamleader',
+      name: 'Teamleader',
+      logo: 'https://www.teamleader.eu/favicon.ico',
+      fields: [
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Teamleader access token', helpText: 'OAuth token from Teamleader Marketplace' }
+      ]
+    },
+    {
+      id: 'teamwork',
+      name: 'Teamwork CRM',
+      logo: 'https://www.teamwork.com/favicon.ico',
+      fields: [
+        { name: 'Site URL', key: 'apiUrl', type: 'text', placeholder: 'https://yoursite.teamwork.com' },
+        { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Teamwork API key' }
+      ]
+    },
+    {
+      id: 'vtiger',
+      name: 'Vtiger',
+      logo: 'https://www.vtiger.com/favicon.ico',
+      fields: [
+        { name: 'Instance URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourinstance.vtiger.com' },
+        { name: 'Access Key', key: 'apiKey', type: 'password', placeholder: 'Your Vtiger access key', helpText: 'Found in My Preferences → Access Key' }
+      ]
+    },
+    {
+      id: 'zendesksell',
+      name: 'Zendesk Sell',
+      logo: 'https://www.zendesk.com/favicon.ico',
+      fields: [
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Zendesk Sell access token', helpText: 'OAuth token or API token from Settings → OAuth' }
+      ]
+    },
+    {
+      id: 'accelo',
+      name: 'Accelo',
+      logo: 'https://www.accelo.com/favicon.ico',
+      fields: [
+        { name: 'Deployment URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourcompany.api.accelo.com' },
+        { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Accelo access token' }
       ]
     }
   ];
@@ -1861,7 +2020,7 @@ function CRMSetupStep({
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
+      <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl border-2 border-[#4FD1FF]/30">
         <div className="space-y-6">
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
             <div className="flex items-start gap-4">
@@ -1882,11 +2041,11 @@ function CRMSetupStep({
 
           {!connected && !selectedCRM && (
             <div className="space-y-4">
-              <label className="block text-neutral-700 font-semibold text-sm mb-2">Choose your CRM</label>
+              <label className="block text-white font-semibold text-sm mb-2">Choose your CRM</label>
               <div className="relative">
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-50 border-2 border-neutral-200 rounded-xl text-neutral-700 hover:bg-neutral-100 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-xl text-white hover:bg-[#0F1E35]/70 transition-colors"
                 >
                   <span className="text-sm">Select a CRM platform...</span>
                   <svg className={`w-5 h-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1918,7 +2077,7 @@ function CRMSetupStep({
                   </div>
                 )}
               </div>
-              <p className="text-xs text-neutral-500 text-center">
+              <p className="text-xs text-[#A3B4CC] text-center">
                 You can also connect this later from Settings
               </p>
             </div>
@@ -1926,7 +2085,7 @@ function CRMSetupStep({
 
           {!connected && selectedCRM && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-200">
+              <div className="flex items-center justify-between pb-3 border-b-2 border-[#4FD1FF]/30">
                 <div className="flex items-center gap-3">
                   {selectedCRM.logo && (
                     <img 
@@ -1936,8 +2095,8 @@ function CRMSetupStep({
                     />
                   )}
                   <div>
-                    <h4 className="text-sm font-semibold text-neutral-900">{selectedCRM.name}</h4>
-                    <p className="text-xs text-neutral-500">Enter your credentials</p>
+                    <h4 className="text-sm font-semibold text-white">{selectedCRM.name}</h4>
+                    <p className="text-xs text-[#A3B4CC]">Enter your credentials</p>
                   </div>
                 </div>
                 <button
@@ -1946,7 +2105,7 @@ function CRMSetupStep({
                     setCredentials({});
                     setError(null);
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-xs text-[#4FD1FF] hover:text-[#6BE3FF] font-medium"
                 >
                   Change
                 </button>
@@ -1954,16 +2113,16 @@ function CRMSetupStep({
 
               {selectedCRM.fields.map((field: any) => (
                 <div key={field.key}>
-                  <label className="block text-xs text-neutral-600 font-medium mb-1">{field.name}</label>
+                  <label className="block text-xs text-[#A3B4CC] font-medium mb-1">{field.name}</label>
                   <input
                     type={field.type}
                     value={credentials[field.key] || ''}
                     onChange={(e) => setCredentials({ ...credentials, [field.key]: e.target.value })}
                     placeholder={field.placeholder}
-                    className="w-full px-4 py-2.5 bg-neutral-50 border-2 border-neutral-200 rounded-lg text-neutral-900 text-sm placeholder-neutral-400 focus:border-blue-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-lg text-white text-sm placeholder-[#A3B4CC]/50 focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 focus:outline-none"
                   />
                   {field.helpText && (
-                    <p className="text-xs text-neutral-500 mt-1">{field.helpText}</p>
+                    <p className="text-xs text-[#A3B4CC] mt-1">{field.helpText}</p>
                   )}
                 </div>
               ))}
@@ -2195,6 +2354,8 @@ function PaymentSetupStep({
   onBack: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [localPaymentAdded, setLocalPaymentAdded] = useState(paymentAdded);
   
   const planDetails = {
     'free-trial': { name: 'Free Trial', credits: 500, price: 0 },
@@ -2202,6 +2363,25 @@ function PaymentSetupStep({
     'growth': { name: 'Growth', credits: 20000, price: 1000 },
     'scale': { name: 'Scale', credits: 70000, price: 2500 }
   }[selectedPlan] || planDetails['free-trial'];
+
+  const verifyPaymentMethod = async () => {
+    setVerifying(true);
+    try {
+      const response = await api.get('/api/auth/profile');
+      if (response.data?.user?.paymentMethodAdded) {
+        setLocalPaymentAdded(true);
+      } else {
+        setLocalPaymentAdded(false);
+      }
+    } catch (error) {
+      console.error('Failed to verify payment method:', error);
+      setLocalPaymentAdded(false);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const displayPaymentAdded = localPaymentAdded || paymentAdded;
 
   const handlePurchase = async () => {
     if (selectedPlan === 'free-trial') {
@@ -2248,7 +2428,7 @@ function PaymentSetupStep({
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl p-8 mb-8 shadow-2xl">
+      <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl border-2 border-[#4FD1FF]/30">
         {selectedPlan === 'free-trial' ? (
           <div className="space-y-6">
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
@@ -2279,21 +2459,28 @@ function PaymentSetupStep({
                 <p className="text-3xl font-bold text-blue-600 mb-2">${planDetails.price}</p>
                 <p className="text-blue-800 mb-4">{planDetails.credits.toLocaleString()} credits included</p>
                 
-                {!paymentAdded && (
+                {!displayPaymentAdded && (
                   <div className="space-y-4">
                     <button
                       onClick={onAddPayment}
-                      className="w-full px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all"
+                      className="w-full px-6 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all"
                     >
-                      Add Payment Method First
+                      Add Payment Method
                     </button>
-                    <p className="text-sm text-blue-600">
+                    <button
+                      onClick={verifyPaymentMethod}
+                      disabled={verifying}
+                      className="w-full px-6 py-3 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 text-[#4FD1FF] rounded-xl font-semibold hover:bg-[#0F1E35]/70 transition-all disabled:opacity-50"
+                    >
+                      {verifying ? 'Saving...' : 'Save Payment Method'}
+                    </button>
+                    <p className="text-sm text-[#A3B4CC]">
                       Payment method required before purchasing
                     </p>
                   </div>
                 )}
 
-                {paymentAdded && !planPurchased && (
+                {displayPaymentAdded && !planPurchased && (
                   <div className="space-y-4">
                     <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 mb-3">
                       <div className="flex items-center gap-2 justify-center">
@@ -2328,7 +2515,7 @@ function PaymentSetupStep({
 
                 {planPurchased && (
                   <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 justify-center">
                       <CheckIcon className="w-6 h-6 text-green-600" />
                       <p className="text-sm text-green-800 font-semibold">
                         Plan purchased successfully! {planDetails.credits.toLocaleString()} credits added.
