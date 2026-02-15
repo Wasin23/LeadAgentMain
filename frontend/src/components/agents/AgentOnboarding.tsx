@@ -303,14 +303,8 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               }}
               onConnect={async () => {
                 try {
-                  // Get user ID from settings endpoint (JWT authenticated)
-                  const userResponse = await api.get('/api/auth/settings');
-                  const userId = userResponse.data.userId;
-                  
-                  if (!userId) {
-                    console.error('[ONBOARDING] No userId found in settings response');
-                    return;
-                  }
+                  // Request OAuth URL from backend first
+                  const response = await api.get('/api/auth/gmail/oauth-url');
                   
                   // Open Gmail OAuth in popup
                   const width = 600;
@@ -318,45 +312,32 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
                   const left = window.screen.width / 2 - width / 2;
                   const top = window.screen.height / 2 - height / 2;
                   const popup = window.open(
-                    `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${userId}`,
+                    response.data.authUrl,
                     'Gmail Authorization',
                     `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
                   );
                   
-                  // Listen for success message
-                  const handleMessage = (event: MessageEvent) => {
-                    if (event.data?.type === 'GMAIL_CONNECTED') {
-                      setGmailConnected(true);
-                      console.log('[ONBOARDING] Gmail connected successfully via message');
-                      window.removeEventListener('message', handleMessage);
-                    }
-                  };
-                  window.addEventListener('message', handleMessage);
-                  
-                  // Poll for popup close and verify with backend
+                  // Check if popup is closed, then verify connection
                   const checkPopup = setInterval(async () => {
-                    if (popup?.closed) {
-                      clearInterval(checkPopup);
-                      window.removeEventListener('message', handleMessage);
-                      
-                      // After popup closes, check backend to confirm connection
-                      console.log('[ONBOARDING] Popup closed, checking Gmail status with backend...');
-                      try {
-                        // Add a small delay to allow backend to process
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    try {
+                      if (popup?.closed) {
+                        clearInterval(checkPopup);
                         
+                        // Check if Gmail is actually connected
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         const statusResponse = await api.get('/api/auth/gmail/status');
                         if (statusResponse.data?.connected) {
                           setGmailConnected(true);
-                          console.log('[ONBOARDING] ✅ Gmail connection confirmed by backend after popup close');
-                        } else {
-                          console.log('[ONBOARDING] ⚠️ Gmail not connected according to backend');
+                          console.log('[ONBOARDING] ✅ Gmail connected confirmed by backend');
                         }
-                      } catch (error) {
-                        console.error('[ONBOARDING] Failed to verify Gmail status after popup:', error);
                       }
+                    } catch (error) {
+                      console.error('[ONBOARDING] Error checking Gmail status:', error);
                     }
                   }, 500);
+                  
+                  // Cleanup after 5 minutes
+                  setTimeout(() => clearInterval(checkPopup), 300000);
                 } catch (error) {
                   console.error('[ONBOARDING] Error connecting Gmail:', error);
                 }

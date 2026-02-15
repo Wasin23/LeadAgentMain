@@ -8,6 +8,27 @@ const gmailManager = new GmailManager();
 const awsManager = new AWSManager();
 
 /**
+ * Get Gmail OAuth URL (for popup flow)
+ * GET /api/auth/gmail/oauth-url
+ */
+router.get('/oauth-url', authenticateToken, (req, res) => {
+  try {
+    console.log('🔐 [GMAIL AUTH] Generating OAuth URL for user:', req.user.userId);
+
+    // Generate OAuth URL with state parameter (to verify callback)
+    const authUrl = gmailManager.getAuthUrl();
+    const stateParam = Buffer.from(JSON.stringify({ userId: req.user.userId })).toString('base64');
+    const fullAuthUrl = `${authUrl}&state=${stateParam}`;
+
+    console.log('🔐 [GMAIL AUTH] Generated auth URL');
+    res.json({ success: true, authUrl: fullAuthUrl });
+  } catch (error) {
+    console.error('❌ [GMAIL AUTH] Error generating OAuth URL:', error);
+    res.status(500).json({ error: 'Failed to generate OAuth URL' });
+  }
+});
+
+/**
  * Initiate Gmail OAuth flow
  * GET /api/auth/gmail/authorize
  */

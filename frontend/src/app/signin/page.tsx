@@ -269,20 +269,13 @@ export default function SignInPage() {
             className="inline-block mb-4 sm:mb-6"
           >
             <svg width="64" height="64" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-20 sm:h-20">
-              <defs>
-                <linearGradient id="globeGradientSignIn" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 1 }} />
-                  <stop offset="50%" style={{ stopColor: 'rgb(168, 85, 247)', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: 'rgb(236, 72, 153)', stopOpacity: 1 }} />
-                </linearGradient>
-              </defs>
               <circle cx="24" cy="24" r="20" fill="white"/>
-              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
-              <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientSignIn)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+              <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
             </svg>
           </motion.div>
           <motion.h1 

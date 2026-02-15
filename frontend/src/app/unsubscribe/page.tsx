@@ -79,22 +79,14 @@ function UnsubscribeContent() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
             <svg width="48" height="48" viewBox="0 0 48 48">
-              <defs>
-                <linearGradient id="globeGradientUnsub" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#4FD1FF', stopOpacity: 1 }} />
-                  <stop offset="50%" style={{ stopColor: '#55C7F7', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: '#6BE3FF', stopOpacity: 1 }} />
-                </linearGradient>
-              </defs>
-              <circle cx="24" cy="24" r="20" fill="#1a2942"/>
-              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
-              <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientUnsub)" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+              <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
             </svg>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] bg-clip-text text-transparent">Meridian</h1>
+            <h1 className="text-2xl font-bold text-white">Meridian</h1>
           </div>
         </div>
 

@@ -57,19 +57,12 @@ export default function Home() {
           className="flex items-center gap-2 sm:gap-3"
         >
           <svg width="40" height="40" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-12 sm:h-12">
-            <defs>
-              <linearGradient id="globeGradientLanding" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{ stopColor: 'rgb(255, 255, 255)', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: 'rgb(255, 255, 255)', stopOpacity: 0.7 }} />
-              </linearGradient>
-            </defs>
-            <circle cx="24" cy="24" r="20" fill="white" opacity="0.2"/>
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientLanding)" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientLanding)" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientLanding)" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientLanding)" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientLanding)" strokeWidth="1.5"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientLanding)" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
           </svg>
           <span className="text-lg sm:text-2xl font-bold text-white">Meridian</span>
         </motion.div>
@@ -338,19 +331,12 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <svg width="32" height="32" viewBox="0 0 48 48">
-                <defs>
-                  <linearGradient id="globeGradientFooter" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{ stopColor: 'rgb(255, 255, 255)', stopOpacity: 0.8 }} />
-                    <stop offset="100%" style={{ stopColor: 'rgb(255, 255, 255)', stopOpacity: 0.5 }} />
-                  </linearGradient>
-                </defs>
-                <circle cx="24" cy="24" r="20" fill="white" opacity="0.1"/>
-                <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradientFooter)" strokeWidth="1"/>
-                <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradientFooter)" strokeWidth="1"/>
-                <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradientFooter)" strokeWidth="1"/>
-                <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradientFooter)" strokeWidth="1"/>
-                <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradientFooter)" strokeWidth="1"/>
-                <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradientFooter)" strokeWidth="1"/>
+                <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1" opacity="0.7"/>
+                <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1" opacity="0.7"/>
+                <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1" opacity="0.7"/>
+                <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1" opacity="0.7"/>
+                <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1" opacity="0.7"/>
+                <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1" opacity="0.7"/>
               </svg>
               <span className="text-white/80 text-xs sm:text-base text-center">© 2025 Meridian. All rights reserved.</span>
             </div>

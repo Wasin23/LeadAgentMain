@@ -326,26 +326,12 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
       {/* Meridian Logo and Title */}
       <div className="fixed top-8 left-8 z-50 flex items-center gap-3">
         <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
-          <defs>
-            <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style={{ stopColor: '#4FD1FF', stopOpacity: 1 }} />
-              <stop offset="50%" style={{ stopColor: '#55C7F7', stopOpacity: 1 }} />
-              <stop offset="100%" style={{ stopColor: '#6BE3FF', stopOpacity: 1 }} />
-            </linearGradient>
-          </defs>
-          
-          {/* Globe circle */}
-          <circle cx="24" cy="24" r="20" fill="white"/>
-          
-          {/* Vertical meridian lines */}
-          <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-          <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-          <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-          
-          {/* Horizontal latitude lines */}
-          <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-          <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="url(#globeGradient)" strokeWidth="1"/>
-          <line x1="4" y1="24" x2="44" y2="24" stroke="url(#globeGradient)" strokeWidth="1"/>
+          <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+          <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
         </svg>
         <h1 className="text-3xl font-bold text-white drop-shadow-lg">Meridian</h1>
       </div>
