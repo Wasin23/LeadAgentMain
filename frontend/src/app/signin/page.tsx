@@ -269,7 +269,6 @@ export default function SignInPage() {
             className="inline-block mb-4 sm:mb-6"
           >
             <svg width="64" height="64" viewBox="0 0 48 48" className="drop-shadow-lg sm:w-20 sm:h-20">
-              <circle cx="24" cy="24" r="20" fill="white"/>
               <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
               <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
               <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>

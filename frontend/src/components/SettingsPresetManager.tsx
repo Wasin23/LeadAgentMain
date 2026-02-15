@@ -329,8 +329,11 @@ export default function SettingsPresetManager({ onManageClick, startWithCreate =
                 </label>
                 <input
                   type="number"
-                  value={newPreset.companySizeMin}
-                  onChange={(e) => setNewPreset({ ...newPreset, companySizeMin: parseInt(e.target.value) })}
+                  value={newPreset.companySizeMin ?? ''}
+                  onChange={(e) => setNewPreset({
+                    ...newPreset,
+                    companySizeMin: e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                  })}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
@@ -340,8 +343,11 @@ export default function SettingsPresetManager({ onManageClick, startWithCreate =
                 </label>
                 <input
                   type="number"
-                  value={newPreset.companySizeMax}
-                  onChange={(e) => setNewPreset({ ...newPreset, companySizeMax: parseInt(e.target.value) })}
+                  value={newPreset.companySizeMax ?? ''}
+                  onChange={(e) => setNewPreset({
+                    ...newPreset,
+                    companySizeMax: e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                  })}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
@@ -588,8 +594,11 @@ export default function SettingsPresetManager({ onManageClick, startWithCreate =
                   </label>
                   <input
                     type="number"
-                    value={newPreset.companySizeMin}
-                    onChange={(e) => setNewPreset({ ...newPreset, companySizeMin: parseInt(e.target.value) })}
+                      value={newPreset.companySizeMin ?? ''}
+                      onChange={(e) => setNewPreset({
+                        ...newPreset,
+                        companySizeMin: e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                      })}
                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
@@ -599,8 +608,11 @@ export default function SettingsPresetManager({ onManageClick, startWithCreate =
                   </label>
                   <input
                     type="number"
-                    value={newPreset.companySizeMax}
-                    onChange={(e) => setNewPreset({ ...newPreset, companySizeMax: parseInt(e.target.value) })}
+                      value={newPreset.companySizeMax ?? ''}
+                      onChange={(e) => setNewPreset({
+                        ...newPreset,
+                        companySizeMax: e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                      })}
                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>

@@ -7,6 +7,7 @@ import {
   XMarkIcon, 
   ArrowRightIcon, 
   CheckIcon,
+  CheckCircleIcon,
   SparklesIcon,
   UserPlusIcon,
   MagnifyingGlassIcon,
@@ -1635,82 +1636,60 @@ function GmailSetupStep({
 
       <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl border-2 border-[#4FD1FF]/30">
         <div className="space-y-6">
-          <div className="bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <EnvelopeIcon className="w-8 h-8 text-[#4FD1FF] flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-white text-lg mb-2">Why use Gmail?</h3>
-                <ul className="space-y-2 text-sm text-[#A3B4CC]">
-                  <li>✓ Better inbox placement (Primary vs Promotions)</li>
-                  <li>✓ Automatic reply tracking via push notifications</li>
-                  <li>✓ Emails appear in your sent folder</li>
-                  <li>✓ Uses your domain reputation</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/20 rounded-xl">
-            <div>
-              <p className="font-bold text-white">Use Gmail for sending</p>
-              <p className="text-sm text-[#A3B4CC]">Toggle to enable Gmail integration</p>
-            </div>
-            <button
-              onClick={() => onToggle(!useGmail)}
-              className={`relative w-16 h-8 rounded-full transition-colors ${
-                useGmail ? 'bg-green-500' : 'bg-neutral-500'
-              }`}
-            >
-              <div
-                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
-                  useGmail ? 'translate-x-8' : ''
-                }`}
-              />
-            </button>
-          </div>
-
-          {useGmail && !gmailConnected && (
-            <div className="space-y-4">
-              <div className="bg-[#4F3B1F]/50 border-2 border-[#FFB800]/30 rounded-xl p-4">
-                <p className="text-sm text-[#FFB800] mb-3">
-                  Gmail not connected. Click below to connect your Google account.
+          <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2 sm:gap-3">
+                  <EnvelopeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#4FD1FF]" />
+                  Gmail
+                  {gmailConnected && (
+                    <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
+                  )}
+                </h3>
+                <p className="text-sm sm:text-base text-[#A3B4CC] mb-4">
+                  Send emails from your Gmail for better deliverability and reply tracking
                 </p>
                 <button
-                  onClick={onConnect}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-semibold hover:shadow-lg hover:shadow-[#4FD1FF]/30 transition-all"
+                  onClick={() => {
+                    onToggle(true);
+                    onConnect();
+                  }}
+                  disabled={gmailConnected}
+                  className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
+                    gmailConnected
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+                      : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
+                  }`}
                 >
-                  Connect Gmail
+                  {gmailConnected ? 'Connected' : 'Connect Gmail'}
                 </button>
               </div>
             </div>
-          )}
+          </div>
 
-          {useGmail && gmailConnected && (
-            <div className="space-y-4">
-              <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                <div className="flex items-center gap-3 justify-center">
-                  <CheckIcon className="w-6 h-6 text-green-600" />
-                  <p className="text-sm text-green-800 font-semibold">
-                    Gmail connected successfully!
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={onNext}
-                className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-              >
-                Save Gmail Connection
-              </button>
-            </div>
-          )}
-
-          {!useGmail && (
-            <div className="bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/20 rounded-xl p-4">
-              <p className="text-sm text-[#A3B4CC]">
-                Will use Mailgun for sending. Replies will be tracked via webhooks.
-              </p>
-            </div>
-          )}
+          <div className="bg-[#1B2F52]/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-[1.02] transition-all duration-300">
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2 sm:gap-3">
+              <PaperAirplaneIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#4FD1FF]" />
+              Mailgun (Default)
+              {!useGmail && (
+                <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
+              )}
+            </h3>
+            <p className="text-sm sm:text-base text-[#A3B4CC] mb-4">
+              Use Mailgun for sending. Replies will be tracked via webhooks.
+            </p>
+            <button
+              onClick={() => onToggle(false)}
+              disabled={!useGmail}
+              className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
+                !useGmail
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+                  : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
+              }`}
+            >
+              {!useGmail ? 'Selected' : 'Use Mailgun'}
+            </button>
+          </div>
         </div>
       </div>
 
