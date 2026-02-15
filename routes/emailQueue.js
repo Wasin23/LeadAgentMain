@@ -531,22 +531,6 @@ router.post('/:id/approve', async (req, res) => {
     // Otherwise use the original agentId for agent-specific settings
     const effectiveAgentId = (isOrphaned || agentId === 'orphan') ? null : originalAgentId;
     
-    console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {
-      emailId: id,
-      userId: req.user.userId,
-      originalAgentId: originalAgentId,
-      effectiveAgentId: effectiveAgentId || 'null (user-level settings)',
-      trackingId: sendResult.result?.trackingId || 'No tracking ID',
-      leadNameForTracking: personInfo?.fullName || 'Unknown',
-      personInfo: personInfo ? {
-        fullName: personInfo.fullName,
-        name: personInfo.name
-      } : null,
-      approvedEmail: { leadName: approvedEmail?.leadName, recipientName: approvedEmail?.recipientName },
-      sentVia: sendResult.method || 'Unknown'
-    });
-
-    
     // Get CC, BCC emails and sender name from settings
     let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
     let bccEmails = approvedEmail.bcc || approvedEmail.emailData?.bcc || null;
@@ -622,6 +606,21 @@ router.post('/:id/approve', async (req, res) => {
       senderName, // Pass sender name for branding
       replyOptions // Pass reply options for threading
     );
+
+    console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {
+      emailId: id,
+      userId: req.user.userId,
+      originalAgentId: originalAgentId,
+      effectiveAgentId: effectiveAgentId || 'null (user-level settings)',
+      trackingId: sendResult.result?.trackingId || 'No tracking ID',
+      leadNameForTracking: personInfo?.fullName || 'Unknown',
+      personInfo: personInfo ? {
+        fullName: personInfo.fullName,
+        name: personInfo.name
+      } : null,
+      approvedEmail: { leadName: approvedEmail?.leadName, recipientName: approvedEmail?.recipientName },
+      sentVia: sendResult.method || 'Unknown'
+    });
     
     if (sendResult.success) {
       console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);

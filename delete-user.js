@@ -3,7 +3,7 @@ import AWSManager from './utils/awsManager.js';
 
 dotenv.config();
 
-const userEmail = 'coltonfidelman@g.ucla.edu';
+const userEmail = 'Coltonfidelman@g.ucla.edu'; // Match exact case from registration
 
 async function deleteUser() {
   const awsManager = new AWSManager();
@@ -11,12 +11,13 @@ async function deleteUser() {
   try {
     console.log(`Finding user with email: ${userEmail}...`);
     
-    // Find user by email
+    // Find user by email (case-insensitive search)
     const users = await awsManager.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).ScanCommand({
       TableName: awsManager.tables.users,
-      FilterExpression: 'email = :email',
+      FilterExpression: 'email = :email OR email = :emailLower',
       ExpressionAttributeValues: {
-        ':email': userEmail
+        ':email': userEmail,
+        ':emailLower': userEmail.toLowerCase()
       }
     }));
     

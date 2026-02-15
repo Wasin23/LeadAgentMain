@@ -4173,6 +4173,7 @@ Pattern A - Casual idea pitch: "idea for [Company]'s [specific initiative]" OR "
 Pattern B - Direct observation: "Saw [Company] is [specific action]" OR "Noticed [specific milestone/news]"
 Pattern C - Simple question: "quick call next week?" OR "15 min to discuss [topic]?"
 Pattern D - Name drop: "re: [similar company name]" OR "working with [competitor]"
+Pattern E - Short: "question about [specific topic]" OR "data on [challenge]"
 
 SUBJECT LINE RULES:
 - Use lowercase or sentence case (NO Title Case)
