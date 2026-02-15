@@ -65,7 +65,7 @@ export default function PaymentMethodModal({ isOpen, onClose, onSuccess }: Payme
             {/* Content */}
             <div className="p-6">
               <Elements stripe={stripePromise}>
-                <BillingContent onPaymentAdded={handleSuccess} />
+                <BillingContent onPaymentAddedAction={handleSuccess} />
               </Elements>
             </div>
           </motion.div>

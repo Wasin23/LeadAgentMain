@@ -231,7 +231,7 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   );
 }
 
-function BillingContentInner() {
+function BillingContentInner({ onPaymentAddedAction }: { onPaymentAddedAction?: () => void }) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddCard, setShowAddCard] = useState(false);
@@ -413,9 +413,9 @@ function BillingContentInner() {
               setShowAddCard(false);
               loadPaymentMethods();
               loadTrialCredits();
-              // Call onPaymentAdded callback if provided
-              if (onPaymentAdded) {
-                onPaymentAdded();
+              // Call onPaymentAddedAction callback if provided
+              if (onPaymentAddedAction) {
+                onPaymentAddedAction();
               } else {
                 // Reload page to refresh user data and remove trial banner
                 setTimeout(() => {
@@ -492,10 +492,10 @@ function BillingContentInner() {
   );
 }
 
-export default function BillingContent({ onPaymentAdded }: { onPaymentAdded?: () => void }) {
+export default function BillingContent({ onPaymentAddedAction }: { onPaymentAddedAction?: () => void }) {
   return (
     <Elements stripe={stripePromise}>
-      <BillingContentInner />
+      <BillingContentInner onPaymentAddedAction={onPaymentAddedAction} />
     </Elements>
   );
 }

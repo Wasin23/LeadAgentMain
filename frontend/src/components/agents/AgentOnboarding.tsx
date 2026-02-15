@@ -1705,13 +1705,21 @@ function GmailSetupStep({
           )}
 
           {useGmail && gmailConnected && (
-            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-              <div className="flex items-center gap-3 justify-center">
-                <CheckIcon className="w-6 h-6 text-green-600" />
-                <p className="text-sm text-green-800 font-semibold">
-                  Gmail connected successfully!
-                </p>
+            <div className="space-y-4">
+              <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                <div className="flex items-center gap-3 justify-center">
+                  <CheckIcon className="w-6 h-6 text-green-600" />
+                  <p className="text-sm text-green-800 font-semibold">
+                    Gmail connected successfully!
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={onNext}
+                className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+              >
+                Save Gmail Connection
+              </button>
             </div>
           )}
 
