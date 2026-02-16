@@ -46,6 +46,7 @@ interface Agent {
   settings?: {
     emailBuilder?: {
       useGmail?: boolean;
+      useOutlook?: boolean;
     };
     targeting?: {
       leadLimit?: number;

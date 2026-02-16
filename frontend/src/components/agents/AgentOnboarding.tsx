@@ -20,6 +20,84 @@ import UserMenu from '@/components/UserMenu';
 import PaymentMethodModal from '@/components/PaymentMethodModal';
 import { PERSONALITY_TYPES } from './AgentPersonalitySelector';
 
+// CRM Logo SVG Component
+const CRMLogo = ({ crmId, className = "w-6 h-6" }: { crmId: string; className?: string }) => {
+  switch (crmId) {
+    case 'hubspot':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#FF7A59"/>
+          <path d="M347.61,330.35l-47.73-27.56V220.48a32.39,32.39,0,1,0-27.56,0v82.31l-47.73,27.56a54.82,54.82,0,1,0,13.78,23.87L286.1,327.66l47.73,27.56a54.82,54.82,0,1,0,13.78-24.87Z" fill="white"/>
+        </svg>
+      );
+    case 'salesforce':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#00A1E0"/>
+          <path d="M183.89,194.26a45.42,45.42,0,0,1,83.42-24.62,60.58,60.58,0,0,1,96.87,23,45.42,45.42,0,0,1,51.82,44.87v.39a45.43,45.43,0,0,1-17.43,83.37,60.61,60.61,0,0,1-104.69,42.73,45.42,45.42,0,0,1-74.35-9.75,60.58,60.58,0,0,1-54.27-80.45A45.42,45.42,0,0,1,183.89,194.26Z" fill="white"/>
+        </svg>
+      );
+    case 'pipedrive':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#000000"/>
+          <path d="M213.33,138.67h53.34c58.88,0,106.66,47.78,106.66,106.66s-47.78,106.67-106.66,106.67H213.33Z" fill="white"/>
+          <circle cx="320" cy="245.33" r="53.33" fill="#000000"/>
+        </svg>
+      );
+    case 'nutshell':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#F7941D"/>
+          <path d="M256,128c-70.69,0-128,57.31-128,128s57.31,128,128,128,128-57.31,128-128S326.69,128,256,128Zm0,213.33c-47.13,0-85.33-38.21-85.33-85.33s38.21-85.33,85.33-85.33,85.33,38.21,85.33,85.33S303.13,341.33,256,341.33Z" fill="white"/>
+          <circle cx="256" cy="256" r="42.67" fill="white"/>
+        </svg>
+      );
+    case 'zoho':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#E42527"/>
+          <path d="M354.13,298.67H201.6l93.87-106.67H157.87V149.33H330.13L236.27,256h117.86Z" fill="white"/>
+        </svg>
+      );
+    case 'activecampaign':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#356AE6"/>
+          <path d="M256,128L128,213.33v170.67L256,299.33,384,384V213.33Zm0,128-85.33,48V234.67L256,186.67l85.33,48v69.33Z" fill="white"/>
+        </svg>
+      );
+    case 'copper':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#F36E4A"/>
+          <circle cx="256" cy="256" r="128" fill="none" stroke="white" strokeWidth="32"/>
+          <path d="M256,160v192M192,256h128" stroke="white" strokeWidth="32" strokeLinecap="round"/>
+        </svg>
+      );
+    case 'close':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#4A5DFF"/>
+          <circle cx="256" cy="256" r="96" fill="white"/>
+          <circle cx="256" cy="256" r="48" fill="#4A5DFF"/>
+        </svg>
+      );
+    case 'dynamics365':
+      return (
+        <svg className={className} viewBox="0 0 512 512" fill="none">
+          <rect width="512" height="512" rx="64" fill="#002050"/>
+          <rect x="128" y="128" width="128" height="128" fill="#00A4EF"/>
+          <rect x="256" y="128" width="128" height="128" fill="#FFB900"/>
+          <rect x="128" y="256" width="128" height="128" fill="#7FBA00"/>
+          <rect x="256" y="256" width="128" height="128" fill="#F25022"/>
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
 interface AgentOnboardingProps {
   onComplete: () => void;
   onSkip: () => void;
@@ -2180,13 +2258,7 @@ function CRMSetupStep({
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-b-0"
                       >
-                        {crm.logo && (
-                          <img 
-                            src={crm.logo} 
-                            alt={crm.name}
-                            className="w-6 h-6 rounded object-contain"
-                          />
-                        )}
+                        <CRMLogo crmId={crm.id} className="w-6 h-6" />
                         <span className="text-sm text-neutral-700 font-medium">{crm.name}</span>
                       </button>
                     ))}
@@ -2203,13 +2275,7 @@ function CRMSetupStep({
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b-2 border-[#4FD1FF]/30">
                 <div className="flex items-center gap-3">
-                  {selectedCRM.logo && (
-                    <img 
-                      src={selectedCRM.logo} 
-                      alt={selectedCRM.name}
-                      className="w-8 h-8 rounded object-contain"
-                    />
-                  )}
+                  <CRMLogo crmId={selectedCRM.id} className="w-8 h-8" />
                   <div>
                     <h4 className="text-sm font-semibold text-white">{selectedCRM.name}</h4>
                     <p className="text-xs text-[#A3B4CC]">Enter your credentials</p>
