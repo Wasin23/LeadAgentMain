@@ -1730,11 +1730,7 @@ Call the appropriate function to continue the workflow.`;
       
       // Build context from settings (check both nested and flat structures)
       const yourProduct = userSettings?.productName || emailSettings?.productName || '[YOUR PRODUCT]';
-      const yourCompany = emailSettings?.companyBranding?.companyName || 
-                         userSettings?.companyProfile?.companyName || 
-                         userSettings?.companyName || 
-                         emailSettings?.companyName || 
-                         '[YOUR COMPANY]';
+      const yourCompany = userSettings?.companyName || emailSettings?.companyName || '[YOUR COMPANY]';
       const valueProps = userSettings?.valuePropositions || emailSettings?.valuePropositions || [];
       const targetIndustries = userSettings?.companyIndustries || [];
 
@@ -1885,10 +1881,10 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       console.log('🔍 [DEBUG] Company profile from general settings:', generalUserSettings?.companyProfile);
       
       const actualSettings = {
-        // Company branding (REAL DATA) - fall back to company profile for missing values
+        // Company branding (REAL DATA)
         companyBranding: leadContactSettings.companyBranding,
         agentName: leadContactSettings.companyBranding?.agentName,
-        companyName: leadContactSettings.companyBranding?.companyName || generalUserSettings?.companyProfile?.companyName,
+        companyName: leadContactSettings.companyBranding?.companyName,
         primaryService: leadContactSettings.companyBranding?.primaryService,
         coreOffering: leadContactSettings.companyBranding?.coreOffering,
         keyAdvantages: leadContactSettings.companyBranding?.keyAdvantages,
@@ -1916,14 +1912,8 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         researchDepth: leadContactSettings.researchFocus?.researchDepth
       };
       
-      // Log where company name came from
-      const companyNameSource = leadContactSettings.companyBranding?.companyName ? 'Email Branding' : 
-                                generalUserSettings?.companyProfile?.companyName ? 'Company Profile (onboarding)' : 
-                                'Not Set';
-      
       console.log('✅ [SETTINGS] REAL lead generation settings:', {
         company: actualSettings.companyName,
-        companyNameSource: companyNameSource,
         agent: actualSettings.agentName,
         service: actualSettings.primaryService,
         industries: actualSettings.companyIndustries?.length || 0,
@@ -3121,13 +3111,9 @@ Format as:
       }
       
       // Search 2: User's company recent successes (for social proof)
-      // Try email branding first, then fall back to general company profile from onboarding
-      const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 
-                             this.memory.userSettings?.companyProfile?.companyName || 
-                             'company';
+      const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'company';
       
       console.log(`🏢 [COMPANY NAME] Using company name for research: "${userCompanyName}"`);
-      console.log(`🔍 [COMPANY NAME SOURCE] Email branding: ${this.memory.emailSettings?.companyBranding?.companyName || 'NOT SET'}, Company profile: ${this.memory.userSettings?.companyProfile?.companyName || 'NOT SET'}`);
       
       // Check cache for user company wins (valid for 3 days)
       const companyCacheKey = userCompanyName.toLowerCase().replace(/\s+/g, '_');
@@ -4879,7 +4865,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             await this.generateDynamicTargetPositions(
               selectedKeyword, 
               this.memory.originalTargetPositions,
-              userSettings.generalInstructions
+              this.settings.specialInstructions
             );
           } else {
             console.log(`📋 [USING ORIGINAL] Using original positions from instructions/settings (${this.memory.totalLeadsFoundThisCycle}/20 leads)`);

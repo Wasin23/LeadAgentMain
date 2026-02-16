@@ -1033,88 +1033,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         </Section>
 
         {/* Email Settings */}
-        <Section title="Email Settings" description="Configure email style, follow-ups, and auto-response">
+        <Section title="Email Settings" description="Configure follow-ups and auto-response">
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Email Template</label>
-                <select
-                  value={settings.emailBuilder.emailTemplate}
-                  onChange={(e) => updateEmail('emailTemplate', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#1B2F52] border border-[#2A4472] rounded-lg text-white focus:ring-2 focus:ring-[#4FD1FF]"
-                >
-                  <option value="professional">Professional</option>
-                  <option value="conversational">Conversational</option>
-                  <option value="direct">Direct</option>
-                  <option value="storytelling">Storytelling</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Tone</label>
-                <select
-                  value={settings.emailBuilder.tone}
-                  onChange={(e) => updateEmail('tone', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#1B2F52] border border-[#2A4472] rounded-lg text-white focus:ring-2 focus:ring-[#4FD1FF]"
-                >
-                  <option value="professional">Professional</option>
-                  <option value="friendly">Friendly</option>
-                  <option value="casual">Casual</option>
-                  <option value="formal">Formal</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Length</label>
-                <select
-                  value={settings.emailBuilder.length}
-                  onChange={(e) => updateEmail('length', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#1B2F52] border border-[#2A4472] rounded-lg text-white focus:ring-2 focus:ring-[#4FD1FF]"
-                >
-                  <option value="short">Short (2-3 sentences)</option>
-                  <option value="medium">Medium (1 paragraph)</option>
-                  <option value="long">Long (2+ paragraphs)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Call to Action</label>
-                <select
-                  value={settings.emailBuilder.callToAction}
-                  onChange={(e) => updateEmail('callToAction', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#1B2F52] border border-[#2A4472] rounded-lg text-white focus:ring-2 focus:ring-[#4FD1FF]"
-                >
-                  <option value="meeting">Schedule a Meeting</option>
-                  <option value="call">Book a Call</option>
-                  <option value="demo">Request Demo</option>
-                  <option value="reply">Reply to Email</option>
-                  <option value="link">Click a Link</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Personalization Level</label>
-                <select
-                  value={settings.emailBuilder.personalization}
-                  onChange={(e) => updateEmail('personalization', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#1B2F52] border border-[#2A4472] rounded-lg text-white focus:ring-2 focus:ring-[#4FD1FF]"
-                >
-                  <option value="low">Low (company name only)</option>
-                  <option value="medium">Medium (name + company)</option>
-                  <option value="high">High (deep personalization)</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Custom Email Prompt</label>
-              <textarea
-                value={settings.emailBuilder.customPrompt}
-                onChange={(e) => updateEmail('customPrompt', e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#1B2F52] border border-[#2A4472] rounded-lg text-white focus:ring-2 focus:ring-[#4FD1FF] resize-y min-h-[80px]"
-                placeholder="Additional instructions for email generation..."
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Auto-Response Prompt</label>
               <textarea
