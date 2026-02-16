@@ -113,6 +113,7 @@ interface AgentSettings {
     signatureName: string;
     signatureTitle: string;
     useGmail: boolean;
+    useOutlook: boolean;
   };
 }
 
@@ -166,7 +167,8 @@ const defaultSettings: AgentSettings = {
     useCustomSignature: false,
     signatureName: '',
     signatureTitle: '',
-    useGmail: false
+    useGmail: false,
+    useOutlook: false
   }
 };
 
@@ -528,7 +530,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             useCustomSignature: emailSettings.useCustomSignature ?? emailSettings.emailBuilder?.useCustomSignature ?? false,
             signatureName: emailSettings.signatureName || emailSettings.emailBuilder?.signatureName || '',
             signatureTitle: emailSettings.signatureTitle || emailSettings.emailBuilder?.signatureTitle || '',
-            useGmail: emailSettings.useGmail ?? emailSettings.emailBuilder?.useGmail ?? false
+            useGmail: emailSettings.useGmail ?? emailSettings.emailBuilder?.useGmail ?? false,
+            useOutlook: emailSettings.useOutlook ?? emailSettings.emailBuilder?.useOutlook ?? false
           }
         };
         
@@ -1174,7 +1177,10 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               <Toggle
                 label="Use Gmail for Sending"
                 checked={settings.emailBuilder.useGmail}
-                onChange={(checked) => updateEmail('useGmail', checked)}
+                onChange={(checked) => {
+                  updateEmail('useGmail', checked);
+                  if (checked) updateEmail('useOutlook', false); // Turn off Outlook
+                }}
                 description="Send emails from your connected Gmail account instead of Mailgun (better deliverability)"
               />
               {settings.emailBuilder.useGmail && (
@@ -1184,6 +1190,29 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   </p>
                   <p className="text-xs text-blue-300/70 mt-1">
                     Make sure you've connected your Gmail account in Settings → Email → Gmail Connection
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Outlook Sending Toggle */}
+            <div className="border-t border-[#1B2F52] pt-4">
+              <Toggle
+                label="Use Outlook for Sending"
+                checked={settings.emailBuilder.useOutlook}
+                onChange={(checked) => {
+                  updateEmail('useOutlook', checked);
+                  if (checked) updateEmail('useGmail', false); // Turn off Gmail
+                }}
+                description="Send emails from your connected Outlook account instead of Mailgun (better deliverability)"
+              />
+              {settings.emailBuilder.useOutlook && (
+                <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-300">
+                    ✓ Emails will be sent from your connected Outlook account
+                  </p>
+                  <p className="text-xs text-blue-300/70 mt-1">
+                    Make sure you've connected your Outlook account in Settings → Email → Outlook Connection
                   </p>
                 </div>
               )}

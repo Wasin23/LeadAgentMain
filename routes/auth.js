@@ -919,7 +919,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // Create new agent for authenticated user
 router.post('/create-agent', authenticateToken, async (req, res) => {
   try {
-    const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions, useGmail } = req.body;
+    const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions, useGmail, useOutlook } = req.body;
     const userId = req.user.userId;
     
     console.log('[AUTH CREATE-AGENT] ============================================');
@@ -1063,7 +1063,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         rebumpIntervalDays: 7,
         ccEmails: '',
         bccEmails: '',
-        useGmail: useGmail || false,
+        useGmail: useGmail !== undefined ? useGmail : (userSettings?.preferences?.defaultUseGmail || false),
+        useOutlook: useOutlook !== undefined ? useOutlook : (userSettings?.preferences?.defaultUseOutlook || false),
         emailResponsePrompt: getEmailResponsePromptForPersonality(agentData.personality)
       },
       // Initialize targeting criteria structures
@@ -1118,7 +1119,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         useCustomSignature: preset.useCustomSignature || agentSettings.emailBuilder?.useCustomSignature || false,
         signatureName: preset.signatureName || agentSettings.emailBuilder?.signatureName || '',
         signatureTitle: preset.signatureTitle || agentSettings.emailBuilder?.signatureTitle || '',
-        useGmail: useGmail !== undefined ? useGmail : (userSettings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false)
+        useGmail: useGmail !== undefined ? useGmail : (userSettings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false),
+        useOutlook: useOutlook !== undefined ? useOutlook : (userSettings?.preferences?.defaultUseOutlook || agentSettings.emailBuilder?.useOutlook || false)
       };
       
       console.log(`[AUTH] 🔍 Gmail Setting Debug:`, {

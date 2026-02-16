@@ -36,6 +36,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [useGmail, setUseGmail] = useState(false);
+  const [useOutlook, setUseOutlook] = useState(false);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [outlookConnected, setOutlookConnected] = useState(false);
   const [crmConnected, setCrmConnected] = useState(false);
@@ -66,7 +67,7 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
     checkPaymentStatus();
   }, []);
 
-  // Load user's default Gmail preference on mount
+  // Load user's default Gmail and Outlook preferences on mount
   useEffect(() => {
     const loadUserPreferences = async () => {
       try {
@@ -74,6 +75,10 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
         if (response.data?.preferences?.defaultUseGmail) {
           setUseGmail(true);
           console.log('[ONBOARDING] Loaded default Gmail preference: true');
+        }
+        if (response.data?.preferences?.defaultUseOutlook) {
+          setUseOutlook(true);
+          console.log('[ONBOARDING] Loaded default Outlook preference: true');
         }
       } catch (error) {
         console.error('[ONBOARDING] Failed to load user preferences:', error);
@@ -306,21 +311,42 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
             <GmailSetupStep 
               key="gmail-setup"
               useGmail={useGmail}
+              useOutlook={useOutlook}
               gmailConnected={gmailConnected}
               outlookConnected={outlookConnected}
-              onToggle={async (value) => {
+              onToggleGmail={async (value) => {
                 setUseGmail(value);
+                if (value) setUseOutlook(false); // Mutual exclusivity
                 // Save as default preference for future agents
                 try {
                   await api.post('/api/auth/settings/preferences', {
-                    preferences: { defaultUseGmail: value }
+                    preferences: { 
+                      defaultUseGmail: value,
+                      defaultUseOutlook: value ? false : useOutlook // Turn off Outlook if enabling Gmail
+                    }
                   });
                   console.log('[ONBOARDING] Default Gmail preference saved:', value);
                 } catch (error) {
                   console.error('[ONBOARDING] Failed to save Gmail preference:', error);
                 }
               }}
-              onConnect={async () => {
+              onToggleOutlook={async (value) => {
+                setUseOutlook(value);
+                if (value) setUseGmail(false); // Mutual exclusivity
+                // Save as default preference for future agents
+                try {
+                  await api.post('/api/auth/settings/preferences', {
+                    preferences: { 
+                      defaultUseOutlook: value,
+                      defaultUseGmail: value ? false : useGmail // Turn off Gmail if enabling Outlook
+                    }
+                  });
+                  console.log('[ONBOARDING] Default Outlook preference saved:', value);
+                } catch (error) {
+                  console.error('[ONBOARDING] Failed to save Outlook preference:', error);
+                }
+              }}
+              onConnectGmail={async () => {
                 try {
                   // Request OAuth URL from backend first
                   const response = await api.get('/api/auth/gmail/oauth-url');
@@ -363,6 +389,21 @@ export default function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingP
               }}
               onConnectOutlook={async () => {
                 try {
+                  // Set Outlook as preferred and save preference
+                  setUseOutlook(true);
+                  setUseGmail(false);
+                  try {
+                    await api.post('/api/auth/settings/preferences', {
+                      preferences: { 
+                        defaultUseOutlook: true,
+                        defaultUseGmail: false
+                      }
+                    });
+                    console.log('[ONBOARDING] Default Outlook preference saved');
+                  } catch (prefError) {
+                    console.error('[ONBOARDING] Failed to save Outlook preference:', prefError);
+                  }
+                  
                   const response = await api.get('/api/auth/outlook/oauth-url');
                   
                   const width = 600;
@@ -1661,19 +1702,23 @@ function ReviewStep({
 // Gmail Setup Step
 function GmailSetupStep({
   useGmail,
+  useOutlook,
   gmailConnected,
   outlookConnected,
-  onToggle,
-  onConnect,
+  onToggleGmail,
+  onToggleOutlook,
+  onConnectGmail,
   onConnectOutlook,
   onNext,
   onBack
 }: {
   useGmail: boolean;
+  useOutlook: boolean;
   gmailConnected: boolean;
   outlookConnected: boolean;
-  onToggle: (value: boolean) => void;
-  onConnect: () => void;
+  onToggleGmail: (value: boolean) => void;
+  onToggleOutlook: (value: boolean) => void;
+  onConnectGmail: () => void;
   onConnectOutlook: () => void;
   onNext: () => void;
   onBack: () => void;
@@ -1715,20 +1760,36 @@ function GmailSetupStep({
                 <p className="text-xs sm:text-sm text-[#4FD1FF] mb-4">
                   Recommended for best inbox placement and reply accuracy.
                 </p>
-                <button
-                  onClick={() => {
-                    onToggle(true);
-                    onConnect();
-                  }}
-                  disabled={gmailConnected}
-                  className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
-                    gmailConnected
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
-                      : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
-                  }`}
-                >
-                  {gmailConnected ? 'Connected' : 'Connect Gmail'}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => {
+                      onToggleGmail(true);
+                      if (!gmailConnected) {
+                        onConnectGmail();
+                      }
+                    }}
+                    disabled={gmailConnected}
+                    className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
+                      gmailConnected
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+                        : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
+                    }`}
+                  >
+                    {gmailConnected ? 'Connected' : 'Connect Gmail'}
+                  </button>
+                  {gmailConnected && (
+                    <button
+                      onClick={() => onToggleGmail(!useGmail)}
+                      className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm font-medium transition-all border ${
+                        useGmail
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                          : 'bg-white/5 text-white/60 border-white/20 hover:bg-white/10'
+                      }`}
+                    >
+                      {useGmail ? '✓ Default Provider' : 'Set as Default'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1752,17 +1813,31 @@ function GmailSetupStep({
                 <p className="text-xs sm:text-sm text-white/70 mb-4">
                   Great alternative for Microsoft 365 users.
                 </p>
-                <button
-                  onClick={onConnectOutlook}
-                  disabled={outlookConnected}
-                  className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
-                    outlookConnected
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
-                      : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
-                  }`}
-                >
-                  {outlookConnected ? 'Connected' : 'Connect Outlook'}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={onConnectOutlook}
+                    disabled={outlookConnected}
+                    className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
+                      outlookConnected
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+                        : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
+                    }`}
+                  >
+                    {outlookConnected ? 'Connected' : 'Connect Outlook'}
+                  </button>
+                  {outlookConnected && (
+                    <button
+                      onClick={() => onToggleOutlook(!useOutlook)}
+                      className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm font-medium transition-all border ${
+                        useOutlook
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                          : 'bg-white/5 text-white/60 border-white/20 hover:bg-white/10'
+                      }`}
+                    >
+                      {useOutlook ? '✓ Default Provider' : 'Set as Default'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1771,7 +1846,7 @@ function GmailSetupStep({
             <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2 sm:gap-3">
               <PaperAirplaneIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#4FD1FF]" />
               Mailgun (Default)
-              {!useGmail && (
+              {!useGmail && !useOutlook && (
                 <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
               )}
             </h3>
@@ -1779,15 +1854,18 @@ function GmailSetupStep({
               Use Mailgun for sending. Replies will be tracked via webhooks.
             </p>
             <button
-              onClick={() => onToggle(false)}
-              disabled={!useGmail}
+              onClick={() => {
+                onToggleGmail(false);
+                onToggleOutlook(false);
+              }}
+              disabled={!useGmail && !useOutlook}
               className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all w-full sm:w-auto ${
-                !useGmail
+                !useGmail && !useOutlook
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
                   : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:shadow-lg hover:shadow-[#4FD1FF]/30 hover:scale-105'
               }`}
             >
-              {!useGmail ? 'Selected' : 'Use Mailgun'}
+              {!useGmail && !useOutlook ? 'Selected' : 'Use Mailgun'}
             </button>
           </div>
         </div>

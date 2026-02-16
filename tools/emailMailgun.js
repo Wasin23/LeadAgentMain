@@ -237,29 +237,40 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
         
         // Check if Gmail is connected and agent has Gmail enabled
         let useGmailForAgent = false;
+        let useOutlookForAgent = false;
         if (agentId) {
           const agentSettings = await awsManager.getAgentSettings(userId, agentId);
           useGmailForAgent = agentSettings?.emailBuilder?.useGmail === true;
+          useOutlookForAgent = agentSettings?.emailBuilder?.useOutlook === true;
           console.log(`[EMAIL ROUTING] Agent ${agentId} useGmail setting:`, useGmailForAgent);
+          console.log(`[EMAIL ROUTING] Agent ${agentId} useOutlook setting:`, useOutlookForAgent);
         } else {
-          // No agentId (orphaned email or manual send) - check if user has active Gmail account
-          // If they have Gmail connected and active, assume they want to use it for orphaned emails
+          // No agentId (orphaned email or manual send) - check if user has active Gmail/Outlook account
+          // If they have either connected and active, assume they want to use it for orphaned emails
           console.log('═══════════════════════════════════════════════════════════════');
           console.log('🏴 [EMAIL ROUTING] ORPHANED EMAIL DETECTED - No agentId provided');
           console.log('═══════════════════════════════════════════════════════════════');
-          console.log('📧 Checking user Gmail accounts for fallback routing...');
+          console.log('📧 Checking user email accounts for fallback routing...');
           console.log('👤 User ID:', userId);
           console.log('📬 Gmail accounts:', userSettings?.gmailAccounts?.map(acc => ({
             email: acc.email,
             isActive: acc.isActive,
             hasToken: !!acc.refreshToken
           })));
+          console.log('📬 Outlook accounts:', userSettings?.outlookAccounts?.map(acc => ({
+            email: acc.email,
+            hasToken: !!acc.refreshToken
+          })));
           
           const hasActiveGmailAccount = userSettings?.gmailAccounts?.some(acc => acc.isActive && acc.refreshToken);
+          const hasActiveOutlookAccount = userSettings?.outlookAccounts?.some(acc => acc.refreshToken);
           useGmailForAgent = hasActiveGmailAccount || false;
+          useOutlookForAgent = hasActiveOutlookAccount || false;
           
           console.log('✅ Has active Gmail account?', hasActiveGmailAccount);
+          console.log('✅ Has active Outlook account?', hasActiveOutlookAccount);
           console.log('🎯 Will use Gmail for orphaned email?', useGmailForAgent);
+          console.log('🎯 Will use Outlook for orphaned email?', useOutlookForAgent);
           console.log('═══════════════════════════════════════════════════════════════\n');
         }
         
@@ -287,10 +298,12 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
         console.log(`🔍 [DEBUG GMAIL TOKENS] Final hasGmailTokens result:`, hasGmailTokens);
         console.log(`🔍 [DEBUG OUTLOOK TOKENS] Final hasOutlookTokens result:`, hasOutlookTokens);
         console.log(`🔍 [DEBUG GMAIL TOKENS] useGmailForAgent:`, useGmailForAgent);
+        console.log(`🔍 [DEBUG OUTLOOK TOKENS] useOutlookForAgent:`, useOutlookForAgent);
         console.log(`🔍 [DEBUG GMAIL TOKENS] Both conditions met (will use Gmail)?`, hasGmailTokens && useGmailForAgent);
+        console.log(`🔍 [DEBUG OUTLOOK TOKENS] Both conditions met (will use Outlook)?`, hasOutlookTokens && useOutlookForAgent);
         
-        // Try Outlook first if connected (newer integration, prioritize it)
-        if (hasOutlookTokens && useGmailForAgent) {
+        // Try Outlook first if configured for this agent
+        if (hasOutlookTokens && useOutlookForAgent) {
           gmailConnected = true; // Using this flag for "external email provider" (not Mailgun)
           console.log(`✅ [EMAIL ROUTING] Outlook enabled for agent ${agentId} - will use Outlook API`);
           
