@@ -891,6 +891,7 @@ class MergeManager {
       console.log('🔄 [NUTSHELL] Syncing lead:', leadData.email);
       
       // Nutshell uses JSON-RPC API
+      const comprehensiveReport = this.buildComprehensiveNotes(leadData);
       const contactPayload = {
         jsonrpc: '2.0',
         method: 'newContact',
@@ -899,8 +900,8 @@ class MergeManager {
             name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim() || leadData.email,
             email: [leadData.email],
             phone: leadData.phone ? [leadData.phone] : [],
-            title: leadData.title || '',
-            description: this.buildComprehensiveNotes(leadData)
+            description: `${leadData.title ? leadData.title + ' at ' : ''}${leadData.companyName || 'N/A'}`,
+            note: comprehensiveReport
           }
         },
         id: `sync_${Date.now()}`

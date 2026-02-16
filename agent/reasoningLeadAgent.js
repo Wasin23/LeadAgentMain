@@ -4460,63 +4460,90 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       console.log(emailContent);
       console.log('---END EMAIL---');
       
-      const maxSubjectLength = 80;
-      const patternPrefixRegex = /^(idea for|thought for|saw|noticed|quick call|15 min|re:|working with|question about|data on)\b/i;
-
-      const normalizeSubject = (value) => {
-        if (!value) return value;
-        return value.replace(/\s+/g, ' ').trim();
-      };
-
-      const trimSubject = (value) => {
-        if (!value) return value;
-        const normalized = normalizeSubject(value);
-        if (normalized.length <= maxSubjectLength) return normalized;
-        const clipped = normalized.slice(0, maxSubjectLength).trim();
-        const lastSpace = clipped.lastIndexOf(' ');
-        if (lastSpace > 6) {
-          return clipped.slice(0, lastSpace).trim();
-        }
-        return clipped;
-      };
-
-      const buildPatternSubject = () => {
-        const safeCompany = (companyName || 'your team').trim();
-        const safeIndustry = (industry && industry !== 'Unknown') ? industry : 'growth';
-        const topic = safeIndustry.toLowerCase().includes('growth') ? safeIndustry : `${safeIndustry} growth`;
-
-        const candidates = [
-          `idea for ${safeCompany}'s ${topic}`,
-          `saw ${safeCompany} is expanding`,
-          `15 min to discuss ${topic}?`,
-          `question about ${topic}`
-        ];
-
-        for (const candidate of candidates) {
-          const trimmed = trimSubject(candidate);
-          if (trimmed && trimmed.length > 0 && trimmed.length <= maxSubjectLength) return trimmed;
-        }
-
-        return 'question about growth';
-      };
-
-      // Extract subject and body if formatted properly
-      let subject, body;
+      // Extract body from AI response
+      let body;
       if (emailContent.includes('SUBJECT:') && emailContent.includes('BODY:')) {
         const parts = emailContent.split('BODY:');
-        subject = normalizeSubject(parts[0].replace('SUBJECT:', ''));
         body = parts[1].trim();
       } else {
         body = emailContent;
       }
-
-      subject = trimSubject(subject);
-      if (!subject || !patternPrefixRegex.test(subject)) {
-        subject = buildPatternSubject();
-      }
       
       // Clean up body - remove any stray "SUBJECT:" prefix that AI might have included
       body = body.replace(/^SUBJECT:\s*[^\n]+\n\n?/i, '').trim();
+      
+      // 🚀 DYNAMIC SUBJECT LINE GENERATION
+      // ALWAYS generate subject line from email body content for maximum relevance
+      console.log('📧 [SUBJECT GEN] Generating dynamic subject line from email content...');
+      let subject = 'Quick question'; // Fallback only if API fails completely
+      
+      try {
+        const subjectPrompt = `Read this sales email and generate a compelling, relevant subject line that will make the recipient want to open it.
+
+EMAIL BODY:
+${body}
+
+LEAD CONTEXT:
+- Name: ${leadData.first_name} ${leadData.last_name}
+- Company: ${companyName}
+- Title: ${leadData.title}
+
+REQUIREMENTS:
+- Maximum 80 characters (strict limit)
+- Casual, conversational tone (lowercase preferred)
+- Must relate directly to the specific value/benefit mentioned in the email
+- Make it intriguing but professional - create curiosity
+- No clickbait, no spammy words, no generic phrases
+- No quotes around the subject line
+- Should feel like it's from a human colleague, not a sales blast
+
+Examples of GOOD subject lines:
+- "thought on [company]'s [specific challenge]"
+- "idea for [specific outcome]"
+- "quick question about [their situation]"
+- "noticed [specific thing about their company]"
+
+Generate ONLY the subject line, nothing else.`;
+
+        const subjectResponse = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: subjectPrompt }],
+          temperature: 0.8,
+          max_tokens: 30
+        });
+
+        const dynamicSubject = subjectResponse.choices[0].message.content.trim()
+          .replace(/^["']|["']$/g, '') // Remove quotes if AI adds them
+          .replace(/^Subject:\s*/i, '') // Remove "Subject:" prefix if present
+          .substring(0, 80); // Enforce 80 char limit
+
+        // Log subject generation API usage
+        if (subjectResponse.usage) {
+          await this.awsManager.logApiUsage({
+            userId: this.userId,
+            agentId: this.agentId,
+            service: 'openai',
+            operation: 'subject_line_generation',
+            usage: subjectResponse.usage.total_tokens,
+            metadata: {
+              model: 'gpt-4o-mini',
+              prompt_tokens: subjectResponse.usage.prompt_tokens,
+              completion_tokens: subjectResponse.usage.completion_tokens,
+              generated_subject: dynamicSubject
+            }
+          }).catch(err => console.error('Failed to log subject gen usage:', err));
+        }
+
+        if (dynamicSubject && dynamicSubject.length > 5) {
+          console.log('✨ [SUBJECT GEN] Generated:', dynamicSubject);
+          subject = dynamicSubject;
+        } else {
+          console.log('⚠️ [SUBJECT GEN] Response too short, using fallback');
+        }
+      } catch (error) {
+        console.error('❌ [SUBJECT GEN] Failed to generate dynamic subject:', error.message);
+        console.log('📧 [SUBJECT GEN] Using fallback subject');
+      }
       
       // Generate lead qualification confidence report
       console.log('🔍 [LEAD ANALYSIS] Generating confidence report...');
