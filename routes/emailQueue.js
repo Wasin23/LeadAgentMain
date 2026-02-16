@@ -1162,7 +1162,8 @@ router.put('/:emailId/followup', async (req, res) => {
     const awsQueue = getAWSEmailQueue();
     
     // Get agent settings for templates
-    const awsManager = (await import('../utils/awsManager.js')).default;
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
     const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
     const templates = agentSettings?.followUpTemplates?.templates || [];
     

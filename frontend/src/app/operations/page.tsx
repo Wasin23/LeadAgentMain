@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useLayoutEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import AppLayout from '@/components/AppLayout';
 import AgentDirector from '@/components/AgentDirector';
@@ -201,6 +201,7 @@ const worldData = {
 
 export default function InteractiveGlobe() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { counts: queueCounts, refreshCounts } = useQueueCounts();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState<[number, number]>([95, -15]);
@@ -344,20 +345,20 @@ export default function InteractiveGlobe() {
   const [canvasSize, setCanvasSize] = useState(1200); // Default size for SSR
   const [isMounted, setIsMounted] = useState(false);
 
-  // Track mount to prevent hydration mismatch
+  // Track mount to prevent hydration mismatch & read tab from URL
   useEffect(() => {
     setIsMounted(true);
-  }, []);
-
-  // Track mount to prevent hydration mismatch
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Mount effect to prevent hydration mismatch
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    
+    // Read tab from URL query parameter
+    const tab = searchParams.get('tab');
+    if (tab === 'queued' || tab === 'queue') {
+      setActiveTab('queue');
+    } else if (tab === 'sent') {
+      setActiveTab('globe');
+    } else if (tab === 'analytics') {
+      setActiveTab('analytics');
+    }
+  }, [searchParams]);
 
   // Refetch all agents queue when modal closes and "All Agents" is selected
   useEffect(() => {

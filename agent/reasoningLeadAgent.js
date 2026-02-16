@@ -4490,25 +4490,27 @@ LEAD CONTEXT:
 
 REQUIREMENTS:
 - Maximum 80 characters (strict limit)
-- Casual, conversational tone (lowercase preferred)
+- Professional, conversational tone with proper capitalization
 - Must relate directly to the specific value/benefit mentioned in the email
 - Make it intriguing but professional - create curiosity
 - No clickbait, no spammy words, no generic phrases
 - No quotes around the subject line
 - Should feel like it's from a human colleague, not a sales blast
+- Use proper grammar and capitalization (title case or sentence case)
+- Capitalize the first word and proper nouns
 
 Examples of GOOD subject lines:
-- "thought on [company]'s [specific challenge]"
-- "idea for [specific outcome]"
-- "quick question about [their situation]"
-- "noticed [specific thing about their company]"
+- "Thought on [company]'s [specific challenge]"
+- "Idea for [specific outcome]"
+- "Quick question about [their situation]"
+- "Noticed [specific thing about their company]"
 
 Generate ONLY the subject line, nothing else.`;
 
         const subjectResponse = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: subjectPrompt }],
-          temperature: 0.8,
+          temperature: 0.7,
           max_tokens: 30
         });
 

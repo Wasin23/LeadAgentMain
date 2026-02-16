@@ -434,7 +434,7 @@ export default function HomePage() {
           <div 
             onClick={() => {
               setNavigating(true);
-              router.push('/operations?tab=queued');
+              router.push('/operations?tab=queue');
             }}
             className="bg-[#0A1525]/60 border border-[#4FD1FF]/20 rounded-lg p-6 hover:border-[#4FD1FF]/40 transition-all cursor-pointer hover:scale-105 group disabled:opacity-50"
             style={{ opacity: navigating ? 0.5 : 1 }}
@@ -615,6 +615,30 @@ export default function HomePage() {
                               </svg>
                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/gmail:opacity-100 transition-opacity pointer-events-none z-50">
                                 Gmail enabled
+                              </span>
+                            </span>
+                          ) : agent.settings?.emailBuilder?.useOutlook === true ? (
+                            <span className="relative group/outlook inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-white/10 text-white text-[8px] border border-white/20">
+                              <svg className="w-3 h-3" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                  <linearGradient id="outlookHomeGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style={{stopColor: '#0364B8'}} />
+                                    <stop offset="100%" style={{stopColor: '#0078D4'}} />
+                                  </linearGradient>
+                                  <linearGradient id="outlookHomeGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style={{stopColor: '#28A8EA'}} />
+                                    <stop offset="100%" style={{stopColor: '#0078D4'}} />
+                                  </linearGradient>
+                                </defs>
+                                <path fill="url(#outlookHomeGradient1)" d="M16,128V16h144v112H16z"/>
+                                <path fill="url(#outlookHomeGradient2)" d="M160,128h96v112H160V128z"/>
+                                <path fill="#0078D4" d="M160,16h96v96h-96V16z"/>
+                                <path fill="#50D9FF" d="M16,144h144v96H16V144z"/>
+                                <circle fill="#FFF" cx="88" cy="88" r="40"/>
+                                <path fill="#0078D4" d="M88,108c-11,0-20-9-20-20s9-20,20-20s20,9,20,20S99,108,88,108z M88,76c-6.6,0-12,5.4-12,12s5.4,12,12,12s12-5.4,12-12S94.6,76,88,76z"/>
+                              </svg>
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/outlook:opacity-100 transition-opacity pointer-events-none z-50">
+                                Outlook enabled
                               </span>
                             </span>
                           ) : (
