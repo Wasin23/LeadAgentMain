@@ -4167,13 +4167,20 @@ Examples of IGNORING research (DON'T DO THIS):
 ❌ No specific numbers or findings mentioned
 
 STEP 2 - CRAFT SUBJECT LINE:
-Choose ONE of these proven high-open-rate patterns - keep it SHORT, casual, and direct:
+${(() => {
+  const patterns = [
+    { name: 'A', desc: 'Casual idea pitch: "idea for [Company]\'s [specific initiative]" OR "thought for [their challenge]"' },
+    { name: 'B', desc: 'Direct observation: "Saw [Company] is [specific action]" OR "Noticed [specific milestone/news]"' },
+    { name: 'C', desc: 'Simple question: "quick call next week?" OR "15 min to discuss [topic]?"' },
+    { name: 'D', desc: 'Name drop: "re: [similar company name]" OR "working with [competitor]"' },
+    { name: 'E', desc: 'Short: "question about [specific topic]" OR "data on [challenge]"' }
+  ];
+  const selected = patterns[Math.floor(Math.random() * patterns.length)];
+  return `🎯 USE THIS PATTERN for your subject line - Pattern ${selected.name}: ${selected.desc}
 
-Pattern A - Casual idea pitch: "idea for [Company]'s [specific initiative]" OR "thought for [their challenge]"
-Pattern B - Direct observation: "Saw [Company] is [specific action]" OR "Noticed [specific milestone/news]"
-Pattern C - Simple question: "quick call next week?" OR "15 min to discuss [topic]?"
-Pattern D - Name drop: "re: [similar company name]" OR "working with [competitor]"
-Pattern E - Short: "question about [specific topic]" OR "data on [challenge]"
+ALL PATTERNS (for reference only - USE THE ONE SELECTED ABOVE):
+${patterns.map(p => `Pattern ${p.name} - ${p.desc}`).join('\n')}`;
+})()}
 
 SUBJECT LINE RULES:
 - Use lowercase or sentence case (NO Title Case)
@@ -7796,6 +7803,19 @@ Target Positions:`;
         // Check if agent was stopped before making next decision
         if (!this.isRunning) {
           console.log(`⏹️ [REASONING] Cycle stopped by user before reasoning decision (step ${stepCount})`);
+          break;
+        }
+
+        // Check if cycle is complete (lead limit reached)
+        if (context.cycleComplete) {
+          console.log(`✅ [REASONING] Cycle #${this.cycleCount} completed - Lead limit reached: ${context.leadsProcessed}/${context.targetLeads}`);
+          this.logOperation('✅ Process Complete', `Successfully reached lead limit: ${context.leadsProcessed}/${context.targetLeads} leads processed`, 'completed', {
+            cycleNumber: this.cycleCount,
+            stepsExecuted: stepCount,
+            leadsProcessed: context.leadsProcessed,
+            targetLeads: context.targetLeads,
+            completedAt: new Date().toISOString()
+          });
           break;
         }
 

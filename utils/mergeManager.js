@@ -489,6 +489,8 @@ class MergeManager {
             return await this.syncLeadToSalesflare(user.crmApiKey, leadData);
           case 'zendesksell':
             return await this.syncLeadToZendeskSell(user.crmApiKey, leadData);
+          case 'nutshell':
+            return await this.syncLeadToNutshell(user.crmApiUrl, user.crmApiKey, leadData);
           default:
             return { success: false, error: `Direct sync not implemented for ${user.crmIntegration}` };
         }
@@ -878,6 +880,57 @@ class MergeManager {
     } catch (error) {
       console.error('❌ [ZENDESK_SELL] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.errors?.[0]?.message || error.message };
+    }
+  }
+
+  /**
+   * Sync lead to Nutshell via direct API
+   */
+  async syncLeadToNutshell(userEmail, apiKey, leadData) {
+    try {
+      console.log('🔄 [NUTSHELL] Syncing lead:', leadData.email);
+      
+      // Nutshell uses JSON-RPC API
+      const contactPayload = {
+        jsonrpc: '2.0',
+        method: 'newContact',
+        params: {
+          contact: {
+            name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim() || leadData.email,
+            email: [{
+              value: leadData.email,
+              is_primary: true
+            }],
+            phone: leadData.phone ? [{
+              value: leadData.phone,
+              is_primary: true
+            }] : [],
+            title: leadData.title || '',
+            description: this.buildComprehensiveNotes(leadData)
+          }
+        },
+        id: `sync_${Date.now()}`
+      };
+
+      const response = await axios.post('https://app.nutshell.com/api/v1/json', contactPayload, {
+        auth: {
+          username: userEmail,
+          password: apiKey
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data?.error) {
+        throw new Error(response.data.error.message || 'Nutshell API error');
+      }
+
+      console.log('✅ [NUTSHELL] Contact created:', response.data?.result?.id);
+      return { success: true, crmContactId: response.data?.result?.id, crmIntegration: 'Nutshell' };
+    } catch (error) {
+      console.error('❌ [NUTSHELL] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.error?.message || error.message };
     }
   }
 }

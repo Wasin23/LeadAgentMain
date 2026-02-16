@@ -6,10 +6,12 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import AWSManager from '../utils/awsManager.js';
 import GmailManager from '../utils/gmailManager.js';
+import OutlookManager from '../utils/outlookManager.js';
 
 // Initialize AWS Manager for API usage tracking
 const awsManager = new AWSManager();
 const gmailManager = new GmailManager();
+const outlookManager = new OutlookManager();
 
 const mailgun = new Mailgun(FormData);
 const mg = mailgun.client({
@@ -279,10 +281,53 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
                               (userSettings?.calendarTokens?.refresh_token && 
                                userSettings?.calendarTokens?.scope?.includes('gmail'));
         
+        // Check if Outlook is connected
+        const hasOutlookTokens = userSettings?.outlookAccounts && userSettings.outlookAccounts.length > 0;
+        
         console.log(`🔍 [DEBUG GMAIL TOKENS] Final hasGmailTokens result:`, hasGmailTokens);
+        console.log(`🔍 [DEBUG OUTLOOK TOKENS] Final hasOutlookTokens result:`, hasOutlookTokens);
         console.log(`🔍 [DEBUG GMAIL TOKENS] useGmailForAgent:`, useGmailForAgent);
         console.log(`🔍 [DEBUG GMAIL TOKENS] Both conditions met (will use Gmail)?`, hasGmailTokens && useGmailForAgent);
         
+        // Try Outlook first if connected (newer integration, prioritize it)
+        if (hasOutlookTokens && useGmailForAgent) {
+          gmailConnected = true; // Using this flag for "external email provider" (not Mailgun)
+          console.log(`✅ [EMAIL ROUTING] Outlook enabled for agent ${agentId} - will use Outlook API`);
+          
+          try {
+            const outlookResult = await outlookManager.sendEmail({
+              userId,
+              to,
+              subject,
+              htmlBody,
+              textBody: body,
+              ccEmails,
+              bccEmails,
+              replyTo: null,
+              trackingId: trackingId,
+              inReplyTo: replyOptions?.inReplyTo || null,
+              threadId: replyOptions?.threadId || null
+            });
+            
+            console.log(`✅ [OUTLOOK] Email sent successfully from ${outlookResult.fromEmail}`);
+            console.log(`🚀 [EMAIL ROUTING] Outlook send complete - exiting function, NOT sending via Mailgun`);
+            
+            return {
+              success: true,
+              messageId: outlookResult.messageId,
+              threadId: outlookResult.threadId,
+              trackingId: trackingId,
+              provider: 'outlook',
+              sentFrom: outlookResult.fromEmail
+            };
+          } catch (outlookError) {
+            console.error('❌ [OUTLOOK] Failed to send via Outlook:', outlookError.message);
+            console.log('⚠️  [EMAIL ROUTING] Falling back to Gmail or Mailgun...');
+            gmailConnected = false;
+          }
+        }
+        
+        // Try Gmail if Outlook not available/failed
         if (hasGmailTokens && useGmailForAgent) {
           gmailConnected = true;
           console.log(`✅ [EMAIL ROUTING] Gmail enabled for agent ${agentId} - will use Gmail API`);

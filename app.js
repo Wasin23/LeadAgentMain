@@ -84,6 +84,15 @@ try {
   gmailAuthRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import Outlook authentication routes
+let outlookAuthRoutes;
+try {
+  outlookAuthRoutes = (await import('./routes/outlookAuth.js')).default;
+} catch (e) {
+  console.error('[OUTLOOK AUTH] Routes not available:', e.message);
+  outlookAuthRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import lead agent routes
 let leadAgentRoutes;
 try {
@@ -501,7 +510,9 @@ const publicEmailEndpoints = [
   '/api/auth/google/callback', // Google OAuth callback
   '/api/calendar/oauth-callback', // Google OAuth callback
   '/api/auth/gmail/authorize', // Gmail OAuth authorize
-  '/api/auth/gmail/callback' // Gmail OAuth callback
+  '/api/auth/gmail/callback', // Gmail OAuth callback
+  '/api/auth/outlook/authorize', // Outlook OAuth authorize
+  '/api/auth/outlook/callback' // Outlook OAuth callback
 ];
 
 // Middleware to check if endpoint should be public
@@ -530,6 +541,7 @@ app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking 
 app.use('/api', emailRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/gmail', gmailAuthRoutes); // Gmail OAuth routes
+app.use('/api/auth/outlook', outlookAuthRoutes); // Outlook OAuth routes
 app.use('/api/chat', chatRoutes);
 
 // Test route for deep research without authentication - with streaming
