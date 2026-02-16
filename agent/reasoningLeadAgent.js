@@ -972,7 +972,7 @@ Call the appropriate function to continue the workflow.`;
           };
         }
         
-        if (context.cycleComplete) {
+        if (context.cycleComplete && context.targetLeads > 0) {
           return {
             reasoning: 'OpenAI unavailable, cycle complete',
             action: 'complete',
@@ -1059,7 +1059,8 @@ Call the appropriate function to continue the workflow.`;
       return { name: 'get_email_settings' };
     }
     
-    if (context.cycleComplete) {
+    // Only consider cycle complete if we have settings loaded and targetLeads is actually set
+    if (context.cycleComplete && context.targetLeads > 0) {
       console.log('🔧 [FUNCTION CALL] Cycle complete, allowing natural completion');
       return 'none'; // Let agent complete naturally
     }
@@ -7806,8 +7807,8 @@ Target Positions:`;
           break;
         }
 
-        // Check if cycle is complete (lead limit reached)
-        if (context.cycleComplete) {
+        // Check if cycle is complete (lead limit reached - only if targetLeads is actually set)
+        if (context.cycleComplete && context.targetLeads > 0 && context.hasUserSettings) {
           console.log(`✅ [REASONING] Cycle #${this.cycleCount} completed - Lead limit reached: ${context.leadsProcessed}/${context.targetLeads}`);
           this.logOperation('✅ Process Complete', `Successfully reached lead limit: ${context.leadsProcessed}/${context.targetLeads} leads processed`, 'completed', {
             cycleNumber: this.cycleCount,
