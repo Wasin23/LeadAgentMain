@@ -30,6 +30,14 @@ interface GmailAccount {
   isActive: boolean;
 }
 
+interface OutlookAccount {
+  email: string;
+  refreshToken: string;
+  connectedAt: string;
+  profilePicture?: string;
+  isActive: boolean;
+}
+
 interface EmailSettings {
   fromName: string;
   fromEmail: string;
@@ -48,6 +56,8 @@ interface EmailSettings {
   aiAutoResponseEnabled: boolean;
   gmailAccounts: GmailAccount[];
   activeGmailIndex: number;
+  outlookAccounts?: OutlookAccount[];
+  activeOutlookIndex?: number;
 }
 
 interface EmailResponseSettings {
@@ -107,7 +117,9 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
     calendarIntegrationEnabled: false,
     aiAutoResponseEnabled: false,
     gmailAccounts: [],
-    activeGmailIndex: 0
+    activeGmailIndex: 0,
+    outlookAccounts: [],
+    activeOutlookIndex: 0
   });
   const [emailResponseSettings, setEmailResponseSettings] = useState<EmailResponseSettings>({
     calendar_id: 'primary',
@@ -235,6 +247,20 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
           console.log('Gmail status not available');
         }
 
+        // Check Outlook connection status
+        try {
+          const outlookStatusResponse = await api.get('/api/auth/outlook/status');
+          if (outlookStatusResponse.data.accounts && outlookStatusResponse.data.accounts.length > 0) {
+            setEmailSettings(prev => ({
+              ...prev,
+              outlookAccounts: outlookStatusResponse.data.accounts,
+              activeOutlookIndex: outlookStatusResponse.data.activeIndex || 0
+            }));
+          }
+        } catch (error) {
+          console.log('Outlook status not available');
+        }
+
         // Check URL params for Gmail auth callback
         if (typeof window !== 'undefined') {
           const urlParams = new URLSearchParams(window.location.search);
@@ -259,6 +285,29 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
           } else if (gmailAuth === 'error') {
             const reason = urlParams.get('reason');
             setMessage({ type: 'error', text: `Gmail connection failed: ${reason || 'Unknown error'}` });
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+
+          // Check for Outlook auth callback
+          const outlookAuth = urlParams.get('outlookAuth');
+          const outlookEmail = urlParams.get('email');
+          
+          if (outlookAuth === 'success' && outlookEmail) {
+            setMessage({ type: 'success', text: `Outlook connected! ${decodeURIComponent(outlookEmail)}` });
+            setActiveTab('email');
+            // Refresh Outlook status
+            const outlookRefreshResponse = await api.get('/api/auth/outlook/status');
+            if (outlookRefreshResponse.data.accounts) {
+              setEmailSettings(prev => ({
+                ...prev,
+                outlookAccounts: outlookRefreshResponse.data.accounts,
+                activeOutlookIndex: outlookRefreshResponse.data.activeIndex || 0
+              }));
+            }
+            window.history.replaceState({}, '', window.location.pathname);
+          } else if (outlookAuth === 'error') {
+            const reason = urlParams.get('reason');
+            setMessage({ type: 'error', text: `Outlook connection failed: ${reason || 'Unknown error'}` });
             window.history.replaceState({}, '', window.location.pathname);
           }
         }
@@ -791,6 +840,220 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                         </button>
                         <p className="text-xs text-white/70 text-center">
                           Secure OAuth 2.0 • Only sends emails and reads reply status
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Outlook OAuth Connection - STEP 2 */}
+                <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">Step 2: Connect Your Outlook (Optional)</h3>
+                        <p className="text-sm text-white/80 mt-1">Add Outlook accounts for additional email cycling</p>
+                      </div>
+                      {emailSettings.outlookAccounts && emailSettings.outlookAccounts.length > 0 && (
+                        <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                          <CheckBadgeIcon className="w-4 h-4" />
+                          {emailSettings.outlookAccounts.length} Account{emailSettings.outlookAccounts.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    {emailSettings.outlookAccounts && emailSettings.outlookAccounts.length > 0 ? (
+                      <div className="space-y-4">
+                        {/* Connected Accounts List */}
+                        <div className="space-y-3">
+                          {emailSettings.outlookAccounts.map((account, index) => (
+                            <div 
+                              key={account.email}
+                              className={`p-4 border rounded-lg transition ${
+                                account.isActive 
+                                  ? 'bg-[#1B2F52] border-[#4FD1FF] shadow-lg shadow-[#4FD1FF]/20' 
+                                  : 'bg-white/5 border-white/20'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Profile Picture */}
+                                <div className="flex-shrink-0">
+                                  {account.profilePicture ? (
+                                    <img 
+                                      src={account.profilePicture} 
+                                      alt={account.email}
+                                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextElementSibling;
+                                        if (fallback) fallback.classList.remove('hidden');
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-semibold text-lg shadow-sm ${account.profilePicture ? 'hidden' : ''}`}>
+                                    {account.email.charAt(0).toUpperCase()}
+                                  </div>
+                                </div>
+                                
+                                {/* Account Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-white truncate">
+                                      {account.email}
+                                    </p>
+                                    {account.isActive && (
+                                      <span className="px-2 py-0.5 bg-[#4FD1FF] text-[#0A1628] text-xs font-medium rounded-full">
+                                        Active
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-white/80">
+                                    Connected {new Date(account.connectedAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-2">
+                                  {!account.isActive && (
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          const response = await api.post('/api/auth/outlook/set-active', { accountIndex: index });
+                                          if (response.data.success) {
+                                            setEmailSettings(prev => ({
+                                              ...prev,
+                                              activeOutlookIndex: index,
+                                              outlookAccounts: prev.outlookAccounts?.map((acc, i) => ({
+                                                ...acc,
+                                                isActive: i === index
+                                              })) || []
+                                            }));
+                                            setMessage({ type: 'success', text: `Switched to ${account.email}` });
+                                          }
+                                        } catch (error: any) {
+                                          setMessage({ type: 'error', text: 'Failed to switch account' });
+                                        }
+                                      }}
+                                      className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                                    >
+                                      Set Active
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm(`Disconnect ${account.email}?`)) {
+                                        try {
+                                          await api.post('/api/auth/outlook/disconnect', { email: account.email });
+                                          const newAccounts = (emailSettings.outlookAccounts || []).filter(a => a.email !== account.email);
+                                          setEmailSettings(prev => ({
+                                            ...prev,
+                                            outlookAccounts: newAccounts,
+                                            activeOutlookIndex: account.isActive && newAccounts.length > 0 ? 0 : prev.activeOutlookIndex
+                                          }));
+                                          if (newAccounts.length > 0 && account.isActive) {
+                                            newAccounts[0].isActive = true;
+                                          }
+                                          setMessage({ type: 'success', text: 'Account disconnected' });
+                                        } catch (error: any) {
+                                          setMessage({ type: 'error', text: 'Failed to disconnect account' });
+                                        }
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 text-xs bg-neutral-600 text-white rounded-lg hover:bg-neutral-700 transition font-medium"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add Another Account Button */}
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await api.get('/api/auth/outlook/oauth-url');
+                              if (response.data.authUrl) {
+                                window.location.href = response.data.authUrl;
+                              }
+                            } catch (error) {
+                              setMessage({ type: 'error', text: 'Failed to get Outlook auth URL' });
+                            }
+                          }}
+                          className="w-full px-4 py-2.5 bg-white/10 backdrop-blur-md border-2 border-dashed border-white/20 rounded-lg hover:border-[#4FD1FF] hover:bg-[#1B2F52] transition text-white/90 font-medium text-sm"
+                        >
+                          + Add Another Account
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-[#1B2F52] border border-[#4FD1FF]/30 rounded-lg">
+                          <p className="text-sm text-white/90">
+                            Add Outlook accounts for additional email cycling and deliverability options.
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await api.get('/api/auth/outlook/oauth-url');
+                              if (response.data.authUrl) {
+                                const width = 600;
+                                const height = 700;
+                                const left = window.screen.width / 2 - width / 2;
+                                const top = window.screen.height / 2 - height / 2;
+                                const popup = window.open(
+                                  response.data.authUrl,
+                                  'Outlook Authorization',
+                                  `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+                                );
+                                
+                                // Monitor for completion
+                                let messageReceived = false;
+                                const handleMessage = async (event: MessageEvent) => {
+                                  if (event.data?.type === 'OUTLOOK_CONNECTED') {
+                                    messageReceived = true;
+                                    setMessage({ type: 'success', text: `Outlook connected! ${event.data.email}` });
+                                    
+                                    setTimeout(async () => {
+                                      try {
+                                        const statusResponse = await api.get('/api/auth/outlook/status');
+                                        if (statusResponse.data.accounts?.length > 0) {
+                                          setEmailSettings(prev => ({
+                                            ...prev,
+                                            outlookAccounts: statusResponse.data.accounts,
+                                            activeOutlookIndex: statusResponse.data.activeIndex || 0
+                                          }));
+                                        }
+                                      } catch (error) {
+                                        console.error('Failed to refresh Outlook status:', error);
+                                      }
+                                    }, 500);
+                                  }
+                                };
+                                window.addEventListener('message', handleMessage);
+
+                                const checkPopup = setInterval(() => {
+                                  if (popup?.closed) {
+                                    clearInterval(checkPopup);
+                                    window.removeEventListener('message', handleMessage);
+                                    if (!messageReceived) {
+                                      console.log('Outlook popup closed');
+                                    }
+                                  }
+                                }, 1000);
+                              }
+                            } catch (error) {
+                              setMessage({ type: 'error', text: 'Failed to connect Outlook' });
+                            }
+                          }}
+                          className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-lg hover:border-blue-600 hover:shadow-md transition text-white font-medium"
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#0078D4" d="M24 12.27L21.53 14 11.47 8.46v7.05l10.06 5.58L24 19.74V12.27zM0 19.74l2.47 1.35 10.06-5.58v-7.05L2.47 14 0 12.27v7.47zM11.47 0L0 6.93v4L11.47 17.86 24 10.93v-4L11.47 0z"/>
+                          </svg>
+                          Connect Outlook Account
+                        </button>
+                        <p className="text-xs text-white/70 text-center">
+                          Secure OAuth 2.0 • Send emails from your Outlook account
                         </p>
                       </div>
                     )}

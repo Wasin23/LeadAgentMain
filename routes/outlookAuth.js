@@ -181,7 +181,7 @@ router.get('/callback', async (req, res) => {
           </div>
           <script>
             if (window.opener) {
-              window.opener.postMessage({ type: 'outlook-connected', email: '${outlookAddress}' }, '*');
+              window.opener.postMessage({ type: 'OUTLOOK_CONNECTED', email: '${outlookAddress}' }, '*');
             }
             setTimeout(() => window.close(), 2000);
           </script>
@@ -231,6 +231,29 @@ router.get('/callback', async (req, res) => {
 });
 
 /**
+ * Get Outlook connection status
+ * GET /api/auth/outlook/status
+ */
+router.get('/status', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const userSettings = await awsManager.getUserSettings(userId) || {};
+    
+    const outlookAccounts = userSettings.outlookAccounts || [];
+    const activeIndex = userSettings.activeOutlookIndex || 0;
+
+    res.json({
+      connected: outlookAccounts.length > 0,
+      accounts: outlookAccounts,
+      activeIndex: activeIndex
+    });
+  } catch (error) {
+    console.error('❌ [OUTLOOK AUTH] Status check error:', error);
+    res.status(500).json({ error: 'Failed to check Outlook status' });
+  }
+});
+
+/**
  * Disconnect Outlook account
  * POST /api/auth/outlook/disconnect
  */
@@ -271,13 +294,12 @@ router.post('/disconnect', authenticateToken, async (req, res) => {
 router.post('/set-active', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { email } = req.body;
+    const { accountIndex } = req.body;
 
     const userSettings = await awsManager.getUserSettings(userId) || {};
     const outlookAccounts = userSettings.outlookAccounts || [];
 
-    const accountIndex = outlookAccounts.findIndex(acc => acc.email === email);
-    if (accountIndex === -1) {
+    if (accountIndex < 0 || accountIndex >= outlookAccounts.length) {
       return res.status(404).json({ error: 'Account not found' });
     }
 
@@ -292,7 +314,7 @@ router.post('/set-active', authenticateToken, async (req, res) => {
       activeOutlookIndex: accountIndex
     });
 
-    console.log(`✅ [OUTLOOK AUTH] Set active account to ${email} for user ${userId}`);
+    console.log(`✅ [OUTLOOK AUTH] Set active account to ${outlookAccounts[accountIndex].email} for user ${userId}`);
     res.json({ success: true });
   } catch (error) {
     console.error('❌ [OUTLOOK AUTH] Set active error:', error);

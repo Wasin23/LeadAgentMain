@@ -1527,8 +1527,14 @@ Call the appropriate function to continue the workflow.`;
           this.memory.currentCycle.leadsProcessed++;
           this.memory.currentCycle.currentLead = null;
           
+          // Log state after incrementing
+          console.log(`📊 [LEAD COMPLETE] Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue remaining: ${this.memory.currentCycle.leadQueue.length}`);
+          
           // Get next lead from queue or search for more
           if (this.memory.currentCycle.leadQueue.length > 0) {
+            console.log(`🔍 [DECISION CHECK] Queue has ${this.memory.currentCycle.leadQueue.length} leads. Target: ${this.memory.currentCycle.targetLeads}, Processed: ${this.memory.currentCycle.leadsProcessed}`);
+            console.log(`🔍 [DECISION CHECK] Should continue? ${this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads ? 'YES (need more)' : 'NO (target reached)'}`);
+            
             // Process next lead from queue
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
@@ -1546,15 +1552,16 @@ Call the appropriate function to continue the workflow.`;
             });
           } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
             // Need more leads - search again
+            console.log(`🔍 [DECISION] Queue empty, need ${this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed} more leads - will search`);
             this.memory.currentCycle.processingPhase = 'search';
-            console.log(`🔍 [CYCLE] Queue empty, need ${this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed} more leads`);
           } else {
             // Cycle complete
+            console.log(`🏁 [DECISION] Target reached (${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}) - completing cycle`);
             this.memory.currentCycle.processingPhase = 'complete';
-            console.log(`🏁 [CYCLE] Cycle complete! Processed ${this.memory.currentCycle.leadsProcessed} leads`);
           }
           
           console.log(`✉️ [CYCLE] Email built! Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue: ${this.memory.currentCycle.leadQueue.length}`);
+
         } else {
           // Email generation FAILED - skip this lead and move to next
           const failedLeadName = this.memory.currentCycle.currentLead?.name || 'Unknown';
