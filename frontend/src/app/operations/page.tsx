@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useLayoutEffect } from 'react';
+import { useRef, useState, useEffect, useLayoutEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UsersIcon, ComputerDesktopIcon, ChartPieIcon, Cog6ToothIcon, BookOpenIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import AppLayout from '@/components/AppLayout';
@@ -199,7 +199,7 @@ const worldData = {
   ]
 };
 
-export default function InteractiveGlobe() {
+function InteractiveGlobeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { counts: queueCounts, refreshCounts } = useQueueCounts();
@@ -4178,4 +4178,24 @@ export default function InteractiveGlobe() {
 
     </AppLayout>
   );
-} 
+}
+
+export default function OperationsPage() {
+  return (
+    <Suspense fallback={
+      <AppLayout>
+        <div className="fixed inset-0 bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex items-center justify-center">
+          <div className="text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 border-4 border-[#4FD1FF]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-[#4FD1FF] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p className="text-2xl font-semibold text-white">Loading...</p>
+          </div>
+        </div>
+      </AppLayout>
+    }>
+      <InteractiveGlobeContent />
+    </Suspense>
+  );
+}
