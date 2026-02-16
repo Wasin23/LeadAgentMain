@@ -5264,16 +5264,17 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               // Rotate if CUMULATIVE duplicate rate exceeds 50%
               if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
                 console.log(`🔄 [AUTO-ROTATE] Cumulative duplicate rate ${tracker.cumulativeDuplicateRate.toFixed(1)}% > 50% threshold (${tracker.totalAttempts} total attempts) - rotating to next keyword`);
-                this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation
                 
-                // Record this search to DB
+                // Record this search to DB with ACTUAL new leads (before setting rotation flag)
                 await this.awsManager.recordSearchHistory(
-                  userSettings.userId,
+                  this.userId,
                   this.agentId,
                   selectedKeyword,
                   targetPosition,
-                  this.memory.leadsFoundWithCurrentKeyword
+                  newLeads.length // Save actual leads found, not rotation flag
                 );
+                
+                this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation AFTER recording
               }
             }
           }
