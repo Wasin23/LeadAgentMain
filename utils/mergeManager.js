@@ -897,14 +897,8 @@ class MergeManager {
         params: {
           contact: {
             name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim() || leadData.email,
-            email: [{
-              value: leadData.email,
-              is_primary: true
-            }],
-            phone: leadData.phone ? [{
-              value: leadData.phone,
-              is_primary: true
-            }] : [],
+            email: [leadData.email],
+            phone: leadData.phone ? [leadData.phone] : [],
             title: leadData.title || '',
             description: this.buildComprehensiveNotes(leadData)
           }

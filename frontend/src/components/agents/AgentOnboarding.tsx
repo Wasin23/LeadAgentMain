@@ -1737,8 +1737,9 @@ function GmailSetupStep({
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2 sm:gap-3">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
-                    <path fill="#0078D4" d="M24 12.27L21.53 14 11.47 8.46v7.05l10.06 5.58L24 19.74V12.27zM0 19.74l2.47 1.35 10.06-5.58v-7.05L2.47 14 0 12.27v7.47zM11.47 0L0 6.93v4L11.47 17.86 24 10.93v-4L11.47 0z"/>
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 48 48">
+                    <path fill="#0078D4" d="M2 12a2 2 0 012-2h40a2 2 0 012 2v24a2 2 0 01-2 2H4a2 2 0 01-2-2V12z"/>
+                    <path fill="#FFF" d="M24 17c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
                   </svg>
                   Outlook
                   {outlookConnected && (

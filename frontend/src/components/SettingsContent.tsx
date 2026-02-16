@@ -87,6 +87,7 @@ interface Preferences {
   autoSaveInterval: number;
   defaultRebumpEnabled?: boolean;
   defaultUseGmail?: boolean;
+  defaultUseOutlook?: boolean;
 }
 
 export default function SettingsContent({ initialTab = 'profile', calendarSection }: { initialTab?: TabType; calendarSection?: 'google' | 'calendly' | 'both' }) {
@@ -1047,8 +1048,9 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                           }}
                           className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-lg hover:border-blue-600 hover:shadow-md transition text-white font-medium"
                         >
-                          <svg className="w-5 h-5" viewBox="0 0 24 24">
-                            <path fill="#0078D4" d="M24 12.27L21.53 14 11.47 8.46v7.05l10.06 5.58L24 19.74V12.27zM0 19.74l2.47 1.35 10.06-5.58v-7.05L2.47 14 0 12.27v7.47zM11.47 0L0 6.93v4L11.47 17.86 24 10.93v-4L11.47 0z"/>
+                          <svg className="w-5 h-5" viewBox="0 0 48 48">
+                            <path fill="#0078D4" d="M2 12a2 2 0 012-2h40a2 2 0 012 2v24a2 2 0 01-2 2H4a2 2 0 01-2-2V12z"/>
+                            <path fill="#FFF" d="M24 17c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
                           </svg>
                           Connect Outlook Account
                         </button>
@@ -1073,10 +1075,17 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                         <button
                           onClick={async () => {
                             const newValue = !preferences.defaultUseGmail;
-                            setPreferences(prev => ({ ...prev, defaultUseGmail: newValue }));
+                            setPreferences(prev => ({ 
+                              ...prev, 
+                              defaultUseGmail: newValue,
+                              defaultUseOutlook: newValue ? false : prev.defaultUseOutlook // Turn off Outlook if enabling Gmail
+                            }));
                             try {
                               await api.post('/api/auth/settings/preferences', {
-                                preferences: { defaultUseGmail: newValue }
+                                preferences: { 
+                                  defaultUseGmail: newValue,
+                                  defaultUseOutlook: newValue ? false : preferences.defaultUseOutlook
+                                }
                               });
                               setMessage({ 
                                 type: 'success', 
@@ -1095,6 +1104,56 @@ export default function SettingsContent({ initialTab = 'profile', calendarSectio
                           <span
                             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                               preferences.defaultUseGmail ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Default Outlook Sending Toggle */}
+                  {emailSettings.outlookAccounts && emailSettings.outlookAccounts.length > 0 && (
+                    <div className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-2">Default Outlook Sending</h3>
+                          <p className="text-sm text-white/80">
+                            When enabled, new agents will automatically use Outlook for sending instead of Mailgun. 
+                            You can override this setting per agent in their individual settings.
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const newValue = !preferences.defaultUseOutlook;
+                            setPreferences(prev => ({ 
+                              ...prev, 
+                              defaultUseOutlook: newValue,
+                              defaultUseGmail: newValue ? false : prev.defaultUseGmail // Turn off Gmail if enabling Outlook
+                            }));
+                            try {
+                              await api.post('/api/auth/settings/preferences', {
+                                preferences: { 
+                                  defaultUseOutlook: newValue,
+                                  defaultUseGmail: newValue ? false : preferences.defaultUseGmail
+                                }
+                              });
+                              setMessage({ 
+                                type: 'success', 
+                                text: `Default Outlook sending ${newValue ? 'enabled' : 'disabled'} for new agents` 
+                              });
+                            } catch (error) {
+                              console.error('Failed to save preference:', error);
+                              setPreferences(prev => ({ ...prev, defaultUseOutlook: !newValue }));
+                              setMessage({ type: 'error', text: 'Failed to save preference' });
+                            }
+                          }}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            preferences.defaultUseOutlook ? 'bg-blue-600' : 'bg-white/20'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              preferences.defaultUseOutlook ? 'translate-x-6' : 'translate-x-1'
                             }`}
                           />
                         </button>

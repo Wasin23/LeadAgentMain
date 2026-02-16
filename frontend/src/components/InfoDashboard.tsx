@@ -23,6 +23,7 @@ interface Agent {
   settings?: {
     emailBuilder?: {
       useGmail?: boolean;
+      useOutlook?: boolean;
     };
     targeting?: {
       leadLimit?: number;
@@ -351,6 +352,16 @@ export default function InfoDashboard({ agents: propsAgents, agentActivities: pr
                             </svg>
                             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/gmail:opacity-100 transition-opacity pointer-events-none z-50">
                               Gmail sending enabled
+                            </span>
+                          </span>
+                        ) : !isOrphaned && agent.settings?.emailBuilder?.useOutlook === true ? (
+                          <span className="relative group/outlook inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 text-white text-[9px] border border-white/20 flex-shrink-0">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 48 48">
+                              <path fill="#0078D4" d="M2 12a2 2 0 012-2h40a2 2 0 012 2v24a2 2 0 01-2 2H4a2 2 0 01-2-2V12z"/>
+                              <path fill="#FFF" d="M24 17c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+                            </svg>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/outlook:opacity-100 transition-opacity pointer-events-none z-50">
+                              Outlook sending enabled
                             </span>
                           </span>
                         ) : !isOrphaned ? (
