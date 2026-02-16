@@ -42,7 +42,7 @@ class AWSManager {
     
     // API Cost rates (with 1.2x multiplier for platform margin)
     this.apiCosts = {
-      apollo: 0.026 * 1.2, // $0.0312 per credit ($65 for 2500 credits)
+      apollo: 0.005, // $0.005 per lead search (half a cent)
       openai: (0.002 / 1000) * 1.2, // $0.0024 per 1K tokens for GPT-3.5
       mailgun: 0.0008 * 1.2, // $0.00096 per email
       zerobounce: 0.005 * 1.2, // $0.006 per validation
