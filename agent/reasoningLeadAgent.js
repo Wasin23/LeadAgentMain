@@ -3946,8 +3946,8 @@ Format as:
       let citedFactsContext = '';
       if (aiReport?.allCitedFacts && aiReport.allCitedFacts.length > 0) {
         const topFacts = aiReport.allCitedFacts.slice(0, 10);
-        citedFactsContext = `\nVERIFIED RESEARCH FACTS (use these for personalization):\n${
-          topFacts.map((fact, i) => `${i + 1}. "${fact.text}" [Source: ${fact.sourceTitle || fact.source}]`).join('\n')
+        citedFactsContext = `\nVERIFIED RESEARCH FACTS (use these naturally in the email - do NOT include source citations):\n${
+          topFacts.map((fact, i) => `${i + 1}. "${fact.text}"`).join('\n')
         }`;
       }
       
@@ -3972,7 +3972,7 @@ REQUIREMENTS:
 STRENGTHS TO LEVERAGE:
 ${qualification?.keyStrengths?.map(s => `- ${s}`).join('\n') || 'N/A'}
 
-EMAIL LENGTH: 7-9 sentences (more room for detailed personalization)`;
+EMAIL LENGTH: 6-7 sentences (highly personalized but concise)`;
           break;
           
         case 'QUALIFIED':
@@ -4150,9 +4150,10 @@ CRITICAL RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ✅ USE RESEARCH: Open with specific numbers/events from research findings above
-✅ CITE SOURCES: "According to [source]" or "(McKinsey, 2024)"
+✅ STATE FACTS NATURALLY: Mention facts as if you discovered them ("I saw your team grew from X to Y", "Your recent announcement about Z")
 ✅ NUMBERS REQUIRED: "12-18% returns", "$200K savings", "60% faster"
 ✅ NAME COMPANIES: "PetSmart saw X" not "Companies see X"
+✅ NO SOURCE CITATIONS: Never include "[Source: ...]", "(McKinsey, 2024)", or "According to [source]" - just state facts naturally
 
 ❌ NEVER HALLUCINATE: If fact doesn't mention prospect's company name explicitly, skip it
 ❌ NO GENERIC BULLETS: Never write "Feature = Benefit" format
@@ -4471,8 +4472,22 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
         body = emailContent;
       }
       
-      // Clean up body - remove any stray "SUBJECT:" prefix that AI might have included
-      body = body.replace(/^SUBJECT:\s*[^\n]+\n\n?/i, '').trim();
+      // AGGRESSIVE CLEANUP - Remove ANY subject line formatting that AI might use
+      // Remove "SUBJECT:" variants (case insensitive)
+      body = body.replace(/^SUBJECT:\s*[^\n]+\n+/gi, '').trim();
+      body = body.replace(/^Subject:\s*[^\n]+\n+/gi, '').trim();
+      body = body.replace(/^Subject Line:\s*[^\n]+\n+/gi, '').trim();
+      
+      // Remove quoted subject lines at start
+      body = body.replace(/^['"].*?['"]\n+/s, '').trim();
+      
+      // Remove any line at the very start that looks like a subject (short, ends before first paragraph)
+      // This catches edge cases where GPT outputs: "quick question\n\nHello..."
+      const lines = body.split('\n');
+      if (lines.length > 2 && lines[0].length < 80 && lines[0].length > 5 && !lines[0].includes('Hello') && !lines[0].includes('Hi ') && lines[1] === '') {
+        // First line is short, second is blank - likely a subject line
+        body = lines.slice(2).join('\n').trim();
+      }
       
       // 🚀 DYNAMIC SUBJECT LINE GENERATION
       // ALWAYS generate subject line from email body content for maximum relevance
