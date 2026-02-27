@@ -4416,9 +4416,20 @@ Best regards,
 ${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || '') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}
 ${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}
 
-Format as:
-SUBJECT: [subject line]
-BODY: [complete email with greeting, paragraph, and signature]
+⚠️ CRITICAL OUTPUT FORMAT:
+- Line 1: "SUBJECT: [your subject line]"
+- Line 2: blank line
+- Line 3+: "BODY: [your email starting with greeting]"
+- DO NOT include the subject line anywhere in the BODY section
+- DO NOT repeat the subject line after "BODY:"
+
+Example output format:
+SUBJECT: thought for Acme Corp
+
+BODY: Hello John,
+
+I saw your team...
+[rest of email]
 
 NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connecting why your solution fits their situation.`;
 
@@ -4439,6 +4450,15 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       });
 
       const emailContent = response.choices[0].message.content;
+      
+      // 🔍 DEBUG LOGGING - Track what GPT actually outputs
+      console.log('🔍 [EMAIL DEBUG] Raw GPT-4 output:');
+      console.log('---START RAW OUTPUT---');
+      console.log(emailContent);
+      console.log('---END RAW OUTPUT---');
+      console.log('🔍 [EMAIL DEBUG] Output length:', emailContent.length);
+      console.log('🔍 [EMAIL DEBUG] Has SUBJECT:?', emailContent.includes('SUBJECT:'));
+      console.log('🔍 [EMAIL DEBUG] Has BODY:?', emailContent.includes('BODY:'));
       
       // Log API usage
       if (response.usage) {
@@ -4465,14 +4485,31 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       
       // Extract body from AI response
       let body;
+      let extractedSubject = null;
+      
+      console.log('🔍 [BODY EXTRACTION] Starting extraction...');
+      
       if (emailContent.includes('SUBJECT:') && emailContent.includes('BODY:')) {
+        console.log('🔍 [BODY EXTRACTION] Found both SUBJECT: and BODY: markers');
         const parts = emailContent.split('BODY:');
         body = parts[1].trim();
+        
+        // Try to extract the subject from the first part
+        const subjectMatch = parts[0].match(/SUBJECT:\s*(.+?)$/im);
+        if (subjectMatch) {
+          extractedSubject = subjectMatch[1].trim();
+          console.log('🔍 [BODY EXTRACTION] Extracted subject from SUBJECT: marker:', extractedSubject);
+        }
       } else {
+        console.log('🔍 [BODY EXTRACTION] No markers found, using full content');
         body = emailContent;
       }
       
+      console.log('🔍 [BODY EXTRACTION] Body before cleanup (first 200 chars):', body.substring(0, 200));
+      
       // AGGRESSIVE CLEANUP - Remove ANY subject line formatting that AI might use
+      const originalBody = body;
+      
       // Remove "SUBJECT:" variants (case insensitive)
       body = body.replace(/^SUBJECT:\s*[^\n]+\n+/gi, '').trim();
       body = body.replace(/^Subject:\s*[^\n]+\n+/gi, '').trim();
@@ -4484,9 +4521,17 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       // Remove any line at the very start that looks like a subject (short, ends before first paragraph)
       // This catches edge cases where GPT outputs: "quick question\n\nHello..."
       const lines = body.split('\n');
-      if (lines.length > 2 && lines[0].length < 80 && lines[0].length > 5 && !lines[0].includes('Hello') && !lines[0].includes('Hi ') && lines[1] === '') {
+      if (lines.length > 2 && lines[0].length < 80 && lines[0].length > 5 && !lines[0].includes('Hello') && !lines[0].includes('Hi ') && !lines[0].match(/^Dear /i) && lines[1] === '') {
+        console.log('🔍 [BODY EXTRACTION] Detected orphaned subject line at start:', lines[0]);
         // First line is short, second is blank - likely a subject line
         body = lines.slice(2).join('\n').trim();
+      }
+      
+      if (originalBody !== body) {
+        console.log('✅ [BODY CLEANUP] Cleaned up subject line from body');
+        console.log('🔍 [BODY CLEANUP] Body after cleanup (first 200 chars):', body.substring(0, 200));
+      } else {
+        console.log('✅ [BODY CLEANUP] No cleanup needed');
       }
       
       // 🚀 DYNAMIC SUBJECT LINE GENERATION

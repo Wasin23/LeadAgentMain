@@ -347,43 +347,17 @@ class AWSEmailQueue {
    */
   async getQueuedEmailCount(userId) {
     try {
-      // GSI is out of sync - use direct PK queries instead
-      // Get all agents for this user and sum their counts
-      const { default: awsManager } = await import('./awsManager.js');
-      const awsManagerInstance = new awsManager();
-      const agents = await awsManagerInstance.getUserAgents(userId);
-      
-      let totalCount = 0;
-      
-      // Count for each agent
-      for (const agent of agents) {
-        const pk = this._getPK(userId, agent.agentId);
-        const response = await this.dynamodb.send(new QueryCommand({
-          TableName: this.tableName,
-          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
-          ExpressionAttributeValues: {
-            ':pk': pk,
-            ':status': 'QUEUED#'
-          },
-          Select: 'COUNT'
-        }));
-        totalCount += response.Count || 0;
-      }
-      
-      // Also count orphans
-      const orphanPK = this._getPK(userId, 'orphan');
-      const orphanResponse = await this.dynamodb.send(new QueryCommand({
+      const gsipk = this._getGSIPK(userId, 'QUEUED');
+      const response = await this.dynamodb.send(new QueryCommand({
         TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+        IndexName: this.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
         ExpressionAttributeValues: {
-          ':pk': orphanPK,
-          ':status': 'QUEUED#'
+          ':gsipk': gsipk
         },
         Select: 'COUNT'
       }));
-      totalCount += orphanResponse.Count || 0;
-      
-      return totalCount;
+      return response.Count || 0;
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error getting queued email count:', error);
       throw error;
