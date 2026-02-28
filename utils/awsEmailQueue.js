@@ -611,7 +611,14 @@ class AWSEmailQueue {
    */
   async updateEmail(userId, agentId, emailId, updates) {
     try {
-      console.log(`[AWS EMAIL QUEUE] Updating email ${emailId}:`, updates);
+      console.log(`[AWS EMAIL QUEUE] updateEmail called with:`, {
+        userId,
+        agentId,
+        emailId,
+        updates,
+        scheduledAtValue: updates.scheduledAt,
+        scheduledAtType: typeof updates.scheduledAt
+      });
       
       // Find the email with any status
       const statuses = ['QUEUED', 'APPROVED', 'SENT', 'REPLIED'];
@@ -631,7 +638,7 @@ class AWSEmailQueue {
         
         if (response.Items && response.Items.length > 0) {
           foundItem = response.Items[0];
-          console.log(`[AWS EMAIL QUEUE] Found email in ${status} status`);
+          console.log(`[AWS EMAIL QUEUE] Found email in ${status} status, current scheduledAt:`, foundItem.scheduledAt);
           break;
         }
       }
@@ -640,21 +647,30 @@ class AWSEmailQueue {
         throw new Error(`Email ${emailId} not found`);
       }
       
-      // Update the item in place (keeping same PK and SK)
+      // Build updated item - explicitly handle scheduledAt
       const updatedItem = {
         ...foundItem,
         ...updates,
         updatedAt: new Date().toISOString()
       };
       
-      console.log(`[AWS EMAIL QUEUE] Saving updated email with scheduledAt:`, updatedItem.scheduledAt);
+      // If scheduledAt is explicitly in updates, ensure it's set
+      if ('scheduledAt' in updates) {
+        updatedItem.scheduledAt = updates.scheduledAt;
+      }
+      
+      console.log(`[AWS EMAIL QUEUE] Item before save:`, {
+        id: updatedItem.id,
+        scheduledAt: updatedItem.scheduledAt,
+        updatedAt: updatedItem.updatedAt
+      });
       
       await this.dynamodb.send(new PutCommand({
         TableName: this.tableName,
         Item: updatedItem
       }));
       
-      console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} updated successfully`);
+      console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} updated successfully, scheduledAt:`, updatedItem.scheduledAt);
       return updatedItem;
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error updating email:', error);

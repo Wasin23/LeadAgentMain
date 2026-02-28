@@ -812,19 +812,37 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
   }
 
   const scheduleEmail = async (id: string, scheduledAt: string | null, emailAgentId?: string) => {
+    console.log('[SCHEDULE] Function called:', { id, scheduledAt, emailAgentId })
     try {
-      console.log('[SCHEDULE] Updating email:', { id, scheduledAt, emailAgentId })
+      console.log('[SCHEDULE] Making API request to:', `/api/email-queue/${id}`)
       const response = await api.put(`/api/email-queue/${id}`, { scheduledAt }, { params: { agentId: emailAgentId } })
       console.log('[SCHEDULE] API response:', response.data)
-      setEmails(p => p.map(e => e.id !== id ? e : { ...e, scheduledAt: scheduledAt ?? undefined }))
+      
+      // Update local state
+      setEmails(p => p.map(e => {
+        if (e.id !== id) return e
+        const updated = { ...e, scheduledAt: scheduledAt ?? undefined }
+        console.log('[SCHEDULE] Updated email in state:', updated)
+        return updated
+      }))
+      
+      // Also update total if needed
+      console.log('[SCHEDULE] Current total:', total)
+      
       if (scheduledAt) {
-        toast({ title: 'Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 2000 })
+        toast({ title: '✅ Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 3000 })
       } else {
-        toast({ title: 'Schedule cleared', duration: 2000 })
+        toast({ title: '✅ Schedule cleared', duration: 2000 })
       }
-    } catch (err) { 
-      console.error('[SCHEDULE] Failed to save schedule:', err)
-      toast({ title: 'Failed to update schedule', variant: 'destructive', duration: 2000 }) 
+    } catch (err: any) { 
+      console.error('[SCHEDULE] Error details:', err)
+      console.error('[SCHEDULE] Error response:', err.response?.data)
+      toast({ 
+        title: 'Failed to update schedule', 
+        description: err.response?.data?.error || err.message,
+        variant: 'destructive', 
+        duration: 4000 
+      }) 
     }
   }
 
