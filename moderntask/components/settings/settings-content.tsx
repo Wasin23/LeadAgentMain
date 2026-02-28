@@ -636,7 +636,7 @@ export function SettingsContent() {
                   toast.success("Account reset. Redirecting to sign in...")
                   localStorage.clear()
                   sessionStorage.clear()
-                  setTimeout(() => { window.location.href = "/" }, 1500)
+                  setTimeout(() => { window.location.href = "/signin" }, 1500)
                 } catch (e: any) {
                   toast.error(e.response?.data?.error || "Failed to reset account")
                 }
