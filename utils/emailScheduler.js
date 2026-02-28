@@ -83,19 +83,21 @@ class EmailScheduler {
   // Get all scheduled emails that are ready to send
   async getScheduledEmailsReadyToSend() {
     try {
-      const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
       const now = new Date().toISOString();
       
-      // Query all QUEUED emails and filter by scheduledAt
-      const response = await this.awsEmailQueue.dynamodb.send(new QueryCommand({
+      // Scan for QUEUED emails with scheduledAt in the past/present
+      // Use the GSI to make scanning more efficient
+      const response = await this.awsEmailQueue.dynamodb.send(new ScanCommand({
         TableName: this.awsEmailQueue.tableName,
         IndexName: this.awsEmailQueue.gsiName,
-        KeyConditionExpression: 'begins_with(GSIPK, :gsiPrefix)',
-        FilterExpression: 'attribute_exists(scheduledAt) AND scheduledAt <= :now',
+        FilterExpression: 'contains(GSIPK, :queued) AND attribute_exists(scheduledAt) AND scheduledAt <= :now',
         ExpressionAttributeValues: {
-          ':gsiPrefix': '#QUEUED',  // Match all user queued emails
+          ':queued': '#QUEUED',
           ':now': now
-        }
+        },
+        // Limit to prevent too many results
+        Limit: 100
       }));
       
       return response.Items || [];

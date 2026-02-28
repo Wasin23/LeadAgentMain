@@ -566,7 +566,7 @@ export function SettingsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl">
+    <div className="flex flex-col gap-6 w-full">
       {/* Horizontal top nav */}
       <nav className="flex gap-1 border-b border-border pb-0 flex-wrap">
         {TABS.map(t => {

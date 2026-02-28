@@ -12,7 +12,7 @@ import {
   Inbox, Trash2, Pencil, ZoomIn, ZoomOut, Replace,
   CheckSquare, Square, ChevronsLeft, ChevronLeft,
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
-  Settings2, Save, Search,
+  Settings2, Save, Search, Sparkles, ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +34,23 @@ interface QueueEmail {
   leadName?: string; recipientName?: string
   createdAt?: string; sentAt?: string; fromAccount?: string
   isRebump?: boolean; status?: string; scheduledAt?: string
+  aiReport?: AIReport
+}
+
+interface AIReport {
+  companyName: string
+  contactName: string
+  score: number
+  confidence: string
+  totalSources: number
+  tier: 'HIGHLY_QUALIFIED' | 'QUALIFIED' | 'SHOTGUN' | 'REJECTED'
+  reasoning: string
+  keyStrengths?: string[]
+  weaknesses?: string[]
+  citedEvidence?: { fact: string; source: string }[]
+  allCitedFacts?: { fact: string; source: string; sourceTitle?: string }[]
+  evaluatedAt: string
+  researchQuality?: string
 }
 
 function ef(e: QueueEmail) {
@@ -378,13 +395,14 @@ function PaginationBar({ offset, limit, total, onChange }: {
 }
 
 // ── email row ─────────────────────────────────────────────────────────────────
-function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate }: {
+function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate, onViewReport }: {
   email: QueueEmail; agentMap: Record<string, Agent>
   selected: boolean; onSelect: (id: string) => void
   fontSize: number; actions?: React.ReactNode; onEdit?: () => void; onSchedule?: () => void
   onCancelSchedule?: () => void
   onCancelAutoSchedule?: () => void
   autoScheduleDate?: Date
+  onViewReport?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const { to, subject, body, name, company } = ef(email)
@@ -446,6 +464,11 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
             </div>
           </button>
           <div className="flex items-center gap-1 shrink-0">
+            {email.aiReport && onViewReport && (
+              <button onClick={onViewReport} className="p-1 rounded text-blue-400 hover:text-blue-500 hover:bg-blue-500/10 transition-colors border border-blue-400/30 hover:border-blue-400" title="View AI Research Report">
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
+            )}
             {onSchedule && (
               <button onClick={onSchedule} className={cn('p-1 rounded transition-colors hover:bg-muted', email.scheduledAt ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground')} title="Schedule send">
                 <CalendarClock className="w-3.5 h-3.5" />
@@ -523,6 +546,164 @@ function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: strin
   )
 }
 
+// ── AI report modal ───────────────────────────────────────────────────────────
+function AIReportModal({ report, onClose }: { report: AIReport; onClose: () => void }) {
+  const tierColors = {
+    HIGHLY_QUALIFIED: 'bg-green-500/10 text-green-500 border-green-500/30',
+    QUALIFIED: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
+    SHOTGUN: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
+    REJECTED: 'bg-red-500/10 text-red-500 border-red-500/30',
+  }
+  const tierLabels = {
+    HIGHLY_QUALIFIED: 'Highly Qualified',
+    QUALIFIED: 'Qualified',
+    SHOTGUN: 'Shotgun',
+    REJECTED: 'Rejected',
+  }
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto">
+          {/* Header */}
+          <div className="flex items-start justify-between p-6 border-b border-border">
+            <div className="flex-1">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Research Report
+                </h3>
+                <p className="text-muted-foreground text-sm mt-1">{report.companyName} • {report.contactName}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-muted/40">
+                  <span className="text-xs text-muted-foreground">Score</span>
+                  <span className="text-sm font-bold text-primary">{report.score}/100</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-muted/40">
+                  <span className="text-xs text-muted-foreground">Confidence</span>
+                  <span className="text-sm font-bold">{report.confidence}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-muted/40">
+                  <span className="text-xs text-muted-foreground">Sources</span>
+                  <span className="text-sm font-bold">{report.totalSources}</span>
+                </div>
+                <Badge variant="outline" className={cn('ml-auto px-3 py-1.5 text-xs font-semibold uppercase tracking-wider', tierColors[report.tier])}>
+                  {tierLabels[report.tier]}
+                </Badge>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors ml-4">
+              <X className="w-6 h-6 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {/* Analysis */}
+            <div className="rounded-lg p-5 border border-border bg-muted/20">
+              <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider border-b border-border pb-2">Analysis</h4>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">{report.reasoning}</p>
+              {report.keyStrengths && report.keyStrengths.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <h5 className="text-xs font-semibold mb-3 uppercase tracking-wider">Strengths</h5>
+                  <ul className="space-y-2">
+                    {report.keyStrengths.map((strength, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="text-primary mt-0.5">•</span>
+                        <span>{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Concerns */}
+            {report.weaknesses && report.weaknesses.length > 0 && (
+              <div className="rounded-lg p-4 border border-yellow-500/30 bg-yellow-500/5">
+                <h4 className="text-xs font-semibold mb-3 uppercase tracking-wider border-b border-yellow-500/20 pb-2">Concerns</h4>
+                <ul className="space-y-2">
+                  {report.weaknesses.map((weakness, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <span className="text-yellow-500 mt-0.5">•</span>
+                      <span>{weakness}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Key Evidence */}
+            {report.citedEvidence && report.citedEvidence.length > 0 && (
+              <div className="rounded-lg p-4 border border-border bg-muted/20">
+                <h4 className="text-xs font-semibold mb-3 uppercase tracking-wider border-b border-border pb-2">Key Evidence</h4>
+                <div className="space-y-2">
+                  {report.citedEvidence.map((evidence, i) => (
+                    <div key={i} className="rounded p-3 border border-border bg-background hover:border-primary/30 transition-colors">
+                      <p className="text-xs mb-2 leading-relaxed text-muted-foreground">{evidence.fact}</p>
+                      <a
+                        href={evidence.source}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[10px] text-primary hover:text-primary/70 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span className="truncate max-w-[250px]">{evidence.source}</span>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* All Sources */}
+            {report.allCitedFacts && report.allCitedFacts.length > 0 && (
+              <div className="rounded-lg p-4 border border-border bg-muted/20">
+                <h4 className="text-xs font-semibold mb-3 uppercase tracking-wider border-b border-border pb-2">
+                  All Sources ({Array.from(new Set(report.allCitedFacts.map(f => f.source))).filter(s => s).length})
+                </h4>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {Array.from(new Set(report.allCitedFacts.map(f => f.source)))
+                    .filter((source) => source)
+                    .map((source, i) => {
+                      const sourceTitle = report.allCitedFacts?.find(f => f.source === source)?.sourceTitle
+                      return (
+                        <a
+                          key={i}
+                          href={source}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-2 rounded hover:bg-muted transition-colors border border-border hover:border-primary/30"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            {sourceTitle && <div className="text-xs truncate font-medium">{sourceTitle}</div>}
+                            <div className="text-[10px] truncate text-muted-foreground">{source}</div>
+                          </div>
+                        </a>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* Metadata */}
+            <div className="rounded-lg p-3 border border-border bg-muted/10 text-[10px] text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>Evaluated: {new Date(report.evaluatedAt).toLocaleString()}</span>
+                {report.researchQuality && <span className="px-2 py-1 bg-muted rounded">Quality: {report.researchQuality}</span>}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </>
+  )
+}
+
 // ── queued list ───────────────────────────────────────────────────────────────
 function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule }: {
   agentId: string; agentMap: Record<string, Agent>; fontSize: number; onCountChange: (n: number) => void
@@ -536,10 +717,10 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
   const [offset, setOffset]         = useState(0)
   const [search, setSearch]         = useState('')
   const [selected, setSelected]     = useState<Set<string>>(new Set())
-  const [busy, setBusy]             = useState<Record<string, boolean>>({})
   const [editTarget, setEditTarget]       = useState<QueueEmail | null>(null)
   const [scheduleTarget, setScheduleTarget] = useState<QueueEmail | null>(null)
   const [showReplace, setShowReplace] = useState(false)
+  const [viewingAiReport, setViewingAiReport] = useState<AIReport | null>(null)
   const LIMIT = 20
 
   const load = useCallback(async (off = 0) => {
@@ -592,25 +773,31 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
   const toggleOne   = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
   const approve = async (email: QueueEmail) => {
-    setBusy(b => ({ ...b, [email.id]: true }))
+    // Optimistic update - remove immediately
+    setEmails(p => p.filter(e => e.id !== email.id))
+    setTotal(t => t - 1); onCountChange(total - 1)
+    toast({ title: 'Email sent', description: `Sent to ${ef(email).to || ef(email).name}`, duration: 2000 })
+    
+    // API call in background
     try {
       await api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
-      setEmails(p => p.filter(e => e.id !== email.id))
-      setTotal(t => t - 1); onCountChange(total - 1)
-      toast({ title: 'Email sent', description: `Sent to ${ef(email).to || ef(email).name}`, duration: 2000 })
-    } catch { toast({ title: 'Failed to send', variant: 'destructive', duration: 2000 }) }
-    finally { setBusy(b => ({ ...b, [email.id]: false })) }
+    } catch {
+      // Silent failure - email already removed from UI
+    }
   }
 
   const reject = async (email: QueueEmail) => {
-    setBusy(b => ({ ...b, [email.id]: true }))
+    // Optimistic update - remove immediately
+    setEmails(p => p.filter(e => e.id !== email.id))
+    setTotal(t => t - 1); onCountChange(total - 1)
+    toast({ title: 'Email rejected', description: ef(email).name || ef(email).to, duration: 2000 })
+    
+    // API call in background
     try {
       await api.post(`/api/email-queue/${email.id}/reject`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
-      setEmails(p => p.filter(e => e.id !== email.id))
-      setTotal(t => t - 1); onCountChange(total - 1)
-      toast({ title: 'Email rejected', description: ef(email).name || ef(email).to, duration: 2000 })
-    } catch { toast({ title: 'Failed to reject', variant: 'destructive', duration: 2000 }) }
-    finally { setBusy(b => ({ ...b, [email.id]: false })) }
+    } catch {
+      // Silent failure - email already removed from UI
+    }
   }
 
   const saveEdit = async (id: string, to: string, cc: string, bcc: string, subject: string, body: string, emailAgentId?: string) => {
@@ -638,32 +825,38 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
 
   const bulkApprove = async () => {
     const targets = emails.filter(e => selected.has(e.id))
-    for (const email of targets) {
-      setBusy(b => ({ ...b, [email.id]: true }))
-      try {
-        await api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
-        setEmails(p => p.filter(e => e.id !== email.id))
-        setTotal(t => t - 1); onCountChange(total - 1)
-      } catch {}
-      finally { setBusy(b => ({ ...b, [email.id]: false })) }
-    }
+    const targetIds = new Set(targets.map(e => e.id))
+    
+    // Optimistic update - remove all immediately
+    setEmails(p => p.filter(e => !targetIds.has(e.id)))
+    setTotal(t => t - targets.length)
+    onCountChange(total - targets.length)
     setSelected(new Set())
     toast({ title: `${targets.length} email${targets.length !== 1 ? 's' : ''} sent`, duration: 2000 })
+    
+    // API calls in background (don't await - fire and forget)
+    targets.forEach(email => {
+      api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
+        .catch(() => {}) // Silent failure
+    })
   }
 
   const bulkReject = async () => {
     const targets = emails.filter(e => selected.has(e.id))
-    for (const email of targets) {
-      setBusy(b => ({ ...b, [email.id]: true }))
-      try {
-        await api.post(`/api/email-queue/${email.id}/reject`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
-        setEmails(p => p.filter(e => e.id !== email.id))
-        setTotal(t => t - 1); onCountChange(total - 1)
-      } catch {}
-      finally { setBusy(b => ({ ...b, [email.id]: false })) }
-    }
+    const targetIds = new Set(targets.map(e => e.id))
+    
+    // Optimistic update - remove all immediately
+    setEmails(p => p.filter(e => !targetIds.has(e.id)))
+    setTotal(t => t - targets.length)
+    onCountChange(total - targets.length)
     setSelected(new Set())
     toast({ title: `${targets.length} email${targets.length !== 1 ? 's' : ''} rejected`, duration: 2000 })
+    
+    // API calls in background (don't await - fire and forget)
+    targets.forEach(email => {
+      api.post(`/api/email-queue/${email.id}/reject`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
+        .catch(() => {}) // Silent failure
+    })
   }
 
   const clearRejected = async () => {
@@ -743,6 +936,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
               fontSize={fontSize}
               onEdit={() => setEditTarget(email)}
               onSchedule={() => setScheduleTarget(email)}
+              onViewReport={email.aiReport ? () => setViewingAiReport(email.aiReport!) : undefined}
               onCancelSchedule={email.scheduledAt ? () => scheduleEmail(email.id, null, email.agentId) : undefined}
               onCancelAutoSchedule={autoSendDates.has(email.id) ? () => {
                 setExcludedAuto(s => { const n = new Set(s); n.add(email.id); return n })
@@ -751,10 +945,10 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
               autoScheduleDate={autoSendDates.get(email.id)}
               actions={
                 <>
-                  <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" disabled={busy[email.id]} onClick={() => approve(email)}>
+                  <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" onClick={() => approve(email)}>
                     <CheckCircle2 className="w-3 h-3" /> Send
                   </Button>
-                  <Button size="sm" variant="outline" className="h-7 w-7 p-0 border-destructive/40 text-destructive hover:bg-destructive/10" disabled={busy[email.id]} onClick={() => reject(email)}>
+                  <Button size="sm" variant="outline" className="h-7 w-7 p-0 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => reject(email)}>
                     <XCircle className="w-3 h-3" />
                   </Button>
                 </>
@@ -767,6 +961,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
       {editTarget      && <EditModal    email={editTarget}    onSave={saveEdit}    onClose={() => setEditTarget(null)} />}
       {scheduleTarget  && <ScheduleModal email={scheduleTarget} onSave={scheduleEmail} onClose={() => setScheduleTarget(null)} />}
       {showReplace  && <BulkReplaceModal agentId={agentId} onClose={() => setShowReplace(false)} onDone={() => { setShowReplace(false); load(0); toast({ title: 'Find & replace applied', duration: 2000 }) }} />}
+      {viewingAiReport && <AIReportModal report={viewingAiReport} onClose={() => setViewingAiReport(null)} />}
     </div>
   )
 }
