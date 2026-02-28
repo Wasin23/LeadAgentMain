@@ -357,9 +357,9 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
             <p className="text-xl text-[#A3B4CC]">Tell us about your awesome company</p>
           </div>
 
-          {/* Progress bar - colorful and prominent */}
-          <div className="mb-12 bg-[#1B2F52]/60 backdrop-blur-lg rounded-3xl p-6 shadow-2xl border border-[#4FD1FF]/20 animate-fade-in">
-            <div className="flex items-center justify-center gap-3">
+          {/* Progress bar */}
+          <div className="mb-12 bg-[#1B2F52]/60 backdrop-blur-lg rounded-2xl p-5 shadow-2xl border border-[#4FD1FF]/20 animate-fade-in">
+            <div className="flex items-center justify-center gap-2">
               {steps.map((step, index) => {
                 const currentStep = questions[currentQuestionIndex].step;
                 const isCompleted = currentStep > step.number;
@@ -367,25 +367,27 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 
                 return (
                   <div key={index} className="flex items-center">
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center gap-1.5">
                       <div 
-                        className={`w-16 h-16 rounded-full flex items-center justify-center font-bold transition-all ${
+                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                           isCurrent 
-                            ? 'bg-[#4FD1FF] text-[#0F1E35] scale-110 shadow-lg shadow-[#4FD1FF]/50' 
+                            ? 'bg-[#4FD1FF] text-[#0F1E35] scale-110 shadow-lg shadow-[#4FD1FF]/40 ring-4 ring-[#4FD1FF]/20' 
                             : isCompleted 
-                            ? 'bg-[#4FD1FF]/60 text-white' 
-                            : 'bg-[#2A4472] text-[#8FA6C1]'
+                            ? 'bg-[#4FD1FF]/30 text-[#4FD1FF] border border-[#4FD1FF]/50' 
+                            : 'bg-[#1A2E4A] text-[#8FA6C1] border border-[#2A4472]'
                         }`}
                       >
-                        {isCompleted ? '✓' : step.number}
+                        {isCompleted ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        ) : step.number}
                       </div>
-                      <span className={`text-xs mt-2 font-semibold ${isCurrent || isCompleted ? 'text-white' : 'text-[#8FA6C1]'}`}>
+                      <span className={`text-[11px] font-semibold tracking-wide ${isCurrent ? 'text-[#4FD1FF]' : isCompleted ? 'text-white/70' : 'text-[#8FA6C1]'}`}>
                         {step.title}
                       </span>
                     </div>
                     {index < steps.length - 1 && (
                       <div 
-                        className={`w-12 h-1 mx-2 rounded transition-all ${
+                        className={`w-10 h-0.5 mx-3 mb-5 rounded-full transition-all duration-500 ${
                           isCompleted ? 'bg-[#4FD1FF]' : 'bg-[#2A4472]'
                         }`}
                       />
@@ -615,8 +617,14 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
               <CardContent className="p-10">
                 {/* Question */}
                 <div className="mb-8">
-                  <div className="inline-block px-4 py-2 bg-gradient-to-r from-[#4FD1FF] to-[#55C7F7] text-[#0F1E35] rounded-full text-sm font-semibold mb-4">
-                    Question {currentQuestionIndex + 1}
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/30 text-[#4FD1FF] rounded-full text-sm font-semibold">
+                      <span className="w-5 h-5 rounded-full bg-[#4FD1FF] text-[#0F1E35] flex items-center justify-center text-xs font-bold">{currentQuestionIndex + 1}</span>
+                      of {questions.length}
+                    </div>
+                    {!currentQuestion.required && (
+                      <span className="text-[#8FA6C1] text-xs font-medium px-3 py-1.5 bg-white/5 rounded-full border border-white/10">Optional</span>
+                    )}
                   </div>
                   <h2 className="text-4xl font-bold text-white mb-2">
                     {currentQuestion.question}
@@ -634,7 +642,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       placeholder={currentQuestion.placeholder}
                       disabled={isAnimating}
                       rows={6}
-                      className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 resize-none text-center"
+                      className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 resize-none text-left"
                     />
                   ) : currentQuestion.type === 'select' ? (
                     <Select
