@@ -108,11 +108,22 @@ function ScheduleModal({ email, onSave, onClose }: {
         )}
         <div className="flex justify-between items-center">
           {email.scheduledAt ? (
-            <button className="text-[11px] text-destructive hover:underline" onClick={async () => { setSaving(true); await onSave(email.id, null, email.agentId); onClose() }}>Clear schedule</button>
+            <button className="text-[11px] text-destructive hover:underline" onClick={async () => { 
+              console.log('[SCHEDULE MODAL] Clear schedule button clicked for:', email.id)
+              setSaving(true); 
+              await onSave(email.id, null, email.agentId); 
+              onClose() 
+            }}>Clear schedule</button>
           ) : <span />}
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button size="sm" disabled={saving || !value} onClick={async () => {
+              console.log('[SCHEDULE MODAL] Schedule button clicked:', { 
+                emailId: email.id, 
+                rawValue: value, 
+                isoValue: new Date(value).toISOString(),
+                agentId: email.agentId 
+              })
               setSaving(true)
               await onSave(email.id, new Date(value).toISOString(), email.agentId)
               onClose()
@@ -833,6 +844,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
       
       // Also update total if needed
       console.log('[SCHEDULE] Current total:', total)
+      console.log('[SCHEDULE] ✅ Success! Operation completed.')
       
       if (scheduledAt) {
         toast({ title: '✅ Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 3000 })
@@ -840,8 +852,11 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
         toast({ title: '✅ Schedule cleared', duration: 2000 })
       }
     } catch (err: any) { 
-      console.error('[SCHEDULE] Error details:', err)
-      console.error('[SCHEDULE] Error response:', err.response?.data)
+      console.error('[SCHEDULE] ❌ ERROR occurred!')
+      console.error('[SCHEDULE] Error object:', err)
+      console.error('[SCHEDULE] Error message:', err.message)
+      console.error('[SCHEDULE] Error response:', err.response)
+      console.error('[SCHEDULE] Error response data:', err.response?.data)
       toast({ 
         title: 'Failed to update schedule', 
         description: err.response?.data?.error || err.message,
