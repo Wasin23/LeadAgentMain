@@ -302,25 +302,25 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
     <div className="relative min-h-screen overflow-y-auto">
       <GlobeBackground />
       {/* Top bar */}
-      <div className="relative z-10 sticky top-0 bg-white/90 backdrop-blur-md border-b border-gray-200">
+      <div className="relative z-10 sticky top-0 bg-white/10 backdrop-blur-md border-b border-white/20">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <svg width="32" height="32" viewBox="0 0 48 48">
-              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-              <line x1="4" y1="24" x2="44" y2="24" stroke="currentColor" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+              <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
             </svg>
-            <span className="text-gray-900 font-bold text-lg">Create Your Agent</span>
+            <span className="text-white font-bold text-lg">Create Your Agent</span>
           </div>
-          <button onClick={onSkip} className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
+          <button onClick={onSkip} className="px-4 py-2 text-sm text-white font-bold border border-white/40 rounded-lg hover:bg-white/10 transition-all">
             Skip Tutorial
           </button>
         </div>
         {step !== 'creating' && (
-          <div className="h-0.5 bg-gray-100">
-            <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${progressPct}%` }} />
+          <div className="h-0.5 bg-white/20">
+            <div className="h-full bg-white transition-all duration-500" style={{ width: `${progressPct}%` }} />
           </div>
         )}
       </div>
@@ -584,8 +584,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                     <label className="text-gray-700 font-semibold text-sm">Enable AI Auto-Response</label>
                     <p className="text-gray-500 text-xs mt-0.5">AI automatically responds to incoming emails from leads</p>
                   </div>
-                  <button onClick={() => setSettings(s => ({ ...s, enableAutoResponse: !s.enableAutoResponse }))} className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${settings.enableAutoResponse ? 'bg-green-400' : 'bg-neutral-300'}`}>
-                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings.enableAutoResponse ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  <button onClick={() => setSettings(s => ({ ...s, enableAutoResponse: !s.enableAutoResponse }))} className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${settings.enableAutoResponse ? 'bg-green-400' : 'bg-neutral-300'}`}>
+                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200 ${settings.enableAutoResponse ? 'left-[22px]' : 'left-0.5'}`} />
                   </button>
                 </div>
               </div>
