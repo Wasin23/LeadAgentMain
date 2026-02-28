@@ -1,499 +1,716 @@
-'use client'
+'use client';
 
-import { useState, useRef, useEffect } from 'react'
-import api from '@/lib/api'
+import { useState, useRef, useEffect } from 'react';
+import { 
+  Building2, 
+  CheckCircle,
+  CloudUpload,
+  Globe,
+  X
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import api from '@/lib/api';
 
 interface CompanyProfile {
-  companyName: string
-  industry: string
-  services: string
-  targetMarket: string
-  companySize: string
-  description: string
-  logo: string
-  website: string
-  linkedinProfile: string
-  location: string
-  phone: string
-  email: string
-  tagline: string
-  founded: string
-  employees: string
-  coreOffering: string
-  keyAdvantages: string
-  termsAccepted?: boolean
-  termsAcceptedAt?: string
+  companyName: string;
+  industry: string;
+  services: string;
+  targetMarket: string;
+  companySize: string;
+  description: string;
+  logo: string;
+  website: string;
+  linkedinProfile: string;
+  location: string;
+  phone: string;
+  email: string;
+  tagline: string;
+  founded: string;
+  employees: string;
+  coreOffering: string;
+  keyAdvantages: string;
+  termsAccepted?: boolean;
+  termsAcceptedAt?: string;
 }
 
-interface Props {
-  onComplete: () => void
+interface CompanyProfileOnboardingProps {
+  onComplete: () => void;
 }
 
+// Define all questions in order with step groupings
 const questions = [
-  // Step 1: Basic Info
+  // Step 1: Basic Info (4 questions)
   { id: 'companyName', question: "What's your company name?", placeholder: 'e.g., Acme Corp', type: 'text', required: true, step: 1 },
   { id: 'tagline', question: "What's your company tagline?", placeholder: 'A brief, memorable phrase', type: 'text', step: 1 },
-  { id: 'description', question: 'Tell us about your company', placeholder: 'Describe what your company does...', type: 'textarea', step: 1 },
-  { id: 'industry', question: 'What industry are you in?', placeholder: 'e.g., Technology, Healthcare', type: 'text', required: true, step: 1 },
-  // Step 2: Contact Info
+  { id: 'description', question: "Tell us about your company", placeholder: 'Describe what your company does...', type: 'textarea', step: 1 },
+  { id: 'industry', question: "What industry are you in?", placeholder: 'e.g., Technology, Healthcare', type: 'text', required: true, step: 1 },
+  
+  // Step 2: Contact Info (5 questions)
   { id: 'website', question: "What's your website?", placeholder: 'https://yourcompany.com', type: 'url', step: 2 },
-  { id: 'linkedinProfile', question: 'LinkedIn profile?', placeholder: 'https://linkedin.com/company/...', type: 'url', step: 2 },
-  { id: 'email', question: 'Contact email?', placeholder: 'contact@company.com', type: 'email', step: 2 },
-  { id: 'phone', question: 'Phone number?', placeholder: '+1 (555) 000-0000', type: 'tel', step: 2 },
-  { id: 'companyAddress', question: 'Company address?', placeholder: '123 Main St, City, State ZIP', type: 'text', step: 2 },
-  // Step 3: Company Details
-  { id: 'location', question: 'Where are you based?', placeholder: 'City, Country', type: 'text', step: 3 },
-  { id: 'founded', question: 'When was your company founded?', placeholder: '2020', type: 'text', step: 3 },
-  { id: 'employees', question: 'How many employees?', placeholder: '25', type: 'text', step: 3 },
-  { id: 'companySize', question: 'Company size range?', placeholder: '', type: 'select', options: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'], step: 3 },
-  // Step 4: Market & Offering
+  { id: 'linkedinProfile', question: "LinkedIn profile?", placeholder: 'https://linkedin.com/company/...', type: 'url', step: 2 },
+  { id: 'email', question: "Contact email?", placeholder: 'contact@company.com', type: 'email', step: 2 },
+  { id: 'phone', question: "Phone number?", placeholder: '+1 (555) 000-0000', type: 'tel', step: 2 },
+  { id: 'companyAddress', question: "Company address?", placeholder: '123 Main St, City, State ZIP', type: 'text', step: 2 },
+  
+  // Step 3: Company Details (4 questions)
+  { id: 'location', question: "Where are you based?", placeholder: 'City, Country', type: 'text', step: 3 },
+  { id: 'founded', question: "When was your company founded?", placeholder: '2020', type: 'text', step: 3 },
+  { id: 'employees', question: "How many employees?", placeholder: '25', type: 'text', step: 3 },
+  { id: 'companySize', question: "Company size range?", placeholder: '', type: 'select', options: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'], step: 3 },
+  
+  // Step 4: Market & Offering (4 questions)
   { id: 'targetMarket', question: "Who's your target market?", placeholder: 'e.g., B2B SaaS companies', type: 'textarea', step: 4 },
-  { id: 'services', question: 'What services or products do you offer?', placeholder: 'Describe your offerings...', type: 'textarea', required: true, step: 4 },
+  { id: 'services', question: "What services or products do you offer?", placeholder: 'Describe your offerings...', type: 'textarea', required: true, step: 4 },
   { id: 'coreOffering', question: "What's your core offering?", placeholder: 'e.g., AI-powered platform', type: 'textarea', step: 4 },
-  { id: 'keyAdvantages', question: 'What makes you different?', placeholder: 'Your key advantages', type: 'textarea', step: 4 },
-]
+  { id: 'keyAdvantages', question: "What makes you different?", placeholder: 'Your key advantages', type: 'textarea', step: 4 },
+];
 
 const steps = [
   { number: 1, title: 'Basic Info' },
   { number: 2, title: 'Contact' },
   { number: 3, title: 'Details' },
   { number: 4, title: 'Market' },
-]
+];
 
-export default function CompanyProfileOnboarding({ onComplete }: Props) {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
-  const [websiteUrl, setWebsiteUrl] = useState('')
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [showUploadOptions, setShowUploadOptions] = useState(true)
-  const [showReview, setShowReview] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null)
+export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileOnboardingProps) {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showUploadOptions, setShowUploadOptions] = useState(true);
+  const [showReview, setShowReview] = useState(false);
   const [profile, setProfile] = useState<CompanyProfile>({
-    companyName: '', industry: '', services: '', targetMarket: '', companySize: '',
-    description: '', logo: '', website: '', linkedinProfile: '', location: '',
-    phone: '', email: '', tagline: '', founded: '', employees: '',
-    coreOffering: '', keyAdvantages: '', termsAccepted: false,
-  })
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>(null)
+    companyName: '',
+    industry: '',
+    services: '',
+    targetMarket: '',
+    companySize: '',
+    description: '',
+    logo: '',
+    website: '',
+    linkedinProfile: '',
+    location: '',
+    phone: '',
+    email: '',
+    tagline: '',
+    founded: '',
+    employees: '',
+    coreOffering: '',
+    keyAdvantages: '',
+    termsAccepted: false
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null);
+  const { toast } = useToast();
 
-  const currentQuestion = questions[currentQuestionIndex]
+  const currentQuestion = questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
+  // Auto-focus input when question changes
   useEffect(() => {
-    if (toast) {
-      const t = setTimeout(() => setToast(null), 4000)
-      return () => clearTimeout(t)
-    }
-  }, [toast])
+    inputRef.current?.focus();
+  }, [currentQuestionIndex]);
 
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [currentQuestionIndex])
-
-  const showToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => setToast({ message, type })
-
+  // Typing animation effect
   const animateTyping = async (text: string, field: string) => {
-    setIsAnimating(true)
-    let current = ''
+    setIsAnimating(true);
+    let currentText = '';
     for (let i = 0; i < text.length; i++) {
-      current += text[i]
-      setProfile(prev => ({ ...prev, [field]: current }))
-      await new Promise(r => setTimeout(r, 20))
+      currentText += text[i];
+      setProfile(prev => ({ ...prev, [field]: currentText }));
+      await new Promise(resolve => setTimeout(resolve, 20));
     }
-    setIsAnimating(false)
-  }
+    setIsAnimating(false);
+  };
 
-  const animateThroughFields = async (extracted: Partial<CompanyProfile>) => {
-    setShowUploadOptions(false)
-    setIsAnimating(true)
+  // Animate through all fields when AI extracts data
+  const animateThroughFields = async (extractedProfile: Partial<CompanyProfile>) => {
+    setShowUploadOptions(false);
+    setIsAnimating(true);
+    
     for (let i = 0; i < questions.length; i++) {
-      const q = questions[i]
-      const value = extracted[q.id as keyof CompanyProfile]
+      const q = questions[i];
+      const value = extractedProfile[q.id as keyof CompanyProfile];
+      
       if (value && typeof value === 'string') {
-        setCurrentQuestionIndex(i)
-        await new Promise(r => setTimeout(r, 300))
-        await animateTyping(value, q.id)
-        await new Promise(r => setTimeout(r, 500))
+        setCurrentQuestionIndex(i);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await animateTyping(value, q.id);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
-    setIsAnimating(false)
-    setShowReview(true)
-  }
+    
+    setIsAnimating(false);
+    // Show review screen after animation completes
+    setShowReview(true);
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploadedFileName(file.name)
-    setIsProcessing(true)
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadedFileName(file.name);
+    setIsProcessing(true);
+
     try {
-      let content = ''
-      const isImage = file.type.startsWith('image/')
+      let content = '';
+      const isImage = file.type.startsWith('image/');
+      
       if (isImage) {
-        const reader = new FileReader()
-        const base64 = await new Promise<string>((res, rej) => {
-          reader.onload = () => res(reader.result as string)
-          reader.onerror = rej
-          reader.readAsDataURL(file)
-        })
-        content = base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        content = await base64Promise;
       } else {
-        content = await file.text()
+        content = await file.text();
       }
-      const r = await api.post('/api/company-profile/analyze', { content, fileName: file.name, isImage })
-      if (r.data.success && r.data.profile) {
-        await animateThroughFields(r.data.profile)
-        showToast('Document analyzed successfully!', 'success')
+      
+      const response = await api.post('/api/company-profile/analyze', {
+        content: content,
+        fileName: file.name,
+        isImage: isImage
+      });
+
+      if (response.data.success && response.data.profile) {
+        await animateThroughFields(response.data.profile);
+        toast({
+          title: "Success",
+          description: "Document analyzed successfully!",
+        });
       }
-    } catch {
-      showToast('Failed to analyze file. Please fill manually.', 'error')
+    } catch (error: any) {
+      console.error('Error analyzing file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze file. Please fill out the form manually.",
+        variant: "destructive",
+      });
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
 
   const handleWebsiteScrape = async () => {
-    if (!websiteUrl.trim()) { showToast('Please enter a website URL', 'error'); return }
-    let url = websiteUrl.trim()
-    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url
-    setIsProcessing(true)
-    try {
-      const r = await api.post('/api/company-profile/scrape-website', { url })
-      if (r.data.success && r.data.profile) {
-        await animateThroughFields(r.data.profile)
-        showToast('Website scraped successfully!', 'success')
-      }
-    } catch {
-      showToast('Failed to scrape website. Please fill manually.', 'error')
-    } finally {
-      setIsProcessing(false)
+    if (!websiteUrl.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a website URL",
+        variant: "destructive",
+      });
+      return;
     }
-  }
+
+    // Add https:// if no protocol is specified
+    let formattedUrl = websiteUrl.trim();
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await api.post('/api/company-profile/scrape-website', {
+        url: formattedUrl
+      });
+
+      if (response.data.success && response.data.profile) {
+        await animateThroughFields(response.data.profile);
+        toast({
+          title: "Success",
+          description: "Website scraped successfully!",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error scraping website:', error);
+      toast({
+        title: "Error",
+        description: "Failed to scrape website. Please fill out the form manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleNext = () => {
     if (currentQuestion.required && !profile[currentQuestion.id as keyof CompanyProfile]) {
-      showToast(`${currentQuestion.question} is required`, 'error')
-      return
+      toast({
+        title: "Required Field",
+        description: `${currentQuestion.question} is required`,
+        variant: "destructive",
+      });
+      return;
     }
+    
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(i => i + 1)
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      setShowReview(true)
+      // Show review screen after last question
+      setShowReview(true);
     }
-  }
+  };
 
   const handleBack = () => {
-    if (showUploadOptions) return
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(i => i - 1)
-    } else {
-      setShowUploadOptions(true)
+    if (showUploadOptions) {
+      // Can't go back from upload screen
+      return;
     }
-  }
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    } else {
+      // If at first question, go back to upload options
+      setShowUploadOptions(true);
+    }
+  };
 
   const handleSave = async () => {
     if (!profile.companyName || !profile.industry || !profile.services) {
-      showToast('Please fill out at least Company Name, Industry, and Services', 'error')
-      return
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill out at least Company Name, Industry, and Services",
+        variant: "destructive",
+      });
+      return;
     }
-    setIsProcessing(true)
+
+    setIsProcessing(true);
     try {
-      const r = await api.post('/api/company-profile/save', { profile, recommendedPreset: null })
-      if (r.data.success) {
-        showToast('Profile saved!', 'success')
-        setTimeout(onComplete, 1000)
+      const response = await api.post('/api/company-profile/save', {
+        profile,
+        recommendedPreset: null
+      });
+
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: "Profile saved successfully!",
+        });
+        setTimeout(() => onComplete(), 1000);
       }
-    } catch {
-      showToast('Failed to save. Please try again.', 'error')
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
+
+  const handleSkip = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] p-6 relative">
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-6 right-6 z-[9999] px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-white font-semibold transition-all ${
-          toast.type === 'error' ? 'bg-red-500' : toast.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-        }`}>
-          <span>{toast.type === 'error' ? '⚠️' : toast.type === 'success' ? '✓' : 'ℹ️'}</span>
-          <span>{toast.message}</span>
-          <button onClick={() => setToast(null)} className="ml-2 opacity-70 hover:opacity-100">✕</button>
-        </div>
-      )}
-
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-10 pt-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl shadow-[#4FD1FF]/20">
-            <svg className="w-9 h-9 text-[#0F1E35]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+    <>
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInLeft {
+          from { opacity: 0; transform: translateX(-20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-slide-in { animation: slideInLeft 0.4s ease-out; }
+        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+      `}</style>
+      
+      {/* Meridian Logo and Title */}
+      <div className="fixed top-8 left-8 z-50 flex items-center gap-3">
+        <svg width="48" height="48" viewBox="0 0 48 48" className="drop-shadow-lg">
+          <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+          <ellipse cx="24" cy="24" rx="20" ry="16" fill="none" stroke="white" strokeWidth="1.5"/>
+          <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
+        </svg>
+        <h1 className="text-3xl font-bold text-white drop-shadow-lg">Meridian</h1>
+      </div>
+      
+      <div className="min-h-screen bg-gradient-to-br from-blue-950 via-slate-900 to-slate-800 p-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header with big colorful title */}
+          <div className="text-center mb-12 animate-fade-in">
+            <div className="w-20 h-20 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-[#4FD1FF]/20">
+              <Building2 className="w-12 h-12 text-[#0F1E35]" />
+            </div>
+            <h1 className="text-5xl font-bold text-white mb-4">Let's Build Your Profile!</h1>
+            <p className="text-xl text-[#A3B4CC]">Tell us about your awesome company</p>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Build Your Company Profile</h1>
-          <p className="text-lg text-[#A3B4CC]">Tell us about your company so your AI agent can represent you perfectly</p>
-        </div>
 
-        {/* Step Progress */}
-        <div className="mb-8 bg-[#1B2F52]/60 rounded-2xl p-5 border border-[#4FD1FF]/20">
-          <div className="flex items-center justify-center gap-3">
-            {steps.map((step, i) => {
-              const cur = questions[currentQuestionIndex].step
-              const done = cur > step.number
-              const active = cur === step.number
-              return (
-                <div key={i} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                      active ? 'bg-[#4FD1FF] text-[#0F1E35] scale-110 shadow-lg shadow-[#4FD1FF]/40' :
-                      done ? 'bg-[#4FD1FF]/60 text-white' : 'bg-[#2A4472] text-[#8FA6C1]'
-                    }`}>
-                      {done ? '✓' : step.number}
-                    </div>
-                    <span className={`text-xs mt-1.5 font-semibold ${active || done ? 'text-white' : 'text-[#8FA6C1]'}`}>{step.title}</span>
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className={`w-10 h-0.5 mx-2 rounded transition-all ${done ? 'bg-[#4FD1FF]' : 'bg-[#2A4472]'}`} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Upload Options */}
-        {showUploadOptions && currentQuestionIndex === 0 && !showReview && (
-          <div className="mb-8 animate-fade-in">
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-5 items-stretch">
-              <div
-                className="bg-[#1B2F52]/90 border border-[#4FD1FF]/30 rounded-2xl p-7 text-center hover:scale-105 hover:shadow-lg hover:shadow-[#4FD1FF]/20 transition-all cursor-pointer shadow-xl flex flex-col justify-between"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div>
-                  <div className="w-14 h-14 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                    <svg className="w-8 h-8 text-[#0F1E35]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">Upload Document</h3>
-                  <p className="text-sm text-[#A3B4CC] mb-3">Whitepaper, Pitch Deck, or Company Overview</p>
-                </div>
-                {uploadedFileName
-                  ? <div className="text-sm text-[#4FD1FF] font-semibold">✓ {uploadedFileName}</div>
-                  : <div className="text-xs text-[#8FA6C1]">Click to choose file</div>
-                }
-                <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
-              </div>
-
-              <div className="text-white/50 font-semibold text-sm flex items-center px-3">OR</div>
-
-              <div className="bg-[#1B2F52]/90 border border-[#4FD1FF]/30 rounded-2xl p-7 shadow-xl text-center flex flex-col justify-between">
-                <div>
-                  <div className="w-14 h-14 bg-gradient-to-br from-[#4FD1FF] to-[#6BE3FF] rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                    <svg className="w-8 h-8 text-[#0F1E35]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">Extract from Website</h3>
-                  <p className="text-sm text-[#A3B4CC] mb-3">Paste your company URL</p>
-                </div>
-                <div>
-                  <input
-                    type="url"
-                    value={websiteUrl}
-                    onChange={e => setWebsiteUrl(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && websiteUrl && !isProcessing) handleWebsiteScrape() }}
-                    placeholder="https://yourcompany.com"
-                    className="w-full px-4 py-2.5 bg-[#12213B] border-2 border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-lg text-sm mb-3 focus:outline-none focus:border-[#4FD1FF] transition-all text-center"
-                  />
-                  <button
-                    onClick={handleWebsiteScrape}
-                    disabled={isProcessing}
-                    className="w-full px-4 py-2.5 bg-[#4FD1FF]/10 text-[#4FD1FF] font-semibold hover:bg-[#4FD1FF]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg border-2 border-[#4FD1FF]/40"
-                  >
-                    {isProcessing && <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
-                    {isProcessing ? 'Extracting...' : 'Extract Info →'}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="text-center mt-6">
-              <button onClick={() => setShowUploadOptions(false)} className="px-8 py-3 text-white font-semibold text-base hover:text-[#4FD1FF] transition-all">
-                or Fill Out Manually →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Review Screen */}
-        {showReview && (
-          <div className="bg-[#1B2F52]/90 border border-[#4FD1FF]/30 rounded-2xl p-8 shadow-2xl">
-            <div className="text-center mb-7">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-9 h-9 text-[#0F1E35]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-1">Review Your Profile</h2>
-              <p className="text-[#A3B4CC]">Make any final edits before saving</p>
-            </div>
-
-            <div className="bg-[#4FD1FF]/10 border border-[#4FD1FF]/30 rounded-xl p-5 mb-6">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">⚠️</span>
-                <div>
-                  <h3 className="text-base font-bold text-[#4FD1FF] mb-1">Please Review Carefully</h3>
-                  <p className="text-sm text-[#A3B4CC]">Double-check all fields and fill any that are empty. Make sure all information is accurate before saving.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-              {questions.map(q => {
-                const val = profile[q.id as keyof CompanyProfile]
-                const empty = !val || (typeof val === 'string' && val.trim() === '')
+          {/* Progress bar - colorful and prominent */}
+          <div className="mb-12 bg-[#1B2F52]/60 backdrop-blur-lg rounded-3xl p-6 shadow-2xl border border-[#4FD1FF]/20 animate-fade-in">
+            <div className="flex items-center justify-center gap-3">
+              {steps.map((step, index) => {
+                const currentStep = questions[currentQuestionIndex].step;
+                const isCompleted = currentStep > step.number;
+                const isCurrent = currentStep === step.number;
+                
                 return (
-                  <div key={q.id}>
-                    <label className="block text-sm font-semibold text-white mb-1.5">
-                      {q.question}
-                      {q.required && <span className="text-[#4FD1FF] ml-1">*</span>}
-                      {empty && <span className="text-[#4FD1FF]/80 ml-2 text-xs">(Empty)</span>}
-                    </label>
-                    {q.type === 'textarea' ? (
-                      <textarea
-                        value={String(profile[q.id as keyof CompanyProfile] || '')}
-                        onChange={e => setProfile({ ...profile, [q.id]: e.target.value })}
-                        className={`w-full px-3 py-2.5 bg-[#12213B] text-white placeholder-[#8FA6C1] border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] transition-all resize-none text-sm ${empty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'}`}
-                        rows={3}
-                      />
-                    ) : q.type === 'select' ? (
-                      <select
-                        value={String(profile[q.id as keyof CompanyProfile] || '')}
-                        onChange={e => setProfile({ ...profile, [q.id]: e.target.value })}
-                        className={`w-full px-3 py-2.5 bg-[#12213B] text-white border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] transition-all text-sm ${empty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'}`}
+                  <div key={index} className="flex items-center">
+                    <div className="flex flex-col items-center">
+                      <div 
+                        className={`w-16 h-16 rounded-full flex items-center justify-center font-bold transition-all ${
+                          isCurrent 
+                            ? 'bg-[#4FD1FF] text-[#0F1E35] scale-110 shadow-lg shadow-[#4FD1FF]/50' 
+                            : isCompleted 
+                            ? 'bg-[#4FD1FF]/60 text-white' 
+                            : 'bg-[#2A4472] text-[#8FA6C1]'
+                        }`}
                       >
-                        <option value="">Select...</option>
-                        {q.options?.map(o => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    ) : (
-                      <input
-                        type={q.type}
-                        value={String(profile[q.id as keyof CompanyProfile] || '')}
-                        onChange={e => setProfile({ ...profile, [q.id]: e.target.value })}
-                        className={`w-full px-3 py-2.5 bg-[#12213B] text-white border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] transition-all text-sm ${empty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'}`}
+                        {isCompleted ? '✓' : step.number}
+                      </div>
+                      <span className={`text-xs mt-2 font-semibold ${isCurrent || isCompleted ? 'text-white' : 'text-[#8FA6C1]'}`}>
+                        {step.title}
+                      </span>
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div 
+                        className={`w-12 h-1 mx-2 rounded transition-all ${
+                          isCompleted ? 'bg-[#4FD1FF]' : 'bg-[#2A4472]'
+                        }`}
                       />
                     )}
                   </div>
-                )
+                );
               })}
             </div>
-
-            {/* Terms */}
-            <div className="p-5 bg-[#12213B]/60 rounded-xl border border-[#4FD1FF]/20 mb-6">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={profile.termsAccepted || false}
-                  onChange={e => setProfile({ ...profile, termsAccepted: e.target.checked, termsAcceptedAt: e.target.checked ? new Date().toISOString() : undefined })}
-                  className="mt-0.5 w-4 h-4 rounded accent-[#4FD1FF]"
-                />
-                <span className="text-sm text-[#A3B4CC]">
-                  I agree to the{' '}
-                  <a href="/terms" target="_blank" className="text-[#4FD1FF] hover:underline font-medium">Terms of Service</a>
-                  {' '}and{' '}
-                  <a href="/privacy" target="_blank" className="text-[#4FD1FF] hover:underline font-medium">Privacy Policy</a>
-                  , and consent to Meridian processing my company data.
-                </span>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <button onClick={() => setShowReview(false)} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">
-                ← Back to Questions
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isProcessing || !profile.termsAccepted}
-                className="px-8 py-3.5 text-base font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-xl hover:shadow-xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                {isProcessing ? 'Saving...' : 'Save Profile ✓'}
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* Question Form */}
-        {!showUploadOptions && !showReview && (
-          <div className="bg-[#1B2F52]/90 border border-[#4FD1FF]/30 rounded-2xl p-8 shadow-2xl text-center">
-            <div className="mb-7">
-              <div className="inline-block px-3 py-1.5 bg-gradient-to-r from-[#4FD1FF] to-[#55C7F7] text-[#0F1E35] rounded-full text-xs font-bold mb-3">
-                Question {currentQuestionIndex + 1} of {questions.length}
+          {/* Upload Options - Show at beginning */}
+          {showUploadOptions && currentQuestionIndex === 0 && (
+            <div className="mb-12 animate-slide-in">
+              <div className="grid grid-cols-[1fr_auto_1fr] gap-6 items-stretch">
+                {/* Upload Document */}
+                <Card 
+                  className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 text-center hover:scale-105 hover:shadow-lg hover:shadow-[#4FD1FF]/20 transition-all cursor-pointer shadow-xl flex flex-col justify-between"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <CardContent className="p-8 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#4FD1FF]/20">
+                        <CloudUpload className="w-10 h-10 text-[#0F1E35]" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2">Upload Company Document</h3>
+                      <p className="text-[#A3B4CC] mb-4">Whitepaper, Pitch Deck, or Company Overview</p>
+                    </div>
+                    {uploadedFileName ? (
+                      <div className="text-sm text-[#4FD1FF] font-semibold">✓ {uploadedFileName}</div>
+                    ) : (
+                      <div className="text-sm text-[#8FA6C1]">Click to choose file</div>
+                    )}
+                  </CardContent>
+                  <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
+                </Card>
+
+                {/* OR Divider */}
+                <div className="text-white/60 font-semibold text-sm px-4 flex items-center">
+                  OR
+                </div>
+
+                {/* Website Scraper */}
+                <Card className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 shadow-xl text-center flex flex-col justify-between">
+                  <CardContent className="p-8 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#6BE3FF] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#4FD1FF]/20">
+                        <Globe className="w-10 h-10 text-[#0F1E35]" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2">Extract from Website</h3>
+                      <p className="text-[#A3B4CC] mb-4">Paste your company URL</p>
+                    </div>
+                    <div>
+                      <Input 
+                        type="url" 
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && websiteUrl && !isProcessing) {
+                            handleWebsiteScrape();
+                          }
+                        }}
+                        placeholder="https://yourcompany.com"
+                        className="w-full px-4 py-3 bg-[#12213B] border-2 border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-xl text-sm mb-3 text-center focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all"
+                      />
+                      <Button 
+                        onClick={handleWebsiteScrape} 
+                        disabled={isProcessing}
+                        className="w-full px-4 py-3 bg-[#4FD1FF]/10 text-[#4FD1FF] font-semibold hover:bg-[#4FD1FF]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border-2 border-[#4FD1FF]/40"
+                      >
+                        {isProcessing && (
+                          <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        )}
+                        {isProcessing ? 'Extracting...' : 'Extract Info →'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <h2 className="text-3xl font-bold text-white">
-                {currentQuestion.question}
-                {currentQuestion.required && <span className="text-[#4FD1FF] ml-2">*</span>}
-              </h2>
-            </div>
-
-            <div className="mb-8">
-              {currentQuestion.type === 'textarea' ? (
-                <textarea
-                  ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                  value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
-                  onChange={e => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
-                  placeholder={currentQuestion.placeholder}
-                  disabled={isAnimating}
-                  rows={5}
-                  className="w-full px-5 py-4 text-lg text-white placeholder-[#8FA6C1] bg-[#12213B] border-2 border-[#4FD1FF]/20 rounded-xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 resize-none text-center"
-                />
-              ) : currentQuestion.type === 'select' ? (
-                <select
-                  ref={inputRef as React.RefObject<HTMLSelectElement>}
-                  value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
-                  onChange={e => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
-                  disabled={isAnimating}
-                  className="w-full px-5 py-4 text-lg text-white bg-[#12213B] border-2 border-[#4FD1FF]/20 rounded-xl focus:border-[#4FD1FF] focus:outline-none transition-all disabled:opacity-50"
+              
+              <div className="text-center mt-8">
+                <Button 
+                  variant="ghost"
+                  onClick={() => setShowUploadOptions(false)}
+                  className="px-8 py-4 text-white font-bold text-lg hover:text-white/80 transition-all"
                 >
-                  <option value="">Select an option...</option>
-                  {currentQuestion.options?.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : (
-                <input
-                  ref={inputRef as React.RefObject<HTMLInputElement>}
-                  type={currentQuestion.type}
-                  value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
-                  onChange={e => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
-                  onKeyDown={e => { if (e.key === 'Enter' && !isAnimating) handleNext() }}
-                  placeholder={currentQuestion.placeholder}
-                  disabled={isAnimating}
-                  className="w-full px-5 py-4 text-lg text-white placeholder-[#8FA6C1] bg-[#12213B] border-2 border-[#4FD1FF]/20 rounded-xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 text-center"
-                />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <button onClick={handleBack} disabled={isAnimating} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold disabled:opacity-30 transition-all">
-                ← Back
-              </button>
-              <div className="flex items-center gap-3">
-                {!currentQuestion.required && currentQuestionIndex < questions.length - 1 && (
-                  <button onClick={() => setCurrentQuestionIndex(i => i + 1)} disabled={isAnimating} className="px-6 py-3 text-[#8FA6C1] hover:text-[#A3B4CC] hover:bg-[#2A4472] rounded-xl font-semibold disabled:opacity-30 transition-all">
-                    Skip
-                  </button>
-                )}
-                <button
-                  onClick={handleNext}
-                  disabled={isAnimating || isProcessing}
-                  className="px-8 py-3.5 font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-xl hover:shadow-xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {currentQuestionIndex === questions.length - 1 ? '✓ Review & Save' : 'Next →'}
-                </button>
+                  or Fill Out Manually →
+                </Button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Review Screen - Show all fields for editing */}
+          {showReview && (
+            <Card className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 shadow-2xl animate-slide-in">
+              <CardContent className="p-10">
+                <div className="text-center mb-8">
+                  <div className="w-20 h-20 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-[#4FD1FF]/20">
+                    <CheckCircle className="w-12 h-12 text-[#0F1E35]" />
+                  </div>
+                  <h2 className="text-4xl font-bold text-white mb-2">Review Your Profile</h2>
+                  <p className="text-lg text-[#A3B4CC]">Make any final edits before saving</p>
+                </div>
+
+                {/* Warning Message */}
+                <div className="bg-[#4FD1FF]/10 border-2 border-[#4FD1FF]/40 rounded-2xl p-6 mb-8">
+                  <div className="flex items-start gap-4">
+                    <span className="text-3xl">⚠️</span>
+                    <div>
+                      <h3 className="text-lg font-bold text-[#4FD1FF] mb-2">Please Review Carefully!</h3>
+                      <p className="text-[#A3B4CC]">
+                        Double-check all fields below and fill out any that are empty. Some fields may not have been extracted automatically. 
+                        Make sure all important information is accurate and complete before saving.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  {questions.map((question) => {
+                    const fieldValue = profile[question.id as keyof CompanyProfile];
+                    const isEmpty = !fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === '');
+                    
+                    return (
+                      <div key={question.id} className="text-left">
+                        <label className="block text-sm font-semibold text-white mb-2">
+                          {question.question}
+                          {question.required && <span className="text-[#4FD1FF] ml-1">*</span>}
+                          {isEmpty && <span className="text-[#4FD1FF] ml-2 text-xs">(Empty - Please fill)</span>}
+                        </label>
+                        {question.type === 'textarea' ? (
+                          <Textarea
+                            value={String(profile[question.id as keyof CompanyProfile] || '')}
+                            onChange={(e) => {
+                              setProfile({ ...profile, [question.id]: e.target.value });
+                            }}
+                            className={`w-full px-4 py-3 bg-[#12213B] text-white placeholder-[#8FA6C1] border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all resize-none ${
+                              isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
+                            }`}
+                            rows={4}
+                          />
+                        ) : question.type === 'select' ? (
+                          <Select
+                            value={String(profile[question.id as keyof CompanyProfile] || '')}
+                            onValueChange={(value) => setProfile({ ...profile, [question.id]: value })}
+                          >
+                            <SelectTrigger className={`w-full px-4 py-3 bg-[#12213B] text-white border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all ${
+                              isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
+                            }`}>
+                              <SelectValue placeholder="Select an option..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {question.options?.map(opt => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            type={question.type}
+                            value={String(profile[question.id as keyof CompanyProfile] || '')}
+                            onChange={(e) => setProfile({ ...profile, [question.id]: e.target.value })}
+                            className={`w-full px-4 py-3 bg-[#12213B] text-white placeholder-[#8FA6C1] border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all ${
+                              isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
+                            }`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Terms and Privacy Consent */}
+                <div className="mt-8 p-6 bg-[#12213B]/60 rounded-2xl border-2 border-[#4FD1FF]/20">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={profile.termsAccepted || false}
+                      onChange={(e) => {
+                        setProfile({ 
+                          ...profile, 
+                          termsAccepted: e.target.checked,
+                          termsAcceptedAt: e.target.checked ? new Date().toISOString() : undefined
+                        });
+                      }}
+                      className="mt-1 w-5 h-5 text-[#4FD1FF] bg-[#12213B] border-[#4FD1FF]/30 rounded focus:ring-[#4FD1FF] focus:ring-2"
+                    />
+                    <span className="text-sm text-[#A3B4CC]">
+                      I agree to the{' '}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#4FD1FF] hover:underline font-medium">
+                        Terms of Service
+                      </a>
+                      {' '}and{' '}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#4FD1FF] hover:underline font-medium">
+                        Privacy Policy
+                      </a>
+                      , and I consent to Meridian processing my company data to provide AI-powered lead generation services.
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between mt-8">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowReview(false)}
+                    className="px-8 py-4 text-lg font-bold text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-2xl transition-all"
+                  >
+                    ← Back to Questions
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isProcessing || !profile.termsAccepted}
+                    className="px-10 py-4 text-lg font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-2xl hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isProcessing ? 'Saving...' : 'Save Profile ✓'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main Question Area - Big and colorful */}
+          {!showUploadOptions && !showReview && (
+            <Card className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 shadow-2xl animate-slide-in text-center">
+              <CardContent className="p-10">
+                {/* Question */}
+                <div className="mb-8">
+                  <div className="inline-block px-4 py-2 bg-gradient-to-r from-[#4FD1FF] to-[#55C7F7] text-[#0F1E35] rounded-full text-sm font-semibold mb-4">
+                    Question {currentQuestionIndex + 1}
+                  </div>
+                  <h2 className="text-4xl font-bold text-white mb-2">
+                    {currentQuestion.question}
+                    {currentQuestion.required && <span className="text-[#4FD1FF] ml-2">*</span>}
+                  </h2>
+                </div>
+
+                {/* Input - Large and inviting */}
+                <div className="mb-10">
+                  {currentQuestion.type === 'textarea' ? (
+                    <Textarea
+                      ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                      value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
+                      onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
+                      placeholder={currentQuestion.placeholder}
+                      disabled={isAnimating}
+                      rows={6}
+                      className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 resize-none text-center"
+                    />
+                  ) : currentQuestion.type === 'select' ? (
+                    <Select
+                      value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
+                      onValueChange={(value) => setProfile({ ...profile, [currentQuestion.id]: value })}
+                      disabled={isAnimating}
+                    >
+                      <SelectTrigger className="w-full px-6 py-4 text-xl text-white bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 text-center">
+                        <SelectValue placeholder="Select an option..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentQuestion.options?.map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      ref={inputRef as React.RefObject<HTMLInputElement>}
+                      type={currentQuestion.type}
+                      value={String(profile[currentQuestion.id as keyof CompanyProfile] || '')}
+                      onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
+                      placeholder={currentQuestion.placeholder}
+                      disabled={isAnimating}
+                      className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 text-center"
+                    />
+                  )}
+                </div>
+
+                {/* Navigation - Big colorful buttons */}
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="ghost"
+                    onClick={handleBack}
+                    disabled={isAnimating}
+                    className="px-8 py-4 text-lg font-bold text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    ← Back
+                  </Button>
+
+                  <div className="flex items-center gap-4">
+                    {!currentQuestion.required && currentQuestionIndex < questions.length - 1 && (
+                      <Button
+                        variant="ghost"
+                        onClick={handleSkip}
+                        disabled={isAnimating}
+                        className="px-8 py-4 text-lg font-bold text-[#8FA6C1] hover:text-[#A3B4CC] hover:bg-[#2A4472] rounded-2xl disabled:opacity-30 transition-all"
+                      >
+                        Skip for now
+                      </Button>
+                    )}
+                    
+                    <Button
+                      onClick={handleNext}
+                      disabled={isAnimating || isProcessing}
+                      className="px-10 py-4 text-lg font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-2xl hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      {currentQuestionIndex === questions.length - 1 ? (
+                        isProcessing ? (
+                          <span className="flex items-center gap-2">
+                            <div className="animate-pulse">✓</div> Saving...
+                          </span>
+                        ) : (
+                          '✓ Complete Setup'
+                        )
+                      ) : (
+                        'Next Question →'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    </>
+  );
 }
