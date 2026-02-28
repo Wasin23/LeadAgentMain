@@ -3,9 +3,8 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import Link from "next/link"
-import { ArrowRight, Bot, Mail, BarChart3, Zap, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ArrowRight, Sparkles, Rocket, BarChart3, Mail, Search, Zap, CheckCircle } from "lucide-react"
 
 export default function LandingPage() {
   const { user, loading } = useAuth()
@@ -18,86 +17,165 @@ export default function LandingPage() {
   if (loading || user) return null
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
+
       {/* Nav */}
-      <header className="border-b border-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-foreground">
-            <ellipse cx="24" cy="24" rx="6"  ry="20" stroke="currentColor" strokeWidth="1.5"/>
+      <nav className="px-6 sm:px-10 py-5 flex items-center justify-between border-b border-border">
+        <div className="flex items-center gap-3">
+          <svg width="36" height="36" viewBox="0 0 48 48" fill="none" className="text-foreground">
+            <ellipse cx="24" cy="24" rx="6" ry="20" stroke="currentColor" strokeWidth="1.5"/>
             <ellipse cx="24" cy="24" rx="14" ry="20" stroke="currentColor" strokeWidth="1.5"/>
             <ellipse cx="24" cy="24" rx="20" ry="20" stroke="currentColor" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8"  stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" stroke="currentColor" strokeWidth="1.5"/>
             <ellipse cx="24" cy="24" rx="20" ry="16" stroke="currentColor" strokeWidth="1.5"/>
             <line x1="4" y1="24" x2="44" y2="24" stroke="currentColor" strokeWidth="1.5"/>
           </svg>
-          <span className="text-lg font-semibold text-foreground">Meridian</span>
+          <span className="text-xl font-bold">Meridian</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/signin">
-            <Button variant="ghost" size="sm">Sign in</Button>
-          </Link>
-          <Link href="/signin">
-            <Button size="sm">Get started <ArrowRight className="w-3.5 h-3.5 ml-1.5" /></Button>
-          </Link>
+          <Button variant="ghost" onClick={() => router.push("/signin")}>Sign In</Button>
+          <Button onClick={() => router.push("/signin")}>Start Free Trial</Button>
         </div>
-      </header>
+      </nav>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-6 border border-primary/20">
-          <Zap className="w-3 h-3" />
-          AI-powered outreach automation
+      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20">
+        <div className="inline-block mb-5 px-4 py-1.5 bg-primary/10 rounded-full text-primary font-medium text-sm border border-primary/20">
+          ✨ AI-Powered Lead Generation
         </div>
 
-        <h1 className="text-5xl font-bold text-foreground max-w-2xl leading-tight mb-5">
-          Your AI sales team,<br />on autopilot
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-5 leading-tight max-w-4xl">
+          Find Your Perfect Leads<br />
+          <span className="bg-gradient-to-r from-violet-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+            On Autopilot
+          </span>
         </h1>
 
-        <p className="text-lg text-muted-foreground max-w-xl mb-10">
-          Meridian deploys intelligent AI agents that research leads, write personalized emails, and follow up automatically so you can focus on closing.
+        <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl">
+          Meridian uses advanced AI to research, qualify, and reach out to your ideal customers automatically.
+          Spend less time prospecting, more time closing deals.
         </p>
 
-        <div className="flex items-center gap-3">
-          <Link href="/signin">
-            <Button size="lg" className="gap-2">
-              Start for free <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
-          <Link href="/signin">
-            <Button size="lg" variant="outline">Sign in</Button>
-          </Link>
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-16">
+          <Button size="lg" className="gap-2 text-base px-8" onClick={() => router.push("/signin")}>
+            Start Now <ArrowRight className="w-5 h-5" />
+          </Button>
+          <Button size="lg" variant="outline" className="text-base px-8" onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}>
+            Learn More
+          </Button>
         </div>
 
-        {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-20 max-w-3xl w-full">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-8 sm:gap-16 max-w-lg w-full">
           {[
-            { icon: Bot, title: "AI Agents", desc: "Autonomous agents that prospect, research, and outreach on your behalf 24/7." },
-            { icon: Mail, title: "Smart Email", desc: "Hyper-personalized emails written by AI, sent at the right time automatically." },
-            { icon: BarChart3, title: "Analytics", desc: "Track open rates, replies, and conversions across all your campaigns." },
-          ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="text-left p-5 rounded-xl border border-border bg-card">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                <Icon className="w-4 h-4 text-primary" />
+            { number: "10x", label: "Faster Prospecting" },
+            { number: "85%", label: "Time Saved" },
+            { number: "3x",  label: "More Qualified Leads" },
+          ].map(s => (
+            <div key={s.label} className="text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-foreground">{s.number}</div>
+              <div className="text-sm text-muted-foreground mt-1">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="px-6 sm:px-10 py-20 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-5xl font-bold mb-4">Everything You Need to Scale</h2>
+            <p className="text-lg text-muted-foreground">Powerful features to automate your entire outbound process</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: Search,   title: "AI Lead Research",      desc: "Find companies that perfectly match your ICP using advanced web search and data enrichment." },
+              { icon: Sparkles, title: "Smart Qualification",   desc: "AI analyzes each lead against your criteria and scores them for quality and fit." },
+              { icon: Mail,     title: "Personalized Outreach", desc: "Generate highly personalized emails that get responses using GPT-4 intelligence." },
+              { icon: BarChart3,title: "Real-Time Analytics",   desc: "Track opens, clicks, and replies with comprehensive email tracking and reporting." },
+              { icon: Zap,      title: "Automated Follow-ups",  desc: "AI agents handle follow-up sequences automatically based on lead engagement." },
+              { icon: Rocket,   title: "Scale Infinitely",      desc: "Run multiple campaigns simultaneously with different targeting and messaging." },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="p-7 rounded-2xl border border-border bg-card hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                  <Icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">{title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">{title}</h3>
-              <p className="text-sm text-muted-foreground">{desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* Social proof */}
-        <div className="flex flex-wrap items-center justify-center gap-5 mt-14 text-sm text-muted-foreground">
-          {["No credit card required", "Set up in minutes", "Cancel anytime"].map(t => (
-            <div key={t} className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-primary" />
-              {t}
-            </div>
-          ))}
+      {/* How It Works */}
+      <section className="px-6 sm:px-10 py-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-5xl font-bold mb-4">How Meridian Works</h2>
+            <p className="text-lg text-muted-foreground">Set it up once, let AI do the rest</p>
+          </div>
+
+          <div className="space-y-5">
+            {[
+              { step: "1", title: "Define Your Ideal Customer",    desc: "Tell us about your target market, industry, company size, and pain points you solve." },
+              { step: "2", title: "AI Finds & Qualifies Leads",    desc: "Our AI agents search the web, enrich data, and qualify leads based on your criteria." },
+              { step: "3", title: "Personalized Outreach",         desc: "GPT-4 crafts unique, personalized emails for each lead based on deep research." },
+              { step: "4", title: "Track & Optimize",              desc: "Monitor performance in real-time and let AI optimize your campaigns automatically." },
+            ].map(s => (
+              <div key={s.step} className="flex items-start gap-5 p-6 rounded-2xl border border-border bg-card hover:shadow-sm transition-shadow">
+                <div className="w-12 h-12 shrink-0 rounded-xl flex items-center justify-center text-xl font-bold text-white bg-gradient-to-br from-violet-500 to-pink-500">
+                  {s.step}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">{s.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
 
-      <footer className="border-t border-border px-6 py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Meridian. All rights reserved.
+      {/* CTA */}
+      <section className="px-6 sm:px-10 py-20 bg-muted/30">
+        <div className="max-w-3xl mx-auto text-center p-10 sm:p-16 rounded-3xl border border-border bg-card shadow-sm">
+          <h2 className="text-3xl sm:text-5xl font-bold mb-5">Ready to Scale Your Outbound?</h2>
+          <p className="text-lg text-muted-foreground mb-10">
+            Join companies using AI to generate qualified leads on autopilot.
+          </p>
+          <Button size="lg" className="gap-2 text-base px-10" onClick={() => router.push("/signin")}>
+            Start Free Trial <ArrowRight className="w-5 h-5" />
+          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-5 mt-8 text-sm text-muted-foreground">
+            {["No credit card required", "Set up in minutes", "Cancel anytime"].map(t => (
+              <div key={t} className="flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-primary" />
+                {t}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border px-6 sm:px-10 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <svg width="24" height="24" viewBox="0 0 48 48" fill="none" className="text-muted-foreground">
+            <ellipse cx="24" cy="24" rx="6" ry="20" stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="16" stroke="currentColor" strokeWidth="1.5"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="currentColor" strokeWidth="1.5"/>
+          </svg>
+          © {new Date().getFullYear()} Meridian. All rights reserved.
+        </div>
+        <div className="flex gap-5">
+          <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+          <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
+        </div>
       </footer>
     </div>
   )
