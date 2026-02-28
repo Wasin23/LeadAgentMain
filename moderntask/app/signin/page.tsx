@@ -200,6 +200,7 @@ export default function SignInPage() {
 
   // Handle Google OAuth callback via hash params
   useEffect(() => {
+    const run = async () => {
     if (typeof window === 'undefined') return
     const hash = window.location.hash
     if (!hash?.startsWith('#')) return
@@ -228,6 +229,8 @@ export default function SignInPage() {
     } catch {
       setError('Google sign-in failed. Please try again.')
     }
+    }
+    run()
   }, [router])
 
   const handleSignIn = async (e: React.FormEvent) => {
