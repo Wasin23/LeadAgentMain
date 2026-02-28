@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import CompanyProfile from '@/components/onboarding/company-profile'
 import AgentSetup from '@/components/onboarding/agent-setup'
+import GlobeBackground from '@/components/onboarding/globe-background'
 
 type OnboardingStage = 'loading' | 'company-profile' | 'agent-setup' | 'done'
 
@@ -75,28 +76,31 @@ export default function OnboardingPage() {
 
   if (stage === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] flex flex-col items-center justify-center gap-8">
-        <div className="flex items-center gap-3 mb-2">
-          <svg width="44" height="44" viewBox="0 0 48 48" className="drop-shadow-lg">
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="#4FD1FF" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="#4FD1FF" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="#4FD1FF" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="#4FD1FF" strokeWidth="1.5"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="#4FD1FF" strokeWidth="1.5"/>
-          </svg>
-          <span className="text-3xl font-bold text-white tracking-tight">Meridian</span>
-        </div>
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-[3px] border-[#4FD1FF] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#A3B4CC] text-base font-medium">Loading your setup…</p>
-        </div>
-        <div className="flex items-center gap-2 mt-4">
-          {(['Company Profile', 'Agent Setup'] as const).map((label, i) => (
-            <div key={label} className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#4FD1FF]/30 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
-              <span className="text-[#8FA6C1] text-xs font-medium">{label}</span>
-            </div>
-          ))}
+      <div className="relative min-h-screen flex flex-col items-center justify-center gap-8">
+        <GlobeBackground />
+        <div className="relative z-10 flex flex-col items-center gap-8">
+          <div className="flex items-center gap-3 mb-2">
+            <svg width="44" height="44" viewBox="0 0 48 48" className="drop-shadow-lg">
+              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
+              <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
+            </svg>
+            <span className="text-3xl font-bold text-white tracking-tight">Meridian</span>
+          </div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-[3px] border-white border-t-transparent rounded-full animate-spin" />
+            <p className="text-white/70 text-base font-medium">Loading your setup…</p>
+          </div>
+          <div className="flex items-center gap-2 mt-4">
+            {(['Company Profile', 'Agent Setup'] as const).map((label, i) => (
+              <div key={label} className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                <span className="text-white/60 text-xs font-medium">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )

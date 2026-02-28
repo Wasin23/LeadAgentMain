@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
+import GlobeBackground from '@/components/onboarding/globe-background';
 
 interface CompanyProfile {
   companyName: string;
@@ -332,6 +333,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
         .animate-slide-in { animation: slideInLeft 0.4s ease-out; }
         .animate-pulse { animation: pulse 2s ease-in-out infinite; }
       `}</style>
+
+      <GlobeBackground />
       
       {/* Meridian Logo and Title */}
       <div className="fixed top-8 left-8 z-50 flex items-center gap-3">
@@ -346,7 +349,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
         <h1 className="text-3xl font-bold text-white drop-shadow-lg">Meridian</h1>
       </div>
       
-      <div className="min-h-screen bg-gradient-to-br from-blue-950 via-slate-900 to-slate-800 p-8">
+      <div className="relative z-10 min-h-screen p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header with big colorful title */}
           <div className="text-center mb-12 animate-fade-in">
@@ -354,11 +357,11 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
               <Building2 className="w-12 h-12 text-[#0F1E35]" />
             </div>
             <h1 className="text-5xl font-bold text-white mb-4">Let's Build Your Profile!</h1>
-            <p className="text-xl text-[#A3B4CC]">Tell us about your awesome company</p>
+            <p className="text-xl text-white/70">Tell us about your awesome company</p>
           </div>
 
           {/* Progress bar */}
-          <div className="mb-12 bg-[#1B2F52]/60 backdrop-blur-lg rounded-2xl p-5 shadow-2xl border border-[#4FD1FF]/20 animate-fade-in">
+          <div className="mb-12 bg-white/10 backdrop-blur-lg rounded-2xl p-5 shadow-2xl border border-white/20 animate-fade-in">
             <div className="flex items-center justify-center gap-2">
               {steps.map((step, index) => {
                 const currentStep = questions[currentQuestionIndex].step;
@@ -371,24 +374,24 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       <div 
                         className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                           isCurrent 
-                            ? 'bg-[#4FD1FF] text-[#0F1E35] scale-110 shadow-lg shadow-[#4FD1FF]/40 ring-4 ring-[#4FD1FF]/20' 
+                            ? 'bg-white text-gray-900 scale-110 shadow-lg shadow-white/30 ring-4 ring-white/20' 
                             : isCompleted 
-                            ? 'bg-[#4FD1FF]/30 text-[#4FD1FF] border border-[#4FD1FF]/50' 
-                            : 'bg-[#1A2E4A] text-[#8FA6C1] border border-[#2A4472]'
+                            ? 'bg-white/30 text-white border border-white/50' 
+                            : 'bg-white/10 text-white/50 border border-white/20'
                         }`}
                       >
                         {isCompleted ? (
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                         ) : step.number}
                       </div>
-                      <span className={`text-[11px] font-semibold tracking-wide ${isCurrent ? 'text-[#4FD1FF]' : isCompleted ? 'text-white/70' : 'text-[#8FA6C1]'}`}>
+                      <span className={`text-[11px] font-semibold tracking-wide ${isCurrent ? 'text-white' : isCompleted ? 'text-white/70' : 'text-white/40'}`}>
                         {step.title}
                       </span>
                     </div>
                     {index < steps.length - 1 && (
                       <div 
                         className={`w-10 h-0.5 mx-3 mb-5 rounded-full transition-all duration-500 ${
-                          isCompleted ? 'bg-[#4FD1FF]' : 'bg-[#2A4472]'
+                          isCompleted ? 'bg-white/60' : 'bg-white/20'
                         }`}
                       />
                     )}
@@ -404,21 +407,21 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
               <div className="grid grid-cols-[1fr_auto_1fr] gap-6 items-stretch">
                 {/* Upload Document */}
                 <Card 
-                  className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 text-center hover:scale-105 hover:shadow-lg hover:shadow-[#4FD1FF]/20 transition-all cursor-pointer shadow-xl flex flex-col justify-between"
+                  className="bg-white/95 backdrop-blur-md border border-gray-200 text-center hover:scale-105 hover:shadow-xl transition-all cursor-pointer shadow-lg flex flex-col justify-between"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <CardContent className="p-8 flex flex-col justify-between h-full">
                     <div>
-                      <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#4FD1FF]/20">
-                        <CloudUpload className="w-10 h-10 text-[#0F1E35]" />
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+                        <CloudUpload className="w-10 h-10 text-white" />
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-2">Upload Company Document</h3>
-                      <p className="text-[#A3B4CC] mb-4">Whitepaper, Pitch Deck, or Company Overview</p>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Upload Company Document</h3>
+                      <p className="text-gray-500 mb-4">Whitepaper, Pitch Deck, or Company Overview</p>
                     </div>
                     {uploadedFileName ? (
-                      <div className="text-sm text-[#4FD1FF] font-semibold">✓ {uploadedFileName}</div>
+                      <div className="text-sm text-blue-600 font-semibold">✓ {uploadedFileName}</div>
                     ) : (
-                      <div className="text-sm text-[#8FA6C1]">Click to choose file</div>
+                      <div className="text-sm text-gray-400">Click to choose file</div>
                     )}
                   </CardContent>
                   <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
@@ -430,14 +433,14 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 </div>
 
                 {/* Website Scraper */}
-                <Card className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 shadow-xl text-center flex flex-col justify-between">
+                <Card className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg text-center flex flex-col justify-between">
                   <CardContent className="p-8 flex flex-col justify-between h-full">
                     <div>
-                      <div className="w-16 h-16 bg-gradient-to-br from-[#4FD1FF] to-[#6BE3FF] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#4FD1FF]/20">
-                        <Globe className="w-10 h-10 text-[#0F1E35]" />
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+                        <Globe className="w-10 h-10 text-white" />
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-2">Extract from Website</h3>
-                      <p className="text-[#A3B4CC] mb-4">Paste your company URL</p>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Extract from Website</h3>
+                      <p className="text-gray-500 mb-4">Paste your company URL</p>
                     </div>
                     <div>
                       <Input 
@@ -450,12 +453,12 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                           }
                         }}
                         placeholder="https://yourcompany.com"
-                        className="w-full px-4 py-3 bg-[#12213B] border-2 border-[#4FD1FF]/30 text-white placeholder-[#8FA6C1] rounded-xl text-sm mb-3 text-center focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 rounded-xl text-sm mb-3 text-center focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
                       />
                       <Button 
                         onClick={handleWebsiteScrape} 
                         disabled={isProcessing}
-                        className="w-full px-4 py-3 bg-[#4FD1FF]/10 text-[#4FD1FF] font-semibold hover:bg-[#4FD1FF]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border-2 border-[#4FD1FF]/40"
+                        className="w-full px-4 py-3 bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl border border-blue-200"
                       >
                         {isProcessing && (
                           <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -470,7 +473,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 </Card>
               </div>
               
-              <div className="text-center mt-8">
+                <div className="text-center mt-8">
                 <Button 
                   variant="ghost"
                   onClick={() => setShowUploadOptions(false)}
@@ -484,23 +487,23 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
 
           {/* Review Screen - Show all fields for editing */}
           {showReview && (
-            <Card className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 shadow-2xl animate-slide-in">
+            <Card className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-2xl animate-slide-in">
               <CardContent className="p-10">
                 <div className="text-center mb-8">
-                  <div className="w-20 h-20 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-[#4FD1FF]/20">
-                    <CheckCircle className="w-12 h-12 text-[#0F1E35]" />
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/20">
+                    <CheckCircle className="w-12 h-12 text-white" />
                   </div>
-                  <h2 className="text-4xl font-bold text-white mb-2">Review Your Profile</h2>
-                  <p className="text-lg text-[#A3B4CC]">Make any final edits before saving</p>
+                  <h2 className="text-4xl font-bold text-gray-900 mb-2">Review Your Profile</h2>
+                  <p className="text-lg text-gray-500">Make any final edits before saving</p>
                 </div>
 
                 {/* Warning Message */}
-                <div className="bg-[#4FD1FF]/10 border-2 border-[#4FD1FF]/40 rounded-2xl p-6 mb-8">
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
                   <div className="flex items-start gap-4">
                     <span className="text-3xl">⚠️</span>
                     <div>
-                      <h3 className="text-lg font-bold text-[#4FD1FF] mb-2">Please Review Carefully!</h3>
-                      <p className="text-[#A3B4CC]">
+                      <h3 className="text-lg font-bold text-blue-700 mb-2">Please Review Carefully!</h3>
+                      <p className="text-gray-600">
                         Double-check all fields below and fill out any that are empty. Some fields may not have been extracted automatically. 
                         Make sure all important information is accurate and complete before saving.
                       </p>
@@ -515,10 +518,10 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     
                     return (
                       <div key={question.id} className="text-left">
-                        <label className="block text-sm font-semibold text-white mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                           {question.question}
-                          {question.required && <span className="text-[#4FD1FF] ml-1">*</span>}
-                          {isEmpty && <span className="text-[#4FD1FF] ml-2 text-xs">(Empty - Please fill)</span>}
+                          {question.required && <span className="text-blue-600 ml-1">*</span>}
+                          {isEmpty && <span className="text-blue-500 ml-2 text-xs">(Empty — Please fill)</span>}
                         </label>
                         {question.type === 'textarea' ? (
                           <Textarea
@@ -526,8 +529,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                             onChange={(e) => {
                               setProfile({ ...profile, [question.id]: e.target.value });
                             }}
-                            className={`w-full px-4 py-3 bg-[#12213B] text-white placeholder-[#8FA6C1] border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all resize-none ${
-                              isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
+                            className={`w-full px-4 py-3 bg-gray-50 text-gray-900 placeholder-gray-400 border rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all resize-none ${
+                              isEmpty ? 'border-blue-300' : 'border-gray-200'
                             }`}
                             rows={4}
                           />
@@ -536,8 +539,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                             value={String(profile[question.id as keyof CompanyProfile] || '')}
                             onValueChange={(value) => setProfile({ ...profile, [question.id]: value })}
                           >
-                            <SelectTrigger className={`w-full px-4 py-3 bg-[#12213B] text-white border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all ${
-                              isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
+                            <SelectTrigger className={`w-full px-4 py-3 bg-gray-50 text-gray-900 border rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all ${
+                              isEmpty ? 'border-blue-300' : 'border-gray-200'
                             }`}>
                               <SelectValue placeholder="Select an option..." />
                             </SelectTrigger>
@@ -552,8 +555,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                             type={question.type}
                             value={String(profile[question.id as keyof CompanyProfile] || '')}
                             onChange={(e) => setProfile({ ...profile, [question.id]: e.target.value })}
-                            className={`w-full px-4 py-3 bg-[#12213B] text-white placeholder-[#8FA6C1] border-2 rounded-xl focus:outline-none focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all ${
-                              isEmpty ? 'border-[#4FD1FF]/60' : 'border-[#4FD1FF]/20'
+                            className={`w-full px-4 py-3 bg-gray-50 text-gray-900 placeholder-gray-400 border rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all ${
+                              isEmpty ? 'border-blue-300' : 'border-gray-200'
                             }`}
                           />
                         )}
@@ -563,7 +566,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 </div>
                 
                 {/* Terms and Privacy Consent */}
-                <div className="mt-8 p-6 bg-[#12213B]/60 rounded-2xl border-2 border-[#4FD1FF]/20">
+                <div className="mt-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -575,15 +578,15 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                           termsAcceptedAt: e.target.checked ? new Date().toISOString() : undefined
                         });
                       }}
-                      className="mt-1 w-5 h-5 text-[#4FD1FF] bg-[#12213B] border-[#4FD1FF]/30 rounded focus:ring-[#4FD1FF] focus:ring-2"
+                      className="mt-1 w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                     />
-                    <span className="text-sm text-[#A3B4CC]">
+                    <span className="text-sm text-gray-600">
                       I agree to the{' '}
-                      <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#4FD1FF] hover:underline font-medium">
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
                         Terms of Service
                       </a>
                       {' '}and{' '}
-                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#4FD1FF] hover:underline font-medium">
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
                         Privacy Policy
                       </a>
                       , and I consent to Meridian processing my company data to provide AI-powered lead generation services.
@@ -595,14 +598,14 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                   <Button
                     variant="ghost"
                     onClick={() => setShowReview(false)}
-                    className="px-8 py-4 text-lg font-bold text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-2xl transition-all"
+                    className="px-8 py-4 text-lg font-bold text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-all"
                   >
                     ← Back to Questions
                   </Button>
                   <Button
                     onClick={handleSave}
                     disabled={isProcessing || !profile.termsAccepted}
-                    className="px-10 py-4 text-lg font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-2xl hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-10 py-4 text-lg font-bold text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {isProcessing ? 'Saving...' : 'Save Profile ✓'}
                   </Button>
@@ -613,22 +616,22 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
 
           {/* Main Question Area - Big and colorful */}
           {!showUploadOptions && !showReview && (
-            <Card className="bg-[#1B2F52]/90 backdrop-blur-md border-[#4FD1FF]/30 shadow-2xl animate-slide-in text-center">
+            <Card className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-2xl animate-slide-in text-center">
               <CardContent className="p-10">
                 {/* Question */}
                 <div className="mb-8">
                   <div className="flex items-center justify-center gap-3 mb-4">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#4FD1FF]/10 border border-[#4FD1FF]/30 text-[#4FD1FF] rounded-full text-sm font-semibold">
-                      <span className="w-5 h-5 rounded-full bg-[#4FD1FF] text-[#0F1E35] flex items-center justify-center text-xs font-bold">{currentQuestionIndex + 1}</span>
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-full text-sm font-semibold">
+                      <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">{currentQuestionIndex + 1}</span>
                       of {questions.length}
                     </div>
                     {!currentQuestion.required && (
-                      <span className="text-[#8FA6C1] text-xs font-medium px-3 py-1.5 bg-white/5 rounded-full border border-white/10">Optional</span>
+                      <span className="text-gray-400 text-xs font-medium px-3 py-1.5 bg-gray-100 rounded-full border border-gray-200">Optional</span>
                     )}
                   </div>
-                  <h2 className="text-4xl font-bold text-white mb-2">
+                  <h2 className="text-4xl font-bold text-gray-900 mb-2">
                     {currentQuestion.question}
-                    {currentQuestion.required && <span className="text-[#4FD1FF] ml-2">*</span>}
+                    {currentQuestion.required && <span className="text-blue-600 ml-2">*</span>}
                   </h2>
                 </div>
 
@@ -642,7 +645,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       placeholder={currentQuestion.placeholder}
                       disabled={isAnimating}
                       rows={6}
-                      className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 resize-none text-left"
+                      className="w-full px-6 py-4 text-xl text-gray-900 placeholder-gray-300 bg-gray-50 border border-gray-200 rounded-2xl focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all disabled:opacity-50 resize-none text-left"
                     />
                   ) : currentQuestion.type === 'select' ? (
                     <Select
@@ -650,7 +653,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       onValueChange={(value) => setProfile({ ...profile, [currentQuestion.id]: value })}
                       disabled={isAnimating}
                     >
-                      <SelectTrigger className="w-full px-6 py-4 text-xl text-white bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 text-center">
+                      <SelectTrigger className="w-full px-6 py-4 text-xl text-gray-900 bg-gray-50 border border-gray-200 rounded-2xl focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all disabled:opacity-50">
                         <SelectValue placeholder="Select an option..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -667,7 +670,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       onChange={(e) => setProfile({ ...profile, [currentQuestion.id]: e.target.value })}
                       placeholder={currentQuestion.placeholder}
                       disabled={isAnimating}
-                      className="w-full px-6 py-4 text-xl text-white placeholder-[#8FA6C1] bg-[#12213B] border-3 border-[#4FD1FF]/20 rounded-2xl focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/20 transition-all disabled:opacity-50 text-center"
+                      className="w-full px-6 py-4 text-xl text-gray-900 placeholder-gray-300 bg-gray-50 border border-gray-200 rounded-2xl focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all disabled:opacity-50 text-center"
                     />
                   )}
                 </div>
@@ -678,7 +681,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     variant="ghost"
                     onClick={handleBack}
                     disabled={isAnimating}
-                    className="px-8 py-4 text-lg font-bold text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-8 py-4 text-lg font-bold text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     ← Back
                   </Button>
@@ -689,7 +692,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                         variant="ghost"
                         onClick={handleSkip}
                         disabled={isAnimating}
-                        className="px-8 py-4 text-lg font-bold text-[#8FA6C1] hover:text-[#A3B4CC] hover:bg-[#2A4472] rounded-2xl disabled:opacity-30 transition-all"
+                        className="px-8 py-4 text-lg font-bold text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-2xl disabled:opacity-30 transition-all"
                       >
                         Skip for now
                       </Button>
@@ -698,7 +701,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     <Button
                       onClick={handleNext}
                       disabled={isAnimating || isProcessing}
-                      className="px-10 py-4 text-lg font-bold text-[#0F1E35] bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] rounded-2xl hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="px-10 py-4 text-lg font-bold text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                       {currentQuestionIndex === questions.length - 1 ? (
                         isProcessing ? (

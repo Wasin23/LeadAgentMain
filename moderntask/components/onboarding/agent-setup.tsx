@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
+import GlobeBackground from '@/components/onboarding/globe-background'
 
 // Personality types data
 const PERSONALITY_TYPES = [
@@ -298,57 +299,58 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const progressPct = step === 'creating' ? 100 : Math.round((stepIdx / (totalSteps)) * 100)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F1E35] via-[#1B2F52] to-[#223A63] overflow-y-auto">
+    <div className="relative min-h-screen overflow-y-auto">
+      <GlobeBackground />
       {/* Top bar */}
-      <div className="sticky top-0 z-10 bg-[#0F1E35]/80 backdrop-blur-md border-b border-[#4FD1FF]/10">
+      <div className="relative z-10 sticky top-0 bg-white/90 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <svg width="32" height="32" viewBox="0 0 48 48">
-              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
-              <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+              <line x1="4" y1="24" x2="44" y2="24" stroke="currentColor" strokeWidth="1.5"/>
             </svg>
-            <span className="text-white font-bold text-lg">Create Your Agent</span>
+            <span className="text-gray-900 font-bold text-lg">Create Your Agent</span>
           </div>
-          <button onClick={onSkip} className="px-4 py-2 text-sm text-[#A3B4CC] border border-[#4FD1FF]/20 rounded-lg hover:bg-[#2A4472] transition-all">
+          <button onClick={onSkip} className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
             Skip Tutorial
           </button>
         </div>
         {step !== 'creating' && (
-          <div className="h-0.5 bg-[#2A4472]">
-            <div className="h-full bg-[#4FD1FF] transition-all duration-500" style={{ width: `${progressPct}%` }} />
+          <div className="h-0.5 bg-gray-100">
+            <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${progressPct}%` }} />
           </div>
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-10">
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-10">
 
         {/* INTRO */}
         {step === 'intro' && (
           <div className="text-center max-w-2xl mx-auto">
-            <div className="w-20 h-20 bg-gradient-to-br from-[#4FD1FF] to-[#6BE3FF] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-[#4FD1FF]/30">
-              <svg className="w-11 h-11 text-[#0F1E35]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/30">
+              <svg className="w-11 h-11 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
             <h1 className="text-4xl font-bold text-white mb-4">Create Your First AI Agent</h1>
-            <p className="text-xl text-[#A3B4CC] mb-8">Your agent will automatically find leads, write personalized emails, and track responses for you.</p>
-            <div className="bg-[#1B2F52]/60 border border-[#4FD1FF]/20 rounded-2xl p-6 mb-8 text-left space-y-3">
+            <p className="text-xl text-white/70 mb-8">Your agent will automatically find leads, write personalized emails, and track responses for you.</p>
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-8 text-left space-y-3">
               {[
                 { icon: '🔍', text: 'Find qualified leads based on your criteria' },
                 { icon: '✉️', text: 'Write personalized emails for each contact' },
                 { icon: '📊', text: 'Research and write reports into your CRM' },
                 { icon: '📅', text: 'Track responses and book meetings' },
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 text-[#A3B4CC]">
+                <div key={i} className="flex items-start gap-3 text-white/80">
                   <span>{item.icon}</span>
                   <span>{item.text}</span>
                 </div>
               ))}
             </div>
-            <button onClick={next} className="px-10 py-4 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all">
+            <button onClick={next} className="px-10 py-4 bg-white text-blue-600 rounded-xl font-bold text-lg hover:shadow-2xl hover:shadow-white/20 hover:scale-105 transition-all">
               ✨ Let's Create Your Agent →
             </button>
           </div>
@@ -359,7 +361,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div>
             <div className="text-center mb-8">
               <h2 className="text-4xl font-bold text-white mb-3">Choose a Personality</h2>
-              <p className="text-xl text-[#A3B4CC]">This determines your agent's communication style</p>
+              <p className="text-xl text-white/70">This determines your agent's communication style</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
               {PERSONALITY_TYPES.map(p => {
@@ -368,18 +370,22 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   <button
                     key={p.id}
                     onClick={() => setPersonality(p)}
-                    className={`relative p-5 rounded-2xl text-center transition-all bg-[#1B2F52]/90 border ${sel ? 'border-[#4FD1FF] ring-2 ring-[#4FD1FF] scale-105 shadow-2xl' : 'border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 hover:scale-105'}`}
+                    className={`relative p-5 rounded-2xl text-center transition-all bg-white/95 border shadow-sm ${
+                      sel
+                        ? 'border-blue-500 ring-2 ring-blue-500 scale-105 shadow-xl'
+                        : 'border-gray-200 hover:border-blue-300 hover:scale-105 hover:shadow-md'
+                    }`}
                   >
                     {sel && (
-                      <div className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-[#4FD1FF] rounded-full flex items-center justify-center z-10">
-                        <svg className="w-4 h-4 text-[#0F1E35]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <div className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center z-10">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                       </div>
                     )}
                     <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${colorGrad[p.color]} p-1 mx-auto mb-3`}>
-                      <img src={p.avatar} alt={p.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=4FD1FF&color=0F1E35` }} />
+                      <img src={p.avatar} alt={p.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=3b82f6&color=ffffff` }} />
                     </div>
-                    <h3 className={`text-sm font-bold mb-1 ${sel ? 'text-[#4FD1FF]' : 'text-white'}`}>{p.name}</h3>
-                    <p className="text-xs text-[#A3B4CC] leading-relaxed">{p.description.slice(0, 60)}...</p>
+                    <h3 className={`text-sm font-bold mb-1 ${sel ? 'text-blue-600' : 'text-gray-900'}`}>{p.name}</h3>
+                    <p className="text-xs text-gray-500 leading-relaxed">{p.description.slice(0, 60)}...</p>
                     <div className="mt-2 space-y-1">
                       {p.traits.slice(0, 2).map((t, i) => (
                         <div key={i} className={`text-[10px] px-2 py-0.5 rounded-full text-white bg-gradient-to-r ${colorGrad[p.color]}`}>{t}</div>
@@ -390,8 +396,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               })}
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">← Back</button>
-              <button onClick={next} disabled={!personality} className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-semibold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} disabled={!personality} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 Continue →
               </button>
             </div>
@@ -404,25 +410,25 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
             <div className="text-center mb-8">
               {personality && (
                 <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${colorGrad[personality.color]} p-1.5 mx-auto mb-5 shadow-2xl`}>
-                  <img src={personality.avatar} alt={personality.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(personality.name)}&background=4FD1FF&color=0F1E35` }} />
+                  <img src={personality.avatar} alt={personality.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(personality.name)}&background=3b82f6&color=ffffff` }} />
                 </div>
               )}
               <h2 className="text-4xl font-bold text-white mb-2">Name Your Agent</h2>
-              <p className="text-xl text-[#A3B4CC]">Give it a memorable name to identify this campaign</p>
+              <p className="text-xl text-white/70">Give it a memorable name to identify this campaign</p>
             </div>
-            <div className="bg-[#1B2F52]/60 border border-[#4FD1FF]/20 rounded-2xl p-7 mb-7">
-              <label className="block text-white font-semibold mb-2">Agent Name</label>
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-7 mb-7 shadow-lg">
+              <label className="block text-gray-700 font-semibold mb-2">Agent Name</label>
               <input
                 type="text" autoFocus value={agentName} onChange={e => setAgentName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && agentName.trim()) next() }}
                 placeholder="e.g., Enterprise Outreach Agent"
-                className="w-full px-5 py-4 rounded-xl text-lg border-2 border-[#4FD1FF]/30 focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 bg-[#12213B] text-white placeholder-[#8FA6C1] outline-none"
+                className="w-full px-5 py-4 rounded-xl text-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 bg-gray-50 text-gray-900 placeholder-gray-400 outline-none transition-all"
               />
-              <p className="text-[#A3B4CC] text-sm mt-2">💡 Tip: Use descriptive names like "SMB Campaign" or "Series A Startups"</p>
+              <p className="text-gray-500 text-sm mt-2">💡 Tip: Use descriptive names like "SMB Campaign" or "Series A Startups"</p>
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">← Back</button>
-              <button onClick={next} disabled={!agentName.trim()} className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-semibold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} disabled={!agentName.trim()} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 Continue →
               </button>
             </div>
@@ -434,61 +440,61 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">Configure Targeting</h2>
-              <p className="text-xl text-[#A3B4CC]">Define your ideal customer profile</p>
+              <p className="text-xl text-white/70">Define your ideal customer profile</p>
             </div>
 
             {/* General Instructions */}
-            <div className="bg-[#1B2F52]/80 rounded-2xl p-6 mb-5 border border-[#4FD1FF]/20">
-              <h3 className="text-white font-bold text-lg mb-1.5 flex items-center gap-2">
-                <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 mb-5 border border-gray-200 shadow-sm">
+              <h3 className="text-gray-900 font-bold text-lg mb-1.5 flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 Campaign Instructions
               </h3>
-              <p className="text-[#A3B4CC] text-sm mb-3">Give your agent specific guidance. The AI adapts its research, outreach, and engagement based on these instructions.</p>
+              <p className="text-gray-500 text-sm mb-3">Give your agent specific guidance. The AI adapts its research, outreach, and engagement based on these instructions.</p>
               <textarea
                 value={specialInstructions}
                 onChange={e => setSpecialInstructions(e.target.value)}
                 placeholder="Example: Target CTOs at Series A startups in healthcare tech. Focus on pain points around scaling engineering teams."
-                className="w-full px-4 py-3 rounded-xl bg-[#12213B] text-white placeholder-[#8FA6C1] border border-[#4FD1FF]/20 focus:border-[#4FD1FF] focus:outline-none focus:ring-2 focus:ring-[#4FD1FF]/10 min-h-[100px] resize-y text-sm transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 min-h-[100px] resize-y text-sm transition-all"
                 maxLength={1000}
               />
               <div className="flex justify-end mt-1.5">
-                <span className="text-[#8FA6C1] text-xs">{specialInstructions.length}/1000</span>
+                <span className="text-gray-400 text-xs">{specialInstructions.length}/1000</span>
               </div>
             </div>
 
-            <div className="bg-[#1B2F52]/60 border border-[#4FD1FF]/15 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 space-y-6 shadow-sm">
               {/* Company Size */}
               <div>
-                <label className="block text-white font-semibold mb-2">Company Size (Employees)</label>
+                <label className="block text-gray-700 font-semibold mb-2">Company Size (Employees)</label>
                 <div className="flex items-center gap-3">
-                  <input type="number" value={settings.companySizeMin} onChange={e => setSettings(s => ({ ...s, companySizeMin: parseInt(e.target.value) || 0 }))} className="w-28 px-3 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white placeholder-[#8FA6C1] focus:border-[#4FD1FF] focus:outline-none transition-all" placeholder="Min" />
-                  <span className="text-[#A3B4CC] font-medium">to</span>
-                  <input type="number" value={settings.companySizeMax} onChange={e => setSettings(s => ({ ...s, companySizeMax: parseInt(e.target.value) || 0 }))} className="w-28 px-3 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white placeholder-[#8FA6C1] focus:border-[#4FD1FF] focus:outline-none transition-all" placeholder="Max" />
+                  <input type="number" value={settings.companySizeMin} onChange={e => setSettings(s => ({ ...s, companySizeMin: parseInt(e.target.value) || 0 }))} className="w-28 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all" placeholder="Min" />
+                  <span className="text-gray-500 font-medium">to</span>
+                  <input type="number" value={settings.companySizeMax} onChange={e => setSettings(s => ({ ...s, companySizeMax: parseInt(e.target.value) || 0 }))} className="w-28 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all" placeholder="Max" />
                 </div>
               </div>
 
               {/* Industries */}
               <div>
-                <label className="block text-white font-semibold mb-2">Target Industries</label>
+                <label className="block text-gray-700 font-semibold mb-2">Target Industries</label>
                 <div className="relative">
                   <input
                     type="text" value={industrySearch}
                     onChange={e => setIndustrySearch(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && industrySearch.trim()) { addIndustry(industrySearch.trim()) } }}
                     placeholder="Search or type an industry..."
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white placeholder-[#8FA6C1] focus:border-[#4FD1FF] focus:outline-none transition-all text-sm"
+                    className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm"
                   />
                   {filteredIndustries.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-[#1B2F52] border border-[#4FD1FF]/30 rounded-lg shadow-2xl max-h-52 overflow-y-auto">
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-2xl max-h-52 overflow-y-auto">
                       {filteredIndustries.map((ind, i) => (
-                        <button key={i} onClick={() => addIndustry(ind)} className="w-full text-left px-4 py-2 hover:bg-[#4FD1FF]/10 text-sm text-[#A3B4CC] hover:text-white transition-colors border-b border-[#4FD1FF]/10 last:border-b-0">{ind}</button>
+                        <button key={i} onClick={() => addIndustry(ind)} className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm text-gray-700 hover:text-gray-900 transition-colors border-b border-gray-100 last:border-b-0">{ind}</button>
                       ))}
                     </div>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2 mb-2">
                   {['Technology', 'Healthcare', 'Finance', 'Retail', 'SaaS', 'E-commerce', 'Consulting'].map(ind => (
-                    <button key={ind} onClick={() => addIndustry(ind)} disabled={settings.industries.includes(ind)} className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${settings.industries.includes(ind) ? 'bg-purple-500/50 text-white/50 cursor-default' : 'bg-white/20 hover:bg-white/30 text-white'}`}>
+                    <button key={ind} onClick={() => addIndustry(ind)} disabled={settings.industries.includes(ind)} className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${settings.industries.includes(ind) ? 'bg-purple-100 text-purple-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
                       {settings.industries.includes(ind) ? '✓ ' : '+ '}{ind}
                     </button>
                   ))}
@@ -507,26 +513,26 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
 
               {/* Job Titles */}
               <div>
-                <label className="block text-white font-semibold mb-2">Target Positions</label>
+                <label className="block text-gray-700 font-semibold mb-2">Target Positions</label>
                 <div className="relative">
                   <input
                     type="text" value={jobSearch}
                     onChange={e => setJobSearch(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && jobSearch.trim()) addJob(jobSearch.trim()) }}
                     placeholder="Search or type a job title..."
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white placeholder-[#8FA6C1] focus:border-[#4FD1FF] focus:outline-none transition-all text-sm"
+                    className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm"
                   />
                   {filteredJobs.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-[#1B2F52] border border-[#4FD1FF]/30 rounded-lg shadow-2xl max-h-52 overflow-y-auto">
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-2xl max-h-52 overflow-y-auto">
                       {filteredJobs.map((j, i) => (
-                        <button key={i} onClick={() => addJob(j)} className="w-full text-left px-4 py-2 hover:bg-[#4FD1FF]/10 text-sm text-[#A3B4CC] hover:text-white transition-colors border-b border-[#4FD1FF]/10 last:border-b-0">{j}</button>
+                        <button key={i} onClick={() => addJob(j)} className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm text-gray-700 hover:text-gray-900 transition-colors border-b border-gray-100 last:border-b-0">{j}</button>
                       ))}
                     </div>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2 mb-2">
                   {['CEO', 'CTO', 'VP of Sales', 'Head of Marketing', 'Director of Operations'].map(t => (
-                    <button key={t} onClick={() => addJob(t)} disabled={settings.jobTitles.includes(t)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${settings.jobTitles.includes(t) ? 'bg-blue-500 text-white cursor-default' : 'bg-white/20 hover:bg-white/30 text-white'}`}>
+                    <button key={t} onClick={() => addJob(t)} disabled={settings.jobTitles.includes(t)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${settings.jobTitles.includes(t) ? 'bg-blue-100 text-blue-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
                       {settings.jobTitles.includes(t) ? '✓ ' : '+ '}{t}
                     </button>
                   ))}
@@ -545,40 +551,40 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
 
               {/* Leads Per Cycle */}
               <div>
-                <label className="block text-white font-semibold mb-2">Leads Per Cycle</label>
-                <p className="text-white/60 text-xs mb-3">Your agent will find and research this many new leads each run.</p>
+                <label className="block text-gray-700 font-semibold mb-2">Leads Per Cycle</label>
+                <p className="text-gray-500 text-xs mb-3">Your agent will find and research this many new leads each run.</p>
                 <div className="flex items-center gap-4">
-                  <input type="number" min="1" max="100" value={settings.leadsPerCycle} onChange={e => setSettings(s => ({ ...s, leadsPerCycle: parseInt(e.target.value) || 1 }))} className="w-24 px-3 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white font-bold text-center focus:border-[#4FD1FF] focus:outline-none transition-all" />
-                  <span className="text-white">leads per cycle</span>
+                  <input type="number" min="1" max="100" value={settings.leadsPerCycle} onChange={e => setSettings(s => ({ ...s, leadsPerCycle: parseInt(e.target.value) || 1 }))} className="w-24 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 font-bold text-center focus:border-blue-400 focus:outline-none transition-all" />
+                  <span className="text-gray-700">leads per cycle</span>
                 </div>
-                <div className="mt-3 bg-green-500/20 border border-green-500/50 rounded-lg p-3">
-                  <span className="text-white text-sm">Estimated: ~<span className="text-green-400 font-bold">{Math.ceil(settings.leadsPerCycle * 2 / 3)}</span> credits per cycle</span>
+                <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                  <span className="text-gray-700 text-sm">Estimated: ~<span className="text-green-600 font-bold">{Math.ceil(settings.leadsPerCycle * 2 / 3)}</span> credits per cycle</span>
                 </div>
               </div>
 
               {/* Email Settings */}
-              <div className="border-t border-white/20 pt-5">
-                <h3 className="text-white font-bold text-lg mb-4">Email Settings</h3>
+              <div className="border-t border-gray-100 pt-5">
+                <h3 className="text-gray-800 font-bold text-lg mb-4">Email Settings</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-white font-semibold text-sm mb-1">CC Email Addresses</label>
-                    <input type="text" value={settings.ccEmails} onChange={e => setSettings(s => ({ ...s, ccEmails: e.target.value }))} placeholder="email@example.com, ..." className="w-full px-3 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white placeholder-[#8FA6C1] focus:border-[#4FD1FF] focus:outline-none transition-all text-sm" />
+                    <label className="block text-gray-700 font-semibold text-sm mb-1">CC Email Addresses</label>
+                    <input type="text" value={settings.ccEmails} onChange={e => setSettings(s => ({ ...s, ccEmails: e.target.value }))} placeholder="email@example.com, ..." className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm" />
                   </div>
                   <div>
-                    <label className="block text-white font-semibold text-sm mb-1">BCC Email Addresses</label>
-                    <input type="text" value={settings.bccEmails} onChange={e => setSettings(s => ({ ...s, bccEmails: e.target.value }))} placeholder="email@example.com, ..." className="w-full px-3 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white placeholder-[#8FA6C1] focus:border-[#4FD1FF] focus:outline-none transition-all text-sm" />
+                    <label className="block text-gray-700 font-semibold text-sm mb-1">BCC Email Addresses</label>
+                    <input type="text" value={settings.bccEmails} onChange={e => setSettings(s => ({ ...s, bccEmails: e.target.value }))} placeholder="email@example.com, ..." className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm" />
                   </div>
                 </div>
                 <div className="mt-4">
-                  <label className="block text-white font-semibold text-sm mb-1">Follow-up Interval (Days)</label>
-                  <input type="number" min="1" max="30" value={settings.followupIntervalDays} onChange={e => setSettings(s => ({ ...s, followupIntervalDays: parseInt(e.target.value) || 7 }))} className="w-32 px-3 py-2.5 rounded-lg bg-[#12213B] border border-[#4FD1FF]/20 text-white focus:border-[#4FD1FF] focus:outline-none transition-all text-sm" />
+                  <label className="block text-gray-700 font-semibold text-sm mb-1">Follow-up Interval (Days)</label>
+                  <input type="number" min="1" max="30" value={settings.followupIntervalDays} onChange={e => setSettings(s => ({ ...s, followupIntervalDays: parseInt(e.target.value) || 7 }))} className="w-32 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:border-blue-400 focus:outline-none transition-all text-sm" />
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <div>
-                    <label className="text-white font-semibold text-sm">Enable AI Auto-Response</label>
-                    <p className="text-white/60 text-xs mt-0.5">AI automatically responds to incoming emails from leads</p>
+                    <label className="text-gray-700 font-semibold text-sm">Enable AI Auto-Response</label>
+                    <p className="text-gray-500 text-xs mt-0.5">AI automatically responds to incoming emails from leads</p>
                   </div>
-                  <button onClick={() => setSettings(s => ({ ...s, enableAutoResponse: !s.enableAutoResponse }))} className={`relative w-12 h-6 rounded-full transition-colors ${settings.enableAutoResponse ? 'bg-green-400' : 'bg-neutral-600'}`}>
+                  <button onClick={() => setSettings(s => ({ ...s, enableAutoResponse: !s.enableAutoResponse }))} className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${settings.enableAutoResponse ? 'bg-green-400' : 'bg-neutral-300'}`}>
                     <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings.enableAutoResponse ? 'translate-x-6' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
@@ -586,7 +592,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
             </div>
 
             <div className="flex justify-between mt-6">
-              <button onClick={back} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
               <button
                 onClick={() => {
                   const missing = []
@@ -597,7 +603,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   setPresetJson(JSON.stringify(settings))
                   next()
                 }}
-                className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-xl hover:shadow-[#4FD1FF]/20 hover:scale-105 transition-all"
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold hover:shadow-xl hover:scale-105 transition-all"
               >
                 Continue →
               </button>
@@ -609,25 +615,25 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         {step === 'name-preset' && (
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#4FD1FF] to-[#55C7F7] rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#4FD1FF]/20">
-                <svg className="w-10 h-10 text-[#0F1E35]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-500/20">
+                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
               </div>
               <h2 className="text-4xl font-bold text-white mb-2">Save Your Settings</h2>
-              <p className="text-xl text-[#A3B4CC]">Name this preset so you can reuse these settings for future agents</p>
+              <p className="text-xl text-white/70">Name this preset so you can reuse these settings for future agents</p>
             </div>
-            <div className="bg-[#1B2F52]/60 border border-[#4FD1FF]/20 rounded-2xl p-7 mb-7">
-              <label className="block text-white font-semibold mb-2">Preset Name</label>
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-7 mb-7 shadow-lg">
+              <label className="block text-gray-700 font-semibold mb-2">Preset Name</label>
               <input
                 type="text" autoFocus value={presetName} onChange={e => setPresetName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && presetName.trim()) next() }}
                 placeholder="e.g., SaaS Executives, Tech Startups"
-                className="w-full px-5 py-4 rounded-xl text-lg border-2 border-[#4FD1FF]/30 focus:border-[#4FD1FF] focus:ring-2 focus:ring-[#4FD1FF]/20 bg-[#12213B] text-white placeholder-[#8FA6C1] outline-none"
+                className="w-full px-5 py-4 rounded-xl text-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 bg-gray-50 text-gray-900 placeholder-gray-400 outline-none transition-all"
               />
-              <p className="text-[#A3B4CC] text-sm mt-2">💡 Tip: Use descriptive names like "Healthcare Decision Makers" or "SaaS CTOs"</p>
+              <p className="text-gray-500 text-sm mt-2">💡 Tip: Use descriptive names like "Healthcare Decision Makers" or "SaaS CTOs"</p>
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">← Back</button>
-              <button onClick={next} disabled={!presetName.trim()} className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-semibold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} disabled={!presetName.trim()} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 Continue →
               </button>
             </div>
@@ -639,24 +645,24 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">Email Integration</h2>
-              <p className="text-xl text-[#A3B4CC]">Choose how your agent sends emails</p>
+              <p className="text-xl text-white/70">Choose how your agent sends emails</p>
             </div>
             <div className="space-y-4 mb-7">
               {/* Gmail */}
-              <div className="bg-[#1B2F52]/80 border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 rounded-2xl p-6 transition-all">
+              <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-sm transition-all hover:shadow-md">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
                       <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#EA4335" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#4285F4" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#34A853" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                       Gmail
                       {gmailConnected && useGmail && <span className="text-xs text-green-400 font-semibold bg-green-500/20 px-2 py-0.5 rounded">ACTIVE</span>}
                     </h3>
-                    <p className="text-sm text-[#A3B4CC] mb-3">Send from your Gmail inbox for better deliverability and reply tracking. <span className="text-[#4FD1FF]">Recommended.</span></p>
+                    <p className="text-sm text-gray-500 mb-3">Send from your Gmail inbox for better deliverability and reply tracking. <span className="text-blue-600">Recommended.</span></p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setUseGmail(true); setUseOutlook(false); if (!gmailConnected) connectGmail() }}
                         disabled={gmailConnected && useGmail}
-                        className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${gmailConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:scale-105'}`}
+                        className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${gmailConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-105'}`}
                       >
                         {gmailConnected ? (useGmail ? '✓ Selected' : 'Connected') : 'Connect Gmail'}
                       </button>
@@ -669,19 +675,19 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               </div>
 
               {/* Outlook */}
-              <div className="bg-[#1B2F52]/80 border-2 border-[#4FD1FF]/30 hover:border-[#4FD1FF]/60 rounded-2xl p-6 transition-all">
+              <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-sm transition-all hover:shadow-md">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
+                  <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
                     <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#0078D4" d="M2 12a2 2 0 012-2h40a2 2 0 012 2v24a2 2 0 01-2 2H4a2 2 0 01-2-2V12z"/><path fill="#FFF" d="M24 17c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>
                     Outlook
                     {outlookConnected && useOutlook && <span className="text-xs text-green-400 font-semibold bg-green-500/20 px-2 py-0.5 rounded">ACTIVE</span>}
                   </h3>
-                  <p className="text-sm text-[#A3B4CC] mb-3">Send from your Outlook/Office 365 account.</p>
+                  <p className="text-sm text-gray-500 mb-3">Send from your Outlook/Office 365 account.</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => { if (!outlookConnected) connectOutlook(); else { setUseOutlook(true); setUseGmail(false) } }}
                       disabled={outlookConnected && useOutlook}
-                      className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${outlookConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:scale-105'}`}
+                      className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${outlookConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-105'}`}
                     >
                       {outlookConnected ? (useOutlook ? '✓ Selected' : 'Connected') : 'Connect Outlook'}
                     </button>
@@ -693,25 +699,25 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               </div>
 
               {/* Mailgun */}
-              <div className="bg-[#1B2F52]/80 border-2 border-[#4FD1FF]/30 rounded-2xl p-6">
-                <h3 className="font-semibold text-white mb-1 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#4FD1FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                   Mailgun (Default)
                   {!useGmail && !useOutlook && <span className="text-xs text-green-400 font-semibold bg-green-500/20 px-2 py-0.5 rounded">ACTIVE</span>}
                 </h3>
-                <p className="text-sm text-[#A3B4CC] mb-3">Use Mailgun for sending. Replies tracked via webhooks.</p>
+                <p className="text-sm text-gray-500 mb-3">Use Mailgun for sending. Replies tracked via webhooks.</p>
                 <button
                   onClick={() => { setUseGmail(false); setUseOutlook(false) }}
                   disabled={!useGmail && !useOutlook}
-                  className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${!useGmail && !useOutlook ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' : 'bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] hover:scale-105'}`}
+                  className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${!useGmail && !useOutlook ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-105'}`}
                 >
                   {!useGmail && !useOutlook ? '✓ Selected' : 'Use Mailgun'}
                 </button>
               </div>
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">← Back</button>
-              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all">Continue →</button>
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all">Continue →</button>
             </div>
           </div>
         )}
@@ -721,21 +727,21 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">Connect Your CRM</h2>
-              <p className="text-xl text-[#A3B4CC]">Auto-sync researched leads to your CRM (optional)</p>
+              <p className="text-xl text-white/70">Auto-sync researched leads to your CRM (optional)</p>
             </div>
-            <div className="bg-[#1B2F52]/80 border-2 border-[#4FD1FF]/30 rounded-2xl p-6 mb-6">
-              <div className="bg-[#0F1E35]/50 border border-[#4FD1FF]/30 rounded-xl p-5 mb-5">
-                <h3 className="font-bold text-white mb-2">Why connect a CRM?</h3>
-                <ul className="space-y-1.5 text-sm text-[#A3B4CC]">
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+                <h3 className="font-bold text-gray-900 mb-2">Why connect a CRM?</h3>
+                <ul className="space-y-1.5 text-sm text-gray-600">
                   {['Automatically sync researched leads', 'Keep your CRM up-to-date effortlessly', 'Research summaries attached as notes', 'Works with HubSpot, Salesforce, Pipedrive, Zoho & more'].map((f, i) => <li key={i}>✓ {f}</li>)}
                 </ul>
               </div>
 
               {!crmConnected && !selectedCrm && (
                 <div>
-                  <label className="block text-white font-semibold text-sm mb-2">Choose your CRM</label>
+                  <label className="block text-gray-600 font-medium text-sm mb-2">Choose your CRM</label>
                   <div className="relative">
-                    <button onClick={() => setShowCrmDropdown(!showCrmDropdown)} className="w-full flex items-center justify-between px-4 py-3 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-xl text-white hover:bg-[#0F1E35]/70 transition-colors text-sm">
+                    <button onClick={() => setShowCrmDropdown(!showCrmDropdown)} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors text-sm">
                       <span>Select a CRM platform...</span>
                       <svg className={`w-4 h-4 transition-transform ${showCrmDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                     </button>
@@ -749,27 +755,27 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-[#A3B4CC] mt-2 text-center">You can also connect this later from Settings</p>
+                  <p className="text-xs text-gray-400 mt-2 text-center">You can also connect this later from Settings</p>
                 </div>
               )}
 
               {!crmConnected && selectedCrm && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#4FD1FF]/30">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div>
-                      <h4 className="text-sm font-semibold text-white">{selectedCrm.name}</h4>
-                      <p className="text-xs text-[#A3B4CC]">Enter your credentials</p>
+                      <h4 className="text-sm font-semibold text-gray-900">{selectedCrm.name}</h4>
+                      <p className="text-xs text-gray-500">Enter your credentials</p>
                     </div>
-                    <button onClick={() => { setSelectedCrm(null); setCrmCreds({}); setCrmError(null) }} className="text-xs text-[#4FD1FF] hover:text-[#6BE3FF]">Change</button>
+                    <button onClick={() => { setSelectedCrm(null); setCrmCreds({}); setCrmError(null) }} className="text-xs text-blue-500 hover:text-blue-700">Change</button>
                   </div>
                   {selectedCrm.fields.map(f => (
                     <div key={f.key}>
-                      <label className="block text-xs text-[#A3B4CC] font-medium mb-1">{f.name}</label>
-                      <input type={f.type} value={crmCreds[f.key] || ''} onChange={e => setCrmCreds(c => ({ ...c, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-4 py-2.5 bg-[#0F1E35]/50 border-2 border-[#4FD1FF]/30 rounded-lg text-white text-sm placeholder-[#A3B4CC]/50 focus:border-[#4FD1FF] outline-none" />
-                      {(f as any).helpText && <p className="text-xs text-[#A3B4CC] mt-1">{(f as any).helpText}</p>}
+                      <label className="block text-xs text-gray-600 font-medium mb-1">{f.name}</label>
+                      <input type={f.type} value={crmCreds[f.key] || ''} onChange={e => setCrmCreds(c => ({ ...c, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm placeholder-gray-400 focus:border-blue-400 outline-none transition-all" />
+                      {(f as any).helpText && <p className="text-xs text-gray-400 mt-1">{(f as any).helpText}</p>}
                     </div>
                   ))}
-                  {crmError && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3">{crmError}</div>}
+                  {crmError && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{crmError}</div>}
                   <button onClick={connectCrm} disabled={crmConnecting} className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:shadow-xl hover:scale-105 disabled:opacity-50 transition-all">
                     {crmConnecting ? 'Connecting...' : 'Connect CRM'}
                   </button>
@@ -784,8 +790,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               )}
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">← Back</button>
-              <button onClick={next} className="px-8 py-4 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-xl hover:shadow-[#4FD1FF]/20 hover:scale-105 transition-all">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold hover:shadow-xl hover:scale-105 transition-all">
                 {crmConnected ? 'Continue →' : 'Skip for now →'}
               </button>
             </div>
@@ -797,17 +803,17 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div>
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">Choose Your Plan</h2>
-              <p className="text-xl text-[#A3B4CC]">Start with a free trial or jump right into a paid plan</p>
+              <p className="text-xl text-white/70">Start with a free trial or jump right into a paid plan</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
               {plans.map(plan => (
                 <div
                   key={plan.id}
                   onClick={() => setSelectedPlan(plan.id)}
-                  className={`relative bg-white rounded-2xl p-6 cursor-pointer border-4 transition-all hover:scale-102 ${selectedPlan === plan.id ? 'border-[#4FD1FF] shadow-2xl shadow-[#4FD1FF]/20' : 'border-transparent hover:border-[#4FD1FF]/40'}`}
+                  className={`relative bg-white rounded-2xl p-6 cursor-pointer border-4 transition-all hover:scale-102 ${selectedPlan === plan.id ? 'border-blue-500 shadow-2xl shadow-blue-500/20' : 'border-transparent hover:border-blue-300'}`}
                 >
                   {(plan as any).popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] text-xs font-bold px-3 py-1 rounded-full">POPULAR</div>
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full">POPULAR</div>
                   )}
                   <div className="text-center">
                     <h3 className="text-xl font-bold text-gray-900 mb-1">{plan.name}</h3>
@@ -816,7 +822,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       <span className="text-3xl font-bold text-gray-900">${plan.price}</span>
                       {plan.price > 0 && <span className="text-gray-500 text-sm">/one-time</span>}
                     </div>
-                    <div className="text-base font-bold text-[#4FD1FF] mb-4">{plan.credits.toLocaleString()} credits</div>
+                    <div className="text-base font-bold text-blue-500 mb-4">{plan.credits.toLocaleString()} credits</div>
                     <ul className="space-y-1.5 text-sm text-gray-600 mb-4 text-left">
                       {plan.features.map((f, i) => (
                         <li key={i} className="flex items-center gap-2">
@@ -826,7 +832,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       ))}
                     </ul>
                     {selectedPlan === plan.id && (
-                      <div className="flex items-center justify-center gap-1.5 text-[#4FD1FF] font-bold text-sm">
+                      <div className="flex items-center justify-center gap-1.5 text-blue-600 font-bold text-sm">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                         Selected
                       </div>
@@ -836,8 +842,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               ))}
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 border-2 border-white/20 text-white rounded-xl hover:bg-white/10 transition-all">Back</button>
-              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-xl hover:scale-105 transition-all">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold hover:shadow-xl hover:scale-105 transition-all">
                 Continue with {planDetails.name} →
               </button>
             </div>
@@ -849,9 +855,9 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">{selectedPlan === 'free-trial' ? 'Start Your Free Trial' : 'Complete Purchase'}</h2>
-              <p className="text-xl text-[#A3B4CC]">Selected: {planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
+              <p className="text-xl text-white/70">Selected: {planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
             </div>
-            <div className="bg-[#1B2F52]/80 border-2 border-[#4FD1FF]/30 rounded-2xl p-7 mb-6">
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-7 mb-6 shadow-sm">
               {selectedPlan === 'free-trial' ? (
                 <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5">
                   <h3 className="font-bold text-green-900 text-lg mb-2">✓ Free Trial Ready!</h3>
@@ -862,13 +868,13 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 </div>
               ) : (
                 <div className="text-center">
-                  <h3 className="font-bold text-white text-xl mb-1">{planDetails.name} Plan</h3>
-                  <p className="text-3xl font-bold text-[#4FD1FF] mb-1">${planDetails.price}</p>
-                  <p className="text-[#A3B4CC] text-sm mb-5">{planDetails.credits.toLocaleString()} credits</p>
+                  <h3 className="font-bold text-gray-900 text-xl mb-1">{planDetails.name} Plan</h3>
+                  <p className="text-3xl font-bold text-blue-600 mb-1">${planDetails.price}</p>
+                  <p className="text-gray-500 text-sm mb-5">{planDetails.credits.toLocaleString()} credits</p>
                   {!paymentAdded && (
                     <div className="space-y-3">
-                      <p className="text-sm text-[#A3B4CC]">A payment method is required before purchasing. Add one in the Billing settings, then return here.</p>
-                      <button onClick={() => window.open('/settings?tab=billing', '_blank')} className="w-full px-6 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-lg transition-all">
+                      <p className="text-sm text-gray-500">A payment method is required before purchasing. Add one in the Billing settings, then return here.</p>
+                      <button onClick={() => window.open('/settings?tab=billing', '_blank')} className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold hover:shadow-lg transition-all">
                         Add Payment Method
                       </button>
                     </div>
@@ -902,11 +908,11 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               )}
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 border-2 border-white/20 text-white rounded-xl hover:bg-white/10 transition-all">Back</button>
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
               <button
                 onClick={next}
                 disabled={selectedPlan !== 'free-trial' && !planPurchased}
-                className="px-8 py-3 bg-gradient-to-r from-[#4FD1FF] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Continue →
               </button>
@@ -919,12 +925,12 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">Review Your Agent</h2>
-              <p className="text-xl text-[#A3B4CC]">Everything look good?</p>
+              <p className="text-xl text-white/70">Everything look good?</p>
             </div>
-            <div className="bg-[#1B2F52]/80 border-2 border-[#4FD1FF]/30 rounded-2xl p-6 mb-6 space-y-5">
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm space-y-5">
               <div>
-                <p className="text-sm text-[#A3B4CC] mb-1">Agent Name</p>
-                <p className="text-2xl font-bold text-white">{agentName}</p>
+                <p className="text-sm text-gray-500 mb-1">Agent Name</p>
+                <p className="text-2xl font-bold text-gray-900">{agentName}</p>
               </div>
               {specialInstructions.trim() && (
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
@@ -934,29 +940,29 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               )}
               {personality && (
                 <div>
-                  <p className="text-sm text-[#A3B4CC] mb-1">Personality</p>
+                  <p className="text-sm text-gray-500 mb-1">Personality</p>
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${colorGrad[personality.color]} p-0.5`}>
-                      <img src={personality.avatar} alt={personality.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(personality.name)}&background=4FD1FF&color=0F1E35` }} />
+                      <img src={personality.avatar} alt={personality.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(personality.name)}&background=3b82f6&color=ffffff` }} />
                     </div>
                     <div>
-                      <p className="font-bold text-white">{personality.name}</p>
-                      <p className="text-xs text-[#A3B4CC]">{personality.emailStyle}</p>
+                      <p className="font-bold text-gray-900">{personality.name}</p>
+                      <p className="text-xs text-gray-500">{personality.emailStyle}</p>
                     </div>
                   </div>
                 </div>
               )}
               <div>
-                <p className="text-sm text-[#A3B4CC] mb-1">Settings Preset</p>
-                <p className="text-lg font-bold text-white">{presetName}</p>
+                <p className="text-sm text-gray-500 mb-1">Settings Preset</p>
+                <p className="text-lg font-bold text-gray-900">{presetName}</p>
                 <div className="mt-2 space-y-1 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#A3B4CC]">Company Size:</span>
-                    <span className="text-white font-medium">{settings.companySizeMin.toLocaleString()} – {settings.companySizeMax.toLocaleString()} employees</span>
+                    <span className="text-gray-500">Company Size:</span>
+                    <span className="text-gray-900 font-medium">{settings.companySizeMin.toLocaleString()} – {settings.companySizeMax.toLocaleString()} employees</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[#A3B4CC]">Leads/cycle:</span>
-                    <span className="text-white font-medium">{settings.leadsPerCycle}</span>
+                    <span className="text-gray-500">Leads/cycle:</span>
+                    <span className="text-gray-900 font-medium">{settings.leadsPerCycle}</span>
                   </div>
                   {settings.industries.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-1">
@@ -971,19 +977,19 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-[#A3B4CC] mb-1">Email Sending</p>
-                <p className="font-semibold text-white">
+                <p className="text-sm text-gray-500 mb-1">Email Sending</p>
+                <p className="font-semibold text-gray-900">
                   {useGmail ? '📧 Gmail (Primary inbox)' : useOutlook ? '📧 Outlook/Office 365' : '📧 Mailgun (Standard)'}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-[#A3B4CC] mb-1">Plan</p>
-                <p className="font-semibold text-white">{planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
+                <p className="text-sm text-gray-500 mb-1">Plan</p>
+                <p className="font-semibold text-gray-900">{planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
               </div>
             </div>
             <div className="flex justify-between">
-              <button onClick={back} className="px-6 py-3 text-[#A3B4CC] hover:text-white hover:bg-[#2A4472] rounded-xl font-semibold transition-all">← Back</button>
-              <button onClick={next} className="px-8 py-4 bg-gradient-to-r from-[#4FD1FF] via-[#55C7F7] to-[#6BE3FF] text-[#0F1E35] rounded-xl font-bold text-lg hover:shadow-2xl hover:shadow-[#4FD1FF]/30 hover:scale-105 transition-all flex items-center gap-2">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 Create Agent
               </button>
@@ -1013,7 +1019,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               </>
             ) : (
               <>
-                <div className="w-20 h-20 border-8 border-[#4FD1FF] border-t-transparent rounded-full mx-auto mb-6 animate-spin" />
+                <div className="w-20 h-20 border-8 border-blue-500 border-t-transparent rounded-full mx-auto mb-6 animate-spin" />
                 <h2 className="text-4xl font-bold text-white mb-4">Creating {agentName}...</h2>
                 <p className="text-xl text-white/80">Setting up your AI agent. This will only take a moment!</p>
               </>
