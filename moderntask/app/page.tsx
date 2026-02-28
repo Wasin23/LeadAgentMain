@@ -80,9 +80,6 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [notifCount, setNotifCount] = useState(0)
 
-  // header
-  const [credits, setCredits] = useState(0)
-
   const fetchAll = useCallback(async () => {
     // Fire all requests in parallel; silently handle individual failures
     const [
@@ -92,7 +89,6 @@ export default function DashboardPage() {
       queueRes,
       notifsRes,
       notifCountRes,
-      creditsRes,
     ] = await Promise.allSettled([
       api.get("/api/email-queue/counts?agentId=all"),
       api.get("/api/auth/agents"),
@@ -100,7 +96,6 @@ export default function DashboardPage() {
       api.get("/api/email-queue/queue", { params: { agentId: "all" } }),
       api.get("/api/notifications/recent", { params: { limit: 6 } }),
       api.get("/api/notifications/count"),
-      api.get("/api/billing/credit-balance"),
     ])
 
     // ── email counts ────────────────────────────────────────────────────
@@ -276,10 +271,6 @@ export default function DashboardPage() {
       setNotifCount(notifCountRes.value.data?.unreadCount ?? 0)
     }
 
-    // ── credits ──────────────────────────────────────────────────────────
-    if (creditsRes.status === "fulfilled") {
-      setCredits(creditsRes.value.data?.balance ?? 0)
-    }
   }, [])
 
   useEffect(() => {
@@ -311,7 +302,6 @@ export default function DashboardPage() {
           title="Home"
           description="Overview of your Meridian agents and outreach activity."
           actions={<HomeActions />}
-          credits={credits}
           notificationCount={notifCount}
           userName={userName}
           userEmail={userEmail}

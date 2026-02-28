@@ -10,6 +10,7 @@ import { useSearchParams } from "next/navigation"
 export default function AgentsPage() {
   const searchParams    = useSearchParams()
   const highlightAgent  = searchParams.get("agent") ?? undefined
+  const autoOpenCreate  = searchParams.get("create") === "true"
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -26,7 +27,7 @@ export default function AgentsPage() {
               <TabsTrigger value="presets">Presets</TabsTrigger>
             </TabsList>
             <TabsContent value="agents">
-              <AgentsContent highlightAgentId={highlightAgent} />
+              <AgentsContent highlightAgentId={highlightAgent} autoOpenCreate={autoOpenCreate} />
             </TabsContent>
             <TabsContent value="presets">
               <PresetsContent />

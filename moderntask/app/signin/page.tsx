@@ -218,7 +218,13 @@ export default function SignInPage() {
       localStorage.setItem('authToken', token)
       Cookies.set('authToken', token, { expires: 7 })
       setSuccessMsg('Google sign-in successful! Redirecting...')
-      router.replace(redirectPath)
+      // For Google sign-in, check if user needs onboarding
+      try {
+        const { data } = await api.get('/api/company-profile/check')
+        router.replace(data?.hasProfile ? redirectPath : '/onboarding')
+      } catch {
+        router.replace(redirectPath)
+      }
     } catch {
       setError('Google sign-in failed. Please try again.')
     }
@@ -255,7 +261,7 @@ export default function SignInPage() {
       const ok = await register(signUpForm.username, signUpForm.email, signUpForm.password)
       if (ok) {
         setSuccessMsg('Account created! Redirecting...')
-        setTimeout(() => router.push('/'), 1200)
+        setTimeout(() => router.push('/onboarding'), 1200)
       } else {
         setError('Registration failed. Username or email may already exist.')
       }

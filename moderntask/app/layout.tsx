@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        <ThemeProvider defaultTheme="light" storageKey="tasko-theme">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="tasko-theme">
           <AuthProvider>
             {children}
           </AuthProvider>

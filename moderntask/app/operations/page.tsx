@@ -9,17 +9,12 @@ import api from "@/lib/api"
 
 export default function OperationsPage() {
   const { user } = useAuth()
-  const [credits, setCredits] = useState(0)
   const [notifCount, setNotifCount] = useState(0)
 
   const fetchMeta = useCallback(async () => {
-    const [creditsRes, notifRes] = await Promise.allSettled([
-      api.get('/api/billing/credit-balance'),
+    const [notifRes] = await Promise.allSettled([
       api.get('/api/notifications/count'),
     ])
-    if (creditsRes.status === 'fulfilled') {
-      setCredits(creditsRes.value.data?.balance ?? 0)
-    }
     if (notifRes.status === 'fulfilled') {
       setNotifCount(notifRes.value.data?.unreadCount ?? 0)
     }
@@ -40,7 +35,6 @@ export default function OperationsPage() {
         <Header
           title="Operations"
           description="Monitor and control your active agents in real time."
-          credits={credits}
           notificationCount={notifCount}
           userName={userName}
           userEmail={userEmail}

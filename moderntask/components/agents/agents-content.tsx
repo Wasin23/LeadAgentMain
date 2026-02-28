@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Bot, Play, Square, Zap, Mail, MessageSquare, Clock, Cpu,
   ExternalLink, Trash2, Send, TrendingUp,
-  AlertCircle, CheckCircle2, PauseCircle, Plus
+  AlertCircle, CheckCircle2, PauseCircle, Plus, X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -272,6 +272,332 @@ function AgentCard({
   )
 }
 
+// ── personality definitions (mirrors frontend exactly) ───────────────────────
+const PERSONALITIES = [
+  {
+    id: 'hunter',
+    name: 'The Hunter',
+    description: 'Aggressive prospector focused on high-volume outreach and quick conversions',
+    avatar: '/avatars/Hunter.png',
+    traits: ['High-energy', 'Results-driven', 'Persistent', 'Direct communication'],
+    emailStyle: 'Bold, action-oriented, creates urgency',
+    prompt: `You are The Hunter - a high-energy, results-driven AI sales agent. Your approach is direct, persistent, and focused on quick conversions.`,
+    color: 'red',
+    ringStyle: 'linear-gradient(135deg, #f87171, #ea580c)',
+    pillStyle: 'linear-gradient(135deg, #ef4444, #dc2626)',
+  },
+  {
+    id: 'relationship-builder',
+    name: 'The Relationship Builder',
+    description: 'Warm, consultative approach focused on building long-term partnerships',
+    avatar: '/avatars/Relationship-Builder.png',
+    traits: ['Empathetic', 'Patient', 'Consultative', 'Trust-focused'],
+    emailStyle: 'Warm, personal, relationship-focused',
+    prompt: `You are The Relationship Builder - a warm, empathetic AI sales agent focused on building genuine, long-term partnerships.`,
+    color: 'blue',
+    ringStyle: 'linear-gradient(135deg, #60a5fa, #0891b2)',
+    pillStyle: 'linear-gradient(135deg, #3b82f6, #0ea5e9)',
+  },
+  {
+    id: 'analyst',
+    name: 'The Analyst',
+    description: 'Data-driven methodology with deep research and industry insights',
+    avatar: '/avatars/Analyst.png',
+    traits: ['Analytical', 'Research-heavy', 'Detail-oriented', 'Evidence-based'],
+    emailStyle: 'Data-rich, insightful, credential-heavy',
+    prompt: `You are The Analyst - a data-driven, research-focused AI sales agent who leads with insights and evidence.`,
+    color: 'purple',
+    ringStyle: 'linear-gradient(135deg, #c084fc, #db2777)',
+    pillStyle: 'linear-gradient(135deg, #a855f7, #ec4899)',
+  },
+  {
+    id: 'consultant',
+    name: 'The Consultant',
+    description: 'Solution-focused industry expert who positions as a strategic advisor',
+    avatar: '/avatars/consultant.png',
+    traits: ['Advisory', 'Solution-focused', 'Industry expert', 'Strategic'],
+    emailStyle: 'Advisory, strategic, solution-oriented',
+    prompt: `You are The Consultant - a strategic advisor and industry expert who positions yourself as a trusted consultant.`,
+    color: 'green',
+    ringStyle: 'linear-gradient(135deg, #4ade80, #0d9488)',
+    pillStyle: 'linear-gradient(135deg, #22c55e, #14b8a6)',
+  },
+  {
+    id: 'networker',
+    name: 'The Networker',
+    description: 'LinkedIn-heavy, connection-based approach leveraging mutual contacts',
+    avatar: '/avatars/Networker.png',
+    traits: ['Social', 'Connection-focused', 'Community-driven', 'Referral-based'],
+    emailStyle: 'Social, community-focused, leverages connections',
+    prompt: `You are The Networker - a socially-savvy AI sales agent who leverages connections, community, and referrals.`,
+    color: 'indigo',
+    ringStyle: 'linear-gradient(135deg, #818cf8, #7c3aed)',
+    pillStyle: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  },
+] as const
+
+type PersonalityDef = typeof PERSONALITIES[number]
+
+// ── create agent modal — exact replica of InfoDashboard personality modal ─────
+function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [selectedPersonalityId, setSelectedPersonalityId] = useState<string | null>(null)
+  const [agentName, setAgentName] = useState('')
+  const [showPresetSelection, setShowPresetSelection] = useState(false)
+  const [specialInstructions, setSpecialInstructions] = useState('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [presets, setPresets] = useState<any[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedPreset, setSelectedPreset] = useState<any>(null)
+  const [loadingPresets, setLoadingPresets] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchPresets = async () => {
+    setLoadingPresets(true)
+    try {
+      const r = await api.get('/api/settings/presets')
+      const data = Array.isArray(r.data) ? r.data : (r.data?.presets || r.data?.data || [])
+      setPresets(data)
+    } catch { setPresets([]) }
+    finally { setLoadingPresets(false) }
+  }
+
+  const handleCreate = async () => {
+    if (!agentName.trim() || !selectedPersonalityId) return
+    setIsCreating(true)
+    setError(null)
+    const personality = PERSONALITIES.find(p => p.id === selectedPersonalityId)!
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body: any = {
+        name: agentName.trim(),
+        type: 'reasoning-lead-agent',
+        specialInstructions: specialInstructions.trim() || selectedPreset?.specialInstructions || '',
+        personality: {
+          type: personality.id,
+          name: personality.name,
+          description: personality.description,
+          avatar: personality.avatar,
+          emailPrompt: personality.prompt,
+          emailStyle: personality.emailStyle,
+          traits: [...personality.traits],
+          color: personality.color,
+        },
+      }
+      if (selectedPreset) {
+        body.preset = {
+          presetId: selectedPreset._id || selectedPreset.id,
+          name: selectedPreset.name,
+          targetIndustries: selectedPreset.targetIndustries,
+          targetPositions: selectedPreset.targetPositions,
+          companySizeMin: selectedPreset.companySizeMin,
+          companySizeMax: selectedPreset.companySizeMax,
+          leadLimit: selectedPreset.leadLimit,
+          emailLength: selectedPreset.emailLength,
+          callToAction: selectedPreset.callToAction,
+          personalizationLevel: selectedPreset.personalizationLevel,
+          ccEmails: selectedPreset.ccEmails,
+          bccEmails: selectedPreset.bccEmails,
+          followupIntervalDays: selectedPreset.followupIntervalDays,
+          enableAutoResponse: selectedPreset.enableAutoResponse,
+          useCustomSignature: selectedPreset.useCustomSignature,
+          signatureName: selectedPreset.signatureName,
+          signatureTitle: selectedPreset.signatureTitle,
+        }
+      }
+      const res = await api.post('/api/auth/create-agent', body)
+      if (res.data?.success) { onCreated(); onClose() }
+      else setError(res.data?.message || res.data?.error || 'Failed to create agent.')
+    } catch (e: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = e as any
+      setError(err?.response?.data?.message || err?.response?.data?.error || 'Failed to create agent.')
+    } finally { setIsCreating(false) }
+  }
+
+  // gradientStyle removed — now using p.ringStyle and p.pillStyle directly
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-background border border-border rounded-xl shadow-xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+
+        {/* ── PHASE 1: personality grid ── */}
+        {!selectedPersonalityId && (
+          <>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Choose Your Agent&apos;s Personality</h2>
+            <p className="text-muted-foreground mb-6">Select the personality type that best matches your outreach style</p>
+
+            <div className="grid grid-cols-5 gap-4">
+              {PERSONALITIES.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPersonalityId(p.id)}
+                  className="relative p-5 rounded-xl text-center transition-all bg-muted/40 border border-border shadow-sm hover:shadow-md hover:border-primary/50 hover:bg-muted hover:scale-105"
+                >
+                  <div className="relative mx-auto mb-4">
+                    <div className="w-20 h-20 rounded-full p-[3px] mx-auto" style={{ background: p.ringStyle }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.avatar} alt={p.name} className="w-full h-full rounded-full object-cover bg-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-bold mb-2 text-foreground">{p.name}</h3>
+                  <p className="text-[11px] mb-3 leading-relaxed text-muted-foreground">{p.description}</p>
+                  <div className="space-y-1">
+                    {p.traits.slice(0, 2).map((trait, idx) => (
+                      <div key={idx} className="text-[10px] px-2 py-1 rounded-full font-medium text-white" style={{ background: p.pillStyle }}>
+                        {trait}
+                      </div>
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={onClose}
+              className="mt-6 px-6 py-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-all text-sm"
+            >
+              Cancel
+            </button>
+          </>
+        )}
+
+        {/* ── PHASE 2: name input ── */}
+        {selectedPersonalityId && !showPresetSelection && (
+          <>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Name Your Agent</h2>
+            <p className="text-muted-foreground mb-6">
+              Choose a name for your {PERSONALITIES.find(p => p.id === selectedPersonalityId)?.name}
+            </p>
+
+            <input
+              autoFocus
+              type="text"
+              value={agentName}
+              onChange={e => setAgentName(e.target.value)}
+              placeholder="Enter agent name…"
+              className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              onKeyDown={e => {
+                if (e.key === 'Enter' && agentName.trim()) {
+                  setShowPresetSelection(true)
+                  fetchPresets()
+                }
+              }}
+            />
+
+            <div className="mt-5">
+              <label className="block text-sm font-medium text-foreground mb-2">Special Instructions <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <textarea
+                rows={3}
+                value={specialInstructions}
+                onChange={e => setSpecialInstructions(e.target.value)}
+                placeholder="e.g. Only target fintech companies with Series B+ funding…"
+                className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none text-sm"
+              />
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => { setSelectedPersonalityId(null); setAgentName(''); setSpecialInstructions('') }}
+                className="px-6 py-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-all text-sm"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => { if (!agentName.trim()) return; setShowPresetSelection(true); fetchPresets() }}
+                disabled={!agentName.trim()}
+                className="flex-1 px-6 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-all text-sm"
+              >
+                Continue
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── PHASE 3: preset selection ── */}
+        {selectedPersonalityId && showPresetSelection && (
+          <>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Choose a Preset (Optional)</h2>
+            <p className="text-muted-foreground mb-6">Apply targeting settings to your agent</p>
+
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />{error}
+              </div>
+            )}
+
+            {loadingPresets ? (
+              <div className="text-center py-8">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
+                <p className="mt-2 text-sm text-muted-foreground">Loading presets…</p>
+              </div>
+            ) : !Array.isArray(presets) || presets.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No presets available</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[450px] overflow-y-auto mb-6 p-2">
+                {presets.map(preset => {
+                  const pid = preset._id || preset.id
+                  const spid = selectedPreset ? (selectedPreset._id || selectedPreset.id) : null
+                  const isSelected = spid === pid
+                  return (
+                    <button
+                      key={pid}
+                      onClick={() => setSelectedPreset(preset)}
+                      className={cn(
+                        'relative text-left p-3 rounded-lg border-2 transition-all',
+                        isSelected
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                          : 'border-border bg-background hover:border-primary/50 hover:bg-muted/50',
+                      )}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                      <h3 className="text-foreground font-semibold mb-1 pr-8 text-sm">{preset.name}</h3>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        {preset.targetIndustries?.length > 0 && (
+                          <div>Industries: {preset.targetIndustries.slice(0, 2).join(', ')}{preset.targetIndustries.length > 2 ? '…' : ''}</div>
+                        )}
+                        {preset.targetPositions?.length > 0 && (
+                          <div>Positions: {preset.targetPositions.slice(0, 2).join(', ')}{preset.targetPositions.length > 2 ? '…' : ''}</div>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowPresetSelection(false); setSelectedPreset(null) }}
+                disabled={isCreating}
+                className="px-6 py-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-all text-sm disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={isCreating}
+                className="flex-1 px-6 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-all text-sm flex items-center justify-center gap-2"
+              >
+                {isCreating && <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />}
+                {isCreating ? 'Creating…' : selectedPreset ? 'Create with Preset' : 'Skip & Create'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── delete confirm modal ──────────────────────────────────────────────────────
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -299,12 +625,13 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
 }
 
 // ── main component ────────────────────────────────────────────────────────────
-export function AgentsContent({ highlightAgentId }: { highlightAgentId?: string } = {}) {
+export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightAgentId?: string; autoOpenCreate?: boolean } = {}) {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<Record<string, boolean>>({})
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -347,6 +674,9 @@ export function AgentsContent({ highlightAgentId }: { highlightAgentId?: string 
   }, [])
 
   useEffect(() => { loadAgents() }, [loadAgents])
+
+  // auto-open create modal when directed from home page
+  useEffect(() => { if (autoOpenCreate) setShowCreate(true) }, [autoOpenCreate])
 
   // scroll to highlighted agent once agents are loaded
   useEffect(() => {
@@ -438,6 +768,14 @@ export function AgentsContent({ highlightAgentId }: { highlightAgentId?: string 
         </div>
       )}
 
+      {/* create agent modal */}
+      {showCreate && (
+        <CreateAgentModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => { showToast('Agent created successfully!'); loadAgents() }}
+        />
+      )}
+
       {/* delete confirm modal */}
       {deleteTarget && (
         <DeleteModal
@@ -446,8 +784,6 @@ export function AgentsContent({ highlightAgentId }: { highlightAgentId?: string 
           onCancel={() => setDeleteTarget(null)}
         />
       )}
-
-
 
       {/* toolbar */}
       <div className="flex items-center justify-between">
@@ -460,7 +796,7 @@ export function AgentsContent({ highlightAgentId }: { highlightAgentId?: string 
         <Button
           size="sm"
           className="h-8 text-xs gap-1.5"
-          onClick={() => window.open('http://localhost:3001/setup', '_blank')}
+          onClick={() => setShowCreate(true)}
         >
           <Plus className="w-3.5 h-3.5" /> New Agent
         </Button>
@@ -499,7 +835,7 @@ export function AgentsContent({ highlightAgentId }: { highlightAgentId?: string 
           <Button
             size="sm"
             className="gap-1.5"
-            onClick={() => window.open('http://localhost:3001/setup', '_blank')}
+            onClick={() => setShowCreate(true)}
           >
             <Plus className="w-3.5 h-3.5" /> Create your first agent
           </Button>

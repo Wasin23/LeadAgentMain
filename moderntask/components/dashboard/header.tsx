@@ -1,6 +1,8 @@
 "use client"
 
-import { Bell, Zap } from "lucide-react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Bell, Zap, CheckCircle2, Link2Off } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MobileNav } from "./mobile-nav"
@@ -9,6 +11,60 @@ import type { ReactNode } from "react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import api from "@/lib/api"
+
+// ── CRM brand colours & initials ──────────────────────────────────────────────
+const CRM_BRANDS: Record<string, { bg: string; text: string; initials: string }> = {
+  hubspot:    { bg: "#FF7A59", text: "#fff",     initials: "HS" },
+  salesforce: { bg: "#00A1E0", text: "#fff",     initials: "SF" },
+  pipedrive:  { bg: "#25292E", text: "#fff",     initials: "PD" },
+  zoho:       { bg: "#E42527", text: "#fff",     initials: "ZO" },
+  close:      { bg: "#4CAF50", text: "#fff",     initials: "CL" },
+  copper:     { bg: "#6B4FBB", text: "#fff",     initials: "CU" },
+  freshsales: { bg: "#1FCECB", text: "#fff",     initials: "FS" },
+}
+
+function crmBrand(name: string | null) {
+  if (!name) return null
+  const key = name.toLowerCase().replace(/\s+/g, "")
+  // try exact key, then partial match
+  const found = CRM_BRANDS[key] ?? Object.entries(CRM_BRANDS).find(([k]) => key.includes(k) || k.includes(key))?.[1]
+  return found ?? { bg: "#6b7280", text: "#fff", initials: name.slice(0, 2).toUpperCase() }
+}
+
+function CrmBadge({ name }: { name: string | null }) {
+  const router = useRouter()
+  const handleClick = () => router.push("/settings?tab=crm")
+
+  if (!name) {
+    return (
+      <button
+        onClick={handleClick}
+        className="flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[11px] text-muted-foreground hover:bg-muted cursor-pointer transition-colors select-none"
+        title="Connect a CRM"
+      >
+        <Link2Off className="w-3 h-3" />
+        <span className="hidden sm:inline">No CRM</span>
+      </button>
+    )
+  }
+  const brand = crmBrand(name)!
+  return (
+    <button
+      onClick={handleClick}
+      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border text-[11px] font-medium hover:bg-muted cursor-pointer transition-colors select-none"
+      title={`${name} connected — click to manage`}
+    >
+      <span
+        className="w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center shrink-0 leading-none"
+        style={{ background: brand.bg, color: brand.text }}
+      >
+        {brand.initials}
+      </span>
+      <span className="hidden sm:inline text-foreground">{name}</span>
+      <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0" />
+    </button>
+  )
+}
 
 interface HeaderProps extends GlobalSearchProps {
   title?: string
@@ -38,11 +94,21 @@ export function Header({
   loading,
 }: HeaderProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const [credits, setCredits] = useState<number>(creditsProp ?? 0)
   const [notifCount, setNotifCount] = useState<number>(notifProp ?? 0)
-  const [profileName, setProfileName]     = useState<string>("")
-  const [profileEmail, setProfileEmail]   = useState<string>("")
+  const [profileName, setProfileName]       = useState<string>("")
+  const [profileEmail, setProfileEmail]     = useState<string>("")
   const [profilePicture, setProfilePicture] = useState<string>("")
+  const [crmName, setCrmName]               = useState<string | null | undefined>(undefined) // undefined = loading
+
+  // Sync with billing tab credit calculation
+  useEffect(() => {
+    if (creditsProp !== undefined) return
+    const handler = (e: CustomEvent<{ credits: number }>) => setCredits(e.detail.credits)
+    window.addEventListener("credits-updated", handler as EventListener)
+    return () => window.removeEventListener("credits-updated", handler as EventListener)
+  }, [creditsProp])
 
   // Sync explicit props
   useEffect(() => { if (creditsProp !== undefined) setCredits(creditsProp) }, [creditsProp])
@@ -60,9 +126,23 @@ export function Header({
     }).catch(() => {})
 
     if (creditsProp === undefined) {
-      api.get("/api/billing/credit-balance").then(r => {
-        setCredits(r.data?.balance ?? r.data?.credits ?? 0)
-      }).catch(() => {})
+      // Aggregate all three credit sources — same logic as billing tab
+      ;(async () => {
+        let balance = 0
+        try {
+          const { data } = await api.get("/api/billing/trial-credits")
+          if (data.success) balance += Number(data.credits?.creditsRemaining ?? 0)
+        } catch {}
+        try {
+          const { data } = await api.get("/api/plans/status")
+          if (data.success) balance += Number(data.plan?.remainingCredits ?? 0)
+        } catch {}
+        try {
+          const { data } = await api.get("/api/billing/credit-balance")
+          if (data.success) balance += Number(data.balance ?? 0)
+        } catch {}
+        setCredits(Math.round(balance))
+      })()
     }
 
     if (notifProp === undefined) {
@@ -70,6 +150,10 @@ export function Header({
         setNotifCount(r.data?.unreadCount ?? 0)
       }).catch(() => {})
     }
+
+    api.get("/api/crm/status").then(r => {
+      setCrmName(r.data?.connected ? (r.data?.integration || "CRM") : null)
+    }).catch(() => { setCrmName(null) })
   }, [creditsProp, notifProp])
 
   // Prop overrides > fresh profile > context fallback
@@ -100,7 +184,10 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-1.5 md:gap-2">
-          {/* Credit balance — matches bell style */}
+          {/* CRM connection status */}
+          {crmName !== undefined && <CrmBadge name={crmName} />}
+
+          {/* Credit balance */}
           <Button
             variant="ghost"
             size="icon"
@@ -116,6 +203,7 @@ export function Header({
             variant="ghost"
             size="icon"
             title="Notifications"
+            onClick={() => router.push('/notifications')}
             className="relative hover:bg-secondary transition-all duration-300 hover:scale-110 h-8 w-8"
           >
             <Bell className="w-4 h-4" />
@@ -129,14 +217,16 @@ export function Header({
           </Button>
 
           <div className="flex items-center gap-2 pl-2 md:pl-3 border-l border-border">
-            <Avatar className="w-7 h-7 md:w-8 md:h-8 ring-2 ring-primary/20 transition-all duration-300 hover:ring-primary/40">
-              {userPicture && <AvatarImage src={userPicture} alt={userName} referrerPolicy="no-referrer" />}
-              <AvatarFallback className="text-xs">{initials || "?"}</AvatarFallback>
-            </Avatar>
-            <div className="text-xs hidden sm:block">
-              <p className="font-semibold text-foreground">{userName || "Account"}</p>
-              {userEmail && <p className="text-muted-foreground text-[10px]">{userEmail}</p>}
-            </div>
+            <Link href="/settings" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+              <Avatar className="w-7 h-7 md:w-8 md:h-8 ring-2 ring-primary/20 transition-all duration-300 hover:ring-primary/40">
+                {userPicture && <AvatarImage src={userPicture} alt={userName} referrerPolicy="no-referrer" />}
+                <AvatarFallback className="text-xs">{initials || "?"}</AvatarFallback>
+              </Avatar>
+              <div className="text-xs hidden sm:block">
+                <p className="font-semibold text-foreground">{userName || "Account"}</p>
+                {userEmail && <p className="text-muted-foreground text-[10px]">{userEmail}</p>}
+              </div>
+            </Link>
           </div>
         </div>
       </div>
