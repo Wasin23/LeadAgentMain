@@ -89,14 +89,11 @@ export function Reminders({ batches = [] }: RemindersProps) {
                 {/* Details */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">
-                    {batch.count} email{batch.count !== 1 ? "s" : ""} sending
+                    Upcoming scheduled send at {time}
                   </p>
-                  {batch.agentName && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Bot className="w-2.5 h-2.5 text-muted-foreground/60" />
-                      <span className="text-[10px] text-muted-foreground/70">{batch.agentName}</span>
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {batch.count} email{batch.count !== 1 ? "s" : ""} scheduled{batch.agentName && ` · from ${batch.agentName}`}
+                  </p>
                 </div>
 
                 {/* Soon badge */}

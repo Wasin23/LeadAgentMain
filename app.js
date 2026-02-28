@@ -23,6 +23,7 @@ import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
 import { startBillingCron } from './utils/billingCron.js';
 import { startMetricsCron } from './utils/agentMetricsCron.js';
 import { startSendingScheduleProcessor } from './utils/sendingScheduleProcessor.js';
+import { startEmailScheduler } from './utils/emailScheduler.js';
 
 // Load and validate configuration
 const config = getConfig();
@@ -728,6 +729,10 @@ const server = app.listen(PORT, async () => {
   // Start sending schedule processor (runs every 60 seconds)
   startSendingScheduleProcessor();
   console.log('✅ [SCHEDULE PROCESSOR] Sending schedule processor started');
+  
+  // Start email scheduler (checks every 5 minutes for scheduled sends)
+  startEmailScheduler();
+  console.log('✅ [EMAIL SCHEDULER] Email scheduler started - checks every 5 minutes');
   
   // Start rebump checker (runs every 6 hours)
   try {

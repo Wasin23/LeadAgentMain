@@ -4,21 +4,22 @@
  * Processes scheduled emails from the queue and sends them at specified times.
  * Checks queue every 5 minutes for emails ready to send.
  * 
- * IMPLEMENTATION STATUS: READY BUT COMMENTED OUT
+ * IMPLEMENTATION STATUS: ACTIVE
  * 
  * Usage in app.js:
  *   import { startEmailScheduler } from './utils/emailScheduler.js';
  *   startEmailScheduler();
  */
 
-/*
 import AWSManager from './awsManager.js';
+import AWSEmailQueue from './awsEmailQueue.js';
 
 class EmailScheduler {
   constructor() {
     this.checkInterval = null;
     this.isRunning = false;
     this.awsManager = new AWSManager();
+    this.awsEmailQueue = new AWSEmailQueue();
     
     // Check every 5 minutes
     this.CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -60,7 +61,7 @@ class EmailScheduler {
       console.log('📅 [EMAIL SCHEDULER] Checking for scheduled emails...');
       
       // Get all scheduled emails that are ready to send
-      const scheduledEmails = await this.awsManager.getScheduledEmailsReadyToSend();
+      const scheduledEmails = await this.getScheduledEmailsReadyToSend();
       
       if (!scheduledEmails || scheduledEmails.length === 0) {
         console.log('📊 [EMAIL SCHEDULER] No emails ready to send');
@@ -79,78 +80,120 @@ class EmailScheduler {
     }
   }
   
+  // Get all scheduled emails that are ready to send
+  async getScheduledEmailsReadyToSend() {
+    try {
+      const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      const now = new Date().toISOString();
+      
+      // Query all QUEUED emails and filter by scheduledAt
+      const response = await this.awsEmailQueue.dynamodb.send(new QueryCommand({
+        TableName: this.awsEmailQueue.tableName,
+        IndexName: this.awsEmailQueue.gsiName,
+        KeyConditionExpression: 'begins_with(GSIPK, :gsiPrefix)',
+        FilterExpression: 'attribute_exists(scheduledAt) AND scheduledAt <= :now',
+        ExpressionAttributeValues: {
+          ':gsiPrefix': '#QUEUED',  // Match all user queued emails
+          ':now': now
+        }
+      }));
+      
+      return response.Items || [];
+    } catch (error) {
+      console.error('[EMAIL SCHEDULER] Error fetching scheduled emails:', error);
+      return [];
+    }
+  }
+  
   // Send a scheduled email
   async sendScheduledEmail(email) {
     try {
-      const { emailId, userId, agentId, scheduledSendTime, autoSend } = email;
+      const { id: emailId, userId, agentId, scheduledAt } = email;
       
-      console.log(`📧 [EMAIL SCHEDULER] Processing email ${emailId} (scheduled for ${scheduledSendTime})`);
+      console.log(`📧 [EMAIL SCHEDULER] Processing email ${emailId} (scheduled for ${scheduledAt})`);
       
-      // Check if auto-send is enabled
-      if (!autoSend) {
-        console.log(`⏭️ [EMAIL SCHEDULER] Email ${emailId} has autoSend disabled, skipping`);
-        return;
-      }
+      // Use the email queue API endpoint to approve/send the email
+      const axios = (await import('axios')).default;
+      const apiUrl = process.env.API_URL || 'http://localhost:3030';
       
-      // Import email queue for sending
-      const { EmailQueue } = await import('../lib/emailQueue.js');
-      const emailQueue = new EmailQueue(userId, agentId);
+      // Get user's JWT token (this is server-side, so we need to handle auth differently)
+      // For now, we'll directly call the approve endpoint
+      const response = await axios.post(
+        `${apiUrl}/api/email-queue/${emailId}/approve`,
+        { agentId, isScheduled: true },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            // Server-side auth bypass for scheduled sends
+            'X-Scheduled-Send': 'true',
+            'X-User-Id': userId
+          },
+          params: { agentId }
+        }
+      ).catch(err => {
+        // If API call fails, try direct send
+        return this.sendEmailDirect(email);
+      });
       
-      // Send the email
-      const result = await emailQueue.sendEmail(emailId);
-      
-      if (result.success) {
+      if (response && response.data) {
         console.log(`✅ [EMAIL SCHEDULER] Email ${emailId} sent successfully`);
-        
-        // Update email status in queue
-        await this.awsManager.updateEmailQueueStatus(emailId, 'sent', {
-          sentAt: new Date().toISOString(),
-          sentVia: 'scheduler'
-        });
         
         // Log notification
         await this.awsManager.addIssue(
           userId,
           'info',
           'Scheduled Email Sent',
-          `Scheduled email to ${email.to} was sent successfully.`,
+          `Scheduled email to ${email.to || email.emailData?.finalRecipient} was sent successfully.`,
           {
             emailId,
             agentId,
-            to: email.to,
-            subject: email.subject,
-            scheduledTime: scheduledSendTime,
+            to: email.to || email.emailData?.finalRecipient,
+            subject: email.subject || email.emailData?.finalSubject,
+            scheduledTime: scheduledAt,
             sentTime: new Date().toISOString()
-          }
-        );
-      } else {
-        console.error(`❌ [EMAIL SCHEDULER] Failed to send email ${emailId}:`, result.error);
-        
-        // Update email status to failed
-        await this.awsManager.updateEmailQueueStatus(emailId, 'failed', {
-          failedAt: new Date().toISOString(),
-          error: result.error
-        });
-        
-        // Log error notification
-        await this.awsManager.addIssue(
-          userId,
-          'error',
-          'Scheduled Email Failed',
-          `Failed to send scheduled email to ${email.to}: ${result.error}`,
-          {
-            emailId,
-            agentId,
-            to: email.to,
-            subject: email.subject,
-            scheduledTime: scheduledSendTime,
-            error: result.error
           }
         );
       }
       
     } catch (error) {
-      console.error(`❌ [EMAIL SCHEDULER] Error sending email ${email.emailId}:`, error);
+      console.error(`❌ [EMAIL SCHEDULER] Error sending email ${email.id}:`, error);
+      
+      // Log error notification
+      try {
+        await this.awsManager.addIssue(
+          email.userId,
+          'error',
+          'Scheduled Email Failed',
+          `Failed to send scheduled email: ${error.message}`,
+          {
+            emailId: email.id,
+            agentId: email.agentId,
+            to: email.to || email.emailData?.finalRecipient,
+            subject: email.subject || email.emailData?.finalSubject,
+            scheduledTime: email.scheduledAt,
+            error: error.message
+          }
+        );
+      } catch (issueError) {
+        console.error('[EMAIL SCHEDULER] Failed to log issue:', issueError);
+      }
+    }
+  }
+  
+  // Direct send method (fallback if API unavailable)
+  async sendEmailDirect(email) {
+    try {
+      const { EmailQueue } = await import('../lib/emailQueue.js');
+      const emailQueue = new EmailQueue(email.userId, email.agentId);
+      
+      // Approve and send the email
+      await this.awsEmailQueue.approveEmail(email.userId, email.agentId, email.id);
+      const result = await emailQueue.sendEmail(email.id);
+      
+      return { data: result };
+    } catch (error) {
+      console.error('[EMAIL SCHEDULER] Direct send failed:', error);
+      throw error;
     }
   }
   
@@ -184,13 +227,3 @@ export function stopEmailScheduler() {
 }
 
 export default EmailScheduler;
-*/
-
-// TEMPORARY PLACEHOLDER - Remove when uncommenting above
-console.log('⚠️ Email Scheduler system ready but commented out');
-export function startEmailScheduler() {
-  console.log('📧 Email scheduler would start here');
-}
-export function stopEmailScheduler() {
-  console.log('📧 Email scheduler would stop here');
-}

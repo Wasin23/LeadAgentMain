@@ -7,7 +7,7 @@ import {
   User, Palette, Bell, Mail, LayoutGrid,
   CheckCircle2, XCircle, Plus, Trash2, Loader2, RefreshCw,
   Building2, Database, Link2Off, CreditCard,
-  Reply, Eye, Calendar, CheckCheck, Inbox, AlertTriangle
+  Reply, Eye, Calendar, CheckCheck, Inbox, AlertTriangle, Brain
 } from "lucide-react"
 import { format, formatDistanceToNow } from "date-fns"
 import { Card } from "@/components/ui/card"
@@ -24,7 +24,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { PresetsContent } from "@/components/agents/presets-content"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Tab = "profile" | "appearance" | "notifications" | "company-profile" | "email" | "crm" | "presets" | "billing"
+type Tab = "profile" | "appearance" | "notifications" | "company-profile" | "email" | "crm" | "presets" | "billing" | "memory"
 
 interface EmailAccount { email: string; connectedAt: string; profilePicture?: string; isActive: boolean }
 
@@ -40,6 +40,25 @@ interface Notification {
   timestamp: string
   read: boolean
   data?: Record<string, unknown>
+}
+
+interface KeywordMemory {
+  keyword: string
+  position: string
+  searchCombo: string
+  totalAttempts: number
+  totalDuplicates: number
+  cumulativeDuplicateRate: number
+  isExhausted: boolean
+  keywordSource: string
+  lastUpdated: number
+}
+
+interface MemoryStats {
+  totalKeywords: number
+  exhaustedKeywords: number
+  avgDuplicateRate: number
+  totalSearchAttempts: number
 }
 
 const NOTIF_TYPE_META: Record<string, { icon: React.ElementType; bg: string; badge: string; label: string }> = {
@@ -80,6 +99,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "company-profile", label: "Company Profile", icon: Building2 },
   { id: "email",           label: "Email",           icon: Mail },
   { id: "crm",             label: "CRM",             icon: Database },
+  { id: "memory",          label: "Memory",          icon: Brain },
   { id: "presets",         label: "Presets",         icon: LayoutGrid },
   { id: "billing",         label: "Billing",         icon: CreditCard },
 ]
@@ -215,6 +235,76 @@ export function SettingsContent() {
     setMarkingAll(false)
   }
 
+  // ── Memory ────────────────────────────────────────────────────────────────
+  const [keywords, setKeywords] = useState<KeywordMemory[]>([])
+  const [memoryStats, setMemoryStats] = useState<MemoryStats | null>(null)
+  const [memoryLoading, setMemoryLoading] = useState(false)
+  const [memoryFilter, setMemoryFilter] = useState<'all' | 'exhausted' | 'good'>('all')
+  const [resettingKeyword, setResettingKeyword] = useState<string | null>(null)
+
+  const fetchMemory = useCallback(async () => {
+    setMemoryLoading(true)
+    try {
+      const [keywordsRes, statsRes] = await Promise.allSettled([
+        api.get('/api/lead-agent/memory/keywords'),
+        api.get('/api/lead-agent/memory/stats')
+      ])
+
+      if (keywordsRes.status === 'fulfilled' && keywordsRes.value.data.success) {
+        setKeywords(keywordsRes.value.data.keywords || [])
+      }
+
+      if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
+        setMemoryStats(statsRes.value.data.stats)
+      }
+    } catch {}
+    finally { setMemoryLoading(false) }
+  }, [])
+
+  const resetKeyword = async (searchCombo: string) => {
+    if (!confirm(`Reset "${searchCombo}"? This will clear its learning history.`)) return
+
+    setResettingKeyword(searchCombo)
+    try {
+      const response = await api.delete(`/api/lead-agent/memory/keyword/${encodeURIComponent(searchCombo)}`)
+      
+      if (response.data.success) {
+        setKeywords(prev => prev.filter(k => k.searchCombo !== searchCombo))
+        const statsRes = await api.get('/api/lead-agent/memory/stats')
+        if (statsRes.data.success) setMemoryStats(statsRes.data.stats)
+        toast.success('Keyword reset successfully')
+      }
+    } catch {
+      toast.error('Failed to reset keyword')
+    } finally {
+      setResettingKeyword(null)
+    }
+  }
+
+  const resetAllKeywords = async () => {
+    if (!confirm('Reset ALL keyword memory? This will clear all learning history and cannot be undone.')) return
+
+    setResettingKeyword('all')
+    try {
+      const response = await api.delete('/api/lead-agent/memory/reset-all')
+      
+      if (response.data.success) {
+        setKeywords([])
+        setMemoryStats({
+          totalKeywords: 0,
+          exhaustedKeywords: 0,
+          avgDuplicateRate: 0,
+          totalSearchAttempts: 0
+        })
+        toast.success('All memory reset successfully')
+      }
+    } catch {
+      toast.error('Failed to reset memory')
+    } finally {
+      setResettingKeyword(null)
+    }
+  }
+
   // ── Billing ───────────────────────────────────────────────────────────────
   // ── Fetch all ─────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -267,6 +357,11 @@ export function SettingsContent() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
   useEffect(() => { loadInboxNotifs() }, [loadInboxNotifs])
+
+  // Load memory when memory tab is active
+  useEffect(() => {
+    if (tab === 'memory') fetchMemory()
+  }, [tab, fetchMemory])
 
   // Sync tab state when URL ?tab= param changes (e.g. sidebar subtab clicks)
   useEffect(() => {
@@ -1246,6 +1341,242 @@ export function SettingsContent() {
             )}
           </Card>
         )}
+
+        {/* ── MEMORY ───────────────────────────────────────────────────────── */}
+        {tab === "memory" && (() => {
+          const filteredKeywords = keywords.filter(k => {
+            if (memoryFilter === 'exhausted') return k.isExhausted
+            if (memoryFilter === 'good') return !k.isExhausted
+            return true
+          }).sort((a, b) => b.cumulativeDuplicateRate - a.cumulativeDuplicateRate)
+
+          const getSourceBadge = (source: string) => {
+            const badges = {
+              base: { text: 'Base', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+              ai: { text: 'AI Generated', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
+              campaign: { text: 'Campaign', color: 'bg-green-500/10 text-green-500 border-green-500/20' }
+            }
+            return badges[source as keyof typeof badges] || badges.base
+          }
+
+          return (
+            <div className="space-y-5">
+              {/* Header with actions */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Keyword Learning Memory</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchMemory()}
+                      disabled={memoryLoading}
+                      className="gap-1.5"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${memoryLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    {keywords.length > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={resetAllKeywords}
+                        disabled={resettingKeyword === 'all'}
+                        className="gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {resettingKeyword === 'all' ? 'Resetting...' : 'Reset All'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  AI agents learn from search results to avoid exhausted keyword combinations. Track duplicate rates and reset underperforming keywords.
+                </p>
+              </Card>
+
+              {/* Stats Cards */}
+              {memoryStats && (
+                <div className="grid grid-cols-4 gap-4">
+                  <Card className="p-4">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">Total Keywords</div>
+                    <div className="text-2xl font-bold">{memoryStats.totalKeywords}</div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">Exhausted</div>
+                    <div className="text-2xl font-bold text-destructive">{memoryStats.exhaustedKeywords}</div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">Avg Duplicate Rate</div>
+                    <div className="text-2xl font-bold text-orange-500">{memoryStats.avgDuplicateRate.toFixed(1)}%</div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">Total Searches</div>
+                    <div className="text-2xl font-bold">{memoryStats.totalSearchAttempts}</div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Filters */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={memoryFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMemoryFilter('all')}
+                  className="text-xs"
+                >
+                  All ({keywords.length})
+                </Button>
+                <Button
+                  variant={memoryFilter === 'exhausted' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMemoryFilter('exhausted')}
+                  className="text-xs"
+                >
+                  Exhausted ({keywords.filter(k => k.isExhausted).length})
+                </Button>
+                <Button
+                  variant={memoryFilter === 'good' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMemoryFilter('good')}
+                  className="text-xs"
+                >
+                  Good ({keywords.filter(k => !k.isExhausted).length})
+                </Button>
+              </div>
+
+              {/* Keywords Table */}
+              {memoryLoading ? (
+                <Card className="p-12">
+                  <div className="flex flex-col items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+                    <p className="text-sm text-muted-foreground">Loading keyword memory...</p>
+                  </div>
+                </Card>
+              ) : filteredKeywords.length === 0 ? (
+                <Card className="p-12">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <Brain className="w-12 h-12 text-muted-foreground mb-3" />
+                    <p className="text-base font-medium mb-1">No keyword memory yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      {memoryFilter === 'all' 
+                        ? 'Start running agents to build learning history'
+                        : `No ${memoryFilter} keywords found`}
+                    </p>
+                  </div>
+                </Card>
+              ) : (
+                <Card className="overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Keyword + Position
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Source
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Attempts
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Duplicates
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Rate
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filteredKeywords.map((keyword) => {
+                          const sourceBadge = getSourceBadge(keyword.keywordSource)
+                          return (
+                            <tr key={keyword.searchCombo} className="hover:bg-muted/50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="text-sm font-medium">{keyword.keyword}</div>
+                                <div className="text-xs text-muted-foreground">{keyword.position}</div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge variant="outline" className={`text-xs font-medium border ${sourceBadge.color}`}>
+                                  {sourceBadge.text}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                {keyword.totalAttempts}
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                {keyword.totalDuplicates}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="text-sm font-medium">
+                                    {keyword.cumulativeDuplicateRate.toFixed(1)}%
+                                  </div>
+                                  <div className="w-24 bg-muted rounded-full h-2">
+                                    <div
+                                      className={`h-2 rounded-full ${
+                                        keyword.cumulativeDuplicateRate > 70
+                                          ? 'bg-red-600'
+                                          : keyword.cumulativeDuplicateRate > 50
+                                          ? 'bg-orange-500'
+                                          : keyword.cumulativeDuplicateRate > 30
+                                          ? 'bg-yellow-500'
+                                          : 'bg-green-500'
+                                      }`}
+                                      style={{ width: `${Math.min(keyword.cumulativeDuplicateRate, 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                {keyword.isExhausted ? (
+                                  <Badge variant="destructive" className="text-xs">
+                                    ⚠️ Exhausted
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                                    ✓ Good
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => resetKeyword(keyword.searchCombo)}
+                                  disabled={resettingKeyword === keyword.searchCombo}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  title="Reset this keyword"
+                                >
+                                  {resettingKeyword === keyword.searchCombo ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
+            </div>
+          )
+        })()}
 
         {/* ── Billing ──────────────────────────────────────────────────────── */}
         {tab === "billing" && <BillingTab />}
