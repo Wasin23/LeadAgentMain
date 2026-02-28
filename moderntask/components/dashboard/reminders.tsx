@@ -15,7 +15,7 @@ interface RemindersProps {
   batches?: ScheduledBatch[]
 }
 
-function formatTime(iso: string): { time: string; date: string; soon: boolean } {
+function formatTime(iso: string): { time: string; date: string; soon: boolean; month: string; day: string } {
   const d = new Date(iso)
   const now = new Date()
   const diffMs = d.getTime() - now.getTime()
@@ -29,7 +29,10 @@ function formatTime(iso: string): { time: string; date: string; soon: boolean } 
   const date = isToday ? "Today" : isTomorrow ? "Tomorrow" : d.toLocaleDateString([], { month: "short", day: "numeric" })
   const soon = diffMins >= 0 && diffMins <= 60
 
-  return { time, date, soon }
+  const month = isToday ? "Today" : isTomorrow ? "Tmrw" : d.toLocaleDateString([], { month: "short" }).toUpperCase()
+  const day = String(d.getDate())
+
+  return { time, date, soon, month, day }
 }
 
 export function Reminders({ batches = [] }: RemindersProps) {
@@ -69,21 +72,26 @@ export function Reminders({ batches = [] }: RemindersProps) {
       ) : (
         <div className="space-y-2">
           {upcoming.slice(0, 5).map((batch, i) => {
-            const { time, date, soon } = formatTime(batch.scheduledSendTime)
+            const { time, date, soon, month, day } = formatTime(batch.scheduledSendTime)
             return (
               <div
                 key={`${batch.scheduledSendTime}-${i}`}
                 className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-secondary transition-all duration-200 cursor-pointer group"
                 onClick={() => router.push("/email-queue")}
               >
-                {/* Time block */}
-                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg flex-shrink-0 border ${
-                  soon
-                    ? "bg-primary/10 border-primary/30 text-primary"
-                    : "bg-muted border-border text-muted-foreground"
+                {/* Calendar chip */}
+                <div className={`flex-shrink-0 w-12 rounded-xl overflow-hidden border shadow-sm ${
+                  soon ? "border-primary/40" : "border-border"
                 }`}>
-                  <span className="text-[10px] font-medium leading-tight">{date}</span>
-                  <span className="text-xs font-bold leading-tight">{time}</span>
+                  <div className={`text-center text-[9px] font-bold uppercase tracking-wider py-0.5 ${
+                    soon ? "bg-primary text-white" : "bg-muted/80 text-muted-foreground"
+                  }`}>
+                    {month}
+                  </div>
+                  <div className="flex flex-col items-center py-1.5 gap-0.5 bg-card">
+                    <span className={`text-sm font-bold leading-none ${soon ? "text-primary" : "text-foreground"}`}>{day}</span>
+                    <span className="text-[9px] text-muted-foreground leading-none">{time}</span>
+                  </div>
                 </div>
 
                 {/* Details */}
