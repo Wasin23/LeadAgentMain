@@ -2,7 +2,7 @@
 
 import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import api from "@/lib/api"
@@ -52,7 +52,7 @@ const generalItems: NavItem[] = [
   { icon: LogOut,     label: "Logout",   href: "/logout" },
 ]
 
-export function Sidebar() {
+function SidebarInner() {
   const [hoveredItem, setHoveredItem]   = useState<string | null>(null)
   const [agentItems, setAgentItems]     = useState<NavItem[]>([])
   const pathname    = usePathname()
@@ -113,6 +113,16 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+  )
+}
+
+export function Sidebar() {
+  return (
+    <Suspense fallback={
+      <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen lg:block" />
+    }>
+      <SidebarInner />
+    </Suspense>
   )
 }
 
