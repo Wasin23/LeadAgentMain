@@ -118,6 +118,7 @@ function ScheduleModal({ email, onSave, onClose }: {
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button size="sm" disabled={saving || !value} onClick={async () => {
+              alert('SCHEDULE BUTTON CLICKED - Check console for logs')
               console.log('[SCHEDULE MODAL] Schedule button clicked:', { 
                 emailId: email.id, 
                 rawValue: value, 
