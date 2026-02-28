@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from "react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { AgentsContent } from "@/components/agents/agents-content"
@@ -7,7 +8,7 @@ import { PresetsContent } from "@/components/agents/presets-content"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useSearchParams } from "next/navigation"
 
-export default function AgentsPage() {
+function AgentsPageInner() {
   const searchParams    = useSearchParams()
   const highlightAgent  = searchParams.get("agent") ?? undefined
   const autoOpenCreate  = searchParams.get("create") === "true"
@@ -36,5 +37,13 @@ export default function AgentsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function AgentsPage() {
+  return (
+    <Suspense>
+      <AgentsPageInner />
+    </Suspense>
   )
 }
