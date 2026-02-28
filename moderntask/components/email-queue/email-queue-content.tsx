@@ -173,17 +173,31 @@ function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: Sen
     setSched(s => ({ ...s, activeDays: s.activeDays.includes(d) ? s.activeDays.filter(x => x !== d) : [...s.activeDays, d].sort() }))
 
   const save = async () => {
+    console.log('[AGENT SCHEDULE] Save button clicked')
+    console.log('[AGENT SCHEDULE] Agent ID:', agent.agentId)
+    console.log('[AGENT SCHEDULE] Current schedule:', sched)
+    console.log('[AGENT SCHEDULE] Daily limit string:', limitStr)
+    
     setSaving(true)
     try {
+      const scheduleToSave = { ...sched, dailyLimit: parseInt(limitStr) || 0 }
+      console.log('[AGENT SCHEDULE] Schedule to save:', scheduleToSave)
+      console.log('[AGENT SCHEDULE] Making request to:', `/api/auth/agents/${agent.agentId}/settings`)
+      
       await api.put(`/api/auth/agents/${agent.agentId}/settings`, {
         ...agent.settings,
-        sendingSchedule: { ...sched, dailyLimit: parseInt(limitStr) || 0 },
+        sendingSchedule: scheduleToSave,
       })
-      const saved = { ...sched, dailyLimit: parseInt(limitStr) || 0 }
+      
+      console.log('[AGENT SCHEDULE] ✅ Save successful!')
+      const saved = scheduleToSave
       setSaved(true); setTimeout(() => setSaved(false), 2000)
       onSaved?.(saved)
       toast({ title: 'Schedule saved', description: `Sending ${saved.dailyLimit}/day on ${saved.activeDays.map(d => DAY_LABELS[d]).join(', ')} at ${saved.sendTime}`, duration: 2000 })
-    } catch {}
+    } catch (err: any) {
+      console.error('[AGENT SCHEDULE] ❌ Save failed:', err)
+      console.error('[AGENT SCHEDULE] Error response:', err.response?.data)
+    }
     finally { setSaving(false) }
   }
 
@@ -1036,8 +1050,41 @@ export function EmailQueueContent() {
   }
 
   useEffect(() => {
-    api.get('/api/auth/agents').then(r => setAgents(r.data.agents ?? [])).catch(() => {})
+    console.log('[EMAIL QUEUE] Loading agents...')
+    api.get('/api/auth/agents').then(r => {
+      console.log('[EMAIL QUEUE] Agents loaded:', r.data.agents?.length)
+      setAgents(r.data.agents ?? [])
+      
+      // Load saved schedule for current agent
+      if (selectedAgent !== 'all') {
+        const agent = r.data.agents?.find((a: Agent) => a.agentId === selectedAgent)
+        if (agent?.settings?.sendingSchedule) {
+          console.log('[EMAIL QUEUE] Loading saved schedule for agent:', selectedAgent, agent.settings.sendingSchedule)
+          setSavedSchedule(agent.settings.sendingSchedule)
+        } else {
+          console.log('[EMAIL QUEUE] No saved schedule found for agent:', selectedAgent)
+        }
+      }
+    }).catch((err) => {
+      console.error('[EMAIL QUEUE] Failed to load agents:', err)
+    })
   }, [])
+  
+  // Load schedule when agent changes
+  useEffect(() => {
+    if (selectedAgent === 'all') {
+      setSavedSchedule(null)
+      return
+    }
+    const agent = agents.find(a => a.agentId === selectedAgent)
+    if (agent?.settings?.sendingSchedule) {
+      console.log('[EMAIL QUEUE] Agent changed, loading schedule:', agent.settings.sendingSchedule)
+      setSavedSchedule(agent.settings.sendingSchedule)
+    } else {
+      console.log('[EMAIL QUEUE] Agent changed, no schedule found')
+      setSavedSchedule(null)
+    }
+  }, [selectedAgent, agents])
 
   return (
     <div className="space-y-5">
