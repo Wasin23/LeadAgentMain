@@ -12,7 +12,7 @@ import {
   Inbox, Trash2, Pencil, ZoomIn, ZoomOut, Replace,
   CheckSquare, Square, ChevronsLeft, ChevronLeft,
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
-  Settings2, Save, Search, Sparkles, ExternalLink,
+  Settings2, Save, Search, FileText, ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -465,8 +465,8 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
           </button>
           <div className="flex items-center gap-1 shrink-0">
             {email.aiReport && onViewReport && (
-              <button onClick={onViewReport} className="p-1 rounded text-blue-400 hover:text-blue-500 hover:bg-blue-500/10 transition-colors border border-blue-400/30 hover:border-blue-400" title="View AI Research Report">
-                <Sparkles className="w-3.5 h-3.5" />
+              <button onClick={onViewReport} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="View AI Research Report">
+                <FileText className="w-3.5 h-3.5" />
               </button>
             )}
             {onSchedule && (
@@ -570,7 +570,7 @@ function AIReportModal({ report, onClose }: { report: AIReport; onClose: () => v
             <div className="flex-1">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold uppercase tracking-wider flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
+                  <FileText className="w-5 h-5 text-primary" />
                   Research Report
                 </h3>
                 <p className="text-muted-foreground text-sm mt-1">{report.companyName} • {report.contactName}</p>
