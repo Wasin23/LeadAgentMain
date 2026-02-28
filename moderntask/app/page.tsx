@@ -1,341 +1,104 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import api from "@/lib/api"
-import { Sidebar } from "@/components/dashboard/sidebar"
-import { Header } from "@/components/dashboard/header"
-import { StatsCards } from "@/components/dashboard/stats-cards"
-import { ProjectAnalytics } from "@/components/dashboard/project-analytics"
-import { Reminders } from "@/components/dashboard/reminders"
-import { TeamCollaboration } from "@/components/dashboard/team-collaboration"
-import { ProjectProgress } from "@/components/dashboard/project-progress"
-import { UpcomingFollowUps } from "@/components/dashboard/upcoming-followups"
-import { RecentNotifications } from "@/components/dashboard/recent-notifications"
-import { QuickActions } from "@/components/dashboard/quick-actions"
-import { HomeActions } from "@/components/dashboard/home-actions"
-import type { QueueChartDataPoint } from "@/components/dashboard/project-analytics"
-import type { AgentProgressItem } from "@/components/dashboard/project-progress"
-import type { AgentActivityItem } from "@/components/dashboard/team-collaboration"
-import type { ScheduledBatch } from "@/components/dashboard/reminders"
-import type { FollowUpItem } from "@/components/dashboard/upcoming-followups"
-import type { NotificationItem } from "@/components/dashboard/recent-notifications"
+import Link from "next/link"
+import { ArrowRight, Bot, Mail, BarChart3, Zap, CheckCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-// ── helpers ────────────────────────────────────────────────────────────────
-
-function normaliseArray(data: unknown): unknown[] {
-  if (Array.isArray(data)) return data
-  if (data && typeof data === "object") {
-    const d = data as Record<string, unknown>
-    if (Array.isArray(d.emails)) return d.emails as unknown[]
-    if (Array.isArray(d.items)) return d.items as unknown[]
-  }
-  return []
-}
-
-function dayLabel(daysAgo: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - daysAgo)
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
-function isoDay(daysAgo: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - daysAgo)
-  return d.toISOString().split("T")[0]
-}
-
-function emailDate(email: Record<string, unknown>): Date {
-  return new Date(
-    (email.sentAt as string) ||
-    (email.timestamp as string) ||
-    (email.createdAt as string) ||
-    Date.now()
-  )
-}
-
-// ── component ──────────────────────────────────────────────────────────────
-
-export default function DashboardPage() {
-  const { user } = useAuth()
-
-  // stats
-  const [counts, setCounts] = useState({ sent: 0, queued: 0, replied: 0 })
-  const [runningAgents, setRunningAgents] = useState(0)
-
-  // chart – emails sent per day (last 7 days)
-  const [chartData, setChartData] = useState<QueueChartDataPoint[]>([])
-
-  // agent panels
-  const [agentProgress, setAgentProgress] = useState<AgentProgressItem[]>([])
-  const [agentActivity, setAgentActivity] = useState<AgentActivityItem[]>([])
-
-  // scheduled sends
-  const [scheduledBatches, setScheduledBatches] = useState<ScheduledBatch[]>([])
-
-  // follow-ups
-  const [followUps, setFollowUps] = useState<FollowUpItem[]>([])
-
-  // notifications
-  const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [notifCount, setNotifCount] = useState(0)
-
-  const fetchAll = useCallback(async () => {
-    // Fire all requests in parallel; silently handle individual failures
-    const [
-      countsRes,
-      agentsRes,
-      sentRes,
-      queueRes,
-      notifsRes,
-      notifCountRes,
-    ] = await Promise.allSettled([
-      api.get("/api/email-queue/counts?agentId=all"),
-      api.get("/api/auth/agents"),
-      api.get("/api/email-queue/sent", { params: { agentId: "all" } }),
-      api.get("/api/email-queue/queue", { params: { agentId: "all" } }),
-      api.get("/api/notifications/recent", { params: { limit: 6 } }),
-      api.get("/api/notifications/count"),
-    ])
-
-    // ── email counts ────────────────────────────────────────────────────
-    if (countsRes.status === "fulfilled") {
-      const d = countsRes.value.data
-      setCounts({
-        sent: d.sent ?? 0,
-        queued: d.queued ?? 0,
-        replied: d.replied ?? 0,
-      })
-    }
-
-    // ── agents ──────────────────────────────────────────────────────────
-    if (agentsRes.status === "fulfilled") {
-      const agents: Record<string, unknown>[] = agentsRes.value.data?.agents ?? []
-
-      // running count
-      const running = agents.filter(
-        (a) => a.isRunning === true || a.status === "running" || a.status === "active"
-      ).length
-      setRunningAgents(running)
-
-      // team-collaboration list
-      setAgentActivity(
-        agents
-          .filter((a) => a.agentId !== "orphan")
-          .map((a) => ({
-            agentId: a.agentId as string,
-            name: (a.name as string) || "Agent",
-            status: (a.status as string) || "stopped",
-            currentActivity: (a.currentActivity as string) || undefined,
-            personalityType:
-              ((a.personality as Record<string, unknown>)?.type as string) ||
-              (a.personalityType as string) ||
-              "professional",
-          }))
-      )
-
-      // agent progress rings (sent last 7d vs lead limit)
-      const sentEmails =
-        sentRes.status === "fulfilled"
-          ? normaliseArray(sentRes.value.data)
-          : []
-
-      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-
-      setAgentProgress(
-        agents
-          .filter((a) => {
-            if (a.agentId === "orphan") return false
-            return a.isRunning === true || a.status === "running" || a.status === "active"
-          })
-          .map((a) => {
-            const agentSent = (sentEmails as Record<string, unknown>[]).filter(
-              (e) =>
-                e.agentId === a.agentId && emailDate(e) >= oneWeekAgo
-            ).length
-            const settings = (a.settings as Record<string, unknown>) || {}
-            const geo = (settings.geographicSettings as Record<string, unknown>) || {}
-            const targeting = (settings.targeting as Record<string, unknown>) || {}
-            const leadLimit =
-              (geo.leadLimit as number) ||
-              (targeting.leadLimit as number) ||
-              (settings.leadLimit as number) ||
-              (a.leadLimit as number) ||
-              10
-            return {
-              agentId: a.agentId as string,
-              name: (a.name as string) || "Agent",
-              current: agentSent,
-              max: leadLimit,
-            }
-          })
-      )
-    }
-
-    // ── sent emails → chart + follow-ups ────────────────────────────────
-    if (sentRes.status === "fulfilled") {
-      const sentEmails = normaliseArray(sentRes.value.data) as Record<string, unknown>[]
-
-      // chart: emails sent per day for last 7 days
-      const chart: QueueChartDataPoint[] = Array.from({ length: 7 }, (_, i) => {
-        const daysAgo = 6 - i
-        const dayStr = isoDay(daysAgo)
-        const value = sentEmails.filter((e) => {
-          const d = emailDate(e).toISOString().split("T")[0]
-          return d === dayStr
-        }).length
-        return { day: dayLabel(daysAgo), value, label: `${value} emails` }
-      })
-      setChartData(chart)
-
-      // follow-ups: scheduled but not yet complete
-      const followUpList: FollowUpItem[] = sentEmails
-        .filter((e) => {
-          if (!e.followUpScheduled || !e.followUpDate) return false
-          const rebumpCount = (e.rebumpCount as number) || 0
-          const maxFollowUps = (e.maxFollowUps as number) || 1
-          return rebumpCount < maxFollowUps
-        })
-        .sort(
-          (a, b) =>
-            new Date(a.followUpDate as string).getTime() -
-            new Date(b.followUpDate as string).getTime()
-        )
-        .slice(0, 8)
-        .map((e) => ({
-          id: (e.emailId as string) || (e.id as string) || String(Math.random()),
-          leadName: (e.leadName as string) || (e.recipientName as string) || "Lead",
-          leadEmail:
-            (e.leadEmail as string) ||
-            (e.recipientEmail as string) ||
-            (e.to as string) ||
-            "",
-          company: (e.company as string) || (e.leadCompany as string) || "",
-          subject: (e.subject as string) || "",
-          followUpDate: e.followUpDate as string,
-          agentName: (e.agentName as string) || "",
-        }))
-      setFollowUps(followUpList)
-    }
-
-    // ── queued emails → scheduled batches ───────────────────────────────
-    if (queueRes.status === "fulfilled") {
-      const queuedEmails = normaliseArray(queueRes.value.data) as Record<string, unknown>[]
-
-      // group by scheduledSendTime (ISO date string rounded to minute)
-      const batchMap = new Map<string, { count: number; agentName: string; agentId: string }>()
-      queuedEmails.forEach((e) => {
-        const t = (e.scheduledSendTime as string) || (e.scheduledAt as string)
-        if (!t) return
-        // Round to nearest minute key
-        const key = new Date(t).toISOString().slice(0, 16) // "YYYY-MM-DDTHH:MM"
-        if (!batchMap.has(key)) {
-          batchMap.set(key, {
-            count: 0,
-            agentName: (e.agentName as string) || "",
-            agentId: (e.agentId as string) || "",
-          })
-        }
-        batchMap.get(key)!.count++
-      })
-
-      const batches: ScheduledBatch[] = Array.from(batchMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(0, 8)
-        .map(([time, info]) => ({
-          scheduledSendTime: time,
-          count: info.count,
-          agentName: info.agentName,
-          agentId: info.agentId,
-        }))
-      setScheduledBatches(batches)
-    }
-
-    // ── notifications ────────────────────────────────────────────────────
-    if (notifsRes.status === "fulfilled") {
-      const items = notifsRes.value.data?.notifications ?? []
-      setNotifications(
-        (items as Record<string, unknown>[]).map((n) => ({
-          issueId: (n.issueId as string) || (n.id as string) || String(Math.random()),
-          type: (n.type as NotificationItem["type"]) || "system",
-          severity: (n.severity as NotificationItem["severity"]) || "low",
-          title: (n.title as string) || "Notification",
-          message: (n.message as string) || "",
-          timestamp: (n.timestamp as string) || new Date().toISOString(),
-          read: (n.read as boolean) ?? false,
-        }))
-      )
-    }
-
-    if (notifCountRes.status === "fulfilled") {
-      setNotifCount(notifCountRes.value.data?.unreadCount ?? 0)
-    }
-
-  }, [])
+export default function LandingPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
-    if (user) fetchAll()
-  }, [user, fetchAll])
+    if (!loading && user) router.replace("/home")
+  }, [user, loading, router])
 
-  // Refresh every 60 seconds while the tab is visible
-  useEffect(() => {
-    if (!user) return
-    const id = setInterval(fetchAll, 60_000)
-    return () => clearInterval(id)
-  }, [user, fetchAll])
-
-  const userName =
-    (user as Record<string, unknown> | null)?.username as string | undefined
-  const userEmail =
-    (user as Record<string, unknown> | null)?.email as string | undefined
-  const userPicture =
-    (user as Record<string, unknown> | null)?.picture as string | undefined
+  if (loading || user) return null
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <div className="hidden lg:block">
-        <Sidebar />
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Nav */}
+      <header className="border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-foreground">
+            <ellipse cx="24" cy="24" rx="6"  ry="20" stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8"  stroke="currentColor" strokeWidth="1.5"/>
+            <ellipse cx="24" cy="24" rx="20" ry="16" stroke="currentColor" strokeWidth="1.5"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="currentColor" strokeWidth="1.5"/>
+          </svg>
+          <span className="text-lg font-semibold text-foreground">Meridian</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/signin">
+            <Button variant="ghost" size="sm">Sign in</Button>
+          </Link>
+          <Link href="/signin">
+            <Button size="sm">Get started <ArrowRight className="w-3.5 h-3.5 ml-1.5" /></Button>
+          </Link>
+        </div>
+      </header>
 
-      <main className="flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
-        <Header
-          title="Home"
-          description="Overview of your Meridian agents and outreach activity."
-          actions={<HomeActions />}
-          notificationCount={notifCount}
-          userName={userName}
-          userEmail={userEmail}
-          userPicture={userPicture}
-        />
+      {/* Hero */}
+      <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-6 border border-primary/20">
+          <Zap className="w-3 h-3" />
+          AI-powered outreach automation
+        </div>
 
-        <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
-          <StatsCards
-            sent={counts.sent}
-            queued={counts.queued}
-            runningAgents={runningAgents}
-            cyclesCompleted={counts.replied}
-          />
+        <h1 className="text-5xl font-bold text-foreground max-w-2xl leading-tight mb-5">
+          Your AI sales team,<br />on autopilot
+        </h1>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-            <div className="lg:col-span-2 space-y-3 md:space-y-4">
-              <ProjectAnalytics data={chartData} />
-              <TeamCollaboration agents={agentActivity} />
+        <p className="text-lg text-muted-foreground max-w-xl mb-10">
+          Meridian deploys intelligent AI agents that research leads, write personalized emails, and follow up automatically so you can focus on closing.
+        </p>
+
+        <div className="flex items-center gap-3">
+          <Link href="/signin">
+            <Button size="lg" className="gap-2">
+              Start for free <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Link href="/signin">
+            <Button size="lg" variant="outline">Sign in</Button>
+          </Link>
+        </div>
+
+        {/* Features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-20 max-w-3xl w-full">
+          {[
+            { icon: Bot, title: "AI Agents", desc: "Autonomous agents that prospect, research, and outreach on your behalf 24/7." },
+            { icon: Mail, title: "Smart Email", desc: "Hyper-personalized emails written by AI, sent at the right time automatically." },
+            { icon: BarChart3, title: "Analytics", desc: "Track open rates, replies, and conversions across all your campaigns." },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="text-left p-5 rounded-xl border border-border bg-card">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                <Icon className="w-4 h-4 text-primary" />
+              </div>
+              <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+              <p className="text-sm text-muted-foreground">{desc}</p>
             </div>
+          ))}
+        </div>
 
-            <div className="space-y-3 md:space-y-4">
-              <Reminders batches={scheduledBatches} />
-              <ProjectProgress agents={agentProgress} />
+        {/* Social proof */}
+        <div className="flex flex-wrap items-center justify-center gap-5 mt-14 text-sm text-muted-foreground">
+          {["No credit card required", "Set up in minutes", "Cancel anytime"].map(t => (
+            <div key={t} className="flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4 text-primary" />
+              {t}
             </div>
-          </div>
-
-          {/* Bottom row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-            <UpcomingFollowUps followUps={followUps} />
-            <RecentNotifications notifications={notifications} />
-            <QuickActions />
-          </div>
+          ))}
         </div>
       </main>
+
+      <footer className="border-t border-border px-6 py-4 text-center text-xs text-muted-foreground">
+        © {new Date().getFullYear()} Meridian. All rights reserved.
+      </footer>
     </div>
   )
 }

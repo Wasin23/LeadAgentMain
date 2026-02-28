@@ -146,7 +146,7 @@ router.get('/google/callback', async (req, res) => {
       email: user.email
     });
 
-    const redirectPath = isNewUser ? '/onboarding' : '/dashboard';
+    const redirectPath = isNewUser ? '/onboarding' : '/home';
     const userPayload = JSON.stringify({
       userId: user.userId,
       username: user.username,

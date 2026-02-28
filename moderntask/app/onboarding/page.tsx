@@ -48,7 +48,7 @@ export default function OnboardingPage() {
         }
 
         // All done
-        router.replace('/')
+        router.replace('/home')
       } catch {
         // On error, start from beginning
         setStage('company-profile')
@@ -83,7 +83,7 @@ export default function OnboardingPage() {
   const handleCalendarComplete = () => {
     saveProgress({ hasCalendar: true })
     localStorage.removeItem('onboardingProgress')
-    router.replace('/')
+    router.replace('/home')
   }
 
   if (stage === 'loading') {

@@ -16,7 +16,7 @@ interface NavItem {
 }
 
 const staticItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Home",                 href: "/" },
+  { icon: LayoutDashboard, label: "Home",                 href: "/home" },
   { icon: CheckSquare,     label: "Operations",           href: "/operations" },
   { icon: Mail,            label: "Outreach Email Queue", href: "/email-queue" },
   { icon: Bot,             label: "Agents",               href: "/agents" },

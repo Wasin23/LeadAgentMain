@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import api from '@/lib/api'
 import Cookies from 'js-cookie'
-import { Eye, EyeOff, AlertCircle, CheckCircle, Loader2, HelpCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, CheckCircle, Loader2, HelpCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -191,7 +191,7 @@ export default function SignInPage() {
     if (isAuthenticated) {
       const justLoggedOut = localStorage.getItem('justLoggedOut')
       if (justLoggedOut !== 'true') {
-        router.push('/')
+        router.push('/home')
         return
       }
       localStorage.removeItem('justLoggedOut')
@@ -211,7 +211,7 @@ export default function SignInPage() {
     if (googleStatus !== 'success') return
     const token = params.get('token')
     const encodedUser = params.get('user')
-    const redirectPath = params.get('redirect') || '/'
+    const redirectPath = params.get('redirect') || '/home'
     if (!token || !encodedUser) { setError('Google sign-in failed. Please try again.'); return }
     try {
       const userData = JSON.parse(atob(encodedUser))
@@ -241,7 +241,7 @@ export default function SignInPage() {
       const ok = await login(signInForm.username, signInForm.password)
       if (ok) {
         setSuccessMsg('Sign in successful! Redirecting...')
-        setTimeout(() => router.push('/'), 1200)
+        setTimeout(() => router.push('/home'), 1200)
       } else {
         setError('Invalid username or password')
       }
@@ -367,6 +367,18 @@ export default function SignInPage() {
 
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
+
+      {/* Back to landing — top left */}
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Back to home"
+        onClick={() => router.push('/')}
+        className="absolute top-4 left-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
+        style={{ zIndex: 20, color: 'white', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.40)' }}
+      >
+        <ArrowLeft className="w-4 h-4" />
+      </Button>
 
       {/* Help button — top right, matches dashboard icon style */}
       <Button
