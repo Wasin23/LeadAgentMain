@@ -4181,6 +4181,14 @@ Create a thought-provoking subject line that challenges assumptions or highlight
 
 SUBJECT LINE FRAMEWORK - Choose ONE approach:
 
+**SELECTION METHOD: Randomly choose one framework using weighted randomization. Think of flipping a tetrahedron (4-sided die) where sides 1, 2, and 3 each represent one framework, and side 4 gives you free choice. This means:
+- ~25% chance: Use Framework A
+- ~25% chance: Use Framework B  
+- ~25% chance: Use Framework C
+- ~25% chance: Pick whichever framework best fits this specific lead
+
+DO NOT default to Framework A. Truly randomize your selection each time. Vary your approach across different emails.**
+
 Framework A - Challenge Current State:
 - Question their existing approach: "Is [current solution] really solving [problem]?"
 - Highlight potential blind spot: "What most [role] miss about [topic]"
