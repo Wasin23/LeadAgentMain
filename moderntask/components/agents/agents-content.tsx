@@ -110,8 +110,8 @@ function AgentCard({
   const isRunning = agent.isRunning || agent.status === 'running'
   const replyRate = agent.replyRate ?? (agent.sent && agent.sent > 0 ? parseFloat(((agent.replied ?? 0) / agent.sent * 100).toFixed(1)) : 0)
 
-  // Link to old per-agent dashboard
-  const oldDashUrl = `http://localhost:3001/agents/${agent.agentId}`
+  // Link to per-agent dashboard page
+  const dashUrl = `/agents/${agent.agentId}`
 
   return (
     <Card className={cn(
@@ -248,9 +248,7 @@ function AgentCard({
         </Button>
 
         <a
-          href={oldDashUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={dashUrl}
           className="ml-auto"
         >
           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground">
