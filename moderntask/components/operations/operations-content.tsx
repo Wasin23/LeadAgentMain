@@ -1,0 +1,714 @@
+'use client'
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import api from '@/lib/api'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import {
+  Play, Square, RefreshCw, Bot, Mail, Clock,
+  MessageSquare, Wifi, WifiOff, Activity,
+  ChevronRight, Sparkles, CheckCircle2, Send,
+  Target, ExternalLink, ArrowUp, ArrowDown, User
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// ── types ──────────────────────────────────────────────────────────────────
+interface Agent {
+  agentId: string
+  name: string
+  agentName?: string
+  status: string
+  currentActivity?: string
+  personality?: { type?: string; avatar?: string }
+  avatar?: string
+  sent?: number
+  replied?: number
+  queued?: number
+  targeting?: { location?: string; industry?: string; keywords?: string[] }
+  emailStats?: { built: number; queued: number; sent: number }
+  settings?: {
+    companyCriteria?: { companyIndustries?: string[] }
+    contactCriteria?: { targetPositions?: string[] }
+    emailBuilder?: { useGmail?: boolean; useOutlook?: boolean }
+    targeting?: { leadLimit?: number }
+    geographicSettings?: { leadLimit?: number }
+  }
+}
+
+interface ActivityLog {
+  id: string
+  agentId: string
+  agentName: string
+  agentPersonality?: string
+  message: string
+  timestamp: number
+  type?: string
+}
+
+interface TodayStats {
+  sent: number
+  queued: number
+  cycles: number
+  replied: number
+}
+
+// ── component ──────────────────────────────────────────────────────────────
+export function OperationsContent() {
+  const router = useRouter()
+
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [selectedAgent, setSelectedAgent] = useState<string>('all')
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
+  const [agentActivities, setAgentActivities] = useState<Record<string, { status: string; timestamp: number }>>({})
+  const [stats, setStats] = useState<TodayStats>({ sent: 0, queued: 0, cycles: 0, replied: 0 })
+  const [prevStats, setPrevStats] = useState<TodayStats>({ sent: 0, queued: 0, cycles: 0, replied: 0 })
+  const [aiSummary, setAiSummary] = useState('Initializing coordination intelligence...')
+  const [sseConnected, setSseConnected] = useState(false)
+  const [toggling, setToggling] = useState<Record<string, boolean>>({})
+  const [loading, setLoading] = useState(true)
+  const logsRef = useRef<HTMLDivElement>(null)
+
+  // ── fetch agents + counts ────────────────────────────────────────────────
+  const fetchAgents = useCallback(async () => {
+    try {
+      const [agentsRes, countsRes] = await Promise.allSettled([
+        api.get('/api/auth/agents'),
+        api.get('/api/email-queue/counts', { params: { agentId: 'all' } }),
+      ])
+      if (agentsRes.status === 'fulfilled') {
+        const raw: Agent[] = agentsRes.value.data?.agents ?? []
+        const enriched = raw
+          .filter(a => a.agentId !== 'orphan')
+          .map((a: any) => ({
+            ...a,
+            name: a.name || a.agentName || 'Agent',
+            emailStats: {
+              built: (a.queued ?? 0) + (a.sent ?? 0),
+              queued: a.queued ?? 0,
+              sent: a.sent ?? 0,
+            },
+          }))
+        setAgents(enriched)
+      }
+      if (countsRes.status === 'fulfilled') {
+        const d = countsRes.value.data
+        setStats(p => ({ ...p, sent: d.sent ?? 0, queued: d.queued ?? 0, replied: d.replied ?? 0 }))
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // ── fetch yesterday's counts for delta badges ────────────────────────────
+  const fetchPrevDay = useCallback(async () => {
+    try {
+      const res = await api.get('/api/email-queue/sent', { params: { agentId: 'all' } })
+      const emails: any[] = Array.isArray(res.data) ? res.data : (res.data?.emails ?? [])
+      const yestStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+      const sentYest = emails.filter(e => (e.sentAt || e.createdAt || '').startsWith(yestStr)).length
+      const repliedYest = emails.filter(e => e.replied && (e.repliedAt || e.sentAt || '').startsWith(yestStr)).length
+      setPrevStats(p => ({ ...p, sent: sentYest, replied: repliedYest }))
+    } catch { /* silent */ }
+  }, [])
+
+  // ── fetch AI summary ─────────────────────────────────────────────────────
+  const fetchSummary = useCallback(async () => {
+    try {
+      const res = await api.get('/api/monitoring/ai-summary')
+      if (res.data?.summary) setAiSummary(res.data.summary)
+    } catch { /* silent */ }
+  }, [])
+
+  // ── SSE ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+    const tok = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+    if (!tok) return
+    const es = new EventSource(`${base}/api/monitoring/stream?token=${encodeURIComponent(tok)}`)
+    es.onopen = () => setSseConnected(true)
+    es.onerror = () => setSseConnected(false)
+    es.addEventListener('message', (e) => {
+      try {
+        const d = JSON.parse(e.data)
+        const payload = d.data ?? d
+
+        // track per-agent latest activity (use cardMessage = concise, details = full)
+        if (payload.agentId && (payload.cardMessage || payload.details || payload.message || payload.currentActivity)) {
+          const status = payload.cardMessage || payload.details || payload.message || payload.currentActivity || ''
+          if (status) {
+            setAgentActivities(p => ({
+              ...p,
+              [payload.agentId]: { status, timestamp: Date.now() },
+            }))
+          }
+        }
+
+        // activity log entry — prefer details (full text), then cardMessage, skip bare status strings like "info"
+        const logMsg = payload.details || payload.cardMessage || payload.message || payload.currentActivity || ''
+        if (payload.agentId && logMsg && logMsg !== 'info' && logMsg !== 'running' && logMsg !== 'active') {
+          const agentName = payload.agentName
+            || agents.find(a => a.agentId === payload.agentId)?.name
+            || agents.find(a => a.agentId === payload.agentId)?.agentName
+            || 'Agent'
+          const entry: ActivityLog = {
+            id: `${Date.now()}-${Math.random()}`,
+            agentId: payload.agentId,
+            agentName,
+            agentPersonality: payload.personality?.type,
+            message: logMsg,
+            timestamp: Date.now(),
+            type: d.type,
+          }
+          setActivityLogs(p => [entry, ...p].slice(0, 120))
+        }
+
+        // cycle counters — events are wrapped: { type:'activity_added', data:{ type:'cycle_complete'|'cycle_start' } }
+        if (payload.type === 'cycle_complete') {
+          setStats(p => ({ ...p, cycles: p.cycles + 1 }))
+        }
+        // count cycle_start as well so stopping mid-cycle still registers
+        if (payload.type === 'cycle_start') {
+          setStats(p => ({ ...p, cycles: Math.max(p.cycles, p.cycles) })) // bumped by cycle_complete; start just marks activity
+        }
+        // direct top-level cycle events (fallback if broadcast uses top-level type)
+        if (d.type === 'cycle_complete' && !payload.type) {
+          setStats(p => ({ ...p, cycles: p.cycles + 1 }))
+        }
+
+        // refresh counts on queue/send events
+        if (payload.type === 'email_queued' || payload.type === 'email_sent' ||
+            d.type === 'email_queued' || d.type === 'email_sent') {
+          fetchAgents()
+        }
+      } catch { /* ignore */ }
+    })
+    return () => es.close()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agents, fetchAgents])
+
+  useEffect(() => { fetchAgents() }, [fetchAgents])
+  useEffect(() => { fetchPrevDay() }, [fetchPrevDay])
+  useEffect(() => {
+    fetchSummary()
+    const id = setInterval(fetchSummary, 5000)
+    return () => clearInterval(id)
+  }, [fetchSummary])
+
+  // auto-scroll logs
+  useEffect(() => {
+    if (logsRef.current) logsRef.current.scrollTop = 0
+  }, [activityLogs.length])
+
+  // ── toggle agent ─────────────────────────────────────────────────────────
+  const toggleAgent = async (agent: Agent) => {
+    const isRunning = agent.status === 'running' || agent.status === 'active'
+    setToggling(p => ({ ...p, [agent.agentId]: true }))
+    setAgents(p => p.map(a => a.agentId === agent.agentId
+      ? { ...a, status: isRunning ? 'idle' : 'running' } : a))
+    try {
+      await api.post(`/api/lead-agent/${isRunning ? 'stop' : 'start'}`, { agentId: agent.agentId })
+    } catch {
+      setAgents(p => p.map(a => a.agentId === agent.agentId ? { ...a, status: agent.status } : a))
+    } finally {
+      setToggling(p => ({ ...p, [agent.agentId]: false }))
+      fetchAgents()
+    }
+  }
+
+  const toggleAll = async () => {
+    const allRunning = agents.every(a => a.status === 'running' || a.status === 'active')
+    setAgents(p => p.map(a => ({ ...a, status: allRunning ? 'idle' : 'running' })))
+    for (const a of agents) {
+      try { await api.post(`/api/lead-agent/${allRunning ? 'stop' : 'start'}`, { agentId: a.agentId }) }
+      catch { /* ignore */ }
+    }
+    fetchAgents()
+  }
+
+  const runningAgents = agents.filter(a => a.status === 'running' || a.status === 'active')
+  const allRunning = agents.length > 0 && runningAgents.length === agents.length
+  const filteredLogs = selectedAgent === 'all'
+    ? activityLogs
+    : activityLogs.filter(l => l.agentId === selectedAgent)
+
+  const avatarUrl = (agent: Agent) => {
+    if (agent.avatar || agent.personality?.avatar) return agent.avatar ?? agent.personality?.avatar
+    const map: Record<string, string> = {
+      hunter: 'Hunter', analyst: 'Analyst', consultant: 'consultant',
+      networker: 'Networker', 'relationship-builder': 'Relationship-Builder',
+    }
+    const type = agent.personality?.type ?? 'hunter'
+    return `/avatars/${map[type] ?? 'Hunter'}.png`
+  }
+
+  return (
+    <div className="flex gap-4 h-[calc(100vh-160px)]">
+
+      {/* ── LEFT: Agent sidebar ──────────────────────────────────────────── */}
+      <div className="w-56 flex-shrink-0 flex flex-col gap-3">
+
+        {/* Start / Stop All */}
+        <Button
+          onClick={toggleAll}
+          disabled={agents.length === 0}
+          variant={allRunning ? 'destructive' : 'default'}
+          className="w-full h-9 text-sm font-semibold"
+        >
+          {allRunning
+            ? <><Square className="w-3.5 h-3.5 mr-1.5" />Stop All</>
+            : <><Play  className="w-3.5 h-3.5 mr-1.5" />Start All</>}
+        </Button>
+
+        {/* Agent list card */}
+        <Card className="flex-1 overflow-hidden">
+          <CardHeader className="px-3 py-2.5 border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Agents
+              </CardTitle>
+              <div className="flex items-center gap-1.5">
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                  {agents.length}
+                </Badge>
+                <button onClick={fetchAgents} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <RefreshCw className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+
+          <ScrollArea className="flex-1 h-[calc(100%-40px)]">
+            <div className="p-1.5 space-y-0.5">
+              {/* All agents filter */}
+              <button
+                onClick={() => setSelectedAgent('all')}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-all duration-200',
+                  selectedAgent === 'all'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                )}
+              >
+                <Bot className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="flex-1 text-left truncate text-xs font-medium">All Agents</span>
+                <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
+                  {runningAgents.length}
+                </Badge>
+              </button>
+
+              <Separator className="my-1" />
+
+              {loading && (
+                <div className="flex justify-center py-4">
+                  <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+
+              {!loading && agents.length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-xs text-muted-foreground">No agents yet</p>
+                  <button
+                    onClick={() => router.push('/agents')}
+                    className="text-xs text-primary underline mt-1"
+                  >Create one →</button>
+                </div>
+              )}
+
+              {agents.map(agent => {
+                const isRunning = agent.status === 'running' || agent.status === 'active'
+                const isToggling = toggling[agent.agentId]
+                const selected = selectedAgent === agent.agentId
+
+                return (
+                  <div
+                    key={agent.agentId}
+                    className={cn(
+                      'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-200 group',
+                      selected
+                        ? 'bg-primary/10 border border-primary/30'
+                        : 'hover:bg-secondary border border-transparent'
+                    )}
+                  >
+                    {/* Avatar */}
+                    <button
+                      onClick={() => setSelectedAgent(agent.agentId)}
+                      className="relative flex-shrink-0"
+                    >
+                      <img
+                        src={avatarUrl(agent)}
+                        alt={agent.name}
+                        className="w-7 h-7 rounded-full object-cover"
+                        style={{ border: isRunning ? '2px solid hsl(var(--primary))' : '2px solid hsl(var(--border))' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
+                      <span className={cn(
+                        'absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background',
+                        isRunning ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'
+                      )} />
+                    </button>
+
+                    {/* Name */}
+                    <button
+                      onClick={() => setSelectedAgent(agent.agentId)}
+                      className="flex-1 min-w-0 text-left"
+                    >
+                      <span className={cn(
+                        'text-xs font-medium truncate block',
+                        selected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                      )}>
+                        {agent.name}
+                      </span>
+                    </button>
+
+                    {/* Start / Stop */}
+                    <button
+                      onClick={() => toggleAgent(agent)}
+                      disabled={isToggling}
+                      className={cn(
+                        'flex-shrink-0 p-1 rounded transition-all',
+                        isRunning
+                          ? 'text-destructive hover:bg-destructive/10'
+                          : 'text-primary hover:bg-primary/10'
+                      )}
+                    >
+                      {isToggling
+                        ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        : isRunning
+                          ? <Square className="w-3.5 h-3.5" />
+                          : <Play  className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
+        </Card>
+
+        {/* Manage agents link */}
+        <button
+          onClick={() => router.push('/agents')}
+          className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ChevronRight className="w-3 h-3" />
+          Manage agents
+        </button>
+      </div>
+
+      {/* ── RIGHT: Main content ──────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col gap-4">
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { icon: Mail,         label: 'Sent',    value: stats.sent,    prev: prevStats.sent,    color: 'text-blue-500',   tip: 'Total emails sent today vs yesterday',         onClick: undefined },
+            { icon: Clock,        label: 'Queued',  value: stats.queued,  prev: prevStats.queued,  color: 'text-violet-500', tip: 'Emails waiting in queue to be sent',            onClick: undefined },
+            { icon: CheckCircle2, label: 'Cycles',  value: stats.cycles,  prev: prevStats.cycles,  color: 'text-cyan-500',   tip: 'Agent cycles completed this session',           onClick: undefined },
+            { icon: Bot,          label: 'Agents',  value: agents.length, prev: null,              color: 'text-green-500',  tip: 'Total agents — click to manage',               onClick: () => router.push('/agents') },
+          ].map(({ icon: Icon, label, value, prev, color, tip, onClick }) => {
+            const hasPrev  = prev !== null && prev !== undefined
+            const delta    = hasPrev ? (prev > 0 ? Math.round(((value - prev) / prev) * 100) : (value > 0 ? 100 : 0)) : null
+            const isUp     = delta !== null && delta >= 0
+            return (
+              <div key={label} className="relative group/stat">
+                <Card
+                  className={cn('p-3 cursor-default', onClick && 'cursor-pointer hover:border-primary/40')}
+                  onClick={onClick}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Icon className={cn('w-3.5 h-3.5', color)} />
+                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="text-2xl font-bold text-foreground leading-none">{value.toLocaleString()}</p>
+                    {delta !== null && (
+                      <span className={cn('flex items-center gap-0.5 text-[10px] font-bold', isUp ? 'text-green-500' : 'text-red-500')}>
+                        {isUp ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                        {Math.abs(delta)}%
+                      </span>
+                    )}
+                    {label === 'Agents' && runningAgents.length > 0 && (
+                      <span className="text-[10px] font-semibold text-green-500">{runningAgents.length} on</span>
+                    )}
+                  </div>
+                </Card>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-popover border border-border text-foreground text-[11px] rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/stat:opacity-100 transition-opacity pointer-events-none z-50">
+                  {tip}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-border" />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* AI Summary */}
+        <Card>
+          <CardHeader className="px-4 py-3 pb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-violet-500" />
+              <CardTitle className="text-sm">Agent Intelligence Summary</CardTitle>
+              <div className="ml-auto flex items-center gap-1.5">
+                {sseConnected
+                  ? <><Wifi className="w-3 h-3 text-green-500" /><span className="text-[10px] text-green-500 font-medium">Live</span></>
+                  : <><WifiOff className="w-3 h-3 text-destructive" /><span className="text-[10px] text-destructive font-medium">Offline</span></>
+                }
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-3">
+            <p className="text-sm text-muted-foreground leading-relaxed">{aiSummary}</p>
+          </CardContent>
+        </Card>
+
+        {/* Activity log */}
+        <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <CardHeader className="px-4 py-2 pb-2 border-b flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary" />
+              <CardTitle className="text-sm">Activity Log</CardTitle>
+              {runningAgents.length > 0 && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {runningAgents.length} running
+                </Badge>
+              )}
+              {filteredLogs.length > 0 && (
+                <Badge variant="outline" className="text-[10px] ml-1">
+                  {filteredLogs.length}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+
+          <div className="flex-1 overflow-y-auto" ref={logsRef}>
+            {/* No agents running */}
+            {runningAgents.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full py-16 text-center">
+                <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                  <Bot className="w-7 h-7 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">No Active Agents</p>
+                <p className="text-xs text-muted-foreground">Start an agent from the left panel to see live activity</p>
+              </div>
+            )}
+
+            {/* Running but no logs yet */}
+            {runningAgents.length > 0 && filteredLogs.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full py-16 text-center">
+                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground">Waiting for activity…</p>
+              </div>
+            )}
+
+            {/* Logs */}
+            {filteredLogs.length > 0 && (
+              <div className="pt-1 px-3 pb-3 space-y-1">
+                {filteredLogs.map((log) => {
+                  const agent = agents.find(a => a.agentId === log.agentId)
+                  return (
+                    <div
+                      key={log.id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors border border-border/50"
+                    >
+                      {/* Avatar */}
+                      <img
+                        src={agent ? avatarUrl(agent) : `/avatars/Hunter.png`}
+                        alt={log.agentName}
+                        className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5 border border-border"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold text-foreground">{log.agentName}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{log.message}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </Card>
+
+      </div>
+
+      {/* ── FAR RIGHT: Agent cards panel ─────────────────────────────────── */}
+      <div className="w-64 flex-shrink-0 flex flex-col gap-3">
+
+        {/* Agent cards */}
+        <Card className="flex-1 overflow-hidden flex flex-col">
+          <CardHeader className="px-3 py-2 border-b flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Bot className="w-3.5 h-3.5" />Agent Overview
+              </CardTitle>
+              <span className="text-xs font-bold text-primary">{agents.length}</span>
+            </div>
+          </CardHeader>
+
+          <ScrollArea className="flex-1">
+            <div className="pt-1 px-2 pb-2 space-y-1.5">
+              {loading && (
+                <div className="flex justify-center py-8">
+                  <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+
+              {!loading && agents.length === 0 && (
+                <div className="text-center py-8">
+                  <Bot className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">No agents yet</p>
+                </div>
+              )}
+
+              {agents.map(agent => {
+                const isRunning = agent.status === 'running' || agent.status === 'active'
+                const activity = agentActivities[agent.agentId]
+                const displayName = agent.name || agent.agentName || 'Agent'
+
+                return (
+                  <div
+                    key={agent.agentId}
+                    className={cn(
+                      'rounded-lg border p-2.5 transition-all cursor-pointer hover:border-primary/40',
+                      isRunning
+                        ? 'bg-primary/5 border-primary/20'
+                        : 'bg-secondary/30 border-border/50'
+                    )}
+                    onClick={() => router.push(`/agents?agent=${agent.agentId}`)}
+                  >
+                    {/* Top row: status dot + name + external link */}
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className={cn(
+                        'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                        isRunning ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'
+                      )} />
+                      <span className="text-xs font-semibold text-foreground flex-1 truncate">{displayName}</span>
+
+                      {/* Email provider icon */}
+                      {agent.settings?.emailBuilder?.useGmail ? (
+                        <span className="relative group/tip inline-flex items-center p-0.5">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 256 193" fill="none">
+                            <path d="M58.182 192.05V93.768L27.507 65.158L0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4"/>
+                            <path d="M197.818 192.05h40.727c9.659 0 17.455-7.854 17.455-17.455V49.504l-31.274 17.278-27.506 28.61Z" fill="#34A853"/>
+                            <path d="M197.818 49.504V93.768l58.182-44.264V34.91c0-21.585-24.641-33.89-41.89-20.945Z" fill="#FBBC04"/>
+                            <path d="M58.182 93.768V49.504L128 105.23l69.818-55.726v44.264L128 149.494Z" fill="#EA4335"/>
+                            <path d="M0 34.91v14.594l58.182 44.264V49.504L40.727 37.072C23.478 24.019-.001 36.324 0 34.91Z" fill="#C5221F"/>
+                          </svg>
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-popover border border-border text-foreground text-[10px] rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+                            Gmail sending
+                          </span>
+                        </span>
+                      ) : agent.settings?.emailBuilder?.useOutlook ? (
+                        <span className="relative group/tip inline-flex items-center p-0.5">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                              <linearGradient id="og1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#0364B8"/>
+                                <stop offset="100%" stopColor="#0078D4"/>
+                              </linearGradient>
+                              <linearGradient id="og2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#28A8EA"/>
+                                <stop offset="100%" stopColor="#0078D4"/>
+                              </linearGradient>
+                            </defs>
+                            <path fill="url(#og1)" d="M16,128V16h144v112H16z"/>
+                            <path fill="url(#og2)" d="M160,128h96v112H160V128z"/>
+                            <path fill="#0078D4" d="M160,16h96v96h-96V16z"/>
+                            <path fill="#50D9FF" d="M16,144h144v96H16V144z"/>
+                            <circle fill="#FFF" cx="88" cy="88" r="40"/>
+                            <path fill="#0078D4" d="M88,108c-11,0-20-9-20-20s9-20,20-20s20,9,20,20S99,108,88,108z M88,76c-6.6,0-12,5.4-12,12s5.4,12,12,12s12-5.4,12-12S94.6,76,88,76z"/>
+                          </svg>
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-popover border border-border text-foreground text-[10px] rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+                            Outlook sending
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="relative group/tip inline-flex items-center p-0.5">
+                          <svg className="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                          </svg>
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-popover border border-border text-foreground text-[10px] rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+                            Meridian domain sending
+                          </span>
+                        </span>
+                      )}
+
+                      <ExternalLink className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
+                    </div>
+
+                    {/* Targeting + lead limit */}
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      {(agent.targeting?.location || agent.targeting?.industry) && (
+                        <>
+                          <Target className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
+                          <span className="text-[10px] text-muted-foreground truncate flex-1">
+                            {[agent.targeting?.location, agent.targeting?.industry].filter(Boolean).join(' · ')}
+                          </span>
+                        </>
+                      )}
+                      {(agent.settings?.targeting?.leadLimit || agent.settings?.geographicSettings?.leadLimit) && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-primary font-medium ml-auto flex-shrink-0">
+                          <User className="w-3 h-3" />
+                          {agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit}/cycle
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Email stats */}
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <div className="flex items-center gap-1" title="Built">
+                        <Mail className="w-3 h-3 text-muted-foreground/60" />
+                        <span className="text-[10px] text-muted-foreground">{agent.emailStats?.built ?? 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1" title="Queued">
+                        <Clock className="w-3 h-3 text-amber-500" />
+                        <span className="text-[10px] text-amber-500">{agent.emailStats?.queued ?? 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1" title="Sent">
+                        <Send className="w-3 h-3 text-green-500" />
+                        <span className="text-[10px] text-green-500">{agent.emailStats?.sent ?? 0}</span>
+                      </div>
+                    </div>
+
+                    {/* Current activity */}
+                    <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                      {activity?.status ? (
+                        <>
+                          <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
+                          <span className="text-[10px] text-primary min-w-0 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{activity.status}</span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/60">Idle</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
+
+          {/* Bottom quick actions */}
+          <div className="p-3 border-t flex-shrink-0 space-y-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full h-8 text-xs justify-center gap-1.5"
+              onClick={() => router.push('/agents')}
+            >
+              <Bot className="w-3.5 h-3.5" />Manage Agents
+            </Button>
+          </div>
+        </Card>
+
+      </div>
+    </div>
+  )
+}

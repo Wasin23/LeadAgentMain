@@ -786,6 +786,83 @@ router.get('/viewed', async (req, res) => {
   }
 });
 
+// Get all sent emails with tracking enrichment (for Contacted page)
+router.get('/sent', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId, timeRange } = req.query;
+
+    let startTime = null;
+    if (timeRange === '24h') startTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    else if (timeRange === '7d') startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    else if (timeRange === '30d') startTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const events = await awsManager.getEmailTrackingByUser(userId, agentId && agentId !== 'all' ? agentId : null, 2000);
+
+    const map = {};
+
+    events.forEach(event => {
+      const tid = event.trackingId;
+      if (!tid) return;
+
+      if (!map[tid]) {
+        map[tid] = {
+          trackingId: tid,
+          leadName: event.leadName || 'Unknown',
+          leadEmail: event.recipientEmail || event.email || '',
+          company: event.company || '',
+          subject: fixEncoding(event.subject) || '',
+          sentAt: event.timestamp,
+          opened: false, openedAt: null, openCount: 0,
+          clicked: false,
+          replied: false,
+          bounced: false,
+          aiResponded: false,
+          agentId: event.agentId || '',
+          agentName: event.agentName || '',
+        };
+      }
+
+      const e = map[tid];
+
+      // Enrich from any event that has better data
+      if (event.leadName && e.leadName === 'Unknown') e.leadName = event.leadName;
+      if (event.recipientEmail && !e.leadEmail) e.leadEmail = event.recipientEmail;
+      if (event.company && !e.company) e.company = event.company;
+      if (event.subject && !e.subject) e.subject = fixEncoding(event.subject);
+      if (event.agentName && !e.agentName) e.agentName = event.agentName;
+
+      // Update sentAt to earliest 'sent' event timestamp
+      if ((event.eventType === 'sent' || event.eventType === 'outbound') && new Date(event.timestamp) < new Date(e.sentAt)) {
+        e.sentAt = event.timestamp;
+      }
+
+      if (event.eventType === 'open') {
+        e.opened = true;
+        e.openCount++;
+        if (!e.openedAt || new Date(event.timestamp) < new Date(e.openedAt)) e.openedAt = event.timestamp;
+      }
+      if (event.eventType === 'click') e.clicked = true;
+      if (event.eventType === 'reply' || event.eventType === 'lead_message') e.replied = true;
+      if (event.eventType === 'bounce') e.bounced = true;
+      if (event.eventType === 'ai_response' || event.eventType === 'ai_reply') { e.replied = true; e.aiResponded = true; }
+    });
+
+    let contacts = Object.values(map);
+
+    if (startTime) {
+      contacts = contacts.filter(c => new Date(c.sentAt) >= startTime);
+    }
+
+    contacts.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+
+    res.json({ success: true, contacts, total: contacts.length });
+  } catch (error) {
+    console.error('❌ [OUTREACH-SENT] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get timeline events
 router.get('/timeline', async (req, res) => {
   try {

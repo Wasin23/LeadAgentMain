@@ -22,6 +22,7 @@ import billingRoutes from './routes/billing.js';
 import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
 import { startBillingCron } from './utils/billingCron.js';
 import { startMetricsCron } from './utils/agentMetricsCron.js';
+import { startSendingScheduleProcessor } from './utils/sendingScheduleProcessor.js';
 
 // Load and validate configuration
 const config = getConfig();
@@ -723,6 +724,10 @@ const server = app.listen(PORT, async () => {
   // Start agent metrics recording cron (runs every hour)
   startMetricsCron();
   console.log('✅ [METRICS] Agent metrics recording cron started');
+
+  // Start sending schedule processor (runs every 60 seconds)
+  startSendingScheduleProcessor();
+  console.log('✅ [SCHEDULE PROCESSOR] Sending schedule processor started');
   
   // Start rebump checker (runs every 6 hours)
   try {

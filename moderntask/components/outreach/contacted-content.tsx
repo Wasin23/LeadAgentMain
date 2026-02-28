@@ -1,0 +1,731 @@
+'use client'
+
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
+import api from '@/lib/api'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Mail, Eye, MessageSquare, MousePointer,
+  RefreshCw, Bot, Building2, Clock, Search, X, ChevronDown,
+  UserCheck, FileText, CalendarClock, Check, Settings2, ChevronLeft, ChevronRight,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// ── types ─────────────────────────────────────────────────────────────────────
+interface AnalyticsEmail {
+  id?: string
+  trackingId?: string
+  to?: string
+  recipient?: string
+  subject?: string
+  body?: string
+  sentAt?: string
+  timestamp?: string
+  status?: string
+  isRebump?: boolean
+  rebumpNumber?: number
+  rebumpCount?: number
+  maxFollowUps?: number
+  followUpScheduled?: boolean
+  followUpDate?: string
+  followUpStatus?: string
+  lastRebumpAt?: string
+  lastFollowUpSentAt?: string
+  assignedTemplate?: { name?: string; subject?: string; body?: string }
+  assignedTemplateId?: number
+  agentId?: string
+  personInfo?: { fullName?: string; company?: string }
+  lead?: { name?: string; company?: string }
+  leadName?: string
+  company?: string
+  analyticsStatus?: {
+    opened?: boolean
+    clicked?: boolean
+    replied?: boolean
+    hasProxy?: boolean
+    openCount?: number
+  }
+}
+
+interface AgentFull {
+  agentId: string
+  name: string
+  personality?: { avatar?: string }
+  settings?: {
+    emailBuilder?: {
+      enableRebump?: boolean
+      rebumpIntervalDays?: number
+      maxRebumps?: number
+    }
+    followUpTemplates?: {
+      templates?: Array<{ name: string; subject: string; body: string }>
+      generatedAt?: string
+    }
+  }
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+function timeAgo(ts?: string | null) {
+  if (!ts) return '—'
+  const diff = Date.now() - new Date(ts).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  return `${d}d ago`
+}
+function leadName(e: AnalyticsEmail) { return e.personInfo?.fullName || e.lead?.name || e.leadName || e.to || e.recipient || 'Unknown' }
+function leadCompany(e: AnalyticsEmail) { return e.personInfo?.company || e.lead?.company || e.company || '' }
+function sentDate(e: AnalyticsEmail) { return e.sentAt || e.timestamp || '' }
+function emailId(e: AnalyticsEmail) { return e.trackingId || e.id || '' }
+
+// ── sent email row ─────────────────────────────────────────────────────────────
+function SentRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const a = email.analyticsStatus || {}
+  const isBounced = email.status === 'bounced'
+
+  const statusBadge = () => {
+    if (isBounced) return <Badge variant="outline" className="text-[9px] px-1 h-4 text-red-400 border-red-500/30 bg-red-500/10">Bounced</Badge>
+    if (a.replied) return <Badge variant="outline" className="text-[9px] px-1 h-4 text-purple-400 border-purple-500/30 bg-purple-500/10">Replied</Badge>
+    if (a.clicked) return <Badge variant="outline" className="text-[9px] px-1 h-4 text-yellow-400 border-yellow-500/30 bg-yellow-500/10">Clicked</Badge>
+    if (a.opened) return <Badge variant="outline" className="text-[9px] px-1 h-4 text-green-400 border-green-500/30 bg-green-500/10">Opened{(a.openCount || 0) > 1 ? ` ×${a.openCount}` : ''}</Badge>
+    if (a.hasProxy) return <Badge variant="outline" className="text-[9px] px-1 h-4 text-blue-400 border-blue-500/30 bg-blue-500/10">Primary inbox</Badge>
+    return <Badge variant="outline" className="text-[9px] px-1 h-4 text-muted-foreground">Sent</Badge>
+  }
+
+  const followUpBadge = () => {
+    const rc  = email.rebumpCount  ?? 0
+    const max = email.maxFollowUps ?? 1
+    const hasFuture = !!email.followUpDate
+    const done      = rc >= max && max > 0
+    const hasSent   = rc > 0
+
+    // nothing at all to show
+    if (!hasFuture && !hasSent && !done) return null
+
+    const overdue = hasFuture && !done && new Date(email.followUpDate!) <= new Date()
+    const dateStr = hasFuture ? new Date(email.followUpDate!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
+
+    let cls = 'text-[9px] px-1.5 h-5 cursor-pointer '
+    let label = ''
+    if (done) {
+      cls += 'text-green-400 border-green-500/30 bg-green-500/10'
+      label = `✓ ${rc}/${max} done`
+    } else if (hasSent && hasFuture) {
+      cls += 'text-purple-400 border-purple-500/30 bg-purple-500/10'
+      label = `${rc}/${max} sent · next ${dateStr}`
+    } else if (hasSent) {
+      cls += 'text-purple-400 border-purple-500/30 bg-purple-500/10'
+      label = `${rc} follow-up${rc > 1 ? 's' : ''} sent`
+    } else if (overdue) {
+      cls += 'text-orange-400 border-orange-500/30 bg-orange-500/10'
+      label = `⚠ overdue ${dateStr}`
+    } else if (hasFuture) {
+      cls += 'text-blue-400 border-blue-500/30 bg-blue-500/10'
+      label = `follow-up ${dateStr}`
+    }
+
+    return (
+      <Badge variant="outline" className={cls} onClick={e => { e.stopPropagation(); onEditFollowUp(email) }} title="Click to edit follow-up date">
+        <CalendarClock className="w-2.5 h-2.5 mr-0.5 inline" />{label}
+      </Badge>
+    )
+  }
+
+  return (
+    <div className={cn('py-3 px-1 border-l-2 pl-3 transition-colors cursor-pointer', expanded ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30')} onClick={() => setExpanded(p => !p)}>
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+            <span className="font-medium text-sm text-foreground">{leadName(email)}</span>
+            {leadCompany(email) && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-2.5 h-2.5" />{leadCompany(email)}</span>}
+          </div>
+          <p className="text-sm text-foreground truncate">{email.subject || '(no subject)'}</p>
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px]">
+            <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(sentDate(email))}</span>
+            {statusBadge()}{followUpBadge()}
+          </div>
+        </div>
+        <div className="shrink-0 flex items-center gap-1 text-muted-foreground text-[11px] pt-0.5">
+          {a.opened && <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" />{(a.openCount || 0) > 1 ? a.openCount : ''}</span>}
+          {a.clicked && <MousePointer className="w-3 h-3 text-yellow-400" />}
+          {a.replied && <MessageSquare className="w-3 h-3 text-green-400" />}
+        </div>
+      </div>
+      {expanded && (
+        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-muted-foreground border-t border-border pt-3">
+          <div><span className="font-medium text-foreground mr-1">To</span>{email.to || email.recipient}</div>
+          <div><span className="font-medium text-foreground mr-1">Sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '—'}</div>
+          <div className="col-span-2"><span className="font-medium text-foreground mr-1">Subject</span>{email.subject}</div>
+          {email.followUpDate && (
+            <div className="col-span-2 flex items-center gap-1.5">
+              <CalendarClock className="w-3 h-3 text-blue-400 shrink-0" />
+              <span className="font-medium text-foreground">Follow-up</span>
+              {new Date(email.followUpDate).toLocaleString()}
+              {(email.rebumpCount ?? 0) > 0 && <span className="text-muted-foreground">· {email.rebumpCount} sent</span>}
+            </div>
+          )}
+          {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="line-clamp-3 whitespace-pre-wrap">{email.body}</span></div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── edit follow-up modal ──────────────────────────────────────────────────────
+// ── follow-up row (shows actual follow-up sent, not original email) ───────────
+function FollowUpRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const rc  = email.rebumpCount  ?? 0
+  const max = email.maxFollowUps ?? 1
+  const lastSent = email.lastRebumpAt || email.lastFollowUpSentAt
+  const templateSubject = email.assignedTemplate?.subject || email.subject
+  const templateName    = email.assignedTemplate?.name
+  const templateBody    = email.assignedTemplate?.body
+  const isScheduled = rc === 0 && email.followUpScheduled
+  const nextDate = email.followUpDate ? new Date(email.followUpDate) : null
+  const isOverdue = nextDate && nextDate <= new Date() && !isScheduled
+
+  return (
+    <div
+      className={cn('py-3 px-1 border-l-2 pl-3 transition-colors cursor-pointer',
+        expanded ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30')}
+      onClick={() => setExpanded(p => !p)}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          {/* contact line */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+            <span className="font-medium text-sm text-foreground">{leadName(email)}</span>
+            {leadCompany(email) && (
+              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                <Building2 className="w-2.5 h-2.5" />{leadCompany(email)}
+              </span>
+            )}
+          </div>
+          {/* follow-up subject */}
+          <p className="text-sm text-foreground truncate">
+            {isScheduled ? `Scheduled: ${templateSubject || '(no subject)'}` : `Re: ${templateSubject || email.subject || '(no subject)'}`}
+          </p>
+          {/* meta row */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px]">
+            {isScheduled ? (
+              <>
+                <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-blue-400 border-blue-500/30 bg-blue-500/10">
+                  <CalendarClock className="w-2.5 h-2.5 mr-0.5 inline" />
+                  Scheduled {nextDate?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Badge>
+                {isOverdue && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-orange-400 border-orange-500/30 bg-orange-500/10">Overdue</Badge>
+                )}
+              </>
+            ) : (
+              <>
+                <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-purple-400 border-purple-500/30 bg-purple-500/10">
+                  Follow-up {rc > 1 ? `#${rc}` : ''} of {max}
+                </Badge>
+                {lastSent && (
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5" />sent {timeAgo(lastSent)}
+                  </span>
+                )}
+                {nextDate && rc < max && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-blue-400 border-blue-500/30 bg-blue-500/10 cursor-pointer"
+                    onClick={e => { e.stopPropagation(); onEditFollowUp(email) }}>
+                    <CalendarClock className="w-2.5 h-2.5 mr-0.5 inline" />
+                    next {nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </Badge>
+                )}
+                {rc >= max && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-green-400 border-green-500/30 bg-green-500/10">✓ done</Badge>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-border pt-3">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+            <div><span className="font-medium text-foreground mr-1">To</span>{email.to || email.recipient}</div>
+            {lastSent && <div><span className="font-medium text-foreground mr-1">Follow-up sent</span>{new Date(lastSent).toLocaleString()}</div>}
+            <div><span className="font-medium text-foreground mr-1">Original sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '—'}</div>
+            <div><span className="font-medium text-foreground mr-1">Count</span>{rc} / {max}</div>
+            {templateName && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Template</span>{templateName}</div>}
+            {nextDate && rc < max && (
+              <div className="col-span-2 flex items-center gap-1.5">
+                <span className="font-medium text-foreground">Next follow-up</span>
+                {nextDate.toLocaleString()}
+              </div>
+            )}
+          </div>
+          {templateBody && (
+            <div><span className="font-medium text-foreground">Follow-up body</span><p className="mt-1 line-clamp-4 whitespace-pre-wrap">{templateBody}</p></div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── edit follow-up modal ──────────────────────────────────────────────────────
+function EditFollowUpModal({ email, onClose, onSaved }: { email: AnalyticsEmail; onClose: () => void; onSaved: () => void }) {
+  const [date, setDate] = useState(email.followUpDate ? new Date(email.followUpDate).toISOString().slice(0, 16) : new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16))
+  const [saving, setSaving] = useState(false)
+  const save = async () => {
+    setSaving(true)
+    try { await api.put(`/api/email-queue/${email.id || email.trackingId}/followup`, { agentId: email.agentId, followUpDate: new Date(date).toISOString() }); onSaved(); onClose() } catch { /* silent */ }
+    setSaving(false)
+  }
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between"><h3 className="font-semibold">Edit Follow-up Date</h3><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button></div>
+        <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+        <div className="flex gap-2"><Button variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button><Button className="flex-1" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button></div>
+      </Card>
+    </div>
+  )
+}
+
+// ── mass reschedule modal ─────────────────────────────────────────────────────
+function MassRescheduleModal({ emails, onClose, onSaved }: { emails: AnalyticsEmail[]; onClose: () => void; onSaved: () => void }) {
+  const [date, setDate] = useState(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16))
+  const [saving, setSaving] = useState(false)
+  const save = async () => {
+    setSaving(true)
+    try { await Promise.all(emails.map(e => api.put(`/api/email-queue/${e.id || e.trackingId}/followup`, { agentId: e.agentId, followUpDate: new Date(date).toISOString() }))); onSaved(); onClose() } catch { /* silent */ }
+    setSaving(false)
+  }
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between"><h3 className="font-semibold">Reschedule {emails.length} follow-ups</h3><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button></div>
+        <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+        <div className="flex gap-2"><Button variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button><Button className="flex-1" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Reschedule All'}</Button></div>
+      </Card>
+    </div>
+  )
+}
+
+// ── mass follow-up modal ──────────────────────────────────────────────────────
+function MassFollowUpModal({ agent, templates, eligibleEmails, onClose, onSent }: {
+  agent: AgentFull; templates: Array<{ name: string; subject: string; body: string }>; eligibleEmails: AnalyticsEmail[]; onClose: () => void; onSent: () => void
+}) {
+  const [sending, setSending] = useState(false)
+  const schedule = async (template: { name: string; subject: string; body: string }) => {
+    setSending(true)
+    try { await api.post('/api/email-queue/schedule-mass-followup', { agentId: agent.agentId, template, eligibleEmails: eligibleEmails.map(e => e.id || e.trackingId) }); onSent(); onClose() } catch { /* silent */ }
+    setSending(false)
+  }
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <div><h3 className="font-semibold">Schedule Mass Follow-up</h3><p className="text-xs text-muted-foreground mt-0.5">{eligibleEmails.length} eligible · {agent.name}</p></div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        </div>
+        {templates.length === 0 ? <p className="text-sm text-muted-foreground py-8 text-center">No templates for this agent yet</p> : (
+          <div className="space-y-2">
+            {templates.map((t, i) => (
+              <button key={i} disabled={sending} onClick={() => schedule(t)} className="w-full text-left p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                <p className="font-medium text-sm">{t.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Subject: {t.subject}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{t.body}</p>
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground border-t border-border pt-3">This will queue follow-ups for all eligible sent emails from this agent</p>
+      </Card>
+    </div>
+  )
+}
+
+const PAGE_SIZE = 20
+
+function Pagination({ page, total, pageSize = PAGE_SIZE, onChange }: {
+  page: number; total: number; pageSize?: number; onChange: (p: number) => void
+}) {
+  const totalPages = Math.ceil(total / pageSize)
+  if (totalPages <= 1) return null
+  const start = (page - 1) * pageSize + 1
+  const end   = Math.min(page * pageSize, total)
+  return (
+    <div className="flex items-center justify-between pt-3 mt-2 border-t border-border text-xs text-muted-foreground">
+      <span>{start}–{end} of {total}</span>
+      <div className="flex items-center gap-1">
+        <button
+          disabled={page === 1}
+          onClick={() => onChange(page - 1)}
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        ><ChevronLeft className="w-3.5 h-3.5" /></button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+          .reduce<(number | '...')[]>((acc, p, i, arr) => {
+            if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...')
+            acc.push(p); return acc
+          }, [])
+          .map((p, i) => p === '...' ? (
+            <span key={`ellipsis-${i}`} className="px-1">…</span>
+          ) : (
+            <button key={p}
+              onClick={() => onChange(p as number)}
+              className={cn('w-7 h-7 flex items-center justify-center rounded-md border text-xs font-medium transition-colors',
+                p === page ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'
+              )}
+            >{p}</button>
+          ))
+        }
+        <button
+          disabled={page === totalPages}
+          onClick={() => onChange(page + 1)}
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        ><ChevronRight className="w-3.5 h-3.5" /></button>
+      </div>
+    </div>
+  )
+}
+
+// ── main export ───────────────────────────────────────────────────────────────
+type Tab = 'sent' | 'followups' | 'templates'
+
+export function ContactedContent() {
+  const searchParams = useSearchParams()
+  const urlTab = (searchParams.get('tab') ?? 'sent') as Tab
+  const [tab, setTab] = useState<Tab>(urlTab)
+
+  // Sync tab whenever the URL search param changes (sidebar clicks)
+  useEffect(() => { setTab(urlTab) }, [urlTab])
+  const [emails, setEmails]               = useState<AnalyticsEmail[]>([])
+  const [agents, setAgents]               = useState<AgentFull[]>([])
+  const [selectedAgent, setSelectedAgent] = useState<AgentFull | null>(null)
+  const [agentFilter, setAgentFilter]     = useState('all')
+  const [search, setSearch]               = useState('')
+  const [loading, setLoading]             = useState(true)
+  const [sentPage, setSentPage]           = useState(1)
+  const [followUpsPage, setFollowUpsPage] = useState(1)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
+  const [editFollowUpEmail, setEditFollowUpEmail] = useState<AnalyticsEmail | null>(null)
+  const [showMassReschedule, setShowMassReschedule]       = useState(false)
+  const [showMassFollowUpModal, setShowMassFollowUpModal] = useState(false)
+  const [saved, setSaved]                 = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = agentFilter !== 'all' ? { agentId: agentFilter } : {}
+      const r = await api.get('/api/analytics/emails', { params })
+      // api.get returns { data: { data: [...] } } when analytics wraps it, or { data: [...] }
+      const raw = r.data?.data ?? r.data ?? []
+      const list: AnalyticsEmail[] = Array.isArray(raw) ? raw : []
+      setEmails([...list].sort((a, b) => new Date(sentDate(b)).getTime() - new Date(sentDate(a)).getTime()))
+    } catch { /* silent */ }
+    setLoading(false)
+  }, [agentFilter])
+
+const loadAgents = useCallback(async () => {
+    try {
+      const r = await api.get('/api/auth/agents')
+      const list: AgentFull[] = r.data?.agents ?? []
+      setAgents(list)
+      if (list.length > 0 && !selectedAgent) setSelectedAgent(list[0])
+    } catch { /* silent */ }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { load(); loadAgents() }, [load, loadAgents])
+
+  // Fire overdue follow-ups on mount
+  useEffect(() => { api.post('/api/outreach/send-overdue', { agentId: 'all' }).catch(() => {}) }, [])
+
+  const sent      = useMemo(() => emails, [emails])
+  // Follow-ups = emails where at least one follow-up has been sent, or one is scheduled
+  const followUps = useMemo(() => emails.filter(e =>
+    (e.rebumpCount ?? 0) > 0 || e.followUpScheduled === true
+  ), [emails])
+
+  const applySearch = (list: AnalyticsEmail[]) => {
+    if (!search.trim()) return list
+    const q = search.toLowerCase()
+    return list.filter(e =>
+      leadName(e).toLowerCase().includes(q) ||
+      (e.to || '').toLowerCase().includes(q) ||
+      (e.subject || '').toLowerCase().includes(q) ||
+      leadCompany(e).toLowerCase().includes(q)
+    )
+  }
+
+  // Reset to page 1 when search or tab changes
+  useEffect(() => { setSentPage(1); setFollowUpsPage(1) }, [search, tab])
+
+  const displayedSent      = applySearch(sent)
+  const displayedFollowUps = applySearch(followUps)
+  const pagedSent      = displayedSent.slice((sentPage - 1) * PAGE_SIZE, sentPage * PAGE_SIZE)
+  const pagedFollowUps = displayedFollowUps.slice((followUpsPage - 1) * PAGE_SIZE, followUpsPage * PAGE_SIZE)
+  const agentTemplates     = selectedAgent?.settings?.followUpTemplates?.templates ?? []
+
+  const eligibleForMassFollowUp = useMemo(() => {
+    if (!selectedAgent) return []
+    const max = selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1
+    return sent.filter(e => e.agentId === selectedAgent.agentId && (e.rebumpCount ?? 0) < max)
+  }, [sent, selectedAgent])
+
+  const updateAgentSettings = async (agentId: string, settings: AgentFull['settings']) => {
+    try {
+      await api.put(`/api/auth/agents/${agentId}/settings`, settings)
+      setSaved(true); setTimeout(() => setSaved(false), 2000)
+      await loadAgents()
+    } catch { /* silent */ }
+  }
+
+  const mutateSelected = (agent: AgentFull, partial: NonNullable<AgentFull['settings']>['emailBuilder']) => {
+    const newSettings = { ...agent.settings, emailBuilder: { ...agent.settings?.emailBuilder, ...partial } }
+    updateAgentSettings(agent.agentId, newSettings)
+    const updated = { ...agent, settings: newSettings }
+    setSelectedAgent(updated)
+    setAgents(prev => prev.map(a => a.agentId === agent.agentId ? updated : a))
+  }
+
+  const TABS: { id: Tab; label: string; count?: number }[] = [
+    { id: 'sent',      label: 'Sent Emails',  count: sent.length },
+    { id: 'followups', label: 'Follow-ups',   count: followUps.length },
+    { id: 'templates', label: 'Templates' },
+  ]
+
+  return (
+    <div className="space-y-5">
+      {/* header */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <UserCheck className="w-5 h-5 text-primary" />
+          <h1 className="text-lg font-semibold">Contacted</h1>
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {tab !== 'templates' && (
+            <div className="relative">
+              <Bot className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <select value={agentFilter} onChange={e => setAgentFilter(e.target.value)}
+                className="h-8 pl-7 pr-7 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring appearance-none">
+                <option value="all">All Agents</option>
+                {agents.map(a => <option key={a.agentId} value={a.agentId}>{a.name}</option>)}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+            </div>
+          )}
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={load}>
+            <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
+          </Button>
+        </div>
+      </div>
+
+      {/* tabs */}
+      <div className="flex items-center gap-1 border-b border-border">
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={cn('px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+              tab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+            {t.label}{t.count !== undefined ? ` (${t.count})` : ''}
+          </button>
+        ))}
+      </div>
+
+      {/* ── SENT ─────────────────────────────────────────────────────────── */}
+      {tab === 'sent' && (
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+              <input className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                placeholder="Search name, email, company, subject…" value={search} onChange={e => setSearch(e.target.value)} />
+              {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>}
+            </div>
+            {!selectionMode ? (
+              <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={() => setSelectionMode(true)}>Select</Button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
+                {selectedIds.size > 0 && <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowMassReschedule(true)}>Reschedule All</Button>}
+                <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setSelectionMode(false); setSelectedIds(new Set()) }}>Done</Button>
+              </div>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">{[...Array(6)].map((_, i) => <div key={i} className="animate-pulse space-y-1"><div className="h-3 bg-muted rounded w-1/3" /><div className="h-3 bg-muted rounded w-1/2" /><div className="h-2 bg-muted rounded w-1/4" /></div>)}</div>
+          ) : displayedSent.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center">
+                {search ? <Search className="w-5 h-5 text-muted-foreground" /> : <Mail className="w-5 h-5 text-muted-foreground" />}
+              </div>
+              <div>
+                <p className="text-sm font-medium">{search ? 'No results' : 'No sent emails yet'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{search ? `No emails match "${search}"` : 'Sent emails appear here after your agents send them.'}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-border">
+                {pagedSent.map(e => (
+                  <div key={emailId(e)} className="flex items-start gap-2">
+                    {selectionMode && (
+                      <input type="checkbox" className="mt-3.5 w-3.5 h-3.5 shrink-0"
+                        checked={selectedIds.has(emailId(e))}
+                        onChange={() => setSelectedIds(prev => { const s = new Set(prev); s.has(emailId(e)) ? s.delete(emailId(e)) : s.add(emailId(e)); return s })}
+                        onClick={ev => ev.stopPropagation()} />
+                    )}
+                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} /></div>
+                  </div>
+                ))}
+              </div>
+              <Pagination page={sentPage} total={displayedSent.length} onChange={p => { setSentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* ── FOLLOW-UPS ───────────────────────────────────────────────────── */}
+      {tab === 'followups' && (
+        <Card className="p-5">
+          <div className="relative mb-4">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+            <input className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Search follow-ups…" value={search} onChange={e => setSearch(e.target.value)} />
+            {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>}
+          </div>
+          {loading ? (
+            <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="animate-pulse space-y-1"><div className="h-3 bg-muted rounded w-1/3" /><div className="h-3 bg-muted rounded w-1/2" /></div>)}</div>
+          ) : displayedFollowUps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center"><CalendarClock className="w-5 h-5 text-muted-foreground" /></div>
+              <div>
+                <p className="text-sm font-medium">{search ? 'No results' : 'No follow-ups yet'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{search ? `No follow-ups match "${search}"` : 'Emails with scheduled or sent follow-ups will appear here.'}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-border">
+                {pagedFollowUps.map((e, i) => <FollowUpRow key={emailId(e) || i} email={e} onEditFollowUp={setEditFollowUpEmail} />)}
+              </div>
+              <Pagination page={followUpsPage} total={displayedFollowUps.length} onChange={p => { setFollowUpsPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* ── TEMPLATES ────────────────────────────────────────────────────── */}
+      {tab === 'templates' && (
+        <div className="flex gap-4">
+          {/* agent selector */}
+          <div className="flex flex-col gap-2 w-56 shrink-0">
+            {agents.map(agent => (
+              <button key={agent.agentId} onClick={() => setSelectedAgent(agent)}
+                className={cn('flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors text-left',
+                  selectedAgent?.agentId === agent.agentId ? 'bg-primary/10 border-primary/40 text-primary' : 'border-border hover:bg-muted/50 text-foreground')}>
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                  {agent.personality?.avatar
+                    ? <img src={agent.personality.avatar} alt={agent.name} className="w-full h-full object-cover" />
+                    : <span className="text-xs font-bold text-primary">{agent.name?.[0]?.toUpperCase()}</span>}
+                </div>
+                <span className="truncate">{agent.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {selectedAgent ? (
+            <div className="flex gap-4 flex-1 min-w-0">
+              {/* templates list */}
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{selectedAgent.name} templates</p>
+                  <Button size="sm" className="h-8 text-xs" onClick={() => setShowMassFollowUpModal(true)}>+ Schedule Mass Follow-up</Button>
+                </div>
+                {agentTemplates.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No templates yet for {selectedAgent.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Templates are generated automatically by the agent</p>
+                  </Card>
+                ) : agentTemplates.map((t, i) => (
+                  <Card key={i} className="p-4 space-y-2">
+                    <p className="font-semibold text-sm">{t.name}</p>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Subject</p><p className="text-xs bg-muted/50 rounded p-2">{t.subject}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Body</p><p className="text-xs bg-muted/50 rounded p-2 line-clamp-3 whitespace-pre-wrap">{t.body}</p></div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* settings */}
+              <div className="w-72 shrink-0 space-y-3">
+                <p className="text-sm font-medium flex items-center gap-1.5"><Settings2 className="w-4 h-4" /> Settings</p>
+
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div><p className="text-sm font-medium">Auto Follow-ups</p><p className="text-xs text-muted-foreground mt-0.5">Automatic rebumps</p></div>
+                    <button onClick={() => mutateSelected(selectedAgent, { enableRebump: !(selectedAgent.settings?.emailBuilder?.enableRebump !== false) })}
+                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'bg-green-500' : 'bg-muted')}>
+                      <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'translate-x-6' : 'translate-x-1')} />
+                    </button>
+                  </div>
+                </Card>
+
+                <Card className="p-4 space-y-2">
+                  <p className="text-sm font-medium">Follow-up Interval</p>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={1} max={30} value={selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
+                      onChange={e => mutateSelected(selectedAgent, { rebumpIntervalDays: parseInt(e.target.value) || 7 })}
+                      className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                    <span className="text-xs text-muted-foreground">days</span>
+                  </div>
+                </Card>
+
+                <Card className="p-4 space-y-2">
+                  <p className="text-sm font-medium">Max Follow-ups</p>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={1} max={5} value={selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
+                      onChange={e => mutateSelected(selectedAgent, { maxRebumps: parseInt(e.target.value) || 1 })}
+                      className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                    <span className="text-xs text-muted-foreground">max</span>
+                  </div>
+                </Card>
+
+                <Card className="p-4 space-y-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Agent Stats</p>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Templates</span><span className="font-semibold">{agentTemplates.length}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Follow-ups Sent</span><span className="font-semibold">{followUps.filter(e => e.agentId === selectedAgent.agentId).length}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Last Generated</span>
+                      <span className="font-semibold">{selectedAgent.settings?.followUpTemplates?.generatedAt ? new Date(selectedAgent.settings.followUpTemplates.generatedAt).toLocaleDateString() : 'Never'}</span>
+                    </div>
+                  </div>
+                </Card>
+
+                {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs"><Check className="w-3.5 h-3.5" /> Saved</div>}
+              </div>
+            </div>
+          ) : (
+            <Card className="flex-1 flex items-center justify-center p-12 text-muted-foreground text-sm">Select an agent to view templates</Card>
+          )}
+        </div>
+      )}
+
+      {/* modals */}
+      {editFollowUpEmail && <EditFollowUpModal email={editFollowUpEmail} onClose={() => setEditFollowUpEmail(null)} onSaved={load} />}
+      {showMassReschedule && (
+        <MassRescheduleModal emails={sent.filter(e => selectedIds.has(emailId(e)))} onClose={() => setShowMassReschedule(false)}
+          onSaved={() => { setSelectedIds(new Set()); setSelectionMode(false); load() }} />
+      )}
+      {showMassFollowUpModal && selectedAgent && (
+        <MassFollowUpModal agent={selectedAgent} templates={agentTemplates} eligibleEmails={eligibleForMassFollowUp}
+          onClose={() => setShowMassFollowUpModal(false)} onSent={load} />
+      )}
+    </div>
+  )
+}

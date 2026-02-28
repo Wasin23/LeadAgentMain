@@ -538,7 +538,9 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
     return {
       success: true,
       message: `✅ Email sent to ${to}`,
-      trackingId: loggedId
+      trackingId: loggedId,
+      fromAccount: fromEmail,
+      sentFrom: fromEmail
     };
   } catch (err) {
     console.error('[MAILGUN] Failed:', err);
@@ -616,7 +618,9 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
     return {
       success: true,
       message: `✅ Email sent to ${to}`,
-      trackingId: loggedId
+      trackingId: loggedId,
+      fromAccount: fromEmail,
+      sentFrom: fromEmail
     };
   } catch (err) {
     console.error('[MAILGUN CUSTOM] Failed:', err);

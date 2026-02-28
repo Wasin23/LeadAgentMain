@@ -150,7 +150,8 @@ router.get('/google/callback', async (req, res) => {
     const userPayload = JSON.stringify({
       userId: user.userId,
       username: user.username,
-      email: user.email
+      email: user.email,
+      picture: data.picture || null
     });
     const encodedUser = Buffer.from(userPayload).toString('base64');
     const redirectUrl = `${FRONTEND_URL}/signin#google=success&token=${encodeURIComponent(token)}&user=${encodeURIComponent(encodedUser)}&redirect=${encodeURIComponent(redirectPath)}`;
@@ -1297,6 +1298,32 @@ router.get('/agents', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('[AUTH] Get agents error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete an agent (removes from activeAgents + wipes agent settings)
+router.delete('/agents/:agentId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId } = req.params;
+    console.log(`[AUTH] DELETE agent ${agentId} for user ${userId}`);
+
+    const { removeAgentFromUser } = await import('../lib/userManager.js');
+    await removeAgentFromUser(userId, agentId);
+
+    // Also delete agent settings record
+    const awsMgr = (await import('../utils/awsManager.js')).default;
+    const awsManagerInstance = new awsMgr();
+    try {
+      await awsManagerInstance.deleteAgentSettings(userId, agentId);
+    } catch (e) {
+      console.warn('[AUTH] Could not delete agent settings:', e.message);
+    }
+
+    res.json({ success: true, message: 'Agent deleted' });
+  } catch (error) {
+    console.error('[AUTH] Delete agent error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

@@ -677,7 +677,7 @@ router.post('/:id/approve', async (req, res) => {
             id: sendResult.result.mailgunId || sendResult.result.messageId || null,
             message: sendResult.result.messageId || sendResult.result.trackingId,
             trackingId: sendResult.result.trackingId,  // This is the tracking pixel ID
-            fromAccount: sendResult.result.fromAccount || null,
+            fromAccount: sendResult.result.fromAccount || sendResult.result.sentFrom || null,
             method: sendResult.method || 'mailgun',
             leadName: leadNameForTracking,
             subject: finalSubject,

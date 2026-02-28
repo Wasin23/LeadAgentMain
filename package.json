@@ -12,6 +12,7 @@
     "backup": "node -e \"import('./utils/backup.js').then(m => m.backupManager.createFullBackup())\"",
     "backup:cleanup": "node -e \"import('./utils/backup.js').then(m => m.backupManager.cleanupOldBackups())\"",
     "health": "curl -f http://localhost:8080/health || exit 1",
+    "dev": "cd moderntask && npm run dev",
     "desktop:build": "echo \"Desktop build disabled (Electron removed)\" && exit 0"
   },
   "keywords": [

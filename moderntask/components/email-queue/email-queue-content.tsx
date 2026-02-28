@@ -1,0 +1,889 @@
+'use client'
+
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import api from '@/lib/api'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
+import {
+  CheckCircle2, XCircle,
+  Clock, RefreshCw, Bot, Building2,
+  Inbox, Trash2, Pencil, ZoomIn, ZoomOut, Replace,
+  CheckSquare, Square, ChevronsLeft, ChevronLeft,
+  ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
+  Settings2, Save, Search,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// ── types ─────────────────────────────────────────────────────────────────────
+interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule } }
+
+interface SendingSchedule {
+  activeDays:  number[]  // 0=Sun … 6=Sat
+  sendTime:    string    // "HH:MM" e.g. "09:00"
+  dailyLimit:  number
+  timezone:    string
+}
+
+interface QueueEmail {
+  id: string; agentId?: string
+  to?: string; cc?: string; bcc?: string; subject?: string; body?: string
+  emailData?: { finalRecipient?: string; finalSubject?: string; finalBody?: string; cc?: string; bcc?: string }
+  leadDetails?: { personInfo?: { fullName?: string; name?: string }; companyName?: string }
+  leadName?: string; recipientName?: string
+  createdAt?: string; sentAt?: string; fromAccount?: string
+  isRebump?: boolean; status?: string; scheduledAt?: string
+}
+
+function ef(e: QueueEmail) {
+  return {
+    to:      e.emailData?.finalRecipient || e.to      || '',
+    cc:      e.emailData?.cc            || e.cc       || '',
+    bcc:     e.emailData?.bcc           || e.bcc      || '',
+    subject: e.emailData?.finalSubject  || e.subject  || '(no subject)',
+    body:    e.emailData?.finalBody     || e.body      || '',
+    name:    e.leadDetails?.personInfo?.fullName || e.leadDetails?.personInfo?.name || e.leadName || e.recipientName || '',
+    company: e.leadDetails?.companyName || '',
+  }
+}
+
+function timeAgo(iso?: string) {
+  if (!iso) return '—'
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (m < 1) return 'Just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
+// ── schedule send modal ──────────────────────────────────────────────────────────
+function ScheduleModal({ email, onSave, onClose }: {
+  email: QueueEmail
+  onSave: (id: string, scheduledAt: string | null, agentId?: string) => Promise<void>
+  onClose: () => void
+}) {
+  const existing = email.scheduledAt ? new Date(email.scheduledAt).toISOString().slice(0, 16) : ''
+  const [value, setValue]   = useState(existing)
+  const [saving, setSaving] = useState(false)
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <Card className="w-full max-w-sm p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Schedule Send</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{ef(email).name || ef(email).to}</p>
+          </div>
+          <button onClick={onClose}><X className="w-4 h-4 text-muted-foreground" /></button>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] font-medium text-muted-foreground">Send at</label>
+          <input
+            type="datetime-local"
+            className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+          />
+        </div>
+        {email.scheduledAt && (
+          <p className="text-[11px] text-muted-foreground">Currently scheduled: {new Date(email.scheduledAt).toLocaleString()}</p>
+        )}
+        <div className="flex justify-between items-center">
+          {email.scheduledAt ? (
+            <button className="text-[11px] text-destructive hover:underline" onClick={async () => { setSaving(true); await onSave(email.id, null, email.agentId); onClose() }}>Clear schedule</button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button size="sm" disabled={saving || !value} onClick={async () => {
+              setSaving(true)
+              await onSave(email.id, new Date(value).toISOString(), email.agentId)
+              onClose()
+            }}>{saving ? 'Saving…' : 'Schedule'}</Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+// ── agent sending schedule panel ─────────────────────────────────────────────
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const TIMEZONES = [
+  'America/New_York', 'America/Chicago', 'America/Denver',
+  'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu',
+  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo',
+  'Asia/Shanghai', 'Asia/Kolkata', 'Australia/Sydney',
+]
+const DEFAULT_SCHEDULE: SendingSchedule = {
+  activeDays: [1, 2, 3, 4, 5],
+  sendTime: '09:00',
+  dailyLimit: 50,
+  timezone: 'America/Los_Angeles',
+}
+
+function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: SendingSchedule) => void }) {
+  const { toast } = useToast()
+  const initial = { ...DEFAULT_SCHEDULE, ...agent.settings?.sendingSchedule }
+  const [sched, setSched]     = useState<SendingSchedule>(initial)
+  const [limitStr, setLimitStr] = useState(String(initial.dailyLimit ?? 50))
+  const [saving, setSaving]   = useState(false)
+  const [saved,  setSaved]    = useState(false)
+
+  // parse sendTime into hour/minute parts
+  const [timeH, timeM] = sched.sendTime.split(':').map(Number)
+  const isPM = timeH >= 12
+  const hour12 = timeH % 12 || 12
+
+  const setTime = (h12: number, m: number, pm: boolean) => {
+    const h24 = pm ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12)
+    setSched(s => ({ ...s, sendTime: `${String(h24).padStart(2,'0')}:${String(m).padStart(2,'0')}` }))
+  }
+
+  const toggleDay = (d: number) =>
+    setSched(s => ({ ...s, activeDays: s.activeDays.includes(d) ? s.activeDays.filter(x => x !== d) : [...s.activeDays, d].sort() }))
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      await api.put(`/api/auth/agents/${agent.agentId}/settings`, {
+        ...agent.settings,
+        sendingSchedule: { ...sched, dailyLimit: parseInt(limitStr) || 0 },
+      })
+      const saved = { ...sched, dailyLimit: parseInt(limitStr) || 0 }
+      setSaved(true); setTimeout(() => setSaved(false), 2000)
+      onSaved?.(saved)
+      toast({ title: 'Schedule saved', description: `Sending ${saved.dailyLimit}/day on ${saved.activeDays.map(d => DAY_LABELS[d]).join(', ')} at ${saved.sendTime}`, duration: 2000 })
+    } catch {}
+    finally { setSaving(false) }
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Calendar className="w-4 h-4 text-primary" />
+        <h2 className="text-sm font-semibold">Sending Schedule</h2>
+        <span className="text-[10px] text-muted-foreground ml-1">for {agent.name}</span>
+      </div>
+      <div className="space-y-4">
+        {/* active days */}
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-medium text-muted-foreground">Active Days</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {DAY_LABELS.map((label, i) => (
+              <button
+                key={i}
+                onClick={() => toggleDay(i)}
+                className={cn(
+                  'w-10 h-8 rounded-md text-xs font-medium border transition-colors',
+                  sched.activeDays.includes(i)
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background text-muted-foreground border-input hover:bg-muted'
+                )}
+              >{label}</button>
+            ))}
+          </div>
+        </div>
+        {/* send time + limit */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Send Time</label>
+            <div className="flex items-center gap-1">
+              <select
+                className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
+                value={hour12}
+                onChange={e => setTime(+e.target.value, timeM, isPM)}
+              >
+                {Array.from({length:12},(_,i)=>i+1).map(h => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
+              <span className="text-muted-foreground text-xs">:</span>
+              <select
+                className="w-16 h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
+                value={timeM}
+                onChange={e => setTime(hour12, +e.target.value, isPM)}
+              >
+                {[0,5,10,15,20,25,30,35,40,45,50,55].map(m => (
+                  <option key={m} value={m}>{String(m).padStart(2,'0')}</option>
+                ))}
+              </select>
+              <select
+                className="w-16 h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
+                value={isPM ? 'PM' : 'AM'}
+                onChange={e => setTime(hour12, timeM, e.target.value === 'PM')}
+              >
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Daily Limit</label>
+            <input
+              type="number" min={1} max={500}
+              className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none"
+              value={limitStr}
+              onChange={e => setLimitStr(e.target.value)}
+              onBlur={e => { if (e.target.value === '') setLimitStr('') }}
+            />
+          </div>
+        </div>
+        {/* timezone + save */}
+        <div className="flex items-end gap-3">
+          <div className="flex-1 space-y-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Timezone</label>
+            <select
+              className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
+              value={sched.timezone}
+              onChange={e => setSched(s => ({ ...s, timezone: e.target.value }))}
+            >
+              {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+            </select>
+          </div>
+          <Button size="sm" className="h-8 gap-1.5" disabled={saving} onClick={save}>
+            <Save className="w-3.5 h-3.5" />
+            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+// ── edit modal ────────────────────────────────────────────────────────────────
+const inputCls = 'w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring'
+
+function EditModal({ email, onSave, onClose }: {
+  email: QueueEmail
+  onSave: (id: string, to: string, cc: string, bcc: string, subject: string, body: string, agentId?: string) => Promise<void>
+  onClose: () => void
+}) {
+  const fields = ef(email)
+  const [to, setTo]           = useState(fields.to)
+  const [cc, setCc]           = useState(fields.cc)
+  const [bcc, setBcc]         = useState(fields.bcc)
+  const [subject, setSubject] = useState(fields.subject)
+  const [body, setBody]       = useState(fields.body)
+  const [saving, setSaving]   = useState(false)
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-background border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+          <p className="text-xs font-semibold">Edit Email</p>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-muted-foreground">To</label>
+            <input className={inputCls} value={to} onChange={e => setTo(e.target.value)} placeholder="recipient@example.com" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-muted-foreground">CC</label>
+              <input className={inputCls} value={cc} onChange={e => setCc(e.target.value)} placeholder="cc@example.com" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-muted-foreground">BCC</label>
+              <input className={inputCls} value={bcc} onChange={e => setBcc(e.target.value)} placeholder="bcc@example.com" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Subject</label>
+            <input className={inputCls} value={subject} onChange={e => setSubject(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Body</label>
+            <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none leading-relaxed" rows={14} value={body} onChange={e => setBody(e.target.value)} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-border shrink-0">
+          <Button size="sm" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button size="sm" disabled={saving || !to.trim() || !subject.trim()} onClick={async () => {
+            setSaving(true)
+            await onSave(email.id, to, cc, bcc, subject, body, email.agentId)
+            setSaving(false); onClose()
+          }}>{saving ? 'Saving…' : 'Save Changes'}</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── bulk find & replace modal ─────────────────────────────────────────────────
+function BulkReplaceModal({ agentId, onClose, onDone }: {
+  agentId: string; onClose: () => void; onDone: () => void
+}) {
+  const [find, setFind]         = useState('')
+  const [replace, setReplace]   = useState('')
+  const [useRegex, setUseRegex] = useState(false)
+  const [running, setRunning]   = useState(false)
+  const [result, setResult]     = useState<string | null>(null)
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <Card className="w-full max-w-md p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Bulk Find &amp; Replace</h3>
+          <button onClick={onClose}><X className="w-4 h-4 text-muted-foreground" /></button>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] text-muted-foreground">Find</label>
+          <input className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" value={find} onChange={e => setFind(e.target.value)} placeholder="Text to find…" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] text-muted-foreground">Replace with</label>
+          <input className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" value={replace} onChange={e => setReplace(e.target.value)} placeholder="Replacement text…" />
+        </div>
+        <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+          <input type="checkbox" checked={useRegex} onChange={e => setUseRegex(e.target.checked)} className="rounded" />
+          Use regular expression
+        </label>
+        {result && <p className="text-xs text-green-400">{result}</p>}
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button size="sm" disabled={running || !find} onClick={async () => {
+            setRunning(true)
+            try {
+              const res = await api.post('/api/email-queue/bulk-edit', {
+                findText: find, replaceText: replace, useRegex,
+                agentId: agentId !== 'all' ? agentId : undefined,
+              })
+              setResult(`Updated ${res.data.updatedCount} of ${res.data.totalProcessed} emails.`)
+              onDone()
+            } catch { setResult('Failed.') }
+            finally { setRunning(false) }
+          }}>{running ? 'Running…' : 'Replace All'}</Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+// ── pagination bar ────────────────────────────────────────────────────────────
+function PaginationBar({ offset, limit, total, onChange }: {
+  offset: number; limit: number; total: number; onChange: (off: number) => void
+}) {
+  const page      = Math.floor(offset / limit) + 1
+  const pageCount = Math.ceil(total / limit) || 1
+  return (
+    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+      <span className="shrink-0 mr-1">{total === 0 ? '0' : `${offset + 1}–${Math.min(offset + limit, total)}`} of {total}</span>
+      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={offset === 0} onClick={() => onChange(0)}><ChevronsLeft className="w-3.5 h-3.5" /></Button>
+      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={offset === 0} onClick={() => onChange(offset - limit)}><ChevronLeft className="w-3.5 h-3.5" /></Button>
+      <span className="px-1.5 text-[11px]">p.{page}/{pageCount}</span>
+      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={offset + limit >= total} onClick={() => onChange(offset + limit)}><ChevronRight className="w-3.5 h-3.5" /></Button>
+      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={offset + limit >= total} onClick={() => onChange((pageCount - 1) * limit)}><ChevronsRight className="w-3.5 h-3.5" /></Button>
+    </div>
+  )
+}
+
+// ── email row ─────────────────────────────────────────────────────────────────
+function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate }: {
+  email: QueueEmail; agentMap: Record<string, Agent>
+  selected: boolean; onSelect: (id: string) => void
+  fontSize: number; actions?: React.ReactNode; onEdit?: () => void; onSchedule?: () => void
+  onCancelSchedule?: () => void
+  onCancelAutoSchedule?: () => void
+  autoScheduleDate?: Date
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const { to, subject, body, name, company } = ef(email)
+  const agent = email.agentId ? agentMap[email.agentId] : null
+  return (
+    <div className={cn('flex gap-3 py-3 border-l-2 pl-3 transition-colors', selected ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30')}>
+      <button onClick={() => onSelect(email.id)} className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground">
+        {selected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <button onClick={() => setExpanded(p => !p)} className="min-w-0 flex-1 text-left">
+            <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+              {name && <span className="font-medium text-foreground truncate" style={{ fontSize }}>{name}</span>}
+              {company && <span className="text-muted-foreground flex items-center gap-0.5" style={{ fontSize: fontSize - 1 }}><Building2 className="w-2.5 h-2.5" />{company}</span>}
+              {!name && to && <span className="text-muted-foreground truncate" style={{ fontSize }}>{to}</span>}
+            </div>
+            <p className="font-medium text-foreground truncate" style={{ fontSize: fontSize + 1 }}>{subject}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-0.5" style={{ fontSize: fontSize - 1 }}>
+              <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(email.sentAt || email.createdAt)}</span>
+              {agent && <span className="text-muted-foreground flex items-center gap-1"><Bot className="w-2.5 h-2.5" />{agent.name}</span>}
+              {email.isRebump && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-orange-400 border-orange-500/30 bg-orange-500/10">Follow-up</Badge>}
+              {email.fromAccount && <span className="text-muted-foreground truncate">via {email.fromAccount}</span>}
+              {autoScheduleDate && !email.scheduledAt && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-primary border-primary/30 bg-primary/10 flex items-center gap-0.5">
+                  <Clock className="w-2.5 h-2.5" />
+                  auto · {autoScheduleDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {onCancelAutoSchedule && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={e => { e.stopPropagation(); onCancelAutoSchedule() }}
+                      onKeyDown={e => e.key === 'Enter' && onCancelAutoSchedule()}
+                      className="ml-0.5 rounded-full hover:bg-primary/20 p-px transition-colors cursor-pointer"
+                      title="Remove from auto-schedule"
+                    >
+                      <X className="w-2 h-2" />
+                    </span>
+                  )}
+                </Badge>
+              )}
+              {email.scheduledAt && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-blue-400 border-blue-500/30 bg-blue-500/10 flex items-center gap-0.5">
+                  <CalendarClock className="w-2.5 h-2.5" />{new Date(email.scheduledAt).toLocaleDateString()}
+                  {onCancelSchedule && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={e => { e.stopPropagation(); onCancelSchedule() }}
+                      onKeyDown={e => e.key === 'Enter' && onCancelSchedule()}
+                      className="ml-0.5 rounded-full hover:bg-blue-500/20 p-px transition-colors cursor-pointer"
+                      title="Cancel scheduled send"
+                    >
+                      <X className="w-2 h-2" />
+                    </span>
+                  )}
+                </Badge>
+              )}
+            </div>
+          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {onSchedule && (
+              <button onClick={onSchedule} className={cn('p-1 rounded transition-colors hover:bg-muted', email.scheduledAt ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground')} title="Schedule send">
+                <CalendarClock className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onEdit && (
+              <button onClick={onEdit} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Edit email">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {actions}
+          </div>
+        </div>
+        {expanded && body && (
+          <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border text-muted-foreground whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto" style={{ fontSize }}>
+            {body}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Skel() {
+  return (
+    <div className="space-y-4 py-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex gap-3 animate-pulse">
+          <div className="w-4 h-4 rounded bg-muted mt-1 shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-48 rounded bg-muted" />
+            <div className="h-2.5 w-64 rounded bg-muted" />
+            <div className="h-2 w-32 rounded bg-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Given a 0-based position in the full queue and the agent's sending schedule,
+// returns the Date when that email will be sent:
+//   - emails 0..(limit-1) → first upcoming active day
+//   - emails limit..(2*limit-1) → second active day, etc.
+function computeAutoSendDate(index: number, schedule: SendingSchedule): Date {
+  const { activeDays, sendTime, dailyLimit } = schedule
+  const limit = Math.max(1, dailyLimit)
+  const targetSlot = Math.floor(index / limit)
+  const [h, m] = sendTime.split(':').map(Number)
+  const now = new Date()
+  const d = new Date(now)
+  d.setHours(0, 0, 0, 0)
+  // if today's send-time has already passed, start looking from tomorrow
+  const todaySend = new Date(d); todaySend.setHours(h, m, 0, 0)
+  if (now >= todaySend) d.setDate(d.getDate() + 1)
+  let slotsFound = 0
+  for (let safety = 0; safety < 400; safety++) {
+    if (activeDays.includes(d.getDay())) {
+      if (slotsFound === targetSlot) {
+        const result = new Date(d); result.setHours(h, m, 0, 0); return result
+      }
+      slotsFound++
+    }
+    d.setDate(d.getDate() + 1)
+  }
+  const fallback = new Date(d); fallback.setHours(h, m, 0, 0); return fallback
+}
+
+function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: string; sub: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+      <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center"><Icon className="w-5 h-5 text-muted-foreground" /></div>
+      <div><p className="text-sm font-medium">{text}</p><p className="text-xs text-muted-foreground mt-0.5">{sub}</p></div>
+    </div>
+  )
+}
+
+// ── queued list ───────────────────────────────────────────────────────────────
+function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule }: {
+  agentId: string; agentMap: Record<string, Agent>; fontSize: number; onCountChange: (n: number) => void
+  activeSchedule?: SendingSchedule | null
+}) {
+  const { toast } = useToast()
+  const [excludedAuto, setExcludedAuto] = useState<Set<string>>(new Set())
+  const [emails, setEmails]         = useState<QueueEmail[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [total, setTotal]           = useState(0)
+  const [offset, setOffset]         = useState(0)
+  const [search, setSearch]         = useState('')
+  const [selected, setSelected]     = useState<Set<string>>(new Set())
+  const [busy, setBusy]             = useState<Record<string, boolean>>({})
+  const [editTarget, setEditTarget]       = useState<QueueEmail | null>(null)
+  const [scheduleTarget, setScheduleTarget] = useState<QueueEmail | null>(null)
+  const [showReplace, setShowReplace] = useState(false)
+  const LIMIT = 20
+
+  const load = useCallback(async (off = 0) => {
+    setLoading(true); setSelected(new Set())
+    try {
+      const params: Record<string, string | number> = { limit: LIMIT, offset: off, agentId: agentId === 'all' ? 'all' : agentId }
+      const res = await api.get('/api/email-queue/queue', { params })
+      const list: QueueEmail[] = res.data.emails ?? res.data ?? []
+      const tot  = res.data.total ?? list.length
+      setEmails(list); setTotal(tot); setOffset(off); onCountChange(tot)
+    } catch {} finally { setLoading(false) }
+  }, [agentId, onCountChange])
+
+  useEffect(() => { load(0) }, [load])
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return emails
+    const q = search.toLowerCase()
+    return emails.filter(e => {
+      const f = ef(e)
+      return (
+        f.name.toLowerCase().includes(q) ||
+        f.company.toLowerCase().includes(q) ||
+        f.subject.toLowerCase().includes(q) ||
+        f.body.toLowerCase().includes(q) ||
+        f.to.toLowerCase().includes(q)
+      )
+    })
+  }, [emails, search])
+
+  // Map from email id → computed auto-send date, based on queue order + schedule
+  const autoSendDates = useMemo<Map<string, Date>>(() => {
+    if (!activeSchedule) return new Map()
+    const sorted = [...emails].sort((a, b) =>
+      new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+    )
+    const map = new Map<string, Date>()
+    let slotIndex = 0
+    sorted.forEach(email => {
+      if (!email.scheduledAt && !excludedAuto.has(email.id)) {
+        map.set(email.id, computeAutoSendDate(slotIndex, activeSchedule))
+        slotIndex++
+      }
+    })
+    return map
+  }, [emails, activeSchedule, excludedAuto])
+
+  const allSelected = filtered.length > 0 && filtered.every(e => selected.has(e.id))
+  const toggleAll   = () => setSelected(allSelected ? new Set() : new Set(filtered.map(e => e.id)))
+  const toggleOne   = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+
+  const approve = async (email: QueueEmail) => {
+    setBusy(b => ({ ...b, [email.id]: true }))
+    try {
+      await api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
+      setEmails(p => p.filter(e => e.id !== email.id))
+      setTotal(t => t - 1); onCountChange(total - 1)
+      toast({ title: 'Email sent', description: `Sent to ${ef(email).to || ef(email).name}`, duration: 2000 })
+    } catch { toast({ title: 'Failed to send', variant: 'destructive', duration: 2000 }) }
+    finally { setBusy(b => ({ ...b, [email.id]: false })) }
+  }
+
+  const reject = async (email: QueueEmail) => {
+    setBusy(b => ({ ...b, [email.id]: true }))
+    try {
+      await api.post(`/api/email-queue/${email.id}/reject`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
+      setEmails(p => p.filter(e => e.id !== email.id))
+      setTotal(t => t - 1); onCountChange(total - 1)
+      toast({ title: 'Email rejected', description: ef(email).name || ef(email).to, duration: 2000 })
+    } catch { toast({ title: 'Failed to reject', variant: 'destructive', duration: 2000 }) }
+    finally { setBusy(b => ({ ...b, [email.id]: false })) }
+  }
+
+  const saveEdit = async (id: string, to: string, cc: string, bcc: string, subject: string, body: string, emailAgentId?: string) => {
+    try {
+      await api.put(`/api/email-queue/${id}`, { to, cc, bcc, subject, body, agentId: emailAgentId }, { params: { agentId: emailAgentId } })
+      setEmails(p => p.map(e => e.id !== id ? e : {
+        ...e, to, cc, bcc, subject, body,
+        emailData: e.emailData ? { ...e.emailData, finalRecipient: to, cc, bcc, finalSubject: subject, finalBody: body } : undefined,
+      }))
+      toast({ title: 'Email updated', duration: 2000 })
+    } catch { toast({ title: 'Failed to save', variant: 'destructive', duration: 2000 }) }
+  }
+
+  const scheduleEmail = async (id: string, scheduledAt: string | null, emailAgentId?: string) => {
+    try {
+      await api.put(`/api/email-queue/${id}`, { scheduledAt, agentId: emailAgentId }, { params: { agentId: emailAgentId } })
+      setEmails(p => p.map(e => e.id !== id ? e : { ...e, scheduledAt: scheduledAt ?? undefined }))
+      if (scheduledAt) {
+        toast({ title: 'Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 2000 })
+      } else {
+        toast({ title: 'Schedule cleared', duration: 2000 })
+      }
+    } catch { toast({ title: 'Failed to update schedule', variant: 'destructive', duration: 2000 }) }
+  }
+
+  const bulkApprove = async () => {
+    const targets = emails.filter(e => selected.has(e.id))
+    for (const email of targets) {
+      setBusy(b => ({ ...b, [email.id]: true }))
+      try {
+        await api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
+        setEmails(p => p.filter(e => e.id !== email.id))
+        setTotal(t => t - 1); onCountChange(total - 1)
+      } catch {}
+      finally { setBusy(b => ({ ...b, [email.id]: false })) }
+    }
+    setSelected(new Set())
+    toast({ title: `${targets.length} email${targets.length !== 1 ? 's' : ''} sent`, duration: 2000 })
+  }
+
+  const bulkReject = async () => {
+    const targets = emails.filter(e => selected.has(e.id))
+    for (const email of targets) {
+      setBusy(b => ({ ...b, [email.id]: true }))
+      try {
+        await api.post(`/api/email-queue/${email.id}/reject`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
+        setEmails(p => p.filter(e => e.id !== email.id))
+        setTotal(t => t - 1); onCountChange(total - 1)
+      } catch {}
+      finally { setBusy(b => ({ ...b, [email.id]: false })) }
+    }
+    setSelected(new Set())
+    toast({ title: `${targets.length} email${targets.length !== 1 ? 's' : ''} rejected`, duration: 2000 })
+  }
+
+  const clearRejected = async () => {
+    try {
+      await api.post('/api/email-queue/clear-rejected', {}, { params: { agentId: agentId !== 'all' ? agentId : undefined } })
+      load(0)
+      toast({ title: 'Rejected emails cleared', duration: 2000 })
+    } catch { toast({ title: 'Failed to clear rejected', variant: 'destructive', duration: 2000 }) }
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* toolbar */}
+      <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-border">
+        <button onClick={toggleAll} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground shrink-0">
+          {allSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+          {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
+        </button>
+
+        {selected.size > 0 && (
+          <>
+            <div className="w-px h-4 bg-border" />
+            <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" onClick={bulkApprove}>
+              <CheckCircle2 className="w-3 h-3" /> Send {selected.size}
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={bulkReject}>
+              <XCircle className="w-3 h-3" /> Reject {selected.size}
+            </Button>
+          </>
+        )}
+
+        <div className="ml-auto flex items-center gap-1">
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => setShowReplace(true)}>
+            <Replace className="w-3.5 h-3.5" /> Find &amp; Replace
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={clearRejected}>
+            <Trash2 className="w-3.5 h-3.5" /> Clear Rejected
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => load(offset)}>
+            <RefreshCw className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* search */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+        <input
+          className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          placeholder="Search name, company, subject, body…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+
+      {/* pagination — top */}
+      <PaginationBar offset={offset} limit={LIMIT} total={total} onChange={off => load(off)} />
+
+      {/* list */}
+      {loading ? <Skel /> : filtered.length === 0 ? (
+        search ? <Empty icon={Search} text="No results" sub={`No emails match "${search}"`} /> :
+        <Empty icon={Inbox} text="No emails queued" sub="Your agents haven't drafted any emails yet." />
+      ) : (
+        <div className="divide-y divide-border">
+          {filtered.map(email => (
+            <EmailRow
+              key={email.id}
+              email={email}
+              agentMap={agentMap}
+              selected={selected.has(email.id)}
+              onSelect={toggleOne}
+              fontSize={fontSize}
+              onEdit={() => setEditTarget(email)}
+              onSchedule={() => setScheduleTarget(email)}
+              onCancelSchedule={email.scheduledAt ? () => scheduleEmail(email.id, null, email.agentId) : undefined}
+              onCancelAutoSchedule={autoSendDates.has(email.id) ? () => {
+                setExcludedAuto(s => { const n = new Set(s); n.add(email.id); return n })
+                toast({ title: 'Removed from auto-schedule', description: ef(email).name || ef(email).to, duration: 2000 })
+              } : undefined}
+              autoScheduleDate={autoSendDates.get(email.id)}
+              actions={
+                <>
+                  <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" disabled={busy[email.id]} onClick={() => approve(email)}>
+                    <CheckCircle2 className="w-3 h-3" /> Send
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 w-7 p-0 border-destructive/40 text-destructive hover:bg-destructive/10" disabled={busy[email.id]} onClick={() => reject(email)}>
+                    <XCircle className="w-3 h-3" />
+                  </Button>
+                </>
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      {editTarget      && <EditModal    email={editTarget}    onSave={saveEdit}    onClose={() => setEditTarget(null)} />}
+      {scheduleTarget  && <ScheduleModal email={scheduleTarget} onSave={scheduleEmail} onClose={() => setScheduleTarget(null)} />}
+      {showReplace  && <BulkReplaceModal agentId={agentId} onClose={() => setShowReplace(false)} onDone={() => { setShowReplace(false); load(0); toast({ title: 'Find & replace applied', duration: 2000 }) }} />}
+    </div>
+  )
+}
+
+// ── main export ───────────────────────────────────────────────────────────────
+export function EmailQueueContent() {
+  const { toast } = useToast()
+  const [agents, setAgents]               = useState<Agent[]>([])
+  const [selectedAgent, setSelectedAgent] = useState('all')
+  const [queuedCount, setQueuedCount]     = useState(0)
+  const [fontSize, setFontSize]           = useState(12)
+  const [showSchedule, setShowSchedule]   = useState(false)
+  const [savedSchedule, setSavedSchedule] = useState<SendingSchedule | null>(null)
+
+  const agentMap: Record<string, Agent> = {}
+  agents.forEach(a => { agentMap[a.agentId] = a })
+
+  const cancelSchedule = async () => {
+    if (selectedAgent === 'all') return
+    const agent = agents.find(a => a.agentId === selectedAgent)
+    if (!agent) return
+    await api.put(`/api/auth/agents/${selectedAgent}/settings`, {
+      ...agent.settings,
+      sendingSchedule: null,
+    }).catch(() => {})
+    setSavedSchedule(null)
+    toast({ title: 'Sending schedule cancelled', duration: 2000 })
+  }
+
+  useEffect(() => {
+    api.get('/api/auth/agents').then(r => setAgents(r.data.agents ?? [])).catch(() => {})
+  }, [])
+
+  return (
+    <div className="space-y-5">
+      {/* controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Bot className="w-4 h-4 text-muted-foreground" />
+          <select
+            className="h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[160px]"
+            value={selectedAgent}
+            onChange={e => setSelectedAgent(e.target.value)}
+          >
+            <option value="all">All Agents</option>
+            {agents.map(a => <option key={a.agentId} value={a.agentId}>{a.name}</option>)}
+          </select>
+        </div>
+
+        {/* font size */}
+        <div className="flex items-center gap-1 ml-auto">
+          <button onClick={() => setFontSize(s => Math.max(9, s - 1))} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Smaller text">
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[10px] text-muted-foreground w-6 text-center">{fontSize}</span>
+          <button onClick={() => setFontSize(s => Math.min(18, s + 1))} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Larger text">
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* queue card */}
+      <Card className="p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Inbox className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-semibold">Queued Emails</h2>
+          {queuedCount > 0 && (
+            <span className="px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">{queuedCount}</span>
+          )}
+          {savedSchedule && queuedCount > 0 && (
+            <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
+              <Clock className="w-2.5 h-2.5" />
+              {queuedCount} email{queuedCount !== 1 ? 's' : ''} auto-sending
+              {' '}on {savedSchedule.activeDays.map(d => DAY_LABELS[d]).join(', ')}
+              {' '}at {(() => {
+                const [h, m] = savedSchedule.sendTime.split(':').map(Number)
+                const pm = h >= 12; const h12 = h % 12 || 12
+                return `${h12}:${String(m).padStart(2,'0')} ${pm ? 'PM' : 'AM'}`
+              })()}
+              <button
+                onClick={cancelSchedule}
+                title="Cancel schedule"
+                className="ml-0.5 rounded-full hover:bg-primary/20 p-0.5 transition-colors"
+              >
+                <X className="w-2.5 h-2.5" />
+              </button>
+            </span>
+          )}
+          <button
+            onClick={() => setShowSchedule(s => !s)}
+            className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            Schedule for Send
+          </button>
+        </div>
+
+        {showSchedule && (
+          <div className="mb-5 pb-5 border-b border-border">
+            {selectedAgent === 'all' ? (
+              <p className="text-xs text-muted-foreground py-2">Select a specific agent above to configure its sending schedule.</p>
+            ) : (
+              (() => {
+                const agent = agents.find(a => a.agentId === selectedAgent)
+                return agent ? <AgentScheduleCard agent={agent} onSaved={s => { setSavedSchedule(s); }} /> : null
+              })()
+            )}
+          </div>
+        )}
+        <QueuedList
+          agentId={selectedAgent}
+          agentMap={agentMap}
+          fontSize={fontSize}
+          onCountChange={setQueuedCount}
+          activeSchedule={savedSchedule}
+        />
+      </Card>
+    </div>
+  )
+}
