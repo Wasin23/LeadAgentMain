@@ -109,7 +109,6 @@ function ScheduleModal({ email, onSave, onClose }: {
         <div className="flex justify-between items-center">
           {email.scheduledAt ? (
             <button className="text-[11px] text-destructive hover:underline" onClick={async () => { 
-              console.log('[SCHEDULE MODAL] Clear schedule button clicked for:', email.id)
               setSaving(true); 
               await onSave(email.id, null, email.agentId); 
               onClose() 
@@ -118,13 +117,6 @@ function ScheduleModal({ email, onSave, onClose }: {
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button size="sm" disabled={saving || !value} onClick={async () => {
-              alert('SCHEDULE BUTTON CLICKED - Check console for logs')
-              console.log('[SCHEDULE MODAL] Schedule button clicked:', { 
-                emailId: email.id, 
-                rawValue: value, 
-                isoValue: new Date(value).toISOString(),
-                agentId: email.agentId 
-              })
               setSaving(true)
               await onSave(email.id, new Date(value).toISOString(), email.agentId)
               onClose()
@@ -173,30 +165,21 @@ function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: Sen
     setSched(s => ({ ...s, activeDays: s.activeDays.includes(d) ? s.activeDays.filter(x => x !== d) : [...s.activeDays, d].sort() }))
 
   const save = async () => {
-    console.log('[AGENT SCHEDULE] Save button clicked')
-    console.log('[AGENT SCHEDULE] Agent ID:', agent.agentId)
-    console.log('[AGENT SCHEDULE] Current schedule:', sched)
-    console.log('[AGENT SCHEDULE] Daily limit string:', limitStr)
-    
     setSaving(true)
     try {
       const scheduleToSave = { ...sched, dailyLimit: parseInt(limitStr) || 0 }
-      console.log('[AGENT SCHEDULE] Schedule to save:', scheduleToSave)
-      console.log('[AGENT SCHEDULE] Making request to:', `/api/auth/agents/${agent.agentId}/settings`)
       
       await api.put(`/api/auth/agents/${agent.agentId}/settings`, {
         ...agent.settings,
         sendingSchedule: scheduleToSave,
       })
       
-      console.log('[AGENT SCHEDULE] ✅ Save successful!')
       const saved = scheduleToSave
       setSaved(true); setTimeout(() => setSaved(false), 2000)
       onSaved?.(saved)
       toast({ title: 'Schedule saved', description: `Sending ${saved.dailyLimit}/day on ${saved.activeDays.map(d => DAY_LABELS[d]).join(', ')} at ${saved.sendTime}`, duration: 2000 })
     } catch (err: any) {
-      console.error('[AGENT SCHEDULE] ❌ Save failed:', err)
-      console.error('[AGENT SCHEDULE] Error response:', err.response?.data)
+      toast({ title: 'Failed to save schedule', variant: 'destructive', duration: 2000 })
     }
     finally { setSaving(false) }
   }
@@ -838,28 +821,14 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
   }
 
   const scheduleEmail = async (id: string, scheduledAt: string | null, emailAgentId?: string) => {
-    console.log('[SCHEDULE] Function called:', { id, scheduledAt, emailAgentId })
     try {
-      console.log('[SCHEDULE] Making API request to:', `/api/email-queue/${id}`)
-      console.log('[SCHEDULE] Request body:', { scheduledAt })
-      console.log('[SCHEDULE] Request params:', { agentId: emailAgentId })
-      
       const response = await api.put(`/api/email-queue/${id}`, { scheduledAt }, { params: { agentId: emailAgentId } })
-      console.log('[SCHEDULE] API response received:', response.data)
-      console.log('[SCHEDULE] Response scheduledAt:', response.data.scheduledAt)
       
       // Update local state with API response (not just what we sent!)
       setEmails(p => p.map(e => {
         if (e.id !== id) return e
-        // Use scheduledAt from API response, fall back to what we sent
-        const updated = { ...e, ...response.data }
-        console.log('[SCHEDULE] Updated email in state:', { id: updated.id, scheduledAt: updated.scheduledAt })
-        return updated
+        return { ...e, ...response.data }
       }))
-      
-      // Also update total if needed
-      console.log('[SCHEDULE] Current total:', total)
-      console.log('[SCHEDULE] ✅ Success! Operation completed.')
       
       if (scheduledAt) {
         toast({ title: '✅ Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 3000 })
@@ -867,11 +836,6 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
         toast({ title: '✅ Schedule cleared', duration: 2000 })
       }
     } catch (err: any) { 
-      console.error('[SCHEDULE] ❌ ERROR occurred!')
-      console.error('[SCHEDULE] Error object:', err)
-      console.error('[SCHEDULE] Error message:', err.message)
-      console.error('[SCHEDULE] Error response:', err.response)
-      console.error('[SCHEDULE] Error response data:', err.response?.data)
       toast({ 
         title: 'Failed to update schedule', 
         description: err.response?.data?.error || err.message,
@@ -1050,24 +1014,17 @@ export function EmailQueueContent() {
   }
 
   useEffect(() => {
-    console.log('[EMAIL QUEUE] Loading agents...')
     api.get('/api/auth/agents').then(r => {
-      console.log('[EMAIL QUEUE] Agents loaded:', r.data.agents?.length)
       setAgents(r.data.agents ?? [])
       
       // Load saved schedule for current agent
       if (selectedAgent !== 'all') {
         const agent = r.data.agents?.find((a: Agent) => a.agentId === selectedAgent)
         if (agent?.settings?.sendingSchedule) {
-          console.log('[EMAIL QUEUE] Loading saved schedule for agent:', selectedAgent, agent.settings.sendingSchedule)
           setSavedSchedule(agent.settings.sendingSchedule)
-        } else {
-          console.log('[EMAIL QUEUE] No saved schedule found for agent:', selectedAgent)
         }
       }
-    }).catch((err) => {
-      console.error('[EMAIL QUEUE] Failed to load agents:', err)
-    })
+    }).catch(() => {})
   }, [])
   
   // Load schedule when agent changes
@@ -1078,10 +1035,8 @@ export function EmailQueueContent() {
     }
     const agent = agents.find(a => a.agentId === selectedAgent)
     if (agent?.settings?.sendingSchedule) {
-      console.log('[EMAIL QUEUE] Agent changed, loading schedule:', agent.settings.sendingSchedule)
       setSavedSchedule(agent.settings.sendingSchedule)
     } else {
-      console.log('[EMAIL QUEUE] Agent changed, no schedule found')
       setSavedSchedule(null)
     }
   }, [selectedAgent, agents])
