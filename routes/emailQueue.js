@@ -100,30 +100,9 @@ router.get('/counts', rateLimitCounts, async (req, res) => {
     const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
     
     if (agentId === 'all' || !agentId) {
-      // Get all counts for user via GSI and custom queued count
-      const [queuedCount, sentResponse, repliedResponse] = await Promise.all([
-        awsQueue.getQueuedEmailCount(req.user.userId), // Custom logic for orphaned emails
-        awsQueue.dynamodb.send(new QueryCommand({
-          TableName: awsQueue.tableName,
-          IndexName: awsQueue.gsiName,
-          KeyConditionExpression: 'GSIPK = :gsipk',
-          ExpressionAttributeValues: { ':gsipk': `${req.user.userId}#SENT` },
-          Select: 'COUNT'
-        })),
-        awsQueue.dynamodb.send(new QueryCommand({
-          TableName: awsQueue.tableName,
-          IndexName: awsQueue.gsiName,
-          KeyConditionExpression: 'GSIPK = :gsipk',
-          ExpressionAttributeValues: { ':gsipk': `${req.user.userId}#REPLIED` },
-          Select: 'COUNT'
-        }))
-      ]);
-      
-      return res.json({
-        queued: queuedCount,
-        sent: sentResponse.Count || 0,
-        replied: repliedResponse.Count || 0
-      });
+      // Single counter item read — 1 DynamoDB read regardless of email volume
+      const counts = await awsQueue.getCountsFromCounters(req.user.userId);
+      return res.json(counts);
     }
     
     // For specific agent, get all counts in parallel

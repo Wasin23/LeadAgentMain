@@ -2,6 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { 
   DynamoDBDocumentClient, 
   PutCommand, 
+  GetCommand,
   QueryCommand, 
   UpdateCommand, 
   DeleteCommand,
@@ -188,6 +189,9 @@ class AWSEmailQueue {
       // Invalidate cache for this user
       this._invalidateCache(userId);
 
+      // Increment queued counter
+      await this._updateCounters(userId, { queued: 1 });
+
       console.log(`✅ [AWS EMAIL QUEUE] Email queued: ${emailId} for agent ${agentId}`);
       return item;
     } catch (error) {
@@ -342,64 +346,147 @@ class AWSEmailQueue {
     }
   }
 
+  // ====================
+  // COUNTER PATTERN
+  // Single item per user stores live counts — 1 read instead of N scans.
+  // Counter item: PK = userId#COUNTS, SK = COUNTS
+  // ====================
+
+  _counterKey(userId) {
+    return { PK: `${userId}#COUNTS`, SK: 'COUNTS' };
+  }
+
   /**
-   * Get count of queued emails for a user (using GSI with COUNT - no data transfer)
+   * Atomically increment/decrement counters. Pass positive or negative numbers.
+   * e.g. _updateCounters(userId, { queued: 1 }) to add 1 to queued
+   * e.g. _updateCounters(userId, { queued: -1, sent: 1 }) for a status transition
    */
-  async getQueuedEmailCount(userId) {
+  async _updateCounters(userId, increments) {
     try {
-      const gsipk = this._getGSIPK(userId, 'QUEUED');
-      const response = await this.dynamodb.send(new QueryCommand({
+      const tracked = ['queued', 'sent', 'replied'];
+      const updates = Object.entries(increments).filter(([k]) => tracked.includes(k));
+      if (updates.length === 0) return;
+
+      const addExprs = [];
+      const exprValues = {};
+
+      updates.forEach(([field, delta]) => {
+        addExprs.push(`#${field} :${field}`);
+        exprValues[`:${field}`] = delta;
+      });
+
+      const exprNames = {};
+      updates.forEach(([field]) => { exprNames[`#${field}`] = field; });
+
+      await this.dynamodb.send(new UpdateCommand({
         TableName: this.tableName,
-        IndexName: this.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': gsipk
-        },
-        Select: 'COUNT'
+        Key: this._counterKey(userId),
+        UpdateExpression: `ADD ${addExprs.join(', ')}`,
+        ExpressionAttributeNames: exprNames,
+        ExpressionAttributeValues: exprValues
       }));
-      return response.Count || 0;
     } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error getting queued email count:', error);
+      // Counter update failure is non-fatal — log but don't throw
+      console.error('[AWS EMAIL QUEUE] ⚠️ Counter update failed (non-fatal):', error.message);
+    }
+  }
+
+  /**
+   * Get all counts from the single counter item — 1 read, no scanning.
+   * Falls back to GSI scan if counter item doesn't exist yet.
+   */
+  async getCountsFromCounters(userId) {
+    try {
+      const response = await this.dynamodb.send(new GetCommand({
+        TableName: this.tableName,
+        Key: this._counterKey(userId)
+      }));
+
+      if (response.Item) {
+        return {
+          queued: Math.max(0, response.Item.queued || 0),
+          sent: Math.max(0, response.Item.sent || 0),
+          replied: Math.max(0, response.Item.replied || 0)
+        };
+      }
+
+      // Counter item doesn't exist yet — build it from GSI and save it
+      console.log(`[AWS EMAIL QUEUE] Counter item missing for ${userId}, building from GSI...`);
+      return await this.reconcileCounters(userId);
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error getting counts from counters:', error);
       throw error;
     }
+  }
+
+  /**
+   * Rebuild counter item from actual GSI data.
+   * Run nightly or on demand to fix any drift.
+   */
+  async reconcileCounters(userId) {
+    try {
+      const [queuedRes, sentRes, repliedRes] = await Promise.all([
+        this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: { ':gsipk': this._getGSIPK(userId, 'QUEUED') },
+          Select: 'COUNT'
+        })),
+        this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: { ':gsipk': this._getGSIPK(userId, 'SENT') },
+          Select: 'COUNT'
+        })),
+        this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: { ':gsipk': this._getGSIPK(userId, 'REPLIED') },
+          Select: 'COUNT'
+        }))
+      ]);
+
+      const counts = {
+        queued: queuedRes.Count || 0,
+        sent: sentRes.Count || 0,
+        replied: repliedRes.Count || 0
+      };
+
+      // Save counter item
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          ...this._counterKey(userId),
+          ...counts,
+          reconciledAt: new Date().toISOString()
+        }
+      }));
+
+      console.log(`[AWS EMAIL QUEUE] ✅ Counters reconciled for ${userId}:`, counts);
+      return counts;
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Error reconciling counters:', error);
+      throw error;
+    }
+  }
+
+  // Keep these for backward compatibility (used in some places directly)
+  async getQueuedEmailCount(userId) {
+    const counts = await this.getCountsFromCounters(userId);
+    return counts.queued;
   }
 
   async getSentEmailCount(userId) {
-    try {
-      const gsipk = this._getGSIPK(userId, 'SENT');
-      const response = await this.dynamodb.send(new QueryCommand({
-        TableName: this.tableName,
-        IndexName: this.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': gsipk
-        },
-        Select: 'COUNT'
-      }));
-      return response.Count || 0;
-    } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error getting sent email count:', error);
-      throw error;
-    }
+    const counts = await this.getCountsFromCounters(userId);
+    return counts.sent;
   }
 
   async getRepliedEmailCount(userId) {
-    try {
-      const gsipk = this._getGSIPK(userId, 'REPLIED');
-      const response = await this.dynamodb.send(new QueryCommand({
-        TableName: this.tableName,
-        IndexName: this.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': gsipk
-        },
-        Select: 'COUNT'
-      }));
-      return response.Count || 0;
-    } catch (error) {
-      console.error('[AWS EMAIL QUEUE] Error getting replied email count:', error);
-      throw error;
-    }
+    const counts = await this.getCountsFromCounters(userId);
+    return counts.replied;
   }
 
   /**
@@ -687,6 +774,15 @@ class AWSEmailQueue {
         // Invalidate cache for this user
         this._invalidateCache(userId);
 
+        // Update counters: decrement old status, increment new status
+        const trackedStatuses = ['QUEUED', 'SENT', 'REPLIED'];
+        if (trackedStatuses.includes(oldStatus) || trackedStatuses.includes(newStatus)) {
+          const increments = {};
+          if (trackedStatuses.includes(oldStatus)) increments[oldStatus.toLowerCase()] = -1;
+          if (trackedStatuses.includes(newStatus)) increments[newStatus.toLowerCase()] = 1;
+          await this._updateCounters(userId, increments);
+        }
+
         return newItem;
       } catch (error) {
         console.error('[AWS EMAIL QUEUE] Error updating email status:', error);
@@ -863,6 +959,9 @@ class AWSEmailQueue {
 
       // Invalidate cache for this user
       this._invalidateCache(userId);
+
+      // Decrement queued counter
+      await this._updateCounters(userId, { queued: -1 });
 
       console.log(`✅ [AWS EMAIL QUEUE] Email ${emailId} deleted (rejected)`);
     } catch (error) {
