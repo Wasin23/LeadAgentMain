@@ -633,8 +633,10 @@ export function SettingsContent() {
                 if (!confirm("Are you sure? This will delete ALL data. This cannot be undone.")) return
                 try {
                   await api.delete("/api/company-profile")
-                  toast.success("Account reset. Redirecting to onboarding...")
-                  setTimeout(() => { window.location.href = "/onboarding" }, 1500)
+                  toast.success("Account reset. Redirecting to sign in...")
+                  localStorage.clear()
+                  sessionStorage.clear()
+                  setTimeout(() => { window.location.href = "/" }, 1500)
                 } catch (e: any) {
                   toast.error(e.response?.data?.error || "Failed to reset account")
                 }
