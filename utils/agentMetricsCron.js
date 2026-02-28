@@ -93,6 +93,36 @@ async function recordAllMetrics() {
 }
 
 /**
+ * Nightly counter reconciliation — resets all user counter items from real GSI data.
+ * Corrects any drift caused by missed counter updates (e.g. server crash mid-operation).
+ * Runs at 3:00 AM EST every day.
+ */
+async function reconcileAllCounters() {
+  try {
+    console.log('\n🔄 [COUNTER RECONCILE] Starting nightly counter reconciliation...');
+    const users = await awsManager.getAllUsers();
+    
+    let success = 0;
+    let failed = 0;
+
+    for (const user of users) {
+      if (!user.userId) continue;
+      try {
+        await awsQueue.reconcileCounters(user.userId);
+        success++;
+      } catch (error) {
+        console.error(`❌ [COUNTER RECONCILE] Failed for user ${user.userId}:`, error.message);
+        failed++;
+      }
+    }
+
+    console.log(`✅ [COUNTER RECONCILE] Done. Success: ${success}, Failed: ${failed}`);
+  } catch (error) {
+    console.error('❌ [COUNTER RECONCILE] Fatal error:', error);
+  }
+}
+
+/**
  * Start the metrics recording cron job
  * Runs every 10 minutes for testing, then can be changed to hourly
  */
@@ -102,9 +132,16 @@ export function startMetricsCron() {
   // Run every 10 minutes (change to '0 * * * *' for hourly in production)
   cron.schedule('*/10 * * * *', recordAllMetrics);
   
+  // Nightly counter reconciliation at 3:00 AM EST
+  cron.schedule('0 3 * * *', reconcileAllCounters, {
+    scheduled: true,
+    timezone: 'America/New_York'
+  });
+
   // Also run immediately on startup
   console.log('📊 [METRICS CRON] Running initial snapshot now...');
   recordAllMetrics();
   
   console.log('✅ [METRICS CRON] Scheduled to run every 10 minutes');
+  console.log('✅ [COUNTER RECONCILE] Scheduled nightly at 3:00 AM EST');
 }
