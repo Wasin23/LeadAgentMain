@@ -815,14 +815,19 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
     console.log('[SCHEDULE] Function called:', { id, scheduledAt, emailAgentId })
     try {
       console.log('[SCHEDULE] Making API request to:', `/api/email-queue/${id}`)
-      const response = await api.put(`/api/email-queue/${id}`, { scheduledAt }, { params: { agentId: emailAgentId } })
-      console.log('[SCHEDULE] API response:', response.data)
+      console.log('[SCHEDULE] Request body:', { scheduledAt })
+      console.log('[SCHEDULE] Request params:', { agentId: emailAgentId })
       
-      // Update local state
+      const response = await api.put(`/api/email-queue/${id}`, { scheduledAt }, { params: { agentId: emailAgentId } })
+      console.log('[SCHEDULE] API response received:', response.data)
+      console.log('[SCHEDULE] Response scheduledAt:', response.data.scheduledAt)
+      
+      // Update local state with API response (not just what we sent!)
       setEmails(p => p.map(e => {
         if (e.id !== id) return e
-        const updated = { ...e, scheduledAt: scheduledAt ?? undefined }
-        console.log('[SCHEDULE] Updated email in state:', updated)
+        // Use scheduledAt from API response, fall back to what we sent
+        const updated = { ...e, ...response.data }
+        console.log('[SCHEDULE] Updated email in state:', { id: updated.id, scheduledAt: updated.scheduledAt })
         return updated
       }))
       

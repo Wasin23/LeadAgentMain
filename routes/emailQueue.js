@@ -440,22 +440,33 @@ router.post('/custom', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { scheduledAt, ...otherUpdates } = req.body; // Extract scheduledAt separately
-    
     const agentId = req.query.agentId || req.body.agentId || null;
     
-    // Build updates object without agentId (that's not a field to update)
-    const updates = { ...otherUpdates };
-    if (scheduledAt !== undefined) {
-      updates.scheduledAt = scheduledAt;
-    }
+    console.log(`[EMAIL QUEUE API] PUT /${id} - Request details:`, {
+      emailId: id,
+      agentId,
+      bodyKeys: Object.keys(req.body),
+      scheduledAtInBody: req.body.scheduledAt,
+      scheduledAtType: typeof req.body.scheduledAt
+    });
     
-    console.log(`[EMAIL QUEUE API] Updating email ${id} for agentId ${agentId}:`, updates);
+    // Don't destructure - just pass the whole body as updates
+    const updates = { ...req.body };
+    
+    // Remove agentId from updates (it's not a field to update)
+    delete updates.agentId;
+    
+    console.log(`[EMAIL QUEUE API] Calling updateEmail with:`, { userId: req.user.userId, agentId, emailId: id, updates });
     
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const updatedEmail = await userEmailQueue.updateEmail(id, updates);
     
-    console.log(`[EMAIL QUEUE API] Email ${id} updated successfully:`, { scheduledAt: updatedEmail.scheduledAt });
+    console.log(`[EMAIL QUEUE API] updateEmail returned:`, {
+      id: updatedEmail.id,
+      scheduledAt: updatedEmail.scheduledAt,
+      allKeys: Object.keys(updatedEmail)
+    });
+    
     res.json(updatedEmail);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error updating email:', error);
