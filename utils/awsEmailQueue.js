@@ -611,6 +611,8 @@ class AWSEmailQueue {
    */
   async updateEmail(userId, agentId, emailId, updates) {
     try {
+      console.log(`[AWS EMAIL QUEUE] Updating email ${emailId}:`, updates);
+      
       // Find the email with any status
       const statuses = ['QUEUED', 'APPROVED', 'SENT', 'REPLIED'];
       let foundItem = null;
@@ -629,6 +631,7 @@ class AWSEmailQueue {
         
         if (response.Items && response.Items.length > 0) {
           foundItem = response.Items[0];
+          console.log(`[AWS EMAIL QUEUE] Found email in ${status} status`);
           break;
         }
       }
@@ -643,6 +646,8 @@ class AWSEmailQueue {
         ...updates,
         updatedAt: new Date().toISOString()
       };
+      
+      console.log(`[AWS EMAIL QUEUE] Saving updated email with scheduledAt:`, updatedItem.scheduledAt);
       
       await this.dynamodb.send(new PutCommand({
         TableName: this.tableName,

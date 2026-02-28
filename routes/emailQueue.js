@@ -440,11 +440,22 @@ router.post('/custom', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const { scheduledAt, ...otherUpdates } = req.body; // Extract scheduledAt separately
     
-    const agentId = req.query.agentId || req.body.agentId || null; // Support agentId from query or body
+    const agentId = req.query.agentId || req.body.agentId || null;
+    
+    // Build updates object without agentId (that's not a field to update)
+    const updates = { ...otherUpdates };
+    if (scheduledAt !== undefined) {
+      updates.scheduledAt = scheduledAt;
+    }
+    
+    console.log(`[EMAIL QUEUE API] Updating email ${id} for agentId ${agentId}:`, updates);
+    
     const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
     const updatedEmail = await userEmailQueue.updateEmail(id, updates);
+    
+    console.log(`[EMAIL QUEUE API] Email ${id} updated successfully:`, { scheduledAt: updatedEmail.scheduledAt });
     res.json(updatedEmail);
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error updating email:', error);

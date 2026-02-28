@@ -4177,58 +4177,73 @@ Examples of IGNORING research (DON'T DO THIS):
 ❌ No specific numbers or findings mentioned
 
 STEP 2 - CRAFT SUBJECT LINE:
-Choose ONE of these proven high-open-rate patterns - keep it SHORT, casual, and direct:
+Create a thought-provoking subject line that challenges assumptions or highlights a potential gap in their current approach.
 
-Pattern A - Casual idea pitch: "idea for [Company]'s [specific initiative]" OR "thought for [their challenge]"
-Pattern B - Direct observation: "Saw [Company] is [specific action]" OR "Noticed [specific milestone/news]"
-Pattern C - Simple question: "quick call next week?" OR "15 min to discuss [topic]?"
-Pattern D - Name drop: "re: [similar company name]" OR "working with [competitor]"
-Pattern E - Short: "question about [specific topic]" OR "data on [challenge]"
+SUBJECT LINE FRAMEWORK - Choose ONE approach:
+
+Framework A - Challenge Current State:
+- Question their existing approach: "Is [current solution] really solving [problem]?"
+- Highlight potential blind spot: "What most [role] miss about [topic]"
+- Challenge outcome: "Will [current strategy] actually deliver [desired result]?"
+
+Framework B - Contrast/Comparison:
+- Set up tension: "[Company A] vs [Company B] on [metric]"
+- Highlight gap: "Why [action] isn't enough for [outcome]"
+- Create urgency: "[Industry] is moving past [old approach]"
+
+Framework C - Direct Problem Statement:
+- Name the issue: "The [metric] problem at [scale/stage] companies"
+- Identify risk: "Your [approach] might be costing you [outcome]"
+- Surface hidden cost: "What [current solution] doesn't tell you about [consequence]"
 
 SUBJECT LINE RULES:
-- Use lowercase or sentence case (NO Title Case)
-- Keep under 45 characters
-- Make it feel like an internal email, not a pitch
-- Be specific using research data
-- Sound like a human typed it quickly
+- Keep under 70 characters
+- Use proper capitalization (sentence case or title case)
+- Be specific to their situation using research
+- Create curiosity through tension or challenge
+- Must align with email body's problem-solution arc
+- Avoid clickbait - make it substantive and professional
 
 ⚠️ CRITICAL - SUBJECT/BODY ALIGNMENT:
-- If subject says "idea for X" → The email MUST explain the idea for X
-- If subject says "quick call" → The email MUST ask for a call with clear value
-- If subject mentions something specific → The body MUST deliver on that
-- Keep subject lines casual and lowercase - like you're emailing a colleague
+The subject line sets up a challenge or question. The email body MUST:
+1. Validate why that challenge/question matters
+2. Agitate the problem with specific evidence
+3. Present your solution as the answer
 
-STEP 3 - WRITE EMAIL BODY (SHORT & PUNCHY - 5-7 SENTENCES MAX):
+Don't write a subject that body can't deliver on.
 
-Write like you're DMing someone on LinkedIn. Short, direct, human. Use line breaks generously.
+STEP 3 - WRITE EMAIL BODY (6-8 SENTENCES - PROBLEM-AGITATION-SOLUTION ARC):
 
-⚠️ MANDATORY: Reference specific findings from your research. Do not write generic observations.
+Write like a consultant who's done their homework. Direct, evidence-based, challenging. Use line breaks for readability.
 
-STRUCTURE (but make it flow naturally):
+⚠️ MANDATORY: Build from specific research findings. Every claim must connect to their actual situation.
 
-OPENING (1-2 lines):
-Use a SPECIFIC finding from YOUR research above. Quote actual numbers, events, or milestones YOU discovered.
+STRUCTURE - Follow this arc but vary the execution:
 
-GOOD examples (using YOUR research):
-- "Saw [CompanyName] serves [X] employees across [industry] — [Y] years in that space is rare."
-- "Noticed [CompanyName] just announced [specific event] last quarter."
-- "Your team grew from [X] to [Y] employees in [Z] months. That's explosive growth."
+OPENING - Establish Context (1-2 lines):
+Ground the conversation in a SPECIFIC observation from research about their company, growth, or recent activities.
 
-BAD examples (ignoring research):
-❌ "As the visionary leader of a company deeply committed to digital transformation..."
-❌ "I imagine you're always looking for innovative ways..."
-❌ Any opener that could apply to any CEO at any company
+Framework options:
+- Lead with metric/milestone: "[Company] at [scale/stage/metric] puts you in [situation]."
+- Reference recent action: "Saw [specific event/change] - that signals [implication]."
+- Position in market: "[X metric] across [Y scope] - [observation about trajectory]."
 
-THE HOOK (1 line):
-Connect THEIR situation (from research) to a common challenge. If industry stats were found, use them.
+PROBLEM AGITATION - Create Tension (2-3 lines):
+Challenge their current approach OR surface a hidden cost/risk they may not see. Use their situation from research.
 
-Examples (use YOUR research, not these):
-- "At that scale, most execs face [challenge] that costs [metric]."
-- "Companies at [stage] typically hit [pain point] around this time."
-- "[Industry stat]% of [industry] companies report [challenge] (Source)."
+Framework options:
+- Contrast pattern: "Most [role/companies] at [stage] stick with [current approach], but that often means [specific downside/missed opportunity]."
+- Evidence-based gap: "Here's what typically happens at [their stage]: [problem pattern]. [Stat/proof if available]."
+- Question assumptions: "The challenge with [current approach] is [specific issue]. [Consequence] often gets overlooked until [trigger point]."
+- Hidden cost reveal: "[Current solution] handles [obvious benefit], but [X]% of [industry] companies report [hidden problem/cost] (Source if available)."
 
-VALUE PROP (3-4 lines with bullet points):
-WHY your solution fits THEIR specific situation. Use simple dashes (-) not emojis. Be SPECIFIC with numbers and proof.
+⚠️ CRITICAL: Don't just list problems - tie them specifically to:
+1. Their company size/stage/industry from research
+2. The timing (why now matters for them)
+3. A measurable consequence or missed opportunity
+
+SOLUTION POSITIONING (2-3 lines with optional bullets):
+Show how YOUR solution addresses the specific problem you just surfaced. Connect directly to their situation.
 
 ⚠️ CRITICAL RULES FOR BULLETS:
 ❌ NEVER write generic feature lists like "Low investment threshold = Accessibility"
@@ -4354,13 +4369,15 @@ BAD Examples (never do this):
 ❌ "Feature = Generic benefit" format
 ❌ Vague claims without numbers or proof
 
-CLOSE (1-2 lines):
-Why now matters + simple CTA. One question, not multiple options.
+CLOSE - Bridge to Conversation (1-2 lines):
+Tie urgency to their situation, then simple CTA.
 
-Examples:
-- "Open to a quick call next week to explore what this could look like for your team?"
-- "Worth 15 minutes to walk through the numbers?"
-- "Quick call to map it out?"
+Framework options:
+- Timing hook + question: "Given [their situation/timing], worth [action]?"
+- Value framing + ask: "If [outcome] matters for [their goal], [action]?"
+- Direct ask with context: "[Action] to see if [solution] fits [their specific situation]?"
+
+Keep it to ONE question. Make the value clear.
 
 WRITING STYLE:
 
@@ -4382,26 +4399,26 @@ DON'T:
 ❌ Write feature lists ("X = Y")
 ❌ Sound like a template
 
-EXAMPLE STRUCTURE (use YOUR research, not this data):
+STRUCTURE IN ACTION - Framework (create your own variation):
 
 Hi [FirstName],
 
-Saw [CompanyName] [specific metric/milestone from research]. That's [observation about scale/achievement].
+[Context: Specific observation about their company from research]
 
-At that [stage/velocity], [common challenge from industry].
+[Problem: Challenge their current approach or surface hidden cost/gap based on their stage/situation]
 
-Here's how [solution fits]:
+[Agitation: Why this matters now / what they might be missing / consequence]
 
-- [Specific % or $ benefit] for [their use case]
-- [CompanyName] saw [result] using [solution]
-- [Stat/win if available and verified]
+[Solution: How your offering specifically addresses this - with proof/numbers if available]
 
-[CTA question]?
+[CTA: Timing-aware question]
 
 Best,
 [Signature]
 
-LENGTH: Aim for 5-7 sentences total. Use line breaks to make it scannable.
+LENGTH: 6-8 sentences. Use line breaks. Keep paragraphs 1-2 sentences max.
+
+⚠️ KEY: Don't copy this structure verbatim. Use it as a framework to build varied executions that feel natural and conversational.
 
 FORMATTING:
 Opening: Hello ${leadData.first_name},
@@ -4540,7 +4557,7 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       let subject = 'Quick question'; // Fallback only if API fails completely
       
       try {
-        const subjectPrompt = `Read this sales email and generate a compelling, relevant subject line that will make the recipient want to open it.
+        const subjectPrompt = `Read this sales email and create a subject line that challenges assumptions or highlights a gap in their current approach.
 
 EMAIL BODY:
 ${body}
@@ -4551,21 +4568,22 @@ LEAD CONTEXT:
 - Title: ${leadData.title}
 
 REQUIREMENTS:
-- Maximum 80 characters (strict limit)
-- Professional, conversational tone with proper capitalization
-- Must relate directly to the specific value/benefit mentioned in the email
-- Make it intriguing but professional - create curiosity
-- No clickbait, no spammy words, no generic phrases
+- Maximum 70 characters (strict limit)
+- Professional but thought-provoking - create tension or curiosity
+- Must align with the problem or challenge raised in the email body
+- Use proper capitalization (sentence case or title case)
+- Avoid clickbait or spam trigger words
+- Should make them question their current approach or consider a blind spot
 - No quotes around the subject line
-- Should feel like it's from a human colleague, not a sales blast
-- Use proper grammar and capitalization (title case or sentence case)
-- Capitalize the first word and proper nouns
 
-Examples of GOOD subject lines:
-- "Thought on [company]'s [specific challenge]"
-- "Idea for [specific outcome]"
-- "Quick question about [their situation]"
-- "Noticed [specific thing about their company]"
+FRAMEWORK APPROACHES (choose one that fits the email content):
+1. Challenge pattern: Question their current approach ("Is [X] really delivering [Y]?")
+2. Gap pattern: Highlight what they might be missing ("What [role] overlook about [topic]")
+3. Contrast pattern: Set up a comparison ("Why [current] isn't enough for [goal]")
+4. Problem statement: Name the specific issue ("The [problem] at [their stage/scale]")
+5. Risk/cost pattern: Surface hidden consequence ("What [approach] costs you in [metric]")
+
+The subject should make them slightly uncomfortable or curious - it should challenge their status quo while remaining professional and substantive.
 
 Generate ONLY the subject line, nothing else.`;
 

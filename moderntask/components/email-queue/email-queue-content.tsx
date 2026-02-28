@@ -813,14 +813,19 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
 
   const scheduleEmail = async (id: string, scheduledAt: string | null, emailAgentId?: string) => {
     try {
-      await api.put(`/api/email-queue/${id}`, { scheduledAt, agentId: emailAgentId }, { params: { agentId: emailAgentId } })
+      console.log('[SCHEDULE] Updating email:', { id, scheduledAt, emailAgentId })
+      const response = await api.put(`/api/email-queue/${id}`, { scheduledAt }, { params: { agentId: emailAgentId } })
+      console.log('[SCHEDULE] API response:', response.data)
       setEmails(p => p.map(e => e.id !== id ? e : { ...e, scheduledAt: scheduledAt ?? undefined }))
       if (scheduledAt) {
         toast({ title: 'Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 2000 })
       } else {
         toast({ title: 'Schedule cleared', duration: 2000 })
       }
-    } catch { toast({ title: 'Failed to update schedule', variant: 'destructive', duration: 2000 }) }
+    } catch (err) { 
+      console.error('[SCHEDULE] Failed to save schedule:', err)
+      toast({ title: 'Failed to update schedule', variant: 'destructive', duration: 2000 }) 
+    }
   }
 
   const bulkApprove = async () => {
