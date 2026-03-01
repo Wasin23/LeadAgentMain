@@ -2419,7 +2419,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       
       return {
         success: true,
-        qualified: result.qualified,
+        qualified: result.tier !== 'REJECT', // derive from tier — don't trust GPT's boolean
         tier: result.tier,
         score: result.score,
         reasoning: result.reasoning,
