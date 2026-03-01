@@ -3160,27 +3160,16 @@ Format as:
         }
       }
       
-      // Extract platform metrics from user company success research
-      const platformMetrics = {};
+      // Store raw user company intel for email prompt injection
+      // Don't use narrow regex - let the email AI extract what's relevant for any product type
       const userCompanySuccessData = this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success');
+      const platformMetrics = {}; // kept for legacy compat
       if (userCompanySuccessData?.webpageInsights) {
-        const metricsText = userCompanySuccessData.webpageInsights
+        const rawIntel = userCompanySuccessData.webpageInsights
+          .filter(w => w.insights && !w.insights.includes('NO RELEVANT DATA'))
           .map(w => w.insights)
-          .join('\\n');
-        
-        const returnsMatch = metricsText.match(/\\[METRIC\\].*?(\\d+[-–]\\d+%.*?(?:return|yield|ROI))/i);
-        const investorsMatch = metricsText.match(/\\[METRIC\\].*?(\\d+[,\\d]*\\+?.*?(?:investor|user|customer|client))/i);
-        const deployedMatch = metricsText.match(/\\[METRIC\\].*?\\$(\\d+[\\d\\.]*[KMB]\\+?.*?(?:deployed|revenue|capital|AUM))/i);
-        const propertiesMatch = metricsText.match(/\\[METRIC\\].*?(\\d+\\+?.*?(?:propert|location|market|countr))/i);
-        const performanceMatch = metricsText.match(/\\[METRIC\\].*?(outperformed.*?by.*?\\d+\\.?\\d*%)/i);
-        
-        if (returnsMatch) platformMetrics.returns = returnsMatch[1].trim();
-        if (investorsMatch) platformMetrics.investors = investorsMatch[1].trim();
-        if (deployedMatch) platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
-        if (propertiesMatch) platformMetrics.properties = propertiesMatch[1].trim();
-        if (performanceMatch) platformMetrics.performance = performanceMatch[1].trim();
-        
-        this.memory.platformMetrics = platformMetrics;
+          .join('\n');
+        this.memory.platformMetrics = rawIntel.length > 50 ? { raw: rawIntel } : {};
       } else {
         this.memory.platformMetrics = {};
       }
@@ -3880,14 +3869,10 @@ Employee Count: ${employeeCount} employees${citedFactsContext}${campaignStrategy
 YOUR SOLUTION:
 Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
 Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
-Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}${this.memory.platformMetrics && Object.keys(this.memory.platformMetrics).length > 0 ? `
+Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}${this.memory.platformMetrics?.raw ? `
 
-VERIFIED PLATFORM METRICS (use these exact numbers in paragraph 3 — do NOT invent alternatives):
-${this.memory.platformMetrics.returns ? `- Returns/Yields: ${this.memory.platformMetrics.returns}` : ''}
-${this.memory.platformMetrics.investors ? `- Customer Base: ${this.memory.platformMetrics.investors}` : ''}
-${this.memory.platformMetrics.deployed ? `- Capital/Revenue: ${this.memory.platformMetrics.deployed}` : ''}
-${this.memory.platformMetrics.properties ? `- Scale/Coverage: ${this.memory.platformMetrics.properties}` : ''}
-${this.memory.platformMetrics.performance ? `- Performance: ${this.memory.platformMetrics.performance}` : ''}` : ''}
+YOUR COMPANY INTEL (scraped from your website — extract specific numbers, claims, and proof points from this for paragraph 3):
+${this.memory.platformMetrics.raw}` : ''}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 WRITING STYLE BY PERSONALITY
@@ -3928,7 +3913,8 @@ Do NOT compliment them. Name the specific problem or gap their situation creates
 
 PARAGRAPH 2 — GENERATE THE NEED (why this costs them NOW):
 Agitate the cost, risk, or missed opportunity tied to the issue above.
-If you have a verified stat from RESEARCH FINDINGS above, use it. If not, make the case qualitatively — do NOT invent a percentage or attribute a stat to a source unless it appears in the research data provided.
+If RESEARCH FINDINGS above contains an INDUSTRY STATISTICS section, pull a specific stat from it here to back the claim.
+If no stat is available, make the case qualitatively — do NOT invent a percentage or attribute a stat to a source unless it appears in the research data provided.
 
 PARAGRAPH 3 — SOLVE IT (your product against the problem):
 Position your solution directly against the problem you surfaced.
