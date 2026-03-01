@@ -1180,4 +1180,113 @@ router.put('/:emailId/followup', async (req, res) => {
   }
 });
 
+// ── Scheduled batches helper (same algorithm as email-queue-content.tsx) ───────
+function computeSlotDate(index, schedule) {
+  const { activeDays, sendTime, dailyLimit } = schedule;
+  const limit = Math.max(1, dailyLimit || 50);
+  const targetSlot = Math.floor(index / limit);
+  const [h, m] = (sendTime || '09:00').split(':').map(Number);
+  const now = new Date();
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  const todaySend = new Date(d);
+  todaySend.setHours(h, m, 0, 0);
+  if (now >= todaySend) d.setDate(d.getDate() + 1);
+  let slotsFound = 0;
+  for (let i = 0; i < 400; i++) {
+    if ((activeDays || [1,2,3,4,5]).includes(d.getDay())) {
+      if (slotsFound === targetSlot) {
+        const r = new Date(d);
+        r.setHours(h, m, 0, 0);
+        return r;
+      }
+      slotsFound++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  const fb = new Date(d);
+  fb.setHours(h, m, 0, 0);
+  return fb;
+}
+
+// GET /scheduled-batches — server-computed send schedule grouped by time slot
+router.get('/scheduled-batches', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const AWSManagerMod = await import('../utils/awsManager.js');
+    const awsQueue = getAWSEmailQueue();
+    const awsManager = new AWSManagerMod.default();
+
+    // Fetch all queued emails for user (up to 500)
+    const result = await awsQueue.getAllQueuedEmailsForUser(userId, 500, 0);
+    const emails = result.emails || result || [];
+
+    // Collect unique agent IDs present in the queue
+    const agentIds = [...new Set(emails.map(e => e.agentId).filter(Boolean))];
+
+    // Fetch each agent's sendingSchedule in parallel
+    const schedMap = {};
+    await Promise.all(agentIds.map(async (agentId) => {
+      try {
+        const s = await awsManager.getAgentSettings(userId, agentId);
+        if (s?.sendingSchedule) {
+          schedMap[agentId] = {
+            activeDays: s.sendingSchedule.activeDays || [1, 2, 3, 4, 5],
+            sendTime:   s.sendingSchedule.sendTime   || '09:00',
+            dailyLimit: s.sendingSchedule.dailyLimit || 50,
+            agentName:  s.name || '',
+          };
+        }
+      } catch (_) { /* agent has no schedule */ }
+    }));
+
+    // Sort by createdAt so slot indices match what the queue UI shows
+    const sorted = [...emails].sort(
+      (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    );
+
+    const slotIdx = {};
+    const batchMap = new Map();
+
+    for (const email of sorted) {
+      let t = email.scheduledSendTime || email.scheduledAt;
+      if (!t) {
+        const aid = email.agentId;
+        if (aid && schedMap[aid]) {
+          const idx = slotIdx[aid] || 0;
+          t = computeSlotDate(idx, schedMap[aid]).toISOString();
+          slotIdx[aid] = idx + 1;
+        }
+      }
+      if (!t) continue;
+
+      const key = new Date(t).toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+      if (!batchMap.has(key)) {
+        batchMap.set(key, {
+          count: 0,
+          agentName: email.agentName || schedMap[email.agentId]?.agentName || '',
+          agentId:   email.agentId || '',
+        });
+      }
+      batchMap.get(key).count++;
+    }
+
+    const batches = Array.from(batchMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(0, 20)
+      .map(([time, info]) => ({
+        scheduledSendTime: time,
+        count:     info.count,
+        agentName: info.agentName,
+        agentId:   info.agentId,
+      }));
+
+    res.json({ batches });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error getting scheduled batches:', error);
+    res.status(500).json({ error: 'Failed to get scheduled batches', batches: [] });
+  }
+});
+
 export default router;

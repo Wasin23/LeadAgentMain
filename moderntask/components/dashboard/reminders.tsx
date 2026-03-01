@@ -81,11 +81,9 @@ export function Reminders({ batches = [] }: RemindersProps) {
               >
                 {/* Calendar chip */}
                 <div className={`flex-shrink-0 w-12 rounded-xl overflow-hidden border shadow-sm ${
-                  soon ? "border-primary/40" : "border-border"
+                  soon ? "border-rose-400/60" : "border-border"
                 }`}>
-                  <div className={`text-center text-[9px] font-bold uppercase tracking-wider py-0.5 ${
-                    soon ? "bg-primary text-white" : "bg-muted/80 text-muted-foreground"
-                  }`}>
+                  <div className="text-center text-[9px] font-bold uppercase tracking-wider py-0.5 bg-rose-700/80 text-white">
                     {month}
                   </div>
                   <div className="flex flex-col items-center py-1.5 gap-0.5 bg-card">

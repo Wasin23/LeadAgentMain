@@ -86,14 +86,14 @@ export default function DashboardPage() {
       countsRes,
       agentsRes,
       sentRes,
-      queueRes,
+      scheduledBatchesRes,
       notifsRes,
       notifCountRes,
     ] = await Promise.allSettled([
       api.get("/api/email-queue/counts?agentId=all"),
       api.get("/api/auth/agents"),
       api.get("/api/email-queue/sent", { params: { agentId: "all" } }),
-      api.get("/api/email-queue/queue", { params: { agentId: "all" } }),
+      api.get("/api/email-queue/scheduled-batches"),
       api.get("/api/notifications/recent", { params: { limit: 6 } }),
       api.get("/api/notifications/count"),
     ])
@@ -218,93 +218,17 @@ export default function DashboardPage() {
       setFollowUps(followUpList)
     }
 
-    // ── queued emails → scheduled batches ───────────────────────────────
-    if (queueRes.status === "fulfilled") {
-      const queuedEmails = normaliseArray(queueRes.value.data) as Record<string, unknown>[]
-
-      // Build a map of agentId → sendingSchedule so we can compute auto-send
-      // dates for emails that don't have an explicit scheduledAt (mass send).
-      type AgentSched = { activeDays: number[]; sendTime: string; dailyLimit: number }
-      const agentSchedMap: Record<string, AgentSched> = {}
-      const agentSlotIdx: Record<string, number> = {}
-      if (agentsRes.status === "fulfilled") {
-        const rawAgents: Record<string, unknown>[] = agentsRes.value.data?.agents ?? []
-        rawAgents.forEach((a) => {
-          const s = ((a.settings as Record<string, unknown>)?.sendingSchedule as Record<string, unknown>) || null
-          if (s && a.agentId) {
-            agentSchedMap[a.agentId as string] = {
-              activeDays: (s.activeDays as number[]) || [1, 2, 3, 4, 5],
-              sendTime:   (s.sendTime as string)    || "09:00",
-              dailyLimit: (s.dailyLimit as number)  || 50,
-            }
-            agentSlotIdx[a.agentId as string] = 0
-          }
-        })
-      }
-
-      // Same algorithm as computeAutoSendDate in email-queue-content.tsx
-      const computeSlotDate = (index: number, sched: AgentSched): Date => {
-        const { activeDays, sendTime, dailyLimit } = sched
-        const limit = Math.max(1, dailyLimit)
-        const targetSlot = Math.floor(index / limit)
-        const [h, m] = sendTime.split(":").map(Number)
-        const now = new Date()
-        const d = new Date(now)
-        d.setHours(0, 0, 0, 0)
-        const todaySend = new Date(d); todaySend.setHours(h, m, 0, 0)
-        if (now >= todaySend) d.setDate(d.getDate() + 1)
-        let slotsFound = 0
-        for (let i = 0; i < 400; i++) {
-          if (activeDays.includes(d.getDay())) {
-            if (slotsFound === targetSlot) { const r = new Date(d); r.setHours(h, m, 0, 0); return r }
-            slotsFound++
-          }
-          d.setDate(d.getDate() + 1)
-        }
-        const fb = new Date(d); fb.setHours(h, m, 0, 0); return fb
-      }
-
-      // Sort by createdAt so slot indices match what the queue UI shows
-      const sortedQueue = [...queuedEmails].sort(
-        (a, b) => new Date((a.createdAt as string) || 0).getTime() - new Date((b.createdAt as string) || 0).getTime()
-      )
-
-      // group by scheduledSendTime (ISO date string rounded to minute)
-      const batchMap = new Map<string, { count: number; agentName: string; agentId: string }>()
-      sortedQueue.forEach((e) => {
-        let t = (e.scheduledSendTime as string) || (e.scheduledAt as string)
-        // If no explicit schedule, fall back to the agent's mass-send schedule
-        if (!t) {
-          const aid = e.agentId as string
-          if (aid && agentSchedMap[aid]) {
-            const slotIndex = agentSlotIdx[aid] || 0
-            t = computeSlotDate(slotIndex, agentSchedMap[aid]).toISOString()
-            agentSlotIdx[aid] = slotIndex + 1
-          }
-        }
-        if (!t) return
-        // Round to nearest minute key
-        const key = new Date(t).toISOString().slice(0, 16) // "YYYY-MM-DDTHH:MM"
-        if (!batchMap.has(key)) {
-          batchMap.set(key, {
-            count: 0,
-            agentName: (e.agentName as string) || "",
-            agentId: (e.agentId as string) || "",
-          })
-        }
-        batchMap.get(key)!.count++
-      })
-
-      const batches: ScheduledBatch[] = Array.from(batchMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(0, 8)
-        .map(([time, info]) => ({
-          scheduledSendTime: time,
-          count: info.count,
-          agentName: info.agentName,
-          agentId: info.agentId,
+    // ── scheduled batches (server-computed) ────────────────────────────
+    if (scheduledBatchesRes.status === "fulfilled") {
+      const raw = scheduledBatchesRes.value.data?.batches ?? []
+      setScheduledBatches(
+        (raw as Record<string, unknown>[]).map((b) => ({
+          scheduledSendTime: b.scheduledSendTime as string,
+          count:     b.count as number,
+          agentName: (b.agentName as string) || undefined,
+          agentId:   (b.agentId as string)   || undefined,
         }))
-      setScheduledBatches(batches)
+      )
     }
 
     // ── notifications ────────────────────────────────────────────────────
