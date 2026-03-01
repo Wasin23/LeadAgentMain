@@ -20,7 +20,6 @@ const staticItems: NavItem[] = [
   { icon: CheckSquare,     label: "Operations",           href: "/operations" },
   { icon: Mail,            label: "Outreach Email Queue", href: "/email-queue" },
   { icon: Bot,             label: "Agents",               href: "/agents" },
-  { icon: Building2,       label: "CRM",                   href: "/crm" },
   { icon: BarChart3,       label: "Analytics",            href: "/analytics" },
   {
     icon: UserCheck,
@@ -31,6 +30,7 @@ const staticItems: NavItem[] = [
       { icon: Circle, label: "Templates",  href: "/outreach?tab=templates" },
     ],
   },
+  { icon: Building2,       label: "CRM",                  href: "/crm" },
 ]
 
 const generalItems: NavItem[] = [
@@ -44,7 +44,7 @@ const generalItems: NavItem[] = [
       { icon: Circle, label: "Notifications",   href: "/settings?tab=notifications" },
       { icon: Circle, label: "Company Profile", href: "/settings?tab=company-profile" },
       { icon: Circle, label: "Email",           href: "/settings?tab=email" },
-      { icon: Circle, label: "CRM",             href: "/settings?tab=crm" },
+      { icon: Circle, label: "CRM Connection",   href: "/settings?tab=crm" },
       { icon: Circle, label: "Memory",          href: "/settings?tab=memory" },
       { icon: Circle, label: "Presets",         href: "/settings?tab=presets" },
       { icon: Circle, label: "Billing",         href: "/settings?tab=billing" },
