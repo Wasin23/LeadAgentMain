@@ -2270,7 +2270,7 @@ Respond in JSON:
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
-        max_tokens: 500,
+        max_tokens: 1500,
         temperature: 0.3
       });
 
@@ -2915,12 +2915,12 @@ Format as:
       }
       
       // Search 2: User's company recent successes (for social proof)
-      const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'company';
-      
+      const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName
+        || this.memory.userSettings?.companyName
+        || this.memory.userSettings?.companyProfile?.companyName
+        || null;
       
       // Check cache for user company wins (valid for 3 days)
-      const companyCacheKey = userCompanyName.toLowerCase().replace(/\s+/g, '_');
-      const cachedCompanyWins = this.memory.companyWinsCache?.[companyCacheKey];
       const companyCacheMaxAge = 3 * 24 * 60 * 60 * 1000; // 3 days in ms
       
       // Initialize cache if doesn't exist
@@ -2928,19 +2928,26 @@ Format as:
         this.memory.companyWinsCache = {};
       }
       
-      if (cachedCompanyWins && (Date.now() - cachedCompanyWins.timestamp) < companyCacheMaxAge) {
-        supportingSearches.push({
-          query: null,
-          purpose: 'user_company_success',
-          description: 'Recent noteworthy achievements of user\'s company (cached)',
-          cachedData: cachedCompanyWins.data
-        });
+      if (!userCompanyName) {
+        // No company name configured — skip this search entirely
+        console.log('⚠️ [SUPPORTING RESEARCH] No company name configured, skipping company wins search');
       } else {
-        supportingSearches.push({
-          query: `${userCompanyName} news funding clients partnerships awards success 2025 2026`,
-          purpose: 'user_company_success',
-          description: 'Recent noteworthy achievements of user\'s company (last 6 months only)'
-        });
+        const companyCacheKey = userCompanyName.toLowerCase().replace(/\s+/g, '_');
+        const cachedCompanyWins = this.memory.companyWinsCache?.[companyCacheKey];
+        if (cachedCompanyWins && (Date.now() - cachedCompanyWins.timestamp) < companyCacheMaxAge) {
+          supportingSearches.push({
+            query: null,
+            purpose: 'user_company_success',
+            description: 'Recent noteworthy achievements of user\'s company (cached)',
+            cachedData: cachedCompanyWins.data
+          });
+        } else {
+          supportingSearches.push({
+            query: `${userCompanyName} news funding clients partnerships awards success 2025 2026`,
+            purpose: 'user_company_success',
+            description: 'Recent noteworthy achievements of user\'s company (last 6 months only)'
+          });
+        }
       }
       
       // Execute supporting searches
@@ -3828,7 +3835,10 @@ DO NOT write generic emails. Use this buyer motivation to show sophisticated und
             
             // Only include if we found actual verified wins
             if (wins.length > 50) {
-              const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'Your Company';
+              const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName
+                || this.memory.userSettings?.companyName
+                || this.memory.userSettings?.companyProfile?.companyName
+                || 'Your Company';
               researchFindings += `🏆 ${userCompanyName.toUpperCase()}'S RECENT WINS (about YOUR company - NOT the prospect):\n${wins}\n⚠️ Use ONLY if truly impressive and relevant. DO NOT confuse these with ${companyName}'s achievements.\n\n`;
             } else {
             }
