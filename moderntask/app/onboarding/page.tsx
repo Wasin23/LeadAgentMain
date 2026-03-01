@@ -23,11 +23,13 @@ export default function OnboardingPage() {
           if (raw) saved = JSON.parse(raw)
         } catch {}
 
-        // Check company profile from server
-        let hasProfile = saved.hasCompanyProfile ?? false
-        if (!hasProfile) {
+        // Always check company profile from server (don't trust localStorage — stale after account deletion)
+        let hasProfile = false
+        try {
           const r = await api.get('/api/company-profile/check')
           hasProfile = r.data?.hasProfile ?? false
+        } catch {
+          hasProfile = saved.hasCompanyProfile ?? false
         }
 
         if (!hasProfile) {
