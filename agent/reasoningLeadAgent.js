@@ -3811,16 +3811,6 @@ Tone: ${messaging.tone || 'professional'}`;
         
       }
       
-      // Add qualification strengths if available (from qualify_lead tool)
-      let qualificationInsights = '';
-      if (this.memory.currentQualification?.keyStrengths && this.memory.currentQualification.keyStrengths.length > 0) {
-        qualificationInsights = `
-LEAD QUALIFICATION INSIGHTS (lead with these strengths):
-${this.memory.currentQualification.keyStrengths.map(s => `- ${s}`).join('\n')}
-Score: ${this.memory.currentQualification.score}/100`;
-        
-      }
-      
       // Add BUYER MOTIVATION context (validated above - this is CRITICAL)
       const buyerMotivationContext = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3885,12 +3875,19 @@ Company: ${companyName}
 Contact: ${leadData.first_name} ${leadData.last_name}
 Title: ${contactTitle}
 Industry: ${industry}
-Employee Count: ${employeeCount} employees${citedFactsContext}${qualificationInsights}${campaignStrategy}${researchFindings}
+Employee Count: ${employeeCount} employees${citedFactsContext}${campaignStrategy}${researchFindings}
 
 YOUR SOLUTION:
 Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
 Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
-Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}
+Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}${this.memory.platformMetrics && Object.keys(this.memory.platformMetrics).length > 0 ? `
+
+VERIFIED PLATFORM METRICS (use these exact numbers in paragraph 3 — do NOT invent alternatives):
+${this.memory.platformMetrics.returns ? `- Returns/Yields: ${this.memory.platformMetrics.returns}` : ''}
+${this.memory.platformMetrics.investors ? `- Customer Base: ${this.memory.platformMetrics.investors}` : ''}
+${this.memory.platformMetrics.deployed ? `- Capital/Revenue: ${this.memory.platformMetrics.deployed}` : ''}
+${this.memory.platformMetrics.properties ? `- Scale/Coverage: ${this.memory.platformMetrics.properties}` : ''}
+${this.memory.platformMetrics.performance ? `- Performance: ${this.memory.platformMetrics.performance}` : ''}` : ''}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 WRITING STYLE BY PERSONALITY
