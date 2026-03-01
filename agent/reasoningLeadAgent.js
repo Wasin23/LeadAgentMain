@@ -3935,6 +3935,13 @@ DO NOT write generic emails. Use this buyer motivation to show sophisticated und
       } else {
       }
       
+      // Pre-compute RAG facts block to avoid triple-nested backtick syntax issues
+      const ragFactsBlock = this.memory.industryFactsFromRAG?.length > 0
+        ? '⚠️ MANDATORY: Anchor the critique with one of these verified stats — use the actual number, don\'t generalize:\n' +
+          this.memory.industryFactsFromRAG.slice(0, 4).map((f, i) => `${i + 1}. ${f}`).join('\n') + '\n' +
+          'Bad: "Many companies struggle with this." | Good: "With GPU demand up 40% YoY, waiting on on-prem procurement is a 6-month gap your competitors won\'t wait for."'
+        : 'If RESEARCH FINDINGS contains an INDUSTRY STATISTICS section, anchor the critique with a specific number from it. If no stat exists, make the case qualitatively — do NOT invent a percentage.';
+
       // Common ruleset for email structure - ALWAYS include lead details and context
       const commonRuleset = `
 PROSPECT INFORMATION:
@@ -3980,35 +3987,28 @@ CRITICAL RULES
 WRITE THE EMAIL BODY ONLY — the subject line is handled separately.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EMAIL STRUCTURE: ISSUE → NEED → SOLVE
+EMAIL STRUCTURE: FLAW → FIX
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Write exactly 3 paragraphs (1-2 sentences each) + 1 line CTA. Total: 5-7 sentences.
+Write exactly 2 paragraphs (2-3 sentences each) + 1 line CTA. Keep it tight — under 120 words total.
 
-PARAGRAPH 1 — SURFACE THE ISSUE (the problem specific to them):
-Open with a specific, uncomfortable truth about their situation based on research.
-Do NOT compliment them. Name the specific problem or gap their situation creates.
+SUBJECT LINE + PARAGRAPH 1 ARE LOCKED:
+The subject is provocative — a statement, claim, or question that names a flaw, risk, or mistake.
+Paragraph 1 MUST immediately deliver the argument behind the subject. If subject says "X is broken" then para 1 opens with WHY it's broken — specific to them, from research.
+❌ Never open with a compliment, award, or positive framing. Lead with the problem.
 
-PARAGRAPH 2 — GENERATE THE NEED (why this costs them NOW):
-Agitate the cost, risk, or missed opportunity tied to the issue above.${this.memory.industryFactsFromRAG?.length > 0 ? `
+PARAGRAPH 1 — THE FLAW (critique a specific mistake or risk they have):
+Name the specific thing they're doing wrong, ignoring, or underestimating — based on real research signals.
+❌ No "you're doing great but..." setup. Open cold on the problem.
+${ragFactsBlock}
 
-⚠️ MANDATORY: You MUST anchor this paragraph with one of the following verified stats. Pick the most relevant one and build the sentence around it — do not paraphrase into vagueness, use the actual number or claim:
-${this.memory.industryFactsFromRAG.slice(0, 4).map((f, i) => `${i + 1}. ${f}`).join('\n')}
-
-Format: "[stat used naturally in a sentence that connects to their specific situation]."
-Bad: "Many companies struggle with this." (no stat used)
-Good: "The average SDR spends 40% of their time on manual research — at Baanyan's growth stage that's headcount spend that compounds."` : `
-If RESEARCH FINDINGS above contains an INDUSTRY STATISTICS section, you MUST pull a specific stat from it here. State the number directly in the sentence — do not generalize it away.`}
-If no stat exists anywhere, make the case qualitatively — do NOT invent a percentage.
-
-PARAGRAPH 3 — SOLVE IT (your product against the problem):
-Position your solution directly against the problem you surfaced.
-If YOUR COMPANY INTEL above contains specific client results or metrics (e.g. "customers see X% faster training"), use them verbatim.
-If not: describe WHAT you do and WHY it fits their situation — no invented figures, no fabricated percentages.
-❌ NEVER write "Our clients have seen X%" or any performance claim unless the exact figure appears in YOUR COMPANY INTEL above.
+PARAGRAPH 2 — THE FIX (your product solves exactly that flaw):
+Connect your solution directly to the specific flaw named in para 1 — explain the mechanism, not just the category.
+If YOUR COMPANY INTEL has real client metrics, use them verbatim. If not, explain WHAT you do and WHY it addresses THAT specific problem.
+❌ NEVER invent performance claims. No "our clients see X%" unless it appears word-for-word in YOUR COMPANY INTEL.
 
 CTA (1 line):
-A single direct question tied to their timing or situation.
+One direct question tied to the specific problem or their timeline — not a generic "hop on a call."
 
 
 FORMATTING RULES:
@@ -4044,7 +4044,7 @@ NOW WRITE YOUR EMAIL following the ISSUE → NEED → SOLVE structure above.`;
         model: 'gpt-4o',
         messages: [{ role: 'user', content: emailPrompt }],
         temperature: 0.7,
-        max_tokens: 600
+        max_tokens: 400
       });
 
       const emailContent = response.choices[0].message.content;
@@ -4123,25 +4123,25 @@ LEAD:
 
 RULES FOR THE SUBJECT LINE:
 - Under 50 characters
-- Controversial or provocative — challenge something they believe, indict an approach they're using, or name a problem they're ignoring
-- Must connect directly to the issue raised in the email body
+- Provocative — a bold statement, a named flaw, a sharp claim, or a pointed question. Any format works if it's specific and creates discomfort or curiosity.
+- Must connect directly to the specific argument in the email body
 - Sentence case, no exclamation marks, no spam words
-- Should cause a slight moment of discomfort or curiosity — not clickbait, but a real challenge
-- Read like something a smart person wrote, not a marketing template
+- Read like something a sharp human wrote, not a marketing template
 
 GOOD EXAMPLES (style only, not content):
 - "Your agency BD is probably broken"
 - "Why 17 markets makes this worse"
-- "The pitch problem at growing agencies"
-- "Brandy's new business gap"
+- "Retiina's automation gap"
+- "Is your GPU pipeline ready for 2026?"
 - "Most agencies lose here"
 - "What manual outreach costs at scale"
+- "Black Sesame's infrastructure bet"
 
 BAD EXAMPLES (never do these):
-- "Are Traditional Methods Holding Back Your Growth?" — generic question format
-- "Quick question about Brandy" — weak
+- "Quick question about Brandy" — weak, no claim
 - "Exciting opportunity for you" — spam
 - "Improve your outreach" — vague
+- "Are traditional methods holding you back?" — generic non-question
 
 Output ONLY the subject line. Nothing else.`;
 
