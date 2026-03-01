@@ -3443,6 +3443,7 @@ class AWSManager {
       return {
         plan: {
           id: user.plan || 'free-trial',
+          remainingCredits: remainingCredits,
           ...planConfig
         },
         credits: {

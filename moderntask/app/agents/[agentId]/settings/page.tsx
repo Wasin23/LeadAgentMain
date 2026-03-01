@@ -232,7 +232,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         if (u.agentName || u.companyBranding?.agentName) setAgentName(u.agentName || u.companyBranding?.agentName);
 
         const loaded: AgentSettings = {
-          specialInstructions: s.specialInstructions || u.specialInstructions || '',
+          specialInstructions: (typeof s.specialInstructions === 'string' ? s.specialInstructions : '') || (typeof u.specialInstructions === 'string' ? u.specialInstructions : '') || '',
           companyBranding: {
             agentName: u.agentName || u.companyBranding?.agentName || '',
             companyName: u.companyName || u.companyBranding?.companyName || '',
@@ -334,7 +334,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
     setSelectedPreset(preset.id || preset._id);
     setSettings(prev => ({
       ...prev,
-      specialInstructions: preset.specialInstructions || prev.specialInstructions,
+      specialInstructions: (typeof preset.specialInstructions === 'string' ? preset.specialInstructions : '') || prev.specialInstructions,
       companyCriteria: { ...prev.companyCriteria, companySizeMin: preset.companySizeMin || prev.companyCriteria.companySizeMin, companySizeMax: preset.companySizeMax || prev.companyCriteria.companySizeMax, companyIndustries: preset.targetIndustries || prev.companyCriteria.companyIndustries },
       contactCriteria: { ...prev.contactCriteria, targetPositions: preset.targetPositions || prev.contactCriteria.targetPositions },
       geographicSettings: { ...prev.geographicSettings, leadLimit: preset.leadLimit || prev.geographicSettings.leadLimit },

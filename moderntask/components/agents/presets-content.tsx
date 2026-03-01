@@ -385,7 +385,7 @@ function PresetCard({
       </div>
 
       {/* instructions */}
-      {preset.specialInstructions && (
+      {preset.specialInstructions && typeof preset.specialInstructions === 'string' && (
         <p className="text-[11px] text-muted-foreground italic border-l-2 border-border pl-2 line-clamp-2">
           {preset.specialInstructions}
         </p>

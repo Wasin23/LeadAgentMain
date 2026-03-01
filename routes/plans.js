@@ -1,5 +1,5 @@
 import express from 'express';
-import authenticateToken from '../middleware/jwt.js';
+import { authenticateToken } from '../middleware/jwt.js';
 import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
