@@ -218,7 +218,6 @@ class ReasoningLeadAgent extends EventEmitter {
       }
     ];
 
-    console.log('🧠 [REASONING AGENT] Initialized AI reasoning agent for user:', userId);
     
     // Campaign plan from instructions (populated at cycle start)
     this.campaignPlan = null;
@@ -273,7 +272,6 @@ Write a brief, clear description of WHO we're targeting and WHY. Be specific and
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
       }
       
-      console.log('📝 [PLAN DESCRIPTION]:', description);
       return description;
       
     } catch (error) {
@@ -290,13 +288,6 @@ Write a brief, clear description of WHO we're targeting and WHY. Be specific and
    */
   async convertInstructionsToPlan(specialInstructions, userSettings) {
     console.log('🎯 [CAMPAIGN PLAN] Converting instructions to structured plan...');
-    console.log('📋 [CAMPAIGN PLAN INPUT] Special Instructions:', specialInstructions);
-    console.log('📋 [CAMPAIGN PLAN INPUT] User Settings:', {
-      company: userSettings.companyName,
-      industries: userSettings.companyIndustries,
-      positions: userSettings.targetPositions,
-      companySize: `${userSettings.companySizeMin}-${userSettings.companySizeMax}`
-    });
     
     // If no instructions provided, return null (use default behavior)
     if (!specialInstructions || specialInstructions.trim() === '') {
@@ -388,12 +379,11 @@ IMPORTANT RULES:
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
       }
       
-      console.log('✅ [CAMPAIGN PLAN OUTPUT] Generated structured plan:', JSON.stringify(plan, null, 2));
-      console.log('🎯 [CAMPAIGN PLAN SUMMARY]');
-      console.log('  Search Strategy:', plan.searchStrategy?.additionalKeywords?.join(', ') || 'None');
-      console.log('  Priority Industries:', plan.searchStrategy?.priorityIndustries?.join(', ') || 'None');
-      console.log('  Primary Value Prop:', plan.emailMessaging?.primaryValue || 'None');
-      console.log('  Qualification Must-Haves:', plan.qualificationCriteria?.mustHave?.length || 0, 'criteria');
+      console.log('🎯 [CAMPAIGN PLAN SUMMARY] Loaded:', {
+        keywords: plan.searchStrategy?.additionalKeywords?.length || 0,
+        industries: plan.searchStrategy?.priorityIndustries?.length || 0,
+        mustHave: plan.qualificationCriteria?.mustHave?.length || 0
+      });
       
       // Generate AI description of the plan
       const planDescription = await this.generatePlanDescription(plan, specialInstructions);
@@ -523,8 +513,7 @@ IMPORTANT RULES:
       this.operationLogs = this.operationLogs.slice(0, this.maxLogs);
     }
     
-    console.log(`📋 [AGENT LOG] ${operation}: ${details}`);
-    console.log(`📋 [AGENT LOG] Total logs now: ${this.operationLogs.length}`);
+
     
     // Emit progress event for real-time updates
     this.emit('progress', {
@@ -596,7 +585,6 @@ IMPORTANT RULES:
             country: country,
             companyName: currentLead.organization.name || currentLead.company || 'Unknown'
           };
-          console.log(`📍 [LOCATION BROADCAST] ${location.city || 'Unknown'}, ${location.state} - ${location.companyName}`);
         } else {
           console.log(`⚠️ [NO LOCATION] Lead has no city/state data:`, {
             name: currentLead.name,
@@ -651,7 +639,6 @@ IMPORTANT RULES:
       // Save to DynamoDB
       await this.awsManager.saveCycleLog(this.userId, this.agentId, cycleLog);
       
-      console.log(`📊 [CYCLE LOG] Logged cycle #${this.cycleCount} completion to DynamoDB`);
       
       // Broadcast cycle completion event
       try {
@@ -673,7 +660,6 @@ IMPORTANT RULES:
       if (apiUsage.success && apiUsage.stats) {
         const totalCost = Object.values(apiUsage.stats).reduce((sum, service) => sum + (service.cost || 0), 0);
         console.log(`💰 [CYCLE COST] Total API cost after cycle #${this.cycleCount}: $${totalCost.toFixed(4)}`);
-        console.log(`📊 [CYCLE COST] Breakdown:`, JSON.stringify(apiUsage.stats, null, 2));
       }
     } catch (error) {
       console.error('❌ [CYCLE LOG] Failed to log cycle completion:', error);
@@ -788,8 +774,6 @@ Call the appropriate function to continue the workflow.`;
 
     try {
       const functionCall = this.determineFunctionCall(context);
-      console.log('🔧 [OPENAI] Function call parameter:', JSON.stringify(functionCall));
-      console.log('💰 [COST OPTIMIZATION] Using GPT-4o for routine decision making');
       
       // Single OpenAI call with reasoning and function calling
       const response = await this.openai.chat.completions.create({
@@ -844,8 +828,6 @@ Call the appropriate function to continue the workflow.`;
         }
       }
       
-      console.log('🔧 [OPENAI] Response has function_call:', !!response.choices[0].message.function_call);
-
       const message = response.choices[0].message;
       
       if (message.function_call) {
@@ -867,7 +849,6 @@ Call the appropriate function to continue the workflow.`;
           
           // For build_personalized_email, we don't need parameters anyway
           if (message.function_call.name === 'build_personalized_email') {
-            console.log('✅ [FALLBACK] Using empty parameters for build_personalized_email');
             parameters = {};
           } else {
             // For other functions, return an error
@@ -1050,54 +1031,42 @@ Call the appropriate function to continue the workflow.`;
   determineFunctionCall(context) {
     // Force specific functions based on sequential workflow
     if (!context.hasUserSettings) {
-      console.log('🔧 [FUNCTION CALL] Forcing get_user_settings');
       return { name: 'get_user_settings' };
     }
     
     if (!context.hasEmailSettings) {
-      console.log('🔧 [FUNCTION CALL] Forcing get_email_settings');
       return { name: 'get_email_settings' };
     }
     
     if (context.cycleComplete) {
-      console.log('🔧 [FUNCTION CALL] Cycle complete, allowing natural completion');
       return 'none'; // Let agent complete naturally
     }
     
     if (context.processingPhase === 'paused') {
-      console.log('🔧 [FUNCTION CALL] Agent is paused, stopping execution');
       return 'none'; // Don't execute any functions when paused
     }
-    
-    // Force sequential processing based on phase
-    console.log(`🔧 [FUNCTION CALL] Phase: ${context.processingPhase}, Current Lead: ${context.currentLead ? 'YES' : 'NO'}`);
-    console.log(`🔧 [DEBUG] Full context processingPhase: '${context.processingPhase}'`);
     
     switch (context.processingPhase) {
       case 'search':
         if (!context.currentLead && (context.leadQueue.length === 0)) {
-          console.log('🔧 [FUNCTION CALL] Forcing apollo_search - no current lead and queue is empty');
           return { name: 'apollo_search' };
         }
         break;
         
       case 'pre-qualify':
         if (context.currentLead) {
-          console.log('🔧 [FUNCTION CALL] Forcing pre_qualify_lead');
           return { name: 'pre_qualify_lead' };
         }
         break;
         
       case 'research':
         if (context.currentLead) {
-          console.log('🔧 [FUNCTION CALL] Forcing serper_research');
           return { name: 'serper_research' };
         }
         break;
         
       case 'qualify':
         if (context.currentLead) {
-          console.log('🔧 [FUNCTION CALL] Forcing qualify_lead');
           return { name: 'qualify_lead' };
         }
         break;
@@ -1106,33 +1075,24 @@ Call the appropriate function to continue the workflow.`;
         if (context.currentLead) {
           // Skip unlock if email already exists (enriched during search)
           if (context.currentLead.email) {
-            console.log('🔧 [FUNCTION CALL] Email already exists, skipping to build_personalized_email');
             return { name: 'build_personalized_email' };
           }
-          console.log('🔧 [FUNCTION CALL] Forcing unlock_email');
           return { name: 'unlock_email' };
         }
         break;
         
       case 'build':
         if (context.currentLead) {
-          console.log('🔧 [FUNCTION CALL] Forcing build_personalized_email');
-          console.log(`🔧 [DEBUG] Build phase - lead has email: ${!!context.currentLead.email}`);
           return { name: 'build_personalized_email' };
-        } else {
-          console.log('🔧 [DEBUG] Build phase but no current lead!');
         }
         break;
     }
     
-    console.log('🔧 [FUNCTION CALL] Defaulting to auto');
     return 'auto'; // Fallback to auto
   }
 
   // Update cycle state after each action
   async updateCycleState(action, actionResult) {
-    console.log(`📊 [CYCLE] Updating state after action: ${action}`);
-    
     switch (action) {
       case 'apollo_search':
         if (actionResult?.leads?.length > 0) {
@@ -1151,8 +1111,7 @@ Call the appropriate function to continue the workflow.`;
               const domainParts = lead.organization.primary_domain.split('.');
               if (domainParts.length > 0) {
                 companyName = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
-                console.log(`🔧 [COMPANY FIX] Generic name "${lead.organization.name}" replaced with domain-based "${companyName}"`);
-              }
+                        }
             }
             
             const normalizedLead = {
@@ -1162,16 +1121,12 @@ Call the appropriate function to continue the workflow.`;
             this.memory.currentCycle.leadQueue.push(normalizedLead);
           });
           
-          console.log(`🔍 [CYCLE] Added ${actionResult.leads.length} leads to queue. Queue size: ${this.memory.currentCycle.leadQueue.length}`);
-          
           // Start processing the first lead from queue
           if (this.memory.currentCycle.leadQueue.length > 0 && !this.memory.currentCycle.currentLead) {
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             // Always start with research (Apollo just gave us names, we need Serper data)
             this.memory.currentCycle.processingPhase = 'research';
             const domain = this.memory.currentCycle.currentLead.organization?.primary_domain;
-            console.log(`📋 [QUEUE] Processing lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}${domain ? ` (${domain})` : ''}`);
-            
             // Broadcast location update immediately when starting first lead
             this.broadcastAgentActivity({
               agentId: this.agentId,
@@ -1186,15 +1141,10 @@ Call the appropriate function to continue the workflow.`;
         } else {
           // No new leads found - increment duplicate counter
           this.memory.consecutiveDuplicateSearches++;
-          console.log(`🔄 [DUPLICATE TRACKING] Consecutive duplicate searches: ${this.memory.consecutiveDuplicateSearches}`);
-          
           // After 3 consecutive duplicate searches, broaden criteria
           if (this.memory.consecutiveDuplicateSearches >= 3) {
-            console.log(`⚠️ [SEARCH ADAPTATION] Too many duplicates (${this.memory.consecutiveDuplicateSearches}), broadening search criteria...`);
-            
             // Increase page offset to search deeper pages
             this.memory.searchPageOffset += 5;
-            console.log(`📄 [SEARCH ADAPTATION] Increasing page offset to ${this.memory.searchPageOffset} (will search pages ${this.memory.searchPageOffset + 1}-${this.memory.searchPageOffset + 10})`);
             
             // Reset duplicate counter after adaptation
             this.memory.consecutiveDuplicateSearches = 0;
@@ -1225,12 +1175,9 @@ Call the appropriate function to continue the workflow.`;
           const currentLeadCount = this.memory.currentCycle.leadQueue.length + this.memory.currentCycle.leadsProcessed;
           
           if (currentLeadCount < totalLeadsNeeded) {
-            console.log(`🔄 [CYCLE] Need ${totalLeadsNeeded - currentLeadCount} more NEW leads - continuing search (current: ${currentLeadCount}/${totalLeadsNeeded})`);
-            
             // Stay in search phase to keep looking for more NEW leads
             this.memory.currentCycle.processingPhase = 'search';
           } else {
-            console.log(`✅ [CYCLE] Have enough leads (${currentLeadCount}/${totalLeadsNeeded}) - completing cycle`);
             this.memory.currentCycle.cycleComplete = true;
             this.memory.currentCycle.processingPhase = 'complete';
           }
@@ -1248,7 +1195,6 @@ Call the appropriate function to continue the workflow.`;
             if (this.memory.currentCycle.leadQueue.length > 0) {
               this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
               this.memory.currentCycle.processingPhase = 'research';
-              console.log(`📋 [QUEUE] Next lead from queue: ${this.memory.currentCycle.currentLead.name}`);
               
               // Broadcast location update for skipped lead replacement
               this.broadcastAgentActivity({
@@ -1262,12 +1208,10 @@ Call the appropriate function to continue the workflow.`;
               });
             } else {
               this.memory.currentCycle.processingPhase = 'search';
-              console.log(`🔍 [CYCLE] Queue empty, searching for more leads`);
             }
           } else {
             // Pre-qualification passed, proceed to detailed qualification
             this.memory.currentCycle.processingPhase = 'qualify';
-            console.log(`✅ [CYCLE] Pre-qualification passed (score: ${actionResult.score}/100), proceeding to detailed qualification`);
           }
         }
         break;
@@ -1279,11 +1223,6 @@ Call the appropriate function to continue the workflow.`;
                              this.campaignPlan?.qualificationCriteria?.disqualifiers?.length > 0;
           
           this.memory.currentCycle.processingPhase = hasCriteria ? 'pre-qualify' : 'email';
-          
-          if (!hasCriteria && this.campaignPlan) {
-            console.log(`⏭️ [CYCLE] Skipping pre-qualification - no criteria to check`);
-          }
-          console.log(`📚 [CYCLE] Research completed for ${this.memory.currentCycle.currentLead?.name}`);
         }
         break;
         
@@ -1301,22 +1240,12 @@ Call the appropriate function to continue the workflow.`;
             aiReport: actionResult.aiReport // Store full AI report for email building
           };
           
-          console.log('🔍 [AI REPORT DEBUG] Stored in currentQualification:', {
-            hasAiReport: !!actionResult.aiReport,
-            tier: actionResult.aiReport?.tier,
-            score: actionResult.aiReport?.score,
-            citedEvidence: actionResult.aiReport?.citedEvidence?.length || 0
-          });
-          
           if (actionResult.qualified) {
             // Qualification passed, check if we need email unlock or can skip to build
             if (this.memory.currentCycle.currentLead?.email) {
-              console.log(`✅ [CYCLE] Lead qualified (score: ${actionResult.score}/100) - email already available, proceeding to build`);
               this.memory.currentCycle.processingPhase = 'build';
             } else {
               this.memory.currentCycle.processingPhase = 'email';
-              const confidenceNote = actionResult.confidence === 'LOW' ? ' ⚠️ LOW CONFIDENCE - will mark for review' : '';
-              console.log(`✅ [CYCLE] Lead qualified (score: ${actionResult.score}/100)${confidenceNote}, proceeding to email unlock`);
             }
           } else {
             // Qualification failed, skip lead and get next
@@ -1327,9 +1256,6 @@ Call the appropriate function to continue the workflow.`;
             if (this.memory.currentCycle.leadQueue.length > 0) {
               this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
               this.memory.currentCycle.processingPhase = 'research';
-              console.log(`📋 [QUEUE] Next lead from queue: ${this.memory.currentCycle.currentLead.name}`);
-              
-              // Broadcast location update for disqualified lead replacement
               this.broadcastAgentActivity({
                 agentId: this.agentId,
                 operation: '💭 Agent Activity',
@@ -1341,7 +1267,6 @@ Call the appropriate function to continue the workflow.`;
               });
             } else {
               this.memory.currentCycle.processingPhase = 'search';
-              console.log(`🔍 [CYCLE] Queue empty, searching for more leads`);
             }
           }
         } else {
@@ -1353,16 +1278,13 @@ Call the appropriate function to continue the workflow.`;
           if (this.memory.currentCycle.leadQueue.length > 0) {
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
-            console.log(`📋 [QUEUE] Processing next lead after qualification failure: ${this.memory.currentCycle.currentLead.name}`);
           } else {
             this.memory.currentCycle.processingPhase = 'search';
-            console.log(`🔍 [CYCLE] Queue empty after qualification failure, searching for more leads`);
           }
         }
         break;
         
       case 'unlock_email':
-        console.log(`🔧 [DEBUG] unlock_email success check: success=${actionResult?.success}, email=${!!actionResult?.email}`);
         
         if (actionResult?.success && actionResult?.email) {
           // Email unlocked successfully, UPDATE the lead email and company name from enriched data
@@ -1379,24 +1301,18 @@ Call the appropriate function to continue the workflow.`;
               const domainParts = actionResult.person.organization.primary_domain.split('.');
               if (domainParts.length > 0) {
                 companyName = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
-                console.log(`🔧 [COMPANY FIX] Generic enriched name "${actionResult.person.organization.name}" replaced with "${companyName}"`);
               }
             }
             
             this.memory.currentCycle.currentLead.company = companyName;
             this.memory.currentCycle.currentLead.organization = actionResult.person.organization;
-            console.log(`🏢 [CYCLE] Updated company name from enriched data: ${companyName}`);
           }
           
           this.memory.currentCycle.processingPhase = 'build';
-          console.log(`🔓 [CYCLE] Email unlocked for ${this.memory.currentCycle.currentLead?.name}: ${actionResult.email}`);
-          console.log(`🔧 [DEBUG] Set processingPhase to 'build' after unlock - NEW PHASE: ${this.memory.currentCycle.processingPhase}`);
-          console.log(`🔧 [DEBUG] Current lead after unlock:`, this.memory.currentCycle.currentLead?.name, 'has email:', !!this.memory.currentCycle.currentLead?.email);
     
         } else {
           // Email unlock failed, skip this lead and get next from queue or search
           console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead`);
-          console.log(`🔧 [DEBUG] Failure reason: success=${actionResult?.success}, email=${actionResult?.email}, error=${actionResult?.error}`);
           
           // Emit SSE log for email unlock failure so user can see it
           this.logOperation(
@@ -1428,7 +1344,6 @@ Call the appropriate function to continue the workflow.`;
                 timestamp: new Date().toISOString()
               }
             );
-            console.log('📝 [ISSUES] Logged email unlock failure to issues database');
           } catch (issueError) {
             console.error('❌ [ISSUES] Failed to log issue:', issueError);
           }
@@ -1448,7 +1363,6 @@ Call the appropriate function to continue the workflow.`;
             };
             
             await this.awsManager.addContactedLead(this.userId, leadInfo);
-            console.log('📝 [CONTACT TRACKING] Added failed email unlock to contacted database to prevent duplicates');
           } catch (trackingError) {
             console.error('❌ [CONTACT TRACKING] Failed to add failed lead to database:', trackingError);
           }
@@ -1459,7 +1373,6 @@ Call the appropriate function to continue the workflow.`;
             // Get next lead from queue
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
-            console.log(`📋 [QUEUE] Processing next lead after failure: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
             
             // Broadcast location update for lead after email unlock failure
             this.broadcastAgentActivity({
@@ -1474,7 +1387,6 @@ Call the appropriate function to continue the workflow.`;
           } else {
             // Queue empty, need to search for more leads
             this.memory.currentCycle.processingPhase = 'search';
-            console.log(`🔍 [CYCLE] Queue empty after failure, searching for more leads`);
           }
         }
         break;
@@ -1527,18 +1439,11 @@ Call the appropriate function to continue the workflow.`;
           this.memory.currentCycle.leadsProcessed++;
           this.memory.currentCycle.currentLead = null;
           
-          // Log state after incrementing
-          console.log(`📊 [LEAD COMPLETE] Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue remaining: ${this.memory.currentCycle.leadQueue.length}`);
-          
           // Get next lead from queue or search for more
           if (this.memory.currentCycle.leadQueue.length > 0) {
-            console.log(`🔍 [DECISION CHECK] Queue has ${this.memory.currentCycle.leadQueue.length} leads. Target: ${this.memory.currentCycle.targetLeads}, Processed: ${this.memory.currentCycle.leadsProcessed}`);
-            console.log(`🔍 [DECISION CHECK] Should continue? ${this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads ? 'YES (need more)' : 'NO (target reached)'}`);
-            
             // Process next lead from queue
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
-            console.log(`📋 [QUEUE] Processing next lead: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
             
             // Broadcast location update immediately when starting new lead
             this.broadcastAgentActivity({
@@ -1552,15 +1457,12 @@ Call the appropriate function to continue the workflow.`;
             });
           } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
             // Need more leads - search again
-            console.log(`🔍 [DECISION] Queue empty, need ${this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed} more leads - will search`);
             this.memory.currentCycle.processingPhase = 'search';
           } else {
             // Cycle complete
-            console.log(`🏁 [DECISION] Target reached (${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}) - completing cycle`);
             this.memory.currentCycle.processingPhase = 'complete';
           }
           
-          console.log(`✉️ [CYCLE] Email built! Leads processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue: ${this.memory.currentCycle.leadQueue.length}`);
 
         } else {
           // Email generation FAILED - skip this lead and move to next
@@ -1569,7 +1471,6 @@ Call the appropriate function to continue the workflow.`;
           const errorMsg = actionResult?.error || actionResult?.message || 'Unknown error';
           
           console.log(`⚠️ [CYCLE] Email generation failed for ${failedLeadName} at ${failedLeadCompany}: ${errorMsg}`);
-          console.log(`⏭️ [CYCLE] Skipping lead and moving to next...`);
           
           // Track the failed lead to avoid retrying
           if (!this.memory.failedLeads) {
@@ -1602,7 +1503,6 @@ Call the appropriate function to continue the workflow.`;
             // Process next lead from queue
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
-            console.log(`📋 [QUEUE] Processing next lead after skip: ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`);
             
             // Broadcast location update
             this.broadcastAgentActivity({
@@ -1617,28 +1517,23 @@ Call the appropriate function to continue the workflow.`;
           } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
             // Need more leads - search again
             this.memory.currentCycle.processingPhase = 'search';
-            console.log(`🔍 [CYCLE] Queue empty after skip, need ${this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed} more leads`);
           } else {
             // Cycle complete (all done, some skipped)
             this.memory.currentCycle.processingPhase = 'complete';
-            console.log(`🏁 [CYCLE] Cycle complete after skip! Processed ${this.memory.currentCycle.leadsProcessed} leads, skipped ${this.memory.failedLeads?.length || 0}`);
-          }
+              }
         }
         break;
         
       case 'pause':
-        console.log('⏸️ [CYCLE] Agent paused due to error');
         this.memory.currentCycle.processingPhase = 'paused';
         break;
         
       case 'complete':
-        console.log('🏁 [CYCLE] Cycle marked complete');
         this.memory.currentCycle.processingPhase = 'complete';
         this.memory.currentCycle.cycleComplete = true;
         break;
     }
     
-    console.log(`📊 [CYCLE] Current state: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads} leads, phase: ${this.memory.currentCycle.processingPhase}`);
   }
 
   // Extract business type from research content
@@ -1766,9 +1661,7 @@ LEAD VALUE: [why they're a high-value prospect for your outreach]
 APPROACH: [specific outreach angles or conversation starters based on their business needs]
 `;
 
-      console.log('🧠 [AI ANALYSIS] Analyzing research findings for:', companyName);
-      console.log('🚀 [MODEL] Using GPT-4o for high-quality research analysis');
-      
+      // Research analysis completed
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
@@ -1786,7 +1679,6 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       });
 
       const analysis = response.choices[0]?.message?.content || 'Analysis completed';
-      console.log('✅ [AI ANALYSIS] Strategic analysis generated for:', companyName);
       
       // Log API usage
       if (response.usage) {
@@ -1862,13 +1754,11 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
   // Get user settings from AWS DynamoDB - lead agent settings
   async getUserSettings() {
-    console.log('⚙️ [AWS] Getting user lead generation settings from DynamoDB...');
     
     try {
       // Get lead agent settings from AWS DynamoDB with agentId
       const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
       
-      console.log('🔍 [DEBUG] Lead agent settings from AWS:', JSON.stringify(leadContactSettings, null, 2));
       
       if (!leadContactSettings) {
         console.log('❌ [SETTINGS] No lead agent settings found in AWS DynamoDB!');
@@ -1876,9 +1766,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       }
 
       // ALSO load general user settings to get company profile
-      console.log('🏢 [AWS] Loading general user settings for company profile...');
       const generalUserSettings = await this.awsManager.getUserSettings(this.userId);
-      console.log('🔍 [DEBUG] Company profile from general settings:', generalUserSettings?.companyProfile);
       
       const actualSettings = {
         // Company branding (REAL DATA)
@@ -1912,17 +1800,6 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         researchDepth: leadContactSettings.researchFocus?.researchDepth
       };
       
-      console.log('✅ [SETTINGS] REAL lead generation settings:', {
-        company: actualSettings.companyName,
-        agent: actualSettings.agentName,
-        service: actualSettings.primaryService,
-        industries: actualSettings.companyIndustries?.length || 0,
-        positions: actualSettings.targetPositions?.length || 0,
-        companySize: `${actualSettings.companySizeMin}-${actualSettings.companySizeMax}`,
-        locations: actualSettings.targetLocations?.length || 0,
-        leadLimit: actualSettings.leadLimit
-      });
-      
       return actualSettings;
     } catch (error) {
       console.error('❌ [SETTINGS] Error getting lead agent settings:', error);
@@ -1932,16 +1809,12 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
   // Get email builder settings from AWS DynamoDB - lead agent settings
   async getEmailSettings() {
-    console.log('📧 [AWS] Getting email builder settings from DynamoDB...');
-    
     try {
       // Use the same method to get lead agent settings (includes email builder) with agentId
       const leadContactSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
       
-      console.log('🔍 [DEBUG] Lead agent settings for email from AWS:', JSON.stringify(leadContactSettings, null, 2));
       
       if (!leadContactSettings) {
-        console.log('❌ [EMAIL SETTINGS] No lead agent settings found!');
         return { error: 'No lead agent settings configured for this user' };
       }
       
@@ -1949,7 +1822,6 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       const emailBuilder = leadContactSettings.emailBuilder;
       
       if (!emailBuilder) {
-        console.log('❌ [EMAIL SETTINGS] No emailBuilder found in lead agent settings!');
         return { error: 'No email builder settings configured' };
       }
       
@@ -1968,18 +1840,6 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         // Company branding for email templates
         companyBranding: leadContactSettings.companyBranding
       };
-      
-      console.log('✅ [EMAIL SETTINGS] REAL email builder settings:', {
-        template: actualEmailSettings.emailTemplate,
-        tone: actualEmailSettings.tone,
-        personalization: actualEmailSettings.personalization,
-        callToAction: actualEmailSettings.callToAction,
-        hasCustomPrompt: !!actualEmailSettings.customPrompt,
-        hasCcEmails: !!emailBuilder.ccEmails,
-        ccEmails: emailBuilder.ccEmails,
-        hasBccEmails: !!emailBuilder.bccEmails,
-        bccEmails: emailBuilder.bccEmails
-      });
       
       return actualEmailSettings;
     } catch (error) {
@@ -2002,12 +1862,10 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
     const personName = leadData?.name || 'Unknown';
     const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
     
-    console.log(`🎯 [PRE-QUALIFY] Quick check: ${personName} at ${companyName}`);
     
     try {
       // If no campaign plan, skip pre-qualification (accept everyone)
       if (!this.campaignPlan || !this.campaignPlan.qualificationCriteria) {
-        console.log('📋 [PRE-QUALIFY] No campaign plan, accepting lead');
         return {
           success: true,
           score: 70,
@@ -2043,9 +1901,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
           .filter(text => text.length > 0)
           .join('\n\n');
         
-        console.log(`📚 [PRE-QUALIFY] Extracted ${allOrganicResults.slice(0, 5).length} organic results from ${researchData.searches.length} searches (${researchSummary.length} chars)`);
       } else {
-        console.log(`⚠️ [PRE-QUALIFY] No Serper organic results available from ${researchData?.searches?.length || 0} searches`);
       }
       
       const prompt = `You are a lead qualification AI. Quickly evaluate if this lead is worth pursuing based on available information.
@@ -2100,7 +1956,6 @@ Respond in JSON format:
         const penalty = 30;
         const originalScore = result.score;
         result.score = Math.max(0, result.score - penalty);
-        console.log(`⚠️ [PRE-QUALIFY] No webpage insights extracted - reducing score by ${penalty} points (${originalScore} → ${result.score})`);
         result.reason += ` (Note: Limited research data available - ${penalty} point penalty applied)`;
       }
       
@@ -2167,9 +2022,6 @@ Respond in JSON format:
         }
       );
       
-      console.log(`${emoji} [PRE-QUALIFY] Score: ${result.score}/100 - ${result.recommendation} - ${confidenceEmoji}`);
-      console.log(`💭 [PRE-QUALIFY] Reason: ${result.reason}`);
-      console.log(`📊 [PRE-QUALIFY] Verified ${criteriaVerified}/${criteria.mustHave?.length || 0} must-have criteria`);
       
       return {
         success: true,
@@ -2205,12 +2057,10 @@ Respond in JSON format:
     const personName = leadData?.name || 'Unknown';
     const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
     
-    console.log(`📊 [QUALIFY] Tiered evaluation: ${personName} at ${companyName}`);
     
     try {
       // If no campaign plan, use default qualification (SHOTGUN tier)
       if (!this.campaignPlan || !this.campaignPlan.qualificationCriteria) {
-        console.log('📋 [QUALIFY] No campaign plan, defaulting to SHOTGUN tier');
         return {
           success: true,
           qualified: true,
@@ -2409,7 +2259,6 @@ Respond in JSON:
   "emailStrategy": "deep personalization" | "moderate personalization" | "generic template" | "do not send"
 }`;
 
-      console.log('� [MODEL] Using GPT-4o for tiered qualification');
       
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o',
@@ -2421,9 +2270,6 @@ Respond in JSON:
       const result = JSON.parse(response.choices[0].message.content);
       
       // Log tier assignment
-      console.log(`📊 [QUALIFY] Result: ${result.tier} (Score: ${result.score}/100)`);
-      console.log(`   Strategy: ${result.emailStrategy}`);
-      console.log(`   Evidence: ${result.citedEvidence?.length || 0} cited facts`);
       
       // Log API usage
       if (response.usage) {
@@ -2486,7 +2332,6 @@ Respond in JSON:
         allCitedFacts: allCitedFacts
       };
       
-      console.log(`✅ [QUALIFY] AI Report generated with ${aiReport.citedEvidence.length} evidence items`);
       
       // Emit detailed activity log with tier information
       const tierEmojis = {
@@ -2525,13 +2370,7 @@ Respond in JSON:
         }
       );
       
-      console.log(`${emoji} [QUALIFY] Tier: ${result.tier} - Score: ${result.score}/100 - ${confidenceEmoji}`);
-      console.log(`📊 [QUALIFY] Research Quality: ${aiReport.researchQuality} (${allCitedFacts.length} cited facts)`);
-      console.log(`💭 [QUALIFY] Reasoning: ${result.reasoning}`);
-      console.log(`📧 [QUALIFY] Email Strategy: ${result.emailStrategy}`);
-      console.log(`💪 [QUALIFY] Strengths: ${result.keyStrengths?.join(', ')}`);
       if (result.weaknesses?.length > 0) {
-        console.log(`⚠️ [QUALIFY] Weaknesses: ${result.weaknesses.join(', ')}`);
       }
       
       return {
@@ -2591,7 +2430,6 @@ Respond in JSON:
     const personName = parameters?.personName || leadData?.name || 'Unknown';
     const industry = leadData?.organization?.industry || leadData?.industry || '';
     
-    console.log('🔍 [SERPER] Starting intelligent research for:', personName, 'at', companyName);
     
     try {
       // Get agent personality for research approach
@@ -2605,11 +2443,10 @@ Respond in JSON:
       };
       
       // Always run deep research if campaign plan exists (ignore searchQuery parameter from GPT)
+      console.log(`🔬 [RESEARCH BRANCH] campaignPlan: ${!!this.campaignPlan} | qualificationCriteria: ${!!this.campaignPlan?.qualificationCriteria} → ${this.campaignPlan?.qualificationCriteria ? 'DEEP (4-phase)' : 'FALLBACK (single search)'}`);
       if (this.campaignPlan && this.campaignPlan.qualificationCriteria) {
         if (parameters.searchQuery) {
-          console.log(`⚠️ [RESEARCH] Ignoring searchQuery parameter - running deep 4-phase research instead`);
         }
-        console.log(`🎯 [RESEARCH STRATEGY] Running deep 4-phase research with ${personalityType} personality`);
         
         const criteria = this.campaignPlan.qualificationCriteria;
         const searchQueries = [];
@@ -2642,17 +2479,14 @@ Respond in JSON:
         });
         
         // Execute searches and fetch webpages (Phase 1-2 only - qualification research)
-        console.log(`🔍 [PHASE 1-2 RESEARCH] Running ${searchQueries.length} searches for qualification + fetching top 3 webpages each`);
         
         // Import webpage fetcher
         const { fetchMultipleWebpages } = await import('../tools/webpageFetcher.js');
         
         for (const search of searchQueries) {
-          console.log(`🔎 [${search.purpose.toUpperCase()}] ${search.description}`);
           
           // If using cached data, skip the search
           if (search.cachedData) {
-            console.log(`   📊 Using cached industry statistics (${Object.keys(search.cachedData.insights || {}).length} insights)`);
             allResearchData.searches.push({
               purpose: search.purpose,
               query: null,
@@ -2663,7 +2497,6 @@ Respond in JSON:
             continue; // Skip to next search
           }
           
-          console.log(`   Query: "${search.query}"`);
           
           try {
             const results = await internetSearch(search.query);
@@ -2693,7 +2526,6 @@ Respond in JSON:
               .map(r => r.link)
               .filter(url => url && !url.includes('youtube.com') && !url.includes('pdf')); // Skip videos and PDFs
             
-            console.log(`   📄 Fetching ${topUrls.length} webpages...`);
             
             // Fetch webpage content
             const webpageContents = await fetchMultipleWebpages(topUrls, 3);
@@ -2708,7 +2540,6 @@ Respond in JSON:
                                           webpage.title.toLowerCase().includes(companyName.toLowerCase());
                   
                   if (!companyMentioned && search.purpose === 'user_company_success') {
-                    console.log(`   ⚠️ Skipping ${webpage.title} - "${companyName}" not mentioned (avoiding hallucination)`);
                     continue;
                   }
                   
@@ -2758,7 +2589,6 @@ Format as:
                   
                   // Skip if no relevant data found
                   if (extractedInsights.includes('NO RELEVANT DATA')) {
-                    console.log(`   ⚠️ No relevant data about ${companyName} found in: ${webpage.title}`);
                     continue;
                   }
                   
@@ -2767,7 +2597,6 @@ Format as:
                   
                   // Additional validation: skip if no bullet points extracted
                   if (insightLines.length === 0) {
-                    console.log(`   ⚠️ No valid insights extracted from: ${webpage.title}`);
                     continue;
                   }
                   
@@ -2785,7 +2614,6 @@ Format as:
                     citedFacts: citedInsights // NEW: Individual facts with source attribution
                   });
                   
-                  console.log(`   ✅ Extracted insights from: ${webpage.title}`);
                   
                   // Log OpenAI usage
                   if (insightResponse.usage) {
@@ -2828,7 +2656,6 @@ Format as:
                 },
                 timestamp: Date.now()
               };
-              console.log(`   💾 Cached industry statistics for "${industryKeyword}" (valid for 7 days)`);
             }
             
             // Extract findings from snippets (keep for quick reference)
@@ -2840,9 +2667,7 @@ Format as:
               }));
               
               allResearchData.combinedFindings.push(...findings);
-              console.log(`   ✅ Found ${findings.length} snippets + ${webpageInsights.length} deep insights`);
             } else {
-              console.log(`   ⚠️ No results found`);
             }
             
             // Delay between searches
@@ -2869,10 +2694,6 @@ Format as:
           .flatMap(s => s.webpageInsights || [])
           .length;
         
-        console.log(`✅ [DEEP RESEARCH] Completed ${allResearchData.searches.length} searches with:`);
-        console.log(`   - ${allResearchData.combinedFindings.length} search snippets`);
-        console.log(`   - ${totalWebpageInsights} deep webpage insights`);
-        console.log(`   - Total data sources: ${allResearchData.combinedFindings.length + totalWebpageInsights}`);
         
         // Log to UI for visibility (commented out - will show after qualification)
         // this.logOperation('🔍 Phase 1-2: Prospect Research Complete', 
@@ -2891,7 +2712,6 @@ Format as:
       } else {
         // Fallback: Single generic search
         const searchQuery = parameters.searchQuery || `${companyName} company information business model products services`;
-        console.log('� [SERPER] Single search query:', searchQuery);
         
         const results = await internetSearch(searchQuery);
         
@@ -2926,30 +2746,10 @@ Format as:
               timestamp: new Date().toISOString()
             }
           });
-          console.log('📊 [SERPER] API usage logged');
-        } catch (logError) {
+          } catch (logError) {
           console.error('⚠️ [SERPER] Failed to log API usage:', logError);
         }
       }
-      
-      // Log detailed findings from allResearchData
-      console.log('📊 [SERPER] Research Summary:');
-      console.log(`   • Total searches conducted: ${allResearchData.searches.length}`);
-      console.log(`   • Combined findings: ${allResearchData.combinedFindings.length}`);
-      
-      // Log top findings
-      if (allResearchData.combinedFindings && allResearchData.combinedFindings.length > 0) {
-        console.log('🎯 [SERPER] Top Research Findings:');
-        allResearchData.combinedFindings.slice(0, 5).forEach((finding, index) => {
-          console.log(`   ${index + 1}. ${finding.title || 'No title'}`);
-          console.log(`      Purpose: ${finding.purpose}`);
-          if (finding.snippet) {
-            console.log(`      Snippet: ${finding.snippet.substring(0, 100)}...`);
-          }
-        });
-      }
-      
-      console.log('✅ [SERPER] Research complete - Data logged above');
       
       // Emit detailed research findings to Activity Logs
       const researchSummary = [];
@@ -3067,7 +2867,6 @@ Format as:
     const companyName = parameters?.companyName || leadData?.organization?.name || leadData?.company || 'Unknown Company';
     const industry = leadData?.organization?.industry || leadData?.industry || '';
     
-    console.log('🎯 [PHASE 3] Running supporting research (industry stats + user company wins)');
     
     try {
       const supportingSearches = [];
@@ -3094,7 +2893,6 @@ Format as:
       const cacheMaxAge = 3 * 24 * 60 * 60 * 1000; // 3 days in ms
       
       if (cachedStats && (Date.now() - cachedStats.timestamp) < cacheMaxAge) {
-        console.log(`📊 [CACHE HIT] Using cached industry statistics for \"${industryKeyword}\"`);
         supportingSearches.push({
           query: null,
           purpose: 'industry_statistics',
@@ -3102,7 +2900,6 @@ Format as:
           cachedData: cachedStats.data
         });
       } else {
-        console.log(`📊 [CACHE MISS] Fetching fresh industry statistics for \"${industryKeyword}\"`);
         supportingSearches.push({
           query: `${industryKeyword} industry statistics trends data 2024 2025`,
           purpose: 'industry_statistics',
@@ -3113,7 +2910,6 @@ Format as:
       // Search 2: User's company recent successes (for social proof)
       const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'company';
       
-      console.log(`🏢 [COMPANY NAME] Using company name for research: "${userCompanyName}"`);
       
       // Check cache for user company wins (valid for 3 days)
       const companyCacheKey = userCompanyName.toLowerCase().replace(/\s+/g, '_');
@@ -3126,7 +2922,6 @@ Format as:
       }
       
       if (cachedCompanyWins && (Date.now() - cachedCompanyWins.timestamp) < companyCacheMaxAge) {
-        console.log(`💾 [CACHE HIT] Using cached company wins for "${userCompanyName}"`);
         supportingSearches.push({
           query: null,
           purpose: 'user_company_success',
@@ -3134,7 +2929,6 @@ Format as:
           cachedData: cachedCompanyWins.data
         });
       } else {
-        console.log(`🔄 [CACHE MISS] Fetching fresh company wins for "${userCompanyName}"`);
         supportingSearches.push({
           query: `${userCompanyName} news funding clients partnerships awards success 2025 2026`,
           purpose: 'user_company_success',
@@ -3143,17 +2937,14 @@ Format as:
       }
       
       // Execute supporting searches
-      console.log(`🔍 [PHASE 3] Running ${supportingSearches.length} supporting searches + fetching top 3 webpages each`);
       
       const { fetchMultipleWebpages } = await import('../tools/webpageFetcher.js');
       const { default: internetSearch } = await import('../tools/internetSearch.js');
       
       for (const search of supportingSearches) {
-        console.log(`🔎 [${search.purpose.toUpperCase()}] ${search.description}`);
         
         // If using cached data, skip the search
         if (search.cachedData) {
-          console.log(`   📊 Using cached industry statistics (${Object.keys(search.cachedData.insights || {}).length} insights)`);
           this.memory.lastResearch.searches.push({
             purpose: search.purpose,
             query: null,
@@ -3164,7 +2955,6 @@ Format as:
           continue;
         }
         
-        console.log(`   Query: \"${search.query}\"`);
         
         try {
           const results = await internetSearch(search.query);
@@ -3190,7 +2980,6 @@ Format as:
             .map(r => r.link)
             .filter(url => url && !url.includes('youtube.com') && !url.includes('pdf'));
           
-          console.log(`   📄 Fetching ${topUrls.length} webpages...`);
           
           // Fetch webpage content
           const webpageContents = await fetchMultipleWebpages(topUrls, 3);
@@ -3204,7 +2993,6 @@ Format as:
                                         webpage.title.toLowerCase().includes(userCompanyName.toLowerCase());
                 
                 if (!companyMentioned && search.purpose === 'user_company_success') {
-                  console.log(`   ⚠️ Skipping ${webpage.title} - \"${userCompanyName}\" not mentioned`);
                   continue;
                 }
                 
@@ -3253,14 +3041,12 @@ Format as:
                 const extractedInsights = insightResponse.choices[0].message.content;
                 
                 if (extractedInsights.includes('NO RELEVANT DATA')) {
-                  console.log(`   ⚠️ No relevant data found in: ${webpage.title}`);
                   continue;
                 }
                 
                 const insightLines = extractedInsights.split('\\n').filter(line => line.trim().startsWith('-'));
                 
                 if (insightLines.length === 0) {
-                  console.log(`   ⚠️ No valid insights extracted from: ${webpage.title}`);
                   continue;
                 }
                 
@@ -3278,7 +3064,6 @@ Format as:
                   citedFacts: citedInsights
                 });
                 
-                console.log(`   ✅ Extracted insights from: ${webpage.title}`);
                 
                 // Log OpenAI usage
                 if (insightResponse.usage) {
@@ -3321,7 +3106,6 @@ Format as:
               },
               timestamp: Date.now()
             };
-            console.log(`   💾 Cached industry statistics for \"${industryKeyword}\" (valid for 3 days)`);
           }
           
           // Cache user company wins
@@ -3334,7 +3118,6 @@ Format as:
               },
               timestamp: Date.now()
             };
-            console.log(`   💾 Cached company wins for \"${userCompanyName}\" (valid for 3 days)`);
           }
           
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -3348,13 +3131,9 @@ Format as:
       const platformMetrics = {};
       const userCompanySuccessData = this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success');
       if (userCompanySuccessData?.webpageInsights) {
-        console.log('🔍 [METRICS] Extracting platform metrics from research...');
-        
         const metricsText = userCompanySuccessData.webpageInsights
           .map(w => w.insights)
           .join('\\n');
-        
-        console.log('📝 [METRICS] Raw insights text:', metricsText.substring(0, 500));
         
         const returnsMatch = metricsText.match(/\\[METRIC\\].*?(\\d+[-–]\\d+%.*?(?:return|yield|ROI))/i);
         const investorsMatch = metricsText.match(/\\[METRIC\\].*?(\\d+[,\\d]*\\+?.*?(?:investor|user|customer|client))/i);
@@ -3362,36 +3141,14 @@ Format as:
         const propertiesMatch = metricsText.match(/\\[METRIC\\].*?(\\d+\\+?.*?(?:propert|location|market|countr))/i);
         const performanceMatch = metricsText.match(/\\[METRIC\\].*?(outperformed.*?by.*?\\d+\\.?\\d*%)/i);
         
-        if (returnsMatch) {
-          platformMetrics.returns = returnsMatch[1].trim();
-          console.log('✅ [METRICS] Found returns:', platformMetrics.returns);
-        }
-        if (investorsMatch) {
-          platformMetrics.investors = investorsMatch[1].trim();
-          console.log('✅ [METRICS] Found investors:', platformMetrics.investors);
-        }
-        if (deployedMatch) {
-          platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
-          console.log('✅ [METRICS] Found deployed capital:', platformMetrics.deployed);
-        }
-        if (propertiesMatch) {
-          platformMetrics.properties = propertiesMatch[1].trim();
-          console.log('✅ [METRICS] Found properties:', platformMetrics.properties);
-        }
-        if (performanceMatch) {
-          platformMetrics.performance = performanceMatch[1].trim();
-          console.log('✅ [METRICS] Found performance:', platformMetrics.performance);
-        }
-        
-        if (Object.keys(platformMetrics).length === 0) {
-          console.log('⚠️ [METRICS] No [METRIC] tags found in insights. Metrics extraction failed.');
-        } else {
-          console.log('📊 [METRICS] Extracted platform metrics:', platformMetrics);
-        }
+        if (returnsMatch) platformMetrics.returns = returnsMatch[1].trim();
+        if (investorsMatch) platformMetrics.investors = investorsMatch[1].trim();
+        if (deployedMatch) platformMetrics.deployed = `$${deployedMatch[1].trim()}`;
+        if (propertiesMatch) platformMetrics.properties = propertiesMatch[1].trim();
+        if (performanceMatch) platformMetrics.performance = performanceMatch[1].trim();
         
         this.memory.platformMetrics = platformMetrics;
       } else {
-        console.log('⚠️ [METRICS] No user company research data found');
         this.memory.platformMetrics = {};
       }
       
@@ -3409,9 +3166,6 @@ Format as:
         .flatMap(s => s.webpageInsights || [])
         .length;
       
-      console.log(`✅ [PHASE 3] Supporting research complete`);
-      console.log(`   - Industry Stats: ${this.memory.lastResearch.searches.find(s => s.purpose === 'industry_statistics')?.webpageInsights?.length || 0} insights`);
-      console.log(`   - User Company Wins: ${this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success')?.webpageInsights?.length || 0} insights`);
       
       // Log to UI
       this.logOperation('🎯 Phase 3: Supporting Research Complete',
@@ -3441,17 +3195,8 @@ Format as:
 
   // Unlock email using Apollo - WORKING ENRICH METHOD
   async unlockEmail(parameters) {
-    console.log('🔐 [APOLLO] Unlocking email for:', parameters.firstName, parameters.lastName);
-    console.log('🔐 [APOLLO] Parameters received:', {
-      firstName: parameters.firstName,
-      lastName: parameters.lastName,
-      companyName: parameters.companyName,
-      domain: parameters.domain || 'NOT PROVIDED ❌'
-    });
-    
     try {
       const apiKey = await this.getApiKey('apollo');
-      console.log('🔍 [DEBUG] API key retrieved:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NULL');
       if (!apiKey) {
         throw new Error('Apollo API key not configured');
       }
@@ -3478,15 +3223,12 @@ Format as:
       // Add company targeting (try multiple approaches)
       if (parameters.domain) {
         searchPayload.q_organization_domains = [parameters.domain];
-        console.log('🌍 [APOLLO] Using domain-based search (global) instead of location filter');
       } else if (parameters.companyName) {
         // Use both keyword tags and organization name for better matching
         searchPayload.q_organization_keyword_tags = [parameters.companyName.toLowerCase()];
         searchPayload.q_organization_name = parameters.companyName;
       }
 
-      console.log('🔍 [STEP 1] Searching for person with:', searchPayload);
-      
       // Emit API call metric
       this.updateIntegrationStatus('apollo', { status: 'active' });
       
@@ -3514,7 +3256,6 @@ Format as:
       }
 
       let searchData = await searchResponse.json();
-      console.log('🔍 [STEP 1] Search results:', searchData.people?.length || 0, 'people found');
       
       // Log Apollo search usage for email unlock
       await this.awsManager.logApiUsage({
@@ -3539,11 +3280,9 @@ Format as:
       }
       
       if (!searchData.people || searchData.people.length === 0) {
-        console.log('⚠️ [STEP 1] No results with current search, trying fallback...');
         
         // FALLBACK 1: Try without domain filtering if we used a domain
         if (parameters.domain) {
-          console.log('🔄 [FALLBACK] Retrying without domain filter (global search)...');
           const fallbackPayload = {
             per_page: 10,
             page: 1,
@@ -3573,7 +3312,6 @@ Format as:
           if (fallbackResponse.ok) {
             const fallbackData = await fallbackResponse.json();
             if (fallbackData.people && fallbackData.people.length > 0) {
-              console.log('✅ [FALLBACK] Found results without domain filter!');
               // Continue with fallback data
               searchData = fallbackData;
               
@@ -3630,10 +3368,8 @@ Format as:
         targetPerson = searchData.people[0];
       }
 
-      console.log(`🔍 [STEP 1] Target person: ${targetPerson.name} (ID: ${targetPerson.id})`);
 
       // STEP 2: Use enrich endpoint to unlock actual emails
-      console.log('  [STEP 2] Enriching person to unlock emails...');
       
       // Check rate limit BEFORE enrichment
       const rateCheck = await this.awsManager.checkApiRateLimit(
@@ -3681,7 +3417,6 @@ Format as:
       }
 
       const enrichData = await enrichResponse.json();
-      console.log('🔓 [STEP 2] Enriched person data received');
       
       // Log Apollo email enrichment usage
       await this.awsManager.logApiUsage({
@@ -3701,9 +3436,7 @@ Format as:
         const workEmail = person.email;
         const personalEmails = person.personal_emails || [];
         
-        console.log(`📧 Work email: ${workEmail}`);
-        console.log(`📧 Personal emails: ${personalEmails.join(', ')}`);
-        console.log(`📊 [DEBUG] Email status/confidence:`, person.email_status, person.extrapolated_email_confidence);
+
         
         // Accept ANY email from Apollo, including constructed/guessed emails
         // The bounce handler will validate if they're real
@@ -3714,15 +3447,12 @@ Format as:
                  email.includes('@'); // Basic email format check
         });
         
-        console.log(`📊 [DEBUG] Filtered emails count: ${allEmails.length}`);
         if (allEmails.length > 0) {
-          console.log(`📊 [DEBUG] First email to use: ${allEmails[0]}`);
         }
         
         // Validate email with ZeroBounce before accepting (non-blocking)
         const emailToValidate = allEmails[0]; // Use first available email
         if (emailToValidate) {
-          console.log(`🔍 [ZEROBOUNCE] Validating email: ${emailToValidate}`);
           const zeroBounceResult = await this.validateEmailWithZeroBounce(emailToValidate);
           
           // Only reject if ZeroBounce says it's spamtrap or do_not_mail (accept catch-all and unknown)
@@ -3741,7 +3471,6 @@ Format as:
             };
           }
           
-          console.log(`✅ [ZEROBOUNCE] Email validation: ${zeroBounceResult.status} (accepted)`);
         }
         
         // Check if we have valid emails (already filtered above)
@@ -3788,7 +3517,6 @@ Format as:
     try {
       const apiKey = process.env.ZEROBOUNCE_API_KEY;
       if (!apiKey) {
-        console.log('⚠️ [ZEROBOUNCE] API key not found, skipping validation');
         return { isValid: true, status: 'skipped', reason: 'No API key' };
       }
 
@@ -3850,8 +3578,6 @@ Format as:
 
   // Build personalized email
   async buildPersonalizedEmail(parameters) {
-    console.log('📝 [EMAIL BUILDER] Creating adaptive personalized email...');
-    
     try {
       // Run Phase 3 supporting research (industry stats + user company wins) if not already done
       const hasPhase3Data = this.memory.lastResearch?.searches?.some(s => 
@@ -3859,10 +3585,8 @@ Format as:
       );
       
       if (!hasPhase3Data) {
-        console.log('🎯 [EMAIL BUILDER] Phase 3 supporting research not yet run - executing now');
         await this.runSupportingResearch(parameters);
       } else {
-        console.log('✅ [EMAIL BUILDER] Phase 3 supporting research already complete');
       }
       
       // Get data from current cycle state instead of parameters
@@ -3893,7 +3617,6 @@ Format as:
       const aiReport = qualification?.aiReport;
       const tier = aiReport?.tier || qualification?.tier || 'SHOTGUN';
       
-      console.log(`📊 [EMAIL BUILDER] Using ${tier} tier strategy: ${aiReport?.emailStrategy || 'generic template'}`);
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🎯 CRITICAL VALIDATION: BUYER-SIDE MOTIVATION REQUIRED
@@ -3916,9 +3639,6 @@ Format as:
           ? '❌ [BUYER MOTIVATION] Not articulated - cannot generate email'
           : '❌ [BUYER MOTIVATION] Too generic or speculative - requires specific evidence-based reasoning';
         
-        console.log(errorMsg);
-        console.log(`   Lead: ${leadData.first_name} ${leadData.last_name} at ${companyName}`);
-        console.log(`   Motivation provided: ${buyerMotivation || 'NONE'}`);
         
         this.logOperation('Email Generation Blocked', 
           `No plausible buyer-side motivation articulated for ${leadData.first_name} ${leadData.last_name}. ` +
@@ -3947,12 +3667,8 @@ Format as:
         : `${leadData.title || 'Professional'} at ${companyName} — general industry fit with potential need for our solution based on role and company profile.`;
 
       if (isShotgun && !hasValidMotivation) {
-        console.log(`⚠️ [BUYER MOTIVATION] SHOTGUN lead — using generic fallback motivation`);
-        console.log(`   Fallback: ${resolvedMotivation}`);
       } else {
-        console.log(`✅ [BUYER MOTIVATION VALIDATED] ${resolvedMotivation.substring(0, 100)}...`);
       }
-      console.log(`   This motivation will guide email personalization strategy`);
       
       // Extract cited facts for personalization
       let citedFactsContext = '';
@@ -4053,7 +3769,6 @@ Key Points to Emphasize: ${messaging.keyPoints?.join(', ') || 'Standard benefits
 Call to Action: ${messaging.callToAction || 'Schedule a call'}
 Tone: ${messaging.tone || 'professional'}`;
         
-        console.log('🎯 [EMAIL] Using campaign-specific messaging strategy');
       }
       
       // Add qualification strengths if available (from qualify_lead tool)
@@ -4064,7 +3779,6 @@ LEAD QUALIFICATION INSIGHTS (lead with these strengths):
 ${this.memory.currentQualification.keyStrengths.map(s => `- ${s}`).join('\n')}
 Score: ${this.memory.currentQualification.score}/100`;
         
-        console.log('💪 [EMAIL] Incorporating qualification strengths into email');
       }
       
       // Add BUYER MOTIVATION context (validated above - this is CRITICAL)
@@ -4084,53 +3798,41 @@ evidence-based reason WHY this person would buy from us RIGHT NOW. Use this to:
 
 DO NOT write generic emails. Use this buyer motivation to show sophisticated understanding.`;
       
-      console.log('🎯 [EMAIL] Incorporating validated buyer motivation into email context');
       
       // Build research findings summary for the prompt
       let researchFindings = '';
       if (this.memory.lastResearch && this.memory.lastResearch.searches) {
         const searches = this.memory.lastResearch.searches;
-        console.log(`🔍 [RESEARCH DEBUG] Found ${searches.length} searches in memory`);
-        
+        // Extract research context        
         researchFindings = '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 RESEARCH FINDINGS (USE THESE IN YOUR EMAIL)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ CRITICAL ANTI-HALLUCINATION WARNING:\n- ONLY use facts that explicitly mention the prospect\'s company name\n- If a "fact" could apply to ANY company, it\'s probably hallucinated - DO NOT USE IT\n- When in doubt, skip the fact. Better to be conservative than confidently wrong.\n- NEVER attribute achievements from one company to another\n\n';
         
         searches.forEach((search, index) => {
-          console.log(`   [Search ${index + 1}] Purpose: ${search.purpose}, Has results: ${!!search.results}, Organic count: ${search.results?.organic?.length || 0}`);
           
           if (search.purpose === 'company_overview') {
             const facts = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
-            console.log(`   [Company Overview] Extracted ${facts.split('\n').length} facts, length: ${facts.length}`);
             if (facts) researchFindings += `📍 ABOUT THE PROSPECT'S COMPANY (${companyName}):\n${facts}\n\n`;
           } else if (search.purpose === 'recent_developments') {
             const news = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
-            console.log(`   [Recent Developments] Extracted ${news.split('\n').length} news items, length: ${news.length}`);
             if (news) researchFindings += `📰 ${companyName}'S RECENT NEWS (use these for opening hooks):\n${news}\n\n`;
           } else if (search.purpose === 'industry_statistics') {
             const stats = search.webpageInsights?.slice(0, 2).map(insight => `• ${insight.insights}`).join('\n') || '';
-            console.log(`   [Industry Stats] Extracted ${stats.split('\n').length} stats, length: ${stats.length}`);
             if (stats) researchFindings += `📊 INDUSTRY STATISTICS (neutral third-party data - cite for credibility):\n${stats}\n\n`;
           } else if (search.purpose === 'user_company_success') {
             const wins = search.webpageInsights?.filter(w => w.insights && !w.insights.includes('NO RELEVANT DATA')).map(w => w.insights).join('\n') || '';
-            console.log(`   [Company Wins] Extracted ${wins.split('\n').length} wins, length: ${wins.length}`);
             
             // Only include if we found actual verified wins
             if (wins.length > 50) {
               const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName || 'Your Company';
               researchFindings += `🏆 ${userCompanyName.toUpperCase()}'S RECENT WINS (about YOUR company - NOT the prospect):\n${wins}\n⚠️ Use ONLY if truly impressive and relevant. DO NOT confuse these with ${companyName}'s achievements.\n\n`;
             } else {
-              console.log(`   ⚠️ No verified company wins found - will rely on value proposition only`);
             }
           }
         });
         
-        console.log(`📊 [RESEARCH DEBUG] Final researchFindings length: ${researchFindings.length}`);
         if (researchFindings.length > 200) {
-          console.log('✅ [EMAIL] Added research findings summary to prompt');
         } else {
-          console.log('⚠️ [EMAIL] Research findings too short or empty!');
         }
       } else {
-        console.log('❌ [RESEARCH DEBUG] No research data found in memory!');
       }
       
       // Common ruleset for email structure - ALWAYS include lead details and context
@@ -4473,11 +4175,6 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       // ALWAYS combine personality prompt with common ruleset containing lead details + buyer motivation
       const emailPrompt = `${customPrompt}\n${commonRuleset}${buyerMotivationContext}`;
 
-      console.log('💎 [PREMIUM MODEL] Using GPT-4 for high-quality email generation');
-      console.log('📝 [EMAIL PROMPT] Full prompt being sent to GPT-4o:');
-      console.log('---START PROMPT---');
-      console.log(emailPrompt);
-      console.log('---END PROMPT---');
       
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o',
@@ -4487,15 +4184,6 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       });
 
       const emailContent = response.choices[0].message.content;
-      
-      // 🔍 DEBUG LOGGING - Track what GPT actually outputs
-      console.log('🔍 [EMAIL DEBUG] Raw GPT-4o output:');
-      console.log('---START RAW OUTPUT---');
-      console.log(emailContent);
-      console.log('---END RAW OUTPUT---');
-      console.log('🔍 [EMAIL DEBUG] Output length:', emailContent.length);
-      console.log('🔍 [EMAIL DEBUG] Has SUBJECT:?', emailContent.includes('SUBJECT:'));
-      console.log('🔍 [EMAIL DEBUG] Has BODY:?', emailContent.includes('BODY:'));
       
       // Log API usage
       if (response.usage) {
@@ -4515,19 +4203,11 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
       }
       
-      console.log('📧 [GPT-4 RESPONSE] Email content received:');
-      console.log('---START EMAIL---');
-      console.log(emailContent);
-      console.log('---END EMAIL---');
-      
       // Extract body from AI response
       let body;
       let extractedSubject = null;
       
-      console.log('🔍 [BODY EXTRACTION] Starting extraction...');
-      
       if (emailContent.includes('SUBJECT:') && emailContent.includes('BODY:')) {
-        console.log('🔍 [BODY EXTRACTION] Found both SUBJECT: and BODY: markers');
         const parts = emailContent.split('BODY:');
         body = parts[1].trim();
         
@@ -4535,16 +4215,11 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
         const subjectMatch = parts[0].match(/SUBJECT:\s*(.+?)$/im);
         if (subjectMatch) {
           extractedSubject = subjectMatch[1].trim();
-          console.log('🔍 [BODY EXTRACTION] Extracted subject from SUBJECT: marker:', extractedSubject);
         }
       } else {
-        console.log('🔍 [BODY EXTRACTION] No markers found, using full content');
         body = emailContent;
       }
       
-      console.log('🔍 [BODY EXTRACTION] Body before cleanup (first 200 chars):', body.substring(0, 200));
-      
-      // AGGRESSIVE CLEANUP - Remove ANY subject line formatting that AI might use
       const originalBody = body;
       
       // Remove "SUBJECT:" variants (case insensitive)
@@ -4559,21 +4234,16 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       // This catches edge cases where GPT outputs: "quick question\n\nHello..."
       const lines = body.split('\n');
       if (lines.length > 2 && lines[0].length < 80 && lines[0].length > 5 && !lines[0].includes('Hello') && !lines[0].includes('Hi ') && !lines[0].match(/^Dear /i) && lines[1] === '') {
-        console.log('🔍 [BODY EXTRACTION] Detected orphaned subject line at start:', lines[0]);
         // First line is short, second is blank - likely a subject line
         body = lines.slice(2).join('\n').trim();
       }
       
       if (originalBody !== body) {
-        console.log('✅ [BODY CLEANUP] Cleaned up subject line from body');
-        console.log('🔍 [BODY CLEANUP] Body after cleanup (first 200 chars):', body.substring(0, 200));
-      } else {
-        console.log('✅ [BODY CLEANUP] No cleanup needed');
+        // cleaned up subject line from body
       }
       
       // 🚀 DYNAMIC SUBJECT LINE GENERATION
       // ALWAYS generate subject line from email body content for maximum relevance
-      console.log('📧 [SUBJECT GEN] Generating dynamic subject line from email content...');
       let subject = 'Quick question'; // Fallback only if API fails completely
       
       try {
@@ -4637,18 +4307,13 @@ Generate ONLY the subject line, nothing else.`;
         }
 
         if (dynamicSubject && dynamicSubject.length > 5) {
-          console.log('✨ [SUBJECT GEN] Generated:', dynamicSubject);
           subject = dynamicSubject;
-        } else {
-          console.log('⚠️ [SUBJECT GEN] Response too short, using fallback');
         }
       } catch (error) {
         console.error('❌ [SUBJECT GEN] Failed to generate dynamic subject:', error.message);
-        console.log('📧 [SUBJECT GEN] Using fallback subject');
       }
       
       // Generate lead qualification confidence report
-      console.log('🔍 [LEAD ANALYSIS] Generating confidence report...');
       const analysisPrompt = `Analyze this lead's qualification and likelihood to respond positively.
 
 LEAD DETAILS:
@@ -4698,8 +4363,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         }).catch(err => console.error('Failed to log analysis usage:', err));
       }
 
-      console.log('📊 [LEAD CONFIDENCE]', confidenceReport);
-      
       // Extract confidence level from report - look for conversion likelihood
       let confidenceLevel = 'medium';
       const reportLower = confidenceReport.toLowerCase();
@@ -4725,7 +4388,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         confidenceLevel = 'medium';
       }
       
-      console.log('🎯 [CONFIDENCE LEVEL]', confidenceLevel);
       
       // Add legal compliance footer
       const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
@@ -4734,17 +4396,12 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
       
       // Get company address from settings (use company profile)
-      console.log('🔍 [DEBUG] Checking for company address in memory:');
-      console.log('this.memory.userSettings?.companyProfile:', this.memory.userSettings?.companyProfile);
-      console.log('this.memory.userSettings?.companyAddress:', this.memory.userSettings?.companyAddress);
-      console.log('emailSettings.companyBranding?.companyAddress:', emailSettings.companyBranding?.companyAddress);
       
       const companyAddress = this.memory.userSettings?.companyProfile?.companyAddress || 
                             this.memory.userSettings?.companyAddress || 
                             emailSettings.companyBranding?.companyAddress ||
                             'Your Company Address';
       
-      console.log('🏢 [ADDRESS] Final company address used:', companyAddress);
       
       // Minimal compliance footer - less promotional looking
       const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
@@ -4752,7 +4409,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       body = body + footer;
       
-      console.log('✅ [EMAIL BUILDER] Personalized email created with legal compliance footer');
       
       return {
         success: true,
@@ -4774,7 +4430,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
   // Execute Apollo search with reasoning
   async apolloSearch(parameters) {
-    console.log('🔍 [APOLLO] Executing reasoned search:', parameters);
     
     try {
       const apiKey = await this.getApiKey('apollo');
@@ -4833,7 +4488,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         this.memory.baseIndustryKeywords = userSettings.companyIndustries.flatMap(ind =>
           ind.split(/\s*&\s*/).map(k => k.trim().toLowerCase())
         );
-        console.log(`📋 [KEYWORD INIT] Extracted ${this.memory.baseIndustryKeywords.length} base keywords: ${this.memory.baseIndustryKeywords.join(', ')}`);
       }
       
       // STEP 1.5: Check if campaign specifies a priority industry to search first
@@ -4842,7 +4496,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const priorityIndustry = this.campaignPlan.searchStrategy.priorityIndustries[0];
         this.memory.campaignPriorityKeyword = priorityIndustry.split(/\s*&\s*/)[0].trim().toLowerCase();
         this.memory.leadsFoundWithCurrentKeyword = 0;
-        console.log(`🎯 [CAMPAIGN PRIORITY] Will search "${this.memory.campaignPriorityKeyword}" first (from campaign instructions)`);
       }
       
       // STEP 2: SYNCHRONIZED KEYWORD + POSITION ROTATION (Paired by Index)
@@ -4855,11 +4508,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         selectedKeyword = this.memory.campaignPriorityKeyword;
         keywordSource = 'campaign';
         selectedPositionIndex = 0; // Use first position for campaign priority
-        console.log(`🎯 [CAMPAIGN PRIORITY] Using campaign keyword "${selectedKeyword}" (active until >20% duplicates)`);
       } else {
         // Finished campaign priority OR no campaign priority set
         if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 999) {
-          console.log(`✅ [CAMPAIGN PRIORITY] High duplicate rate with "${this.memory.campaignPriorityKeyword}", moving to rotation`);
           this.memory.campaignPriorityKeyword = null; // Clear it
           this.memory.leadsFoundWithCurrentKeyword = 0;
         }
@@ -4883,7 +4534,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         if (this.memory.leadsFoundWithCurrentKeyword >= 999) {
           this.memory.currentKeywordIndex++;
           this.memory.leadsFoundWithCurrentKeyword = 0;
-          console.log(`🔄 [ROTATION] High duplicate rate detected, rotating to next keyword+position pair`);
         }
         
         // Track cycle offset for infinite variety (increases after full cycle)
@@ -4898,7 +4548,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           keywordSource = 'base';
           // Pair with matching position index + cycle offset for variety
           selectedPositionIndex = (keywordIndex + this.memory.cycleOffset) % basePositions.length;
-          console.log(`🎯 [BASE PAIR] Keyword[${keywordIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${basePositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset})`);
         } else {
           // Use AI-generated keyword
           const aiIndex = keywordIndex - totalBaseKeywords;
@@ -4906,7 +4555,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           keywordSource = 'ai';
           // Pair with matching AI position + cycle offset
           selectedPositionIndex = (aiIndex + this.memory.cycleOffset) % aiPositions.length;
-          console.log(`🤖 [AI PAIR] Keyword[${aiIndex}]: "${selectedKeyword}" + Position[${selectedPositionIndex}]: "${aiPositions[selectedPositionIndex]}" (offset: ${this.memory.cycleOffset})`);
         }
         
         // Determine the actual position being used
@@ -4943,30 +4591,25 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             timestamp: new Date().toISOString()
           });
           
-          console.log(`📡 [SSE] Broadcasting search update: ${selectedKeyword} + ${currentSearchPosition}`);
         }
         
         // STEP 2.5: Generate dynamic target positions when keyword changes AND after 20 leads
         if (this.memory.lastKeywordUsed !== selectedKeyword) {
-          console.log(`🔄 [KEYWORD CHANGE] Switched from "${this.memory.lastKeywordUsed || 'none'}" to "${selectedKeyword}"`);
           
           // Only generate new positions after we've used the original instructions/settings for 20 leads
           if (this.memory.totalLeadsFoundThisCycle >= 20 && !this.memory.originalTargetPositions) {
             // Store original positions first time
             this.memory.originalTargetPositions = [...(userSettings.targetPositions || [])];
-            console.log(`📌 [ORIGINAL SAVED] Saved original positions: ${this.memory.originalTargetPositions.join(', ')}`);
           }
           
           if (this.memory.totalLeadsFoundThisCycle >= 20 && this.memory.originalTargetPositions) {
             // After 20 leads, start dynamically adapting positions
-            console.log(`🎯 [DYNAMIC MODE] 20+ leads found, generating industry-specific positions`);
             await this.generateDynamicTargetPositions(
               selectedKeyword, 
               this.memory.originalTargetPositions,
               this.settings.specialInstructions
             );
           } else {
-            console.log(`📋 [USING ORIGINAL] Using original positions from instructions/settings (${this.memory.totalLeadsFoundThisCycle}/20 leads)`);
           }
           
           this.memory.lastKeywordUsed = selectedKeyword;
@@ -4975,22 +4618,18 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         // STEP 3: Generate new AI keywords+positions after cycling through all base + existing AI pairs
         if (this.memory.currentKeywordIndex % totalKeywords === 0 && this.memory.leadsFoundWithCurrentKeyword === 0) {
           // Just completed full cycle!
-          console.log(`🎊 [CYCLE COMPLETE] Finished full rotation of ${totalKeywords} industry+position pairs`);
           
           // Increment cycle offset for next cycle variety
           this.memory.cycleOffset++;
-          console.log(`🔄 [OFFSET INCREMENT] Cycle offset now: ${this.memory.cycleOffset} (positions will shift by ${this.memory.cycleOffset} next cycle)`);
           
           if (this.memory.aiGeneratedKeywords.length < 5) {
             // Generate new AI keyword+position pairs
-            console.log(`🧠 [AI GENERATION] Generating 5 new industry+position pairs...`);
             await this.generateRelatedIndustryKeywordsAndPositions(
               userSettings.companyIndustries,
               this.memory.originalTargetPositions || userSettings.targetPositions
             );
           } else {
             // Reset AI keywords after using 5 generated pairs
-            console.log(`🔄 [RESET AI] Used 5 AI-generated pairs, clearing and restarting with base pairs`);
             this.memory.aiGeneratedKeywords = [];
             this.memory.aiGeneratedPositions = [];
             this.memory.aiKeywordCycleCount = 0;
@@ -5014,13 +4653,11 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const tracker = this.memory.industryExhaustion[selectedKeyword];
       tracker.lastSearched = Date.now();
       
-      console.log(`📊 [TRACKING] "${selectedKeyword}": ${tracker.leadsFound}/100 leads found, ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative duplicates (${keywordSource} keyword)`);
       
       // Use pagination and vary search parameters intelligently
       // Apply page offset from search adaptation strategy
       const basePageRange = this.memory.searchPageOffset || 0;
       const searchPage = basePageRange + Math.floor(Math.random() * 10) + 1; // Offset + random 1-10
-      console.log(`📄 [PAGINATION] Searching page ${searchPage} (offset: ${basePageRange})`);
       
       // USE PAIRED POSITION (from rotation logic above)
       let targetPosition;
@@ -5033,11 +4670,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       if (selectedPositionIndex !== null && positionArray.length > 0) {
         targetPosition = positionArray[selectedPositionIndex];
-        console.log(`🎯 [PAIRED POSITION] Using ${usingAI ? 'AI' : 'base'} position[${selectedPositionIndex}]: "${targetPosition}"`);
       } else {
         // Fallback if something went wrong
         if (basePositions.length === 0) {
-          console.log(`❌ [CONFIG ERROR] Target positions not set - stopping cycle`);
           return {
             success: false,
             error: 'Target positions not configured. Please set target positions in agent settings.',
@@ -5046,7 +4681,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           };
         }
         targetPosition = basePositions[0];
-        console.log(`⚠️ [FALLBACK] Using first base position: "${targetPosition}"`);
       }
       
       // STEP 5: Check search history for duplicates (30 day window)
@@ -5059,12 +4693,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       );
       
       if (historyCheck.isDuplicate) {
-        console.log(`⏭️ [SKIP] Already searched this combo ${historyCheck.daysAgo} days ago`);
         
         // Check if this keyword has high cumulative duplicate rate - if so, skip it entirely
         const tracker = this.memory.industryExhaustion[selectedKeyword];
         if (tracker && tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
-          console.log(`🔄 [EXHAUSTED] Keyword "${selectedKeyword}" has ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative duplicates - forcing rotation`);
           this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation to next keyword
           return {
             success: true,
@@ -5077,7 +4709,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         
         // Otherwise just force rotation to try next keyword
         this.memory.leadsFoundWithCurrentKeyword = 999;
-        console.log(`🔄 [ROTATE] Forcing rotation to next keyword pair`);
         return {
           success: true,
           found: 0,
@@ -5095,7 +4726,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const remainingInQueue = this.memory.currentCycle.leadQueue.length;
       const leadsToRequest = Math.max(1, leadsNeeded - remainingInQueue);
       
-      console.log(`📊 [APOLLO] Leads status: Processed: ${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads}, Queue: ${remainingInQueue}, Requesting: ${leadsToRequest}`);
       
       const searchPayload = {
         q_keywords: targetPosition,
@@ -5112,7 +4742,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const sizeRange = parameters.companySize.toString().split(/[-,]/);
         sizeMin = parseInt(sizeRange[0]);
         sizeMax = parseInt(sizeRange[1]) || sizeMin;
-        console.log(`🎯 [AGENT DECISION] Using agent-reasoned company size: ${sizeMin}-${sizeMax} employees`);
       } else {
         // Fallback to user settings
         if (!userSettings.companySizeMin || !userSettings.companySizeMax) {
@@ -5120,7 +4749,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         }
         sizeMin = userSettings.companySizeMin;
         sizeMax = userSettings.companySizeMax;
-        console.log(`🔍 [FALLBACK] Using user settings company size: ${sizeMin}-${sizeMax} employees`);
       }
       
       searchPayload.organization_num_employees_ranges = [`${sizeMin},${sizeMax}`];
@@ -5128,10 +4756,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       // Use agent-reasoned location or fall back to user settings
       if (parameters.location) {
         searchPayload.person_locations = [parameters.location];
-        console.log(`🎯 [AGENT DECISION] Using agent-reasoned location: "${parameters.location}"`);
       } else if (userSettings.targetLocations && userSettings.targetLocations.length > 0) {
         searchPayload.person_locations = userSettings.targetLocations;
-        console.log(`🔍 [FALLBACK] Using user settings locations: ${userSettings.targetLocations.join(', ')}`);
       }
 
       // Use the selected keyword (from rotation system) for Apollo search
@@ -5140,22 +4766,17 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       // Apply campaign plan exclusions to filter out unwanted results (e.g., schools, non-profits)
       if (this.campaignPlan && this.campaignPlan.searchStrategy?.excludeKeywords?.length > 0) {
         searchPayload.organization_not_all_keywords = this.campaignPlan.searchStrategy.excludeKeywords;
-        console.log(`🚫 [CAMPAIGN EXCLUSIONS] Filtering out: ${this.campaignPlan.searchStrategy.excludeKeywords.join(', ')}`);
       }
       
       // CAMPAIGN STRATEGY: Keep search broad (baseline settings only)
       // Campaign plan keywords will be used during RESEARCH and QUALIFICATION phases
       // This ensures we actually find leads, then filter them based on campaign criteria
       if (this.campaignPlan && this.campaignPlan.searchStrategy) {
-        console.log(`🎯 [CAMPAIGN STRATEGY] Searching for ${selectedKeyword} ${targetPosition}s, will qualify during research phase`);
-        console.log(`🎯 [CAMPAIGN CRITERIA] Looking for: ${this.campaignPlan.searchStrategy.additionalKeywords?.join(', ') || 'campaign criteria'}`);
         
         // Note: We intentionally DON'T add campaign keywords to the Apollo search
         // Instead, we'll use them in the research/qualification phase to filter results
         // This prevents 0-result searches when keywords are too specific
       }
-
-      console.log('🔍 [APOLLO] Search payload:', JSON.stringify(searchPayload, null, 2));
 
       // Check rate limit BEFORE making Apollo API call
       const rateCheck = await this.awsManager.checkApiRateLimit(
@@ -5193,7 +4814,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       }
 
       const rawLeads = data.people || [];
-      console.log(`🔍 [APOLLO] Found ${rawLeads.length} raw leads, enriching contacts...`);
       
       // Enrich leads to get actual email addresses and full names
       const enrichedLeads = [];
@@ -5201,12 +4821,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         try {
           // Check if lead has email available
           if (!lead.has_email) {
-            console.log(`⚠️ [APOLLO] Skipping ${lead.first_name} ${lead.last_name_obfuscated || lead.last_name || ''} at ${lead.organization?.name} - no email available`);
             continue;
           }
 
           // Call people/enrich to get actual email and full name
-          console.log(`🔓 [APOLLO] Enriching ${lead.first_name} at ${lead.organization?.name}...`);
           const enrichResponse = await fetch('https://api.apollo.io/api/v1/people/enrich', {
             method: 'POST',
             headers: {
@@ -5245,7 +4863,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           };
 
           enrichedLeads.push(completeLead);
-          console.log(`✅ [APOLLO] Enriched: ${completeLead.name} (${completeLead.email}) at ${completeLead.company}`);
 
           // Log each enrichment for API usage tracking
           await this.awsManager.logApiUsage({
@@ -5267,7 +4884,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         }
       }
 
-      console.log(`📊 [APOLLO] Enrichment complete: ${enrichedLeads.length}/${rawLeads.length} leads have valid emails`);
 
       // Log Apollo search usage
       await this.awsManager.logApiUsage({
@@ -5316,7 +4932,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         if (deduplicationResult.success) {
           const { newLeads, duplicateLeads, summary } = deduplicationResult;
           
-          console.log(`📊 [DEDUPLICATION] Found ${summary.newCount} NEW leads, ${summary.duplicateCount} duplicates filtered out`);
           
           // Emit SSE progress for deduplication results
           this.emit('progress', {
@@ -5335,9 +4950,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           
           // Log duplicates for visibility
           if (duplicateLeads.length > 0) {
-            console.log('🔄 [DUPLICATES] Previously contacted:');
             duplicateLeads.forEach(lead => {
-              console.log(`   • ${lead.name} at ${lead.organization?.name || lead.company}`);
             });
           }
           
@@ -5366,12 +4979,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               tracker.totalDuplicates += duplicateLeads.length;
               tracker.cumulativeDuplicateRate = (tracker.totalDuplicates / tracker.totalAttempts) * 100;
               
-              console.log(`📊 [TRACKING] "${selectedKeyword}": This search ${duplicatePercentage.toFixed(1)}% duplicates (${duplicateLeads.length}/${totalAttempts}), Cumulative ${tracker.cumulativeDuplicateRate.toFixed(1)}% (${tracker.totalDuplicates}/${tracker.totalAttempts}), ${tracker.leadsFound}/100 total`);
               
               // Store performance to Zilliz for persistent learning
               if (this.memoryInitialized) {
                 try {
-                  console.log(`🧠 [MEMORY STORE] Saving performance for "${selectedKeyword}" to Zilliz...`);
                   const storeResult = await this.leadMemory.storeKeywordPerformance(
                     this.userId, // Use agent's userId, not userSettings.userId
                     this.agentId,
@@ -5381,7 +4992,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                     duplicateLeads.length,
                     keywordSource
                   );
-                  console.log(`✅ [MEMORY STORE] Performance saved to Zilliz successfully`);
                   
                   // Log to UI so user can see RAG is working
                   this.logOperation(
@@ -5394,12 +5004,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                   this.logOperation('⚠️ Memory Error', `Failed to store performance: ${memError.message}`, 'warning');
                 }
               } else {
-                console.log('⚠️ [MEMORY] Not initialized yet, skipping storage');
               }
               
               // Rotate if CUMULATIVE duplicate rate exceeds 50%
               if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
-                console.log(`🔄 [AUTO-ROTATE] Cumulative duplicate rate ${tracker.cumulativeDuplicateRate.toFixed(1)}% > 50% threshold (${tracker.totalAttempts} total attempts) - rotating to next keyword`);
                 
                 // Record this search to DB with ACTUAL new leads (before setting rotation flag)
                 await this.awsManager.recordSearchHistory(
@@ -5428,17 +5036,14 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           console.error('⚠️ [DEDUPLICATION] Check failed, proceeding with all leads:', deduplicationResult.error);
         }
       } else {
-        console.log(`📦 [APOLLO] No enriched leads found after filtering ${rawLeads.length} raw results`);
       }
 
-      console.log(`📦 [APOLLO] Found ${enrichedLeads.length} usable leads from search`);
 
       // Update keyword tracking (fallback case when deduplication not used)
       if (selectedKeyword && enrichedLeads.length > 0) {
         this.memory.leadsFoundWithCurrentKeyword += enrichedLeads.length;
         this.memory.industryExhaustion[selectedKeyword].leadsFound += enrichedLeads.length;
         this.memory.totalLeadsFoundThisCycle += enrichedLeads.length;
-        console.log(`📊 [TRACKING] "${selectedKeyword}": ${this.memory.leadsFoundWithCurrentKeyword}/20 for rotation, ${this.memory.industryExhaustion[selectedKeyword].leadsFound}/100 total`);
       }
 
       // Return enriched leads with actual emails
@@ -5485,9 +5090,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const userSettings = this.memory.userSettings;
       const companyProfile = userSettings?.companyProfile || {};
       
-      console.log(`🤖 [AI GENERATION] Generating 5 industry+position PAIRS based on company profile`);
-      console.log(`🏢 [COMPANY CONTEXT] ${companyProfile.companyName || 'Unknown'} - ${companyProfile.services || 'No services defined'}`);
-      console.log(`📋 [BASE POSITIONS] ${basePositions.join(', ')}`);
       
       const prompt = `You are an intelligent B2B lead generation strategist. Generate 5 SPECIFIC industry+position PAIRS of prospects WHO WOULD BUY from this company.
 
@@ -5554,9 +5156,7 @@ Format as JSON array of objects:
         this.memory.aiGeneratedPositions = positions;
         this.memory.aiKeywordCycleCount++;
         
-        console.log(`✅ [AI GENERATED] ${industries.length} pairs (cycle ${this.memory.aiKeywordCycleCount}):`);
         for (let i = 0; i < industries.length; i++) {
-          console.log(`   ${i+1}. "${industries[i]}" + "${positions[i]}"`);
         }
       } else {
         throw new Error('No valid pairs generated');
@@ -5576,8 +5176,6 @@ Format as JSON array of objects:
       const userSettings = this.memory.userSettings;
       const companyProfile = userSettings?.companyProfile || {};
       
-      console.log(`🤖 [AI GENERATION] Generating keywords based on company profile + industries`);
-      console.log(`🏢 [COMPANY CONTEXT] ${companyProfile.companyName || 'Unknown'} - ${companyProfile.services || 'No services defined'}`);
       
       const prompt = `You are an intelligent B2B lead generation strategist. Generate SPECIFIC sub-industries or niches within the target industries.
 
@@ -5624,7 +5222,6 @@ Specific Niche Keywords:`;
       this.memory.aiGeneratedKeywords = keywords;
       this.memory.aiKeywordCycleCount++;
       
-      console.log(`✅ [AI GENERATED] New keywords (cycle ${this.memory.aiKeywordCycleCount}): ${keywords.join(', ')}`);
       
     } catch (error) {
       console.error('❌ [AI GENERATION ERROR]', error.message);
@@ -5639,8 +5236,6 @@ Specific Niche Keywords:`;
    */
   async generateDynamicTargetPositions(industryKeyword, originalPositions, generalInstructions) {
     try {
-      console.log(`🎯 [DYNAMIC POSITIONS] Generating target positions for industry: "${industryKeyword}"`);
-      console.log(`📋 [ORIGINAL POSITIONS] Base positions: ${originalPositions.join(', ')}`);
       
       const userSettings = this.memory.userSettings;
       const companyProfile = userSettings?.companyProfile || {};
@@ -5689,7 +5284,6 @@ Target Positions:`;
         .filter(p => p.length > 0 && !p.includes('\n'))
         .slice(0, 7);
       
-      console.log(`✅ [DYNAMIC POSITIONS] Generated ${positions.length} positions for "${industryKeyword}":`, positions.join(', '));
       
       // Update settings in AWS (for display purposes)
       const updatedSettings = {
@@ -5706,7 +5300,6 @@ Target Positions:`;
       // Update memory
       this.memory.userSettings = updatedSettings;
       
-      console.log(`💾 [SETTINGS UPDATED] Target positions dynamically updated for "${industryKeyword}"`);
       
       return positions;
       
@@ -5719,11 +5312,8 @@ Target Positions:`;
 
   // Main agent execution loop - keeps reasoning until goal is met
   async findLeads(targetLeads = 5, userSettings = {}) {
-    console.log('🧠 [REASONING AGENT] Starting intelligent lead search...');
-    console.log('🎯 [GOAL] Find', targetLeads, 'quality leads');
     
     // CRITICAL: Load existing leads database to avoid duplicates
-    console.log('📄 [DUPLICATE CHECK] Loading existing leads database...');
     const existingDatabase = await this.loadLeadsDatabase();
     
     // Build comprehensive list of contacted companies from multiple sources
@@ -5743,13 +5333,10 @@ Target Positions:`;
     // Build list of processed emails
     const processedEmails = new Set((existingDatabase.allLeads || []).map(lead => lead.email?.toLowerCase()).filter(Boolean));
     
-    console.log(`🚫 [DUPLICATE CHECK] Found ${emailedCompanies.size} previously contacted companies`);
-    console.log(`🚫 [DUPLICATE CHECK] Found ${processedEmails.size} previously processed emails`);
     
     // Log some example companies to verify
     if (emailedCompanies.size > 0) {
       const exampleCompanies = Array.from(emailedCompanies).slice(0, 3);
-      console.log(`🏢 [EXAMPLES] Previously contacted: ${exampleCompanies.join(', ')}`);
     }
     
     // Store in memory for use during processing
@@ -5766,7 +5353,6 @@ Target Positions:`;
 
     while (foundLeads.length < targetLeads && attempts < maxAttempts) {
       attempts++;
-      console.log(`\n🧠 [REASONING] Attempt ${attempts}/${maxAttempts}`);
 
       // Agent reasons about current situation
       const context = {
@@ -5779,7 +5365,6 @@ Target Positions:`;
       };
 
       const decision = await this.reason(context);
-      console.log('🧠 [DECISION]', decision.reasoning);
       
       // Log the decision to activity logs
       this.logOperation('Agent Decision', `🧠 [DECISION] ${decision.reasoning}`, 'info', {
@@ -5810,7 +5395,6 @@ Target Positions:`;
           this.logOperation('Lead Search', `🔍 [SEARCH] Searching Apollo for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
           actionResult = await this.apolloSearch(decision.parameters);
           if (actionResult.found > 0) {
-            console.log(`✅ [SUCCESS] Found ${actionResult.found} leads! Total: ${foundLeads.length + actionResult.found}/${targetLeads}`);
             this.logOperation('Lead Search', `✅ [SEARCH SUCCESS] Found ${actionResult.found} leads! Total progress: ${foundLeads.length + actionResult.found}/${targetLeads}`, 'success', { 
               found: actionResult.found, 
               total: foundLeads.length + actionResult.found,
@@ -5824,24 +5408,20 @@ Target Positions:`;
               
               // Check if company already contacted
               if (companyName && this.memory.duplicateCheck.emailedCompanies.has(companyName)) {
-                console.log(`🚫 [DUPLICATE] Skipping ${lead.name} - company "${companyName}" already contacted`);
                 return false;
               }
               
               // Check if email already processed
               if (existingEmail && this.memory.duplicateCheck.processedEmails.has(existingEmail)) {
-                console.log(`🚫 [DUPLICATE] Skipping ${lead.name} - email "${existingEmail}" already processed`);
                 return false;
               }
               
               return true;
             });
             
-            console.log(`✨ [FILTERED] Processing ${newLeads.length}/${actionResult.leads.length} new leads (${actionResult.leads.length - newLeads.length} duplicates filtered)`);
             
             // Process each NEW lead through the full workflow
             for (const lead of newLeads) {
-              console.log(`\n🔍 [PROCESSING] Lead: ${lead.name} at ${lead.organization?.name}`);
               this.logOperation('Lead Processing', `🔍 [PROCESSING] Researching lead: ${lead.name} at ${lead.organization?.name}`, 'in-progress', { 
                 lead: lead.name, 
                 company: lead.organization?.name 
@@ -5864,7 +5444,6 @@ Target Positions:`;
                 
                 // Track email unlock success and handle both success/failure cases
                 if (emailUnlock.success && this.memory.emailSettings) {
-                  console.log(`✅ [EMAIL SUCCESS] Unlocked ${emailUnlock.all_emails?.length || 1} email(s) for ${lead.organization?.name} (${lead.organization?.estimated_num_employees || 'unknown'} employees)`);
                   this.logOperation('Email Processing', `📧 [EMAIL SUCCESS] Unlocked ${emailUnlock.all_emails?.length || 1} email(s) for ${lead.name} at ${lead.organization?.name}`, 'success', { 
                     emails: emailUnlock.all_emails?.length || 1,
                     company: lead.organization?.name,
@@ -5918,17 +5497,13 @@ Target Positions:`;
                     this.memory.duplicateCheck.processedEmails.add(emailAddress);
                   }
                   
-                  console.log(`✅ [COMPLETE] Lead processed with email and research`);
                 } else {
-                  console.log(`❌ [EMAIL FAIL] Could not unlock email for ${lead.organization?.name} - ${emailUnlock.error || 'Unknown error'}`);
                   
                   // If it's a constructed/fallback email issue, skip this lead and continue searching
                   if (emailUnlock.error && emailUnlock.error.includes('constructed/fallback')) {
-                    console.log(`🔄 [SKIP] Skipping lead with constructed email - will find different lead`);
                     continue; // Skip this lead entirely, don't add to results
                   }
                   
-                  console.log(`📊 [LEARNING] Company: ${lead.organization?.name}, Size: ${lead.organization?.estimated_num_employees}, Domain: ${lead.organization?.primary_domain}`);
                   
                   const partialLead = {
                     ...lead,
@@ -5959,7 +5534,6 @@ Target Positions:`;
               timestamp: new Date().toISOString()
             });
           } else {
-            console.log(`❌ [NO RESULTS] Apollo search returned 0 leads`);
             this.logOperation('Lead Search', `❌ [SEARCH FAILED] Apollo search returned 0 leads for ${decision.parameters.title || 'specified criteria'}`, 'warning', { 
               parameters: decision.parameters,
               reason: actionResult.error || 'No leads found'
@@ -5975,7 +5549,6 @@ Target Positions:`;
           break;
           
         default:
-          console.log(`🤔 [THINKING] Agent is reasoning: ${decision.reasoning}`);
           break;
       }
 
@@ -5983,7 +5556,6 @@ Target Positions:`;
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    console.log(`\n🏁 [COMPLETE] Found ${foundLeads.length}/${targetLeads} leads in ${attempts} attempts`);
     return foundLeads;
   }
 
@@ -6596,7 +6168,6 @@ Target Positions:`;
       }
       
       await this.saveLeadsDatabase(db);
-      console.log(`📄 [DATABASE] Added lead: ${leadData.name} at ${companyName || 'Unknown Company'}`);
       
       return leadRecord;
     } catch (error) {
@@ -6606,17 +6177,8 @@ Target Positions:`;
   }
 
   async addToEmailQueue(leadData) {
-    console.log('🚀 [EMAIL QUEUE START] User:', this.userId, '| Agent:', this.agentId, '| Lead:', leadData.email);
-    console.log('🔍 [EMAIL QUEUE DEBUG] leadData keys:', Object.keys(leadData));
-    console.log('🔍 [EMAIL QUEUE DEBUG] Has personalizedEmail:', !!leadData.personalizedEmail, '| Length:', leadData.personalizedEmail?.length);
-    console.log('🔍 [EMAIL QUEUE DEBUG] Has emailSubject:', !!leadData.emailSubject, '| Value:', leadData.emailSubject);
-    
     try {
       if (!leadData.personalizedEmail || !leadData.emailSubject) {
-        console.log('❌ [EMAIL QUEUE FAILED] No email content generated for', leadData.email);
-        console.log('❌ [EMAIL QUEUE FAILED] personalizedEmail:', leadData.personalizedEmail?.substring(0, 100));
-        console.log('❌ [EMAIL QUEUE FAILED] emailSubject:', leadData.emailSubject);
-        console.log('❌ [EMAIL QUEUE FAILED] Full leadData:', JSON.stringify(leadData, null, 2));
         this.logIssue('warning', 'Lead queued without email content', { leadData });
         return;
       }
@@ -6624,13 +6186,8 @@ Target Positions:`;
       // Emit metric: email queued
       this.emitMetric('emails', 'queued', 1, 'increment');
 
-      // Log CC and BCC email settings for debugging
       const ccEmails = this.memory.emailSettings?.emailBuilder?.ccEmails || '';
       const bccEmails = this.memory.emailSettings?.emailBuilder?.bccEmails || '';
-      console.log('📧 [EMAIL QUEUE] CC Emails from settings:', ccEmails);
-      console.log('📧 [EMAIL QUEUE] BCC Emails from settings:', bccEmails);
-      console.log('📧 [EMAIL QUEUE] Confidence Report:', leadData.confidenceReport);
-      console.log('📧 [EMAIL QUEUE] Confidence Level:', leadData.confidenceLevel);
 
       const queueData = {
         id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -6716,31 +6273,7 @@ Target Positions:`;
         }
       };
 
-      console.log('📧 [DEBUG QUEUE DATA] About to queue email with:', {
-        to: queueData.to,
-        hasConfidenceReport: !!queueData.confidenceReport,
-        confidenceReportLength: queueData.confidenceReport?.length || 0,
-        confidenceLevel: queueData.confidenceLevel,
-        confidenceReportPreview: queueData.confidenceReport?.substring(0, 100),
-        hasAiReport: !!queueData.aiReport,
-        aiReportTier: queueData.aiReport?.tier,
-        aiReportScore: queueData.aiReport?.score,
-        aiReportCitedEvidence: queueData.aiReport?.citedEvidence?.length || 0
-      });
-
-      console.log('📧 [DEBUG QUEUE DATA] About to call emailQueue.addToQueue with:', {
-        userId: this.userId,
-        agentId: this.agentId,
-        to: queueData.to,
-        subject: queueData.subject?.substring(0, 50),
-        bodyLength: queueData.body?.length,
-        hasConfidenceReport: !!queueData.confidenceReport,
-        hasAiReport: !!queueData.aiReport
-      });
-
       await this.emailQueue.addToQueue(queueData);
-      console.log(`✅ [EMAIL QUEUE SUCCESS] ${leadData.company} (${leadData.email}) | User: ${this.userId} | Agent: ${this.agentId}`);
-      console.log(`✅ [EMAIL QUEUE SUCCESS] Email ID: ${queueData.id}`);
 
       // Emit SSE event so frontend updates count immediately
       this.emit('email_queued', {
@@ -6779,7 +6312,6 @@ Target Positions:`;
         const trackingResult = await this.awsManager.addContactedLead(this.userId, leadInfo);
         
         if (trackingResult.success) {
-          console.log('📝 [CONTACT TRACKING] Lead added to contacted database:', leadInfo.email);
           
           // Emit SSE success for contact tracking
           this.emit('progress', {
@@ -6796,7 +6328,6 @@ Target Positions:`;
             }
           });
         } else if (trackingResult.reason === 'already_contacted') {
-          console.log('⚠️ [CONTACT TRACKING] Lead was already in database (race condition?):', leadInfo.email);
           
           // Emit SSE warning for already contacted
           this.emit('progress', {
@@ -6853,15 +6384,7 @@ Target Positions:`;
       try {
         const user = await this.awsManager.getUserById(this.userId);
         
-        // Debug logging for CRM sync
-        console.log('🔍 [CRM SYNC] Checking CRM settings for user:', this.userId);
-        console.log('🔍 [CRM SYNC] user.crmConnected:', user?.crmConnected);
-        console.log('🔍 [CRM SYNC] user.crmAutoSync:', user?.crmAutoSync);
-        console.log('🔍 [CRM SYNC] user.crmIntegration:', user?.crmIntegration);
-        console.log('🔍 [CRM SYNC] user.crmAccountToken exists:', !!user?.crmAccountToken);
-        
         if (user && user.crmConnected && user.crmAutoSync) {
-          console.log(`🔄 [CRM SYNC] Auto-syncing lead ${leadData.email} to ${user.crmIntegration}...`);
           
           // Emit SSE progress for CRM sync
           this.emit('progress', {
@@ -6906,7 +6429,6 @@ Target Positions:`;
           const syncResult = await this.mergeManager.syncLeadToCRMUnified(this.userId, crmLeadData);
           
           if (syncResult.success) {
-            console.log(`✅ [CRM SYNC] Successfully synced to ${syncResult.crmIntegration}`);
             
             // Emit SSE success for CRM sync
             this.emit('progress', {
@@ -6943,7 +6465,6 @@ Target Positions:`;
           const skipReason = !user ? 'user not found' : 
                             !user.crmConnected ? 'CRM not connected' : 
                             !user.crmAutoSync ? 'auto-sync disabled' : 'unknown';
-          console.log(`⏭️ [CRM SYNC] Skipped - ${skipReason}`);
         }
       } catch (crmError) {
         console.error('❌ [CRM SYNC] Error syncing to CRM:', crmError.message);
@@ -6975,10 +6496,8 @@ Target Positions:`;
    */
   async start(minutes = null, userId = null) {
     try {
-      console.log('🚀 [REASONING AGENT] Start method called, current isRunning:', this.isRunning);
       
       if (this.isRunning) {
-        console.log('⚠️ [REASONING AGENT] Agent is already running, returning early');
         return {
           success: false,
           message: 'Agent is already running',
@@ -6989,17 +6508,14 @@ Target Positions:`;
       // Set custom interval if provided
       if (minutes) {
         this.customInterval = minutes * 60 * 1000; // Convert to milliseconds
-        console.log('⏰ [REASONING AGENT] Custom interval set to:', minutes, 'minutes');
       }
 
       this.isRunning = true;
       this.startTime = new Date();
       
-      console.log('🚀 [REASONING AGENT] Agent started, isRunning now:', this.isRunning);
       
       // Initialize and load memory from Zilliz
       if (!this.memoryInitialized) {
-        console.log('🧠 [MEMORY] Initializing lead memory system...');
         try {
           await this.leadMemory.initialize();
           const memoryData = await this.leadMemory.loadKeywordPerformance(this.userId);
@@ -7022,8 +6538,6 @@ Target Positions:`;
                 cumulativeDuplicateRate: data.cumulativeDuplicateRate
               };
             });
-            console.log(`🧠 [MEMORY] Loaded ${memoryData.count} keyword performance records from previous sessions`);
-            console.log(`🧠 [MEMORY] Exhausted keywords: ${Object.keys(memoryData.performanceMap).filter(k => memoryData.performanceMap[k].isExhausted).length}`);
             
             // Log to UI
             this.logOperation(
@@ -7032,7 +6546,6 @@ Target Positions:`;
               'success'
             );
           } else {
-            console.log('🧠 [MEMORY] No existing memory found, starting fresh');
             this.logOperation('🧠 Memory Initialized', 'No previous memory found, starting fresh', 'info');
           }
           this.memoryInitialized = true;
@@ -7072,7 +6585,6 @@ Target Positions:`;
         isActive: true
       };
 
-      console.log('🚀 [REASONING AGENT] Start result:', result);
       return result;
     } catch (error) {
       console.error('❌ [REASONING AGENT] Error starting agent:', error);
@@ -7091,26 +6603,22 @@ Target Positions:`;
    */
   async stop() {
     try {
-      console.log('⏹️ [REASONING AGENT] Stop method called, current isRunning:', this.isRunning);
       
       // Force stop the agent
       this.isRunning = false;
       
       // Clear any running timers
       if (this.cycleTimer) {
-        console.log('⏹️ [REASONING AGENT] Clearing cycle timer...');
         clearTimeout(this.cycleTimer);
         this.cycleTimer = null;
       }
 
       // Reset cycle counter and all state
-      console.log('🔄 [REASONING AGENT] Resetting cycle counter from', this.cycleCount, 'to 0');
       this.cycleCount = 0;
       this.startTime = null;
       this.nextRunTime = null;
 
       // COMPREHENSIVE CACHE CLEARING - Reset ALL memory and state
-      console.log('🧹 [CACHE CLEAR] Clearing all agent memory and cached data...');
       
       if (this.memory) {
         // Clear current goal and cycle state
@@ -7153,13 +6661,11 @@ Target Positions:`;
         this.memory.industryExhaustion = {};
         this.memory.searchHistoryDB = new Map();
         
-        console.log('✅ [CACHE CLEAR] All memory cleared - agent ready for fresh start');
       }
       
       // Clear campaign plan (will be regenerated from instructions)
       this.campaignPlan = null;
 
-      console.log('⏹️ [REASONING AGENT] Agent stopped completely, isRunning now:', this.isRunning);
 
       // Emit progress update
       this.emit('progress', {
@@ -7177,7 +6683,6 @@ Target Positions:`;
         isActive: false
       };
 
-      console.log('⏹️ [REASONING AGENT] Stop result:', result);
       return result;
     } catch (error) {
       console.error('❌ [REASONING AGENT] Error stopping agent:', error);
@@ -7247,7 +6752,6 @@ Target Positions:`;
   async setCycleInterval(minutes) {
     try {
       this.customInterval = minutes * 60 * 1000; // Convert to milliseconds
-      console.log(`⏰ [REASONING AGENT] Cycle interval set to ${minutes} minutes`);
       
       // Save to DynamoDB - MERGE with existing settings to preserve configuration
       try {
@@ -7263,7 +6767,6 @@ Target Positions:`;
         
         // Save merged settings to preserve all configuration
         await this.awsManager.saveLeadAgentSettings(this.userId, this.agentId, updatedSettings);
-        console.log(`✅ [REASONING AGENT] Saved cycle interval to DynamoDB (preserved existing settings)`);
       } catch (dbError) {
         console.error('❌ [REASONING AGENT] Failed to save interval to DB:', dbError);
       }
@@ -7290,7 +6793,6 @@ Target Positions:`;
     try {
       this.customInterval = null;
       const defaultMinutes = this.getIntervalMinutes();
-      console.log(`⏰ [REASONING AGENT] Reset to default interval: ${defaultMinutes} minutes`);
       
       return {
         success: true,
@@ -7316,16 +6818,12 @@ Target Positions:`;
       const basicSettings = await this.awsManager.getAgentSettings(this.userId, this.agentId);
       if (basicSettings && basicSettings.customInterval) {
         this.customInterval = basicSettings.customInterval * 60 * 1000; // Convert to milliseconds
-        console.log(`✅ [REASONING AGENT] Loaded saved cycle interval: ${basicSettings.customInterval} minutes`);
       }
       
       // Load lead agent settings (contains specialInstructions)
       const leadSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
       if (leadSettings && leadSettings.specialInstructions) {
-        console.log(`✅ [REASONING AGENT] Loaded special instructions: "${leadSettings.specialInstructions}"`);
       } else {
-        console.log(`⚠️ [REASONING AGENT] No special instructions found in lead settings!`);
-        console.log(`🔍 [REASONING AGENT] Lead settings object:`, JSON.stringify(leadSettings, null, 2));
       }
       
       // Store lead settings for campaign plan conversion (has specialInstructions field)
@@ -7343,7 +6841,6 @@ Target Positions:`;
    */
   async resetAgent() {
     try {
-      console.log('🔄 [REASONING AGENT] Resetting agent...');
       
       // Stop if running
       if (this.isRunning) {
@@ -7352,7 +6849,6 @@ Target Positions:`;
 
       // Clear search history from AWS
       if (this.awsManager && this.userId) {
-        console.log('🗑️ [RESET] Clearing search history from AWS...');
         await this.awsManager.deleteSearchHistory(this.userId, this.agentId);
       }
 
@@ -7416,7 +6912,6 @@ Target Positions:`;
     try {
       const user = await this.awsManager.getUserById(this.userId);
       if (!user) {
-        console.log('⚠️ [CREDITS] Could not find user for credit check');
         return { canContinue: true, reason: 'user-lookup-failed' };
       }
 
@@ -7426,7 +6921,6 @@ Target Positions:`;
         const remainingCredits = user.creditBalance || 0;
         
         if (remainingCredits <= 0) {
-          console.log('🚫 [CREDITS] Agent operation blocked - credit balance exhausted');
           this.emit('progress', {
             stage: 'credit-limit-reached',
             message: 'Credit balance exhausted. Purchase more credits to continue.',
@@ -7443,7 +6937,6 @@ Target Positions:`;
 
         // Warn when getting low
         if (remainingCredits <= 100) {
-          console.log(`⚠️ [CREDITS] Warning: Only ${remainingCredits.toFixed(2)} credits remaining in balance`);
           this.emit('progress', {
             stage: 'credit-warning',
             message: `Warning: Only ${remainingCredits.toFixed(2)} credits remaining`,
@@ -7466,7 +6959,6 @@ Target Positions:`;
 
         // Check if exhausted
         if (remainingCredits <= 0) {
-          console.log('🚫 [CREDITS] Agent operation blocked - trial credits exhausted');
           this.emit('progress', {
             stage: 'credit-limit-reached',
             message: 'Trial credits exhausted. Please upgrade or purchase credits.',
@@ -7487,7 +6979,6 @@ Target Positions:`;
 
         // Warn when getting low
         if (remainingCredits <= 50) {
-          console.log(`⚠️ [CREDITS] Warning: Only ${remainingCredits.toFixed(2)} trial credits remaining`);
           this.emit('progress', {
             stage: 'credit-warning',
             message: `Warning: Only ${remainingCredits.toFixed(2)} trial credits remaining`,
@@ -7516,7 +7007,6 @@ Target Positions:`;
 
   async runCycle() {
     try {
-      console.log('🔄 [REASONING AGENT] Running manual cycle...');
       
       // Check credits before running
       const creditCheck = await this.checkCreditsStatus();
@@ -7528,7 +7018,6 @@ Target Positions:`;
         };
       }
 
-      console.log(`💳 [CREDITS] Agent cycle starting with ${creditCheck.remainingCredits?.toFixed(2) || 'unlimited'} credits remaining`);
       
       // Emit progress update
       this.emit('progress', {
@@ -7576,7 +7065,6 @@ Target Positions:`;
 
   // Execute function by name with parameters
   async executeFunction(functionName, parameters = {}) {
-    console.log(`🛠️ [EXECUTE] Running function: ${functionName}`, parameters);
     
     try {
       let result;
@@ -7588,7 +7076,6 @@ Target Positions:`;
           
           // Check if settings have an error
           if (result?.error) {
-            console.log('⚠️ [SETTINGS] No user settings configured yet');
             this.logOperation('⚙️ Settings Required', 'Please configure your lead agent settings in the dashboard', 'warning', {
               error: result.error,
               action: 'Configure settings to start finding leads'
@@ -7610,7 +7097,6 @@ Target Positions:`;
           
           // Check if email settings have an error
           if (result?.error) {
-            console.log('⚠️ [SETTINGS] No email settings configured yet');
             this.logOperation('📧 Email Settings Required', 'Please configure your email builder settings in the dashboard', 'warning', {
               error: result.error,
               action: 'Configure email settings to start sending emails'
@@ -7651,7 +7137,6 @@ Target Positions:`;
           break;
           
         case 'pause':
-          console.log('⏸️ [EXECUTE] Pausing agent due to error:', parameters.error);
           result = {
             success: true,
             message: 'Agent paused due to error',
@@ -7661,7 +7146,6 @@ Target Positions:`;
           break;
           
         case 'complete':
-          console.log('🏁 [EXECUTE] Cycle complete');
           result = {
             success: true,
             message: 'Cycle completed',
@@ -7670,14 +7154,12 @@ Target Positions:`;
           break;
           
         default:
-          console.log(`⚠️ [EXECUTE] Unknown function: ${functionName}`);
           result = {
             success: false,
             message: `Unknown function: ${functionName}`
           };
       }
       
-      console.log(`✅ [EXECUTE] Function ${functionName} completed:`, result?.message || 'success');
       return result;
       
     } catch (error) {
@@ -7747,7 +7229,6 @@ Target Positions:`;
     if (this.isRunning) {
       const interval = this.customInterval || (30 * 60 * 1000); // Default 30 minutes
       this.nextRunTime = new Date(Date.now() + interval);
-      console.log(`⏰ [REASONING AGENT] Next cycle scheduled for: ${this.nextRunTime.toISOString()}`);
       
       // Emit progress so frontend updates immediately with countdown
       this.emit('progress', {
@@ -7765,7 +7246,6 @@ Target Positions:`;
   // Execute one reasoning cycle
   async executeReasoningCycle() {
     this.cycleCount++;
-    console.log(`🧠 [REASONING AGENT] Starting reasoning cycle #${this.cycleCount}`);
     
     // Broadcast cycle start event
     try {
@@ -7782,7 +7262,6 @@ Target Positions:`;
     }
     
     // CACHE CLEARING: Reset cycle tracking for new cycle (ensures fresh state)
-    console.log('🧹 [CACHE CLEAR] Clearing cycle-specific cache for fresh start...');
     this.memory.currentCycle = {
       leadsProcessed: 0,
       targetLeads: 0,
@@ -7795,13 +7274,10 @@ Target Positions:`;
     this.memory.lastResearch = null;
     this.memory.currentQualification = null;
     
-    console.log(`🔄 [CYCLE] Reset cycle tracking for cycle #${this.cycleCount} - starting with clean slate`);
-    console.log('✅ [CACHE CLEAR] Cycle cache cleared - ready to search for new leads');
     
     // Load campaign plan from special instructions
     if (this.settings?.specialInstructions && !this.campaignPlan) {
       console.log('🎯 [CAMPAIGN PLAN] Special instructions detected, converting to plan...');
-      console.log('📋 [CAMPAIGN PLAN] Instructions: "' + this.settings.specialInstructions + '"');
       
       // We'll get userSettings in the cycle, but we can try to load them now for the plan
       const tempSettings = await this.getUserSettings();
@@ -7818,11 +7294,9 @@ Target Positions:`;
           tempSettings
         );
         
+        console.log(`📋 [CAMPAIGN PLAN] convertInstructionsToPlan result: ${this.campaignPlan ? 'OK' : 'NULL/UNDEFINED'} | hasQualificationCriteria: ${!!this.campaignPlan?.qualificationCriteria} | mustHave items: ${this.campaignPlan?.qualificationCriteria?.mustHave?.length ?? 'n/a'}`);
+        
         if (this.campaignPlan) {
-          console.log('✅ [CAMPAIGN PLAN] Campaign plan loaded for this cycle');
-          console.log('🎯 [CAMPAIGN PLAN] Will search for:', this.campaignPlan.searchStrategy?.additionalKeywords?.join(', ') || 'default criteria');
-          console.log('📧 [CAMPAIGN PLAN] Will pitch:', this.campaignPlan.emailMessaging?.primaryValue?.substring(0, 60) + '...' || 'default message');
-          
           this.emit('progress', {
             stage: 'campaign-plan',
             message: `🎯 Campaign Strategy: ${this.campaignPlan.emailMessaging?.primaryValue || 'Custom targeting'}`,
@@ -7864,7 +7338,6 @@ Target Positions:`;
         if (stepCount % 5 === 0) {
           const creditCheck = await this.checkCreditsStatus();
           if (!creditCheck.canContinue) {
-            console.log(`🚫 [CREDITS] Stopping agent at step ${stepCount} - credits exhausted`);
             this.logOperation('🚫 Agent Stopped', 'Credits exhausted during operation', 'error', creditCheck);
             return { 
               success: false, 
@@ -7877,7 +7350,6 @@ Target Positions:`;
         
         // Check if agent was stopped
         if (!this.isRunning) {
-          console.log(`⏹️ [REASONING] Cycle stopped by user at step ${stepCount}`);
           break;
         }
         
@@ -7887,7 +7359,6 @@ Target Positions:`;
           this.memory.currentCycle.leadsProcessed = 0;
           this.memory.currentCycle.leadQueue = [];
           this.memory.currentCycle.processingPhase = 'search';
-          console.log(`🎯 [CYCLE] Starting new cycle - Target: ${this.memory.currentCycle.targetLeads} leads`);
         }
 
         // Execute the full reasoning workflow
@@ -7905,34 +7376,16 @@ Target Positions:`;
           cycleComplete: this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads
         };
 
-        // Debug logging for context
-        console.log(`🔧 [DEBUG] Step ${stepCount} Context:`, {
-          hasUserSettings: context.hasUserSettings,
-          hasEmailSettings: context.hasEmailSettings,
-          userSettingsError: this.memory.userSettings?.error,
-          emailSettingsError: this.memory.emailSettings?.error,
-          processingPhase: context.processingPhase,
-          hasCurrentLead: !!context.currentLead,
-          currentLeadName: context.currentLead?.name,
-          currentLeadEmail: context.currentLead?.email,
-          leadsProcessed: context.leadsProcessed,
-          targetLeads: context.targetLeads,
-          queueLength: context.leadQueue?.length || 0
-        });
-        
         // Check if settings have errors and need to be fetched
         if (!context.hasUserSettings && this.memory.userSettings?.error) {
-          console.log('⚠️ [SETTINGS] User settings have error, will attempt to fetch again');
           this.logOperation('⚙️ Configuring Agent', 'Loading your agent settings...', 'in-progress');
         }
         if (!context.hasEmailSettings && this.memory.emailSettings?.error) {
-          console.log('⚠️ [SETTINGS] Email settings have error, will attempt to fetch again');
           this.logOperation('📧 Email Setup', 'Loading your email preferences...', 'in-progress');
         }
 
         // Check if agent was stopped before making next decision
         if (!this.isRunning) {
-          console.log(`⏹️ [REASONING] Cycle stopped by user before reasoning decision (step ${stepCount})`);
           break;
         }
 
@@ -7949,7 +7402,6 @@ Target Positions:`;
         }
         
         if (!reasoningResult.action || reasoningResult.action === 'think' || reasoningResult.action === 'complete') {
-          console.log(`✅ [REASONING] Cycle #${this.cycleCount} completed after ${stepCount} steps`);
           this.logOperation('✅ Process Complete', `Successfully completed lead outreach`, 'completed', {
             cycleNumber: this.cycleCount,
             stepsExecuted: stepCount,
@@ -7958,19 +7410,15 @@ Target Positions:`;
           break;
         }
         
-        // Execute the decided action (don't log it here, log in the specific function handlers)
-        console.log(`🎯 [REASONING] Step ${stepCount}: Executing action: ${reasoningResult.action}`);
         const actionResult = await this.executeFunction(reasoningResult.action, reasoningResult.parameters);
         
         // Check if agent was stopped during action execution
         if (!this.isRunning) {
-          console.log(`⏹️ [REASONING] Cycle stopped by user after action execution (step ${stepCount})`);
           break;
         }
         
         // Check if action requested to stop the cycle (e.g., due to errors)
         if (actionResult?.shouldStop) {
-          console.log(`⏸️ [REASONING] Action requested cycle stop: ${actionResult.message}`);
           this.logOperation('Cycle Stopped', `Cycle #${this.cycleCount} stopped due to action result: ${actionResult.message}`, 'paused', {
             cycleNumber: this.cycleCount,
             stepNumber: stepCount,
@@ -7982,9 +7430,6 @@ Target Positions:`;
         
         // Update cycle state based on action results
         await this.updateCycleState(reasoningResult.action, actionResult);
-        
-        // Debug logging after state update
-        console.log(`🔧 [DEBUG] After state update - Phase: ${this.memory.currentCycle.processingPhase}, Current lead: ${this.memory.currentCycle.currentLead?.name}, Has email: ${!!this.memory.currentCycle.currentLead?.email}`);
         
         this.emit('progress', {
           stage: 'action',
@@ -8093,7 +7538,6 @@ export function getUserAgent(userId, agentId = 'reasoning-lead-agent') {
   const agentKey = `${userId}_${agentId}`;
 
   if (!userAgents.has(agentKey)) {
-    console.log('🔧 [AGENT MANAGER] Creating new ReasoningLeadAgent for user:', userId, 'agentId:', agentId);
     const agent = new ReasoningLeadAgent(userId, agentId);
     
     // Set up listener to broadcast email_queued events through monitoring stream
@@ -8104,7 +7548,6 @@ export function getUserAgent(userId, agentId = 'reasoning-lead-agent') {
           type: 'email_queued',
           ...eventData
         });
-        console.log('📡 [AGENT MANAGER] Broadcasted email_queued event via SSE');
       } catch (error) {
         console.error('⚠️ [AGENT MANAGER] Failed to broadcast email_queued event:', error);
       }
@@ -8125,7 +7568,6 @@ export function removeUserAgent(userId, agentId = 'reasoning-lead-agent') {
     const agent = userAgents.get(agentKey);
     agent.stop(); // Stop the agent before removing
     userAgents.delete(agentKey);
-    console.log('🗑️ [AGENT MANAGER] Removed ReasoningLeadAgent for user:', userId, 'agentId:', agentId);
   }
 }
 

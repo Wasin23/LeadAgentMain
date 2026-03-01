@@ -390,8 +390,6 @@ class AWSManager {
   
   async updateUser(userId, updates) {
     try {
-      console.log('👤 [AWS] Updating user:', userId, 'with updates:', updates);
-      
       // Build update expression and attribute values
       const updateExpressions = [];
       const expressionAttributeValues = {};
@@ -420,10 +418,7 @@ class AWSManager {
         ReturnValues: 'ALL_NEW'
       };
       
-      console.log('🔄 [AWS] Update params:', JSON.stringify(params, null, 2));
-      
       const result = await this.dynamodb.send(new UpdateCommand(params));
-      console.log('✅ [AWS] Update result:', result.Attributes);
       
       return result.Attributes;
     } catch (error) {
@@ -1504,16 +1499,12 @@ class AWSManager {
         createdAt: timestamp
       };
       
-      console.log(`🔍 [AWS DEBUG] Writing to table: ${this.tables.apiUsage}, userId: ${userId}, service: ${service}, cost: ${cost}`);
-      
       const command = new PutCommand({
         TableName: this.tables.apiUsage,
         Item: item
       });
 
       const writeResult = await this.dynamodb.send(command);
-      console.log(`📊 [AWS] Logged ${service} usage: ${usage} (${operation}) - $${(cost || 0).toFixed(4)}`);
-      console.log(`✅ [AWS] DynamoDB write confirmed:`, JSON.stringify(writeResult.$metadata));
       
       // DEDUCT CREDITS based on real API costs (1 credit = $0.05)
       try {
@@ -1638,7 +1629,6 @@ class AWSManager {
       });
 
       await this.dynamodb.send(putCommand);
-      console.log(`✅ [SUMMARY] Updated ${service} totals for user ${userId} (${month})`);
     } catch (error) {
       console.error(`❌ [SUMMARY] Failed to update summary:`, error.message);
       throw error;
