@@ -4003,7 +4003,9 @@ If no stat exists anywhere, make the case qualitatively — do NOT invent a perc
 
 PARAGRAPH 3 — SOLVE IT (your product against the problem):
 Position your solution directly against the problem you surfaced.
-If PLATFORM METRICS above has real numbers, use them. If not, state what you do and why it fits — no invented figures.
+If YOUR COMPANY INTEL above contains specific client results or metrics (e.g. "customers see X% faster training"), use them verbatim.
+If not: describe WHAT you do and WHY it fits their situation — no invented figures, no fabricated percentages.
+❌ NEVER write "Our clients have seen X%" or any performance claim unless the exact figure appears in YOUR COMPANY INTEL above.
 
 CTA (1 line):
 A single direct question tied to their timing or situation.
@@ -4016,6 +4018,7 @@ FORMATTING RULES:
 ✅ No exclamation marks, no corporate buzzwords, no "I hope this finds you well"
 ✅ Sound like a smart human, not a template
 ❌ No invented stats. No "X% of companies" unless that stat appears in the research above.
+❌ No invented client results. No "our clients see X% improvement" unless that appears verbatim in YOUR COMPANY INTEL above.
 ❌ No bullet lists in the body
 ❌ No multi-sentence compliments
 
