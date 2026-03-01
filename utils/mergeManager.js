@@ -539,16 +539,19 @@ class MergeManager {
    */
   async syncLeadToHubSpot(apiKey, leadData) {
     try {
-      console.log('🔄 [HUBSPOT] Syncing lead:', leadData.email);
+      console.log('[HUBSPOT] Syncing lead:', leadData.email);
       
       const contactPayload = {
         properties: {
           email: leadData.email,
-          firstname: leadData.firstName,
-          lastname: leadData.lastName,
+          firstname: leadData.firstName || '',
+          lastname: leadData.lastName || '',
           phone: leadData.phone || '',
           company: leadData.companyName || '',
-          jobtitle: leadData.title || ''
+          jobtitle: leadData.title || '',
+          website: leadData.companyDetails?.website || '',
+          industry: leadData.companyDetails?.industry || '',
+          description: leadData.researchSummary || leadData.aiReport?.substring(0, 1000) || ''
         }
       };
 
@@ -559,9 +562,9 @@ class MergeManager {
         }
       });
 
-      console.log('✅ [HUBSPOT] Contact created:', response.data?.id);
+      console.log('[HUBSPOT] Contact created:', response.data?.id);
 
-      // Add note with research data
+      // Add note with full research data
       if (response.data?.id) {
         const noteContent = this.buildComprehensiveNotes(leadData);
         await axios.post('https://api.hubapi.com/crm/v3/objects/notes', {
@@ -579,12 +582,12 @@ class MergeManager {
             'Content-Type': 'application/json'
           }
         });
-        console.log('✅ [HUBSPOT] Note added');
+        console.log('[HUBSPOT] Note added');
       }
 
       return { success: true, crmContactId: response.data?.id, crmIntegration: 'HubSpot' };
     } catch (error) {
-      console.error('❌ [HUBSPOT] Error:', error.response?.data || error.message);
+      console.error('[HUBSPOT] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.message || error.message };
     }
   }
@@ -673,7 +676,7 @@ class MergeManager {
    */
   async syncLeadToCopper(userEmail, apiKey, leadData) {
     try {
-      console.log('🔄 [COPPER] Syncing lead:', leadData.email);
+      console.log('[COPPER] Syncing lead:', leadData.email);
       
       const headers = {
         'X-PW-AccessToken': apiKey,
@@ -683,18 +686,30 @@ class MergeManager {
       };
 
       const personPayload = {
-        name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim(),
+        name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim() || leadData.email,
         emails: [{ email: leadData.email, category: 'work' }],
         phone_numbers: leadData.phone ? [{ number: leadData.phone, category: 'work' }] : [],
-        title: leadData.title || ''
+        title: leadData.title || '',
+        company_name: leadData.companyName || ''
       };
 
       const response = await axios.post('https://api.copper.com/developer_api/v1/people', personPayload, { headers });
-      console.log('✅ [COPPER] Person created:', response.data?.id);
+      console.log('[COPPER] Person created:', response.data?.id);
+
+      // Add note with research data
+      if (response.data?.id) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post('https://api.copper.com/developer_api/v1/activities', {
+          parent: { type: 'person', id: response.data.id },
+          type: { category: 'user', id: 0 },
+          details: noteContent
+        }, { headers });
+        console.log('[COPPER] Note added');
+      }
 
       return { success: true, crmContactId: response.data?.id, crmIntegration: 'Copper' };
     } catch (error) {
-      console.error('❌ [COPPER] Error:', error.response?.data || error.message);
+      console.error('[COPPER] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.message || error.message };
     }
   }
@@ -791,7 +806,7 @@ class MergeManager {
    */
   async syncLeadToCapsule(apiKey, leadData) {
     try {
-      console.log('🔄 [CAPSULE] Syncing lead:', leadData.email);
+      console.log('[CAPSULE] Syncing lead:', leadData.email);
       
       const partyPayload = {
         party: {
@@ -811,10 +826,30 @@ class MergeManager {
         }
       });
 
-      console.log('✅ [CAPSULE] Party created:', response.data?.party?.id);
-      return { success: true, crmContactId: response.data?.party?.id, crmIntegration: 'Capsule' };
+      const partyId = response.data?.party?.id;
+      console.log('[CAPSULE] Party created:', partyId);
+
+      // Add note with research data
+      if (partyId) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post('https://api.capsulecrm.com/api/v2/entries', {
+          entry: {
+            party: { id: partyId },
+            type: 'note',
+            content: noteContent
+          }
+        }, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        console.log('[CAPSULE] Note added');
+      }
+
+      return { success: true, crmContactId: partyId, crmIntegration: 'Capsule' };
     } catch (error) {
-      console.error('❌ [CAPSULE] Error:', error.response?.data || error.message);
+      console.error('[CAPSULE] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.message || error.message };
     }
   }
@@ -855,7 +890,7 @@ class MergeManager {
    */
   async syncLeadToSalesflare(apiKey, leadData) {
     try {
-      console.log('🔄 [SALESFLARE] Syncing lead:', leadData.email);
+      console.log('[SALESFLARE] Syncing lead:', leadData.email);
       
       const contactPayload = {
         email: leadData.email,
@@ -872,10 +907,27 @@ class MergeManager {
         }
       });
 
-      console.log('✅ [SALESFLARE] Contact created:', response.data?.id);
-      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Salesflare' };
+      const contactId = response.data?.id;
+      console.log('[SALESFLARE] Contact created:', contactId);
+
+      // Add note with research data
+      if (contactId) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post('https://api.salesflare.com/notes', {
+          description: noteContent,
+          contacts: [contactId]
+        }, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        console.log('[SALESFLARE] Note added');
+      }
+
+      return { success: true, crmContactId: contactId, crmIntegration: 'Salesflare' };
     } catch (error) {
-      console.error('❌ [SALESFLARE] Error:', error.response?.data || error.message);
+      console.error('[SALESFLARE] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.message || error.message };
     }
   }
@@ -969,10 +1021,26 @@ class MergeManager {
         given_name: leadData.firstName || '',
         family_name: leadData.lastName || '',
         phone_numbers: leadData.phone ? [{ number: leadData.phone, field: 'PHONE1' }] : [],
-        job_title: leadData.title || ''
+        job_title: leadData.title || '',
+        company: leadData.companyName ? { company_name: leadData.companyName } : undefined
       }, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' } });
-      console.log('✅ [KEAP] Contact created:', response.data?.id);
-      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Keap' };
+      
+      const contactId = response.data?.id;
+      console.log('[KEAP] Contact created:', contactId);
+
+      // Add note with research data
+      if (contactId) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post('https://api.infusionsoft.com/crm/rest/v2/notes', {
+          body: noteContent,
+          contact_id: contactId,
+          type: 'General',
+          title: 'Meridian AI Research'
+        }, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' } });
+        console.log('[KEAP] Note added');
+      }
+
+      return { success: true, crmContactId: contactId, crmIntegration: 'Keap' };
     } catch (error) {
       console.error('[KEAP] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.message || error.message };
