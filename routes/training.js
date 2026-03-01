@@ -1,6 +1,7 @@
 // AI Training routes with Zilliz integration
 import express from 'express';
 import zillizTraining from '../utils/zillizTraining.js';
+import { industryFacts } from '../utils/zillizIndustryFacts.js';
 
 const router = express.Router();
 
@@ -219,6 +220,38 @@ router.post('/zilliz/disconnect', async (req, res) => {
       success: false, 
       error: error.message 
     });
+  }
+});
+
+// ── Industry Facts RAG ─────────────────────────────────────────────────────
+
+// GET /api/training/industry-facts — list all facts grouped by industry
+router.get('/industry-facts', async (req, res) => {
+  try {
+    const result = await industryFacts.getAllFacts();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/training/industry-facts/:id — delete a single fact
+router.delete('/industry-facts/:id', async (req, res) => {
+  try {
+    const result = await industryFacts.deleteFact(req.params.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/training/industry-facts/industry/:name — delete all facts for an industry
+router.delete('/industry-facts/industry/:name', async (req, res) => {
+  try {
+    const result = await industryFacts.deleteIndustry(req.params.name);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

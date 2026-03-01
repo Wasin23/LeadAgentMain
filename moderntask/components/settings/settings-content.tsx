@@ -245,6 +245,46 @@ export function SettingsContent() {
   const [memoryFilter, setMemoryFilter] = useState<'all' | 'exhausted' | 'good'>('all')
   const [resettingKeyword, setResettingKeyword] = useState<string | null>(null)
 
+  // ── Industry Facts ────────────────────────────────────────────────────────
+  type IndustryFact = { id: string; fact: string; industry: string; source: string; age: number; fresh: boolean }
+  const [industryFactsGrouped, setIndustryFactsGrouped] = useState<Record<string, IndustryFact[]>>({})
+  const [industryFactsTotal, setIndustryFactsTotal] = useState(0)
+  const [industryFactsLoading, setIndustryFactsLoading] = useState(false)
+  const [deletingFactId, setDeletingFactId] = useState<string | null>(null)
+  const [deletingIndustry, setDeletingIndustry] = useState<string | null>(null)
+  const [expandedIndustry, setExpandedIndustry] = useState<string | null>(null)
+
+  const fetchIndustryFacts = useCallback(async () => {
+    setIndustryFactsLoading(true)
+    try {
+      const res = await api.get('/api/training/industry-facts')
+      if (res.data.success) {
+        setIndustryFactsGrouped(res.data.grouped || {})
+        setIndustryFactsTotal(res.data.total || 0)
+      }
+    } catch {}
+    finally { setIndustryFactsLoading(false) }
+  }, [])
+
+  const deleteIndustryFact = async (id: string) => {
+    setDeletingFactId(id)
+    try {
+      await api.delete(`/api/training/industry-facts/${encodeURIComponent(id)}`)
+      await fetchIndustryFacts()
+    } catch {}
+    finally { setDeletingFactId(null) }
+  }
+
+  const deleteIndustry = async (industry: string) => {
+    if (!confirm(`Delete all facts for "${industry}"? This cannot be undone.`)) return
+    setDeletingIndustry(industry)
+    try {
+      await api.delete(`/api/training/industry-facts/industry/${encodeURIComponent(industry)}`)
+      await fetchIndustryFacts()
+    } catch {}
+    finally { setDeletingIndustry(null) }
+  }
+
   const fetchMemory = useCallback(async () => {
     setMemoryLoading(true)
     try {
@@ -361,10 +401,13 @@ export function SettingsContent() {
   useEffect(() => { fetchAll() }, [fetchAll])
   useEffect(() => { loadInboxNotifs() }, [loadInboxNotifs])
 
-  // Load memory when memory tab is active
+  // Load memory + industry facts when memory tab is active
   useEffect(() => {
-    if (tab === 'memory') fetchMemory()
-  }, [tab, fetchMemory])
+    if (tab === 'memory') {
+      fetchMemory()
+      fetchIndustryFacts()
+    }
+  }, [tab, fetchMemory, fetchIndustryFacts])
 
   // Sync tab state when URL ?tab= param changes (e.g. sidebar subtab clicks)
   useEffect(() => {
@@ -1644,6 +1687,95 @@ export function SettingsContent() {
                   </div>
                 </Card>
               )}
+              {/* Industry Intelligence RAG */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Industry Intelligence</h3>
+                    <Badge variant="outline" className="text-xs">{industryFactsTotal} facts</Badge>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchIndustryFacts}
+                    disabled={industryFactsLoading}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${industryFactsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Stats and facts learned from industry research. Reused across leads in the same industry to back up email claims. Refreshes automatically after 2 weeks.
+                </p>
+
+                {industryFactsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : Object.keys(industryFactsGrouped).length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    No industry facts yet — run the agent on a few leads to build the database.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(industryFactsGrouped).map(([industry, facts]) => (
+                      <div key={industry} className="border rounded-lg overflow-hidden">
+                        <div
+                          className="flex items-center justify-between px-4 py-3 bg-muted/40 cursor-pointer hover:bg-muted/60 transition-colors"
+                          onClick={() => setExpandedIndustry(expandedIndustry === industry ? null : industry)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium capitalize">{industry}</span>
+                            <Badge variant="outline" className="text-xs">{facts.length} facts</Badge>
+                            <Badge variant="outline" className={`text-xs ${
+                              facts.some(f => f.fresh) ? 'text-green-500 border-green-500/30' : 'text-orange-500 border-orange-500/30'
+                            }`}>
+                              {facts.some(f => f.fresh) ? 'Fresh' : 'Stale'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); deleteIndustry(industry) }}
+                              disabled={deletingIndustry === industry}
+                              className="h-7 px-2 text-destructive hover:text-destructive text-xs"
+                            >
+                              {deletingIndustry === industry ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                            </Button>
+                          </div>
+                        </div>
+                        {expandedIndustry === industry && (
+                          <div className="divide-y divide-border">
+                            {facts.map(fact => (
+                              <div key={fact.id} className="flex items-start justify-between px-4 py-3 gap-3 hover:bg-muted/20 transition-colors">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm">{fact.fact}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {fact.age === 0 ? 'today' : `${fact.age}d ago`}
+                                    {fact.source && <> · <a href={fact.source} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 opacity-60 hover:opacity-100 truncate max-w-[200px] inline-block align-bottom">{new URL(fact.source).hostname}</a></>}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteIndustryFact(fact.id)}
+                                  disabled={deletingFactId === fact.id}
+                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive flex-shrink-0"
+                                >
+                                  {deletingFactId === fact.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </div>
           )
         })()}
