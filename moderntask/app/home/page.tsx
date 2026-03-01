@@ -86,6 +86,7 @@ export default function DashboardPage() {
       countsRes,
       agentsRes,
       sentRes,
+      queueRes,
       scheduledBatchesRes,
       notifsRes,
       notifCountRes,
@@ -93,6 +94,7 @@ export default function DashboardPage() {
       api.get("/api/email-queue/counts?agentId=all"),
       api.get("/api/auth/agents"),
       api.get("/api/email-queue/sent", { params: { agentId: "all" } }),
+      api.get("/api/email-queue/queue", { params: { agentId: "all", limit: 200 } }),
       api.get("/api/email-queue/scheduled-batches"),
       api.get("/api/notifications/recent", { params: { limit: 6 } }),
       api.get("/api/notifications/count"),
@@ -172,15 +174,21 @@ export default function DashboardPage() {
       )
     }
 
-    // ── sent emails → chart + follow-ups ────────────────────────────────
-    if (sentRes.status === "fulfilled") {
-      const sentEmails = normaliseArray(sentRes.value.data) as Record<string, unknown>[]
+    // ── queued emails → chart ────────────────────────────────────────────
+    const queuedEmails = queueRes.status === "fulfilled"
+      ? normaliseArray(queueRes.value.data) as Record<string, unknown>[]
+      : []
+    const sentEmailsForChart = sentRes.status === "fulfilled"
+      ? normaliseArray(sentRes.value.data) as Record<string, unknown>[]
+      : []
+    const allEmailsForChart = [...queuedEmails, ...sentEmailsForChart]
 
-      // chart: emails sent per day for last 7 days
+    {
+      // chart: emails queued per day for last 7 days
       const chart: QueueChartDataPoint[] = Array.from({ length: 7 }, (_, i) => {
         const daysAgo = 6 - i
         const dayStr = isoDay(daysAgo)
-        const value = sentEmails.filter((e) => {
+        const value = allEmailsForChart.filter((e) => {
           const d = emailDate(e).toISOString().split("T")[0]
           return d === dayStr
         }).length
@@ -189,7 +197,7 @@ export default function DashboardPage() {
       setChartData(chart)
 
       // follow-ups: scheduled but not yet complete
-      const followUpList: FollowUpItem[] = sentEmails
+      const followUpList: FollowUpItem[] = sentEmailsForChart
         .filter((e) => {
           if (!e.followUpScheduled || !e.followUpDate) return false
           const rebumpCount = (e.rebumpCount as number) || 0

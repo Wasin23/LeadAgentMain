@@ -4031,8 +4031,9 @@ ${ragFactsBlock}
 
 PARAGRAPH 2 — THE FIX (your product solves exactly that flaw):
 Connect your solution directly to the specific flaw named in para 1 — explain the mechanism, not just the category.
-If YOUR COMPANY INTEL has real client metrics, use them verbatim. If not, explain WHAT you do and WHY it addresses THAT specific problem.
+If YOUR COMPANY INTEL has real client metrics, use them verbatim. If not, explain WHAT you do and WHY it addresses THAT specific problem — qualitatively, no numbers.
 ❌ NEVER invent performance claims. No "our clients see X%" unless it appears word-for-word in YOUR COMPANY INTEL.
+❌ ZERO CASE STUDIES. Do NOT write "Our recent case study showed..." or "In a recent case study..." or any variation. We have no published case studies. Fabricating one is a disqualifying error.
 
 CTA (1 line):
 One direct question tied to the specific problem or their timeline — not a generic "hop on a call."
@@ -4046,6 +4047,7 @@ FORMATTING RULES:
 ✅ Sound like a smart human, not a template
 ❌ No invented stats. No "X% of companies" unless that stat appears in the research above.
 ❌ No invented client results. No "our clients see X% improvement" unless that appears verbatim in YOUR COMPANY INTEL above.
+❌ No case studies. "Our recent case study showed X%" is fabrication — we have no published case studies. Do not write it under any phrasing.
 ❌ No bullet lists in the body
 ❌ No multi-sentence compliments
 
