@@ -2965,11 +2965,12 @@ Format as:
         this.memory.companyWinsCache = {};
       }
       
+      const companyCacheKey = userCompanyName ? userCompanyName.toLowerCase().replace(/\s+/g, '_') : null;
+
       if (!userCompanyName) {
         // No company name configured — skip this search entirely
         console.log('⚠️ [SUPPORTING RESEARCH] No company name configured, skipping company wins search');
       } else {
-        const companyCacheKey = userCompanyName.toLowerCase().replace(/\s+/g, '_');
         const cachedCompanyWins = this.memory.companyWinsCache?.[companyCacheKey];
         if (cachedCompanyWins && (Date.now() - cachedCompanyWins.timestamp) < companyCacheMaxAge) {
           supportingSearches.push({
@@ -3638,6 +3639,9 @@ Format as:
       } else {
       }
 
+      // Get data from current cycle state instead of parameters
+      const leadData = this.memory.currentCycle.currentLead;
+
       // Query industry facts RAG with prospect-specific context for maximum relevance
       // This runs regardless of whether phase 3 was cached — always get the best stat for THIS lead
       const _ragIndustry = leadData?.organization?.industry || '';
@@ -3652,9 +3656,6 @@ Format as:
           // non-fatal — falls back to whatever was set during research phase
         }
       }
-      
-      // Get data from current cycle state instead of parameters
-      const leadData = this.memory.currentCycle.currentLead;
       const researchData = this.memory.lastResearch;
       const emailSettings = this.memory.emailSettings;
       const qualification = this.memory.currentQualification; // Get tier from qualification
