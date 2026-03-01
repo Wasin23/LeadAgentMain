@@ -1528,8 +1528,8 @@ class AWSManager {
               creditBalance: newBalance
             });
             
-            console.log(`💳 [CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
-            console.log(`💳 [CREDITS] User balance: ${newBalance.toFixed(2)} credits (${user.plan || 'no-plan'} plan)`);
+            console.log(`[CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
+            console.log(`[CREDITS] User balance: ${newBalance.toFixed(2)} credits (${user.plan || 'no-plan'} plan)`);
             
             // Warn when getting low
             if (newBalance <= 100 && currentBalance > 100) {
@@ -1545,8 +1545,8 @@ class AWSManager {
               trialCreditsUsed: newCreditsUsed
             });
             
-            console.log(`💳 [CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
-            console.log(`💳 [CREDITS] User now at ${newCreditsUsed.toFixed(2)} / ${creditsLimit} credits (${user.plan || 'free-trial'} plan)`);
+            console.log(`[CREDITS] Deducted ${creditsToDeduct.toFixed(3)} credits for $${cost.toFixed(4)} ${service} usage`);
+            console.log(`[CREDITS] User now at ${newCreditsUsed.toFixed(2)} / ${creditsLimit} credits (${user.plan || 'free-trial'} plan)`);
             
             const percentageUsed = (newCreditsUsed / creditsLimit) * 100;
           
@@ -2507,7 +2507,7 @@ class AWSManager {
       });
 
       await this.dynamodb.send(command);
-      console.log(`💳 [AWS] Logged payment: ${paymentData.status} - $${paymentData.amount}`);
+      console.log(`[AWS] Logged payment: ${paymentData.status} - $${paymentData.amount}`);
       return { success: true, paymentId };
     } catch (error) {
       console.error('❌ [AWS] Error logging payment:', error);
@@ -3404,8 +3404,8 @@ class AWSManager {
         }
       });
 
-      console.log(`💳 [CREDITS] User ${userId} purchased ${creditAmount} credits ($${(creditAmount * 0.05).toFixed(2)})`);
-      console.log(`💳 [CREDITS] New credit limit: ${newLimit} (${planConfig.name} plan)`);
+      console.log(`[CREDITS] User ${userId} purchased ${creditAmount} credits ($${(creditAmount * 0.05).toFixed(2)})`);
+      console.log(`[CREDITS] New credit limit: ${newLimit} (${planConfig.name} plan)`);
 
       return {
         success: true,

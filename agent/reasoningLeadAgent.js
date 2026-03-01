@@ -591,7 +591,7 @@ IMPORTANT RULES:
             companyName: currentLead.organization.name || currentLead.company || 'Unknown'
           };
         } else {
-          console.log(`⚠️ [NO LOCATION] Lead has no city/state data:`, {
+          console.log(`[NO LOCATION] Lead has no city/state data:`, {
             name: currentLead.name,
             company: currentLead.organization?.name || currentLead.company,
             org: currentLead.organization
@@ -820,11 +820,11 @@ Call the appropriate function to continue the workflow.`;
 
         // Warn if approaching or exceeding limits
         if (!rateCheck.allowed) {
-          console.warn(`⚠️ OpenAI ${rateCheck.reason} rate limit exceeded: ${rateCheck.current}/${rateCheck.limit} tokens`);
+          console.warn(`[WARN] OpenAI ${rateCheck.reason} rate limit exceeded: ${rateCheck.current}/${rateCheck.limit} tokens`);
         } else if (rateCheck.remaining) {
           const checkRemaining = (limit, type) => {
             if (limit !== null && limit < 1000) {
-              console.warn(`⚠️ OpenAI ${type} limit approaching: ${limit} tokens remaining`);
+              console.warn(`[WARN] OpenAI ${type} limit approaching: ${limit} tokens remaining`);
             }
           };
           checkRemaining(rateCheck.remaining.hourly, 'hourly');
@@ -839,8 +839,8 @@ Call the appropriate function to continue the workflow.`;
         // Extract reasoning from the content (even with function calls, GPT can provide reasoning)
         const reasoning = message.content || `Decided to call ${message.function_call.name}`;
         
-        console.log('🧠 [DECISION] Agent decided to use tool:', message.function_call.name);
-        console.log('🤔 [THINKING] Agent reasoning:', reasoning);
+        console.log('[DECISION] Agent decided to use tool:', message.function_call.name);
+        console.log('[THINKING] Agent reasoning:', reasoning);
         
         // Safely parse function call arguments with error handling
         let parameters = {};
@@ -1193,7 +1193,7 @@ Call the appropriate function to continue the workflow.`;
         if (actionResult?.success) {
           if (actionResult.recommendation === 'SKIP') {
             // Pre-qualification failed, skip lead and get next
-            console.log(`❌ [CYCLE] Pre-qualification failed (score: ${actionResult.score}/100), skipping lead`);
+            console.log(`[SKIP] Pre-qualification failed (score: ${actionResult.score}/100), skipping lead`);
             this.memory.currentCycle.currentLead = null;
             
             // Get next lead from queue or search for more
@@ -1254,7 +1254,7 @@ Call the appropriate function to continue the workflow.`;
             }
           } else {
             // Qualification failed, skip lead and get next
-            console.log(`❌ [CYCLE] Lead disqualified (score: ${actionResult.score}/100), skipping lead`);
+            console.log(`[DISQ] Lead disqualified (score: ${actionResult.score}/100), skipping lead`);
             this.memory.currentCycle.currentLead = null;
             
             // Get next lead from queue or search for more
@@ -1277,7 +1277,7 @@ Call the appropriate function to continue the workflow.`;
         } else {
           // Qualification FAILED (API error) - skip lead and move on
           const failedLeadName = this.memory.currentCycle.currentLead?.name || 'Unknown';
-          console.log(`⚠️ [CYCLE] Qualification failed for ${failedLeadName}: ${actionResult?.error || 'Unknown error'}`);
+          console.log(`[WARN] Qualification failed for ${failedLeadName}: ${actionResult?.error || 'Unknown error'}`);
           this.memory.currentCycle.currentLead = null;
           
           if (this.memory.currentCycle.leadQueue.length > 0) {
@@ -1317,7 +1317,7 @@ Call the appropriate function to continue the workflow.`;
     
         } else {
           // Email unlock failed, skip this lead and get next from queue or search
-          console.log(`⚠️ [CYCLE] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead`);
+          console.log(`[WARN] Email unlock failed for ${this.memory.currentCycle.currentLead?.name}, skipping lead`);
           
           // Emit SSE log for email unlock failure so user can see it
           this.logOperation(
@@ -1475,7 +1475,7 @@ Call the appropriate function to continue the workflow.`;
           const failedLeadCompany = this.memory.currentCycle.currentLead?.company || 'Unknown';
           const errorMsg = actionResult?.error || actionResult?.message || 'Unknown error';
           
-          console.log(`⚠️ [CYCLE] Email generation failed for ${failedLeadName} at ${failedLeadCompany}: ${errorMsg}`);
+          console.log(`[WARN] Email generation failed for ${failedLeadName} at ${failedLeadCompany}: ${errorMsg}`);
           
           // Track the failed lead to avoid retrying
           if (!this.memory.failedLeads) {
@@ -2450,7 +2450,7 @@ Respond in JSON:
       };
       
       // Always run deep research if campaign plan exists (ignore searchQuery parameter from GPT)
-      console.log(`🔬 [RESEARCH BRANCH] campaignPlan: ${!!this.campaignPlan} | qualificationCriteria: ${!!this.campaignPlan?.qualificationCriteria} → ${this.campaignPlan?.qualificationCriteria ? 'DEEP (4-phase)' : 'FALLBACK (single search)'}`);
+      console.log(`[RESEARCH BRANCH] campaignPlan: ${!!this.campaignPlan} | qualificationCriteria: ${!!this.campaignPlan?.qualificationCriteria} => ${this.campaignPlan?.qualificationCriteria ? 'DEEP (4-phase)' : 'FALLBACK (single search)'}`)
       if (this.campaignPlan && this.campaignPlan.qualificationCriteria) {
         if (parameters.searchQuery) {
         }
@@ -3470,7 +3470,7 @@ Format as:
           
           // Only reject if ZeroBounce says it's spamtrap or do_not_mail (accept catch-all and unknown)
           if (['spamtrap', 'do_not_mail'].includes(zeroBounceResult.status?.toLowerCase())) {
-            console.log(`❌ [ZEROBOUNCE] Email rejected: ${zeroBounceResult.status} - ${zeroBounceResult.reason}`);
+            console.log(`[ZEROBOUNCE] Email rejected: ${zeroBounceResult.status} - ${zeroBounceResult.reason}`);
             this.logIssue('warning', `Email rejected for ${emailToValidate}`, {
               email: emailToValidate,
               status: zeroBounceResult.status,
@@ -4542,7 +4542,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const totalKeywords = totalBaseKeywords + totalAIKeywords;
         
         if (totalKeywords === 0 || basePositions.length === 0) {
-          console.log(`❌ [ERROR] No keywords or positions available for search`);
+          console.log(`[ERR] No keywords or positions available for search`);
           return { found: 0, leads: [], error: 'Industry keywords or positions not configured' };
         }
         
@@ -4855,7 +4855,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           });
 
           if (!enrichResponse.ok) {
-            console.log(`⚠️ [APOLLO] Failed to enrich lead ${lead.id}: ${enrichResponse.status}`);
+            console.log(`[APOLLO] Failed to enrich lead ${lead.id}: ${enrichResponse.status}`);
             continue;
           }
 
@@ -4895,7 +4895,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           }).catch(err => console.error('Failed to log enrichment:', err));
 
         } catch (enrichError) {
-          console.error(`❌ [APOLLO] Error enriching lead ${lead.id}:`, enrichError.message);
+          console.error(`[APOLLO] Error enriching lead ${lead.id}:`, enrichError.message);
           continue;
         }
       }
@@ -4920,7 +4920,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       if (rateCheck.remaining) {
         const checkRemaining = (limit, type) => {
           if (limit !== null && limit < 10) {
-            console.warn(`⚠️ Apollo ${type} limit approaching: ${limit} credits remaining`);
+            console.warn(`[WARN] Apollo ${type} limit approaching: ${limit} credits remaining`);
           }
         };
         checkRemaining(rateCheck.remaining.hourly, 'hourly');
@@ -6401,6 +6401,7 @@ Target Positions:`;
         const user = await this.awsManager.getUserById(this.userId);
         
         if (user && user.crmConnected && user.crmAutoSync) {
+          console.log(`[CRM SYNC] Starting sync for ${leadData.name || leadData.first_name} to ${user.crmIntegration || 'CRM'}`);
           
           // Emit SSE progress for CRM sync
           this.emit('progress', {
@@ -6445,6 +6446,7 @@ Target Positions:`;
           const syncResult = await this.mergeManager.syncLeadToCRMUnified(this.userId, crmLeadData);
           
           if (syncResult.success) {
+            console.log(`[CRM SYNC] OK - ${leadData.name || leadData.first_name} synced to ${syncResult.crmIntegration} (contactId: ${syncResult.crmContactId || 'n/a'})`);
             
             // Emit SSE success for CRM sync
             this.emit('progress', {
@@ -6461,7 +6463,7 @@ Target Positions:`;
               }
             });
           } else {
-            console.warn(`⚠️ [CRM SYNC] Failed to sync: ${syncResult.error}`);
+            console.warn(`[CRM SYNC] Failed to sync: ${syncResult.error}`);
             
             // Emit SSE warning for CRM sync failure
             this.emit('progress', {
@@ -6481,6 +6483,7 @@ Target Positions:`;
           const skipReason = !user ? 'user not found' : 
                             !user.crmConnected ? 'CRM not connected' : 
                             !user.crmAutoSync ? 'auto-sync disabled' : 'unknown';
+          console.log(`[CRM SYNC] Skipped (${skipReason}) for ${leadData.name || leadData.first_name}`);
         }
       } catch (crmError) {
         console.error('❌ [CRM SYNC] Error syncing to CRM:', crmError.message);
@@ -7179,7 +7182,7 @@ Target Positions:`;
       return result;
       
     } catch (error) {
-      console.error(`❌ [EXECUTE] Function ${functionName} failed:`, error);
+      console.error(`[ERR] Function ${functionName} failed:`, error);
       return {
         success: false,
         message: `Function ${functionName} failed: ${error.message}`,
@@ -7310,7 +7313,7 @@ Target Positions:`;
           tempSettings
         );
         
-        console.log(`📋 [CAMPAIGN PLAN] convertInstructionsToPlan result: ${this.campaignPlan ? 'OK' : 'NULL/UNDEFINED'} | hasQualificationCriteria: ${!!this.campaignPlan?.qualificationCriteria} | mustHave items: ${this.campaignPlan?.qualificationCriteria?.mustHave?.length ?? 'n/a'}`);
+        console.log(`[CAMPAIGN PLAN] convertInstructionsToPlan result: ${this.campaignPlan ? 'OK' : 'NULL/UNDEFINED'} | hasQualificationCriteria: ${!!this.campaignPlan?.qualificationCriteria} | mustHave items: ${this.campaignPlan?.qualificationCriteria?.mustHave?.length ?? 'n/a'}`);
         
         if (this.campaignPlan) {
           this.emit('progress', {

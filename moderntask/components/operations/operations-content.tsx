@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   Play, Square, RefreshCw, Bot, Mail, Clock,
   MessageSquare, Wifi, WifiOff, Activity,
-  ChevronRight, Sparkles, CheckCircle2, Send,
+  ChevronRight, ChevronDown, Sparkles, CheckCircle2, Send,
   Target, ExternalLink, ArrowUp, ArrowDown, User
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -47,6 +47,19 @@ interface ActivityLog {
   message: string
   timestamp: number
   type?: string
+  data?: {
+    score?: number
+    tier?: string
+    confidence?: string
+    reasoning?: string
+    strengths?: string[]
+    weaknesses?: string[]
+    recommendation?: string
+    emailStrategy?: string
+    citedEvidence?: number
+    company?: string
+    [key: string]: any
+  }
 }
 
 interface TodayStats {
@@ -68,6 +81,7 @@ export function OperationsContent() {
   const [prevStats, setPrevStats] = useState<TodayStats>({ sent: 0, queued: 0, cycles: 0, replied: 0 })
   const [aiSummary, setAiSummary] = useState('Initializing coordination intelligence...')
   const [sseConnected, setSseConnected] = useState(false)
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({})
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const logsRef = useRef<HTMLDivElement>(null)
@@ -172,6 +186,7 @@ export function OperationsContent() {
             message: logMsg,
             timestamp: Date.now(),
             type: d.type,
+            data: payload.data && typeof payload.data === 'object' && Object.keys(payload.data).length > 0 ? payload.data : undefined,
           }
           setActivityLogs(p => [entry, ...p].slice(0, 120))
         }
@@ -520,25 +535,78 @@ export function OperationsContent() {
                   return (
                     <div
                       key={log.id}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors border border-border/50"
+                      className="rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors border border-border/50 overflow-hidden"
                     >
-                      {/* Avatar */}
-                      <img
-                        src={agent ? avatarUrl(agent) : `/avatars/Hunter.png`}
-                        alt={log.agentName}
-                        className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5 border border-border"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
+                      <div className="flex items-start gap-3 p-3">
+                        {/* Avatar */}
+                        <img
+                          src={agent ? avatarUrl(agent) : `/avatars/Hunter.png`}
+                          alt={log.agentName}
+                          className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5 border border-border"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-semibold text-foreground">{log.agentName}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                          </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-semibold text-foreground">{log.agentName}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </span>
+                            {log.data?.score !== undefined && (
+                              <span className={cn(
+                                'ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded',
+                                log.data.score >= 70 ? 'bg-green-500/15 text-green-500' :
+                                log.data.score >= 40 ? 'bg-amber-500/15 text-amber-500' :
+                                'bg-red-500/15 text-red-500'
+                              )}>
+                                {log.data.score}/100
+                                {log.data.tier ? ` · ${log.data.tier}` : ''}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{log.message}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{log.message}</p>
+
+                        {/* Expand button — only for qualify events with reasoning */}
+                        {log.data?.reasoning && (
+                          <button
+                            onClick={() => setExpandedLogs(p => ({ ...p, [log.id]: !p[log.id] }))}
+                            className="flex-shrink-0 p-1 rounded hover:bg-border/50 transition-colors mt-0.5"
+                          >
+                            <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground transition-transform', expandedLogs[log.id] && 'rotate-180')} />
+                          </button>
+                        )}
                       </div>
+
+                      {/* Expanded reasoning panel */}
+                      {log.data?.reasoning && expandedLogs[log.id] && (
+                        <div className="border-t border-border/50 px-3 pb-3 pt-2 space-y-1.5">
+                          <p className="text-[11px] text-foreground/80 leading-relaxed">
+                            <span className="font-semibold text-foreground">Reasoning: </span>{log.data.reasoning}
+                          </p>
+                          {log.data.strengths && log.data.strengths.length > 0 && (
+                            <p className="text-[11px] text-green-600 dark:text-green-400">
+                              <span className="font-semibold">Strengths: </span>{log.data.strengths.join(' · ')}
+                            </p>
+                          )}
+                          {log.data.weaknesses && log.data.weaknesses.length > 0 && (
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                              <span className="font-semibold">Concerns: </span>{log.data.weaknesses.join(' · ')}
+                            </p>
+                          )}
+                          {log.data.emailStrategy && (
+                            <p className="text-[11px] text-muted-foreground">
+                              <span className="font-semibold text-foreground">Strategy: </span>{log.data.emailStrategy}
+                            </p>
+                          )}
+                          {log.data.confidence && (
+                            <p className="text-[11px] text-muted-foreground">
+                              <span className="font-semibold text-foreground">Confidence: </span>{log.data.confidence}
+                              {log.data.citedEvidence ? ` · ${log.data.citedEvidence} cited facts` : ''}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
