@@ -200,6 +200,9 @@ export function SettingsContent() {
   const [crmLoading, setCrmLoading] = useState(false)
   const [selectedCRM, setSelectedCRM] = useState<typeof CRM_CONFIGS[number] | null>(null)
   const [showCrmDropdown, setShowCrmDropdown] = useState(false)
+  const [crmImportedLeads, setCrmImportedLeads] = useState<Array<{ email: string; firstName: string; lastName: string; title: string; phone: string; company: string; crmId: string; source: string }> | null>(null)
+  const [crmImportLoading, setCrmImportLoading] = useState(false)
+  const [crmImportExpanded, setCrmImportExpanded] = useState(false)
   const [crmCredentials, setCrmCredentials] = useState<Record<string, string>>({})
   const [connectingCrm, setConnectingCrm] = useState(false)
   const [crmError, setCrmError] = useState<string | null>(null)
@@ -552,9 +555,26 @@ export function SettingsContent() {
     try {
       await api.post("/api/crm/disconnect")
       setCrmStatus({ connected: false })
+      setCrmImportedLeads(null)
       toast.success("CRM disconnected")
     } catch { toast.error("Failed to disconnect") }
     finally { setCrmLoading(false) }
+  }
+
+  const importLeadsFromCRM = async () => {
+    setCrmImportLoading(true)
+    try {
+      const res = await api.get("/api/crm/import-leads?limit=200")
+      if (res.data?.contacts) {
+        setCrmImportedLeads(res.data.contacts)
+        setCrmImportExpanded(true)
+        toast.success(`Loaded ${res.data.contacts.length} contacts from ${crmStatus.integration}`)
+      }
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to import leads")
+    } finally {
+      setCrmImportLoading(false)
+    }
   }
 
   if (loading) {
@@ -1250,6 +1270,54 @@ export function SettingsContent() {
                     {crmLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}
                     Disconnect
                   </Button>
+                </div>
+
+                {/* Import leads section */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between p-3 bg-secondary/30">
+                    <div>
+                      <p className="text-sm font-medium">Import from {crmStatus.integration}</p>
+                      <p className="text-xs text-muted-foreground">Pull existing contacts into Meridian for outreach</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={importLeadsFromCRM} disabled={crmImportLoading} className="gap-1.5">
+                      {crmImportLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
+                      {crmImportLoading ? 'Loading…' : crmImportedLeads ? 'Refresh' : 'Import Contacts'}
+                    </Button>
+                  </div>
+                  {crmImportedLeads && crmImportedLeads.length > 0 && (
+                    <div>
+                      <button
+                        className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:bg-secondary/50 transition-colors border-t"
+                        onClick={() => setCrmImportExpanded(v => !v)}
+                      >
+                        <span>{crmImportedLeads.length} contacts loaded</span>
+                        <svg className={`w-3.5 h-3.5 transition-transform ${crmImportExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                      {crmImportExpanded && (
+                        <div className="max-h-72 overflow-y-auto border-t divide-y divide-border/50">
+                          {crmImportedLeads.map((c, i) => (
+                            <div key={i} className="flex items-center gap-3 px-3 py-2 hover:bg-secondary/30 transition-colors">
+                              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                                <span className="text-[10px] font-semibold text-muted-foreground">
+                                  {(c.firstName?.[0] || c.email[0] || '?').toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">
+                                  {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}`.trim() : c.email}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground truncate">{c.email}</p>
+                              </div>
+                              {c.title && <span className="text-[10px] text-muted-foreground hidden sm:block truncate max-w-[120px]">{c.title}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {crmImportedLeads && crmImportedLeads.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4 border-t">No contacts with email addresses found</p>
+                  )}
                 </div>
               </div>
             )}

@@ -505,6 +505,22 @@ class MergeManager {
             return await this.syncLeadToZendeskSell(user.crmApiKey, leadData);
           case 'nutshell':
             return await this.syncLeadToNutshell(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'keap':
+            return await this.syncLeadToKeap(user.crmApiKey, leadData);
+          case 'dynamics365':
+            return await this.syncLeadToDynamics365(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'pipeliner':
+            return await this.syncLeadToPipeliner(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'sugarcrm':
+            return await this.syncLeadToSugarCRM(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'teamleader':
+            return await this.syncLeadToTeamleader(user.crmApiKey, leadData);
+          case 'teamwork':
+            return await this.syncLeadToTeamwork(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'vtiger':
+            return await this.syncLeadToVtiger(user.crmApiUrl, user.crmApiKey, leadData);
+          case 'accelo':
+            return await this.syncLeadToAccelo(user.crmApiUrl, user.crmApiKey, leadData);
           default:
             return { success: false, error: `Direct sync not implemented for ${user.crmIntegration}` };
         }
@@ -938,6 +954,614 @@ class MergeManager {
     } catch (error) {
       console.error('❌ [NUTSHELL] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.error?.message || error.message };
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // WRITE FUNCTIONS — remaining 8 integrations
+  // ──────────────────────────────────────────────────────────────────────────
+
+  async syncLeadToKeap(apiKey, leadData) {
+    try {
+      console.log('[KEAP] Syncing lead:', leadData.email);
+      const response = await axios.post('https://api.infusionsoft.com/crm/rest/v2/contacts', {
+        email_addresses: [{ email: leadData.email, field: 'EMAIL1' }],
+        given_name: leadData.firstName || '',
+        family_name: leadData.lastName || '',
+        phone_numbers: leadData.phone ? [{ number: leadData.phone, field: 'PHONE1' }] : [],
+        job_title: leadData.title || ''
+      }, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' } });
+      console.log('✅ [KEAP] Contact created:', response.data?.id);
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Keap' };
+    } catch (error) {
+      console.error('[KEAP] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  async syncLeadToDynamics365(instanceUrl, apiKey, leadData) {
+    try {
+      console.log('[DYNAMICS365] Syncing lead:', leadData.email);
+      const payload = {
+        emailaddress1: leadData.email,
+        firstname: leadData.firstName || '',
+        lastname: leadData.lastName || leadData.email.split('@')[0],
+        telephone1: leadData.phone || '',
+        jobtitle: leadData.title || '',
+        description: this.buildComprehensiveNotes(leadData)
+      };
+      const response = await axios.post(`${instanceUrl}/api/data/v9.2/contacts`, payload, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'OData-MaxVersion': '4.0',
+          'OData-Version': '4.0',
+          'Prefer': 'return=representation'
+        }
+      });
+      const contactId = response.data?.contactid || response.headers?.['odata-entityid']?.match(/\(([^)]+)\)/)?.[1];
+      console.log('✅ [DYNAMICS365] Contact created:', contactId);
+      return { success: true, crmContactId: contactId, crmIntegration: 'Dynamics 365' };
+    } catch (error) {
+      console.error('[DYNAMICS365] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.error?.message || error.message };
+    }
+  }
+
+  async syncLeadToPipeliner(spaceId, apiKey, leadData) {
+    try {
+      console.log('[PIPELINER] Syncing lead:', leadData.email);
+      const [username, password] = (apiKey || ':').split(':');
+      const response = await axios.post(
+        `https://eu-central.api.pipelinersales.com/api/v100/rest/spaces/${spaceId}/Contacts`,
+        {
+          first_name: leadData.firstName || '',
+          last_name: leadData.lastName || leadData.email.split('@')[0],
+          title: leadData.title || '',
+          email1: leadData.email
+        },
+        { auth: { username: username || spaceId, password: password || apiKey } }
+      );
+      const id = response.data?.data?.id;
+      console.log('✅ [PIPELINER] Contact created:', id);
+      return { success: true, crmContactId: id, crmIntegration: 'Pipeliner' };
+    } catch (error) {
+      console.error('[PIPELINER] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.error?.message || error.message };
+    }
+  }
+
+  async syncLeadToSugarCRM(instanceUrl, apiKey, leadData) {
+    try {
+      console.log('[SUGARCRM] Syncing lead:', leadData.email);
+      const response = await axios.post(`${instanceUrl}/rest/v11_1/Contacts`, {
+        email: leadData.email,
+        first_name: leadData.firstName || '',
+        last_name: leadData.lastName || leadData.email.split('@')[0],
+        phone_work: leadData.phone || '',
+        title: leadData.title || '',
+        description: this.buildComprehensiveNotes(leadData)
+      }, { headers: { 'OAuth-Token': apiKey, 'Content-Type': 'application/json' } });
+      console.log('✅ [SUGARCRM] Contact created:', response.data?.id);
+      return { success: true, crmContactId: response.data?.id, crmIntegration: 'SugarCRM' };
+    } catch (error) {
+      console.error('[SUGARCRM] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.error_message || error.message };
+    }
+  }
+
+  async syncLeadToTeamleader(apiKey, leadData) {
+    try {
+      console.log('[TEAMLEADER] Syncing lead:', leadData.email);
+      const response = await axios.post('https://api.focus.teamleader.eu/contacts.add', {
+        first_name: leadData.firstName || '',
+        last_name: leadData.lastName || leadData.email.split('@')[0],
+        emails: [{ type: 'primary', email: leadData.email }],
+        telephones: leadData.phone ? [{ type: 'phone', number: leadData.phone }] : [],
+        remarks: this.buildComprehensiveNotes(leadData)
+      }, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' } });
+      const id = response.data?.data?.id;
+      console.log('✅ [TEAMLEADER] Contact created:', id);
+      return { success: true, crmContactId: id, crmIntegration: 'Teamleader' };
+    } catch (error) {
+      console.error('[TEAMLEADER] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.errors?.[0]?.title || error.message };
+    }
+  }
+
+  async syncLeadToTeamwork(siteUrl, apiKey, leadData) {
+    try {
+      console.log('[TEAMWORK] Syncing lead:', leadData.email);
+      const base = siteUrl.replace(/\/$/, '');
+      const response = await axios.post(`${base}/crm/v2/contacts.json`, {
+        contact: {
+          'first-name': leadData.firstName || '',
+          'last-name': leadData.lastName || '',
+          'email-address': leadData.email,
+          'phone-number': leadData.phone || '',
+          description: this.buildComprehensiveNotes(leadData)
+        }
+      }, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(apiKey + ':x').toString('base64')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const id = response.data?.contact?.id || response.data?.id;
+      console.log('✅ [TEAMWORK] Contact created:', id);
+      return { success: true, crmContactId: id, crmIntegration: 'Teamwork CRM' };
+    } catch (error) {
+      console.error('[TEAMWORK] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.MESSAGE || error.message };
+    }
+  }
+
+  async syncLeadToVtiger(instanceUrl, apiKey, leadData) {
+    try {
+      console.log('[VTIGER] Syncing lead:', leadData.email);
+      // Vtiger REST v1: login first to get sessionName
+      const [username, accessKey] = (apiKey || ':').split(':');
+      const loginRes = await axios.get(`${instanceUrl}/webservice.php`, {
+        params: { operation: 'getchallenge', username }
+      });
+      const token = loginRes.data?.result?.token;
+      const md5hash = (await import('crypto')).createHash('md5').update(token + accessKey).digest('hex');
+      const loginForm = new URLSearchParams({ operation: 'login', username, accessKey: md5hash });
+      const loginFull = await axios.post(`${instanceUrl}/webservice.php`, loginForm);
+      const sessionName = loginFull.data?.result?.sessionName;
+
+      const element = JSON.stringify({
+        email: leadData.email,
+        firstname: leadData.firstName || '',
+        lastname: leadData.lastName || leadData.email.split('@')[0],
+        phone: leadData.phone || '',
+        title: leadData.title || '',
+        description: this.buildComprehensiveNotes(leadData),
+        assigned_user_id: loginFull.data?.result?.userId
+      });
+      const createForm = new URLSearchParams({ operation: 'create', sessionName, elementType: 'Contacts', element });
+      const res = await axios.post(`${instanceUrl}/webservice.php`, createForm);
+      const id = res.data?.result?.id;
+      console.log('✅ [VTIGER] Contact created:', id);
+      return { success: true, crmContactId: id, crmIntegration: 'Vtiger' };
+    } catch (error) {
+      console.error('[VTIGER] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.error?.message || error.message };
+    }
+  }
+
+  async syncLeadToAccelo(deploymentUrl, apiKey, leadData) {
+    try {
+      console.log('[ACCELO] Syncing lead:', leadData.email);
+      const base = deploymentUrl.replace(/\/$/, '');
+      const [clientId, clientSecret] = (apiKey || ':').split(':');
+      // Get bearer token
+      const tokenRes = await axios.post(`${base}/oauth2/v0/token`, new URLSearchParams({
+        grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret,
+        scope: 'read(all) write(contacts)'
+      }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const bearer = tokenRes.data?.access_token;
+      const response = await axios.post(`${base}/api/v0/contacts`, {
+        firstname: leadData.firstName || '',
+        surname: leadData.lastName || leadData.email.split('@')[0],
+        email: leadData.email,
+        phone: leadData.phone || '',
+        comments: this.buildComprehensiveNotes(leadData)
+      }, { headers: { 'Authorization': `Bearer ${bearer}`, 'Content-Type': 'application/json' } });
+      const id = response.data?.response?.id;
+      console.log('✅ [ACCELO] Contact created:', id);
+      return { success: true, crmContactId: id, crmIntegration: 'Accelo' };
+    } catch (error) {
+      console.error('[ACCELO] Error:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.meta?.message || error.message };
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // READ FUNCTIONS — import existing leads from connected CRM
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Normalize a raw CRM contact record into a standard shape
+   */
+  normalizeContact(raw, source) {
+    return {
+      email: raw.email || raw.emailaddress1 || raw.email_address || raw.EMAIL_ADDRESS || '',
+      firstName: raw.firstName || raw.first_name || raw.given_name || raw.First_Name || raw.FIRST_NAME || raw.firstname || '',
+      lastName: raw.lastName || raw.last_name || raw.family_name || raw.Last_Name || raw.LAST_NAME || raw.surname || '',
+      title: raw.title || raw.jobtitle || raw.job_title || raw.Title || raw.TITLE || raw.position || '',
+      phone: raw.phone || raw.phone_work || raw.telephone1 || raw.Phone || raw.PHONE || '',
+      company: raw.company || raw.companyName || raw.company_name || '',
+      crmId: raw.id || raw.contactid || raw.CONTACT_ID || raw.contact_id || '',
+      source
+    };
+  }
+
+  /**
+   * Unified read — returns up to 200 contacts from the user's connected CRM
+   */
+  async readLeadsFromCRM(userId, limit = 200) {
+    const user = await this.awsManager.getUserById(userId);
+    if (!user?.crmConnected) return { success: false, error: 'No CRM connected', contacts: [] };
+
+    if (user.crmType === 'direct') {
+      const integration = user.crmIntegration?.toLowerCase();
+      switch (integration) {
+        case 'activecampaign': return await this.readFromActiveCampaign(user.crmApiUrl, user.crmApiKey, limit);
+        case 'hubspot':        return await this.readFromHubSpot(user.crmApiKey, limit);
+        case 'salesforce':     return await this.readFromSalesforce(user.crmApiUrl, user.crmApiKey, limit);
+        case 'pipedrive':      return await this.readFromPipedrive(user.crmApiKey, limit);
+        case 'zoho':           return await this.readFromZoho(user.crmApiUrl, user.crmApiKey, limit);
+        case 'copper':         return await this.readFromCopper(user.crmApiUrl, user.crmApiKey, limit);
+        case 'close':          return await this.readFromClose(user.crmApiKey, limit);
+        case 'affinity':       return await this.readFromAffinity(user.crmApiKey, limit);
+        case 'capsule':        return await this.readFromCapsule(user.crmApiKey, limit);
+        case 'insightly':      return await this.readFromInsightly(user.crmApiKey, limit);
+        case 'keap':           return await this.readFromKeap(user.crmApiKey, limit);
+        case 'dynamics365':    return await this.readFromDynamics365(user.crmApiUrl, user.crmApiKey, limit);
+        case 'nutshell':       return await this.readFromNutshell(user.crmApiUrl, user.crmApiKey, limit);
+        case 'pipeliner':      return await this.readFromPipeliner(user.crmApiUrl, user.crmApiKey, limit);
+        case 'salesflare':     return await this.readFromSalesflare(user.crmApiKey, limit);
+        case 'sugarcrm':       return await this.readFromSugarCRM(user.crmApiUrl, user.crmApiKey, limit);
+        case 'teamleader':     return await this.readFromTeamleader(user.crmApiKey, limit);
+        case 'teamwork':       return await this.readFromTeamwork(user.crmApiUrl, user.crmApiKey, limit);
+        case 'vtiger':         return await this.readFromVtiger(user.crmApiUrl, user.crmApiKey, limit);
+        case 'zendesksell':    return await this.readFromZendeskSell(user.crmApiKey, limit);
+        case 'accelo':         return await this.readFromAccelo(user.crmApiUrl, user.crmApiKey, limit);
+        default: return { success: false, error: `Read not implemented for ${user.crmIntegration}`, contacts: [] };
+      }
+    }
+
+    // Merge-based fallback
+    return await this.readFromMerge(user.crmAccountToken, limit);
+  }
+
+  async readFromMerge(accountToken, limit) {
+    try {
+      const res = await this.client.get(`/api/crm/v1/contacts?page_size=${limit}`, {
+        headers: { 'X-Account-Token': accountToken }
+      });
+      const contacts = (res.data?.results || []).map(c => this.normalizeContact({
+        email: c.email_addresses?.[0]?.email_address,
+        firstName: c.first_name, lastName: c.last_name,
+        title: c.title, phone: c.phone_numbers?.[0]?.phone_number,
+        id: c.id
+      }, 'Merge CRM'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      console.error('[READ] Merge error:', error.response?.data || error.message);
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromActiveCampaign(apiUrl, apiKey, limit) {
+    try {
+      const res = await axios.get(`${apiUrl}/api/3/contacts?limit=${limit}`, {
+        headers: { 'Api-Token': apiKey }
+      });
+      const contacts = (res.data?.contacts || []).map(c => this.normalizeContact({
+        email: c.email, firstName: c.firstName, lastName: c.lastName,
+        phone: c.phone, id: c.id
+      }, 'ActiveCampaign'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromHubSpot(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.hubapi.com/crm/v3/objects/contacts?limit=${Math.min(limit, 100)}&properties=email,firstname,lastname,phone,company,jobtitle`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const contacts = (res.data?.results || []).map(c => this.normalizeContact({
+        email: c.properties?.email, firstName: c.properties?.firstname,
+        lastName: c.properties?.lastname, phone: c.properties?.phone,
+        title: c.properties?.jobtitle, company: c.properties?.company, id: c.id
+      }, 'HubSpot'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromSalesforce(instanceUrl, apiKey, limit) {
+    try {
+      const q = encodeURIComponent(`SELECT Id,Email,FirstName,LastName,Phone,Title FROM Contact LIMIT ${limit}`);
+      const res = await axios.get(`${instanceUrl}/services/data/v57.0/query?q=${q}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const contacts = (res.data?.records || []).map(c => this.normalizeContact({
+        email: c.Email, firstName: c.FirstName, lastName: c.LastName,
+        phone: c.Phone, title: c.Title, id: c.Id
+      }, 'Salesforce'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromPipedrive(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.pipedrive.com/v1/persons?api_token=${apiKey}&limit=${limit}`);
+      const contacts = (res.data?.data || []).map(c => this.normalizeContact({
+        email: c.email?.[0]?.value, firstName: c.first_name, lastName: c.last_name,
+        phone: c.phone?.[0]?.value, id: c.id
+      }, 'Pipedrive'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromZoho(apiUrl, apiKey, limit) {
+    try {
+      const res = await axios.get(`${apiUrl}/crm/v2/Contacts?per_page=${Math.min(limit, 200)}`, {
+        headers: { 'Authorization': `Zoho-oauthtoken ${apiKey}` }
+      });
+      const contacts = (res.data?.data || []).map(c => this.normalizeContact({
+        email: c.Email, firstName: c.First_Name, lastName: c.Last_Name,
+        phone: c.Phone, title: c.Title, id: c.id
+      }, 'Zoho CRM'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromCopper(userEmail, apiKey, limit) {
+    try {
+      const headers = { 'X-PW-AccessToken': apiKey, 'X-PW-Application': 'developer_api', 'X-PW-UserEmail': userEmail, 'Content-Type': 'application/json' };
+      const res = await axios.post('https://api.copper.com/developer_api/v1/people/search', { page_size: limit }, { headers });
+      const contacts = (res.data || []).map(c => this.normalizeContact({
+        email: c.emails?.[0]?.email, firstName: c.name?.split(' ')[0], lastName: c.name?.split(' ').slice(1).join(' '),
+        phone: c.phone_numbers?.[0]?.number, title: c.title, id: c.id
+      }, 'Copper'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromClose(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.close.com/api/v1/contact/?_limit=${limit}`, {
+        auth: { username: apiKey, password: '' }
+      });
+      const contacts = (res.data?.data || []).map(c => this.normalizeContact({
+        email: c.emails?.[0]?.email, firstName: c.name?.split(' ')[0], lastName: c.name?.split(' ').slice(1).join(' '),
+        phone: c.phones?.[0]?.phone, title: c.title, id: c.id
+      }, 'Close'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromAffinity(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.affinity.co/persons?page_size=${limit}`, {
+        headers: { 'Authorization': `Basic ${Buffer.from(':' + apiKey).toString('base64')}` }
+      });
+      const contacts = (res.data?.persons || res.data || []).map(c => this.normalizeContact({
+        email: c.primary_email || c.emails?.[0], firstName: c.first_name, lastName: c.last_name,
+        phone: c.phone_numbers?.[0], id: c.id
+      }, 'Affinity'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromCapsule(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.capsulecrm.com/api/v2/parties?type=person&perPage=${Math.min(limit, 100)}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const contacts = (res.data?.parties || []).map(c => this.normalizeContact({
+        email: c.emailAddresses?.[0]?.address, firstName: c.firstName, lastName: c.lastName,
+        title: c.jobTitle, phone: c.phoneNumbers?.[0]?.number, id: c.id
+      }, 'Capsule'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromInsightly(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.insightly.com/v3.1/Contacts?count_total=false&rows=${limit}`, {
+        headers: { 'Authorization': `Basic ${Buffer.from(apiKey + ':').toString('base64')}` }
+      });
+      const contacts = (res.data || []).map(c => this.normalizeContact({
+        email: c.EMAIL_ADDRESS, firstName: c.FIRST_NAME, lastName: c.LAST_NAME,
+        phone: c.PHONE, title: c.TITLE, id: c.CONTACT_ID
+      }, 'Insightly'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromKeap(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.infusionsoft.com/crm/rest/v2/contacts?limit=${limit}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const contacts = (res.data?.contacts || []).map(c => this.normalizeContact({
+        email: c.email_addresses?.find(e => e.field === 'EMAIL1')?.email || c.email_addresses?.[0]?.email,
+        firstName: c.given_name, lastName: c.family_name,
+        phone: c.phone_numbers?.[0]?.number, title: c.job_title, id: c.id
+      }, 'Keap'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromDynamics365(instanceUrl, apiKey, limit) {
+    try {
+      const res = await axios.get(`${instanceUrl}/api/data/v9.2/contacts?$select=emailaddress1,firstname,lastname,telephone1,jobtitle&$top=${limit}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'OData-MaxVersion': '4.0', 'OData-Version': '4.0' }
+      });
+      const contacts = (res.data?.value || []).map(c => this.normalizeContact({
+        email: c.emailaddress1, firstName: c.firstname, lastName: c.lastname,
+        phone: c.telephone1, title: c.jobtitle, id: c.contactid
+      }, 'Dynamics 365'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromNutshell(userEmail, apiKey, limit) {
+    try {
+      const res = await axios.post('https://app.nutshell.com/api/v1/json', {
+        jsonrpc: '2.0', method: 'searchContacts',
+        params: { query: '', stubbedOnly: false },
+        id: `read_${Date.now()}`
+      }, { auth: { username: userEmail, password: apiKey } });
+      const contacts = (res.data?.result || []).slice(0, limit).map(c => this.normalizeContact({
+        email: c.email?.[0], firstName: c.name?.givenName, lastName: c.name?.familyName,
+        phone: c.phone?.[0], title: c.title, id: c.id
+      }, 'Nutshell'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromPipeliner(spaceId, apiKey, limit) {
+    try {
+      const [username, password] = (apiKey || ':').split(':');
+      const res = await axios.get(
+        `https://eu-central.api.pipelinersales.com/api/v100/rest/spaces/${spaceId}/Contacts?limit=${limit}`,
+        { auth: { username: username || spaceId, password: password || apiKey } }
+      );
+      const contacts = (res.data?.data || []).map(c => this.normalizeContact({
+        email: c.email1, firstName: c.first_name, lastName: c.last_name, title: c.title, id: c.id
+      }, 'Pipeliner'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromSalesflare(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.salesflare.com/contacts?per_page=${Math.min(limit, 100)}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const contacts = (res.data || []).map(c => this.normalizeContact({
+        email: c.email, firstName: c.firstname, lastName: c.lastname,
+        phone: c.phone_number, title: c.position, id: c.id
+      }, 'Salesflare'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromSugarCRM(instanceUrl, apiKey, limit) {
+    try {
+      const res = await axios.get(`${instanceUrl}/rest/v11_1/Contacts?max_num=${limit}&fields=email,first_name,last_name,phone_work,title`, {
+        headers: { 'OAuth-Token': apiKey }
+      });
+      const contacts = (res.data?.records || []).map(c => this.normalizeContact({
+        email: c.email?.[0]?.email_address || c.email, firstName: c.first_name, lastName: c.last_name,
+        phone: c.phone_work, title: c.title, id: c.id
+      }, 'SugarCRM'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromTeamleader(apiKey, limit) {
+    try {
+      const res = await axios.post('https://api.focus.teamleader.eu/contacts.list', {
+        page: { size: Math.min(limit, 100), number: 1 }
+      }, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' } });
+      const contacts = (res.data?.data || []).map(c => this.normalizeContact({
+        email: c.emails?.find(e => e.type === 'primary')?.email || c.emails?.[0]?.email,
+        firstName: c.first_name, lastName: c.last_name,
+        phone: c.telephones?.[0]?.number, id: c.id
+      }, 'Teamleader'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromTeamwork(siteUrl, apiKey, limit) {
+    try {
+      const base = siteUrl.replace(/\/$/, '');
+      const res = await axios.get(`${base}/crm/v2/contacts.json?pageSize=${Math.min(limit, 100)}`, {
+        headers: { 'Authorization': `Basic ${Buffer.from(apiKey + ':x').toString('base64')}` }
+      });
+      const contacts = (res.data?.contacts || []).map(c => this.normalizeContact({
+        email: c['email-address'], firstName: c['first-name'], lastName: c['last-name'],
+        phone: c['phone-number'], id: c.id
+      }, 'Teamwork CRM'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromVtiger(instanceUrl, apiKey, limit) {
+    try {
+      const [username, accessKey] = (apiKey || ':').split(':');
+      const loginRes = await axios.get(`${instanceUrl}/webservice.php`, { params: { operation: 'getchallenge', username } });
+      const token = loginRes.data?.result?.token;
+      const md5hash = (await import('crypto')).createHash('md5').update(token + accessKey).digest('hex');
+      const loginForm = new URLSearchParams({ operation: 'login', username, accessKey: md5hash });
+      const loginFull = await axios.post(`${instanceUrl}/webservice.php`, loginForm);
+      const sessionName = loginFull.data?.result?.sessionName;
+      const q = encodeURIComponent(`SELECT id,email,firstname,lastname,phone,title FROM Contacts LIMIT 0,${limit}`);
+      const res = await axios.get(`${instanceUrl}/webservice.php?operation=query&sessionName=${sessionName}&query=${q}`);
+      const contacts = (res.data?.result || []).map(c => this.normalizeContact({
+        email: c.email, firstName: c.firstname, lastName: c.lastname, phone: c.phone, title: c.title, id: c.id
+      }, 'Vtiger'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromZendeskSell(apiKey, limit) {
+    try {
+      const res = await axios.get(`https://api.getbase.com/v2/contacts?per_page=${Math.min(limit, 100)}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const contacts = (res.data?.items || []).map(item => this.normalizeContact({
+        email: item.data?.email, firstName: item.data?.first_name, lastName: item.data?.last_name,
+        phone: item.data?.phone, title: item.data?.title, id: item.data?.id
+      }, 'Zendesk Sell'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
+    }
+  }
+
+  async readFromAccelo(deploymentUrl, apiKey, limit) {
+    try {
+      const base = deploymentUrl.replace(/\/$/, '');
+      const [clientId, clientSecret] = (apiKey || ':').split(':');
+      const tokenRes = await axios.post(`${base}/oauth2/v0/token`, new URLSearchParams({
+        grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret,
+        scope: 'read(all)'
+      }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const bearer = tokenRes.data?.access_token;
+      const res = await axios.get(`${base}/api/v0/contacts?_limit=${limit}&_fields=id,firstname,surname,email,phone`, {
+        headers: { 'Authorization': `Bearer ${bearer}` }
+      });
+      const contacts = (res.data?.response || []).map(c => this.normalizeContact({
+        email: c.email, firstName: c.firstname, lastName: c.surname, phone: c.phone, id: c.id
+      }, 'Accelo'));
+      return { success: true, contacts: contacts.filter(c => c.email) };
+    } catch (error) {
+      return { success: false, error: error.message, contacts: [] };
     }
   }
 }

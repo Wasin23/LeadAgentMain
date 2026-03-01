@@ -235,10 +235,71 @@ router.post('/connect-direct', authenticateToken, async (req, res) => {
             headers: { 'Authorization': `Bearer ${apiKey}` }
           });
           break;
-          
+
+        case 'dynamics365':
+          if (!apiUrl) return res.status(400).json({ error: 'Organization URL is required for Dynamics 365' });
+          await axios.get(`${apiUrl}/api/data/v9.2/WhoAmI`, {
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'OData-MaxVersion': '4.0', 'OData-Version': '4.0' }
+          });
+          break;
+
+        case 'pipeliner':
+          if (!apiUrl) return res.status(400).json({ error: 'Space ID is required for Pipeliner' });
+          {
+            const [pUser, pPass] = apiKey.split(':');
+            await axios.get(
+              `https://eu-central.api.pipelinersales.com/api/v100/rest/spaces/${apiUrl}/Contacts?limit=1`,
+              { auth: { username: pUser || apiUrl, password: pPass || apiKey } }
+            );
+          }
+          break;
+
+        case 'sugarcrm':
+          if (!apiUrl) return res.status(400).json({ error: 'Instance URL is required for SugarCRM' });
+          await axios.get(`${apiUrl}/rest/v11_1/ping`, {
+            headers: { 'OAuth-Token': apiKey }
+          });
+          break;
+
+        case 'teamleader':
+          await axios.get('https://api.focus.teamleader.eu/users.me', {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+          });
+          break;
+
+        case 'teamwork':
+          if (!apiUrl) return res.status(400).json({ error: 'Site URL is required for Teamwork CRM' });
+          await axios.get(`${apiUrl.replace(/\/$/, '')}/account.json`, {
+            headers: { 'Authorization': `Basic ${Buffer.from(apiKey + ':x').toString('base64')}` }
+          });
+          break;
+
+        case 'vtiger':
+          if (!apiUrl) return res.status(400).json({ error: 'Instance URL is required for Vtiger' });
+          {
+            const [vUser, vKey] = apiKey.split(':');
+            const chalRes = await axios.get(`${apiUrl}/webservice.php`, { params: { operation: 'getchallenge', username: vUser } });
+            const token = chalRes.data?.result?.token;
+            const { createHash } = await import('crypto');
+            const md5h = createHash('md5').update(token + vKey).digest('hex');
+            await axios.post(`${apiUrl}/webservice.php`, new URLSearchParams({ operation: 'login', username: vUser, accessKey: md5h }));
+          }
+          break;
+
+        case 'accelo':
+          if (!apiUrl) return res.status(400).json({ error: 'Deployment URL is required for Accelo' });
+          {
+            const [aId, aSecret] = apiKey.split(':');
+            await axios.post(`${apiUrl.replace(/\/$/, '')}/oauth2/v0/token`,
+              new URLSearchParams({ grant_type: 'client_credentials', client_id: aId, client_secret: aSecret, scope: 'read(all)' }),
+              { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+            );
+          }
+          break;
+
         default:
           // For other CRMs, just save without testing (we'll add tests as needed)
-          console.log(`⚠️ [CRM] No connection test implemented for ${integrationName}, saving anyway`);
+          console.log(`[WARN] No connection test implemented for ${integrationName}, saving anyway`);
       }
       
       console.log(`✅ [CRM] ${integrationName} connection test successful`);
@@ -259,6 +320,27 @@ router.post('/connect-direct', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('❌ [CRM] Error connecting direct CRM:', error);
     res.status(500).json({ error: 'Failed to connect CRM' });
+  }
+});
+
+// Import leads from connected CRM
+router.get('/import-leads', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+
+    console.log(`[CRM] import-leads requested for user ${userId}, limit=${limit}`);
+    const result = await mergeManager.readLeadsFromCRM(userId, limit);
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error || 'Failed to import leads' });
+    }
+
+    console.log(`[CRM] Imported ${result.contacts.length} contacts`);
+    res.json({ success: true, contacts: result.contacts, total: result.contacts.length });
+  } catch (error) {
+    console.error('❌ [CRM] Error importing leads:', error);
+    res.status(500).json({ error: 'Failed to import leads from CRM' });
   }
 });
 
