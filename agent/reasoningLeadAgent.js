@@ -4272,7 +4272,11 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       
       // Minimal compliance footer - less promotional looking
-      const footer = `\n\n${emailSettings.companyBranding?.companyName || 'Our Company'} | ${companyAddress}\n` +
+      const companyWebsite = this.memory.userSettings?.companyProfile?.website ||
+                             emailSettings.companyBranding?.website || '';
+      const footerParts = [emailSettings.companyBranding?.companyName || 'Our Company'];
+      if (companyWebsite) footerParts.push(companyWebsite);
+      const footer = `\n\n${footerParts.join(' | ')}\n` +
         `<a href="${unsubscribeUrl}">Stop emails</a>`;
       
       body = body + footer;
