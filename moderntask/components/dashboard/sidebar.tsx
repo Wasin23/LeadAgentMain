@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle } from "lucide-react"
+import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
@@ -20,6 +20,7 @@ const staticItems: NavItem[] = [
   { icon: CheckSquare,     label: "Operations",           href: "/operations" },
   { icon: Mail,            label: "Outreach Email Queue", href: "/email-queue" },
   { icon: Bot,             label: "Agents",               href: "/agents" },
+  { icon: Building2,       label: "CRM",                   href: "/crm" },
   { icon: BarChart3,       label: "Analytics",            href: "/analytics" },
   {
     icon: UserCheck,

@@ -12,7 +12,9 @@ import {
   Play, Square, RefreshCw, Bot, Mail, Clock,
   MessageSquare, Wifi, WifiOff, Activity,
   ChevronRight, ChevronDown, Sparkles, CheckCircle2, Send,
-  Target, ExternalLink, ArrowUp, ArrowDown, User
+  Target, ExternalLink, ArrowUp, ArrowDown, User,
+  UserCheck, Search, Settings, FileText, Users, Globe,
+  type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -67,6 +69,24 @@ interface TodayStats {
   queued: number
   cycles: number
   replied: number
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────
+const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu
+function stripEmoji(s: string) { return s.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim() }
+
+function logIcon(msg: string): LucideIcon {
+  const m = msg.toLowerCase()
+  if (m.includes('qualify') || m.includes('pre-screen') || m.includes('tier')) return UserCheck
+  if (m.includes('researching') || m.includes('research on')) return Globe
+  if (m.includes('searching for') || m.includes('qualified leads') || m.includes('apollo')) return Users
+  if (m.includes('loading email templates') || m.includes('email settings')) return Settings
+  if (m.includes('search preferences') || m.includes('targeting criteria') || m.includes('loading your search')) return Settings
+  if (m.includes('writing') || m.includes('personalized email') || m.includes('build')) return FileText
+  if (m.includes('finding email') || m.includes('email address') || m.includes('scheduling email')) return Mail
+  if (m.includes('email found') || m.includes('email unlocked')) return Mail
+  if (m.includes('starting research')) return Search
+  return Activity
 }
 
 // ── component ──────────────────────────────────────────────────────────────
@@ -564,7 +584,10 @@ export function OperationsContent() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed">{log.message}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed flex items-start gap-1.5">
+                            {(() => { const Icon = logIcon(log.message); return <Icon className="w-3 h-3 mt-0.5 flex-shrink-0 opacity-50" /> })()}
+                            <span>{stripEmoji(log.message)}</span>
+                          </p>
                         </div>
 
                         {/* Expand button — only for qualify events with reasoning */}

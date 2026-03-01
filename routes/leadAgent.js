@@ -84,6 +84,50 @@ router.post('/start', async (req, res) => {
   }
 });
 
+// Start agent in CRM mode — skip Apollo, process a provided contact list directly
+router.post('/start-from-crm', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId = 'reasoning-lead-agent', contacts = [] } = req.body || {};
+
+    if (!contacts || contacts.length === 0) {
+      return res.status(400).json({ success: false, message: 'No contacts provided' });
+    }
+
+    const userAgent = getUserAgent(userId, agentId);
+    const result = await userAgent.startFromCRM(contacts, null, userId);
+
+    if (result.success || result.isActive) {
+      try {
+        const { getUserById } = await import('../lib/userManager.js');
+        const user = await getUserById(userId);
+        if (user && user.activeAgents) {
+          const updatedAgents = user.activeAgents.map(agent =>
+            agent.agentId === agentId
+              ? { ...agent, status: 'running', lastRun: new Date().toISOString() }
+              : agent
+          );
+          const awsManager = (await import('../utils/awsManager.js')).default;
+          const awsManagerInstance = new awsManager();
+          await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
+        }
+      } catch (dbError) {
+        console.error('⚠️ [CRM START] Failed to update agent status in DB:', dbError);
+      }
+    }
+
+    return res.json({
+      success: result.success,
+      message: result.message,
+      isActive: result.isActive,
+      contactCount: contacts.length
+    });
+  } catch (error) {
+    console.error('❌ [CRM START] Error:', error);
+    return res.status(500).json({ success: false, message: error.message, isActive: false });
+  }
+});
+
 // Set custom cycle interval
 router.post('/set-interval', async (req, res) => {
   try {

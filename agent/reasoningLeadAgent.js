@@ -81,6 +81,7 @@ class ReasoningLeadAgent extends EventEmitter {
     this.progressIdCounter = 0;
     this.customInterval = null;
     this.cycleTimer = null;
+    this.crmContactList = null; // CRM mode: contacts to process instead of Apollo search
     
     // Load saved settings from DynamoDB
     this.loadSavedSettings();
@@ -536,6 +537,7 @@ IMPORTANT RULES:
       'Lead Processing', 
       'Email Processing',
       'Lead Complete',
+      'Lead Qualification',
       '💭 Agent Activity',
       '✅ Process Complete'
     ];
@@ -546,6 +548,7 @@ IMPORTANT RULES:
         operation,
         details,
         status,
+        data,
         timestamp: logEntry.timestamp
       }).catch(err => {
         console.error('⚠️ [SSE] Failed to broadcast agent activity:', err.message);
@@ -607,6 +610,7 @@ IMPORTANT RULES:
         cardMessage: cardMessage, // Concise message for cards
         status: activityData.status,
         timestamp: activityData.timestamp,
+        data: activityData.data || undefined, // Qualification data (score, reasoning, etc.)
         location: location, // Include location data for globe positioning
         targeting: currentLead ? {
           company: currentLead.organization?.name || currentLead.company,
@@ -679,18 +683,20 @@ IMPORTANT RULES:
   // Translate technical actions into user-friendly messages
   translateThinkingToFriendly(action, context) {
     const messages = {
-      'get_user_settings': '📋 Loading your search preferences and targeting criteria',
-      'get_email_settings': '✉️ Loading email templates and branding settings',
-      'apollo_search': `🔍 Searching for ${context.targetLeads || 'new'} qualified leads in your target industries`,
-      'serper_research': `🔬 Researching ${context.currentLead?.company || 'company'} to personalize outreach`,
-      'unlock_email': `🔓 Finding email address for ${context.currentLead?.name || 'contact'}`,
-      'build_personalized_email': `✍️ Writing personalized email for ${context.currentLead?.name || 'lead'}${context.currentLead?.company ? ` at ${context.currentLead.company}` : ''}`,
-      'queue_email': `📤 Scheduling email to ${context.currentLead?.name || 'contact'}`,
-      'think': '💭 Analyzing next steps...',
-      'complete': '✅ Finished processing leads'
+      'get_user_settings': 'Loading your search preferences and targeting criteria',
+      'get_email_settings': 'Loading email templates and branding settings',
+      'apollo_search': `Searching for ${context.targetLeads || 'new'} qualified leads in your target industries`,
+      'serper_research': `Researching ${context.currentLead?.company || 'company'} to personalize outreach`,
+      'unlock_email': `Finding email address for ${context.currentLead?.name || 'contact'}`,
+      'build_personalized_email': `Writing personalized email for ${context.currentLead?.name || 'lead'}${context.currentLead?.company ? ` at ${context.currentLead.company}` : ''}`,
+      'queue_email': `Scheduling email to ${context.currentLead?.name || 'contact'}`,
+      'pre_qualify_lead': `Pre-screening ${context.currentLead?.name || 'lead'} at ${context.currentLead?.company || 'company'}`,
+      'qualify_lead': `Qualifying ${context.currentLead?.name || 'lead'} at ${context.currentLead?.company || 'company'}`,
+      'think': 'Analyzing next steps...',
+      'complete': 'Finished processing leads'
     };
     
-    return messages[action] || `⚙️ ${action}`;
+    return messages[action] || action;
   }
 
   // Translate operations to concise card messages (no emojis, simplified)
@@ -1136,7 +1142,7 @@ Call the appropriate function to continue the workflow.`;
             this.broadcastAgentActivity({
               agentId: this.agentId,
               operation: '💭 Agent Activity',
-              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
@@ -1205,7 +1211,7 @@ Call the appropriate function to continue the workflow.`;
               this.broadcastAgentActivity({
                 agentId: this.agentId,
                 operation: '💭 Agent Activity',
-                details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+                details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
                 status: 'active',
                 timestamp: new Date()
               }).catch(err => {
@@ -1264,7 +1270,7 @@ Call the appropriate function to continue the workflow.`;
               this.broadcastAgentActivity({
                 agentId: this.agentId,
                 operation: '💭 Agent Activity',
-                details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+                details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
                 status: 'active',
                 timestamp: new Date()
               }).catch(err => {
@@ -1383,7 +1389,7 @@ Call the appropriate function to continue the workflow.`;
             this.broadcastAgentActivity({
               agentId: this.agentId,
               operation: '💭 Agent Activity',
-              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
@@ -1454,7 +1460,7 @@ Call the appropriate function to continue the workflow.`;
             this.broadcastAgentActivity({
               agentId: this.agentId,
               operation: '💭 Agent Activity',
-              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
@@ -1513,7 +1519,7 @@ Call the appropriate function to continue the workflow.`;
             this.broadcastAgentActivity({
               agentId: this.agentId,
               operation: '💭 Agent Activity',
-              details: `🎯 Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
+              details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
@@ -2016,13 +2022,15 @@ Respond in JSON format:
       const emoji = result.recommendation === 'SKIP' ? '❌' : '✅';
       const confidenceEmoji = confidence === 'HIGH' ? '🟢' : confidence === 'MEDIUM' ? '🟡' : '🔴';
       
-      this.logOperation(`${emoji} Pre-Check: ${personName}`, 
-        `${result.recommendation === 'SKIP' ? 'Skipped' : 'Passed'} (${result.score}/100) ${confidenceEmoji} - ${result.reason}`, 
+      this.logOperation('Lead Qualification', 
+        `Pre-screen: ${personName} at ${companyName} — ${result.recommendation === 'SKIP' ? 'Skipped' : 'Passed'} (${result.score}/100) - ${result.reason}`, 
         result.recommendation === 'SKIP' ? 'warning' : (confidence === 'LOW' ? 'warning' : 'completed'),
         { 
-          score: result.score, 
+          score: result.score,
+          tier: result.recommendation === 'SKIP' ? 'SKIP' : 'PASS',
           company: companyName,
           confidence: confidence,
+          reasoning: result.reason,
           criteriaVerified: criteriaVerified,
           criteriaMissing: criteriaMissing
         }
@@ -2352,16 +2360,16 @@ Respond in JSON:
       
       // Build detailed summary with AI's full reasoning
       const detailsSummary = [
-        `Tier: ${result.tier} (${result.score}/100) ${confidenceEmoji}`,
-        `💭 ${result.reasoning}${result.buyerMotivation && result.buyerMotivation !== 'Not articulated' ? ' Buyer motivation: ' + result.buyerMotivation : ''}`,
-        `📧 Strategy: ${result.emailStrategy}`,
-        result.keyStrengths?.length > 0 ? `💪 Strengths: ${result.keyStrengths.join(', ')}` : null,
-        result.weaknesses?.length > 0 ? `⚠️ Concerns: ${result.weaknesses.join(', ')}` : null,
-        `📚 Evidence: ${aiReport.citedEvidence.length} cited facts from ${aiReport.totalSources} sources`
+        `Tier: ${result.tier} (${result.score}/100) — ${result.confidence} confidence`,
+        result.reasoning || null,
+        `Strategy: ${result.emailStrategy}`,
+        result.keyStrengths?.length > 0 ? `Strengths: ${result.keyStrengths.join(', ')}` : null,
+        result.weaknesses?.length > 0 ? `Concerns: ${result.weaknesses.join(', ')}` : null,
+        `Evidence: ${aiReport.citedEvidence.length} cited facts from ${aiReport.totalSources} sources`
       ].filter(Boolean).join(' • ');
       
-      this.logOperation(`${emoji} Qualification: ${personName}`, 
-        detailsSummary, 
+      this.logOperation('Lead Qualification', 
+        `${personName} at ${companyName} — ${detailsSummary}`, 
         result.qualified ? 'completed' : 'warning',
         { 
           tier: result.tier,
@@ -6618,6 +6626,18 @@ Target Positions:`;
   }
 
   /**
+   * Start the agent in CRM mode — pre-loads contacts and skips Apollo search for this cycle.
+   * @param {Array} crmContacts  Normalized contacts from readLeadsFromCRM: {email,firstName,lastName,title,company,phone,crmId,source}
+   */
+  async startFromCRM(crmContacts = [], minutes = null, userId = null) {
+    if (!crmContacts || crmContacts.length === 0) {
+      return { success: false, message: 'No contacts provided', isActive: false };
+    }
+    this.crmContactList = crmContacts; // picked up by executeReasoningCycle
+    return await this.start(minutes, userId);
+  }
+
+  /**
    * Stop the lead agent
    */
   async stop() {
@@ -7288,7 +7308,30 @@ Target Positions:`;
       leadQueue: [],
       processingPhase: 'search'
     };
-    
+
+    // CRM MODE: If contacts were pre-loaded from a CRM, inject them now and skip Apollo search
+    if (this.crmContactList && this.crmContactList.length > 0) {
+      const crmLeads = this.crmContactList.map(c => ({
+        first_name: c.firstName || '',
+        last_name:  c.lastName  || '',
+        name:       [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown',
+        email:      c.email || '',
+        title:      c.title   || '',
+        organization: { name: c.company || '', primary_domain: '' },
+        company:    c.company || '',
+        phone_numbers: c.phone ? [{ sanitized_number: c.phone }] : [],
+        _fromCRM:   true,
+        crmId:      c.crmId,
+        crmSource:  c.source
+      }));
+      this.memory.currentCycle.leadQueue     = crmLeads;
+      this.memory.currentCycle.targetLeads   = crmLeads.length;
+      this.memory.currentCycle.processingPhase = 'research'; // Skip apollo_search
+      this.crmContactList = null; // Consumed — clear so next cycle uses Apollo normally
+      console.log(`[CRM MODE] Pre-loaded ${crmLeads.length} contacts from CRM, skipping Apollo search`);
+      this.logOperation('📋 CRM Mode', `Processing ${crmLeads.length} contacts imported from CRM`, 'running');
+    }
+
     // Clear last cycle's data
     this.memory.lastResearch = null;
     this.memory.currentQualification = null;
