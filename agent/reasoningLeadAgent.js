@@ -249,7 +249,7 @@ PLAN:
 Write a brief, clear description of WHO we're targeting and WHY. Be specific and concise.`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 50
@@ -266,7 +266,7 @@ Write a brief, clear description of WHO we're targeting and WHY. Be specific and
           operation: 'plan_description',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4o',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens
           }
@@ -365,7 +365,7 @@ IMPORTANT RULES:
 - Return ONLY valid JSON, no other text.`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3
       });
@@ -381,7 +381,7 @@ IMPORTANT RULES:
           operation: 'campaign_plan_conversion',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4',
+            model: 'gpt-4o',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens
           }
@@ -789,11 +789,11 @@ Call the appropriate function to continue the workflow.`;
     try {
       const functionCall = this.determineFunctionCall(context);
       console.log('🔧 [OPENAI] Function call parameter:', JSON.stringify(functionCall));
-      console.log('💰 [COST OPTIMIZATION] Using GPT-3.5-Turbo for routine decision making');
+      console.log('💰 [COST OPTIMIZATION] Using GPT-4o for routine decision making');
       
-      // Single OpenAI call with reasoning and function calling - USE GPT-3.5 FOR ROUTINE DECISIONS
+      // Single OpenAI call with reasoning and function calling
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o',
         messages: [{ 
           role: 'user', 
           content: prompt + '\n\nYou MUST call a function. Briefly explain your reasoning, then immediately call the appropriate function to execute the action.'
@@ -822,7 +822,7 @@ Call the appropriate function to continue the workflow.`;
           operation: 'chat_completion',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4o',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             rateLimitStatus: rateCheck.allowed ? 'within_limits' : 'exceeded'
@@ -1767,10 +1767,10 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 `;
 
       console.log('🧠 [AI ANALYSIS] Analyzing research findings for:', companyName);
-      console.log('� [PREMIUM MODEL] Using GPT-4 for high-quality research analysis');
+      console.log('🚀 [MODEL] Using GPT-4o for high-quality research analysis');
       
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system', 
@@ -1797,7 +1797,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
           operation: 'research_analysis',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4',
+            model: 'gpt-4o',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             companyName: companyName
@@ -2083,7 +2083,7 @@ Respond in JSON format:
 }`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.3
@@ -2113,7 +2113,7 @@ Respond in JSON format:
           operation: 'pre_qualification',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4o',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             score: result.score,
@@ -2409,10 +2409,10 @@ Respond in JSON:
   "emailStrategy": "deep personalization" | "moderate personalization" | "generic template" | "do not send"
 }`;
 
-      console.log('💰 [COST OPTIMIZATION] Using GPT-3.5-Turbo for tiered qualification (10x cheaper than GPT-4)');
+      console.log('� [MODEL] Using GPT-4o for tiered qualification');
       
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo-1106',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.3
@@ -2434,7 +2434,7 @@ Respond in JSON:
           operation: 'tiered_qualification',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-3.5-turbo-1106',
+            model: 'gpt-4o',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             score: result.score,
@@ -4462,13 +4462,13 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       const emailPrompt = `${customPrompt}\n${commonRuleset}${buyerMotivationContext}`;
 
       console.log('💎 [PREMIUM MODEL] Using GPT-4 for high-quality email generation');
-      console.log('📝 [EMAIL PROMPT] Full prompt being sent to GPT-4:');
+      console.log('📝 [EMAIL PROMPT] Full prompt being sent to GPT-4o:');
       console.log('---START PROMPT---');
       console.log(emailPrompt);
       console.log('---END PROMPT---');
       
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: emailPrompt }],
         temperature: 0.7,
         max_tokens: 600
@@ -4477,7 +4477,7 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       const emailContent = response.choices[0].message.content;
       
       // 🔍 DEBUG LOGGING - Track what GPT actually outputs
-      console.log('🔍 [EMAIL DEBUG] Raw GPT-4 output:');
+      console.log('🔍 [EMAIL DEBUG] Raw GPT-4o output:');
       console.log('---START RAW OUTPUT---');
       console.log(emailContent);
       console.log('---END RAW OUTPUT---');
@@ -4494,7 +4494,7 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
           operation: 'email_generation',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4',
+            model: 'gpt-4o',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             companyName: companyName,
