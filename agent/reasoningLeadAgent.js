@@ -2274,8 +2274,15 @@ Respond in JSON:
   "citedEvidence": [
     {"fact": "specific fact from research", "source": "source title or domain", "supportsMatch": true/false}
   ],
-  "emailStrategy": "deep personalization" | "moderate personalization" | "generic template" | "do not send"
-}`;
+  "emailStrategy": "deep personalization" | "moderate personalization" | "generic template" | "do not send",
+  "emailHooks": [
+    "Specific, concrete fact from research that could open an email — e.g. 'Baanyan is actively hiring across 3 new verticals and posted 12 engineering roles in January'",
+    "A second specific hook — a tension, milestone, or problem derived from the research",
+    "Optional third hook — a number, quote, or event that makes the email feel researched"
+  ]
+}
+
+For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from the research that a salesperson could open an email with. Not summaries like 'the company is growing' — actual details: job postings, acquisitions, product launches, customer counts, market moves, quotes from their site. If the research is thin, return 1 hook with whatever is most specific. Never invent hooks.`;
 
       
       const response = await this.openai.chat.completions.create({
@@ -2329,6 +2336,7 @@ Respond in JSON:
         
         // Buyer-side motivation (CRITICAL for email generation)
         buyerMotivation: result.buyerMotivation || 'Not articulated',
+        emailHooks: result.emailHooks || [],
         
         // Evidence and citations
         citedEvidence: result.citedEvidence || [],
@@ -3697,7 +3705,14 @@ Format as:
       
       // Extract cited facts for personalization
       let citedFactsContext = '';
-      if (aiReport?.allCitedFacts && aiReport.allCitedFacts.length > 0) {
+      
+      // Prefer qualification-extracted emailHooks (already filtered for specificity)
+      const emailHooks = aiReport?.emailHooks || [];
+      if (emailHooks.length > 0) {
+        citedFactsContext = `\nEMAIL HOOKS (specific facts extracted from research — use these to anchor para 1):\n${
+          emailHooks.map((hook, i) => `${i + 1}. ${hook}`).join('\n')
+        }`;
+      } else if (aiReport?.allCitedFacts && aiReport.allCitedFacts.length > 0) {
         const topFacts = aiReport.allCitedFacts.slice(0, 10);
         citedFactsContext = `\nVERIFIED RESEARCH FACTS (use these naturally in the email - do NOT include source citations):\n${
           topFacts.map((fact, i) => `${i + 1}. "${fact.text}"`).join('\n')
