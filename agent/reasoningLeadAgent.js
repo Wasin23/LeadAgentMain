@@ -2944,7 +2944,6 @@ Format as:
       // Execute supporting searches
       
       const { fetchMultipleWebpages } = await import('../tools/webpageFetcher.js');
-      const { internetSearch } = await import('../tools/internetSearch.js');
       
       for (const search of supportingSearches) {
         

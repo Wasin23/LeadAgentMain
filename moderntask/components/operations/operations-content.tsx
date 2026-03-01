@@ -81,18 +81,28 @@ export function OperationsContent() {
       ])
       if (agentsRes.status === 'fulfilled') {
         const raw: Agent[] = agentsRes.value.data?.agents ?? []
-        const enriched = raw
-          .filter(a => a.agentId !== 'orphan')
-          .map((a: any) => ({
+        const filtered = raw.filter((a: any) => a.agentId !== 'orphan')
+        // fetch per-agent email counts in parallel
+        const withCounts = await Promise.all(filtered.map(async (a: any) => {
+          let queued = 0, sent = 0, replied = 0
+          try {
+            const r = await api.get('/api/email-queue/counts', { params: { agentId: a.agentId } })
+            queued  = r.data?.queued  ?? 0
+            sent    = r.data?.sent    ?? 0
+            replied = r.data?.replied ?? 0
+          } catch { /* silent */ }
+          return {
             ...a,
             name: a.name || a.agentName || 'Agent',
             emailStats: {
-              built: (a.queued ?? 0) + (a.sent ?? 0),
-              queued: a.queued ?? 0,
-              sent: a.sent ?? 0,
+              built: queued + sent,
+              queued,
+              sent,
             },
-          }))
-        setAgents(enriched)
+            replied,
+          }
+        }))
+        setAgents(withCounts)
       }
       if (countsRes.status === 'fulfilled') {
         const d = countsRes.value.data
