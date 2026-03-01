@@ -4027,11 +4027,13 @@ Paragraph 1 MUST immediately deliver the argument behind the subject. If subject
 PARAGRAPH 1 — THE FLAW (critique a specific mistake or risk they have):
 Name the specific thing they're doing wrong, ignoring, or underestimating — based on real research signals.
 ❌ No "you're doing great but..." setup. Open cold on the problem.
+❌ If you open with a company-specific event, product launch, or news item (e.g. a conference, a funding round, a product release), do NOT add a market size stat in the same paragraph. The specific signal is stronger alone — the stat dilutes it and makes it sound template-generated.
 ${ragFactsBlock}
 
 PARAGRAPH 2 — THE FIX (your product solves exactly that flaw):
-Connect your solution directly to the specific flaw named in para 1 — explain the mechanism, not just the category.
-If YOUR COMPANY INTEL has real client metrics, use them verbatim. If not, explain WHAT you do and WHY it addresses THAT specific problem — qualitatively, no numbers.
+Connect your solution directly to the specific flaw named in para 1 — explain the MECHANISM, not a feature category.
+Mechanism means the specific operational thing that happens: not "rapid deployment" but "spin up on-demand GPU clusters for a training run, tear them down when done — no reserved instance lock-in". Not "enterprise security" but "Trusted Execution Environments that keep model weights isolated from the host". Read YOUR COMPANY INTEL and extract the actual HOW, not the marketing label.
+If no specific mechanism is available in the intel, describe what changes operationally for the prospect — what they stop doing or stop paying for.
 ❌ NEVER invent performance claims. No "our clients see X%" unless it appears word-for-word in YOUR COMPANY INTEL.
 ❌ ZERO CASE STUDIES. Do NOT write "Our recent case study showed..." or "In a recent case study..." or any variation. We have no published case studies. Fabricating one is a disqualifying error.
 
