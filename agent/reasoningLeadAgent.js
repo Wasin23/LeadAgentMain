@@ -3955,10 +3955,15 @@ Do NOT compliment them. Name the specific problem or gap their situation creates
 
 PARAGRAPH 2 — GENERATE THE NEED (why this costs them NOW):
 Agitate the cost, risk, or missed opportunity tied to the issue above.${this.memory.industryFactsFromRAG?.length > 0 ? `
-You have these verified industry facts available — use the most relevant one here:
-${this.memory.industryFactsFromRAG.slice(0, 3).map(f => `- ${f}`).join('\n')}` : `
-If RESEARCH FINDINGS above contains an INDUSTRY STATISTICS section, pull a specific stat from it here to back the claim.`}
-If no stat is available, make the case qualitatively — do NOT invent a percentage or attribute a stat to a source unless it appears in the research data provided.
+
+⚠️ MANDATORY: You MUST anchor this paragraph with one of the following verified stats. Pick the most relevant one and build the sentence around it — do not paraphrase into vagueness, use the actual number or claim:
+${this.memory.industryFactsFromRAG.slice(0, 4).map((f, i) => `${i + 1}. ${f}`).join('\n')}
+
+Format: "[stat used naturally in a sentence that connects to their specific situation]."
+Bad: "Many companies struggle with this." (no stat used)
+Good: "The average SDR spends 40% of their time on manual research — at Baanyan's growth stage that's headcount spend that compounds."` : `
+If RESEARCH FINDINGS above contains an INDUSTRY STATISTICS section, you MUST pull a specific stat from it here. State the number directly in the sentence — do not generalize it away.`}
+If no stat exists anywhere, make the case qualitatively — do NOT invent a percentage.
 
 PARAGRAPH 3 — SOLVE IT (your product against the problem):
 Position your solution directly against the problem you surfaced.
