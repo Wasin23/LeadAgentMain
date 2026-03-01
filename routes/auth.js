@@ -1259,7 +1259,8 @@ router.get('/agents', authenticateToken, async (req, res) => {
         let settings = {};
         try {
           const agentSettings = await awsManagerInstance.getAgentSettings(userId, agent.agentId);
-          specialInstructions = agentSettings?.specialInstructions || '';
+          const rawInstructions = agentSettings?.specialInstructions;
+          specialInstructions = typeof rawInstructions === 'string' ? rawInstructions : '';
           settings = agentSettings || {};
         } catch (settingsError) {
           console.log(`[AUTH] Could not load settings for agent ${agent.name}:`, settingsError.message);

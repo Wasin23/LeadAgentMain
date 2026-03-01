@@ -207,7 +207,7 @@ function AgentCard({
       })()}
 
       {/* special instructions snippet */}
-      {agent.specialInstructions && (
+      {agent.specialInstructions && typeof agent.specialInstructions === 'string' && (
         <p className="text-[11px] text-muted-foreground italic mb-4 line-clamp-2 border-l-2 border-border pl-2">
           {agent.specialInstructions}
         </p>

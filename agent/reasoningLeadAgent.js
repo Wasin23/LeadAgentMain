@@ -361,7 +361,12 @@ IMPORTANT RULES:
         temperature: 0.3
       });
 
-      const plan = JSON.parse(response.choices[0].message.content);
+      const rawContent = response.choices[0].message.content.trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+      const plan = JSON.parse(rawContent);
       
       // Log API usage
       if (response.usage) {
@@ -2939,7 +2944,7 @@ Format as:
       // Execute supporting searches
       
       const { fetchMultipleWebpages } = await import('../tools/webpageFetcher.js');
-      const { default: internetSearch } = await import('../tools/internetSearch.js');
+      const { internetSearch } = await import('../tools/internetSearch.js');
       
       for (const search of supportingSearches) {
         
@@ -4568,7 +4573,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           this.memory.lastSearchKey = searchKey;
           
           // Update agent state in AWS
-          await this.awsManager.saveAgentState(userSettings.userId, this.agentId, {
+          await this.awsManager.saveAgentState(this.userId, this.agentId, {
             currentSearchIndustry: selectedKeyword,
             currentSearchPosition: currentSearchPosition,
             searchSource: keywordSource,
