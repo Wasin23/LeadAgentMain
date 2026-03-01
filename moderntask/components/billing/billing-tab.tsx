@@ -47,6 +47,7 @@ interface HistoricalData {
   date: string
   tokens: number
   cost: number
+  credits: number
   label: string
 }
 
@@ -246,7 +247,8 @@ function PaymentHistorySection() {
         setHistoricalData(res.data.series.map((item: any) => {
           const dateStr = item.sortKey.split("T")[0]
           const day = dateStr.split("-")[2]
-          return { date: dateStr, label: tf === "day" ? day : item.date, tokens: item.totalCalls || 0, cost: item.total?.cost || 0 }
+          const cost = item.total?.cost || 0
+          return { date: dateStr, label: tf === "day" ? day : item.date, tokens: item.totalCalls || 0, cost, credits: cost / 0.05 }
         }))
       } else { setHistoricalData([]) }
     } catch { setHistoricalData([]) }
@@ -370,7 +372,7 @@ function PaymentHistorySection() {
       {historicalData.length > 0 && (
         <div className="rounded-lg border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-semibold">Cost Over Time</h4>
+            <h4 className="text-sm font-semibold">Credits Spent Over Time</h4>
             <div className="flex gap-2 items-center flex-wrap">
               {timeFilter === "day" && (
                 <input
@@ -407,23 +409,23 @@ function PaymentHistorySection() {
             <svg className="w-full h-full" viewBox="0 0 1400 256">
               {(() => {
                 const fd = historicalData.filter(d => timeFilter !== "day" || d.date.startsWith(selectedMonth))
-                const maxCost = Math.max(...fd.map(d => d.cost)) || 1
-                const yMax = Math.ceil(maxCost / 5) * 5
+                const maxCredits = Math.max(...fd.map(d => d.credits)) || 1
+                const yMax = Math.ceil(maxCredits / 5) * 5 || 5
                 const yStep = yMax / 4
                 return (
                   <>
                     {[0, 1, 2, 3, 4].map(i => (
-                      <text key={i} x="10" y={240 - i * 50} fontSize="11" fill="currentColor" opacity="0.5">${(i * yStep).toFixed(0)}</text>
+                      <text key={i} x="10" y={240 - i * 50} fontSize="11" fill="currentColor" opacity="0.5">{(i * yStep).toFixed(1)}cr</text>
                     ))}
                     {fd.map((d, i) => {
                       const bw = 1340 / fd.length
                       const x = 50 + i * bw
-                      const bh = (d.cost / yMax) * 200
+                      const bh = (d.credits / yMax) * 200
                       const y = 220 - bh
                       return (
                         <g key={i}>
                           <rect x={x} y={y} width={bw * 0.8} height={bh} fill="#9333ea" opacity={hoveredBar?.index === i ? 1 : 0.75} rx="2"
-                            onMouseEnter={() => setHoveredBar({ index: i, cost: d.cost, x: x + bw * 0.4, y })}
+                            onMouseEnter={() => setHoveredBar({ index: i, cost: d.credits, x: x + bw * 0.4, y })}
                             onMouseLeave={() => setHoveredBar(null)}
                             style={{ cursor: "pointer" }}
                           />
@@ -440,13 +442,13 @@ function PaymentHistorySection() {
                 className="absolute bg-popover text-popover-foreground border px-2 py-1 rounded text-xs font-semibold pointer-events-none z-50 whitespace-nowrap shadow"
                 style={{ left: `${(hoveredBar.x / 1400) * 100}%`, top: `${(hoveredBar.y / 256) * 100}%`, transform: "translate(-50%, -120%)" }}
               >
-                ${hoveredBar.cost.toFixed(2)}
+                {hoveredBar.cost.toFixed(2)} credits
               </div>
             )}
           </div>
           <div className="mt-4 pt-3 border-t flex justify-between text-xs">
-            <span className="text-muted-foreground">Total</span>
-            <span className="font-semibold">${historicalData.reduce((s, d) => s + d.cost, 0).toFixed(2)}</span>
+            <span className="text-muted-foreground">Total spent</span>
+            <span className="font-semibold">{historicalData.reduce((s, d) => s + d.credits, 0).toFixed(1)} credits</span>
           </div>
         </div>
       )}
