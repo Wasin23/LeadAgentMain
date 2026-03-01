@@ -3902,73 +3902,7 @@ CRITICAL RULES
 ❌ NO GENERIC BULLETS: "Feature = Benefit" format is forbidden
 ❌ NO FLUFF: Skip "visionary leader", "imagine a world where", "I hope this finds you well"
 
-STRUCTURE (5-7 sentences total — keep it short):
-1. HOOK: One specific thing from research (fact, milestone, news)
-2. SURFACE THE PROBLEM: Name a real tension or cost this creates — don't assume, derive it from their situation
-3. SOLUTION: What you do and why it fits — use real numbers from platform metrics if available, otherwise qualitative
-4. CTA: One low-commitment ask ("Worth 20 minutes?" / "Open to a quick look?")
-
 WRITE THE EMAIL BODY ONLY — the subject line is handled separately.
-
-Write like a consultant who's done their homework. Direct, evidence-based, challenging. Use line breaks for readability.
-
-⚠️ MANDATORY: Build from specific research findings. Every claim must connect to their actual situation.
-
-STRUCTURE - Follow this arc but vary the execution:
-
-OPENING - Establish Context (1-2 lines):
-Ground the conversation in a SPECIFIC observation from research about their company, growth, or recent activities.
-
-Framework options:
-- Lead with metric/milestone: "[Company] at [scale/stage/metric] puts you in [situation]."
-- Reference recent action: "Saw [specific event/change] - that signals [implication]."
-- Position in market: "[X metric] across [Y scope] - [observation about trajectory]."
-
-PROBLEM AGITATION - Create Tension (2-3 lines):
-Challenge their current approach OR surface a hidden cost/risk they may not see. Use their situation from research.
-
-Framework options:
-- Contrast pattern: "Most [role/companies] at [stage] stick with [current approach], but that often means [specific downside/missed opportunity]."
-- Evidence-based gap: "Here's what typically happens at [their stage]: [problem pattern]. [Stat/proof if available]."
-- Question assumptions: "The challenge with [current approach] is [specific issue]. [Consequence] often gets overlooked until [trigger point]."
-- Hidden cost reveal: "[Current solution] handles [obvious benefit], but [X]% of [industry] companies report [hidden problem/cost] (Source if available)."
-
-⚠️ CRITICAL: Don't just list problems - tie them specifically to:
-1. Their company size/stage/industry from research
-2. The timing (why now matters for them)
-3. A measurable consequence or missed opportunity
-
-SOLUTION POSITIONING (2-3 lines with optional bullets):
-Show how YOUR solution addresses the specific problem you just surfaced. Connect directly to their situation.
-
-⚠️ CRITICAL RULES FOR BULLETS:
-❌ NEVER write generic feature lists like "Low investment threshold = Accessibility"
-❌ NEVER write vague benefits like "Quality assurance" or "Financial stability"
-✅ ALWAYS use specific numbers from YOUR PLATFORM'S VERIFIED METRICS section above
-✅ ALWAYS connect to THEIR situation based on research
-✅ ALWAYS cite proof: company names, statistics, specific results
-✅ USE THE EXTRACTED METRICS - if returns % was found, use it; if investor count was found, use it
-
-⚠️ MANDATORY SPECIFICITY REQUIREMENTS:
-When mentioning ANY metric, you MUST include:
-1. EXACT NUMBERS: Not "higher returns" but "12-18% average annual returns"
-2. TIME FRAMES: Not "quickly" but "within 90 days" or "same-day processing"
-3. SCALE CONTEXT: Not "many properties" but "150+ properties across 25 countries"
-4. COMPARISON DATA: Not "better than alternatives" but "outperformed REITs by 4.2% over 3 years"
-5. PLATFORM METRICS: Not "trusted by investors" but "50,000+ active investors, $500M+ deployed"
-
-${this.memory.platformMetrics && Object.keys(this.memory.platformMetrics).length > 0 ? `
-🎯 YOUR PLATFORM'S VERIFIED METRICS (use these exact numbers in your email):
-${this.memory.platformMetrics.returns ? `- Returns/Yields: ${this.memory.platformMetrics.returns}` : ''}
-${this.memory.platformMetrics.investors ? `- Customer Base: ${this.memory.platformMetrics.investors}` : ''}
-${this.memory.platformMetrics.deployed ? `- Capital/Revenue: ${this.memory.platformMetrics.deployed}` : ''}
-${this.memory.platformMetrics.properties ? `- Scale/Coverage: ${this.memory.platformMetrics.properties}` : ''}
-${this.memory.platformMetrics.performance ? `- Performance: ${this.memory.platformMetrics.performance}` : ''}
-
-USE THESE METRICS in your value proposition. These are REAL, VERIFIED numbers from research.
-` : `
-⚠️ No platform metrics found in research. Write the value proposition without specific numbers — do NOT invent any.
-`}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EMAIL STRUCTURE: ISSUE → NEED → SOLVE
