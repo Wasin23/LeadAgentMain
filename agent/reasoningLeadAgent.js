@@ -21,6 +21,7 @@ import { internetSearch } from '../tools/internetSearch.js';
 import { companyIntelligence } from '../tools/companyIntelligence.js';
 import { deepResearch } from '../tools/deepResearch.js';
 import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
+import { industryFacts, ZillizIndustryFacts } from '../utils/zillizIndustryFacts.js';
 import MergeManager from '../utils/mergeManager.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -2914,12 +2915,28 @@ Format as:
       // Search 1: Industry statistics and third-party data for credibility
       const industryKeyword = industry || keyTerms.split(' ')[0] || 'business';
       
-      // Check cache first (valid for 3 days)
+      // Check Zilliz RAG first — skip search entirely if we have fresh industry facts
       const cacheKey = industryKeyword.toLowerCase();
       const cachedStats = this.memory.industryStatsCache[cacheKey];
       const cacheMaxAge = 3 * 24 * 60 * 60 * 1000; // 3 days in ms
-      
-      if (cachedStats && (Date.now() - cachedStats.timestamp) < cacheMaxAge) {
+
+      let zillizFacts = { hasFresh: false, facts: [] };
+      try {
+        zillizFacts = await industryFacts.getFreshFacts(industryKeyword);
+      } catch (zErr) {
+        console.log('[IndustryFacts] Zilliz unavailable, falling back to search:', zErr.message);
+      }
+
+      if (zillizFacts.hasFresh) {
+        // Store in memory so email builder can access them
+        this.memory.industryFactsFromRAG = zillizFacts.facts;
+        supportingSearches.push({
+          query: null,
+          purpose: 'industry_statistics',
+          description: 'Third-party industry data (Zilliz RAG cache)',
+          cachedData: { insights: zillizFacts.facts.map(f => ({ insights: `- ${f}` })) }
+        });
+      } else if (cachedStats && (Date.now() - cachedStats.timestamp) < cacheMaxAge) {
         supportingSearches.push({
           query: null,
           purpose: 'industry_statistics',
@@ -3139,6 +3156,16 @@ Format as:
               },
               timestamp: Date.now()
             };
+
+            // Upsert facts into Zilliz RAG for future leads in the same industry
+            try {
+              const factStrings = ZillizIndustryFacts.extractFactStrings(webpageInsights);
+              if (factStrings.length > 0) {
+                await industryFacts.upsertFacts(industryKeyword, factStrings);
+              }
+            } catch (zErr) {
+              console.log('[IndustryFacts] Upsert skipped:', zErr.message);
+            }
           }
           
           // Cache user company wins
@@ -3610,6 +3637,21 @@ Format as:
         await this.runSupportingResearch(parameters);
       } else {
       }
+
+      // Query industry facts RAG with prospect-specific context for maximum relevance
+      // This runs regardless of whether phase 3 was cached — always get the best stat for THIS lead
+      const _ragIndustry = leadData?.organization?.industry || '';
+      const _ragTopic = `${leadData?.title || ''} ${this.memory.currentQualification?.buyerMotivation || ''}`.trim();
+      if (_ragIndustry) {
+        try {
+          const targeted = await industryFacts.queryRelevantFacts(_ragIndustry, _ragTopic || _ragIndustry, 4);
+          if (targeted.length > 0) {
+            this.memory.industryFactsFromRAG = targeted;
+          }
+        } catch (e) {
+          // non-fatal — falls back to whatever was set during research phase
+        }
+      }
       
       // Get data from current cycle state instead of parameters
       const leadData = this.memory.currentCycle.currentLead;
@@ -3912,8 +3954,10 @@ Open with a specific, uncomfortable truth about their situation based on researc
 Do NOT compliment them. Name the specific problem or gap their situation creates.
 
 PARAGRAPH 2 — GENERATE THE NEED (why this costs them NOW):
-Agitate the cost, risk, or missed opportunity tied to the issue above.
-If RESEARCH FINDINGS above contains an INDUSTRY STATISTICS section, pull a specific stat from it here to back the claim.
+Agitate the cost, risk, or missed opportunity tied to the issue above.${this.memory.industryFactsFromRAG?.length > 0 ? `
+You have these verified industry facts available — use the most relevant one here:
+${this.memory.industryFactsFromRAG.slice(0, 3).map(f => `- ${f}`).join('\n')}` : `
+If RESEARCH FINDINGS above contains an INDUSTRY STATISTICS section, pull a specific stat from it here to back the claim.`}
 If no stat is available, make the case qualitatively — do NOT invent a percentage or attribute a stat to a source unless it appears in the research data provided.
 
 PARAGRAPH 3 — SOLVE IT (your product against the problem):
