@@ -3902,6 +3902,8 @@ Format as:
       const buyerMotivation = aiReport?.buyerMotivation || qualification?.buyerMotivation;
       
       // Check if buyer motivation is articulated and sophisticated
+      // SHOTGUN tier is exempt — it uses generic templates and doesn't require specific evidence
+      const isShotgun = tier === 'SHOTGUN';
       const hasValidMotivation = buyerMotivation && 
         buyerMotivation !== 'Not articulated' &&
         buyerMotivation.length > 50 && // Must be substantial
@@ -3909,7 +3911,7 @@ Format as:
         !buyerMotivation.toLowerCase().includes('probably') &&
         !buyerMotivation.toLowerCase().includes('could benefit');
       
-      if (!hasValidMotivation) {
+      if (!hasValidMotivation && !isShotgun) {
         const errorMsg = !buyerMotivation || buyerMotivation === 'Not articulated' 
           ? '❌ [BUYER MOTIVATION] Not articulated - cannot generate email'
           : '❌ [BUYER MOTIVATION] Too generic or speculative - requires specific evidence-based reasoning';
@@ -3938,8 +3940,18 @@ Format as:
           `Motivation provided: ${buyerMotivation || 'NONE'}`
         );
       }
-      
-      console.log(`✅ [BUYER MOTIVATION VALIDATED] ${buyerMotivation.substring(0, 100)}...`);
+
+      // For SHOTGUN, fall back to a generic role/industry motivation if none was articulated
+      const resolvedMotivation = hasValidMotivation
+        ? buyerMotivation
+        : `${leadData.title || 'Professional'} at ${companyName} — general industry fit with potential need for our solution based on role and company profile.`;
+
+      if (isShotgun && !hasValidMotivation) {
+        console.log(`⚠️ [BUYER MOTIVATION] SHOTGUN lead — using generic fallback motivation`);
+        console.log(`   Fallback: ${resolvedMotivation}`);
+      } else {
+        console.log(`✅ [BUYER MOTIVATION VALIDATED] ${resolvedMotivation.substring(0, 100)}...`);
+      }
       console.log(`   This motivation will guide email personalization strategy`);
       
       // Extract cited facts for personalization
@@ -4061,7 +4073,7 @@ Score: ${this.memory.currentQualification.score}/100`;
 🎯 BUYER-SIDE MOTIVATION (USE THIS TO GUIDE YOUR EMAIL):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${buyerMotivation}
+${resolvedMotivation}
 
 Your email MUST connect to this motivation. This is not generic - this is the specific,
 evidence-based reason WHY this person would buy from us RIGHT NOW. Use this to:
