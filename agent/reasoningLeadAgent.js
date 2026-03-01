@@ -572,6 +572,10 @@ IMPORTANT RULES:
         console.error('⚠️ [AGENT NAME] Could not fetch agent name:', error);
       }
       
+      // Strip emojis from details before broadcast
+      const stripEmoji = s => (s || '').replace(/[\u{1F000}-\u{1FFFF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F\u{1F300}-\u{1F9FF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+      activityData.details = stripEmoji(activityData.details);
+
       // Create concise card message
       const baseCardMessage = this.translateToConciseCardMessage(activityData.operation, activityData.details);
       const cardMessage = `${agentName} is ${baseCardMessage}`;
