@@ -3040,6 +3040,41 @@ Format as:
           for (const webpage of webpageContents) {
             if (webpage.success && webpage.content) {
               try {
+                // For industry stats pages, use a separate prompt that extracts numbers/trends — not company facts
+                if (search.purpose === 'industry_statistics') {
+                  const industryInsightPrompt = `Extract 3-5 specific, numeric industry statistics from this webpage that a salesperson could cite in a cold email.
+
+RULES:
+- Must be a real number, percentage, dollar figure, or growth rate with context (e.g. "Global IT spending to reach $5.1T in 2024, up 8% YoY")
+- No vague statements like "AI is growing fast" — must have a concrete figure
+- If no concrete stats found, return exactly: NO RELEVANT DATA
+- Each stat on its own line starting with "-"
+
+Webpage: ${webpage.title}
+Content: ${webpage.content}`;
+
+                  const industryResponse = await this.openai.chat.completions.create({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: industryInsightPrompt }],
+                    temperature: 0.1,
+                    max_tokens: 300
+                  });
+
+                  const extracted = industryResponse.choices[0].message.content;
+                  if (!extracted.includes('NO RELEVANT DATA')) {
+                    const lines = extracted.split('\n').filter(l => l.trim().startsWith('-'));
+                    if (lines.length > 0) {
+                      webpageInsights.push({
+                        source: webpage.url,
+                        title: webpage.title,
+                        insights: extracted,
+                        citedFacts: lines.map(l => ({ text: l.replace(/^-\s*/, '').trim(), source: webpage.url }))
+                      });
+                    }
+                  }
+                  continue;
+                }
+
                 const companyMentioned = webpage.content.toLowerCase().includes(userCompanyName.toLowerCase()) ||
                                         webpage.title.toLowerCase().includes(userCompanyName.toLowerCase());
                 
