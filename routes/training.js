@@ -2,6 +2,8 @@
 import express from 'express';
 import zillizTraining from '../utils/zillizTraining.js';
 import { industryFacts } from '../utils/zillizIndustryFacts.js';
+import { authenticateToken } from '../middleware/jwt.js';
+import AWSManager from '../utils/awsManager.js';
 
 const router = express.Router();
 
@@ -225,10 +227,19 @@ router.post('/zilliz/disconnect', async (req, res) => {
 
 // ── Industry Facts RAG ─────────────────────────────────────────────────────
 
-// GET /api/training/industry-facts — list all facts grouped by industry
-router.get('/industry-facts', async (req, res) => {
+// GET /api/training/industry-facts — list facts for industries this user has actually used
+router.get('/industry-facts', authenticateToken, async (req, res) => {
   try {
-    const result = await industryFacts.getAllFacts();
+    const userId = req.user?.userId;
+    let usedIndustries = null;
+    if (userId) {
+      try {
+        const aws = new AWSManager();
+        const settings = await aws.getUserSettings(userId);
+        usedIndustries = settings?.usedIndustryFacts || null;
+      } catch {}
+    }
+    const result = await industryFacts.getAllFacts(usedIndustries);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

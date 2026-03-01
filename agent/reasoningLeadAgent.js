@@ -3686,6 +3686,17 @@ Format as:
           const targeted = await industryFacts.queryRelevantFacts(_ragIndustry, _ragTopic || _ragIndustry, 4);
           if (targeted.length > 0) {
             this.memory.industryFactsFromRAG = targeted;
+            // Record this industry as used for this user (for UI filtering) — fire and forget
+            this.awsManager.getUserSettings(this.userId).then(settings => {
+              const existing = settings?.usedIndustryFacts || [];
+              const ind = _ragIndustry.toLowerCase();
+              if (!existing.includes(ind)) {
+                return this.awsManager.saveUserSettings(this.userId, {
+                  ...settings,
+                  usedIndustryFacts: [...existing, ind]
+                });
+              }
+            }).catch(() => {});
           }
         } catch (e) {
           // non-fatal — falls back to whatever was set during research phase
@@ -4802,7 +4813,32 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, enrichedLeads);
         
         if (deduplicationResult.success) {
-          const { newLeads, duplicateLeads, summary } = deduplicationResult;
+          let { newLeads, duplicateLeads, summary } = deduplicationResult;
+
+          // Filter junk leads where company name is a generic keyword, not a real company
+          const junkCompanyPatterns = [
+            /^artificial intelligence$/i,
+            /^machine learning$/i,
+            /^deep learning$/i,
+            /^data science$/i,
+            /^technology$/i,
+            /^software$/i,
+            /^information technology$/i,
+            /^ai\/ml$/i,
+            /^n\/a$/i,
+            /^none$/i,
+            /^unknown$/i,
+          ];
+          const junkFiltered = newLeads.filter(lead => {
+            const co = (lead.organization?.name || lead.company || lead.organization_name || '').trim();
+            if (!co) return false; // no company = skip
+            return !junkCompanyPatterns.some(p => p.test(co));
+          });
+          if (junkFiltered.length < newLeads.length) {
+            console.log(`🚫 [JUNK FILTER] Removed ${newLeads.length - junkFiltered.length} leads with generic company names`);
+          }
+          newLeads = junkFiltered;
+          summary = { ...summary, newCount: newLeads.length };
           
           
           // Emit SSE progress for deduplication results

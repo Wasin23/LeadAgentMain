@@ -203,7 +203,8 @@ class ZillizIndustryFacts {
   }
 
   // Get all facts (for settings UI display) — grouped by industry
-  async getAllFacts() {
+  // Pass industries array to filter to only those the user has actually used
+  async getAllFacts(industries = null) {
     try {
       await this.initialize();
 
@@ -214,7 +215,11 @@ class ZillizIndustryFacts {
         limit: 500
       });
 
-      const facts = (results.data || []).map(r => ({
+      const allFacts = (results.data || []);
+      const filtered = industries && industries.length > 0
+        ? allFacts.filter(r => industries.map(i => i.toLowerCase()).includes(r.industry))
+        : allFacts;
+      const facts = filtered.map(r => ({
         id: r.id,
         fact: r.fact_text,
         industry: r.industry,
