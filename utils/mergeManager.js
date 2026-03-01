@@ -602,8 +602,9 @@ class MergeManager {
       // Create person
       const personPayload = {
         name: `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim() || leadData.email,
-        email: leadData.email,
-        phone: leadData.phone || ''
+        email: [{ value: leadData.email, primary: true }],
+        phone: leadData.phone ? [{ value: leadData.phone, primary: true }] : [],
+        job_title: leadData.title || ''
       };
 
       const response = await axios.post(`https://api.pipedrive.com/v1/persons?api_token=${apiKey}`, personPayload);
@@ -793,8 +794,22 @@ class MergeManager {
         headers: { 'Authorization': `Basic ${Buffer.from(':' + apiKey).toString('base64')}` }
       });
 
-      console.log('✅ [AFFINITY] Person created:', response.data?.id);
-      return { success: true, crmContactId: response.data?.id, crmIntegration: 'Affinity' };
+      const personId = response.data?.id;
+      console.log('✅ [AFFINITY] Person created:', personId);
+
+      // Add note with research data
+      if (personId) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post('https://api.affinity.co/notes', {
+          person_ids: [personId],
+          content: noteContent
+        }, {
+          headers: { 'Authorization': `Basic ${Buffer.from(':' + apiKey).toString('base64')}` }
+        });
+        console.log('✅ [AFFINITY] Note added');
+      }
+
+      return { success: true, crmContactId: personId, crmIntegration: 'Affinity' };
     } catch (error) {
       console.error('❌ [AFFINITY] Error:', error.response?.data || error.message);
       return { success: false, error: error.response?.data?.message || error.message };
@@ -1092,6 +1107,18 @@ class MergeManager {
       );
       const id = response.data?.data?.id;
       console.log('✅ [PIPELINER] Contact created:', id);
+
+      // Add note with research data
+      if (id) {
+        const noteContent = this.buildComprehensiveNotes(leadData);
+        await axios.post(
+          `https://eu-central.api.pipelinersales.com/api/v100/rest/spaces/${spaceId}/Notes`,
+          { title: 'Meridian AI Research', note: noteContent, contact_id: id },
+          { auth: { username: username || spaceId, password: password || apiKey } }
+        );
+        console.log('[PIPELINER] Note added');
+      }
+
       return { success: true, crmContactId: id, crmIntegration: 'Pipeliner' };
     } catch (error) {
       console.error('[PIPELINER] Error:', error.response?.data || error.message);
