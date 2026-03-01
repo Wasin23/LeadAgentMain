@@ -3891,78 +3891,24 @@ WRITING STYLE BY PERSONALITY
 CRITICAL RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ USE RESEARCH: Open with specific numbers/events from research findings above
-✅ STATE FACTS NATURALLY: Mention facts as if you discovered them ("I saw your team grew from X to Y", "Your recent announcement about Z")
-✅ NUMBERS REQUIRED: "12-18% returns", "$200K savings", "60% faster"
-✅ NAME COMPANIES: "PetSmart saw X" not "Companies see X"
-✅ NO SOURCE CITATIONS: Never include "[Source: ...]", "(McKinsey, 2024)", or "According to [source]" - just state facts naturally
+✅ USE RESEARCH: Open with a specific fact, event, or number from the RESEARCH FINDINGS above
+✅ STATE FACTS NATURALLY: "I saw your team expanded into 17 markets" not "According to research..."
+✅ NUMBERS: ONLY use numbers that appear in RESEARCH FINDINGS or PLATFORM METRICS above. If no real numbers exist, make the case qualitatively — never invent statistics or percentages.
+✅ NAME COMPANIES: "Stripe saw X" not "Companies see X" — only if that company appears in research above
+✅ NO SOURCE CITATIONS: State facts as if you know them — no "[Source: ...]" or "(McKinsey, 2024)"
 
-❌ NEVER HALLUCINATE: If fact doesn't mention prospect's company name explicitly, skip it
-❌ NO GENERIC BULLETS: Never write "Feature = Benefit" format
-❌ NO MIXING: Don't confuse prospect's achievements with YOUR company's achievements
-❌ NO FLUFF: Skip "visionary leader" or "imagine you're looking for"
+❌ NO INVENTED STATS: "30% more effective", "2x faster", "$200K savings" — if it's not in the research data above, do not write it
+❌ NEVER HALLUCINATE: If a fact doesn't explicitly name the prospect's company, skip it
+❌ NO GENERIC BULLETS: "Feature = Benefit" format is forbidden
+❌ NO FLUFF: Skip "visionary leader", "imagine a world where", "I hope this finds you well"
 
-STRUCTURE (5-7 sentences):
-1. HOOK: Specific research finding (number/event/milestone)
-2. CHALLENGE: Connect to common pain point (cite industry stat if available)
-3. VALUE (3 bullets):
-   - Specific number + their use case
-   - Proof: [Company] saw [result]
-   - Stat/win if impressive
-4. CTA: One question, why now matters
+STRUCTURE (5-7 sentences total — keep it short):
+1. HOOK: One specific thing from research (fact, milestone, news)
+2. SURFACE THE PROBLEM: Name a real tension or cost this creates — don't assume, derive it from their situation
+3. SOLUTION: What you do and why it fits — use real numbers from platform metrics if available, otherwise qualitative
+4. CTA: One low-commitment ask ("Worth 20 minutes?" / "Open to a quick look?")
 
-Subject: Casual, <45 chars, lowercase/sentence case, match body content
-
-Examples of IGNORING research (DON'T DO THIS):
-❌ "As a visionary leader committed to digital transformation..." (generic fluff)
-❌ "I imagine you're looking for innovative ways to..." (assumption, not research)
-❌ No specific numbers or findings mentioned
-
-STEP 2 - CRAFT SUBJECT LINE:
-Create a thought-provoking subject line that challenges assumptions or highlights a potential gap in their current approach.
-
-SUBJECT LINE FRAMEWORK - Choose ONE approach:
-
-**SELECTION METHOD: Randomly choose one framework using weighted randomization. Think of flipping a tetrahedron (4-sided die) where sides 1, 2, and 3 each represent one framework, and side 4 gives you free choice. This means:
-- ~25% chance: Use Framework A
-- ~25% chance: Use Framework B  
-- ~25% chance: Use Framework C
-- ~25% chance: Pick whichever framework best fits this specific lead
-
-DO NOT default to Framework A. Truly randomize your selection each time. Vary your approach across different emails.**
-
-Framework A - Challenge Current State:
-- Question their existing approach: "Is [current solution] really solving [problem]?"
-- Highlight potential blind spot: "What most [role] miss about [topic]"
-- Challenge outcome: "Will [current strategy] actually deliver [desired result]?"
-
-Framework B - Contrast/Comparison:
-- Set up tension: "[Company A] vs [Company B] on [metric]"
-- Highlight gap: "Why [action] isn't enough for [outcome]"
-- Create urgency: "[Industry] is moving past [old approach]"
-
-Framework C - Direct Problem Statement:
-- Name the issue: "The [metric] problem at [scale/stage] companies"
-- Identify risk: "Your [approach] might be costing you [outcome]"
-- Surface hidden cost: "What [current solution] doesn't tell you about [consequence]"
-
-SUBJECT LINE RULES:
-- Keep under 70 characters
-- Use proper capitalization (sentence case or title case)
-- Be specific to their situation using research
-- Create curiosity through tension or challenge
-- Must align with email body's problem-solution arc
-- Avoid clickbait - make it substantive and professional
-
-⚠️ CRITICAL - SUBJECT/BODY ALIGNMENT:
-The subject line sets up a challenge or question. The email body MUST:
-1. Validate why that challenge/question matters
-2. Agitate the problem with specific evidence
-3. Present your solution as the answer
-
-Don't write a subject that body can't deliver on.
-
-STEP 3 - WRITE EMAIL BODY (6-8 SENTENCES - PROBLEM-AGITATION-SOLUTION ARC):
+WRITE THE EMAIL BODY ONLY — the subject line is handled separately.
 
 Write like a consultant who's done their homework. Direct, evidence-based, challenging. Use line breaks for readability.
 
@@ -4019,191 +3965,61 @@ ${this.memory.platformMetrics.deployed ? `- Capital/Revenue: ${this.memory.platf
 ${this.memory.platformMetrics.properties ? `- Scale/Coverage: ${this.memory.platformMetrics.properties}` : ''}
 ${this.memory.platformMetrics.performance ? `- Performance: ${this.memory.platformMetrics.performance}` : ''}
 
-USE THESE METRICS in your value proposition bullets. These are REAL, VERIFIED numbers from research.
+USE THESE METRICS in your value proposition. These are REAL, VERIFIED numbers from research.
 ` : `
-⚠️ No platform metrics found in research. Use general value proposition from "YOUR SOLUTION" section.
+⚠️ No platform metrics found in research. Write the value proposition without specific numbers — do NOT invent any.
 `}
-Examples of GOOD specificity (adapt these patterns with YOUR metrics above):
-✅ "Access 150+ pre-vetted properties across 25 countries with $50 minimum investment"
-✅ "12-18% average annual returns, compared to 8% traditional REIT average (2020-2024 data)"
-✅ "6-9% rental yields from institutional-grade assets"
-✅ "Join 50,000+ investors who've deployed $500M+ in tokenized real estate"
-✅ "Current Dubai opportunities showing 14% projected 12-month returns"
 
-🚫 FORBIDDEN PHRASES (INSTANT REJECTION - DO NOT USE THESE EVER):
-❌ "Low investment threshold" or "starting from just $50"
-❌ "Rigorous property selection process" or "ensuring you invest only in the best"
-❌ "Flexible investment management" or "seamless control"
-❌ "Consistent passive income" or "steady income stream"
-❌ "Access to curated global properties"
-❌ "Earn consistent passive income"
-❌ "Quality assurance" or "Financial stability"
-❌ "Trusted by many investors" or "top-tier firms"
-❌ "Several companies have embraced our platform"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EMAIL STRUCTURE: ISSUE → NEED → SOLVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IF YOU USE ANY OF THESE FORBIDDEN PHRASES, THE EMAIL WILL BE REJECTED.
-Instead, use SPECIFIC NUMBERS from YOUR PLATFORM'S VERIFIED METRICS section above.
+Write exactly 3 paragraphs (1-2 sentences each) + 1 line CTA. Total: 5-7 sentences.
 
-CRITICAL - USE THIRD-PARTY DATA:
-When available from research, cite industry statistics to build credibility:
-- Quote sources: "McKinsey reports X" or "(Gartner, 2024)"
-- Support bold claims with YOUR PLATFORM'S VERIFIED METRICS above
-- Anchor urgency: "90% of logistics firms report Q1 as peak expansion (Gartner)"
-- Check the research data for industry_statistics findings and weave them in naturally
+PARAGRAPH 1 — SURFACE THE ISSUE (the problem specific to them):
+Open with a specific, uncomfortable truth about their situation based on research.
+Do NOT compliment them. Name the specific problem or gap their situation creates.
 
-CRITICAL - WRITING YOUR VALUE PROPOSITION:
-1. START WITH YOUR PLATFORM'S VERIFIED METRICS (if extracted from research above)
-   - Use the exact returns %, investor count, capital deployed, property count found
-   - Example: "- 12-18% average returns across 150+ properties in 25 countries"
-   
-2. IF NO METRICS EXTRACTED:
-   - DO NOT use the forbidden phrases listed above
-   - Connect YOUR SOLUTION section to THEIR specific situation from research
-   - Focus on how your offering solves their specific challenge
-   - Better to skip value prop bullets entirely than use vague generic phrases
-   - Example: "- Given your $2.5B portfolio, diversification across [specific use case]"
+PARAGRAPH 2 — GENERATE THE NEED (why this costs them NOW):
+Agitate the cost, risk, or missed opportunity tied to the issue above.
+If you have a verified stat from RESEARCH FINDINGS above, use it. If not, make the case qualitatively — do NOT invent a percentage or attribute a stat to a source unless it appears in the research data provided.
 
-3. THEN USE YOUR COMPANY'S RECENT SUCCESSES (IF AVAILABLE AND NOTEWORTHY):
-   The research MAY include verified achievements from "YOUR COMPANY'S RECENT WINS" section.
+PARAGRAPH 3 — SOLVE IT (your product against the problem):
+Position your solution directly against the problem you surfaced.
+If PLATFORM METRICS above has real numbers, use them. If not, state what you do and why it fits — no invented figures.
 
-⚠️ BE EXTREMELY SELECTIVE - ONLY include if ALL criteria met:
-1. ✅ Wins section exists and has verified data
-2. ✅ Happened in last 6 months (2025-2026)
-3. ✅ Truly impressive (funding, major client win, partnership, product launch, significant award)
-4. ✅ Relevant to the lead's situation
-5. ❌ REJECT generic fluff: office moves, hires, promotions, blog posts
-6. ❌ REJECT if not 100% confident it's about YOUR company
+CTA (1 line):
+A single direct question tied to their timing or situation.
 
-⚠️ IF NO VERIFIED WINS FOUND:
-- Focus on your core value proposition from "YOUR SOLUTION" section above
-- Use client success patterns: "Companies at your stage typically see X results"
-- Don't make up achievements or use vague statements
-- Better to showcase value prop than fabricate social proof
 
-Good examples to INCLUDE:
-- "We just closed a $50M Series B" → Yes, include
-- "Recently partnered with Microsoft/Google/etc" → Yes, include  
-- "Helped Stripe reduce costs by 40%" → Yes, include
-- "Won Best AI Platform 2025 by TechCrunch" → Yes, include
+FORMATTING RULES:
+✅ Short paragraphs — 1-2 sentences max. Use line breaks between each.
+✅ Em dashes (—) where natural
+✅ Open with "Hi [FirstName]," not "Hello"
+✅ No exclamation marks, no corporate buzzwords, no "I hope this finds you well"
+✅ Sound like a smart human, not a template
+❌ No invented stats. No "X% of companies" unless that stat appears in the research above.
+❌ No bullet lists in the body
+❌ No multi-sentence compliments
 
-Bad examples to REJECT:
-- "Opened a new office in Austin" → NO, don't include
-- "Hired a new VP of Sales" → NO, don't include
-- "Published a new blog post" → NO, don't include
-- "Updated our website" → NO, don't include
-- "Celebrating 5 years" → NO, don't include
 
-If unsure, DON'T INCLUDE IT. Better to skip than look desperate.
-
-How to use it (if it passes the bar):
-- Weave into last bullet: "- Just helped Stripe cut payment processing time by 60%"
-- Or in hook: "We're fresh off helping Deel scale to 10M users without adding ops headcount"
-- Keep it brief and relevant to THEIR situation
-
-Format:
-"Why [Product] fits your situation:
-
-- [Specific benefit with number] for [their use case]
-
-- [Proof point]: [Company name] saw [specific result]
-
-- [Third-party stat or recent win if applicable]"
-
-GOOD Examples (use YOUR data, not these):
-- "[X-Y]% returns backed by [proof] (cite source if available)"
-- "[CompanyName] saw [specific metric] without [disruption]"
-- "[Stat with source] shows [relevant data point]"
-
-BAD Examples (never do this):
-❌ "Low investment threshold = Accessibility for all"
-❌ "Feature = Generic benefit" format
-❌ Vague claims without numbers or proof
-
-CLOSE - Bridge to Conversation (1-2 lines):
-Tie urgency to their situation, then simple CTA.
-
-Framework options:
-- Timing hook + question: "Given [their situation/timing], worth [action]?"
-- Value framing + ask: "If [outcome] matters for [their goal], [action]?"
-- Direct ask with context: "[Action] to see if [solution] fits [their specific situation]?"
-
-Keep it to ONE question. Make the value clear.
-
-WRITING STYLE:
-
-DO:
-✅ Use short sentences and paragraphs
-✅ Add line breaks between thoughts
-✅ Use em dashes (—) instead of formal punctuation
-✅ Use simple dashes (-) for bullet points
-✅ Sound casual but professional
-✅ Use specific numbers and company names
-✅ Make every bullet about THEM, not generic features
-
-DON'T:
-❌ Write long paragraphs (break them up!)
-❌ Use corporate buzzwords or generic benefits
-❌ Use emojis (dashes only: -)
-❌ Say "I hope this email finds you well"
-❌ Multiple questions in the close
-❌ Write feature lists ("X = Y")
-❌ Sound like a template
-
-STRUCTURE IN ACTION - Framework (create your own variation):
-
-Hi [FirstName],
-
-[Context: Specific observation about their company from research]
-
-[Problem: Challenge their current approach or surface hidden cost/gap based on their stage/situation]
-
-[Agitation: Why this matters now / what they might be missing / consequence]
-
-[Solution: How your offering specifically addresses this - with proof/numbers if available]
-
-[CTA: Timing-aware question]
-
+SIGNATURE FORMAT:
 Best,
-[Signature]
+${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}
+${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}
 
-LENGTH: 6-8 sentences. Use line breaks. Keep paragraphs 1-2 sentences max.
 
-⚠️ KEY: Don't copy this structure verbatim. Use it as a framework to build varied executions that feel natural and conversational.
-
-FORMATTING:
-Opening: Hello ${leadData.first_name},
-Body: [7 sentences - every word must demonstrate value and connection to their situation]
-
-SIGNATURE (CRITICAL - READ CAREFULLY):
-You are NOT signing as "${personality.name || 'your personality'}". 
-You are signing as: ${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}
-
-Signature format:
-Best regards,
-${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || '') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}
-${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}
-
-⚠️ CRITICAL OUTPUT FORMAT:
+CRITICAL OUTPUT FORMAT:
 - Line 1: "SUBJECT: [your subject line]"
 - Line 2: blank line
-- Line 3+: "BODY: [your email starting with greeting]"
-- DO NOT include the subject line anywhere in the BODY section
-- DO NOT repeat the subject line after "BODY:"
+- Line 3+: "BODY: [email starting with Hi ${leadData.first_name},]"
+- DO NOT put the subject line in the body
 
-Example output format:
-SUBJECT: thought for Acme Corp
-
-BODY: Hello John,
-
-I saw your team...
-[rest of email]
-
-NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connecting why your solution fits their situation.`;
+NOW WRITE YOUR EMAIL following the ISSUE → NEED → SOLVE structure above.`;
 
       // ALWAYS combine personality prompt with common ruleset containing lead details + buyer motivation
       const emailPrompt = `${customPrompt}\n${commonRuleset}${buyerMotivationContext}`;
 
-      
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [{ role: 'user', content: emailPrompt }],
@@ -4275,35 +4091,39 @@ NOW WRITE YOUR EMAIL matching YOUR personality style above and EXPLICITLY connec
       let subject = 'Quick question'; // Fallback only if API fails completely
       
       try {
-        const subjectPrompt = `Read this sales email and create a subject line that challenges assumptions or highlights a gap in their current approach.
+        const subjectPrompt = `Read this cold sales email and write a subject line that will make the recipient open it.
 
 EMAIL BODY:
 ${body}
 
-LEAD CONTEXT:
+LEAD:
 - Name: ${leadData.first_name} ${leadData.last_name}
 - Company: ${companyName}
 - Title: ${leadData.title}
 
-REQUIREMENTS:
-- Maximum 70 characters (strict limit)
-- Professional but thought-provoking - create tension or curiosity
-- Must align with the problem or challenge raised in the email body
-- Use proper capitalization (sentence case or title case)
-- Avoid clickbait or spam trigger words
-- Should make them question their current approach or consider a blind spot
-- No quotes around the subject line
+RULES FOR THE SUBJECT LINE:
+- Under 50 characters
+- Controversial or provocative — challenge something they believe, indict an approach they're using, or name a problem they're ignoring
+- Must connect directly to the issue raised in the email body
+- Sentence case, no exclamation marks, no spam words
+- Should cause a slight moment of discomfort or curiosity — not clickbait, but a real challenge
+- Read like something a smart person wrote, not a marketing template
 
-FRAMEWORK APPROACHES (choose one that fits the email content):
-1. Challenge pattern: Question their current approach ("Is [X] really delivering [Y]?")
-2. Gap pattern: Highlight what they might be missing ("What [role] overlook about [topic]")
-3. Contrast pattern: Set up a comparison ("Why [current] isn't enough for [goal]")
-4. Problem statement: Name the specific issue ("The [problem] at [their stage/scale]")
-5. Risk/cost pattern: Surface hidden consequence ("What [approach] costs you in [metric]")
+GOOD EXAMPLES (style only, not content):
+- "Your agency BD is probably broken"
+- "Why 17 markets makes this worse"
+- "The pitch problem at growing agencies"
+- "Brandy's new business gap"
+- "Most agencies lose here"
+- "What manual outreach costs at scale"
 
-The subject should make them slightly uncomfortable or curious - it should challenge their status quo while remaining professional and substantive.
+BAD EXAMPLES (never do these):
+- "Are Traditional Methods Holding Back Your Growth?" — generic question format
+- "Quick question about Brandy" — weak
+- "Exciting opportunity for you" — spam
+- "Improve your outreach" — vague
 
-Generate ONLY the subject line, nothing else.`;
+Output ONLY the subject line. Nothing else.`;
 
         const subjectResponse = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
