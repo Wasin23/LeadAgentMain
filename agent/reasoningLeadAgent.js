@@ -248,7 +248,7 @@ PLAN:
 Write a brief, clear description of WHO we're targeting and WHY. Be specific and concise.`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 50
@@ -265,7 +265,7 @@ Write a brief, clear description of WHO we're targeting and WHY. Be specific and
           operation: 'plan_description',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens
           }
@@ -1668,7 +1668,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
 
       // Research analysis completed
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system', 
@@ -1694,7 +1694,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
           operation: 'research_analysis',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             companyName: companyName
@@ -1944,9 +1944,10 @@ Respond in JSON format:
 }`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
+        max_tokens: 300,
         temperature: 0.3
       });
 
@@ -1973,7 +1974,7 @@ Respond in JSON format:
           operation: 'pre_qualification',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             score: result.score,
@@ -2266,9 +2267,10 @@ Respond in JSON:
 
       
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
+        max_tokens: 500,
         temperature: 0.3
       });
 
@@ -2285,7 +2287,7 @@ Respond in JSON:
           operation: 'tiered_qualification',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
             score: result.score,

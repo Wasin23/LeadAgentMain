@@ -47,17 +47,17 @@ export function CreditPurchaseModal({
       name: "Starter",
       price: 500,
       credits: 10000,
-      emails: 15000,
-      features: ["10,000 credits", "~15,000 emails", "Basic AI features", "Email support"],
+      emails: 10000,
+      features: ["10,000 credits", "~10,000 emails", "Basic AI features", "Email support"],
     },
     {
       id: "growth",
       name: "Growth",
       price: 1000,
       credits: 20000,
-      emails: 30000,
+      emails: 20000,
       popular: true,
-      features: ["20,000 credits", "~30,000 emails", "Advanced AI features", "Priority support", "Custom integrations"],
+      features: ["20,000 credits", "~20,000 emails", "Advanced AI features", "Priority support", "Custom integrations"],
     },
     {
       id: "scale",
@@ -65,8 +65,8 @@ export function CreditPurchaseModal({
       price: 2500,
       credits: 70000,
       bonus: 20000,
-      emails: 105000,
-      features: ["70,000 credits", "+20,000 bonus credits", "~105,000 emails", "All AI features", "Dedicated support", "Custom workflows"],
+      emails: 90000,
+      features: ["70,000 credits", "+20,000 bonus credits", "~90,000 emails", "All AI features", "Dedicated support", "Custom workflows"],
     },
   ]
 
@@ -262,7 +262,7 @@ export function CreditPurchaseModal({
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <strong>1 credit = $0.05</strong> in tracked API costs (transparent pricing)</li>
-              <li>• <strong>~0.67 credits per email</strong> on average (includes AI research, enrichment, validation, sending)</li>
+              <li>• <strong>~1 credit per email</strong> (full deep AI research, enrichment, validation, sending)</li>
               <li>• Credits never expire and roll over month-to-month</li>
               {mode === "topup" && <li>• <strong>Top-ups are added instantly</strong> to your current balance</li>}
               <li>• Track exact usage in real-time on your dashboard</li>
