@@ -2072,6 +2072,9 @@ Respond in JSON format:
     // Get data from current cycle state (NOT from parameters - GPT-3.5 calls with empty {})
     const leadData = this.memory.currentCycle.currentLead;
     const researchData = this.memory.lastResearch;
+    const emailSettings = this.memory.emailSettings;
+    const primaryService = emailSettings?.companyBranding?.primaryService || '';
+    const coreOffering = emailSettings?.companyBranding?.coreOffering || '';
     
     const personName = leadData?.name || 'Unknown';
     const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
@@ -2127,6 +2130,19 @@ Company Size: ${leadData?.organization?.estimated_num_employees || 'Unknown'} em
 
 RESEARCH FINDINGS (WITH SOURCES):
 ${researchSummary}
+
+PRODUCT BEING SOLD:
+${primaryService ? `- Primary Service: ${primaryService}` : ''}
+${coreOffering ? `- Core Offering: ${coreOffering}` : ''}
+
+⚠️ PRODUCT-FIT GATE (generous — SHOTGUNs exist for a reason):
+Ask: does this prospect's industry/role make them a plausible buyer for [${primaryService || 'the product being sold'}]?
+- STRONG FIT with evidence → normal scoring, can reach HIGHLY_QUALIFIED
+- PLAUSIBLE / SPECULATIVE (adjacent industry, possible but unproven use case) → SHOTGUN range (40-60), send generic outreach
+- WEAK but not impossible (lateral industry, stretch connection) → low SHOTGUN (40-50), still gets emailed
+- GENUINELY IRRELEVANT (completely wrong industry, clear zero use case, active disqualifier) → REJECT (≤35), skip email
+Title and company size CAN push a weak-fit lead up to SHOTGUN — they just can't push it to QUALIFIED without real evidence.
+When in doubt, land in SHOTGUN rather than REJECT.
 
 QUALIFICATION CRITERIA:
 Must Have (required): ${criteria.mustHave?.join(', ') || 'None'}
