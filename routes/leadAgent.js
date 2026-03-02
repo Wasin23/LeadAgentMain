@@ -34,6 +34,16 @@ router.post('/start', async (req, res) => {
     
     // Get agent-specific instance
     const userAgent = getUserAgent(userId, agentId);
+
+    // Block normal start if this agent is already reserved for Auditor / CRM mode
+    if (userAgent.isCrmMode && userAgent.isRunning) {
+      return res.status(409).json({
+        success: false,
+        message: 'This agent is currently reserved for Auditor (CRM) mode and cannot be started normally. Stop the auditor first.',
+        isCrmMode: true,
+        isActive: true,
+      });
+    }
     
     const result = await userAgent.start(minutes, userId);
     
@@ -104,7 +114,7 @@ router.post('/start-from-crm', async (req, res) => {
         if (user && user.activeAgents) {
           const updatedAgents = user.activeAgents.map(agent =>
             agent.agentId === agentId
-              ? { ...agent, status: 'running', lastRun: new Date().toISOString() }
+              ? { ...agent, status: 'running', mode: 'crm', lastRun: new Date().toISOString() }
               : agent
           );
           const awsManager = (await import('../utils/awsManager.js')).default;
@@ -213,7 +223,7 @@ router.post('/stop', async (req, res) => {
         if (user && user.activeAgents) {
           const updatedAgents = user.activeAgents.map(agent => 
             agent.agentId === agentId 
-              ? { ...agent, status: 'idle' }
+              ? { ...agent, status: 'idle', mode: null }
               : agent
           );
           

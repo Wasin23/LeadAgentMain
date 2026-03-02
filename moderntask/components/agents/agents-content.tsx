@@ -46,6 +46,7 @@ interface Agent {
   replyRate?: number
   // live status from SSE/polling
   isRunning?: boolean
+  isCrmMode?: boolean   // true when agent is reserved for Auditor / CRM outreach
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ function AgentCard({
   const gradientClass = PERSONALITY_COLORS[personalityType] ?? PERSONALITY_COLORS.hunter
   const badgeClass = PERSONALITY_BADGE[personalityType] ?? PERSONALITY_BADGE.hunter
   const isRunning = agent.isRunning || agent.status === 'running'
+  const isAuditor = !!agent.isCrmMode
   const replyRate = agent.replyRate ?? (agent.sent && agent.sent > 0 ? parseFloat(((agent.replied ?? 0) / agent.sent * 100).toFixed(1)) : 0)
 
   // Link to per-agent dashboard page
@@ -117,9 +119,18 @@ function AgentCard({
     <Card className={cn(
       'relative p-5 border transition-all duration-300 hover:shadow-lg hover:shadow-primary/5',
       gradientClass,
+      isAuditor && 'opacity-60',
     )}>
+      {/* auditor mode badge - shown when agent is locked to CRM/auditor outreach */}
+      {isAuditor && (
+        <div className="absolute top-3 right-3 z-10">
+          <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-yellow-500/15 text-yellow-400 border-yellow-500/30">
+            <Bot className="w-2.5 h-2.5 mr-1" />Auditor
+          </Badge>
+        </div>
+      )}
       {/* running pulse */}
-      {isRunning && (
+      {isRunning && !isAuditor && (
         <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50" />
       )}
 
@@ -215,7 +226,9 @@ function AgentCard({
 
       {/* action row */}
       <div className="flex items-center gap-2 flex-wrap">
-        {isRunning ? (
+        {isAuditor ? (
+          <span className="text-[11px] text-yellow-400/80 italic">Agent reserved for Auditor Mode. Stop the auditor to use normally.</span>
+        ) : isRunning ? (
           <Button
             size="sm"
             variant="outline"
@@ -240,7 +253,7 @@ function AgentCard({
           size="sm"
           variant="outline"
           className="h-7 text-xs gap-1"
-          disabled={busy || !isRunning}
+          disabled={busy || !isRunning || isAuditor}
           title={!isRunning ? 'Start the agent first' : 'Force-run one cycle now'}
           onClick={() => onRunCycle(agent.agentId)}
         >

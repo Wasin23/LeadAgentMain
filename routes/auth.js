@@ -1270,11 +1270,14 @@ router.get('/agents', authenticateToken, async (req, res) => {
         const { getUserAgent } = await import('../agent/reasoningLeadAgent.js');
         
         let nextCycleTime = null;
+        let isCrmMode = agent.mode === 'crm'; // DB-persisted mode (survives restarts)
         try {
           const runningAgent = getUserAgent(userId, agent.agentId);
           if (runningAgent && runningAgent.isRunning) {
             const status = await runningAgent.getStatus();
             nextCycleTime = status?.nextCycleIn || null;
+            // Also check live in-memory flag in case DB hasn't updated yet
+            if (runningAgent.isCrmMode) isCrmMode = true;
           }
         } catch (agentError) {
           console.log(`[AUTH] Agent ${agent.name} not found in memory (not started yet)`);
@@ -1284,7 +1287,8 @@ router.get('/agents', authenticateToken, async (req, res) => {
           ...agent,
           nextCycleTime,
           specialInstructions,
-          settings
+          settings,
+          isCrmMode,
         };
       } catch (err) {
         console.error(`Failed to get status for agent ${agent.agentId}:`, err);

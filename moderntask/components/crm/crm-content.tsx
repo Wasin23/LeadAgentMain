@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2 } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
@@ -41,6 +41,7 @@ export function CRMContent() {
   const [selectedAgent, setSelectedAgent]   = useState<string>("")
   const [launching, setLaunching]           = useState(false)
   const [launched, setLaunched]             = useState(false)
+  const [stopping, setStopping]             = useState(false)
   const [scanningId, setScanningId]         = useState<string | null>(null)
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set())
   const [completedCount, setCompletedCount] = useState(0)
@@ -231,6 +232,25 @@ export function CRMContent() {
     }
   }
 
+  const stopAuditor = async () => {
+    setStopping(true)
+    try {
+      await api.post("/api/lead-agent/stop", { agentId: selectedAgent })
+      await api.delete("/api/crm/auditor-state")
+      esRef.current?.close()
+      esRef.current = null
+      setLaunched(false)
+      setScanningId(null)
+      setStatusLine("")
+      setExitingIds(new Set())
+      toast({ title: "Auditor stopped" })
+    } catch {
+      toast({ title: "Failed to stop agent", variant: "destructive" })
+    } finally {
+      setStopping(false)
+    }
+  }
+
   const clearSavedContacts = async () => {
     try {
       await api.delete("/api/crm/saved-contacts")
@@ -370,6 +390,14 @@ export function CRMContent() {
                 Auditor Mode
               </Badge>
               <span>{contacts.length} remaining</span>
+              <button
+                onClick={stopAuditor}
+                disabled={stopping}
+                className="ml-auto flex items-center gap-1 text-[10px] text-rose-500 hover:text-rose-600 disabled:opacity-50 transition-colors"
+              >
+                {stopping ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3 fill-current" />}
+                {stopping ? "Stopping…" : "Stop"}
+              </button>
             </div>
           )}
           {filtered.map((c, i) => {

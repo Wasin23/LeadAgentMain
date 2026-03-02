@@ -106,6 +106,7 @@ class ReasoningLeadAgent extends EventEmitter {
       aiKeywordCycleCount: 0, // Track how many AI keywords used (reset after 5)
       baseIndustryKeywords: [], // Flattened list of all keywords from user's industries
       campaignPriorityKeyword: null, // Campaign-specified industry to search first
+      exhaustedCampaignKeywords: new Set(), // Keywords permanently rotated past due to high dup rate
       leadsFoundWithCurrentKeyword: 0, // Track leads found with current keyword (rotate every 20)
       lastKeywordUsed: null, // Track the last keyword used to detect changes
       originalTargetPositions: null, // Store the original positions from instructions/settings
@@ -4538,8 +4539,12 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       if (!this.memory.campaignPriorityKeyword && this.campaignPlan?.searchStrategy?.priorityIndustries?.length > 0) {
         // Extract first keyword from priority industry
         const priorityIndustry = this.campaignPlan.searchStrategy.priorityIndustries[0];
-        this.memory.campaignPriorityKeyword = priorityIndustry.split(/\s*&\s*/)[0].trim().toLowerCase();
-        this.memory.leadsFoundWithCurrentKeyword = 0;
+        const candidateKeyword = priorityIndustry.split(/\s*&\s*/)[0].trim().toLowerCase();
+        // Only use it if it hasn't been permanently exhausted this run
+        if (!this.memory.exhaustedCampaignKeywords?.has(candidateKeyword)) {
+          this.memory.campaignPriorityKeyword = candidateKeyword;
+          this.memory.leadsFoundWithCurrentKeyword = 0;
+        }
       }
       
       // STEP 2: SYNCHRONIZED KEYWORD + POSITION ROTATION (Paired by Index)
@@ -5058,6 +5063,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             // Track cumulative duplicate rate per keyword
             if (selectedKeyword) {
               const tracker = this.memory.industryExhaustion[selectedKeyword];
+              if (!tracker) {
+                // Memory was reset mid-flight (e.g. stop signal received) — skip tracking
+                console.warn(`[APOLLO] industryExhaustion tracker missing for "${selectedKeyword}" (memory reset?), skipping update`);
+              } else {
               tracker.leadsFound += newLeads.length;
               tracker.totalAttempts += totalAttempts;
               tracker.totalDuplicates += duplicateLeads.length;
@@ -5090,7 +5099,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               } else {
               }
               
-              // Rotate if CUMULATIVE duplicate rate exceeds 50%
+              // Rotate if CUMULATIVE duplicate rate exceeds 20%
               if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
                 
                 // Record this search to DB with ACTUAL new leads (before setting rotation flag)
@@ -5102,8 +5111,14 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                   newLeads.length // Save actual leads found, not rotation flag
                 );
                 
+                // If this was the campaign priority keyword, permanently retire it this run
+                if (selectedKeyword === this.memory.campaignPriorityKeyword) {
+                  if (!this.memory.exhaustedCampaignKeywords) this.memory.exhaustedCampaignKeywords = new Set();
+                  this.memory.exhaustedCampaignKeywords.add(selectedKeyword);
+                }
                 this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation AFTER recording
               }
+              } // end tracker null-guard
             }
           }
 
@@ -6660,6 +6675,7 @@ Target Positions:`;
       return { success: false, message: 'No contacts provided', isActive: false };
     }
     this.crmContactList = crmContacts; // picked up by executeReasoningCycle
+    this.isCrmMode = true;             // marks agent as reserved for auditor mode
     return await this.start(minutes, userId);
   }
 
@@ -6721,6 +6737,7 @@ Target Positions:`;
         this.memory.lastKeywordUsed = null;
         this.memory.lastSearchKey = null;
         this.memory.campaignPriorityKeyword = null;
+        this.memory.exhaustedCampaignKeywords = new Set();
         this.memory.originalTargetPositions = null;
         this.memory.totalLeadsFoundThisCycle = 0;
         this.memory.industryExhaustion = {};
@@ -6730,6 +6747,7 @@ Target Positions:`;
       
       // Clear campaign plan (will be regenerated from instructions)
       this.campaignPlan = null;
+      this.isCrmMode = false; // Release auditor-mode lock on stop
 
 
       // Emit progress update
@@ -7351,11 +7369,12 @@ Target Positions:`;
         crmId:      c.crmId,
         crmSource:  c.source
       }));
-      this.memory.currentCycle.leadQueue     = crmLeads;
+      this.memory.currentCycle.currentLead   = crmLeads[0];           // Prime the first lead NOW
+      this.memory.currentCycle.leadQueue     = crmLeads.slice(1);     // Rest wait in queue
       this.memory.currentCycle.targetLeads   = crmLeads.length;
       this.memory.currentCycle.processingPhase = 'research'; // Skip apollo_search
       this.crmContactList = null; // Consumed — clear so next cycle uses Apollo normally
-      console.log(`[CRM MODE] Pre-loaded ${crmLeads.length} contacts from CRM, skipping Apollo search`);
+      console.log(`[CRM MODE] Pre-loaded ${crmLeads.length} contacts from CRM, skipping Apollo search — starting with ${crmLeads[0]?.name}`);
       this.logOperation('📋 CRM Mode', `Processing ${crmLeads.length} contacts imported from CRM`, 'running');
       // Broadcast CRM session start so the frontend knows the full contact list
       this._emitCRMEvent('crm_session_start', {
