@@ -2139,11 +2139,12 @@ ${coreOffering ? `- Core Offering: ${coreOffering}` : ''}
 
 ⚠️ PRODUCT-FIT GATE:
 Ask: does this prospect's industry/role make them a direct or plausible buyer for [${primaryService || 'the product being sold'}]?
-- CONFIRMED CRITERIA MATCH (right title + right industry + meets mustHave) → at least QUALIFIED (60+), even with no research timing signal
-- STRONG FIT with specific research evidence → can reach HIGHLY_QUALIFIED (80+)
-- SPECULATIVE / ADJACENT (neighboring industry, plausible but unproven use case) → SHOTGUN range (40-59), send generic outreach
-- GENUINELY IRRELEVANT (completely wrong industry, clear zero use case, active disqualifier) → REJECT (≤35), skip email
-When in doubt between SHOTGUN and QUALIFIED: if they meet the mustHave criteria directly, choose QUALIFIED.
+- CONFIRMED CRITERIA MATCH (right title + right industry + meets mustHave) + 2+ research facts → QUALIFIED (60+)
+- CONFIRMED CRITERIA MATCH + strong timing signal + 5+ facts → HIGHLY_QUALIFIED (80+)
+- CONFIRMED CRITERIA MATCH + 0-1 research facts (weak/no web presence) → SHOTGUN (40-59)
+- SPECULATIVE / ADJACENT (neighboring industry, plausible but unproven) → SHOTGUN (40-59)
+- GENUINELY IRRELEVANT (wrong industry, active disqualifier) → REJECT (≤35)
+When in doubt between SHOTGUN and QUALIFIED: you need at least 2 real, cited facts about this company/person to reach QUALIFIED.
 When in doubt between SHOTGUN and REJECT: choose SHOTGUN.
 
 QUALIFICATION CRITERIA:
@@ -2169,12 +2170,11 @@ TWO paths to QUALIFIED:
 - Example: CTO at a mid-size SaaS company in the right industry, meets all mustHave, research found general company info but no specific initiative
 
 TIER 3: SHOTGUN (Score 40-59)
-- Speculative or adjacent fit: neighboring industry, plausible but not confirmed use case
-- Title or industry partially matches but mustHave criteria are uncertain/unverifiable
-- Or: confirmed criteria match but a soft disqualifier or concern exists
-- Limited research evidence (0-1 facts)
+TWO paths to SHOTGUN:
+  PATH A — Speculative fit: neighboring/adjacent industry, plausible but not confirmed use case, title only partially matches mustHave
+  PATH B — Criteria met but research returned nothing useful: right title + right industry BUT research found 0-1 real facts (company is too small, no web presence, no verifiable info). Criteria alone without any research substance = SHOTGUN.
 - Send generic template
-- Example: Hospitality worker (adjacent, not decision-maker), some relevant keywords, unclear fit
+- Example: Director at a company that SHOULD be a good fit but research returned only LinkedIn and a homepage with no substance
 
 TIER 4: REJECT (Score 0-39)
 - Hard disqualifier found (meets disqualifiers list) OR
@@ -2185,15 +2185,18 @@ TIER 4: REJECT (Score 0-39)
 
 YOUR TASK:
 1. Check for disqualifiers FIRST (instant REJECT if found)
-2. Check mustHave criteria — if confirmed, this lead is at minimum QUALIFIED
-3. Look for specific buyer motivation signals in research (timing, pain, initiative)
-4. Assign tier: criteria-confirmed = QUALIFIED baseline, add specifics to reach HIGHLY_QUALIFIED, missing criteria = SHOTGUN
+2. Check mustHave criteria — criteria match is REQUIRED for QUALIFIED or above; without it you cannot exceed SHOTGUN
+3. Assess research quality — count how many real, cited facts you have about this specific company/person
+4. Assign tier using the HOW CRITERIA AND RESEARCH INTERACT rules above: criteria + 2+ facts = QUALIFIED, criteria + strong signal + 5+ facts = HIGHLY_QUALIFIED, criteria + 0-1 facts = SHOTGUN
 
-🎯 CRITERIA MATCH IS THE BASELINE — RESEARCH UPGRADES IT:
-- Confirmed mustHave criteria met → floor is QUALIFIED (60), research can push to HIGHLY_QUALIFIED (80+)
-- Speculative/adjacent fit → SHOTGUN (40-59), research cannot push past QUALIFIED without hard evidence
-- Absence of research timing signals does NOT downgrade a criteria-confirmed lead from QUALIFIED to SHOTGUN
-- No buyer motivation = acceptable for QUALIFIED if criteria are confirmed; only blocks HIGHLY_QUALIFIED
+🎯 HOW CRITERIA AND RESEARCH INTERACT:
+- Confirmed mustHave criteria + 2+ research facts about this company → QUALIFIED (60-79)
+- Confirmed mustHave criteria + strong timing signal + 5+ cited facts → HIGHLY_QUALIFIED (80+)
+- Confirmed mustHave criteria + 0-1 research facts (no web presence / nothing useful found) → SHOTGUN (40-59)
+- Speculative/adjacent fit regardless of research → SHOTGUN (40-59)
+- Hard disqualifier OR completely wrong industry → REJECT (≤35)
+
+Research quality is the tiebreaker between SHOTGUN and QUALIFIED when criteria are confirmed. If you could not find meaningful information about this person or company, that is a real limitation — assign SHOTGUN.
 
 CONFIDENCE LEVEL LOGIC:
 - HIGH confidence: Strong buyer motivation + 5+ cited facts + clear urgency/timeline → HIGHLY_QUALIFIED
@@ -3965,10 +3968,12 @@ DO NOT write generic emails. Use this buyer motivation to show sophisticated und
       
       // Pre-compute RAG facts block to avoid triple-nested backtick syntax issues
       const ragFactsBlock = this.memory.industryFactsFromRAG?.length > 0
-        ? '⚠️ MANDATORY: Anchor the critique with one of these verified stats — use the actual number, don\'t generalize:\n' +
-          this.memory.industryFactsFromRAG.slice(0, 4).map((f, i) => `${i + 1}. ${f}`).join('\n') + '\n' +
-          'Bad: "Many companies struggle with this." | Good: "With GPU demand up 40% YoY, waiting on on-prem procurement is a 6-month gap your competitors won\'t wait for."'
-        : 'If RESEARCH FINDINGS contains an INDUSTRY STATISTICS section, anchor the critique with a specific number from it. If no stat exists, make the case qualitatively — do NOT invent a percentage.';
+        ? '📊 VERIFIED INDUSTRY STATS (sourced from research — real numbers, not invented):\n' +
+          this.memory.industryFactsFromRAG.map((f, i) => `${i + 1}. ${f}`).join('\n') + '\n\n' +
+          'If paragraph 1 opens with a GENERIC industry observation (no company-specific event or signal), pick the SINGLE most relevant stat above and use it to sharpen the argument — paraphrase it naturally, do not quote it verbatim.\n' +
+          'If paragraph 1 already opens with a SPECIFIC company signal (news, funding, job posts, product launch, conference), do NOT add a stat — the specific signal is stronger alone.\n' +
+          '❌ Do not use more than one stat. Do not invent stats beyond this list.'
+        : 'No pre-verified stats available. If RESEARCH FINDINGS contains an INDUSTRY STATISTICS section with a specific number, you may use it. Otherwise make the case qualitatively — do NOT invent a percentage or timeframe.';
 
       // Common ruleset for email structure - ALWAYS include lead details and context
       const commonRuleset = `
