@@ -578,6 +578,7 @@ IMPORTANT RULES:
       // Strip emojis from details before broadcast
       const stripEmoji = s => (s || '').replace(/[\u{1F000}-\u{1FFFF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F\u{1F300}-\u{1F9FF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
       activityData.details = stripEmoji(activityData.details);
+      activityData.isCrmMode = !!this.isCrmMode; // Tag so frontend can route/filter
 
       // Create concise card message
       const baseCardMessage = this.translateToConciseCardMessage(activityData.operation, activityData.details);
@@ -7438,10 +7439,10 @@ Target Positions:`;
       level: 'info'
     });
 
+    let stepCount = 0;
+    const cycleStartTime = Date.now(); // Hoisted so catch block can reference it
     try {
-      let stepCount = 0;
       const maxSteps = 5000; // Safety limit - increased for high-volume lead processing
-      const cycleStartTime = Date.now(); // Track cycle start time
       
       while (stepCount < maxSteps && this.isRunning) {
         stepCount++;

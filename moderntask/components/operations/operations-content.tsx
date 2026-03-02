@@ -31,6 +31,7 @@ interface Agent {
   replied?: number
   queued?: number
   nextCycleTime?: string | null
+  isCrmMode?: boolean
   targeting?: { location?: string; industry?: string; keywords?: string[] }
   emailStats?: { built: number; queued: number; sent: number }
   settings?: {
@@ -211,8 +212,10 @@ export function OperationsContent() {
         }
 
         // activity log entry — prefer details (full text), then cardMessage, skip bare status strings like "info"
+        // Skip logs from agents in CRM/auditor mode — those belong on the CRM page
         const logMsg = payload.details || payload.cardMessage || payload.message || payload.currentActivity || ''
-        if (payload.agentId && logMsg && logMsg !== 'info' && logMsg !== 'running' && logMsg !== 'active') {
+        const agentIsCrm = payload.isCrmMode || agents.find(a => a.agentId === payload.agentId)?.isCrmMode
+        if (payload.agentId && logMsg && logMsg !== 'info' && logMsg !== 'running' && logMsg !== 'active' && !agentIsCrm) {
           const agentName = payload.agentName
             || agents.find(a => a.agentId === payload.agentId)?.name
             || agents.find(a => a.agentId === payload.agentId)?.agentName
@@ -428,6 +431,9 @@ export function OperationsContent() {
                         selected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
                       )}>
                         {agent.name}
+                        {agent.isCrmMode && (
+                          <span className="ml-1.5 text-[9px] px-1 py-0 rounded bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-medium align-middle">Auditor</span>
+                        )}
                       </span>
                       {isRunning && agent.nextCycleTime && (
                         <Countdown target={agent.nextCycleTime} />
@@ -716,7 +722,12 @@ export function OperationsContent() {
                         'w-1.5 h-1.5 rounded-full flex-shrink-0',
                         isRunning ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'
                       )} />
-                      <span className="text-xs font-semibold text-foreground flex-1 truncate">{displayName}</span>
+                      <span className="text-xs font-semibold text-foreground flex-1 truncate">
+                        {displayName}
+                        {agent.isCrmMode && (
+                          <span className="ml-1.5 text-[9px] px-1 py-0 rounded bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-medium align-middle">Auditor</span>
+                        )}
+                      </span>
 
                       {/* Email provider icon */}
                       {agent.settings?.emailBuilder?.useGmail ? (

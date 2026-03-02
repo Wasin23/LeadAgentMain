@@ -36,7 +36,7 @@ class AWSEmailQueue {
       credentials: fromNodeProviderChain()
     });
     
-    this.dynamodb = DynamoDBDocumentClient.from(ddbClient);
+    this.dynamodb = DynamoDBDocumentClient.from(ddbClient, { marshallOptions: { removeUndefinedValues: true } });
     this.tableName = process.env.AWS_DYNAMODB_EMAIL_QUEUE_TABLE || 'meridian-email-queue';
     this.gsiName = 'UserStatusIndex';
     
