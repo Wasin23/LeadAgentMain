@@ -4867,26 +4867,41 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           summary = { ...summary, newCount: newLeads.length };
           
           
-          // Emit SSE progress for deduplication results
-          this.emit('progress', {
-            id: this.generateUniqueId(),
-            timestamp: new Date().toISOString(),
-            operation: 'Deduplication Check',
-            details: `✅ Found ${summary.newCount} new leads, filtered ${summary.duplicateCount} duplicates`,
-            status: 'completed',
-            data: { 
-              phase: 'deduplication_complete',
-              newLeads: summary.newCount,
-              duplicatesFiltered: summary.duplicateCount,
-              totalChecked: summary.totalChecked
-            }
-          });
-          
-          // Log duplicates for visibility
-          if (duplicateLeads.length > 0) {
-            duplicateLeads.forEach(lead => {
-            });
+          // Compute how many more leads are still needed after this batch
+          const alreadyQueued = this.memory.currentCycle.leadQueue.length;
+          const alreadyProcessed = this.memory.currentCycle.leadsProcessed;
+          const target = this.memory.currentCycle.targetLeads;
+          const stillNeeded = Math.max(0, target - alreadyProcessed - alreadyQueued - summary.newCount);
+
+          // Build duplicate names list for visibility
+          const dupNames = duplicateLeads.slice(0, 5).map(l => `${l.name || l.first_name || '?'} @ ${l.organization?.name || l.company || '?'}`);
+          const dupSuffix = duplicateLeads.length > 5 ? ` (+${duplicateLeads.length - 5} more)` : '';
+
+          let dedupMsg = '';
+          if (summary.newCount === 0 && summary.duplicateCount === 0) {
+            dedupMsg = `Apollo returned 0 leads for this search.`;
+          } else if (summary.duplicateCount === 0) {
+            dedupMsg = `✅ ${summary.newCount} new leads found — no duplicates.`;
+          } else if (summary.newCount === 0) {
+            dedupMsg = `⚠️ All ${summary.duplicateCount} leads were already contacted: ${dupNames.join(', ')}${dupSuffix}`;
+          } else {
+            dedupMsg = `✅ ${summary.newCount} new / 🔁 ${summary.duplicateCount} already contacted (${dupNames.join(', ')}${dupSuffix})`;
           }
+
+          if (stillNeeded > 0) {
+            dedupMsg += ` — searching ${stillNeeded} more to reach target of ${target}.`;
+          } else if (summary.newCount > 0) {
+            dedupMsg += ` — target of ${target} reached.`;
+          }
+
+          this.logOperation('🔍 Lead Search Results', dedupMsg, summary.newCount > 0 ? 'completed' : 'info', {
+            phase: 'deduplication_complete',
+            newLeads: summary.newCount,
+            duplicatesFiltered: summary.duplicateCount,
+            totalChecked: summary.totalChecked,
+            stillNeeded,
+            target
+          });
           
           const results = {
             found: newLeads.length,
