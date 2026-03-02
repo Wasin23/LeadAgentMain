@@ -233,6 +233,8 @@ export function OperationsContent() {
         // cycle counters — events are wrapped: { type:'activity_added', data:{ type:'cycle_complete'|'cycle_start' } }
         if (payload.type === 'cycle_complete') {
           setStats(p => ({ ...p, cycles: p.cycles + 1 }))
+          // Re-fetch agents so nextCycleTime is updated (it's set in-memory only after cycle ends)
+          fetchAgents()
         }
         // count cycle_start as well so stopping mid-cycle still registers
         if (payload.type === 'cycle_start') {
@@ -241,6 +243,7 @@ export function OperationsContent() {
         // direct top-level cycle events (fallback if broadcast uses top-level type)
         if (d.type === 'cycle_complete' && !payload.type) {
           setStats(p => ({ ...p, cycles: p.cycles + 1 }))
+          fetchAgents()
         }
 
         // refresh counts on queue/send events
