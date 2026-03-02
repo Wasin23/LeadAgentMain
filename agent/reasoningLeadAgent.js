@@ -2594,17 +2594,23 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
                 try {
                   const linkedinPrompt = `You are analyzing LinkedIn search results snippets for ${personName}, ${leadData?.title || 'executive'} at ${companyName}.
 
-From these LinkedIn snippets, extract topics, opinions, or experiences this person has PUBLICLY shared.
-Only include things clearly attributable to ${personName} themselves (their posts, articles, comments).
-Focus on professional topics that could be referenced naturally in a cold email opener.
+Extract ONLY content that ${personName} AUTHORED — their own posts or articles with a real opinion, insight, or topic they wrote about.
+
+STRICT RULES:
+- ✅ Include: posts they wrote, articles they published, clear first-person opinions they expressed
+- ❌ Skip: comments they left on others' posts, likes, shares, profile bio text, "X commented on Y's post", endorsements, generic activity
+- ❌ Skip: anything where you're not confident ${personName} authored it (not just reacted to it)
+- ❌ If only comments/reactions are found, return "NO RELEVANT DATA" — a comment is not usable
+
+Focus on professional topics with enough substance to reference naturally in a cold email opener.
 
 Snippets:
 ${snippets}
 
 Return 1-3 bullet points max (50 words each). Format:
-- [what they posted/discussed, with context]
+- [topic/opinion they posted about, with enough context to reference it]
 
-If nothing clearly attributable to ${personName} is found, return: "NO RELEVANT DATA"`;
+If no authored content found, return exactly: "NO RELEVANT DATA"`;
                   
                   const linkedinResponse = await this.openai.chat.completions.create({
                     model: 'gpt-4o-mini',
