@@ -4,9 +4,10 @@ import { Card, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Clock, Mail, MessageSquare, BarChart2,
-  ArrowUpRight, Send, Bot, Activity,
+  ArrowUpRight, Send, Bot, Activity, Download,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
 import api from '@/lib/api'
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -293,8 +294,92 @@ export function AnalyticsContent() {
     return true
   })
 
+  const exportReport = useCallback(() => {
+    const rows: string[] = []
+    const q = (s: string) => `"${String(s ?? '').replace(/"/g, '""')}"`
+
+    // ── Summary ─────────────────────────────────────────────────────────
+    rows.push('SUMMARY')
+    rows.push(['Metric', 'Value'].map(q).join(','))
+    rows.push([q('Queued Emails'),    q(totals.queued)].join(','))
+    rows.push([q('Emails Sent'),      q(totals.sent)].join(','))
+    rows.push([q('Replies Received'), q(totals.replied)].join(','))
+    rows.push([q('Reply Rate'),       q(totals.replyRate + '%')].join(','))
+    if (creditBalance !== null)
+      rows.push([q('Credit Balance'), q(String(creditBalance))].join(','))
+    rows.push('')
+
+    // ── Per-Agent Performance ────────────────────────────────────────────
+    rows.push('AGENT PERFORMANCE')
+    rows.push(['Agent', 'Queued', 'Sent', 'Replied', 'Reply Rate'].map(q).join(','))
+    agents.forEach(a => {
+      rows.push([q(a.name), q(a.queued), q(a.sent), q(a.replied), q(a.replyRate + '%')].join(','))
+    })
+    rows.push('')
+
+    // ── Email Activity Time Series ───────────────────────────────────────
+    rows.push(`EMAIL ACTIVITY (${timeRange})`)
+    rows.push(['Date', 'Sent', 'Replied'].map(q).join(','))
+    emailTimeSeries.forEach(r => {
+      rows.push([q(r.date), q(r.Sent), q(r.Replied)].join(','))
+    })
+    rows.push('')
+
+    // ── Sender Delivery Stats ────────────────────────────────────────────
+    rows.push('SENDER DELIVERY STATS')
+    rows.push(['Sender', 'Total Sent', 'Bounced', 'Opened', 'Success Rate', 'Open Rate'].map(q).join(','))
+    domainStats.forEach(d => {
+      rows.push([q(d.fullSender), q(d.Sent), q(d.Bounced), q(d.Opened), q(d['Success Rate'] + '%'), q(d['Open Rate'] + '%')].join(','))
+    })
+    rows.push('')
+
+    // ── Monthly Credit Consumption ───────────────────────────────────────
+    rows.push('MONTHLY EMAIL VOLUME')
+    rows.push(['Month', 'Emails Sent'].map(q).join(','))
+    monthlyCredits.forEach(m => {
+      rows.push([q(m.month), q(m.Credits)].join(','))
+    })
+    rows.push('')
+
+    // ── Recent Sent Emails ───────────────────────────────────────────────
+    rows.push('RECENT SENT EMAILS')
+    rows.push(['To', 'Subject', 'Agent', 'Date', 'Replied'].map(q).join(','))
+    allSentEmails.slice(0, 200).forEach(e => {
+      rows.push([
+        q(e.recipientEmail || e.to || ''),
+        q(e.subject || ''),
+        q(e.agentName || ''),
+        q(new Date(e.sentAt || e.timestamp || 0).toLocaleString()),
+        q(e.replied || e.status === 'REPLIED' ? 'Yes' : 'No'),
+      ].join(','))
+    })
+
+    const csv  = rows.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `meridian-analytics-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [totals, agents, emailTimeSeries, domainStats, monthlyCredits, allSentEmails, creditBalance, timeRange])
+
   return (
     <div className="space-y-6">
+
+      {/* Export bar */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5"
+          disabled={loading}
+          onClick={exportReport}
+        >
+          <Download className="w-3.5 h-3.5" />
+          {loading ? 'Loading data…' : 'Export Report (.csv)'}
+        </Button>
+      </div>
 
       {/* live email stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
