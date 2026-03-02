@@ -37,7 +37,8 @@ class AWSManager {
       unsubscribes: process.env.AWS_DYNAMODB_UNSUBSCRIBES_TABLE || 'meridian-unsubscribes',
       searchHistory: process.env.AWS_DYNAMODB_SEARCH_HISTORY_TABLE || 'meridian-search-history',
       paymentHistory: process.env.AWS_DYNAMODB_PAYMENT_HISTORY_TABLE || 'meridian-payment-history',
-      agentMetrics: process.env.AWS_DYNAMODB_AGENT_METRICS_TABLE || 'meridian-agent-metrics'
+      agentMetrics: process.env.AWS_DYNAMODB_AGENT_METRICS_TABLE || 'meridian-agent-metrics',
+      crmContacts: process.env.AWS_DYNAMODB_CRM_CONTACTS_TABLE || 'meridian-crm-contacts'
     };
     
     // API Cost rates (with 1.2x multiplier for platform margin)
@@ -3466,6 +3467,105 @@ class AWSManager {
       console.error('❌ [PLANS] Error getting user plan status:', error);
       throw error;
     }
+  }
+  // ============================================================
+  // CRM CONTACTS TABLE
+  // ============================================================
+
+  async saveCRMContacts(userId, contacts = []) {
+    if (!contacts.length) return { success: true };
+    const chunks = [];
+    for (let i = 0; i < contacts.length; i += 25) chunks.push(contacts.slice(i, i + 25));
+    for (const chunk of chunks) {
+      await this.dynamodb.send(new BatchWriteCommand({
+        RequestItems: {
+          [this.tables.crmContacts]: chunk.map(c => ({
+            PutRequest: {
+              Item: {
+                userId,
+                contactId: c.crmId || c.email,
+                email:     c.email     || '',
+                firstName: c.firstName || '',
+                lastName:  c.lastName  || '',
+                title:     c.title     || '',
+                phone:     c.phone     || '',
+                company:   c.company   || '',
+                source:    c.source    || 'crm',
+                status:    c.status    || 'queued',
+                savedAt:   new Date().toISOString(),
+              }
+            }
+          }))
+        }
+      }));
+    }
+    return { success: true };
+  }
+
+  async getCRMContacts(userId) {
+    const res = await this.dynamodb.send(new QueryCommand({
+      TableName: this.tables.crmContacts,
+      KeyConditionExpression: 'userId = :uid',
+      ExpressionAttributeValues: { ':uid': userId },
+      ScanIndexForward: false,
+    }));
+    return res.Items || [];
+  }
+
+  async updateCRMContactStatus(userId, contactId, status) {
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.crmContacts,
+      Key: { userId, contactId },
+      UpdateExpression: 'SET #s = :s, updatedAt = :t',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':s': status, ':t': new Date().toISOString() },
+    }));
+    return { success: true };
+  }
+
+  async deleteCRMContact(userId, contactId) {
+    await this.dynamodb.send(new DeleteCommand({
+      TableName: this.tables.crmContacts,
+      Key: { userId, contactId },
+    }));
+    return { success: true };
+  }
+
+  async clearCRMContacts(userId) {
+    const contacts = await this.getCRMContacts(userId);
+    if (!contacts.length) return { success: true };
+    const chunks = [];
+    for (let i = 0; i < contacts.length; i += 25) chunks.push(contacts.slice(i, i + 25));
+    for (const chunk of chunks) {
+      await this.dynamodb.send(new BatchWriteCommand({
+        RequestItems: {
+          [this.tables.crmContacts]: chunk.map(c => ({
+            DeleteRequest: { Key: { userId, contactId: c.contactId } }
+          }))
+        }
+      }));
+    }
+    return { success: true };
+  }
+
+  // Auditor state stored as a field on the user record
+  async saveAuditorState(userId, patch = {}) {
+    const user = await this.getUserById(userId);
+    const existing = user?.auditorState || {};
+    await this.updateUser(userId, {
+      auditorState: { ...existing, ...patch, updatedAt: new Date().toISOString() }
+    });
+    return { success: true };
+  }
+
+  async getAuditorState(userId) {
+    const user = await this.getUserById(userId);
+    return user?.auditorState || null;
+  }
+
+  async clearAuditorState(userId) {
+    await this.updateUser(userId, { auditorState: null });
+    return { success: true };
   }
 }
 

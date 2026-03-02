@@ -344,4 +344,84 @@ router.get('/import-leads', authenticateToken, async (req, res) => {
   }
 });
 
+// ─── SAVED CRM CONTACTS (Meridian DB) ───────────────────────────────────────
+
+// List saved contacts
+router.get('/saved-contacts', authenticateToken, async (req, res) => {
+  try {
+    const contacts = await mergeManager.awsManager.getCRMContacts(req.user.userId);
+    res.json({ success: true, contacts });
+  } catch (error) {
+    console.error('❌ [CRM] get saved-contacts:', error);
+    res.status(500).json({ error: 'Failed to fetch saved contacts' });
+  }
+});
+
+// Batch-save contacts
+router.post('/saved-contacts/batch', authenticateToken, async (req, res) => {
+  try {
+    const { contacts = [] } = req.body;
+    await mergeManager.awsManager.saveCRMContacts(req.user.userId, contacts);
+    res.json({ success: true, saved: contacts.length });
+  } catch (error) {
+    console.error('❌ [CRM] batch save contacts:', error);
+    res.status(500).json({ error: 'Failed to save contacts' });
+  }
+});
+
+// Update one contact's status
+router.patch('/saved-contacts/:id', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    await mergeManager.awsManager.updateCRMContactStatus(req.user.userId, req.params.id, status);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ [CRM] update contact status:', error);
+    res.status(500).json({ error: 'Failed to update contact' });
+  }
+});
+
+// Clear all saved contacts
+router.delete('/saved-contacts', authenticateToken, async (req, res) => {
+  try {
+    await mergeManager.awsManager.clearCRMContacts(req.user.userId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ [CRM] clear saved contacts:', error);
+    res.status(500).json({ error: 'Failed to clear contacts' });
+  }
+});
+
+// ─── AUDITOR STATE ───────────────────────────────────────────────────────────
+
+router.get('/auditor-state', authenticateToken, async (req, res) => {
+  try {
+    const state = await mergeManager.awsManager.getAuditorState(req.user.userId);
+    res.json({ success: true, state });
+  } catch (error) {
+    console.error('❌ [CRM] get auditor state:', error);
+    res.status(500).json({ error: 'Failed to get auditor state' });
+  }
+});
+
+router.post('/auditor-state', authenticateToken, async (req, res) => {
+  try {
+    await mergeManager.awsManager.saveAuditorState(req.user.userId, req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ [CRM] save auditor state:', error);
+    res.status(500).json({ error: 'Failed to save auditor state' });
+  }
+});
+
+router.delete('/auditor-state', authenticateToken, async (req, res) => {
+  try {
+    await mergeManager.awsManager.clearAuditorState(req.user.userId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ [CRM] clear auditor state:', error);
+    res.status(500).json({ error: 'Failed to clear auditor state' });
+  }
+});
+
 export default router;
