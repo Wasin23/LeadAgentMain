@@ -2137,14 +2137,14 @@ PRODUCT BEING SOLD:
 ${primaryService ? `- Primary Service: ${primaryService}` : ''}
 ${coreOffering ? `- Core Offering: ${coreOffering}` : ''}
 
-⚠️ PRODUCT-FIT GATE (generous — SHOTGUNs exist for a reason):
-Ask: does this prospect's industry/role make them a plausible buyer for [${primaryService || 'the product being sold'}]?
-- STRONG FIT with evidence → normal scoring, can reach HIGHLY_QUALIFIED
-- PLAUSIBLE / SPECULATIVE (adjacent industry, possible but unproven use case) → SHOTGUN range (40-60), send generic outreach
-- WEAK but not impossible (lateral industry, stretch connection) → low SHOTGUN (40-50), still gets emailed
+⚠️ PRODUCT-FIT GATE:
+Ask: does this prospect's industry/role make them a direct or plausible buyer for [${primaryService || 'the product being sold'}]?
+- CONFIRMED CRITERIA MATCH (right title + right industry + meets mustHave) → at least QUALIFIED (60+), even with no research timing signal
+- STRONG FIT with specific research evidence → can reach HIGHLY_QUALIFIED (80+)
+- SPECULATIVE / ADJACENT (neighboring industry, plausible but unproven use case) → SHOTGUN range (40-59), send generic outreach
 - GENUINELY IRRELEVANT (completely wrong industry, clear zero use case, active disqualifier) → REJECT (≤35), skip email
-Title and company size CAN push a weak-fit lead up to SHOTGUN — they just can't push it to QUALIFIED without real evidence.
-When in doubt, land in SHOTGUN rather than REJECT.
+When in doubt between SHOTGUN and QUALIFIED: if they meet the mustHave criteria directly, choose QUALIFIED.
+When in doubt between SHOTGUN and REJECT: choose SHOTGUN.
 
 QUALIFICATION CRITERIA:
 Must Have (required): ${criteria.mustHave?.join(', ') || 'None'}
@@ -2154,53 +2154,51 @@ Disqualifiers (instant reject): ${criteria.disqualifiers?.join(', ') || 'None'}
 TIERED EVALUATION SYSTEM:
 
 TIER 1: HIGHLY_QUALIFIED (Score 80-100)
-- STRONG, SPECIFIC buyer motivation articulated with urgency/timeline
-- All must-have criteria verified with strong evidence
+- Confirmed criteria match PLUS strong, specific buyer motivation with urgency/timeline
+- All must-have criteria verified with research evidence
 - Multiple specific facts from research confirm fit (5+ facts)
-- Clear reason WHY they would buy NOW
+- Clear reason WHY they would buy NOW (funding, job posts, initiative, leadership change, etc.)
 - Ready for deeply personalized email with cited research
 - Example: Independent hotel owner, 50 rooms, uses legacy PMS, just posted about seeking upgrade solutions, budget allocated Q1 2026
 
 TIER 2: QUALIFIED (Score 60-79)
-- DECENT buyer motivation with some evidence-based reasoning
-- Most must-have criteria met
-- Some evidence from research (2-4 facts)
-- Plausible reason they might buy soon
-- Ready for moderate personalization
-- Example: Hotel manager, right size, unclear if independent, but growing and mentions operational challenges
+TWO paths to QUALIFIED:
+  PATH A — Research-confirmed: Decent buyer motivation with some evidence + most must-have criteria met (2-4 facts)
+  PATH B — Criteria-confirmed: Right title + right industry + right company size + no disqualifiers, even if research found no specific timing signal. The absence of a buying signal is NOT a disqualifier.
+- Ready for moderate personalization (use what research found, even if limited)
+- Example: CTO at a mid-size SaaS company in the right industry, meets all mustHave, research found general company info but no specific initiative
 
 TIER 3: SHOTGUN (Score 40-59)
-- WEAK or GENERIC buyer motivation (speculative, not evidence-based)
-- Generally in target industry/role
-- Limited/weak research evidence (0-1 facts)
-- No clear urgency or timeline
-- Send generic template, no personalization
-- Example: Hospitality worker, some relevant keywords, unclear fit, no specific motivation
+- Speculative or adjacent fit: neighboring industry, plausible but not confirmed use case
+- Title or industry partially matches but mustHave criteria are uncertain/unverifiable
+- Or: confirmed criteria match but a soft disqualifier or concern exists
+- Limited research evidence (0-1 facts)
+- Send generic template
+- Example: Hospitality worker (adjacent, not decision-maker), some relevant keywords, unclear fit
 
 TIER 4: REJECT (Score 0-39)
-- CANNOT articulate any plausible buyer motivation OR
-- Disqualifier found OR
-- Does not meet critical must-have criteria
+- Hard disqualifier found (meets disqualifiers list) OR
+- Completely wrong industry/role with zero plausible use case OR
+- Research confirms they explicitly do not need this product
 - Do NOT send email
-- Example: Chain hotel (when seeking independent), wrong industry, or no reason they'd buy
+- Example: Chain hotel employee (when targeting independent owners), government agency (when targeting SaaS companies)
 
 YOUR TASK:
 1. Check for disqualifiers FIRST (instant REJECT if found)
-2. ARTICULATE BUYER MOTIVATION - This is the PRIMARY qualification factor
-3. Analyze research evidence quality (strong vs weak)
-4. Assign tier and confidence based on buyer motivation clarity + evidence strength
-5. List specific cited facts that support the tier assignment
+2. Check mustHave criteria — if confirmed, this lead is at minimum QUALIFIED
+3. Look for specific buyer motivation signals in research (timing, pain, initiative)
+4. Assign tier: criteria-confirmed = QUALIFIED baseline, add specifics to reach HIGHLY_QUALIFIED, missing criteria = SHOTGUN
 
-🎯 BUYER MOTIVATION IS THE HIGHEST PRIORITY:
-- If you can articulate SPECIFIC, EVIDENCE-BASED buyer motivation → HIGH confidence possible
-- Strong buyer motivation = they should act NOW = HIGHLY_QUALIFIED or QUALIFIED tier
-- Weak/generic motivation = speculative = SHOTGUN tier at best
-- No buyer motivation = REJECT or SHOTGUN (never HIGHLY_QUALIFIED)
+🎯 CRITERIA MATCH IS THE BASELINE — RESEARCH UPGRADES IT:
+- Confirmed mustHave criteria met → floor is QUALIFIED (60), research can push to HIGHLY_QUALIFIED (80+)
+- Speculative/adjacent fit → SHOTGUN (40-59), research cannot push past QUALIFIED without hard evidence
+- Absence of research timing signals does NOT downgrade a criteria-confirmed lead from QUALIFIED to SHOTGUN
+- No buyer motivation = acceptable for QUALIFIED if criteria are confirmed; only blocks HIGHLY_QUALIFIED
 
 CONFIDENCE LEVEL LOGIC:
-- HIGH confidence: Strong buyer motivation + 5+ cited facts + clear urgency/timeline
-- MEDIUM confidence: Decent buyer motivation + 2-4 cited facts + general fit
-- LOW confidence: Weak/speculative motivation OR insufficient evidence
+- HIGH confidence: Strong buyer motivation + 5+ cited facts + clear urgency/timeline → HIGHLY_QUALIFIED
+- MEDIUM confidence: Criteria confirmed (title/industry/size) + 2-4 cited facts OR decent motivation even without timing signal → QUALIFIED
+- LOW confidence: Speculative/adjacent fit, limited evidence, mustHave unverifiable → SHOTGUN
 
 REASONING REQUIREMENTS:
 - Be SPECIFIC: Reference actual facts found in research (names, numbers, technologies, initiatives)
@@ -2277,8 +2275,9 @@ BAD BUYER MOTIVATIONS:
 "They use legacy systems." (Not tied to current urgency)
 
 IF YOU CANNOT ARTICULATE A SPECIFIC, EVIDENCE-BASED BUYER MOTIVATION:
-→ The lead should be REJECT or SHOTGUN (not HIGHLY_QUALIFIED/QUALIFIED)
-→ Without clear motivation, personalization is guesswork
+→ If they MEET the mustHave criteria (right title/industry/size) → still QUALIFIED, just note "no specific timing signal found"
+→ If they DO NOT meet mustHave criteria AND you can't find buyer motivation → SHOTGUN or REJECT
+→ Inability to find timing signals online is NOT the same as "no motivation exists" — QUALIFIED leads get emailed anyway
 
 Respond in JSON:
 {
