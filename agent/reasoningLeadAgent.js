@@ -540,7 +540,8 @@ IMPORTANT RULES:
       'Lead Complete',
       'Lead Qualification',
       '💭 Agent Activity',
-      '✅ Process Complete'
+      '✅ Process Complete',
+      '🔗 CRM Sync'
     ];
 
     if (broadcastableOperations.includes(operation)) {
@@ -6470,19 +6471,8 @@ Target Positions:`;
         if (user && user.crmConnected && user.crmAutoSync) {
           console.log(`[CRM SYNC] Starting sync for ${leadData.name || leadData.first_name} to ${user.crmIntegration || 'CRM'}`);
           
-          // Emit SSE progress for CRM sync
-          this.emit('progress', {
-            id: this.generateUniqueId(),
-            timestamp: new Date().toISOString(),
-            operation: '🔄 Syncing to CRM',
-            details: `Syncing ${leadData.name || leadData.first_name} to ${user.crmIntegration}...`,
-            status: 'processing',
-            data: { 
-              phase: 'crm_sync',
-              contactName: leadData.name || leadData.first_name,
-              crmIntegration: user.crmIntegration
-            }
-          });
+          // Log CRM sync start
+          this.logOperation('🔗 CRM Sync', `Syncing ${leadData.name || leadData.first_name} to ${user.crmIntegration}...`, 'processing', { phase: 'crm_sync', contactName: leadData.name || leadData.first_name, crmIntegration: user.crmIntegration });
           
           // Prepare comprehensive lead data for CRM with full research and context
           const crmLeadData = {
@@ -6515,36 +6505,13 @@ Target Positions:`;
           if (syncResult.success) {
             console.log(`[CRM SYNC] OK - ${leadData.name || leadData.first_name} synced to ${syncResult.crmIntegration} (contactId: ${syncResult.crmContactId || 'n/a'})`);
             
-            // Emit SSE success for CRM sync
-            this.emit('progress', {
-              id: this.generateUniqueId(),
-              timestamp: new Date().toISOString(),
-              operation: '✅ Synced to CRM',
-              details: `${leadData.name || leadData.first_name} synced to ${syncResult.crmIntegration}`,
-              status: 'completed',
-              data: { 
-                phase: 'crm_sync_complete',
-                crmContactId: syncResult.crmContactId,
-                crmIntegration: syncResult.crmIntegration,
-                contactName: leadData.name || leadData.first_name
-              }
-            });
+            // Log CRM sync success
+            this.logOperation('🔗 CRM Sync', `${leadData.name || leadData.first_name} synced to ${syncResult.crmIntegration} ✓`, 'completed', { phase: 'crm_sync_complete', crmContactId: syncResult.crmContactId, crmIntegration: syncResult.crmIntegration, contactName: leadData.name || leadData.first_name });
           } else {
             console.warn(`[CRM SYNC] Failed to sync: ${syncResult.error}`);
             
-            // Emit SSE warning for CRM sync failure
-            this.emit('progress', {
-              id: this.generateUniqueId(),
-              timestamp: new Date().toISOString(),
-              operation: 'CRM Sync',
-              details: `⚠️ CRM sync failed - ${syncResult.error}`,
-              status: 'warning',
-              data: { 
-                phase: 'crm_sync_failed',
-                error: syncResult.error,
-                contactName: leadData.name || leadData.first_name
-              }
-            });
+            // Log CRM sync failure
+            this.logOperation('🔗 CRM Sync', `CRM sync failed for ${leadData.name || leadData.first_name} - ${syncResult.error}`, 'failed', { phase: 'crm_sync_failed', error: syncResult.error, contactName: leadData.name || leadData.first_name });
           }
         } else {
           const skipReason = !user ? 'user not found' : 
