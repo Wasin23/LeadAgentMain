@@ -43,6 +43,7 @@ async function logBillingActivity(userId, action, details, status = 'success') {
           type: 'error',
           category: 'issue',
           severity: 'critical',
+          userId: userId,
           title: `💳 Payment ${action} Failed`,
           message: details.error || details.message || 'Unknown error',
           timestamp,

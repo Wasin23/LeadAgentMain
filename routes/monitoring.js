@@ -159,12 +159,10 @@ class MetricStore {
     return filteredIssues;
   }
   
-  // SSE: Add client
-  addClient(res) {
+  // SSE: Add client (scoped to userId so broadcasts are tenant-isolated)
+  addClient(userId, res) {
     const clientId = Date.now();
-    this.clients.push({ id: clientId, res });
-    
-    
+    this.clients.push({ id: clientId, userId, res });
     return clientId;
   }
   
@@ -217,8 +215,15 @@ class MetricStore {
     }
     
     const sseData = `data: ${JSON.stringify(message)}\n\n`;
-    
-    this.clients.forEach(client => {
+
+    // Only send to the client that owns this data (tenant isolation).
+    // If the activity carries a userId, restrict to matching clients only.
+    const targetUserId = data && data.userId ? data.userId : null;
+    const targets = targetUserId
+      ? this.clients.filter(c => c.userId === targetUserId)
+      : this.clients;
+
+    targets.forEach(client => {
       try {
         client.res.write(sseData);
       } catch (error) {
@@ -530,8 +535,8 @@ router.get('/stream', authenticateToken, async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
   
-  // Add client
-  const clientId = metricStore.addClient(res);
+  // Add client (scoped to the authenticated user)
+  const clientId = metricStore.addClient(req.user.userId, res);
   
   // Send initial connection message
   res.write(`data: ${JSON.stringify({ type: 'connected', clientId, timestamp: new Date().toISOString() })}\n\n`);

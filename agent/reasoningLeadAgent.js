@@ -609,6 +609,7 @@ IMPORTANT RULES:
       
       broadcastActivity({
         type: 'agent_activity',
+        userId: this.userId,
         agentId: activityData.agentId,
         operation: activityData.operation,
         details: activityData.details, // Full details for activity logs
@@ -659,6 +660,7 @@ IMPORTANT RULES:
         const { broadcastActivity } = await import('../routes/monitoring.js');
         broadcastActivity({
           type: 'cycle_complete',
+          userId: this.userId,
           agentId: this.agentId,
           cycleNumber: this.cycleCount,
           leadsFound: cycleData.leadsSearched || 0,
@@ -7195,6 +7197,7 @@ Target Positions:`;
       const { broadcastActivity } = await import('../routes/monitoring.js');
       broadcastActivity({
         type: 'cycle_start',
+        userId: this.userId,
         agentId: this.agentId,
         cycleNumber: this.cycleCount,
         targeting: this.settings?.companyCriteria?.companyIndustries?.[0] || 'Mixed',
@@ -7425,6 +7428,7 @@ Target Positions:`;
         broadcastActivity({
           type: 'info',
           category: 'cycle',
+          userId: this.userId,
           title: `Cycle ${this.cycleCount} - ${this.agentId}`,
           message: `Agent ${this.agentId} completed cycle #${this.cycleCount}: ${this.memory.currentCycle?.leadsProcessed || 0} leads processed`,
           timestamp: new Date().toISOString(),
@@ -7512,6 +7516,7 @@ export function getUserAgent(userId, agentId = 'reasoning-lead-agent') {
         const { broadcastActivity } = await import('../routes/monitoring.js');
         broadcastActivity({
           type: 'email_queued',
+          userId: userId,
           ...eventData
         });
       } catch (error) {

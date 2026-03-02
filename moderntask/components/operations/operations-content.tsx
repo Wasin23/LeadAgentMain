@@ -30,6 +30,7 @@ interface Agent {
   sent?: number
   replied?: number
   queued?: number
+  nextCycleTime?: string | null
   targeting?: { location?: string; industry?: string; keywords?: string[] }
   emailStats?: { built: number; queued: number; sent: number }
   settings?: {
@@ -74,6 +75,24 @@ interface TodayStats {
 // ── helpers ───────────────────────────────────────────────────────────────
 const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu
 function stripEmoji(s: string) { return s.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim() }
+
+// ── countdown timer ─────────────────────────────────────────────────────
+function Countdown({ target }: { target: string }) {
+  const [label, setLabel] = useState('')
+  useEffect(() => {
+    function tick() {
+      const diff = Math.max(0, Math.floor((new Date(target).getTime() - Date.now()) / 1000))
+      if (diff === 0) { setLabel('starting…'); return }
+      const m = Math.floor(diff / 60)
+      const s = diff % 60
+      setLabel(m > 0 ? `Next: ${m}m ${s}s` : `Next: ${s}s`)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [target])
+  return <span className="text-[10px] text-muted-foreground/60 block truncate">{label}</span>
+}
 
 function logIcon(msg: string): LucideIcon {
   const m = msg.toLowerCase()
@@ -396,7 +415,7 @@ export function OperationsContent() {
                       )} />
                     </button>
 
-                    {/* Name */}
+                    {/* Name + countdown */}
                     <button
                       onClick={() => setSelectedAgent(agent.agentId)}
                       className="flex-1 min-w-0 text-left"
@@ -407,6 +426,9 @@ export function OperationsContent() {
                       )}>
                         {agent.name}
                       </span>
+                      {isRunning && agent.nextCycleTime && (
+                        <Countdown target={agent.nextCycleTime} />
+                      )}
                     </button>
 
                     {/* Start / Stop */}

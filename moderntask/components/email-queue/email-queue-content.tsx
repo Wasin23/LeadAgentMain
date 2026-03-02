@@ -743,7 +743,24 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
     } catch {} finally { setLoading(false) }
   }, [agentId, onCountChange])
 
-  useEffect(() => { load(0) }, [load])
+  // Silent background refresh — doesn't clear selection or show spinner
+  const silentRefresh = useCallback(async () => {
+    try {
+      const params: Record<string, string | number> = { limit: LIMIT, offset: 0, agentId: agentId === 'all' ? 'all' : agentId }
+      const res = await api.get('/api/email-queue/queue', { params })
+      const list: QueueEmail[] = res.data.emails ?? res.data ?? []
+      const tot = res.data.total ?? list.length
+      setEmails(list)
+      setTotal(tot)
+      onCountChange(tot)
+    } catch {}
+  }, [agentId, onCountChange])
+
+  useEffect(() => {
+    load(0)
+    const interval = setInterval(silentRefresh, 15000)
+    return () => clearInterval(interval)
+  }, [load, silentRefresh])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return emails
