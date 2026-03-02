@@ -629,6 +629,19 @@ IMPORTANT RULES:
     }
   }
 
+  // Fire-and-forget CRM SSE event (userId-scoped so only that user's browser tab sees it)
+  _emitCRMEvent(type, data = {}) {
+    import('../routes/monitoring.js')
+      .then(({ broadcastActivity }) => broadcastActivity({
+        type,
+        userId: this.userId,
+        agentId: this.agentId,
+        timestamp: new Date().toISOString(),
+        ...data
+      }))
+      .catch(() => {});
+  }
+
   getOperationLogs() {
     return this.operationLogs;
   }
@@ -1455,6 +1468,12 @@ Call the appropriate function to continue the workflow.`;
           
           // Email built, lead complete - move to next lead
           this.memory.currentCycle.leadsProcessed++;
+          // Notify CRM page this contact is done
+          if (this.memory.currentCycle.currentLead?._fromCRM) {
+            this._emitCRMEvent('crm_contact_complete', {
+              contactId: this.memory.currentCycle.currentLead.crmId || this.memory.currentCycle.currentLead.email
+            });
+          }
           this.memory.currentCycle.currentLead = null;
           
           // Get next lead from queue or search for more
@@ -2472,6 +2491,13 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
   // Research company/lead using Serper - Multi-search with personality
   async serperResearch(parameters) {
     const leadData = this.memory.currentCycle.currentLead;
+    
+    // Notify CRM page which contact is now being worked on
+    if (leadData?._fromCRM) {
+      this._emitCRMEvent('crm_contact_scanning', {
+        contactId: leadData.crmId || leadData.email
+      });
+    }
     
     // Use provided parameters first, fallback to memory
     const companyName = parameters?.companyName || leadData?.organization?.name || leadData?.company || 'Unknown Company';
@@ -7364,6 +7390,10 @@ Target Positions:`;
       this.crmContactList = null; // Consumed — clear so next cycle uses Apollo normally
       console.log(`[CRM MODE] Pre-loaded ${crmLeads.length} contacts from CRM, skipping Apollo search`);
       this.logOperation('📋 CRM Mode', `Processing ${crmLeads.length} contacts imported from CRM`, 'running');
+      // Broadcast CRM session start so the frontend knows the full contact list
+      this._emitCRMEvent('crm_session_start', {
+        contacts: crmLeads.map(l => ({ id: l.crmId || l.email, name: l.name, company: l.company }))
+      });
     }
 
     // Clear last cycle's data

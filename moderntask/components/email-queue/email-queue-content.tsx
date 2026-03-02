@@ -140,7 +140,7 @@ const DEFAULT_SCHEDULE: SendingSchedule = {
   activeDays: [1, 2, 3, 4, 5],
   sendTime: '09:00',
   dailyLimit: 50,
-  timezone: 'America/Los_Angeles',
+  timezone: 'America/New_York',
 }
 
 function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: SendingSchedule) => void }) {

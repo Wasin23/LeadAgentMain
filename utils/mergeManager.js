@@ -551,7 +551,6 @@ class MergeManager {
           jobtitle: leadData.title || '',
           website: leadData.companyDetails?.website || '',
           industry: leadData.companyDetails?.industry || '',
-          description: leadData.researchSummary || leadData.aiReport?.substring(0, 1000) || ''
         }
       };
 

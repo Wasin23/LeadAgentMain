@@ -25,27 +25,57 @@ let _running = false;
 
 // Track which agent+day combos already fired today (in-memory guard to avoid
 // sending the batch again if the cron fires a second time in the same minute).
-// Cleared at midnight via day-change detection.
+// Key includes the TZ-aware date so it auto-expires when the calendar date
+// changes in the agent's own timezone.
 const _firedToday = new Set();
-let _lastDay = new Date().getDate();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function todayDateString() {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+/**
+ * Return "YYYY-MM-DD" in the given IANA timezone (or UTC if tz is invalid).
+ */
+function todayInTZ(timezone) {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date()); // "YYYY-MM-DD"
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
 }
 
 /**
- * Count SENT emails for this agent today.
- * SK format: SENT#<ISO-timestamp>#<emailId>
- * We query begins_with(SK, "SENT#YYYY-MM-DD") to get today's sent count.
+ * Decompose `date` into { h, m, weekday (0-6) } using the given IANA timezone.
  */
-async function countSentToday(awsQueue, userId, agentId) {
+function localTimeParts(date, timezone) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      weekday: 'short',
+      hour12: false,
+    }).formatToParts(date);
+    const get = (type) => parts.find(p => p.type === type)?.value ?? '';
+    const h = parseInt(get('hour'),   10); // 0-23 (note: Intl may give "24" for midnight in some envs)
+    const m = parseInt(get('minute'), 10);
+    const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const weekday = weekdayMap[get('weekday')] ?? date.getDay();
+    return { h: h === 24 ? 0 : h, m, weekday };
+  } catch {
+    return { h: date.getHours(), m: date.getMinutes(), weekday: date.getDay() };
+  }
+}
+
+/**
+ * Count SENT emails for this agent on the agent's local calendar date.
+ * SK format: SENT#<ISO-timestamp>#<emailId>
+ * We query begins_with(SK, "SENT#YYYY-MM-DD") using the TZ-aware date.
+ */
+async function countSentToday(awsQueue, userId, agentId, timezone) {
   try {
     const pk = awsQueue._getPK(userId, agentId);
-    const skPrefix = `SENT#${todayDateString()}`;
+    const skPrefix = `SENT#${todayInTZ(timezone)}`;
     const response = await awsQueue.dynamodb.send(new QueryCommand({
       TableName: awsQueue.tableName,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
@@ -61,15 +91,17 @@ async function countSentToday(awsQueue, userId, agentId) {
 
 /**
  * Returns true if `now` is within TIME_WINDOW_MINUTES of the agent's sendTime
- * on an active day of the week.
+ * on an active day of the week — all comparisons done in the agent's timezone.
  */
 function isDue(schedule, now) {
-  const dayOfWeek = now.getDay(); // 0=Sun … 6=Sat
-  if (!schedule.activeDays.includes(dayOfWeek)) return false;
+  const tz = schedule.timezone || 'UTC';
+  const { h, m, weekday } = localTimeParts(now, tz);
+
+  if (!schedule.activeDays.includes(weekday)) return false;
 
   const [schedH, schedM] = schedule.sendTime.split(':').map(Number);
+  const nowTotalMinutes  = h * 60 + m;
   const schedTotalMinutes = schedH * 60 + schedM;
-  const nowTotalMinutes = now.getHours() * 60 + now.getMinutes();
 
   return Math.abs(nowTotalMinutes - schedTotalMinutes) < TIME_WINDOW_MINUTES;
 }
@@ -156,12 +188,6 @@ async function tick() {
   try {
     const now = new Date();
 
-    // Reset fired-today set at midnight
-    if (now.getDate() !== _lastDay) {
-      _firedToday.clear();
-      _lastDay = now.getDate();
-    }
-
     const awsManager = new AWSManager();
     const awsQueue   = new AWSEmailQueue();
 
@@ -187,14 +213,16 @@ async function tick() {
         const schedule = settings?.sendingSchedule;
         if (!schedule || !schedule.activeDays?.length || !schedule.sendTime || !schedule.dailyLimit) continue;
 
+        const tz = schedule.timezone || 'UTC';
+
         if (!isDue(schedule, now)) continue;
 
-        // Guard: only fire once per agent per day
-        const firedKey = `${userId}#${agentId}#${todayDateString()}`;
+        // Guard: only fire once per agent per local calendar day
+        const firedKey = `${userId}#${agentId}#${todayInTZ(tz)}`;
         if (_firedToday.has(firedKey)) continue;
 
-        // Count how many already sent today
-        const sentToday = await countSentToday(awsQueue, userId, agentId);
+        // Count how many already sent today (in the agent's timezone)
+        const sentToday = await countSentToday(awsQueue, userId, agentId, tz);
         const remaining = Math.max(0, schedule.dailyLimit - sentToday);
 
         if (remaining === 0) {
@@ -219,7 +247,7 @@ async function tick() {
           continue;
         }
 
-        console.log(`[SCHEDULE PROCESSOR] 📅 Agent ${agentId}: sending ${toSend.length}/${remaining} remaining (limit ${schedule.dailyLimit}, sent today ${sentToday})`);
+        console.log(`[SCHEDULE PROCESSOR] 📅 Agent ${agentId} (${tz}): sending ${toSend.length}/${remaining} remaining (limit ${schedule.dailyLimit}, sent today ${sentToday})`);
         _firedToday.add(firedKey);
 
         for (const email of toSend) {
