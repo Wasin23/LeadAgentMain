@@ -2526,6 +2526,19 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
           description: 'Recent news, growth, and developments'
         });
         
+        // Search 3: LinkedIn posts by the prospect
+        const nameParts = personName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts[nameParts.length - 1] || '';
+        if (firstName && lastName && personName !== 'Unknown') {
+          searchQueries.push({
+            query: `"${firstName} ${lastName}" site:linkedin.com`,
+            purpose: 'linkedin_activity',
+            description: 'LinkedIn posts and activity by the prospect',
+            skipWebpageFetch: true // LinkedIn blocks scrapers — extract from snippets only
+          });
+        }
+        
         // Execute searches and fetch webpages (Phase 1-2 only - qualification research)
         
         // Import webpage fetcher
@@ -2565,6 +2578,86 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
               });
             } catch (logError) {
               console.error(`   ⚠️ Failed to log API usage: ${logError.message}`);
+            }
+            
+            // LINKEDIN: Skip webpage fetch — extract insights from Serper snippets directly
+            if (search.skipWebpageFetch) {
+              const organicResults = results?.organic || results?.data?.organic || [];
+              const snippets = organicResults
+                .slice(0, 5)
+                .map(r => `[${r.title}] ${r.snippet}`)
+                .filter(s => s.length > 20)
+                .join('\n');
+              
+              const webpageInsights = [];
+              if (snippets.length > 0) {
+                try {
+                  const linkedinPrompt = `You are analyzing LinkedIn search results snippets for ${personName}, ${leadData?.title || 'executive'} at ${companyName}.
+
+From these LinkedIn snippets, extract topics, opinions, or experiences this person has PUBLICLY shared.
+Only include things clearly attributable to ${personName} themselves (their posts, articles, comments).
+Focus on professional topics that could be referenced naturally in a cold email opener.
+
+Snippets:
+${snippets}
+
+Return 1-3 bullet points max (50 words each). Format:
+- [what they posted/discussed, with context]
+
+If nothing clearly attributable to ${personName} is found, return: "NO RELEVANT DATA"`;
+                  
+                  const linkedinResponse = await this.openai.chat.completions.create({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: linkedinPrompt }],
+                    temperature: 0.1,
+                    max_tokens: 200
+                  });
+                  
+                  const extractedInsights = linkedinResponse.choices[0].message.content;
+                  
+                  if (!extractedInsights.includes('NO RELEVANT DATA')) {
+                    const insightLines = extractedInsights.split('\n').filter(line => line.trim().startsWith('-'));
+                    if (insightLines.length > 0) {
+                      const citedInsights = insightLines.map(insight => ({
+                        text: `[LinkedIn] ${insight.replace(/^-\s*/, '').trim()}`,
+                        source: `https://linkedin.com/in/${firstName.toLowerCase()}-${lastName.toLowerCase()}`,
+                        sourceTitle: `${personName} on LinkedIn`,
+                        confidence: 0.75
+                      }));
+                      webpageInsights.push({
+                        source: 'linkedin.com',
+                        title: `${personName} LinkedIn Activity`,
+                        insights: extractedInsights,
+                        citedFacts: citedInsights
+                      });
+                    }
+                  }
+                  
+                  if (linkedinResponse.usage) {
+                    await this.awsManager.logApiUsage({
+                      userId: this.userId,
+                      agentId: this.agentId,
+                      service: 'openai',
+                      operation: 'insight_extraction',
+                      usage: linkedinResponse.usage.total_tokens,
+                      metadata: { model: 'gpt-4o-mini', companyName, source: 'linkedin.com' }
+                    }).catch(err => console.error('Failed to log OpenAI usage:', err));
+                  }
+                } catch (aiError) {
+                  console.error(`   ⚠️ Failed to extract LinkedIn insights:`, aiError.message);
+                }
+              }
+              
+              allResearchData.searches.push({
+                purpose: search.purpose,
+                query: search.query,
+                description: search.description,
+                results: results,
+                webpageInsights
+              });
+              
+              await new Promise(resolve => setTimeout(resolve, 500));
+              continue; // Skip standard webpage fetch path
             }
             
             // Extract top 3 URLs from organic results
@@ -3815,6 +3908,15 @@ Format as:
         citedFactsContext = `\nVERIFIED RESEARCH FACTS (use these naturally in the email - do NOT include source citations):\n${
           topFacts.map((fact, i) => `${i + 1}. "${fact.text}"`).join('\n')
         }`;
+      }
+      
+      // Surface LinkedIn-sourced facts as high-priority personal opener hooks
+      const allFactsForLinkedin = aiReport?.allCitedFacts || [];
+      const linkedInFacts = allFactsForLinkedin.filter(f => f.text?.startsWith('[LinkedIn]'));
+      if (linkedInFacts.length > 0) {
+        citedFactsContext += `\n\n🔗 LINKEDIN ACTIVITY (${personName} publicly posted/discussed this — HIGH VALUE for opener):\n${
+          linkedInFacts.map((f, i) => `${i + 1}. ${f.text.replace('[LinkedIn] ', '')}`).join('\n')
+        }\n→ If a LinkedIn topic is relevant to your pitch, open with it: "I noticed you recently posted about X..." — this is the strongest personalisation signal available.`;
       }
       
       // Build tier-specific email instructions
