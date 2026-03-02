@@ -52,11 +52,13 @@ export function CRMContent() {
   const [savedContacts, setSavedContacts]   = useState<CRMContact[]>([])
   const [loadingSaved, setLoadingSaved]     = useState(true)
 
-  const esRef       = useRef<EventSource | null>(null)
-  const contactsRef = useRef<CRMContact[]>([])
-  const totalRef    = useRef(0)
-  useEffect(() => { contactsRef.current = contacts  }, [contacts])
-  useEffect(() => { totalRef.current    = totalQueued }, [totalQueued])
+  const esRef            = useRef<EventSource | null>(null)
+  const contactsRef      = useRef<CRMContact[]>([])
+  const totalRef         = useRef(0)
+  const selectedAgentRef = useRef<string>("")
+  useEffect(() => { contactsRef.current      = contacts      }, [contacts])
+  useEffect(() => { totalRef.current         = totalQueued   }, [totalQueued])
+  useEffect(() => { selectedAgentRef.current = selectedAgent }, [selectedAgent])
 
   useEffect(() => {
     api.get("/api/auth/agents")
@@ -135,7 +137,14 @@ export function CRMContent() {
                 const name     = found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : "contact"
                 setStatusLine(`Email built for ${name} ✓  (${newCount}/${total})`)
                 api.post("/api/crm/auditor-state", { completedCount: newCount, pendingContacts: next }).catch(() => {})
-                if (next.length === 0) api.delete("/api/crm/auditor-state").catch(() => {})
+                if (next.length === 0) {
+                  api.delete("/api/crm/auditor-state").catch(() => {})
+                  // Auto-stop the agent — job is done
+                  api.post("/api/lead-agent/stop", { agentId: selectedAgentRef.current }).catch(() => {})
+                  esRef.current?.close()
+                  esRef.current = null
+                  setScanningId(null)
+                }
                 return newCount
               })
               return next
@@ -251,6 +260,19 @@ export function CRMContent() {
     }
   }
 
+  const resetAuditor = () => {
+    setLaunched(false)
+    setContacts([])
+    setSelected(new Set())
+    setCompletedCount(0)
+    setTotalQueued(0)
+    setStatusLine("")
+    setScanningId(null)
+    setExitingIds(new Set())
+    esRef.current?.close()
+    esRef.current = null
+  }
+
   const clearSavedContacts = async () => {
     try {
       await api.delete("/api/crm/saved-contacts")
@@ -362,6 +384,9 @@ export function CRMContent() {
                 <>
                   <p className="font-medium text-sm text-emerald-600 dark:text-emerald-400">All done!</p>
                   <p className="text-xs text-muted-foreground mt-1">{completedCount} email{completedCount !== 1 ? "s" : ""} built and queued. Check the <span className="font-medium">Email Queue</span>.</p>
+                  <Button size="sm" variant="outline" className="mt-3 gap-1.5 h-7 text-xs" onClick={resetAuditor}>
+                    <RefreshCw className="w-3 h-3" />Start New Batch
+                  </Button>
                 </>
               ) : (
                 <>
@@ -444,6 +469,9 @@ export function CRMContent() {
             <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All done — {completedCount} email{completedCount !== 1 ? "s" : ""} queued</p>
             <p className="text-xs text-emerald-600 dark:text-emerald-500">Head to <strong>Email Queue</strong> to review and approve before sending.</p>
           </div>
+          <Button size="sm" variant="outline" className="ml-auto shrink-0 gap-1.5 h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/30" onClick={resetAuditor}>
+            <RefreshCw className="w-3 h-3" />Start New Batch
+          </Button>
         </div>
       )}
       </div>
