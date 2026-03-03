@@ -359,7 +359,7 @@ IMPORTANT RULES:
 - Return ONLY valid JSON, no other text.`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3
       });
@@ -380,7 +380,7 @@ IMPORTANT RULES:
           operation: 'campaign_plan_conversion',
           usage: response.usage.total_tokens,
           metadata: {
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens
           }
@@ -811,7 +811,7 @@ Call the appropriate function to continue the workflow.`;
       
       // Single OpenAI call with reasoning and function calling
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [{ 
           role: 'user', 
           content: prompt + '\n\nYou MUST call a function. Briefly explain your reasoning, then immediately call the appropriate function to execute the action.'
@@ -4299,10 +4299,17 @@ EMAIL STRUCTURE: FLAW → FIX
 
 Write exactly 2 paragraphs (2-3 sentences each) + 1 line CTA. Keep it tight — under 120 words total.
 
-SUBJECT LINE + PARAGRAPH 1 ARE LOCKED:
-The subject is provocative — a statement, claim, or question that names a flaw, risk, or mistake.
-Paragraph 1 MUST immediately deliver the argument behind the subject. If subject says "X is broken" then para 1 opens with WHY it's broken — specific to them, from research.
+SUBJECT LINE — STRICT RULES:
+${salesAngle ? `The PRE-WRITE STRATEGY above specifies subject type: "${salesAngle.subjectType}".
+- If type is "statement": write a declarative claim you can defend with the research. NO question mark.
+- If type is "question": ask something specific they will genuinely want to answer. NOT a generic FOMO hook like "Are you missing out on X?"
+- If type is "intrigue": no verb, just a sharp frame. Creates curiosity alone.
+Suggested subject from strategy: "${salesAngle.suggestedSubject}"
+Use this or write a strictly better one following the EXACT same type. Do NOT switch types. Do NOT write a question if type=statement or intrigue.` : 'Write a subject that names a specific tension, flaw, or claim from the research. Avoid generic FOMO questions.'}
+
+PARAGRAPH 1 MUST open from the SHARPEST INTERSECTION in the PRE-WRITE STRATEGY — do not open with a generic market trend or a compliment. The first sentence names the specific tension in their world.
 ❌ Never open with a compliment, award, or positive framing. Lead with the problem.
+❌ Never hedge: no "there may be", "could potentially", "might want to consider".
 
 PARAGRAPH 1 — THE FLAW (critique a specific mistake or risk they have):
 Name the specific thing they're doing wrong, ignoring, or underestimating — based on real research signals.
@@ -4348,8 +4355,8 @@ CRITICAL OUTPUT FORMAT:
 
 NOW WRITE YOUR EMAIL following the ISSUE → NEED → SOLVE structure above.`;
 
-      // ALWAYS combine personality prompt with common ruleset containing lead details + buyer motivation
-      const emailPrompt = `${customPrompt}\n${commonRuleset}${buyerMotivationContext}`;
+      // Sales angle goes FIRST so it dominates the model's framing — not buried after formatting rules
+      const emailPrompt = `${customPrompt}\n${buyerMotivationContext}\n${commonRuleset}`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o',
