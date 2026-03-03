@@ -27,6 +27,7 @@ interface Agent {
   agentId: string
   name: string
   status?: string
+  personality?: { avatar?: string; type?: string }
 }
 
 export function CRMContent() {
@@ -374,79 +375,105 @@ export function CRMContent() {
       {/* ── AUDITOR / IMPORT SECTION ─────────────────── */}
       <div className="space-y-3">
 
-        {/* Agent roster + drop zone — always visible */}
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Assign Auditor Agent</p>
+        {/* Agent assignment — cards left, drop slot right */}
+        <div className="flex gap-4 items-start">
 
-          {/* Agent avatar cards */}
-          <div className="flex flex-wrap gap-2">
-            {agents.map(a => {
-              const isAssigned = selectedAgent === a.agentId
-              const initials   = a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
-              const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
-              const color      = agentColors[agents.indexOf(a) % agentColors.length]
-              return (
-                <div
-                  key={a.agentId}
-                  draggable
-                  onDragStart={e => { e.dataTransfer.setData("agentId", a.agentId); e.dataTransfer.effectAllowed = "move" }}
-                  onClick={() => setSelectedAgent(isAssigned ? "" : a.agentId)}
-                  title={`Drag or click to assign ${a.name}`}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border cursor-grab active:cursor-grabbing select-none transition-all ${
-                    isAssigned
-                      ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/30"
-                      : "border-border bg-card hover:border-primary/40 hover:bg-primary/5"
-                  }`}
-                >
-                  <div className={`relative w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${color} ${isAssigned ? "ring-2 ring-primary ring-offset-1" : ""}`}>
-                    {initials}
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${a.status === "running" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+          {/* Left: agent roster */}
+          <div className="space-y-1.5 flex-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Agents</p>
+            <div className="flex flex-wrap gap-2">
+              {agents.map((a, i) => {
+                const isAssigned = selectedAgent === a.agentId
+                const agentAvatar = a.personality?.avatar
+                const hasImg = !!(agentAvatar && (agentAvatar.startsWith('/') || agentAvatar.startsWith('http')))
+                const agentInitials = a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
+                const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
+                const color = agentColors[i % agentColors.length]
+                return (
+                  <div
+                    key={a.agentId}
+                    draggable
+                    onDragStart={e => { e.dataTransfer.setData("agentId", a.agentId); e.dataTransfer.effectAllowed = "move" }}
+                    onClick={() => setSelectedAgent(isAssigned ? "" : a.agentId)}
+                    title={`Assign ${a.name}`}
+                    className={`flex flex-col items-center gap-1.5 p-2.5 w-[76px] rounded-xl border cursor-grab active:cursor-grabbing select-none transition-all ${
+                      isAssigned
+                        ? "border-primary bg-primary/10 shadow ring-1 ring-primary/20"
+                        : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
+                    }`}
+                  >
+                    <div className={`relative w-11 h-11 rounded-full overflow-hidden shrink-0 ${
+                      isAssigned ? "ring-2 ring-primary ring-offset-1" : ""
+                    }`}>
+                      {hasImg
+                        ? <img src={agentAvatar!} alt={a.name} className="w-full h-full object-cover" />
+                        : <div className={`w-full h-full flex items-center justify-center text-white text-sm font-bold ${color}`}>{agentInitials}</div>
+                      }
+                      <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background ${
+                        a.status === "running" ? "bg-emerald-500" : "bg-muted-foreground/40"
+                      }`} />
+                    </div>
+                    <span className={`text-[10px] font-medium w-full truncate text-center leading-tight ${
+                      isAssigned ? "text-primary" : "text-foreground/80"
+                    }`}>{a.name}</span>
                   </div>
-                  <span className={`text-[10px] font-medium max-w-[64px] truncate text-center leading-tight ${isAssigned ? "text-primary" : "text-foreground"}`}>{a.name}</span>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
 
-          {/* Drop zone */}
-          <div
-            onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={e => {
-              e.preventDefault()
-              const id = e.dataTransfer.getData("agentId")
-              if (id) setSelectedAgent(id)
-              setDragOver(false)
-            }}
-            className={`flex items-center justify-center rounded-lg border-2 border-dashed h-11 transition-all ${
-              dragOver
-                ? "border-primary bg-primary/10 scale-[1.01]"
-                : selectedAgent
-                  ? "border-emerald-400/60 bg-emerald-50/40 dark:bg-emerald-950/20"
-                  : "border-border bg-muted/20 hover:border-primary/30"
-            }`}
-          >
-            {selectedAgent ? (() => {
-              const a = agents.find(a => a.agentId === selectedAgent)
-              const initials = a ? a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "?"
-              const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
-              const color = a ? agentColors[agents.indexOf(a) % agentColors.length] : "bg-muted"
-              return (
-                <div className="flex items-center gap-2">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${color}`}>{initials}</div>
-                  <span className="text-sm font-medium">{a?.name ?? "Agent"}</span>
-                  <span className="text-xs text-muted-foreground">ready</span>
-                  <button onClick={() => setSelectedAgent("")} className="ml-1 text-muted-foreground hover:text-destructive transition-colors">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )
-            })() : (
-              <p className="text-xs text-muted-foreground select-none">
-                {dragOver ? "⬇ Drop to assign" : "← drag an agent here"}
-              </p>
-            )}
+          {/* Right: assigned slot */}
+          <div className="space-y-1.5 w-44 shrink-0">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Assigned</p>
+            <div
+              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => {
+                e.preventDefault()
+                const id = e.dataTransfer.getData("agentId")
+                if (id) setSelectedAgent(id)
+                setDragOver(false)
+              }}
+              className={`flex items-center justify-center rounded-xl border-2 border-dashed h-[76px] transition-all ${
+                dragOver
+                  ? "border-primary bg-primary/10 scale-[1.01]"
+                  : selectedAgent
+                    ? "border-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/20"
+                    : "border-border bg-muted/20 hover:border-primary/30"
+              }`}
+            >
+              {selectedAgent ? (() => {
+                const a = agents.find(ag => ag.agentId === selectedAgent)
+                const agentAvatar = a?.personality?.avatar
+                const hasImg = !!(agentAvatar && (agentAvatar.startsWith('/') || agentAvatar.startsWith('http')))
+                const agentInitials = a ? a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "?"
+                const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
+                const color = a ? agentColors[agents.indexOf(a) % agentColors.length] : "bg-muted"
+                return (
+                  <div className="flex items-center gap-2.5 px-3 w-full">
+                    <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
+                      {hasImg
+                        ? <img src={agentAvatar!} alt={a?.name} className="w-full h-full object-cover" />
+                        : <div className={`w-full h-full flex items-center justify-center text-white text-xs font-bold ${color}`}>{agentInitials}</div>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{a?.name ?? "Agent"}</p>
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">ready</p>
+                    </div>
+                    <button onClick={() => setSelectedAgent("")} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )
+              })() : (
+                <p className="text-xs text-muted-foreground select-none text-center leading-relaxed">
+                  {dragOver ? "Drop here" : "Drag or click\nan agent"}
+                </p>
+              )}
+            </div>
           </div>
+
         </div>
 
         {/* Toolbar: Load / Search / Run */}
