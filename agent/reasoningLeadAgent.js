@@ -4356,7 +4356,9 @@ OUTPUT FORMAT (strictly follow this):
         : '';
       const signatureCompany = `${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}`;
 
-      const claudeUserPrompt = `${customPrompt}
+      const claudeUserPrompt = `IMPORTANT: The current year is ${new Date().getFullYear()}. Do not reference any year earlier than ${new Date().getFullYear()} when mentioning plans, expansions, or timelines.
+
+${customPrompt}
 ${buyerMotivationContext}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
