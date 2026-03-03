@@ -13,6 +13,7 @@
 
 import 'dotenv/config';
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { EventEmitter } from 'events';
 import { getUserSettings } from '../lib/userManager.js';
 import AWSManager from '../utils/awsManager.js';
@@ -52,6 +53,9 @@ class ReasoningLeadAgent extends EventEmitter {
     this.agentId = agentId; // Use provided agentId for agent-specific behavior
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
+    });
+    this.anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY
     });
     
     // Initialize user-specific file paths and agent-specific email queue
@@ -4319,25 +4323,43 @@ ${salesAngle ? `The PRE-WRITE STRATEGY above specifies subject type: "${salesAng
 Suggested subject from strategy: "${salesAngle.suggestedSubject}"
 Use this or write a strictly better one following the EXACT same type. Do NOT switch types. Do NOT write a question if type=statement or intrigue.` : 'Write a subject that names a specific tension, flaw, or claim from the research. Avoid generic FOMO questions.'}
 
-PARAGRAPH 1 MUST open from the SHARPEST INTERSECTION in the PRE-WRITE STRATEGY — do not open with a generic market trend or a compliment. The first sentence names the specific tension in their world.
-❌ Never open with a compliment, award, or positive framing. Lead with the problem.
-❌ Never hedge: no "there may be", "could potentially", "might want to consider".
+PARAGRAPH 1 — THE FLAW:
+Your first sentence MUST name a specific, verifiable tension about THIS company or THIS person — pulled directly from the SHARPEST INTERSECTION in the PRE-WRITE STRATEGY.
 
-PARAGRAPH 1 — THE FLAW (critique a specific mistake or risk they have):
-Name the specific thing they're doing wrong, ignoring, or underestimating — based on real research signals.
-❌ No "you're doing great but..." setup. Open cold on the problem.
-❌ If you open with a company-specific event, product launch, or news item (e.g. a conference, a funding round, a product release), do NOT add a market size stat in the same paragraph. The specific signal is stronger alone — the stat dilutes it and makes it sound template-generated.
+DISQUALIFYING OPENERS — if your first sentence matches any of these patterns, rewrite it:
+❌ "As the [industry] market sees..." — generic trend, not about them
+❌ "In today's competitive landscape..." — meaningless filler
+❌ "Your current approach, while effective..." — compliment+hedge, the worst possible combo
+❌ "Despite [Company's] impressive X, there's a risk of..." — "Despite" doesn't save a compliment opener. Still banned.
+❌ "With [industry] evolving rapidly..." — trend opener, banned
+❌ "[Company] is well-positioned, but..." — compliment setup, banned
+❌ "you risk being perceived as outdated" — FUD framing, banned
+❌ "Without adopting X, you risk..." — conditional fear framing, banned
+❌ "[Company] faces the risk of falling behind" — FOMO framing, banned
+❌ Any sentence with "might", "could", "may", "perhaps", "potentially" — hedging is weakness
+
+SPECIFICITY TEST — before writing, ask yourself: would this exact first sentence work for ANY company in this industry?
+If yes → it's too generic. Rewrite it with something true only about THIS company.
+The first sentence must make a CLAIM about their specific situation that will make them think "how do they know that?"
+
+❌ Never hedge anywhere in the email: no "might soon", "could potentially", "may want to consider", "there may be".
+❌ If you open with a company-specific event, product launch, or news item, do NOT add a market size stat in the same paragraph. The specific signal is stronger alone.
 ${ragFactsBlock}
 
-PARAGRAPH 2 — THE FIX (your product solves exactly that flaw):
-Connect your solution directly to the specific flaw named in para 1 — explain the MECHANISM, not a feature category.
-Pull the actual feature names and capabilities from YOUR COMPANY INTEL above and describe what they DO, not what category they belong to. Do not paraphrase "Trusted Execution Environments" into "enterprise security." Do not paraphrase "on-demand GPU clusters" into "scalable infrastructure." Use the specific language from the intel and explain the operational outcome for the prospect.
+PARAGRAPH 2 — THE FIX (one mechanism, not a feature list):
+Name ONE specific mechanism from YOUR COMPANY INTEL that directly resolves the flaw from para 1.
+❌ FEATURE DUMP = INSTANT FAILURE. If your para 2 lists more than one feature or benefit, it reads like a brochure and will be ignored. Examples of feature dumps (never write these):
+  • "seamless platform for investing in tokenized real estate, ensuring you stay ahead. By investing in vetted properties with rigorous background checks, you can enjoy flexible management and low entry investments"
+  • "a seamless platform, allowing you to invest in rigorously vetted properties with the flexibility of low entry investments and easy exit strategies"
+Pick the SINGLE most relevant capability and explain what it DOES for them operationally — what they stop losing, stop paying, or start controlling.
+Pull actual feature names from YOUR COMPANY INTEL and describe the outcome. Do not paraphrase specific technical terms into generic categories.
 If the intel is thin, describe what the prospect stops doing or stops paying for — still specific, still tied to para 1's flaw.
 ❌ NEVER invent performance claims. No "our clients see X%" unless it appears word-for-word in YOUR COMPANY INTEL.
-❌ ZERO CASE STUDIES. Do NOT write "Our recent case study showed..." or "In a recent case study..." or any variation. We have no published case studies. Fabricating one is a disqualifying error.
+❌ ZERO CASE STUDIES. Do NOT write "Our recent case study showed..." or any variation. We have no published case studies. Fabricating one is a disqualifying error.
 
 CTA (1 line):
-One direct question tied to the specific problem or their timeline — not a generic "hop on a call."
+One direct question tied to the specific problem or their timeline — not a generic "open to a demo" or "hop on a call."
+Make it feel like a natural next step from the argument you just made, not a sales close.
 
 
 FORMATTING RULES:
@@ -4370,32 +4392,32 @@ NOW WRITE YOUR EMAIL following the ISSUE → NEED → SOLVE structure above.`;
       // Sales angle goes FIRST so it dominates the model's framing — not buried after formatting rules
       const emailPrompt = `${customPrompt}\n${buyerMotivationContext}\n${commonRuleset}`;
 
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: emailPrompt }],
-        temperature: 0.7,
-        max_tokens: 400
+      const claudeResponse = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 600,
+        temperature: 0.5,
+        messages: [{ role: 'user', content: emailPrompt }]
       });
 
-      const emailContent = response.choices[0].message.content;
-      
+      const emailContent = claudeResponse.content[0].text;
+
       // Log API usage
-      if (response.usage) {
-        await this.awsManager.logApiUsage({
-          userId: this.userId,
-          agentId: this.agentId,
-          service: 'openai',
-          operation: 'email_generation',
-          usage: response.usage.total_tokens,
-          metadata: {
-            model: 'gpt-4o',
-            prompt_tokens: response.usage.prompt_tokens,
-            completion_tokens: response.usage.completion_tokens,
-            companyName: companyName,
-            leadName: contactName
-          }
-        }).catch(err => console.error('Failed to log OpenAI usage:', err));
-      }
+      const claudeInputTokens = claudeResponse.usage?.input_tokens || 0;
+      const claudeOutputTokens = claudeResponse.usage?.output_tokens || 0;
+      await this.awsManager.logApiUsage({
+        userId: this.userId,
+        agentId: this.agentId,
+        service: 'openai', // billed under same bucket for now
+        operation: 'email_generation',
+        usage: claudeInputTokens + claudeOutputTokens,
+        metadata: {
+          model: 'claude-3-5-sonnet-20241022',
+          prompt_tokens: claudeInputTokens,
+          completion_tokens: claudeOutputTokens,
+          companyName: companyName,
+          leadName: contactName
+        }
+      }).catch(err => console.error('Failed to log Claude usage:', err));
       
       // Extract body from AI response
       let body;
