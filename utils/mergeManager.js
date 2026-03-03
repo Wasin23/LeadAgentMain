@@ -535,6 +535,100 @@ class MergeManager {
   }
 
   /**
+   * Add a note/report to an EXISTING CRM contact by its native CRM ID.
+   * Used by Auditor Mode — never creates a new contact.
+   */
+  async addNoteToExistingCRMContact(userId, leadData) {
+    try {
+      const user = await this.awsManager.getUserById(userId);
+      if (!user?.crmConnected) return { success: false, error: 'No CRM connected' };
+
+      const contactId = leadData.crmId;
+      if (!contactId) return { success: false, error: 'No crmId provided' };
+
+      const noteContent = this.buildComprehensiveNotes(leadData);
+      const integration = user.crmType === 'direct' ? user.crmIntegration?.toLowerCase() : 'merge';
+
+      console.log(`[AUDITOR CRM] Adding note to existing ${integration} contact ${contactId}`);
+
+      switch (integration) {
+        case 'hubspot': {
+          // PATCH contact fields + add note
+          await axios.patch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
+            properties: {
+              meridian_ai_report: noteContent.slice(0, 65000),
+              hs_lead_status: 'IN_PROGRESS',
+            }
+          }, { headers: { Authorization: `Bearer ${user.crmApiKey}`, 'Content-Type': 'application/json' } }).catch(() => {/* field may not exist, ignore */});
+          // Add note
+          await axios.post('https://api.hubapi.com/crm/v3/objects/notes', {
+            properties: { hs_note_body: noteContent, hs_timestamp: Date.now() },
+            associations: [{ to: { id: contactId }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 202 }] }]
+          }, { headers: { Authorization: `Bearer ${user.crmApiKey}`, 'Content-Type': 'application/json' } });
+          return { success: true, crmContactId: contactId, crmIntegration: 'HubSpot' };
+        }
+        case 'pipedrive': {
+          await axios.post(`https://api.pipedrive.com/v1/notes?api_token=${user.crmApiKey}`, {
+            content: noteContent, person_id: contactId
+          });
+          return { success: true, crmContactId: contactId, crmIntegration: 'Pipedrive' };
+        }
+        case 'close': {
+          await axios.post('https://api.close.com/api/v1/activity/note/', {
+            lead_id: contactId, note: noteContent
+          }, { auth: { username: user.crmApiKey, password: '' }, headers: { 'Content-Type': 'application/json' } });
+          return { success: true, crmContactId: contactId, crmIntegration: 'Close' };
+        }
+        case 'copper': {
+          const headers = {
+            'X-PW-AccessToken': user.crmApiKey,
+            'X-PW-Application': 'developer_api',
+            'X-PW-UserEmail': user.crmApiUrl, // copper uses email in apiUrl slot
+            'Content-Type': 'application/json'
+          };
+          await axios.post('https://api.copper.com/developer_api/v1/notes', {
+            name: 'Meridian AI Report', details: noteContent,
+            parent: { id: parseInt(contactId), type: 'person' }
+          }, { headers });
+          return { success: true, crmContactId: contactId, crmIntegration: 'Copper' };
+        }
+        case 'salesforce': {
+          await axios.post(`${user.crmApiUrl}/services/data/v53.0/sobjects/Note`, {
+            Title: 'Meridian AI Report', Body: noteContent, ParentId: contactId
+          }, { headers: { Authorization: `Bearer ${user.crmApiKey}`, 'Content-Type': 'application/json' } });
+          return { success: true, crmContactId: contactId, crmIntegration: 'Salesforce' };
+        }
+        case 'activecampaign': {
+          await axios.post(`${user.crmApiUrl}/api/3/notes`, {
+            note: { note: noteContent, reltype: 'Contact', relid: contactId }
+          }, { headers: { 'Api-Token': user.crmApiKey, 'Content-Type': 'application/json' } });
+          return { success: true, crmContactId: contactId, crmIntegration: 'ActiveCampaign' };
+        }
+        case 'zoho': {
+          await axios.post(`${user.crmApiUrl}/crm/v2/Notes`, {
+            data: [{ Note_Title: 'Meridian AI Report', Note_Content: noteContent,
+              Parent_Id: { id: contactId }, $se_module: 'Contacts' }]
+          }, { headers: { Authorization: `Zoho-oauthtoken ${user.crmApiKey}`, 'Content-Type': 'application/json' } });
+          return { success: true, crmContactId: contactId, crmIntegration: 'Zoho' };
+        }
+        default: {
+          // Merge API path
+          if (user.crmAccountToken) {
+            await this.client.post('/api/crm/v1/notes', {
+              model: { content: noteContent, contact: contactId }
+            }, { headers: { 'X-Account-Token': user.crmAccountToken } });
+            return { success: true, crmContactId: contactId, crmIntegration: user.crmIntegration };
+          }
+          return { success: false, error: `Note-only update not implemented for ${user.crmIntegration}` };
+        }
+      }
+    } catch (error) {
+      console.error('❌ [AUDITOR CRM] Error adding note to existing contact:', error.response?.data || error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Sync lead to HubSpot via direct API
    */
   async syncLeadToHubSpot(apiKey, leadData) {

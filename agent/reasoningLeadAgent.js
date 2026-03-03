@@ -6499,6 +6499,8 @@ Target Positions:`;
             companyName: leadData.company,
             title: leadData.title || null,
             linkedinUrl: leadData.linkedin_url || null,
+            // CRM Mode: preserve the original contact ID so we update, not create
+            crmId: leadData.crmId || null,
             // Timestamps
             queuedAt: queueData.timestamp || new Date().toISOString(),
             agentName: this.memory.personality?.name || 'Meridian Agent',
@@ -6514,19 +6516,20 @@ Target Positions:`;
             confidenceLevel: queueData.confidenceLevel || leadData.confidenceLevel || null,
             confidenceReport: queueData.confidenceReport || leadData.confidenceReport || null
           };
-          
-          // Use unified sync which handles both Merge and direct API integrations
-          const syncResult = await this.mergeManager.syncLeadToCRMUnified(this.userId, crmLeadData);
+
+          // Auditor Mode: contact already exists in CRM — add note to existing record, never create duplicate
+          // Normal agent: contact is new (from Apollo) — create it
+          const isAuditorContact = !!(leadData._fromCRM && leadData.crmId);
+          const syncResult = isAuditorContact
+            ? await this.mergeManager.addNoteToExistingCRMContact(this.userId, crmLeadData)
+            : await this.mergeManager.syncLeadToCRMUnified(this.userId, crmLeadData);
           
           if (syncResult.success) {
-            console.log(`[CRM SYNC] OK - ${leadData.name || leadData.first_name} synced to ${syncResult.crmIntegration} (contactId: ${syncResult.crmContactId || 'n/a'})`);
-            
-            // Log CRM sync success
-            this.logOperation('🔗 CRM Sync', `${leadData.name || leadData.first_name} synced to ${syncResult.crmIntegration} ✓`, 'completed', { phase: 'crm_sync_complete', crmContactId: syncResult.crmContactId, crmIntegration: syncResult.crmIntegration, contactName: leadData.name || leadData.first_name });
+            const action = isAuditorContact ? 'report added to' : 'synced to';
+            console.log(`[CRM SYNC] OK - ${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration} (contactId: ${syncResult.crmContactId || 'n/a'})`);
+            this.logOperation('🔗 CRM Sync', `${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration} ✓`, 'completed', { phase: 'crm_sync_complete', crmContactId: syncResult.crmContactId, crmIntegration: syncResult.crmIntegration, contactName: leadData.name || leadData.first_name });
           } else {
             console.warn(`[CRM SYNC] Failed to sync: ${syncResult.error}`);
-            
-            // Log CRM sync failure
             this.logOperation('🔗 CRM Sync', `CRM sync failed for ${leadData.name || leadData.first_name} - ${syncResult.error}`, 'failed', { phase: 'crm_sync_failed', error: syncResult.error, contactName: leadData.name || leadData.first_name });
           }
         } else {
