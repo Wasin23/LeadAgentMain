@@ -4334,8 +4334,8 @@ Make it feel like a natural next step from the argument, not a sales close.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATTING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Short paragraphs — 1-2 sentences max, line breaks between each
-✅ Em dashes (—) where natural
+✅ Short paragraphs. 1-2 sentences max, line breaks between each
+❌ NO em dashes (—) — they are a dead giveaway of AI-generated text. Use a period or comma instead.
 ✅ Open with "Hi [FirstName]," not "Hello"
 ✅ No exclamation marks, no corporate buzzwords
 ❌ No bullet lists in the body

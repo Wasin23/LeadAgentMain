@@ -143,7 +143,11 @@ export function SettingsContent() {
   const [saving, setSaving] = useState(false)
 
   // ── Profile ───────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState({ username: "", email: "", createdAt: "" })
+  const [profile, setProfile] = useState({ username: "", email: "", createdAt: "", userId: "" })
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" })
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwError, setPwError] = useState<string | null>(null)
+  const [forgotSent, setForgotSent] = useState(false)
 
   // ── Notification prefs ────────────────────────────────────────────────────
   const [notifPrefs, setNotifPrefs] = useState({
@@ -359,7 +363,7 @@ export function SettingsContent() {
       ])
       if (profileRes.status === "fulfilled") {
         const u = profileRes.value.data.user
-        setProfile({ username: u?.username || "", email: u?.email || "", createdAt: u?.createdAt || "" })
+        setProfile({ username: u?.username || "", email: u?.email || "", createdAt: u?.createdAt || "", userId: u?.userId || "" })
       }
       if (settingsRes.status === "fulfilled") {
         const s = settingsRes.value.data.settings
@@ -675,6 +679,15 @@ export function SettingsContent() {
                   <Label>Email</Label>
                   <Input value={profile.email} disabled className="opacity-60" />
                 </div>
+                {profile.userId && (
+                  <div className="space-y-1.5">
+                    <Label>User ID</Label>
+                    <div className="flex gap-2">
+                      <Input value={profile.userId} disabled className="opacity-60 font-mono text-xs" />
+                      <Button variant="outline" size="sm" className="shrink-0" onClick={() => { navigator.clipboard.writeText(profile.userId); toast.success("Copied!") }}>Copy</Button>
+                    </div>
+                  </div>
+                )}
                 {profile.createdAt && (
                   <div className="space-y-1.5">
                     <Label>Member Since</Label>
@@ -684,6 +697,56 @@ export function SettingsContent() {
                     />
                   </div>
                 )}
+              </div>
+            </Card>
+            <Card className="p-6">
+              <h3 className="font-semibold text-lg mb-5">Change Password</h3>
+              <div className="space-y-4 max-w-md">
+                <div className="space-y-1.5">
+                  <Label>Current Password</Label>
+                  <Input type="password" value={pwForm.current} onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} placeholder="Enter current password" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>New Password</Label>
+                  <Input type="password" value={pwForm.next} onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} placeholder="Enter new password" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Confirm New Password</Label>
+                  <Input type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} placeholder="Confirm new password" />
+                </div>
+                {pwError && <p className="text-sm text-destructive">{pwError}</p>}
+                <div className="flex items-center gap-3">
+                  <Button disabled={pwSaving} onClick={async () => {
+                    setPwError(null)
+                    if (!pwForm.current || !pwForm.next || !pwForm.confirm) { setPwError("All fields required"); return }
+                    if (pwForm.next !== pwForm.confirm) { setPwError("New passwords don't match"); return }
+                    if (pwForm.next.length < 8) { setPwError("Password must be at least 8 characters"); return }
+                    setPwSaving(true)
+                    try {
+                      await api.post("/api/auth/change-password", { currentPassword: pwForm.current, newPassword: pwForm.next })
+                      toast.success("Password changed!")
+                      setPwForm({ current: "", next: "", confirm: "" })
+                    } catch (e: any) {
+                      setPwError(e.response?.data?.message || "Failed to change password")
+                    } finally { setPwSaving(false) }
+                  }}>
+                    {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}
+                  </Button>
+                  <button
+                    className="text-sm text-muted-foreground hover:text-primary underline-offset-2 hover:underline transition-colors"
+                    disabled={forgotSent}
+                    onClick={async () => {
+                      if (!profile.email) return
+                      try {
+                        await api.post("/api/auth/forgot-password", { email: profile.email })
+                        setForgotSent(true)
+                        toast.success("Reset link sent to " + profile.email)
+                      } catch { toast.error("Failed to send reset email") }
+                    }}
+                  >
+                    {forgotSent ? "Reset email sent ✓" : "Forgot password?"}
+                  </button>
+                </div>
               </div>
             </Card>
             <Card className="p-6 border-destructive/40">
