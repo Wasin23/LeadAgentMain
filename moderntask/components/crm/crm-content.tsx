@@ -20,7 +20,7 @@ interface CRMContact {
   company: string
   crmId: string
   source: string
-  status?: "queued" | "emailed" | "skipped"
+  status?: "fresh" | "queued" | "skipped"
 }
 
 interface Agent {
@@ -153,8 +153,8 @@ export function CRMContent() {
               return next
             })
             setExitingIds(prev => { const n = new Set(prev); n.delete(id); return n })
-            api.patch(`/api/crm/saved-contacts/${encodeURIComponent(id)}`, { status: "emailed" }).catch(() => {})
-            setSavedContacts(prev => prev.map(c => (c.crmId || c.email) === id ? { ...c, status: "emailed" } : c))
+            api.patch(`/api/crm/saved-contacts/${encodeURIComponent(id)}`, { status: "queued" }).catch(() => {})
+            setSavedContacts(prev => prev.map(c => (c.crmId || c.email) === id ? { ...c, status: "queued" } : c))
           }, 400)
         }
       } catch { /* ignore */ }
@@ -359,8 +359,8 @@ export function CRMContent() {
                   <span className="text-xs font-medium truncate block">{[c.firstName, c.lastName].filter(Boolean).join(" ") || c.email}</span>
                   <span className="text-[10px] text-muted-foreground truncate block">{c.title}{c.title && c.company ? " · " : ""}{c.company}</span>
                 </div>
-                <Badge variant="outline" className={`text-[9px] shrink-0 ${c.status === "emailed" ? "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                  {c.status === "emailed" ? "✓ emailed" : "queued"}
+                <Badge variant="outline" className={`text-[9px] shrink-0 ${c.status === "queued" ? "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                  {c.status === "queued" ? "✓ queued" : "fresh"}
                 </Badge>
               </div>
             ))}

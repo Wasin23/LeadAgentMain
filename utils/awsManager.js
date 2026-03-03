@@ -3475,7 +3475,7 @@ class AWSManager {
   async saveCRMContacts(userId, contacts = []) {
     if (!contacts.length) return { success: true };
     const now = new Date().toISOString();
-    // Use UpdateCommand with if_not_exists(status) so re-importing never resets 'emailed' → 'queued'
+    // Use UpdateCommand with if_not_exists(status) so re-importing never resets 'queued' → 'fresh'
     const chunks = [];
     for (let i = 0; i < contacts.length; i += 25) chunks.push(contacts.slice(i, i + 25));
     for (const chunk of chunks) {
@@ -3502,7 +3502,7 @@ class AWSManager {
           ':ph':     c.phone     || '',
           ':co':     c.company   || '',
           ':src':    c.source    || 'crm',
-          ':queued': 'queued',
+          ':queued': 'fresh',
           ':now':    now,
         },
       }))))
