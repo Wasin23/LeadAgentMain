@@ -3954,6 +3954,108 @@ Format as:
         }\n→ If a LinkedIn topic is relevant to your pitch, open with it: "I noticed you recently posted about X..." — this is the strongest personalisation signal available.`;
       }
       
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 🧠 SALES STRATEGIST: Forced pre-write reasoning chain
+      // Answers 6 questions before a single word of email is written.
+      // Output drives the angle — not the product features.
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      let salesAngle = null;
+      try {
+        const ragStats = this.memory.industryFactsFromRAG?.length > 0
+          ? this.memory.industryFactsFromRAG.map((f, i) => `${i + 1}. ${f}`).join('\n')
+          : 'None available';
+
+        const strategistPrompt = [
+          `You are an elite B2B sales strategist — not a copywriter, not an assistant.`,
+          `Your only job: find the sharpest possible angle for a cold email BEFORE a single word is written.`,
+          `Output is NOT the email. It is the *thinking* that determines whether the email is undeniable or forgettable.`,
+          ``,
+          `━━ PROSPECT ━━`,
+          `Name: ${leadData.first_name} ${leadData.last_name}`,
+          `Title: ${contactTitle}`,
+          `Company: ${companyName}`,
+          `Industry: ${industry}`,
+          `Size: ${employeeCount} employees`,
+          ``,
+          `━━ PRODUCT BEING SOLD ━━`,
+          `Product/Service: ${emailSettings.companyBranding?.primaryService || 'Unknown'}`,
+          `Key advantages: ${emailSettings.companyBranding?.keyAdvantages || 'Unknown'}`,
+          `Selling company: ${emailSettings.companyBranding?.companyName || 'Unknown'}`,
+          ``,
+          `━━ COMPANY-SPECIFIC RESEARCH ━━`,
+          citedFactsContext || 'No specific company facts found.',
+          ``,
+          `━━ VERIFIED INDUSTRY STATISTICS (RAG knowledge base) ━━`,
+          ragStats,
+          ``,
+          `━━ QUALIFICATION TEAM ASSESSMENT ━━`,
+          resolvedMotivation,
+          ``,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          `ANSWER THESE 6 QUESTIONS. No filler. Vague = failure.`,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          ``,
+          `1. CAREER FEAR — not a company pain point, a personal one. What is this specific person in this specific role afraid of getting wrong? What outcome would make them look bad to their boss, board, or peers? Be role-specific, not generic.`,
+          ``,
+          `2. DEFERRED DECISION — What is one thing this person almost certainly knows they should address, but keeps pushing back? What's the rational-sounding excuse they tell themselves for not acting yet?`,
+          ``,
+          `3. WINNING MOVE — If they act on our product and it works, what story do they get to tell in 6 months? What does the smart version of them look like? Make it ego-specific, not just company-level.`,
+          ``,
+          `4. TOP OBJECTION — What is the single most likely reason they will NOT reply? State it plainly. Then in one sentence, explain how the email should preempt it without addressing it directly.`,
+          ``,
+          `5. SHARPEST INTERSECTION — Given the company research AND the industry stats above, what is the single most specific tension you can name that connects THEIR situation to OUR product? This is the email's argument. It must be a claim about their world — not our features. If an industry stat creates an insight the prospect wouldn't naturally make themselves, use it. That's what makes the email feel smart.`,
+          ``,
+          `6. ONE-LINE ANGLE — The argument in one sentence. Form: "Because [something specifically true about their world right now], [a consequence they haven't fully reckoned with], and [product] is the clearest way to [resolve it specifically]." If you cannot complete this with actual specifics from the research, write "INSUFFICIENT DATA:" and explain what's missing.`,
+          ``,
+          `Then:`,
+          `SUBJECT_TYPE: "statement" = claim you can defend with facts | "question" = they genuinely want to answer it | "intrigue" = frame alone creates curiosity`,
+          `SUBJECT: The actual subject line. Max 8 words. Specific to the angle. No generic FOMO questions.`,
+          ``,
+          `Respond ONLY in JSON:`,
+          `{`,
+          `  "careerFear": "...",`,
+          `  "deferredDecision": "...",`,
+          `  "winningMove": "...",`,
+          `  "topObjection": "...",`,
+          `  "sharpestIntersection": "...",`,
+          `  "oneLineAngle": "...",`,
+          `  "subjectType": "statement | question | intrigue",`,
+          `  "suggestedSubject": "..."`,
+          `}`
+        ].join('\n');
+
+        const strategistResponse = await this.openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: strategistPrompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.4,
+          max_tokens: 900
+        });
+
+        salesAngle = JSON.parse(strategistResponse.choices[0].message.content);
+        console.log(`[SALES STRATEGIST] ${companyName} | type=${salesAngle.subjectType} | subject="${salesAngle.suggestedSubject}"`);
+        console.log(`[SALES STRATEGIST] Angle: ${salesAngle.oneLineAngle?.substring(0, 100)}`);
+
+        if (strategistResponse.usage) {
+          await this.awsManager.logApiUsage({
+            userId: this.userId,
+            agentId: this.agentId,
+            service: 'openai',
+            operation: 'sales_strategist_reasoning',
+            usage: strategistResponse.usage.total_tokens,
+            metadata: {
+              model: 'gpt-4o',
+              prompt_tokens: strategistResponse.usage.prompt_tokens,
+              completion_tokens: strategistResponse.usage.completion_tokens,
+              companyName,
+              subjectType: salesAngle.subjectType
+            }
+          }).catch(err => console.error('Failed to log strategist usage:', err));
+        }
+      } catch (err) {
+        console.error('[SALES STRATEGIST] Reasoning step failed, continuing without angle:', err.message);
+      }
+
       // Build tier-specific email instructions
       let tierInstructions = '';
       let personalizationLevel = 'DEEP';
@@ -4046,22 +4148,57 @@ Tone: ${messaging.tone || 'professional'}`;
         
       }
       
-      // Add BUYER MOTIVATION context (validated above - this is CRITICAL)
-      const buyerMotivationContext = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 BUYER-SIDE MOTIVATION (USE THIS TO GUIDE YOUR EMAIL):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${resolvedMotivation}
-
-Your email MUST connect to this motivation. This is not generic - this is the specific,
-evidence-based reason WHY this person would buy from us RIGHT NOW. Use this to:
-✓ Frame your opening hook around their current situation
-✓ Connect your solution to their immediate needs/timeline
-✓ Create urgency based on their actual business context
-✓ Demonstrate you understand their strategic priorities
-
-DO NOT write generic emails. Use this buyer motivation to show sophisticated understanding.`;
+      // Add SALES ANGLE context — the pre-reasoned argument that drives the entire email
+      const buyerMotivationContext = salesAngle
+        ? [
+          ``,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          `🧠 PRE-WRITE SALES STRATEGY — your email is built FROM this, not padded around it`,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          ``,
+          `THE ARGUMENT (one-line angle this email must make):`,
+          salesAngle.oneLineAngle,
+          ``,
+          `THEIR CAREER FEAR (what they're personally afraid of getting wrong):`,
+          salesAngle.careerFear,
+          ``,
+          `THE DECISION THEY'RE DEFERRING (what they're avoiding and why):`,
+          salesAngle.deferredDecision,
+          ``,
+          `WHAT WINNING LOOKS LIKE FOR THEM (the story they tell if they act):`,
+          salesAngle.winningMove,
+          ``,
+          `SHARPEST INTERSECTION — anchor paragraph 1 here, not on a product feature:`,
+          salesAngle.sharpestIntersection,
+          ``,
+          `THEIR TOP OBJECTION TO REPLYING (preempt it without naming it):`,
+          salesAngle.topObjection,
+          ``,
+          `SUBJECT LINE:`,
+          `Type: ${salesAngle.subjectType} — ${
+            salesAngle.subjectType === 'statement'
+              ? 'write a specific claim you can defend with the research above'
+              : salesAngle.subjectType === 'question'
+              ? 'ask something they will genuinely want to answer — not a FOMO hook'
+              : 'no verb needed — the frame alone should create curiosity'
+          }`,
+          `Suggested: "${salesAngle.suggestedSubject}"`,
+          `You may use this or write a better one following the same type. Never default to a generic fear-of-missing-out question.`,
+          ``,
+          `⚠️ STRUCTURE RULE: Paragraph 1 names THE TENSION in their world (sharpest intersection above).`,
+          `Paragraph 2 is where the product appears as the direct answer to that tension — not before.`,
+          `The email argues THEIR WORLD first. Our product is the resolution, not the opening.`,
+        ].join('\n')
+        : [
+          ``,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          `🎯 BUYER-SIDE MOTIVATION (USE THIS TO GUIDE YOUR EMAIL):`,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          ``,
+          resolvedMotivation,
+          ``,
+          `Frame the opening around their current situation. Connect solution to immediate needs. Demonstrate you understand their context.`,
+        ].join('\n');
       
       
       // Build research findings summary for the prompt
