@@ -4011,6 +4011,14 @@ Format as:
           `SUBJECT_TYPE: "statement" = claim you can defend with facts | "question" = they genuinely want to answer it | "intrigue" = frame alone creates curiosity`,
           `SUBJECT: The actual subject line. Max 8 words. Specific to the angle. No generic FOMO questions.`,
           ``,
+          ...(employeeCount && parseInt(employeeCount) >= 500 ? [
+            `⚠️  ENTERPRISE TONE RULE: This company has ${employeeCount} employees — they are a large, established organization.`,
+            `DO NOT use framing that implies they are naive, behind, or missing something obvious. They have smart people.`,
+            `DO NOT write questions like "Is [Company] missing X?" or "Why [Company] hasn't done X yet" — arrogant, will be deleted.`,
+            `Instead: peer-level framing. You are a peer with a specific insight about their space, not a challenger showing them what they missed.`,
+            `SUBJECT TYPE for large enterprises: prefer "statement" or "intrigue". A question is only valid if it surfaced a genuinely non-obvious idea.`,
+          ] : []),
+          ``,
           `Respond ONLY in JSON:`,
           `{`,
           `  "careerFear": "...",`,
@@ -4424,11 +4432,23 @@ NOW WRITE YOUR EMAIL following the ISSUE → NEED → SOLVE structure above.`;
         // cleaned up subject line from body
       }
       
-      // 🚀 DYNAMIC SUBJECT LINE GENERATION
-      // ALWAYS generate subject line from email body content for maximum relevance
-      let subject = 'Quick question'; // Fallback only if API fails completely
-      
+      // 🚀 SUBJECT LINE SELECTION
+      // If sales strategist produced a subject, use it directly — no need for a second generation call.
+      // Only run the dynamic generator as fallback when no strategist ran.
+      let subject = 'Quick question'; // Fallback only if everything else fails
+
+      if (salesAngle?.suggestedSubject && salesAngle.suggestedSubject.length > 5) {
+        // Strategist already reasoned about the best subject — trust it
+        subject = salesAngle.suggestedSubject;
+        console.log(`[SUBJECT] Using strategist subject (type=${salesAngle.subjectType}): "${subject}"`);
+      } else if (extractedSubject && extractedSubject.length > 5) {
+        // Email body contained a subject line — use that
+        subject = extractedSubject;
+        console.log(`[SUBJECT] Using extracted subject from body: "${subject}"`);
+      } else {
+      // No strategist output — fall back to dynamic generation
       try {
+        const isLargeEnterprise = employeeCount && parseInt(employeeCount) >= 500;
         const subjectPrompt = `Read this cold sales email and write a subject line that will make the recipient open it.
 
 EMAIL BODY:
@@ -4438,13 +4458,15 @@ LEAD:
 - Name: ${leadData.first_name} ${leadData.last_name}
 - Company: ${companyName}
 - Title: ${leadData.title}
+- Company size: ${employeeCount || 'unknown'} employees
 
 RULES FOR THE SUBJECT LINE:
 - Under 50 characters
 - Provocative — a bold statement, a named flaw, a sharp claim, or a pointed question. Any format works if it's specific and creates discomfort or curiosity.
 - Must connect directly to the specific argument in the email body
 - Sentence case, no exclamation marks, no spam words
-- Read like something a sharp human wrote, not a marketing template
+- Read like something a sharp human wrote, not a marketing template${isLargeEnterprise ? `
+- ENTERPRISE RULE: This is a large company (${employeeCount} employees). NO questions implying they are naive/missing something obvious (e.g. "Is X ready for Y?"). Use a statement or intriguing frame instead.` : ''}
 
 GOOD EXAMPLES (style only, not content):
 - "Your agency BD is probably broken"
@@ -4498,7 +4520,8 @@ Output ONLY the subject line. Nothing else.`;
       } catch (error) {
         console.error('❌ [SUBJECT GEN] Failed to generate dynamic subject:', error.message);
       }
-      
+      } // end fallback dynamic subject generator
+
       // Generate lead qualification confidence report
       const analysisPrompt = `Analyze this lead's qualification and likelihood to respond positively.
 
