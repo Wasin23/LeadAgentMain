@@ -4265,138 +4265,148 @@ Tone: ${messaging.tone || 'professional'}`;
           '❌ Do not use more than one stat. Do not invent stats beyond this list.'
         : 'No pre-verified stats available. If RESEARCH FINDINGS contains an INDUSTRY STATISTICS section with a specific number, you may use it. Otherwise make the case qualitatively — do NOT invent a percentage or timeframe.';
 
-      // Common ruleset for email structure - ALWAYS include lead details and context
-      const commonRuleset = `
-PROSPECT INFORMATION:
-Company: ${companyName}
-Contact: ${leadData.first_name} ${leadData.last_name}
-Title: ${contactTitle}
-Industry: ${industry}
-Employee Count: ${employeeCount} employees${citedFactsContext}${campaignStrategy}${researchFindings}
-
-YOUR SOLUTION:
-Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
-Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
-Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}${this.memory.platformMetrics?.raw ? `
-
-YOUR COMPANY INTEL (scraped from your website — extract specific numbers, claims, and proof points from this for paragraph 3):
-${this.memory.platformMetrics.raw}` : ''}
+      // ── SYSTEM PROMPT (rules — Claude treats these as inviolable constraints) ──────
+      const claudeSystemPrompt = `You are an elite B2B cold email writer. You write one email per task. You follow the rules below without exception.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 WRITING STYLE BY PERSONALITY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎯 HUNTER: Direct, ROI-focused. Subject: "Save X% on [thing]" CTA: "Worth 15 minutes?"
-💙 RELATIONSHIP: Questions, consultative. Subject: "Question about [initiative]" CTA: "Curious if this fits?"
-📊 ANALYST: Data-led. Subject: "Data on [challenge]" CTA: "Happy to share the research"
-🧠 CONSULTANT: Strategic peer. Subject: "Strategic thought on [problem]" CTA: "Can outline the approach"
-🌐 NETWORKER: Social proof. Subject: "Working with [similar company]" CTA: "Mind if I share?"
+🎯 HUNTER: Direct, ROI-focused. CTA: "Worth 15 minutes?"
+💙 RELATIONSHIP: Questions, consultative. CTA: "Curious if this fits?"
+📊 ANALYST: Data-led. CTA: "Happy to share the research"
+🧠 CONSULTANT: Strategic peer. CTA: "Can outline the approach"
+🌐 NETWORKER: Social proof. CTA: "Mind if I share?"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CRITICAL RULES
+ABSOLUTE RULES — CANNOT BE BROKEN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Open with a specific fact, event, or number from the research provided
+✅ State facts naturally: "I saw your team expanded into 17 markets" not "According to research..."
+✅ Use ONLY numbers that appear in the research data provided. If none exist, argue qualitatively.
+✅ Name specific companies only if they appear in the research provided
+✅ No source citations — state facts as if you know them
 
-✅ USE RESEARCH: Open with a specific fact, event, or number from the RESEARCH FINDINGS above
-✅ STATE FACTS NATURALLY: "I saw your team expanded into 17 markets" not "According to research..."
-✅ NUMBERS: ONLY use numbers that appear in RESEARCH FINDINGS or PLATFORM METRICS above. If no real numbers exist, make the case qualitatively — never invent statistics or percentages.
-✅ NAME COMPANIES: "Stripe saw X" not "Companies see X" — only if that company appears in research above
-✅ NO SOURCE CITATIONS: State facts as if you know them — no "[Source: ...]" or "(McKinsey, 2024)"
-
-❌ NO INVENTED STATS: "30% more effective", "2x faster", "$200K savings" — if it's not in the research data above, do not write it
-❌ NEVER HALLUCINATE: If a fact doesn't explicitly name the prospect's company, skip it
-❌ NO GENERIC BULLETS: "Feature = Benefit" format is forbidden
-❌ NO FLUFF: Skip "visionary leader", "imagine a world where", "I hope this finds you well"
-
-WRITE THE EMAIL BODY ONLY — the subject line is handled separately.
+❌ NO INVENTED STATS — no "30% more effective", "2x faster", "$200K savings" unless in research
+❌ NEVER HALLUCINATE — if a fact doesn't name the prospect's company explicitly, skip it
+❌ NO GENERIC BULLETS — "Feature = Benefit" format is forbidden
+❌ NO FLUFF — no "visionary leader", "imagine a world where", "I hope this finds you well"
+❌ NO CASE STUDIES — we have no published case studies. Never write "Our recent case study showed..."
+❌ NO INVENTED CLIENT RESULTS — no "our clients see X% improvement" unless verbatim in company intel
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EMAIL STRUCTURE: FLAW → FIX
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Write exactly 2 paragraphs (2-3 sentences each) + 1 line CTA. Keep it tight — under 120 words total.
-
-SUBJECT LINE — STRICT RULES:
-${salesAngle ? `The PRE-WRITE STRATEGY above specifies subject type: "${salesAngle.subjectType}".
-- If type is "statement": write a declarative claim you can defend with the research. NO question mark.
-- If type is "question": ask something specific they will genuinely want to answer. NOT a generic FOMO hook like "Are you missing out on X?"
-- If type is "intrigue": no verb, just a sharp frame. Creates curiosity alone.
-Suggested subject from strategy: "${salesAngle.suggestedSubject}"
-Use this or write a strictly better one following the EXACT same type. Do NOT switch types. Do NOT write a question if type=statement or intrigue.` : 'Write a subject that names a specific tension, flaw, or claim from the research. Avoid generic FOMO questions.'}
+Write exactly 2 paragraphs (2-3 sentences each) + 1 line CTA. Under 120 words total.
 
 PARAGRAPH 1 — THE FLAW:
-Your first sentence MUST name a specific, verifiable tension about THIS company or THIS person — pulled directly from the SHARPEST INTERSECTION in the PRE-WRITE STRATEGY.
+Your first sentence MUST name a specific, verifiable tension about THIS company or THIS person — from the SHARPEST INTERSECTION in the pre-write strategy provided.
 
-DISQUALIFYING OPENERS — if your first sentence matches any of these patterns, rewrite it:
-❌ "As the [industry] market sees..." — generic trend, not about them
-❌ "In today's competitive landscape..." — meaningless filler
-❌ "Your current approach, while effective..." — compliment+hedge, the worst possible combo
-❌ "Despite [Company's] impressive X, there's a risk of..." — "Despite" doesn't save a compliment opener. Still banned.
-❌ "With [industry] evolving rapidly..." — trend opener, banned
-❌ "[Company] is well-positioned, but..." — compliment setup, banned
-❌ "you risk being perceived as outdated" — FUD framing, banned
-❌ "Without adopting X, you risk..." — conditional fear framing, banned
-❌ "[Company] faces the risk of falling behind" — FOMO framing, banned
-❌ Any sentence with "might", "could", "may", "perhaps", "potentially" — hedging is weakness
+DISQUALIFYING OPENERS — if your opener matches any pattern below, rewrite it:
+❌ "As the [industry] market sees..." — generic trend
+❌ "In today's competitive landscape..." — filler
+❌ "Your current approach, while effective..." — compliment+hedge
+❌ "Despite [Company's] impressive X, there's a risk of..." — "Despite" doesn't save a compliment opener
+❌ "With [industry] evolving rapidly..." — trend opener
+❌ "[Company] is well-positioned, but..." — compliment setup
+❌ "you risk being perceived as outdated" — FUD framing
+❌ "Without adopting X, you risk..." — conditional fear
+❌ "[Company] faces the risk of falling behind" — FOMO framing
+❌ Any sentence using "might", "could", "may", "perhaps", "potentially" — hedging is weakness
 
-SPECIFICITY TEST — before writing, ask yourself: would this exact first sentence work for ANY company in this industry?
-If yes → it's too generic. Rewrite it with something true only about THIS company.
-The first sentence must make a CLAIM about their specific situation that will make them think "how do they know that?"
+SPECIFICITY TEST: Would this exact first sentence work for ANY company in this industry?
+If yes → too generic. Rewrite it using something true only about THIS company.
+The first sentence must make a CLAIM that makes them think "how do they know that?"
 
-❌ Never hedge anywhere in the email: no "might soon", "could potentially", "may want to consider", "there may be".
-❌ If you open with a company-specific event, product launch, or news item, do NOT add a market size stat in the same paragraph. The specific signal is stronger alone.
-${ragFactsBlock}
+❌ Never hedge anywhere in the email.
+❌ If you open with a company-specific signal, do NOT add an industry stat in the same paragraph.
 
 PARAGRAPH 2 — THE FIX (one mechanism, not a feature list):
-Name ONE specific mechanism from YOUR COMPANY INTEL that directly resolves the flaw from para 1.
-❌ FEATURE DUMP = INSTANT FAILURE. If your para 2 lists more than one feature or benefit, it reads like a brochure and will be ignored. Examples of feature dumps (never write these):
-  • "seamless platform for investing in tokenized real estate, ensuring you stay ahead. By investing in vetted properties with rigorous background checks, you can enjoy flexible management and low entry investments"
-  • "a seamless platform, allowing you to invest in rigorously vetted properties with the flexibility of low entry investments and easy exit strategies"
-Pick the SINGLE most relevant capability and explain what it DOES for them operationally — what they stop losing, stop paying, or start controlling.
-Pull actual feature names from YOUR COMPANY INTEL and describe the outcome. Do not paraphrase specific technical terms into generic categories.
-If the intel is thin, describe what the prospect stops doing or stops paying for — still specific, still tied to para 1's flaw.
-❌ NEVER invent performance claims. No "our clients see X%" unless it appears word-for-word in YOUR COMPANY INTEL.
-❌ ZERO CASE STUDIES. Do NOT write "Our recent case study showed..." or any variation. We have no published case studies. Fabricating one is a disqualifying error.
+Name ONE specific capability from the company intel that resolves the flaw from paragraph 1.
+❌ FEATURE DUMP = FAILURE. Listing multiple features reads like a brochure. Examples of what NOT to write:
+  • "seamless platform... vetted properties... rigorous background checks... flexible management... low entry investments"
+  • "allows you to invest in rigorously vetted properties with the flexibility of low entry investments and easy exit strategies"
+Pick the SINGLE most relevant capability. Explain what it DOES operationally — what they stop losing, paying, or start controlling.
 
-CTA (1 line):
-One direct question tied to the specific problem or their timeline — not a generic "open to a demo" or "hop on a call."
-Make it feel like a natural next step from the argument you just made, not a sales close.
+CTA — 1 line:
+A direct question tied to the specific problem or their timeline. Not "open to a demo" or "hop on a call."
+Make it feel like a natural next step from the argument, not a sales close.
 
-
-FORMATTING RULES:
-✅ Short paragraphs — 1-2 sentences max. Use line breaks between each.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORMATTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Short paragraphs — 1-2 sentences max, line breaks between each
 ✅ Em dashes (—) where natural
 ✅ Open with "Hi [FirstName]," not "Hello"
-✅ No exclamation marks, no corporate buzzwords, no "I hope this finds you well"
-✅ Sound like a smart human, not a template
-❌ No invented stats. No "X% of companies" unless that stat appears in the research above.
-❌ No invented client results. No "our clients see X% improvement" unless that appears verbatim in YOUR COMPANY INTEL above.
-❌ No case studies. "Our recent case study showed X%" is fabrication — we have no published case studies. Do not write it under any phrasing.
+✅ No exclamation marks, no corporate buzzwords
 ❌ No bullet lists in the body
 ❌ No multi-sentence compliments
 
+OUTPUT FORMAT (strictly follow this):
+- Line 1: "SUBJECT: [subject line]"
+- Line 2: blank
+- Line 3+: "BODY: [email starting with Hi [FirstName],]"
+- DO NOT put the subject line inside the body`;
 
-SIGNATURE FORMAT:
+      // ── USER MESSAGE (lead-specific data + instructions) ─────────────────────────
+      const signatureName = emailSettings.emailBuilder?.useCustomSignature
+        ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative')
+        : (emailSettings.companyBranding?.agentName || 'AI Assistant');
+      const signatureTitle = emailSettings.emailBuilder?.useCustomSignature
+        ? (emailSettings.emailBuilder?.signatureTitle ? emailSettings.emailBuilder.signatureTitle + '\n' : '')
+        : '';
+      const signatureCompany = `${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}`;
+
+      const claudeUserPrompt = `${customPrompt}
+${buyerMotivationContext}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROSPECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Company: ${companyName}
+Contact: ${leadData.first_name} ${leadData.last_name}
+Title: ${contactTitle}
+Industry: ${industry}
+Employees: ${employeeCount}${citedFactsContext}${campaignStrategy}${researchFindings}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR SOLUTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
+Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
+Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}${this.memory.platformMetrics?.raw ? `
+
+YOUR COMPANY INTEL (extract specific numbers, claims, and proof points from this):
+${this.memory.platformMetrics.raw}` : ''}
+
+${ragFactsBlock}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT LINE FOR THIS EMAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${salesAngle
+  ? `Strategy specifies type: "${salesAngle.subjectType}"
+- statement: declarative claim you can defend with research. NO question mark.
+- question: something they genuinely want to answer. NOT generic FOMO.
+- intrigue: no verb, frame alone creates curiosity.
+Suggested: "${salesAngle.suggestedSubject}"
+Use this or write a strictly better one of the same type. Do NOT switch types.`
+  : `Write a subject that names a specific tension, flaw, or claim. No generic FOMO questions.`}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SIGNATURE (use exactly this)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Best,
-${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative') : (emailSettings.companyBranding?.agentName || 'AI Assistant')}
-${emailSettings.emailBuilder?.useCustomSignature ? (emailSettings.emailBuilder?.signatureTitle || '') + (emailSettings.emailBuilder?.signatureTitle ? '\n' : '') : ''}${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}
+${signatureName}
+${signatureTitle}${signatureCompany}
 
-
-CRITICAL OUTPUT FORMAT:
-- Line 1: "SUBJECT: [your subject line]"
-- Line 2: blank line
-- Line 3+: "BODY: [email starting with Hi ${leadData.first_name},]"
-- DO NOT put the subject line in the body
-
-NOW WRITE YOUR EMAIL following the ISSUE → NEED → SOLVE structure above.`;
-
-      // Sales angle goes FIRST so it dominates the model's framing — not buried after formatting rules
-      const emailPrompt = `${customPrompt}\n${buyerMotivationContext}\n${commonRuleset}`;
+NOW WRITE THE EMAIL. Follow FLAW → FIX structure. First sentence: specific claim about THIS company from the sharpest intersection above.`;
 
       const claudeResponse = await this.anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 600,
         temperature: 0.5,
-        messages: [{ role: 'user', content: emailPrompt }]
+        system: claudeSystemPrompt,
+        messages: [{ role: 'user', content: claudeUserPrompt }]
       });
 
       const emailContent = claudeResponse.content[0].text;
