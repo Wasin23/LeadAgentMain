@@ -4402,7 +4402,7 @@ ${signatureTitle}${signatureCompany}
 NOW WRITE THE EMAIL. Follow FLAW → FIX structure. First sentence: specific claim about THIS company from the sharpest intersection above.`;
 
       const claudeResponse = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-latest',
+        model: 'claude-sonnet-4-5',
         max_tokens: 600,
         temperature: 0.5,
         system: claudeSystemPrompt,
@@ -4421,7 +4421,7 @@ NOW WRITE THE EMAIL. Follow FLAW → FIX structure. First sentence: specific cla
         operation: 'email_generation',
         usage: claudeInputTokens + claudeOutputTokens,
         metadata: {
-          model: 'claude-3-5-sonnet-latest',
+          model: 'claude-sonnet-4-5',
           prompt_tokens: claudeInputTokens,
           completion_tokens: claudeOutputTokens,
           companyName: companyName,
