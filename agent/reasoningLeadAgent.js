@@ -4605,7 +4605,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         email: body,
         subject: subject,
         confidenceReport: confidenceReport,
-        confidenceLevel: confidenceLevel
+        confidenceLevel: confidenceLevel,
+        salesAngle: salesAngle || null
       };
     } catch (error) {
       console.error('❌ [EMAIL BUILDER] Failed to create email:', error);
@@ -5710,6 +5711,7 @@ Target Positions:`;
                     emailSubject: personalizedEmail.subject,
                     confidenceReport: personalizedEmail.confidenceReport,
                     confidenceLevel: personalizedEmail.confidenceLevel,
+                    salesAngle: personalizedEmail.salesAngle || null,
                     emailUnlockStatus: 'success'
                   };
                   
@@ -6658,7 +6660,9 @@ Target Positions:`;
             businessIntelligence: queueData.researchData?.businessIntelligence || null,
             // Confidence data
             confidenceLevel: queueData.confidenceLevel || leadData.confidenceLevel || null,
-            confidenceReport: queueData.confidenceReport || leadData.confidenceReport || null
+            confidenceReport: queueData.confidenceReport || leadData.confidenceReport || null,
+            // Sales angle intelligence
+            salesAngle: leadData.salesAngle || null
           };
 
           // Auditor Mode: contact already exists in CRM — add note to existing record, never create duplicate
