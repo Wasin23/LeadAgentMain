@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, X, GripVertical } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
@@ -373,6 +373,83 @@ export function CRMContent() {
 
       {/* ── AUDITOR / IMPORT SECTION ─────────────────── */}
       <div className="space-y-3">
+
+        {/* Agent roster + drop zone — always visible */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Assign Auditor Agent</p>
+
+          {/* Agent avatar cards */}
+          <div className="flex flex-wrap gap-2">
+            {agents.map(a => {
+              const isAssigned = selectedAgent === a.agentId
+              const initials   = a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
+              const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
+              const color      = agentColors[agents.indexOf(a) % agentColors.length]
+              return (
+                <div
+                  key={a.agentId}
+                  draggable
+                  onDragStart={e => { e.dataTransfer.setData("agentId", a.agentId); e.dataTransfer.effectAllowed = "move" }}
+                  onClick={() => setSelectedAgent(isAssigned ? "" : a.agentId)}
+                  title={`Drag or click to assign ${a.name}`}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border cursor-grab active:cursor-grabbing select-none transition-all ${
+                    isAssigned
+                      ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/30"
+                      : "border-border bg-card hover:border-primary/40 hover:bg-primary/5"
+                  }`}
+                >
+                  <div className={`relative w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${color} ${isAssigned ? "ring-2 ring-primary ring-offset-1" : ""}`}>
+                    {initials}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${a.status === "running" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                  </div>
+                  <span className={`text-[10px] font-medium max-w-[64px] truncate text-center leading-tight ${isAssigned ? "text-primary" : "text-foreground"}`}>{a.name}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Drop zone */}
+          <div
+            onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={e => {
+              e.preventDefault()
+              const id = e.dataTransfer.getData("agentId")
+              if (id) setSelectedAgent(id)
+              setDragOver(false)
+            }}
+            className={`flex items-center justify-center rounded-lg border-2 border-dashed h-11 transition-all ${
+              dragOver
+                ? "border-primary bg-primary/10 scale-[1.01]"
+                : selectedAgent
+                  ? "border-emerald-400/60 bg-emerald-50/40 dark:bg-emerald-950/20"
+                  : "border-border bg-muted/20 hover:border-primary/30"
+            }`}
+          >
+            {selectedAgent ? (() => {
+              const a = agents.find(a => a.agentId === selectedAgent)
+              const initials = a ? a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "?"
+              const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
+              const color = a ? agentColors[agents.indexOf(a) % agentColors.length] : "bg-muted"
+              return (
+                <div className="flex items-center gap-2">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${color}`}>{initials}</div>
+                  <span className="text-sm font-medium">{a?.name ?? "Agent"}</span>
+                  <span className="text-xs text-muted-foreground">ready</span>
+                  <button onClick={() => setSelectedAgent("")} className="ml-1 text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )
+            })() : (
+              <p className="text-xs text-muted-foreground select-none">
+                {dragOver ? "⬇ Drop to assign" : "← drag an agent here"}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Toolbar: Load / Search / Run */}
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="outline" size="sm" onClick={loadContacts} disabled={loading || launched} className="gap-1.5">
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -389,74 +466,6 @@ export function CRMContent() {
               {launching ? "Launching..." : `Run Auditor${selected.size > 0 ? ` (${selected.size})` : ""}`}
             </Button>
           </>
-        )}
-        {/* Agent drag-and-drop assignment */}
-        {contacts.length > 0 && !launched && (
-          <div className="rounded-lg border bg-muted/30 p-3 space-y-2.5">
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Assign Agent</p>
-            <div className="flex flex-wrap gap-2">
-              {agents.map(a => {
-                const isAssigned = selectedAgent === a.agentId
-                return (
-                  <div
-                    key={a.agentId}
-                    draggable
-                    onDragStart={e => { e.dataTransfer.setData("agentId", a.agentId); e.dataTransfer.effectAllowed = "move" }}
-                    onClick={() => setSelectedAgent(isAssigned ? "" : a.agentId)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-grab active:cursor-grabbing select-none transition-all ${
-                      isAssigned
-                        ? "border-primary bg-primary/10 text-primary shadow-sm"
-                        : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5"
-                    }`}
-                  >
-                    <GripVertical className="w-3 h-3 opacity-40" />
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      a.status === "running" ? "bg-emerald-500" : "bg-muted-foreground/40"
-                    }`} />
-                    {a.name}
-                    {isAssigned && <CheckCircle2 className="w-3 h-3 text-primary ml-0.5" />}
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Drop zone */}
-            <div
-              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={e => {
-                e.preventDefault()
-                const id = e.dataTransfer.getData("agentId")
-                if (id) setSelectedAgent(id)
-                setDragOver(false)
-              }}
-              className={`flex items-center justify-center rounded-lg border-2 border-dashed h-12 transition-all ${
-                dragOver
-                  ? "border-primary bg-primary/10 scale-[1.01]"
-                  : selectedAgent
-                    ? "border-emerald-400/60 bg-emerald-50/40 dark:bg-emerald-950/20"
-                    : "border-border bg-muted/20 hover:border-primary/40"
-              }`}
-            >
-              {selectedAgent ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="font-medium">{agents.find(a => a.agentId === selectedAgent)?.name ?? "Agent"}</span>
-                  <span className="text-xs text-muted-foreground">assigned</span>
-                  <button
-                    onClick={() => setSelectedAgent("")}
-                    className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {dragOver ? "⬇ Drop here to assign" : "Drag an agent here — or click one above"}
-                </p>
-              )}
-            </div>
-          </div>
         )}
 
         {/* Filter row */}
