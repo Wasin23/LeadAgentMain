@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2 } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
@@ -47,6 +47,9 @@ export function CRMContent() {
   const [completedCount, setCompletedCount] = useState(0)
   const [totalQueued, setTotalQueued]       = useState(0)
   const [statusLine, setStatusLine]         = useState("")
+  const [page, setPage]                     = useState(1)
+  const [companyFilter, setCompanyFilter]   = useState("")
+  const [sourceFilter, setSourceFilter]     = useState("")
 
   // ── saved contacts (DB-persisted) ──
   const [savedContacts, setSavedContacts]   = useState<CRMContact[]>([])
@@ -167,6 +170,9 @@ export function CRMContent() {
     setCompletedCount(0)
     setTotalQueued(0)
     setStatusLine("")
+    setPage(1)
+    setCompanyFilter("")
+    setSourceFilter("")
     esRef.current?.close()
     esRef.current = null
     try {
@@ -182,13 +188,42 @@ export function CRMContent() {
     }
   }
 
+  const PAGE_SIZE = 50
+
+  const companies = useMemo(() => {
+    const seen = new Set<string>()
+    return contacts.reduce<string[]>((acc, c) => {
+      if (c.company && !seen.has(c.company)) { seen.add(c.company); acc.push(c.company) }
+      return acc
+    }, []).sort()
+  }, [contacts])
+
+  const sources = useMemo(() => {
+    const seen = new Set<string>()
+    return contacts.reduce<string[]>((acc, c) => {
+      if (c.source && !seen.has(c.source)) { seen.add(c.source); acc.push(c.source) }
+      return acc
+    }, []).sort()
+  }, [contacts])
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return contacts
-    const q = search.toLowerCase()
-    return contacts.filter(c =>
-      `${c.firstName} ${c.lastName} ${c.email} ${c.company} ${c.title}`.toLowerCase().includes(q)
-    )
-  }, [contacts, search])
+    let list = contacts
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(c =>
+        `${c.firstName} ${c.lastName} ${c.email} ${c.company} ${c.title}`.toLowerCase().includes(q)
+      )
+    }
+    if (companyFilter) list = list.filter(c => c.company === companyFilter)
+    if (sourceFilter)  list = list.filter(c => c.source  === sourceFilter)
+    return list
+  }, [contacts, search, companyFilter, sourceFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated  = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page])
+
+  // reset to page 1 whenever any filter changes
+  useEffect(() => { setPage(1) }, [search, companyFilter, sourceFilter])
 
   const toggleContact = (id: string) => {
     setSelected(prev => {
@@ -344,12 +379,12 @@ export function CRMContent() {
         </Button>
         {contacts.length > 0 && !launched && (
           <>
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 min-w-[160px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input placeholder="Search contacts..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-sm" />
+              <Input placeholder="Search name, email, company…" value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-sm" />
             </div>
             <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-              <SelectTrigger className="h-8 text-sm w-[180px]"><SelectValue placeholder="Select agent" /></SelectTrigger>
+              <SelectTrigger className="h-8 text-sm w-[160px]"><SelectValue placeholder="Select agent" /></SelectTrigger>
               <SelectContent>{agents.map(a => (<SelectItem key={a.agentId} value={a.agentId}>{a.name}</SelectItem>))}</SelectContent>
             </Select>
             <Button size="sm" onClick={launchAgent} disabled={launching || selected.size === 0} className="gap-1.5">
@@ -358,6 +393,42 @@ export function CRMContent() {
             </Button>
           </>
         )}
+        {/* Filter row */}
+        {contacts.length > 0 && !launched && (companies.length > 1 || sources.length > 1) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {companies.length > 1 && (
+              <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                <SelectTrigger className="h-7 text-xs w-[170px]">
+                  <SelectValue placeholder="All companies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All companies</SelectItem>
+                  {companies.map(co => <SelectItem key={co} value={co}>{co}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            {sources.length > 1 && (
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="h-7 text-xs w-[140px]">
+                  <SelectValue placeholder="All sources" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All sources</SelectItem>
+                  {sources.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            {(companyFilter || sourceFilter) && (
+              <button
+                onClick={() => { setCompanyFilter(""); setSourceFilter("") }}
+                className="text-[10px] text-muted-foreground hover:text-foreground underline transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+
         {launched && totalQueued > 0 && (
           <div className="flex items-center gap-3 flex-1">
             <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -402,10 +473,37 @@ export function CRMContent() {
       {contacts.length > 0 && (
         <div className="space-y-1.5">
           {!launched && (
-            <div className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground flex-wrap">
               <Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} />
-              <span>{selected.size > 0 ? `${selected.size} of ${filtered.length} selected` : `${filtered.length} contacts${search ? " matching" : ""}`}</span>
-              {contacts.length !== filtered.length && (<Badge variant="secondary" className="text-[10px]">{contacts.length} total</Badge>)}
+              <span className="shrink-0">
+                {selected.size > 0
+                  ? <><span className="font-medium text-foreground">{selected.size}</span> of {filtered.length} selected</>              
+                  : <>{filtered.length} contacts{(companyFilter || sourceFilter || search) ? " matching" : ""}</>}
+              </span>
+              {contacts.length !== filtered.length && (
+                <Badge variant="secondary" className="text-[10px]">{contacts.length} total</Badge>
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                {selected.size < filtered.length && (
+                  <button onClick={() => setSelected(new Set(filtered.map(c => c.crmId || c.email)))} className="text-[10px] hover:text-foreground underline transition-colors">
+                    Select all {filtered.length}
+                  </button>
+                )}
+                {selected.size < paginated.length && selected.size < filtered.length && (
+                  <>
+                    <span className="opacity-30">·</span>
+                    <button onClick={() => setSelected(prev => { const n = new Set(prev); paginated.forEach(c => n.add(c.crmId || c.email)); return n })} className="text-[10px] hover:text-foreground underline transition-colors">
+                      + this page
+                    </button>
+                  </>
+                )}
+                {selected.size > 0 && (
+                  <>
+                    <span className="opacity-30">·</span>
+                    <button onClick={() => setSelected(new Set())} className="text-[10px] hover:text-foreground underline transition-colors">Clear</button>
+                  </>
+                )}
+              </div>
             </div>
           )}
           {launched && (
@@ -425,8 +523,9 @@ export function CRMContent() {
               </button>
             </div>
           )}
-          {filtered.map((c, i) => {
+          {paginated.map((c, i) => {
             const id         = c.crmId || c.email
+            const globalIdx  = (page - 1) * PAGE_SIZE + i
             const isSelected = selected.has(id)
             const isScanning = scanningId === id
             const isExiting  = exitingIds.has(id)
@@ -438,7 +537,7 @@ export function CRMContent() {
                 >
                   <CardContent className="px-3 py-2.5 flex items-center gap-3">
                     {!launched && (<Checkbox checked={isSelected} onCheckedChange={() => toggleContact(id)} onClick={e => e.stopPropagation()} />)}
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 ${avatarColor(i)} ${isScanning ? "animate-pulse ring-2 ring-blue-400 ring-offset-1" : ""}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 ${avatarColor(globalIdx)} ${isScanning ? "animate-pulse ring-2 ring-blue-400 ring-offset-1" : ""}`}>
                       {isScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : initials(c)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -459,6 +558,32 @@ export function CRMContent() {
               </div>
             )
           })}
+
+          {/* Pagination bar */}
+          {!launched && totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2 px-1">
+              <span className="text-xs text-muted-foreground">
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-xs text-muted-foreground px-1">pg {page} / {totalPages}</span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
