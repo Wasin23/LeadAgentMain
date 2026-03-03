@@ -4009,7 +4009,11 @@ Format as:
           ``,
           `Then:`,
           `SUBJECT_TYPE: "statement" = claim you can defend with facts | "question" = they genuinely want to answer it | "intrigue" = frame alone creates curiosity`,
-          `SUBJECT: The actual subject line. Max 8 words. Specific to the angle. No generic FOMO questions.`,
+          `SUBJECT: The actual subject line. Max 8 words. MUST be provocative — a bold claim, a named flaw, a sharp tension, or a pointed question they'll genuinely want to answer.`,
+          `The subject should create mild discomfort or sharp curiosity. Safe, diplomatic, or corporate subjects will be ignored.`,
+          `GOOD: "Your BD pipeline is probably broken" | "The $575M bet Post Brothers made" | "Why tokenization changes your margin math"`,
+          `BAD: "Innovative solutions for your company" | "Quick question about Citizens National" | "Exploring opportunities together"`,
+          `No generic FOMO questions. No "Are you missing X?" unless the angle is genuinely non-obvious.`,
           ``,
           ...(employeeCount && parseInt(employeeCount) >= 500 ? [
             `⚠️  ENTERPRISE TONE RULE: This company has ${employeeCount} employees — they are a large, established organization.`,
