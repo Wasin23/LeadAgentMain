@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, X, GripVertical } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
@@ -50,6 +50,7 @@ export function CRMContent() {
   const [page, setPage]                     = useState(1)
   const [companyFilter, setCompanyFilter]   = useState("__all__")
   const [sourceFilter, setSourceFilter]     = useState("__all__")
+  const [dragOver, setDragOver]             = useState(false)
 
   // ── saved contacts (DB-persisted) ──
   const [savedContacts, setSavedContacts]   = useState<CRMContact[]>([])
@@ -383,16 +384,81 @@ export function CRMContent() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input placeholder="Search name, email, company…" value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-sm" />
             </div>
-            <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-              <SelectTrigger className="h-8 text-sm w-[160px]"><SelectValue placeholder="Select agent" /></SelectTrigger>
-              <SelectContent>{agents.map(a => (<SelectItem key={a.agentId} value={a.agentId}>{a.name}</SelectItem>))}</SelectContent>
-            </Select>
-            <Button size="sm" onClick={launchAgent} disabled={launching || selected.size === 0} className="gap-1.5">
+            <Button size="sm" onClick={launchAgent} disabled={launching || selected.size === 0 || !selectedAgent} className="gap-1.5">
               <Play className="w-3.5 h-3.5" />
               {launching ? "Launching..." : `Run Auditor${selected.size > 0 ? ` (${selected.size})` : ""}`}
             </Button>
           </>
         )}
+        {/* Agent drag-and-drop assignment */}
+        {contacts.length > 0 && !launched && (
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2.5">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Assign Agent</p>
+            <div className="flex flex-wrap gap-2">
+              {agents.map(a => {
+                const isAssigned = selectedAgent === a.agentId
+                return (
+                  <div
+                    key={a.agentId}
+                    draggable
+                    onDragStart={e => { e.dataTransfer.setData("agentId", a.agentId); e.dataTransfer.effectAllowed = "move" }}
+                    onClick={() => setSelectedAgent(isAssigned ? "" : a.agentId)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-grab active:cursor-grabbing select-none transition-all ${
+                      isAssigned
+                        ? "border-primary bg-primary/10 text-primary shadow-sm"
+                        : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5"
+                    }`}
+                  >
+                    <GripVertical className="w-3 h-3 opacity-40" />
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      a.status === "running" ? "bg-emerald-500" : "bg-muted-foreground/40"
+                    }`} />
+                    {a.name}
+                    {isAssigned && <CheckCircle2 className="w-3 h-3 text-primary ml-0.5" />}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => {
+                e.preventDefault()
+                const id = e.dataTransfer.getData("agentId")
+                if (id) setSelectedAgent(id)
+                setDragOver(false)
+              }}
+              className={`flex items-center justify-center rounded-lg border-2 border-dashed h-12 transition-all ${
+                dragOver
+                  ? "border-primary bg-primary/10 scale-[1.01]"
+                  : selectedAgent
+                    ? "border-emerald-400/60 bg-emerald-50/40 dark:bg-emerald-950/20"
+                    : "border-border bg-muted/20 hover:border-primary/40"
+              }`}
+            >
+              {selectedAgent ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span className="font-medium">{agents.find(a => a.agentId === selectedAgent)?.name ?? "Agent"}</span>
+                  <span className="text-xs text-muted-foreground">assigned</span>
+                  <button
+                    onClick={() => setSelectedAgent("")}
+                    className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {dragOver ? "⬇ Drop here to assign" : "Drag an agent here — or click one above"}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Filter row */}
         {contacts.length > 0 && !launched && (companies.length > 1 || sources.length > 1) && (
           <div className="flex flex-wrap items-center gap-2">
