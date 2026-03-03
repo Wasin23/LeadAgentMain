@@ -3474,30 +3474,38 @@ class AWSManager {
 
   async saveCRMContacts(userId, contacts = []) {
     if (!contacts.length) return { success: true };
+    const now = new Date().toISOString();
+    // Use UpdateCommand with if_not_exists(status) so re-importing never resets 'emailed' → 'queued'
     const chunks = [];
     for (let i = 0; i < contacts.length; i += 25) chunks.push(contacts.slice(i, i + 25));
     for (const chunk of chunks) {
-      await this.dynamodb.send(new BatchWriteCommand({
-        RequestItems: {
-          [this.tables.crmContacts]: chunk.map(c => ({
-            PutRequest: {
-              Item: {
-                userId,
-                contactId: c.crmId || c.email,
-                email:     c.email     || '',
-                firstName: c.firstName || '',
-                lastName:  c.lastName  || '',
-                title:     c.title     || '',
-                phone:     c.phone     || '',
-                company:   c.company   || '',
-                source:    c.source    || 'crm',
-                status:    c.status    || 'queued',
-                savedAt:   new Date().toISOString(),
-              }
-            }
-          }))
-        }
-      }));
+      await Promise.all(chunk.map(c => this.dynamodb.send(new UpdateCommand({
+        TableName: this.tables.crmContacts,
+        Key: { userId, contactId: c.crmId || c.email },
+        UpdateExpression: [
+          'SET email = :email',
+          'firstName = :fn',
+          'lastName = :ln',
+          'title = :ti',
+          'phone = :ph',
+          'company = :co',
+          '#src = :src',
+          '#status = if_not_exists(#status, :queued)',
+          'savedAt = :now',
+        ].join(', '),
+        ExpressionAttributeNames: { '#src': 'source', '#status': 'status' },
+        ExpressionAttributeValues: {
+          ':email':  c.email     || '',
+          ':fn':     c.firstName || '',
+          ':ln':     c.lastName  || '',
+          ':ti':     c.title     || '',
+          ':ph':     c.phone     || '',
+          ':co':     c.company   || '',
+          ':src':    c.source    || 'crm',
+          ':queued': 'queued',
+          ':now':    now,
+        },
+      }))))
     }
     return { success: true };
   }

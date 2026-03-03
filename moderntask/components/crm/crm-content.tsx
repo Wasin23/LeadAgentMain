@@ -48,8 +48,8 @@ export function CRMContent() {
   const [totalQueued, setTotalQueued]       = useState(0)
   const [statusLine, setStatusLine]         = useState("")
   const [page, setPage]                     = useState(1)
-  const [companyFilter, setCompanyFilter]   = useState("")
-  const [sourceFilter, setSourceFilter]     = useState("")
+  const [companyFilter, setCompanyFilter]   = useState("__all__")
+  const [sourceFilter, setSourceFilter]     = useState("__all__")
 
   // ── saved contacts (DB-persisted) ──
   const [savedContacts, setSavedContacts]   = useState<CRMContact[]>([])
@@ -171,8 +171,8 @@ export function CRMContent() {
     setTotalQueued(0)
     setStatusLine("")
     setPage(1)
-    setCompanyFilter("")
-    setSourceFilter("")
+    setCompanyFilter("__all__")
+    setSourceFilter("__all__")
     esRef.current?.close()
     esRef.current = null
     try {
@@ -214,15 +214,15 @@ export function CRMContent() {
         `${c.firstName} ${c.lastName} ${c.email} ${c.company} ${c.title}`.toLowerCase().includes(q)
       )
     }
-    if (companyFilter) list = list.filter(c => c.company === companyFilter)
-    if (sourceFilter)  list = list.filter(c => c.source  === sourceFilter)
+    if (companyFilter && companyFilter !== "__all__") list = list.filter(c => c.company === companyFilter)
+    if (sourceFilter  && sourceFilter  !== "__all__") list = list.filter(c => c.source  === sourceFilter)
     return list
   }, [contacts, search, companyFilter, sourceFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated  = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page])
 
-  // reset to page 1 whenever any filter changes
+  // reset to page 1 whenever any filter changes (ignore sentinel value)
   useEffect(() => { setPage(1) }, [search, companyFilter, sourceFilter])
 
   const toggleContact = (id: string) => {
@@ -402,7 +402,7 @@ export function CRMContent() {
                   <SelectValue placeholder="All companies" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All companies</SelectItem>
+                  <SelectItem value="__all__">All companies</SelectItem>
                   {companies.map(co => <SelectItem key={co} value={co}>{co}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -413,14 +413,14 @@ export function CRMContent() {
                   <SelectValue placeholder="All sources" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All sources</SelectItem>
+                  <SelectItem value="__all__">All sources</SelectItem>
                   {sources.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}
-            {(companyFilter || sourceFilter) && (
+            {(companyFilter !== "__all__" || sourceFilter !== "__all__") && (
               <button
-                onClick={() => { setCompanyFilter(""); setSourceFilter("") }}
+                onClick={() => { setCompanyFilter("__all__"); setSourceFilter("__all__") }}
                 className="text-[10px] text-muted-foreground hover:text-foreground underline transition-colors"
               >
                 Clear filters
