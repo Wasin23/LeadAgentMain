@@ -4312,6 +4312,13 @@ DISQUALIFYING OPENERS — if your opener matches any pattern below, rewrite it:
 ❌ "Without adopting X, you risk..." — conditional fear
 ❌ "[Company] faces the risk of falling behind" — FOMO framing
 ❌ Any sentence using "might", "could", "may", "perhaps", "potentially" — hedging is weakness
+❌ "[Company] has built a reputation on..." — compliment opener
+❌ "[Company] has established itself as..." — compliment opener
+❌ "Is [Company] ready for..." — condescending question
+❌ "Is [Company] missing..." — condescending question
+❌ "As [Company] continues to grow..." — generic setup
+❌ "[Company]'s growth is impressive, but..." — compliment+pivot
+❌ Starting with a trend, market shift, or industry observation of any kind — these apply to every company, not this one
 
 SPECIFICITY TEST: Would this exact first sentence work for ANY company in this industry?
 If yes → too generic. Rewrite it using something true only about THIS company.
@@ -4651,8 +4658,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       
       // Minimal compliance footer - less promotional looking
-      const companyWebsite = this.memory.userSettings?.companyProfile?.website ||
-                             emailSettings.companyBranding?.website || '';
+      const companyWebsite = emailSettings.companyBranding?.companyWebsite ||
+                             emailSettings.companyBranding?.website ||
+                             this.memory.userSettings?.companyProfile?.website ||
+                             this.memory.userSettings?.companyProfile?.companyWebsite || '';
       const footerParts = [emailSettings.companyBranding?.companyName || 'Our Company'];
       if (companyWebsite) footerParts.push(companyWebsite);
       const footer = `\n\n${footerParts.join(' | ')}\n` +
