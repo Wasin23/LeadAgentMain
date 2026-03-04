@@ -774,8 +774,9 @@ class AWSEmailQueue {
         this._invalidateCache(userId);
 
         // Update counters: decrement old status, increment new status
+        // Skip counter update when transitioning to the same status (e.g. SENT→SENT metadata-only updates)
         const trackedStatuses = ['QUEUED', 'SENT', 'REPLIED'];
-        if (trackedStatuses.includes(oldStatus) || trackedStatuses.includes(newStatus)) {
+        if (oldStatus !== newStatus && (trackedStatuses.includes(oldStatus) || trackedStatuses.includes(newStatus))) {
           const increments = {};
           if (trackedStatuses.includes(oldStatus)) increments[oldStatus.toLowerCase()] = -1;
           if (trackedStatuses.includes(newStatus)) increments[newStatus.toLowerCase()] = 1;
