@@ -7,16 +7,21 @@ import { Button } from "@/components/ui/button"
 import {
   ArrowRight, CheckCircle, Mail, Search, Zap, BarChart3,
   ChevronDown, ChevronUp,
+  Bot, Building2, Inbox, Clock, XCircle, CheckCircle2,
+  Calendar, CheckSquare, Square,
 } from "lucide-react"
 
 const SAMPLE_EMAILS = [
   {
     to: "sarah.chen@growthlab.io",
     name: "Sarah Chen",
+    company: "GrowthLab",
     title: "VP of Sales, GrowthLab",
     subject: "Re: scaling outbound past 50 reps",
     tag: "Initial Outreach",
     tagColor: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    rebump: false,
+    time: "2m ago",
     body: `Hi Sarah,
 
 Saw GrowthLab just crossed 200 employees on LinkedIn — congrats. Companies at that stage usually hit a wall where the process that worked at 20 reps becomes a bottleneck at 50.
@@ -32,10 +37,13 @@ Alex`,
   {
     to: "marcus.j@elevatedmedia.co",
     name: "Marcus Johnson",
+    company: "Elevated Media",
     title: "Founder, Elevated Media",
     subject: "Elevated Media + enterprise pipeline",
     tag: "Follow-up · Day 4",
     tagColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    rebump: true,
+    time: "5m ago",
     body: `Hey Marcus,
 
 Circling back from last week. Noticed you posted about landing your first $50K retainer — congrats, that's a real milestone.
@@ -46,6 +54,27 @@ If adding 2-3 enterprise conversations per month is something you're thinking ab
 
 — Alex`,
     detail: "Detected a public LinkedIn post about a recent client win and referenced it naturally in the follow-up message.",
+  },
+  {
+    to: "priya.k@quantumsales.io",
+    name: "Priya Kapoor",
+    company: "Quantum Sales",
+    title: "Head of Revenue, Quantum Sales",
+    subject: "Automating your SDR research workflow",
+    tag: "Initial Outreach",
+    tagColor: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    rebump: false,
+    time: "11m ago",
+    body: `Hi Priya,
+
+Noticed Quantum Sales recently expanded into the mid-market segment — that typically means your SDRs are spending more time on research per account, not less.
+
+We help teams like yours cut that research time by about 80% while keeping the emails personal enough to actually get replies.
+
+Open to a quick look?
+
+Alex`,
+    detail: "Cross-referenced company blog post about mid-market expansion with LinkedIn job postings for SDR roles.",
   },
 ]
 
@@ -102,8 +131,6 @@ export default function LandingPage() {
   }, [user, loading, router])
 
   if (loading || user) return null
-
-  const email = SAMPLE_EMAILS[activeEmail]
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
@@ -170,55 +197,83 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right: Live email preview */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl">
-            <div className="px-5 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400/60" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400/60" />
-                <div className="w-3 h-3 rounded-full bg-green-400/60" />
-              </div>
-              <div className="text-xs text-muted-foreground font-medium">Meridian · Outbox</div>
-              <div className="w-16" />
+          {/* Right: Email queue replica */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xl">
+            {/* Queue header */}
+            <div className="px-5 py-3.5 border-b border-border flex items-center gap-2">
+              <Inbox className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-sm font-semibold">Queued Emails</span>
+              <span className="px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">{SAMPLE_EMAILS.length}</span>
+              <span className="hidden sm:flex items-center gap-1 text-[10px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5 ml-0.5">
+                <Clock className="w-2.5 h-2.5" />
+                auto-sending Mon–Fri · 9:00 AM
+              </span>
+              <button className="ml-auto flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground font-medium shrink-0">
+                <Calendar className="w-3 h-3" />
+                Schedule for Send
+              </button>
             </div>
 
-            <div className="grid grid-cols-5">
-              {/* Email list */}
-              <div className="col-span-2 border-r border-border p-3 space-y-2 bg-muted/10">
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-3">Sending now</div>
-                {SAMPLE_EMAILS.map((e, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveEmail(i)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all ${
-                      activeEmail === i
-                        ? "border-primary/50 bg-primary/5"
-                        : "border-border bg-card hover:bg-muted/30"
-                    }`}
-                  >
-                    <div className="text-xs font-semibold text-foreground truncate mb-0.5">{e.name}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">{e.title}</div>
-                    <div className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full border mt-1.5 inline-block ${e.tagColor}`}>{e.tag}</div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Email preview */}
-              <div className="col-span-3 p-5 flex flex-col min-h-[320px]">
-                <div className="mb-4">
-                  <div className="text-xs text-muted-foreground mb-1">To: <span className="text-foreground">{email.to}</span></div>
-                  <div className="text-sm font-semibold text-foreground mb-3">{email.subject}</div>
-                </div>
-                <pre className="text-[11px] sm:text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed font-sans flex-1">
-                  {email.body}
-                </pre>
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="text-[10px] text-muted-foreground/60 italic flex items-start gap-1.5">
-                    <Zap className="w-3 h-3 mt-0.5 shrink-0 text-primary/60" />
-                    {email.detail}
+            {/* Email rows */}
+            <div className="divide-y divide-border">
+              {SAMPLE_EMAILS.map((e, i) => (
+                <div
+                  key={i}
+                  onClick={() => setActiveEmail(activeEmail === i ? -1 : i)}
+                  className={`flex gap-3 py-3 px-4 border-l-2 cursor-pointer transition-colors ${
+                    activeEmail === i ? "border-l-primary bg-primary/5" : "border-l-transparent hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="shrink-0 mt-0.5">
+                    {activeEmail === i
+                      ? <CheckSquare className="w-4 h-4 text-primary" />
+                      : <Square className="w-4 h-4 text-muted-foreground" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                          <span className="font-medium text-foreground text-xs">{e.name}</span>
+                          <span className="text-muted-foreground flex items-center gap-0.5 text-[10px]">
+                            <Building2 className="w-2.5 h-2.5" />{e.company}
+                          </span>
+                        </div>
+                        <p className="font-medium text-foreground text-xs truncate">{e.subject}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[10px]">
+                          <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{e.time}</span>
+                          <span className="text-muted-foreground flex items-center gap-1"><Bot className="w-2.5 h-2.5" />Alex</span>
+                          {e.rebump && (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-orange-500/30 bg-orange-500/10 text-orange-400">Follow-up</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={ev => ev.stopPropagation()}
+                          className="h-7 text-[11px] gap-1 bg-primary hover:bg-primary/90 text-primary-foreground px-2.5 rounded-md flex items-center font-medium transition-colors"
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Send
+                        </button>
+                        <button
+                          onClick={ev => ev.stopPropagation()}
+                          className="h-7 w-7 p-0 border border-destructive/40 text-destructive hover:bg-destructive/10 rounded-md flex items-center justify-center transition-colors"
+                        >
+                          <XCircle className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    {activeEmail === i && (
+                      <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border text-muted-foreground whitespace-pre-wrap leading-relaxed text-[10px] max-h-52 overflow-y-auto">
+                        {e.body}
+                        <div className="mt-3 pt-3 border-t border-border flex items-start gap-1.5">
+                          <Zap className="w-3 h-3 mt-0.5 shrink-0 text-primary/60" />
+                          <span className="italic text-muted-foreground/60">{e.detail}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
