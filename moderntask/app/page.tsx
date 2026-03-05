@@ -178,7 +178,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-base sm:text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
-              Meridian researches your leads, writes personalized cold emails, handles follow-ups, and surfaces replies — all from your own inbox. No templates. No spray-and-pray.
+              Meridian finds your leads, researches each one, writes a personalized cold email, handles follow-ups, and surfaces replies — all from your own inbox. No templates. No spray-and-pray.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-10">
@@ -233,13 +233,13 @@ export default function LandingPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-                          <span className="font-medium text-foreground text-xs">{e.name}</span>
-                          <span className="text-muted-foreground flex items-center gap-0.5 text-[10px]">
-                            <Building2 className="w-2.5 h-2.5" />{e.company}
+                          <span className="font-medium text-foreground text-sm">{e.name}</span>
+                          <span className="text-muted-foreground flex items-center gap-0.5 text-xs">
+                            <Building2 className="w-3 h-3" />{e.company}
                           </span>
                         </div>
                         <p className="font-medium text-foreground text-xs truncate">{e.subject}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[10px]">
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs">
                           <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{e.time}</span>
                           <span className="text-muted-foreground flex items-center gap-1"><Bot className="w-2.5 h-2.5" />Alex</span>
                           {e.rebump && (
@@ -263,11 +263,11 @@ export default function LandingPage() {
                       </div>
                     </div>
                     {activeEmail === i && (
-                      <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border text-muted-foreground whitespace-pre-wrap leading-relaxed text-[10px] max-h-52 overflow-y-auto">
+                      <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border text-muted-foreground whitespace-pre-wrap leading-relaxed text-xs max-h-56 overflow-y-auto">
                         {e.body}
                         <div className="mt-3 pt-3 border-t border-border flex items-start gap-1.5">
                           <Zap className="w-3 h-3 mt-0.5 shrink-0 text-primary/60" />
-                          <span className="italic text-muted-foreground/60">{e.detail}</span>
+                          <span className="italic text-muted-foreground/60 text-[11px]">{e.detail}</span>
                         </div>
                       </div>
                     )}
