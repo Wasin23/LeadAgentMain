@@ -24,7 +24,7 @@ const SAMPLE_EMAILS = [
     time: "2m ago",
     body: `Hi Sarah,
 
-Saw GrowthLab just crossed 200 employees on LinkedIn — congrats. Companies at that stage usually hit a wall where the process that worked at 20 reps becomes a bottleneck at 50.
+Saw GrowthLab just crossed 200 employees on LinkedIn. Companies at that stage usually hit a wall where the process that worked at 20 reps becomes a bottleneck at 50.
 
 Most teams I talk to are dealing with one of two things: reps spending 60%+ of their time on prospecting instead of selling, or sequences that aren't personal enough to cut through the noise.
 
@@ -46,13 +46,13 @@ Alex`,
     time: "5m ago",
     body: `Hey Marcus,
 
-Circling back from last week. Noticed you posted about landing your first $50K retainer — congrats, that's a real milestone.
+Circling back from last week. Noticed you posted about landing your first $50K retainer. That's a real milestone.
 
 Agencies at that turning point usually want more enterprise accounts but don't have a repeatable way to get in front of them. Most end up just hoping referrals come in.
 
 If adding 2-3 enterprise conversations per month is something you're thinking about, happy to show you exactly how.
 
-— Alex`,
+Alex`,
     detail: "Detected a public LinkedIn post about a recent client win and referenced it naturally in the follow-up message.",
   },
   {
@@ -67,7 +67,7 @@ If adding 2-3 enterprise conversations per month is something you're thinking ab
     time: "11m ago",
     body: `Hi Priya,
 
-Noticed Quantum Sales recently expanded into the mid-market segment — that typically means your SDRs are spending more time on research per account, not less.
+Noticed Quantum Sales recently expanded into the mid-market segment, which typically means your SDRs are spending more time on research per account, not less.
 
 We help teams like yours cut that research time by about 80% while keeping the emails personal enough to actually get replies.
 
