@@ -42,7 +42,7 @@ function dayLabel(daysAgo: number): string {
 function isoDay(daysAgo: number): string {
   const d = new Date()
   d.setDate(d.getDate() - daysAgo)
-  return d.toISOString().split("T")[0]
+  return d.toLocaleDateString('en-CA')
 }
 
 function emailDate(email: Record<string, unknown>): Date {
@@ -189,7 +189,7 @@ export default function DashboardPage() {
         const daysAgo = 6 - i
         const dayStr = isoDay(daysAgo)
         const value = allEmailsForChart.filter((e) => {
-          const d = emailDate(e).toISOString().split("T")[0]
+          const d = emailDate(e).toLocaleDateString('en-CA')
           return d === dayStr
         }).length
         return { day: dayLabel(daysAgo), value, label: `${value} emails` }
