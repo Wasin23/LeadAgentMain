@@ -295,8 +295,8 @@ export async function checkForRebumps() {
             continue;
           }
           
-          // Skip if already has reply
-          if (email.status === 'REPLIED') {
+          // Skip if already has reply (check both status field and tracking-enriched replied flag)
+          if (email.status === 'REPLIED' || email.replied === true) {
             continue;
           }
           

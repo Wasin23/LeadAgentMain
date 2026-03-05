@@ -717,7 +717,7 @@ router.post('/mailgun-reply', async (req, res) => {
       });
     }
     
-    // Get original email metadata for enrichment
+    // Get original email metadata for enrichment and mark email as REPLIED
     let leadName = null;
     let originalSubject = null;
     try {
@@ -732,6 +732,21 @@ router.post('/mailgun-reply', async (req, res) => {
                    (emailData.from ? emailData.from.split('@')[0] : null);
         originalSubject = emailData_original.subject || emailData_original.emailSubject;
         console.log(`[WEBHOOK] Enriched reply metadata: leadName=${leadName}, subject=${originalSubject}`);
+
+        // Mark email status as REPLIED so rebumpChecker skips all follow-ups for this lead
+        const emailId = emailData_original.id;
+        if (emailId && emailData_original.status !== 'REPLIED') {
+          try {
+            await queueInstance.markEmailAsReplied(userId, agentId, emailId, {
+              from: emailData.from,
+              subject: emailData.subject,
+              body: emailData.body?.substring(0, 500)
+            });
+            console.log(`✅ [WEBHOOK] Marked email ${emailId} as REPLIED — follow-ups will be suppressed`);
+          } catch (markErr) {
+            console.error(`❌ [WEBHOOK] Failed to mark email as REPLIED:`, markErr.message);
+          }
+        }
       }
     } catch (err) {
       console.error('[WEBHOOK] Error fetching original email metadata:', err.message);
@@ -1050,6 +1065,26 @@ export async function processGmailReply(userId, message) {
         timestamp: new Date().toISOString()
       });
       console.log(`✅ [OUTREACH] Reply event logged successfully`);
+
+      // Mark the original email as REPLIED so follow-ups are suppressed
+      if (extractedUserId && agentId) {
+        try {
+          const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
+          const queueInstance = new awsQueue();
+          const sentEmails = await queueInstance.getSentEmails(extractedUserId, agentId);
+          const originalEmail = sentEmails.find(e => e.trackingId === trackingId);
+          if (originalEmail && originalEmail.id && originalEmail.status !== 'REPLIED') {
+            await queueInstance.markEmailAsReplied(extractedUserId, agentId, originalEmail.id, {
+              from: message.from,
+              subject: message.subject,
+              body: message.body?.substring(0, 500)
+            });
+            console.log(`✅ [GMAIL REPLY] Marked email ${originalEmail.id} as REPLIED — follow-ups will be suppressed`);
+          }
+        } catch (markErr) {
+          console.error(`❌ [GMAIL REPLY] Failed to mark email as REPLIED:`, markErr.message);
+        }
+      }
       
       // Broadcast to SSE clients for real-time UI updates
       if (broadcastAIResponse) {
