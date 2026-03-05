@@ -226,7 +226,7 @@ export default function LandingPage() {
 
       {/* Social proof bar */}
       <div className="border-y border-border bg-muted/20 px-6 sm:px-10 py-5">
-        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-8 sm:gap-16 text-center">
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-8 sm:gap-14 text-center">
           {[
             { n: "500+", l: "Free credits to start" },
             { n: "< 10 min", l: "Setup time" },
@@ -238,6 +238,11 @@ export default function LandingPage() {
               <div className="text-xs text-muted-foreground mt-0.5">{s.l}</div>
             </div>
           ))}
+          <div>
+            <div className="text-xl sm:text-2xl font-bold text-foreground">17% <span className="text-sm font-semibold text-muted-foreground">vs 1–3%</span></div>
+            <div className="text-xs text-muted-foreground mt-0.5">reply rate, personalized vs generic</div>
+            <div className="text-[10px] text-muted-foreground/50 mt-0.5">Saleshandy, 100M+ emails analyzed</div>
+          </div>
         </div>
       </div>
 
@@ -358,7 +363,7 @@ export default function LandingPage() {
             <p className="text-muted-foreground">Pay for what you use. No monthly seat fees, no contracts.</p>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               {
                 name: "Free Trial",
@@ -368,7 +373,7 @@ export default function LandingPage() {
                 highlight: false,
                 cta: "Start Free",
                 features: [
-                  "500 credits (~10 full sequences)",
+                  "500 credits (~10 sequences)",
                   "Gmail or Outlook",
                   "AI lead research",
                   "Personalized email writing",
@@ -377,26 +382,26 @@ export default function LandingPage() {
               },
               {
                 name: "Starter",
-                price: "$50",
-                sub: "per 1,000 credits",
-                credits: "1,000 credits to start",
-                highlight: true,
+                price: "$500",
+                sub: "10,000 credits",
+                credits: "~1,000 full sequences",
+                highlight: false,
                 cta: "Get Started",
                 features: [
                   "Everything in Free",
                   "Top-up anytime",
-                  "Automated follow-up sequences",
+                  "Automated follow-ups",
                   "CRM pipeline",
                   "Email scheduling by timezone",
                   "Priority support",
                 ],
               },
               {
-                name: "Professional",
-                price: "$100",
-                sub: "per 2,000 credits",
-                credits: "2,000 credits to start",
-                highlight: false,
+                name: "Growth",
+                price: "$1,000",
+                sub: "20,000 credits",
+                credits: "~2,000 full sequences",
+                highlight: true,
                 cta: "Get Started",
                 features: [
                   "Everything in Starter",
@@ -405,6 +410,22 @@ export default function LandingPage() {
                   "Advanced analytics",
                   "Company intelligence",
                   "Larger top-up packages",
+                ],
+              },
+              {
+                name: "Scale",
+                price: "$2,500",
+                sub: "70,000 credits",
+                credits: "~7,000 full sequences",
+                highlight: false,
+                cta: "Get Started",
+                features: [
+                  "Everything in Growth",
+                  "Unlimited agents",
+                  "Dedicated onboarding",
+                  "Custom integrations",
+                  "SLA support",
+                  "Volume discounts",
                 ],
               },
             ].map(p => (
@@ -437,7 +458,7 @@ export default function LandingPage() {
             ))}
           </div>
           <p className="text-center text-xs text-muted-foreground mt-6">
-            Need more scale?{" "}
+            Need custom volume?{" "}
             <button className="text-primary underline-offset-2 hover:underline" onClick={() => router.push("/signin")}>
               Contact us
             </button>{" "}
