@@ -179,7 +179,7 @@ function SentRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollo
 
 // ── edit follow-up modal ──────────────────────────────────────────────────────
 // ── follow-up row (shows actual follow-up sent, not original email) ───────────
-function FollowUpRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void }) {
+function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void; onCancelFollowUp?: (e: AnalyticsEmail) => void }) {
   const [expanded, setExpanded] = useState(false)
   const rc  = email.rebumpCount  ?? 0
   const max = email.maxFollowUps ?? 1
@@ -222,8 +222,15 @@ function FollowUpRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditF
                 </Badge>
                 {isOverdue && (
                   <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-orange-400 border-orange-500/30 bg-orange-500/10">Overdue</Badge>
-                )}
-              </>
+                )}                {onCancelFollowUp && (
+                  <button
+                    title="Cancel follow-up"
+                    onClick={e => { e.stopPropagation(); onCancelFollowUp(email) }}
+                    className="text-[9px] px-1 h-4 rounded border border-destructive/30 text-destructive/70 hover:bg-destructive/10 hover:text-destructive flex items-center gap-0.5 transition-colors"
+                  >
+                    <X className="w-2.5 h-2.5" /> Cancel
+                  </button>
+                )}              </>
             ) : (
               <>
                 <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-purple-400 border-purple-500/30 bg-purple-500/10">
@@ -431,7 +438,14 @@ export function ContactedContent() {
     setLoading(false)
   }, [agentFilter])
 
-const loadAgents = useCallback(async () => {
+  const cancelFollowUp = useCallback(async (email: AnalyticsEmail) => {
+    try {
+      await api.delete(`/api/email-queue/${email.id || email.trackingId}/followup`, { data: { agentId: email.agentId } })
+      load()
+    } catch { /* silent */ }
+  }, [load])
+
+  const loadAgents = useCallback(async () => {
     try {
       const r = await api.get('/api/auth/agents')
       const list: AgentFull[] = r.data?.agents ?? []
@@ -612,7 +626,7 @@ const loadAgents = useCallback(async () => {
           ) : (
             <>
               <div className="divide-y divide-border">
-                {pagedFollowUps.map((e, i) => <FollowUpRow key={emailId(e) || i} email={e} onEditFollowUp={setEditFollowUpEmail} />)}
+                {pagedFollowUps.map((e, i) => <FollowUpRow key={emailId(e) || i} email={e} onEditFollowUp={setEditFollowUpEmail} onCancelFollowUp={cancelFollowUp} />)}
               </div>
               <Pagination page={followUpsPage} total={displayedFollowUps.length} onChange={p => { setFollowUpsPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
             </>

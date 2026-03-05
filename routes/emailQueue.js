@@ -1180,6 +1180,34 @@ router.put('/:emailId/followup', async (req, res) => {
   }
 });
 
+// Cancel a scheduled follow-up for a specific email
+router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
+  try {
+    const { emailId } = req.params;
+    const { agentId } = req.body;
+    const userId = req.user.userId;
+
+    if (!agentId) {
+      return res.status(400).json({ success: false, error: 'Agent ID is required' });
+    }
+
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+
+    await awsQueue.updateEmailStatus(userId, agentId, emailId, 'SENT', 'SENT', {
+      followUpScheduled: false,
+      followUpDate: null,
+      followUpCanceledAt: new Date().toISOString(),
+    });
+
+    console.log(`✅ [EMAIL QUEUE] Canceled follow-up for email ${emailId}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error canceling follow-up:', error);
+    res.status(500).json({ success: false, error: 'Failed to cancel follow-up', details: error.message });
+  }
+});
+
 // ── Scheduled batches helper (same algorithm as email-queue-content.tsx) ───────
 function computeSlotDate(index, schedule) {
   const { activeDays, sendTime, dailyLimit } = schedule;
