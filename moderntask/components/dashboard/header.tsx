@@ -169,7 +169,7 @@ export function Header({
     .toUpperCase()
 
   return (
-    <header className="space-y-3 md:space-y-4 animate-slide-in-up">
+    <header className="space-y-3 md:space-y-4 animate-slide-in-up relative z-10">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-1">
           <MobileNav />
