@@ -4663,7 +4663,11 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                              this.memory.userSettings?.companyProfile?.website ||
                              this.memory.userSettings?.companyProfile?.companyWebsite || '';
       const footerParts = [emailSettings.companyBranding?.companyName || 'Our Company'];
-      if (companyWebsite) footerParts.push(companyWebsite);
+      if (companyWebsite) {
+        // Use an <a> tag so click-tracking wraps only the href; display text stays clean
+        const displayHost = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        footerParts.push(`<a href="${companyWebsite}" style="color:#6b7280;text-decoration:none;">${displayHost}</a>`);
+      }
       const footer = `\n\n${footerParts.join(' | ')}\n` +
         `<a href="${unsubscribeUrl}">Stop emails</a>`;
       

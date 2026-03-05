@@ -119,6 +119,9 @@ async function buildEmailSignature(userId, userSettings) {
     if (companyProfile?.logo) {
       console.log(`✅ [EMAIL SIGNATURE] Adding company logo for user ${userId}`);
       
+      // Use companyWebsite first (correct field name), fall back to legacy .website
+      const sigWebsite = companyProfile.companyWebsite || companyProfile.website || '';
+      
       // Build signature HTML with logo
       signature = `
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-family: Arial, sans-serif;">
@@ -132,7 +135,7 @@ async function buildEmailSignature(userId, userSettings) {
                   ${companyProfile.companyName || ''}
                 </div>
                 ${companyProfile.tagline ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">${companyProfile.tagline}</div>` : ''}
-                ${companyProfile.website ? `<div style="font-size: 12px;"><a href="${companyProfile.website}" style="color: #2563eb; text-decoration: none;">${companyProfile.website}</a></div>` : ''}
+                ${sigWebsite ? `<div style="font-size: 12px;"><a href="${sigWebsite}" style="color: #2563eb; text-decoration: none;">${sigWebsite}</a></div>` : ''}
                 ${companyProfile.email ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.email}</div>` : ''}
                 ${companyProfile.phone ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.phone}</div>` : ''}
                 ${companyProfile.companyAddress ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${companyProfile.companyAddress}</div>` : ''}
