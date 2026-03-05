@@ -86,10 +86,11 @@ function addTrackingToEmail(body, trackingId) {
   const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" style="display:block;width:1px;height:1px;border:0;opacity:0;" alt="" />`;
   console.log('🖼️  Tracking pixel HTML:', trackingPixel);
   
-  // Convert links to tracked links
+  // Convert links to tracked links - but SKIP URLs already inside href="..." or src="..."
+  // so that company website links, logo images, etc. are not overwritten by the tracking redirect
   // Using disguised path /c/ instead of /api/tracking/click/ to bypass corporate filters
   const trackedBody = body.replace(
-    /(https?:\/\/[^\s<>"]+)/gi,
+    /(?<!(?:href|src)=["'])(https?:\/\/[^\s<>"]+)/gi,
     (match) => {
       if (trackingDomain.startsWith('http://') || trackingDomain.startsWith('https://')) {
         return `${trackingDomain}/c/${trackingId}?u=${encodeURIComponent(match)}`;
@@ -121,6 +122,7 @@ async function buildEmailSignature(userId, userSettings) {
       
       // Use companyWebsite first (correct field name), fall back to legacy .website
       const sigWebsite = companyProfile.companyWebsite || companyProfile.website || '';
+      const sigWebsiteDisplay = sigWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
       
       // Build signature HTML with logo
       signature = `
@@ -135,7 +137,7 @@ async function buildEmailSignature(userId, userSettings) {
                   ${companyProfile.companyName || ''}
                 </div>
                 ${companyProfile.tagline ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">${companyProfile.tagline}</div>` : ''}
-                ${sigWebsite ? `<div style="font-size: 12px;"><a href="${sigWebsite}" style="color: #2563eb; text-decoration: none;">${sigWebsite}</a></div>` : ''}
+                ${sigWebsiteDisplay ? `<div style="font-size: 12px;"><a href="${sigWebsite}" style="color: #2563eb; text-decoration: none;">${sigWebsiteDisplay}</a></div>` : ''}
                 ${companyProfile.email ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.email}</div>` : ''}
                 ${companyProfile.phone ? `<div style="font-size: 12px; color: #6b7280;">${companyProfile.phone}</div>` : ''}
                 ${companyProfile.companyAddress ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${companyProfile.companyAddress}</div>` : ''}
