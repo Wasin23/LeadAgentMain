@@ -14,7 +14,6 @@ import { UpcomingFollowUps } from "@/components/dashboard/upcoming-followups"
 import { RecentNotifications } from "@/components/dashboard/recent-notifications"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { HomeActions } from "@/components/dashboard/home-actions"
-import { GettingStarted } from "@/components/dashboard/getting-started"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 import type { QueueChartDataPoint } from "@/components/dashboard/project-analytics"
 import type { AgentProgressItem } from "@/components/dashboard/project-progress"
@@ -319,7 +318,7 @@ export default function DashboardPage() {
         <Header
           title="Home"
           description="Overview of your Meridian agents and outreach activity."
-          actions={<HomeActions />}
+          actions={<HomeActions checklist={checklist} />}
           notificationCount={notifCount}
           userName={userName}
           userEmail={userEmail}
@@ -327,8 +326,6 @@ export default function DashboardPage() {
         />
 
         <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
-          <GettingStarted checklist={checklist} />
-
           <StatsCards
             sent={counts.sent}
             queued={counts.queued}
