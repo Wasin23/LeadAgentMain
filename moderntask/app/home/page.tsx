@@ -14,6 +14,8 @@ import { UpcomingFollowUps } from "@/components/dashboard/upcoming-followups"
 import { RecentNotifications } from "@/components/dashboard/recent-notifications"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { HomeActions } from "@/components/dashboard/home-actions"
+import { GettingStarted } from "@/components/dashboard/getting-started"
+import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 import type { QueueChartDataPoint } from "@/components/dashboard/project-analytics"
 import type { AgentProgressItem } from "@/components/dashboard/project-progress"
 import type { AgentActivityItem } from "@/components/dashboard/team-collaboration"
@@ -80,6 +82,14 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [notifCount, setNotifCount] = useState(0)
 
+  // getting-started checklist (derived from live data — persists naturally)
+  const [checklist, setChecklist] = useState<GettingStartedChecklist>({
+    hasAgent: false,
+    emailConnected: false,
+    agentRan: false,
+    gotReply: false,
+  })
+
   const fetchAll = useCallback(async () => {
     // Fire all requests in parallel; silently handle individual failures
     const [
@@ -103,20 +113,28 @@ export default function DashboardPage() {
     // ── email counts ────────────────────────────────────────────────────
     if (countsRes.status === "fulfilled") {
       const d = countsRes.value.data
+      const sent = d.sent ?? 0
+      const replied = d.replied ?? 0
       setCounts({
-        sent: d.sent ?? 0,
+        sent,
         queued: d.queued ?? 0,
-        replied: d.replied ?? 0,
+        replied,
       })
+      // Update the parts of checklist that depend on counts
+      setChecklist((prev) => ({
+        ...prev,
+        agentRan: sent > 0,
+        gotReply: replied > 0,
+      }))
     }
 
     // ── agents ──────────────────────────────────────────────────────────
     if (agentsRes.status === "fulfilled") {
       const agents: Record<string, unknown>[] = agentsRes.value.data?.agents ?? []
 
-      // running count
+      // running count — only count agents that are actually running, not merely "active" (created)
       const running = agents.filter(
-        (a) => a.isRunning === true || a.status === "running" || a.status === "active"
+        (a) => a.isRunning === true || a.status === "running"
       ).length
       setRunningAgents(running)
 
@@ -144,11 +162,23 @@ export default function DashboardPage() {
 
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
+      // checklist state — derived from live agent + email data
+      const nonOrphanAgents = agents.filter((a) => a.agentId !== "orphan")
+      const anyEmailConnected = nonOrphanAgents.some((a) => {
+        const eb = ((a.settings as Record<string, unknown>)?.emailBuilder as Record<string, unknown>) || {}
+        return eb.useGmail === true || eb.useOutlook === true
+      })
+      setChecklist((prev) => ({
+        ...prev,
+        hasAgent: nonOrphanAgents.length > 0,
+        emailConnected: anyEmailConnected,
+      }))
+
       setAgentProgress(
         agents
           .filter((a) => {
             if (a.agentId === "orphan") return false
-            return a.isRunning === true || a.status === "running" || a.status === "active"
+            return a.isRunning === true || a.status === "running"
           })
           .map((a) => {
             const agentSent = (sentEmails as Record<string, unknown>[]).filter(
@@ -297,6 +327,8 @@ export default function DashboardPage() {
         />
 
         <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
+          <GettingStarted checklist={checklist} />
+
           <StatsCards
             sent={counts.sent}
             queued={counts.queued}
