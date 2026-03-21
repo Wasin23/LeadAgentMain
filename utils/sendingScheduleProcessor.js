@@ -442,7 +442,8 @@ async function tick() {
         queued.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
         // Skip emails explicitly excluded from batch sending by the user
-        queued = queued.filter(e => !e.batchExcluded);
+        // Skip emails that have a specific scheduledAt — those are handled by emailScheduler
+        queued = queued.filter(e => !e.batchExcluded && !e.scheduledAt);
 
         const toSend = queued.slice(0, remaining);
         if (toSend.length === 0) {
