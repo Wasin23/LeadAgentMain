@@ -58,10 +58,9 @@ class EmailScheduler {
   
   // Check for emails ready to send
   async checkAndSend() {
+    const now = new Date().toISOString();
+    console.log(`📅 [EMAIL SCHEDULER] checkAndSend() tick — now=${now}`);
     try {
-      console.log('📅 [EMAIL SCHEDULER] Checking for scheduled emails...');
-      
-      // Get all scheduled emails that are ready to send
       const scheduledEmails = await this.getScheduledEmailsReadyToSend();
       
       if (!scheduledEmails || scheduledEmails.length === 0) {
@@ -69,8 +68,11 @@ class EmailScheduler {
         return;
       }
       
-      console.log(`📊 [EMAIL SCHEDULER] Found ${scheduledEmails.length} email(s) ready to send`);
-      
+      console.log(`📊 [EMAIL SCHEDULER] Found ${scheduledEmails.length} email(s) ready to send:`);
+      for (const e of scheduledEmails) {
+        console.log(`   → id=${e.id} scheduledAt=${e.scheduledAt} to=${e.to || e.emailData?.finalRecipient} status-in-SK=${e.SK?.split('#')[0]}`);
+      }
+
       for (const email of scheduledEmails) {
         await this.sendScheduledEmail(email);
       }
@@ -87,8 +89,6 @@ class EmailScheduler {
       const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
       const now = new Date().toISOString();
       
-      // Scan for QUEUED emails with scheduledAt in the past/present
-      // Use the GSI to make scanning more efficient
       const response = await this.awsEmailQueue.dynamodb.send(new ScanCommand({
         TableName: this.awsEmailQueue.tableName,
         IndexName: this.awsEmailQueue.gsiName,
@@ -97,10 +97,10 @@ class EmailScheduler {
           ':queued': '#QUEUED',
           ':now': now
         },
-        // Limit to prevent too many results
         Limit: 100
       }));
-      
+
+      console.log(`📊 [EMAIL SCHEDULER] Scan found ${response.Items?.length ?? 0} item(s) with scheduledAt <= ${now}`);
       return response.Items || [];
     } catch (error) {
       console.error('[EMAIL SCHEDULER] Error fetching scheduled emails:', error);
@@ -111,15 +111,17 @@ class EmailScheduler {
   // Send a scheduled email — direct in-process send (no HTTP self-call needed)
   async sendScheduledEmail(email) {
     const { id: emailId, userId, agentId, scheduledAt } = email;
+    console.log(`📧 [EMAIL SCHEDULER] sendScheduledEmail start — id=${emailId} userId=${userId} agentId=${agentId} scheduledAt=${scheduledAt}`);
     try {
-      console.log(`📧 [EMAIL SCHEDULER] Processing email ${emailId} (scheduled for ${scheduledAt})`);
-
       const approvedEmail = await this.awsEmailQueue.approveEmail(userId, agentId, emailId);
+      console.log(`📧 [EMAIL SCHEDULER] approveEmail OK — keys=${Object.keys(approvedEmail).join(',')}`);
 
       const emailData      = approvedEmail.emailData || {};
       const finalRecipient = emailData.finalRecipient || approvedEmail.finalRecipient || approvedEmail.to;
       const finalSubject   = emailData.finalSubject   || approvedEmail.finalSubject   || approvedEmail.subject;
       const finalBody      = emailData.finalBody      || approvedEmail.finalBody      || approvedEmail.body;
+
+      console.log(`📧 [EMAIL SCHEDULER] fields — to=${finalRecipient} hasSubject=${!!finalSubject} hasBody=${!!finalBody}`);
 
       if (!finalRecipient || !finalSubject || !finalBody) {
         console.warn(`[EMAIL SCHEDULER] ⚠️ Email ${emailId} missing required fields, skipping`);
@@ -143,11 +145,14 @@ class EmailScheduler {
 
       const replyOptions = approvedEmail.replyOptions || null;
 
+      console.log(`📧 [EMAIL SCHEDULER] Calling leadEmail() for ${emailId}...`);
       const sendResult = await leadEmail(
         finalRecipient, finalSubject, finalBody,
         personInfo, userId, agentId,
         ccEmails, bccEmails, senderName, replyOptions
       );
+
+      console.log(`📧 [EMAIL SCHEDULER] leadEmail result — success=${sendResult.success} method=${sendResult.method} error=${sendResult.error || 'none'}`);
 
       if (sendResult.success) {
         await this.awsEmailQueue.markEmailAsSent(userId, agentId, emailId, {
@@ -166,6 +171,7 @@ class EmailScheduler {
 
     } catch (error) {
       console.error(`❌ [EMAIL SCHEDULER] Error sending email ${emailId}:`, error.message);
+      console.error(`❌ [EMAIL SCHEDULER] Stack:`, error.stack);
     }
   }
   
