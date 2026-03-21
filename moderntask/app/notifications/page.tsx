@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Reply, Eye, XCircle, Calendar, AlertTriangle, ArrowLeft, CheckCheck, RefreshCw, Inbox } from 'lucide-react'
+import { Bell, Reply, Eye, XCircle, Calendar, AlertTriangle, ArrowLeft, CheckCheck, RefreshCw, Inbox, Send, Mail, MessageSquare, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import api from '@/lib/api'
 import { format, formatDistanceToNow } from 'date-fns'
 
@@ -28,6 +30,7 @@ const TYPE_META: Record<NotifType, { icon: React.ElementType; bg: string; badge:
   failed_send: { icon: XCircle,      bg: 'bg-red-500/10 border-red-500/20',     badge: 'bg-red-500/20 text-red-400',     label: 'Failed' },
   meeting:     { icon: Calendar,     bg: 'bg-purple-500/10 border-purple-500/20', badge: 'bg-purple-500/20 text-purple-400', label: 'Meeting' },
   issue:       { icon: AlertTriangle, bg: 'bg-yellow-500/10 border-yellow-500/20', badge: 'bg-yellow-500/20 text-yellow-400', label: 'Issue' },
+  batch_send:  { icon: Send,         bg: 'bg-indigo-500/10 border-indigo-500/20', badge: 'bg-indigo-500/20 text-indigo-400', label: 'Batch Sent' },
 }
 
 const SEVERITY_COLORS: Record<Severity, string> = {
@@ -35,11 +38,12 @@ const SEVERITY_COLORS: Record<Severity, string> = {
 }
 
 const FILTER_TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'unread', label: 'Unread' },
-  { id: 'reply', label: 'Replies' },
-  { id: 'view', label: 'Opens' },
-  { id: 'meeting', label: 'Meetings' },
+  { id: 'all',        label: 'All' },
+  { id: 'unread',     label: 'Unread' },
+  { id: 'reply',      label: 'Replies' },
+  { id: 'view',       label: 'Opens' },
+  { id: 'meeting',    label: 'Meetings' },
+  { id: 'batch_send', label: 'Batches' },
   { id: 'failed_send', label: 'Failed' },
 ]
 
@@ -49,6 +53,12 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [markingAll, setMarkingAll] = useState(false)
+
+  // Notification preferences
+  const [prefs, setPrefs] = useState({ emailEnabled: true, smsEnabled: false, phone: '' })
+  const [prefsLoading, setPrefsLoading] = useState(true)
+  const [prefsSaving, setPrefsSaving] = useState(false)
+  const [prefsMsg, setPrefsMsg] = useState('')
 
   const loadNotifications = useCallback(async () => {
     setLoading(true)
@@ -63,6 +73,28 @@ export default function NotificationsPage() {
   }, [])
 
   useEffect(() => { loadNotifications() }, [loadNotifications])
+
+  // Load notification preferences
+  useEffect(() => {
+    api.get('/api/settings/notifications')
+      .then(r => { if (r.data?.settings) setPrefs(r.data.settings) })
+      .catch(() => {})
+      .finally(() => setPrefsLoading(false))
+  }, [])
+
+  const savePrefs = async (updated: typeof prefs) => {
+    setPrefsSaving(true)
+    setPrefsMsg('')
+    try {
+      await api.put('/api/settings/notifications', updated)
+      setPrefsMsg('Saved!')
+      setTimeout(() => setPrefsMsg(''), 2500)
+    } catch {
+      setPrefsMsg('Failed to save')
+    } finally {
+      setPrefsSaving(false)
+    }
+  }
 
   const markAsRead = async (id: string) => {
     try {
@@ -131,8 +163,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 flex gap-1 pb-3 overflow-x-auto scrollbar-hide">
-          {FILTER_TABS.map(tab => {
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 flex gap-1 pb-3 overflow-x-auto scrollbar-hide">          {FILTER_TABS.map(tab => {
             const count = tab.id === 'all' ? notifications.length
               : tab.id === 'unread' ? unreadCount
               : notifications.filter(n => n.type === tab.id).length
@@ -155,6 +186,80 @@ export default function NotificationsPage() {
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+
+        {/* ── Notification Preferences Card ─────────────────────── */}
+        <div className="mb-6 rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Notification Preferences</h2>
+            <span className="text-xs text-muted-foreground ml-auto">Applies to scheduled batch sends</span>
+          </div>
+          {prefsLoading ? (
+            <div className="h-10 flex items-center"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+          ) : (
+            <div className="space-y-4">
+              {/* Email toggle */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Email notifications</p>
+                    <p className="text-xs text-muted-foreground">Receive a Meridian email after each auto-send batch</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={prefs.emailEnabled}
+                  onCheckedChange={(v) => {
+                    const updated = { ...prefs, emailEnabled: v }
+                    setPrefs(updated)
+                    savePrefs(updated)
+                  }}
+                />
+              </div>
+
+              {/* SMS toggle */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">SMS notifications</p>
+                    <p className="text-xs text-muted-foreground">Get a text message when a batch sends</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={prefs.smsEnabled}
+                  onCheckedChange={(v) => {
+                    const updated = { ...prefs, smsEnabled: v }
+                    setPrefs(updated)
+                    savePrefs(updated)
+                  }}
+                />
+              </div>
+
+              {/* Phone input (shown when SMS is on) */}
+              {prefs.smsEnabled && (
+                <div className="flex items-center gap-3 pl-6">
+                  <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <Input
+                    className="h-8 text-sm max-w-xs"
+                    placeholder="+15551234567"
+                    value={prefs.phone}
+                    onChange={(e) => setPrefs(p => ({ ...p, phone: e.target.value }))}
+                    onBlur={() => savePrefs(prefs)}
+                  />
+                </div>
+              )}
+
+              {prefsMsg && (
+                <p className={`text-xs font-medium ${prefsMsg === 'Saved!' ? 'text-green-500' : 'text-red-500'}`}>
+                  {prefsSaving ? 'Saving…' : prefsMsg}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        {/* ── End preferences card ──────────────────────────────── */}
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />

@@ -216,4 +216,56 @@ router.put('/presets/:id', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/settings/notifications
+ * Returns the user's notification preferences.
+ */
+router.get('/notifications', async (req, res) => {
+  try {
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    res.json({
+      success: true,
+      settings: userSettings.notificationSettings || { emailEnabled: true, smsEnabled: false, phone: '' }
+    });
+  } catch (error) {
+    console.error('Error getting notification settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/settings/notifications
+ * Saves the user's notification preferences.
+ * Body: { emailEnabled?: boolean, smsEnabled?: boolean, phone?: string }
+ */
+router.put('/notifications', async (req, res) => {
+  try {
+    const { emailEnabled, smsEnabled, phone } = req.body;
+
+    // Validate phone if provided
+    const cleanPhone = typeof phone === 'string' ? phone.replace(/\s/g, '') : '';
+    if (cleanPhone && !/^\+?[1-9]\d{6,14}$/.test(cleanPhone)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid phone number. Use E.164 format, e.g. +15551234567'
+      });
+    }
+
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    userSettings.notificationSettings = {
+      emailEnabled: emailEnabled !== false,  // default true unless explicitly false
+      smsEnabled:   !!smsEnabled,
+      phone:        cleanPhone,
+    };
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+
+    res.json({ success: true, settings: userSettings.notificationSettings });
+  } catch (error) {
+    console.error('Error saving notification settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

@@ -254,6 +254,13 @@ export function broadcastActivity(activity) {
   }
 }
 
+// Helper function for broadcasting platform notifications (e.g. batch sends) to a specific user
+export function broadcastNotification(userId, notification) {
+  if (metricStore && metricStore.broadcastUpdate) {
+    metricStore.broadcastUpdate('notification', { ...notification, userId });
+  }
+}
+
 // Helper function for broadcasting sent emails from other modules
 export function broadcastSentEmail(emailData) {
   if (metricStore && metricStore.broadcastSentEmail) {

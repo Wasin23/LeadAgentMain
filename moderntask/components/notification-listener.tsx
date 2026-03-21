@@ -1,0 +1,67 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useToast } from '@/hooks/use-toast'
+
+/**
+ * Invisible component that subscribes to the backend SSE stream and shows
+ * an in-app toast whenever a scheduled email batch fires.
+ * Mount once inside AuthProvider in layout.tsx.
+ */
+export function NotificationListener() {
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const esRef = useRef<EventSource | null>(null)
+
+  useEffect(() => {
+    // Only connect when a user is logged in
+    if (!user) {
+      if (esRef.current) {
+        esRef.current.close()
+        esRef.current = null
+      }
+      return
+    }
+
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('authToken') ?? '')
+      : ''
+
+    if (!token) return
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+    const url     = `${baseUrl}/api/monitoring/stream?token=${encodeURIComponent(token)}`
+
+    const es = new EventSource(url)
+    esRef.current = es
+
+    es.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data)
+
+        // batch_send notification from sendingScheduleProcessor
+        if (msg.type === 'notification' && msg.data) {
+          toast({
+            title:       msg.data.title   ?? 'Notification',
+            description: msg.data.message ?? undefined,
+            duration:    7000,
+          })
+        }
+      } catch {
+        // ignore malformed frames
+      }
+    }
+
+    es.onerror = () => {
+      // EventSource auto-reconnects; no action needed
+    }
+
+    return () => {
+      es.close()
+      esRef.current = null
+    }
+  }, [user, toast])
+
+  return null
+}

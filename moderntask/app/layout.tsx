@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { Toaster } from "@/components/ui/toaster"
+import { NotificationListener } from "@/components/notification-listener"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -43,6 +44,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="tasko-theme">
           <AuthProvider>
             {children}
+            <NotificationListener />
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

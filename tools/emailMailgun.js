@@ -645,6 +645,51 @@ async function sendEmailMailgunWithCustomHTML(to, subject, textBody, htmlBody, e
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// System / platform notification email
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Send a platform notification email directly via Mailgun.
+ * Bypasses any user Gmail/Outlook routing and tracking pixel injection.
+ *
+ * @param {string} to        - Recipient email address
+ * @param {string} subject   - Email subject line
+ * @param {string} htmlBody  - Full HTML body
+ */
+export async function sendSystemEmail(to, subject, htmlBody) {
+  try {
+    const domain   = process.env.MAILGUN_DOMAIN;
+    const fromAddr = `Meridian Notifications <notifications@${domain}>`;
+
+    const textBody = htmlBody
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const result = await mg.messages.create(domain, {
+      from:          fromAddr,
+      to,
+      subject,
+      html:          htmlBody,
+      text:          textBody,
+      'o:tracking':  'no',
+      'o:tag':       ['system-notification'],
+    });
+
+    console.log(`[SYSTEM EMAIL] ✅ "${subject}" → ${to} (id: ${result.id})`);
+    return { success: true, id: result.id };
+  } catch (err) {
+    console.error('[SYSTEM EMAIL] Failed:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Send password reset email
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Send password reset email
 export async function sendPasswordResetEmail(email, resetToken, username) {
   try {
