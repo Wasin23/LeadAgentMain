@@ -81,9 +81,31 @@ function ScheduleModal({ email, onSave, onClose }: {
   onSave: (id: string, scheduledAt: string | null, agentId?: string) => Promise<void>
   onClose: () => void
 }) {
+  // Pre-fill date/time from existing scheduledAt (as the agent's timezone clock time if possible)
   const existing = email.scheduledAt ? new Date(email.scheduledAt).toISOString().slice(0, 16) : ''
   const [value, setValue]   = useState(existing)
+  const [tz, setTz]         = useState<string>(
+    email.agentId
+      ? (BROWSER_TZ) // will be overridden by agent schedule tz if available, but BROWSER_TZ is a good default
+      : BROWSER_TZ
+  )
   const [saving, setSaving] = useState(false)
+
+  // Convert a "YYYY-MM-DDTHH:MM" local string in `timezone` to a UTC ISO string
+  const toUTC = (localStr: string, timezone: string): string => {
+    const [datePart, timePart] = localStr.split('T')
+    const [year, month, day]   = datePart.split('-').map(Number)
+    const [h, m]               = timePart.split(':').map(Number)
+    const naive    = new Date(Date.UTC(year, month - 1, day, h, m, 0))
+    const rendered = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(naive)
+    const rH     = parseInt(rendered.find(p => p.type === 'hour')!.value, 10)
+    const rM     = parseInt(rendered.find(p => p.type === 'minute')!.value, 10)
+    const diffMs = ((h * 60 + m) - ((rH === 24 ? 0 : rH) * 60 + rM)) * 60000
+    return new Date(naive.getTime() + diffMs).toISOString()
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <Card className="w-full max-w-sm p-5 space-y-4">
@@ -103,6 +125,24 @@ function ScheduleModal({ email, onSave, onClose }: {
             onChange={e => setValue(e.target.value)}
           />
         </div>
+        <div className="space-y-1">
+          <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+            Timezone
+            {tz === BROWSER_TZ && (
+              <span className="text-[10px] text-blue-500/70">• auto-detected</span>
+            )}
+          </label>
+          <select
+            className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
+            value={tz}
+            onChange={e => setTz(e.target.value)}
+          >
+            {!TIMEZONES.includes(BROWSER_TZ) && (
+              <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>
+            )}
+            {TIMEZONES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
         {email.scheduledAt && (
           <p className="text-[11px] text-muted-foreground">Currently scheduled: {new Date(email.scheduledAt).toLocaleString()}</p>
         )}
@@ -118,7 +158,7 @@ function ScheduleModal({ email, onSave, onClose }: {
             <Button size="sm" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button size="sm" disabled={saving || !value} onClick={async () => {
               setSaving(true)
-              await onSave(email.id, new Date(value).toISOString(), email.agentId)
+              await onSave(email.id, toUTC(value, tz), email.agentId)
               onClose()
             }}>{saving ? 'Saving…' : 'Schedule'}</Button>
           </div>
@@ -832,20 +872,36 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
 
   // Map from email id → computed auto-send date, based on queue order + schedule
   const autoSendDates = useMemo<Map<string, Date>>(() => {
-    if (!activeSchedule) return new Map()
     const sorted = [...emails].sort((a, b) =>
       new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
     )
     const map = new Map<string, Date>()
-    let slotIndex = 0
+    if (agentId !== 'all') {
+      // single-agent: use the passed activeSchedule
+      if (!activeSchedule) return map
+      let slotIndex = 0
+      sorted.forEach(email => {
+        if (!email.scheduledAt && !excludedAuto.has(email.id)) {
+          map.set(email.id, computeAutoSendDate(slotIndex, activeSchedule))
+          slotIndex++
+        }
+      })
+      return map
+    }
+    // all-agents: compute slot index independently per agent
+    const slotsByAgent: Record<string, number> = {}
     sorted.forEach(email => {
-      if (!email.scheduledAt && !excludedAuto.has(email.id)) {
-        map.set(email.id, computeAutoSendDate(slotIndex, activeSchedule))
-        slotIndex++
-      }
+      if (email.scheduledAt || excludedAuto.has(email.id)) return
+      const aid = email.agentId
+      if (!aid) return
+      const sched = agentMap[aid]?.settings?.sendingSchedule
+      if (!sched) return
+      const idx = slotsByAgent[aid] ?? 0
+      map.set(email.id, computeAutoSendDate(idx, sched))
+      slotsByAgent[aid] = idx + 1
     })
     return map
-  }, [emails, activeSchedule, excludedAuto])
+  }, [emails, activeSchedule, excludedAuto, agentId, agentMap])
 
   const allSelected = filtered.length > 0 && filtered.every(e => selected.has(e.id))
   const toggleAll   = () => setSelected(allSelected ? new Set() : new Set(filtered.map(e => e.id)))
@@ -1147,7 +1203,13 @@ export function EmailQueueContent() {
           {queuedCount > 0 && (
             <span className="px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">{queuedCount}</span>
           )}
-          {savedSchedule && queuedCount > 0 && (
+          {selectedAgent === 'all' && queuedCount > 0 && agents.some(a => a.settings?.sendingSchedule?.activeDays?.length) && (
+            <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
+              <Clock className="w-2.5 h-2.5" />
+              {queuedCount} email{queuedCount !== 1 ? 's' : ''} auto-sending across {agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length} agent{agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length !== 1 ? 's' : ''}
+            </span>
+          )}
+          {selectedAgent !== 'all' && savedSchedule && queuedCount > 0 && (
             <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
               <Clock className="w-2.5 h-2.5" />
               {queuedCount} email{queuedCount !== 1 ? 's' : ''} auto-sending
