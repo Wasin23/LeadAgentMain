@@ -1,11 +1,13 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSManager from '../utils/awsManager.js';
+import AWSEmailQueue from '../utils/awsEmailQueue.js';
 import { scanUsersAndCharge } from './billing.js';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 const router = express.Router();
 const awsManager = new AWSManager();
+const awsQueue = new AWSEmailQueue();
 
 // Admin password authentication
 router.post('/login', async (req, res) => {
@@ -364,6 +366,36 @@ router.get('/user/:userId/billing', isAdmin, async (req, res) => {
       error: 'Failed to get user billing info',
       message: error.message 
     });
+  }
+});
+
+// POST /api/admin/reconcile-counters — rebuild all user queue counters from real GSI data
+router.post('/reconcile-counters', isAdmin, async (req, res) => {
+  try {
+    const users = await awsManager.getAllUsers();
+    const results = [];
+    for (const user of users) {
+      if (!user.userId) continue;
+      try {
+        const counts = await awsQueue.reconcileCounters(user.userId);
+        results.push({ userId: user.userId, ...counts });
+      } catch (err) {
+        results.push({ userId: user.userId, error: err.message });
+      }
+    }
+    res.json({ success: true, results });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/reconcile-counters/:userId — rebuild one user's counters
+router.post('/reconcile-counters/:userId', isAdmin, async (req, res) => {
+  try {
+    const counts = await awsQueue.reconcileCounters(req.params.userId);
+    res.json({ success: true, ...counts });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
