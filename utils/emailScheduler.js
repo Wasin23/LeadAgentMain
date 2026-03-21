@@ -14,6 +14,8 @@
 import AWSManager from './awsManager.js';
 import AWSEmailQueue from './awsEmailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
+import { sendSystemEmail } from '../tools/emailMailgun.js';
+import { sendSMS } from './smsManager.js';
 
 class EmailScheduler {
   constructor() {
@@ -165,6 +167,43 @@ class EmailScheduler {
           threadId:   sendResult.result?.threadId  || null,
         });
         console.log(`✅ [EMAIL SCHEDULER] Sent ${emailId} → ${finalRecipient}`);
+
+        // Fire notification (non-fatal)
+        try {
+          const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId).catch(() => null);
+          const agentName = agentSettings?.name || agentId;
+          const userSettings = await this.awsManager.getUserSettings(userId).catch(() => null);
+          const toEmail = userSettings?.email;
+          const notifPrefs = userSettings?.preferences?.notifPrefs || {};
+
+          // In-app notification
+          await this.awsManager.addIssue(
+            userId, 'scheduled_send',
+            `📅 ${agentName}: 1 email sent (scheduled)`,
+            `Agent "${agentName}" sent a manually-scheduled email to ${finalRecipient}.`,
+            { severity: 'low', agentId, agentName, emailCount: 1 }
+          );
+
+          // Email notification (unless explicitly disabled)
+          if (notifPrefs.emailNotifications !== false && toEmail) {
+            await sendSystemEmail(
+              toEmail,
+              `📅 ${agentName}: scheduled email sent`,
+              `<p>Your agent <strong>${agentName}</strong> just sent a scheduled email to <strong>${finalRecipient}</strong>.</p><p>Subject: ${finalSubject}</p>`
+            );
+          }
+
+          // SMS notification (opt-in: only fires when phone + smsEnabled set)
+          if (notifPrefs.smsEnabled && notifPrefs.phone) {
+            const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
+            await sendSMS(
+              notifPrefs.phone,
+              `Meridian: "${agentName}" sent a scheduled email to ${finalRecipient}. ${appUrl}/email-queue`
+            );
+          }
+        } catch (notifErr) {
+          console.warn(`[EMAIL SCHEDULER] ⚠️ Notification failed (non-fatal):`, notifErr.message);
+        }
       } else {
         console.error(`❌ [EMAIL SCHEDULER] Send failed for ${emailId}:`, sendResult.error);
       }
