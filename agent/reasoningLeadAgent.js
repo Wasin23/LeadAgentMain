@@ -3826,13 +3826,16 @@ Format as:
       } else {
       }
 
-      // Get data from current cycle state instead of parameters
-      const leadData = this.memory.currentCycle.currentLead;
+      // Get data from current cycle state.
+      // IMPORTANT: parameters.leadData takes priority so concurrent workers don't clobber each other.
+      const leadData = parameters?.leadData || this.memory.currentCycle.currentLead;
+      // Capture qualification snapshot at call-time (concurrent-safe)
+      const _localQualification = this.memory.currentQualification;
 
       // Query industry facts RAG with prospect-specific context for maximum relevance
       // This runs regardless of whether phase 3 was cached — always get the best stat for THIS lead
       const _ragIndustry = leadData?.organization?.industry || '';
-      const _ragTopic = `${leadData?.title || ''} ${this.memory.currentQualification?.buyerMotivation || ''}`.trim();
+      const _ragTopic = `${leadData?.title || ''} ${_localQualification?.buyerMotivation || ''}`.trim();
       if (_ragIndustry) {
         try {
           const targeted = await industryFacts.queryRelevantFacts(_ragIndustry, _ragTopic || _ragIndustry, 4);
@@ -3854,9 +3857,10 @@ Format as:
           // non-fatal — falls back to whatever was set during research phase
         }
       }
-      const researchData = this.memory.lastResearch;
-      const emailSettings = this.memory.emailSettings;
-      const qualification = this.memory.currentQualification; // Get tier from qualification
+      const researchData = parameters?.researchData || this.memory.lastResearch;
+      const emailSettings = parameters?.emailSettings || this.memory.emailSettings;
+      // Use the snapshot captured above (concurrent-safe)
+      const qualification = _localQualification;
       
       if (!leadData) {
         throw new Error('No current lead data available for email building');

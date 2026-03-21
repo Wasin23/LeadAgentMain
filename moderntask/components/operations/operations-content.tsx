@@ -13,7 +13,7 @@ import {
   MessageSquare, Wifi, WifiOff, Activity,
   ChevronRight, ChevronDown, Sparkles, CheckCircle2, Send,
   Target, ExternalLink, ArrowUp, ArrowDown, User,
-  UserCheck, Search, Settings, FileText, Users, Globe,
+  UserCheck, Search, Settings, FileText, Users, Globe, Cpu,
   type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -40,6 +40,7 @@ interface Agent {
     emailBuilder?: { useGmail?: boolean; useOutlook?: boolean }
     targeting?: { leadLimit?: number }
     geographicSettings?: { leadLimit?: number }
+    concurrencyLevel?: number
   }
 }
 
@@ -795,6 +796,11 @@ export function OperationsContent() {
                         <span className="flex items-center gap-0.5 text-[10px] text-primary font-medium ml-auto flex-shrink-0">
                           <RefreshCw className="w-2.5 h-2.5" />
                           {agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit}/cycle
+                        </span>
+                      )}
+                      {(agent.settings?.concurrencyLevel ?? 1) > 1 && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground flex-shrink-0" title="Concurrency level">
+                          <Cpu className="w-2.5 h-2.5" />{agent.settings?.concurrencyLevel}×
                         </span>
                       )}
                     </div>
