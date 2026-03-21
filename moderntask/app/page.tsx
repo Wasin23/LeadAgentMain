@@ -122,15 +122,15 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function LandingPage() {
-  const { user, loading } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const [activeEmail, setActiveEmail] = useState(0)
 
   useEffect(() => {
-    if (!loading && user) router.replace("/home")
-  }, [user, loading, router])
+    if (!isLoading && user) router.replace("/home")
+  }, [user, isLoading, router])
 
-  if (loading || user) return null
+  if (isLoading || user) return null
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">

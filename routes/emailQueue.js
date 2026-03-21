@@ -1209,32 +1209,61 @@ router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
 });
 
 // ── Scheduled batches helper (same algorithm as email-queue-content.tsx) ───────
+// Converts HH:MM on a given calendar day (year/month/day) in `tz` to a UTC Date.
+// Uses the inverse-offset trick: build a naive UTC candidate at that clock time,
+// measure how far Intl renders it vs. the desired time, then shift to correct.
+function localTimeToUTC(year, month, day, h, m, tz) {
+  const naive = new Date(Date.UTC(year, month - 1, day, h, m, 0));
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(naive);
+  const rendH = parseInt(parts.find(p => p.type === 'hour').value, 10);
+  const rendM = parseInt(parts.find(p => p.type === 'minute').value, 10);
+  const diffMs = ((h * 60 + m) - ((rendH === 24 ? 0 : rendH) * 60 + rendM)) * 60000;
+  return new Date(naive.getTime() + diffMs);
+}
+
 function computeSlotDate(index, schedule) {
-  const { activeDays, sendTime, dailyLimit } = schedule;
+  const { activeDays, sendTime, dailyLimit, timezone } = schedule;
+  const tz = timezone || 'America/New_York';
   const limit = Math.max(1, dailyLimit || 50);
   const targetSlot = Math.floor(index / limit);
-  const [h, m] = (sendTime || '09:00').split(':').map(Number);
+  const [schedH, schedM] = (sendTime || '09:00').split(':').map(Number);
+
   const now = new Date();
-  const d = new Date(now);
-  d.setHours(0, 0, 0, 0);
-  const todaySend = new Date(d);
-  todaySend.setHours(h, m, 0, 0);
-  if (now >= todaySend) d.setDate(d.getDate() + 1);
+  // Today's date in the agent's configured timezone
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now); // "YYYY-MM-DD"
+  const [todayY, todayMo, todayD] = todayStr.split('-').map(Number);
+
+  // Has today's send window already passed in the agent's timezone?
+  const nowParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(now);
+  const nowH = parseInt(nowParts.find(p => p.type === 'hour').value, 10);
+  const nowM = parseInt(nowParts.find(p => p.type === 'minute').value, 10);
+  const startOffset = ((nowH === 24 ? 0 : nowH) * 60 + nowM) >= (schedH * 60 + schedM) ? 1 : 0;
+
+  const wdMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   let slotsFound = 0;
-  for (let i = 0; i < 400; i++) {
-    if ((activeDays || [1,2,3,4,5]).includes(d.getDay())) {
+  for (let i = startOffset; i < 400; i++) {
+    // Use UTC noon as probe to avoid DST-at-midnight edge cases
+    const probe = new Date(Date.UTC(todayY, todayMo - 1, todayD + i, 12, 0, 0));
+    const wdStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }).format(probe);
+    const wd = wdMap[wdStr] ?? probe.getUTCDay();
+    if ((activeDays || [1, 2, 3, 4, 5]).includes(wd)) {
       if (slotsFound === targetSlot) {
-        const r = new Date(d);
-        r.setHours(h, m, 0, 0);
-        return r;
+        const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(probe);
+        const [dY, dMo, dD] = dateStr.split('-').map(Number);
+        return localTimeToUTC(dY, dMo, dD, schedH, schedM, tz);
       }
       slotsFound++;
     }
-    d.setDate(d.getDate() + 1);
   }
-  const fb = new Date(d);
-  fb.setHours(h, m, 0, 0);
-  return fb;
+  // fallback — very far future
+  const fbProbe = new Date(Date.UTC(todayY, todayMo - 1, todayD + 400, 12, 0, 0));
+  const fbStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(fbProbe);
+  const [fY, fMo, fD] = fbStr.split('-').map(Number);
+  return localTimeToUTC(fY, fMo, fD, schedH, schedM, tz);
 }
 
 // GET /scheduled-batches — server-computed send schedule grouped by time slot
@@ -1263,6 +1292,7 @@ router.get('/scheduled-batches', async (req, res) => {
             activeDays: s.sendingSchedule.activeDays || [1, 2, 3, 4, 5],
             sendTime:   s.sendingSchedule.sendTime   || '09:00',
             dailyLimit: s.sendingSchedule.dailyLimit || 50,
+            timezone:   s.sendingSchedule.timezone   || s.geographicSettings?.timezone || 'America/New_York',
             agentName:  s.name || '',
           };
         }

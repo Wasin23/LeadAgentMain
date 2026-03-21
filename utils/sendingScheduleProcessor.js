@@ -93,8 +93,7 @@ async function countSentToday(awsQueue, userId, agentId, timezone) {
  * Returns true if `now` is within TIME_WINDOW_MINUTES of the agent's sendTime
  * on an active day of the week — all comparisons done in the agent's timezone.
  */
-function isDue(schedule, now) {
-  const tz = schedule.timezone || 'UTC';
+function isDue(schedule, now, tz) {
   const { h, m, weekday } = localTimeParts(now, tz);
 
   if (!schedule.activeDays.includes(weekday)) return false;
@@ -213,9 +212,10 @@ async function tick() {
         const schedule = settings?.sendingSchedule;
         if (!schedule || !schedule.activeDays?.length || !schedule.sendTime || !schedule.dailyLimit) continue;
 
-        const tz = schedule.timezone || 'UTC';
+        // Use timezone from sendingSchedule, fall back to geographicSettings.timezone (where the UI saves it)
+        const tz = schedule.timezone || settings.geographicSettings?.timezone || 'America/New_York';
 
-        if (!isDue(schedule, now)) continue;
+        if (!isDue(schedule, now, tz)) continue;
 
         // Guard: only fire once per agent per local calendar day
         const firedKey = `${userId}#${agentId}#${todayInTZ(tz)}`;

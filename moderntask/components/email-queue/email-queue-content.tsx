@@ -133,14 +133,27 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const TIMEZONES = [
   'America/New_York', 'America/Chicago', 'America/Denver',
   'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu',
-  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo',
-  'Asia/Shanghai', 'Asia/Kolkata', 'Australia/Sydney',
+  'America/Toronto', 'America/Vancouver', 'America/Sao_Paulo',
+  'America/Mexico_City', 'America/Buenos_Aires',
+  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Amsterdam',
+  'Europe/Madrid', 'Europe/Rome', 'Europe/Stockholm', 'Europe/Moscow',
+  'Africa/Cairo', 'Africa/Johannesburg',
+  'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Singapore',
+  'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Hong_Kong',
+  'Australia/Sydney', 'Australia/Melbourne', 'Pacific/Auckland',
 ]
+
+// Browser's own IANA timezone — used as the default for new agents
+const BROWSER_TZ: string =
+  typeof window !== 'undefined'
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone
+    : 'America/New_York'
+
 const DEFAULT_SCHEDULE: SendingSchedule = {
   activeDays: [1, 2, 3, 4, 5],
   sendTime: '09:00',
   dailyLimit: 50,
-  timezone: 'America/New_York',
+  timezone: BROWSER_TZ,
 }
 
 function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: SendingSchedule) => void }) {
@@ -258,12 +271,21 @@ function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: Sen
         {/* timezone + save */}
         <div className="flex items-end gap-3">
           <div className="flex-1 space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Timezone</label>
+            <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+              Timezone
+              {sched.timezone === BROWSER_TZ && (
+                <span className="text-[10px] text-blue-500/70">• auto-detected</span>
+              )}
+            </label>
             <select
               className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
               value={sched.timezone}
               onChange={e => setSched(s => ({ ...s, timezone: e.target.value }))}
             >
+              {/* Always ensure the browser's detected timezone is selectable */}
+              {!TIMEZONES.includes(BROWSER_TZ) && (
+                <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>
+              )}
               {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
             </select>
           </div>
@@ -523,27 +545,58 @@ function Skel() {
 //   - emails 0..(limit-1) → first upcoming active day
 //   - emails limit..(2*limit-1) → second active day, etc.
 function computeAutoSendDate(index: number, schedule: SendingSchedule): Date {
-  const { activeDays, sendTime, dailyLimit } = schedule
+  const { activeDays, sendTime, dailyLimit, timezone } = schedule
+  const tz = timezone || 'America/New_York'
   const limit = Math.max(1, dailyLimit)
   const targetSlot = Math.floor(index / limit)
-  const [h, m] = sendTime.split(':').map(Number)
+  const [schedH, schedM] = sendTime.split(':').map(Number)
+
   const now = new Date()
-  const d = new Date(now)
-  d.setHours(0, 0, 0, 0)
-  // if today's send-time has already passed, start looking from tomorrow
-  const todaySend = new Date(d); todaySend.setHours(h, m, 0, 0)
-  if (now >= todaySend) d.setDate(d.getDate() + 1)
+  // Today's date in the agent's configured timezone
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now) // "YYYY-MM-DD"
+  const [todayY, todayMo, todayD] = todayStr.split('-').map(Number)
+
+  // Has today's send window already passed in the agent's timezone?
+  const nowParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(now)
+  const nowH = parseInt(nowParts.find(p => p.type === 'hour')!.value, 10)
+  const nowM = parseInt(nowParts.find(p => p.type === 'minute')!.value, 10)
+  const startOffset = ((nowH === 24 ? 0 : nowH) * 60 + nowM) >= (schedH * 60 + schedM) ? 1 : 0
+
+  // Converts HH:MM on a given calendar day in tz to a UTC Date.
+  // Inverse-offset trick: naive UTC candidate → measure TZ render → shift to correct.
+  function localTimeToUTC(y: number, mo: number, d: number): Date {
+    const naive = new Date(Date.UTC(y, mo - 1, d, schedH, schedM, 0))
+    const rendered = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(naive)
+    const rH = parseInt(rendered.find(p => p.type === 'hour')!.value, 10)
+    const rM = parseInt(rendered.find(p => p.type === 'minute')!.value, 10)
+    const diffMs = ((schedH * 60 + schedM) - ((rH === 24 ? 0 : rH) * 60 + rM)) * 60000
+    return new Date(naive.getTime() + diffMs)
+  }
+
+  const wdMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
   let slotsFound = 0
-  for (let safety = 0; safety < 400; safety++) {
-    if (activeDays.includes(d.getDay())) {
+  for (let i = startOffset; i < 400; i++) {
+    // UTC noon as probe avoids DST-at-midnight edge cases
+    const probe = new Date(Date.UTC(todayY, todayMo - 1, todayD + i, 12, 0, 0))
+    const wdStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }).format(probe)
+    const wd = wdMap[wdStr] ?? probe.getUTCDay()
+    if (activeDays.includes(wd)) {
       if (slotsFound === targetSlot) {
-        const result = new Date(d); result.setHours(h, m, 0, 0); return result
+        const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(probe)
+        const [dY, dMo, dD] = dateStr.split('-').map(Number)
+        return localTimeToUTC(dY, dMo, dD)
       }
       slotsFound++
     }
-    d.setDate(d.getDate() + 1)
   }
-  const fallback = new Date(d); fallback.setHours(h, m, 0, 0); return fallback
+  const fbProbe = new Date(Date.UTC(todayY, todayMo - 1, todayD + 400, 12, 0, 0))
+  const fbStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(fbProbe)
+  const [fY, fMo, fD] = fbStr.split('-').map(Number)
+  return localTimeToUTC(fY, fMo, fD)
 }
 
 function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: string; sub: string }) {
