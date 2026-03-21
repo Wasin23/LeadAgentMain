@@ -920,7 +920,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // Create new agent for authenticated user
 router.post('/create-agent', authenticateToken, async (req, res) => {
   try {
-    const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions, useGmail, useOutlook } = req.body;
+    const { name, type = 'reasoning-lead-agent', personality, preset, specialInstructions, useGmail, useOutlook, concurrencyLevel } = req.body;
     const userId = req.user.userId;
     
     console.log('[AUTH CREATE-AGENT] ============================================');
@@ -1079,7 +1079,8 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       },
       geographicSettings: {
         leadLimit: null
-      }
+      },
+      concurrencyLevel: concurrencyLevel || 1
     };
 
     // If preset is provided, apply preset settings

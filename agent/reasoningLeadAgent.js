@@ -6780,6 +6780,172 @@ Target Positions:`;
   }
 
   // ============================================================================
+  // CONCURRENT LEAD PROCESSING
+  // Used when concurrencyLevel > 1 to drain the lead queue in parallel
+  // ============================================================================
+
+  /**
+   * Run the complete research → unlock → email pipeline for a single lead.
+   * Designed to be called concurrently — does not touch shared mutable state
+   * except for thread-safe Set operations and the leadsProcessed counter.
+   */
+  async processLeadPipeline(lead) {
+    const leadName    = lead.name || `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim();
+    const companyName = lead.company || lead.organization?.name || 'Unknown';
+
+    try {
+      // 1 ─ Research
+      this.broadcastAgentActivity({
+        agentId:   this.agentId,
+        operation: '🔬 Researching',
+        details:   `${leadName} at ${companyName}`,
+        status:    'active',
+        timestamp: new Date()
+      }).catch(() => {});
+
+      const research = await this.serperResearch({
+        companyName: lead.organization?.name || lead.company,
+        searchQuery: `${lead.organization?.name || lead.company} company business model products services`
+      });
+
+      if (!research?.success) {
+        this.logOperation('⏭️ Research Failed', `Skipping ${leadName} — research returned no data`, 'warning');
+        return { success: false, leadName, company: companyName };
+      }
+
+      // 2 ─ Email unlock (skip if email already present)
+      let emailAddress = lead.email || null;
+      if (!emailAddress) {
+        const emailUnlock = await this.unlockEmail({
+          firstName:   lead.first_name,
+          lastName:    lead.last_name,
+          companyName: lead.organization?.name || lead.company,
+          domain:      lead.organization?.primary_domain
+        });
+
+        if (!emailUnlock?.success) {
+          this.logOperation(
+            '❌ Email Unlock Failed',
+            `Could not unlock email for ${leadName} at ${companyName}. Reason: ${emailUnlock?.error || 'No valid email found'}. Skipping.`,
+            'warning'
+          );
+          try {
+            await this.awsManager.addContactedLead(this.userId, {
+              name:          leadName,
+              email:         'email_unlock_failed',
+              company:       companyName,
+              status:        'email_unlock_failed',
+              failureReason: emailUnlock?.error || 'No valid email found',
+              contactedAt:   new Date().toISOString(),
+              agentId:       this.agentId
+            });
+          } catch { /* non-fatal */ }
+          return { success: false, leadName, company: companyName };
+        }
+
+        emailAddress = emailUnlock.email;
+        lead = { ...lead, email: emailAddress, all_emails: emailUnlock.all_emails || [emailAddress] };
+      }
+
+      // 3 ─ Build personalized email
+      if (!this.memory.emailSettings) {
+        this.logOperation('⚠️ No Email Settings', `Email settings not loaded — skipping ${leadName}`, 'warning');
+        return { success: false, leadName, company: companyName };
+      }
+
+      const personalizedEmail = await this.buildPersonalizedEmail({
+        leadData:      lead,
+        researchData:  research,
+        emailSettings: this.memory.emailSettings
+      });
+
+      if (!personalizedEmail?.success) {
+        this.logOperation('⏭️ Email Build Failed', `Skipping ${leadName} — could not generate email`, 'warning');
+        return { success: false, leadName, company: companyName };
+      }
+
+      // 4 ─ Assemble + queue
+      const completeLead = {
+        ...lead,
+        email:            emailAddress,
+        research:         research.data,
+        personalizedEmail: personalizedEmail.email,
+        emailSubject:     personalizedEmail.subject,
+        confidenceReport: personalizedEmail.confidenceReport,
+        confidenceLevel:  personalizedEmail.confidenceLevel,
+        salesAngle:       personalizedEmail.salesAngle || null,
+        emailUnlockStatus: 'success'
+      };
+
+      await this.addLeadToDatabase(completeLead);
+      // Nullify shared qualification so addToEmailQueue doesn't pick up a stale value from another worker
+      this.memory.currentQualification = null;
+      await this.addToEmailQueue(completeLead);
+
+      // Update duplicate tracking (safe in JS single-threaded event loop)
+      const lcCompany = companyName.toLowerCase();
+      const lcEmail   = emailAddress?.toLowerCase();
+      if (lcCompany && this.memory.duplicateCheck?.emailedCompanies) this.memory.duplicateCheck.emailedCompanies.add(lcCompany);
+      if (lcEmail   && this.memory.duplicateCheck?.processedEmails)  this.memory.duplicateCheck.processedEmails.add(lcEmail);
+
+      this.memory.currentCycle.leadsProcessed++;
+
+      this.logOperation(
+        '✅ Lead Complete',
+        `${leadName} at ${companyName} — email queued (${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads})`,
+        'success',
+        { leadName, company: companyName, email: emailAddress }
+      );
+
+      return { success: true, leadName, company: companyName };
+    } catch (err) {
+      this.logOperation('❌ Pipeline Error', `${leadName}: ${err.message}`, 'error');
+      return { success: false, leadName, company: companyName, error: err.message };
+    }
+  }
+
+  /**
+   * Drain the current lead queue using `concurrencyLevel` parallel workers.
+   * Pulls all leads (including `currentLead`) into a local array, then processes
+   * them in batches of `f`, fully replacing the sequential LLM-driven path.
+   * @param {number} concurrencyLevel  1–10, clamped internally
+   */
+  async drainQueueConcurrently(concurrencyLevel) {
+    const f = Math.min(Math.max(1, Math.floor(concurrencyLevel)), 10);
+
+    // Collect everything: the lead already shifted to currentLead + the remainder
+    const allLeads = [];
+    if (this.memory.currentCycle.currentLead) {
+      allLeads.push(this.memory.currentCycle.currentLead);
+      this.memory.currentCycle.currentLead = null;
+    }
+    allLeads.push(...this.memory.currentCycle.leadQueue);
+    this.memory.currentCycle.leadQueue = [];
+
+    if (allLeads.length === 0) {
+      this.memory.currentCycle.processingPhase = 'complete';
+      this.memory.currentCycle.cycleComplete   = true;
+      return;
+    }
+
+    this.logOperation(
+      `⚡ Parallel Processing`,
+      `Processing ${allLeads.length} lead${allLeads.length !== 1 ? 's' : ''} with ${f} concurrent worker${f !== 1 ? 's' : ''}`,
+      'info'
+    );
+
+    // Chunk into batches of f and run each batch concurrently
+    for (let i = 0; i < allLeads.length; i += f) {
+      if (!this.isRunning) break;
+      const batch = allLeads.slice(i, i + f);
+      await Promise.allSettled(batch.map(lead => this.processLeadPipeline(lead)));
+    }
+
+    this.memory.currentCycle.processingPhase = 'complete';
+    this.memory.currentCycle.cycleComplete   = true;
+  }
+
+  // ============================================================================
   // UI INTEGRATION METHODS
   // Methods required by the frontend UI and API routes
   // ============================================================================
@@ -7767,6 +7933,21 @@ Target Positions:`;
         
         // Update cycle state based on action results
         await this.updateCycleState(reasoningResult.action, actionResult);
+
+        // ── Concurrent lead processing ─────────────────────────────────────
+        // After Apollo fills the queue, if concurrencyLevel > 1, drain all
+        // leads in parallel instead of one-by-one through the LLM loop.
+        if (
+          reasoningResult.action === 'apollo_search' &&
+          actionResult?.leads?.length > 0
+        ) {
+          const concurrencyLevel = this.settings?.concurrencyLevel || 1;
+          if (concurrencyLevel > 1) {
+            await this.drainQueueConcurrently(concurrencyLevel);
+            break; // Queue fully processed — end this cycle
+          }
+        }
+        // ──────────────────────────────────────────────────────────────────
         
         this.emit('progress', {
           stage: 'action',

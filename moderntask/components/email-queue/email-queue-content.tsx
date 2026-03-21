@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,6 +34,7 @@ interface QueueEmail {
   leadName?: string; recipientName?: string
   createdAt?: string; sentAt?: string; fromAccount?: string
   isRebump?: boolean; status?: string; scheduledAt?: string
+  batchExcluded?: boolean
   aiReport?: AIReport
 }
 
@@ -226,6 +227,9 @@ function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: Sen
         ...agent.settings,
         sendingSchedule: scheduleToSave,
       })
+
+      // Re-enroll any emails the user previously excluded from the batch
+      await api.post('/api/email-queue/reset-batch-excluded', { agentId: agent.agentId }).catch(() => {})
       
       const saved = scheduleToSave
       setSaved(true); setTimeout(() => setSaved(false), 2000)
@@ -849,6 +853,15 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
     } catch {}
   }, [agentId, onCountChange])
 
+  const prevScheduleRef = useRef<SendingSchedule | null | undefined>(undefined)
+  useEffect(() => {
+    if (prevScheduleRef.current !== undefined && activeSchedule !== prevScheduleRef.current) {
+      setExcludedAuto(new Set())
+      load(0)
+    }
+    prevScheduleRef.current = activeSchedule
+  }, [activeSchedule, load])
+
   useEffect(() => {
     load(0)
     const interval = setInterval(silentRefresh, 15000)
@@ -881,7 +894,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
       if (!activeSchedule) return map
       let slotIndex = 0
       sorted.forEach(email => {
-        if (!email.scheduledAt && !excludedAuto.has(email.id)) {
+        if (!email.scheduledAt && !email.batchExcluded && !excludedAuto.has(email.id)) {
           map.set(email.id, computeAutoSendDate(slotIndex, activeSchedule))
           slotIndex++
         }
@@ -891,7 +904,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
     // all-agents: compute slot index independently per agent
     const slotsByAgent: Record<string, number> = {}
     sorted.forEach(email => {
-      if (email.scheduledAt || excludedAuto.has(email.id)) return
+      if (email.scheduledAt || email.batchExcluded || excludedAuto.has(email.id)) return
       const aid = email.agentId
       if (!aid) return
       const sched = agentMap[aid]?.settings?.sendingSchedule
@@ -1086,9 +1099,13 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
               onSchedule={() => setScheduleTarget(email)}
               onViewReport={email.aiReport ? () => setViewingAiReport(email.aiReport!) : undefined}
               onCancelSchedule={email.scheduledAt ? () => scheduleEmail(email.id, null, email.agentId) : undefined}
-              onCancelAutoSchedule={autoSendDates.has(email.id) ? () => {
+              onCancelAutoSchedule={autoSendDates.has(email.id) ? async () => {
                 setExcludedAuto(s => { const n = new Set(s); n.add(email.id); return n })
                 toast({ title: 'Removed from auto-schedule', description: ef(email).name || ef(email).to, duration: 2000 })
+                try {
+                  await api.put(`/api/email-queue/${email.id}`, { batchExcluded: true }, { params: { agentId: email.agentId } })
+                  setEmails(p => p.map(e => e.id === email.id ? { ...e, batchExcluded: true } : e))
+                } catch { /* best-effort */ }
               } : undefined}
               autoScheduleDate={autoSendDates.get(email.id)}
               actions={

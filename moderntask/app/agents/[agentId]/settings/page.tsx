@@ -70,6 +70,7 @@ interface AgentSettings {
   companyCriteria: { companySizeMin: number; companySizeMax: number; companyIndustries: string[]; };
   contactCriteria: { targetPositions: string[]; seniorityLevel: string; };
   geographicSettings: { targetLocations: string[]; excludedLocations: string[]; leadLimit: number; timezone: string; };
+  concurrencyLevel: number;
   researchFocus: { focusAreas: string[]; researchDepth: string; includeCompanyNews: boolean; includePersonalInfo: boolean; includeSocialMedia: boolean; };
   emailBuilder: {
     emailTemplate: string; customPrompt: string; emailResponsePrompt: string;
@@ -87,6 +88,7 @@ const defaultSettings: AgentSettings = {
   companyCriteria: { companySizeMin: 10, companySizeMax: 500, companyIndustries: [] },
   contactCriteria: { targetPositions: [], seniorityLevel: 'senior' },
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
+  concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
   emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false }
 };
@@ -259,6 +261,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             leadLimit: u.leadLimit || u.geographicSettings?.leadLimit || 50,
             timezone: u.timezone || u.geographicSettings?.timezone || 'America/New_York',
           },
+          concurrencyLevel: u.concurrencyLevel ?? 1,
           researchFocus: {
             focusAreas: u.focusAreas || u.researchFocus?.focusAreas || [],
             researchDepth: u.researchDepth || u.researchFocus?.researchDepth || 'standard',
@@ -541,6 +544,23 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <Label>Daily Lead Limit</Label>
                 <Input type="number" min={1} max={200} value={settings.geographicSettings.leadLimit} onChange={e => updateGeo('leadLimit', parseInt(e.target.value) || 0)} />
                 <p className="text-xs text-muted-foreground">Max leads to contact per cycle</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Research Speed (Concurrency)</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range" min={1} max={10} step={1}
+                    value={settings.concurrencyLevel ?? 1}
+                    onChange={e => setSettings(prev => ({ ...prev, concurrencyLevel: parseInt(e.target.value) }))}
+                    className="flex-1 accent-primary"
+                  />
+                  <span className="w-16 text-sm font-semibold text-center tabular-nums">
+                    {(settings.concurrencyLevel ?? 1) === 1 ? '1 (default)' : `${settings.concurrencyLevel} workers`}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Parallel research workers per cycle. Higher = faster but uses more API credits simultaneously.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label>Timezone</Label>

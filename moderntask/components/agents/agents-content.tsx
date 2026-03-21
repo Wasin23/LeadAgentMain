@@ -36,6 +36,7 @@ interface Agent {
     contactCriteria?: { targetPositions?: string[] }
     geographicSettings?: { leadLimit?: number | null }
     emailBuilder?: { length?: string; callToAction?: string; rebumpIntervalDays?: number }
+    concurrencyLevel?: number
     [key: string]: unknown
   }
   specialInstructions?: string
@@ -94,6 +95,7 @@ function AgentCard({
   onStop,
   onRunCycle,
   onDelete,
+  onSettingsChange,
   busy,
 }: {
   agent: Agent
@@ -101,6 +103,7 @@ function AgentCard({
   onStop: (id: string) => void
   onRunCycle: (id: string) => void
   onDelete: (id: string, name: string) => void
+  onSettingsChange: (id: string) => void
   busy: boolean
 }) {
   const personalityType = agent.personality?.type ?? 'hunter'
@@ -111,6 +114,18 @@ function AgentCard({
   const isRunning = agent.isRunning || agent.status === 'running'
   const isAuditor = !!agent.isCrmMode
   const replyRate = agent.replyRate ?? (agent.sent && agent.sent > 0 ? parseFloat(((agent.replied ?? 0) / agent.sent * 100).toFixed(1)) : 0)
+
+  const [editingConcurrency, setEditingConcurrency] = useState(false)
+  const [concurrencyDraft, setConcurrencyDraft] = useState(agent.settings?.concurrencyLevel ?? 1)
+  const saveConcurrency = async (val: number) => {
+    const clamped = Math.min(10, Math.max(1, val || 1))
+    setConcurrencyDraft(clamped)
+    setEditingConcurrency(false)
+    try {
+      await api.post('/api/lead-agent/settings', { ...(agent.settings ?? {}), agentId: agent.agentId, concurrencyLevel: clamped })
+      onSettingsChange(agent.agentId)
+    } catch {}
+  }
 
   // Link to per-agent dashboard page
   const dashUrl = `/agents/${agent.agentId}`
@@ -197,11 +212,31 @@ function AgentCard({
         if (!presetName && tags.length === 0) return null
         return (
           <div className="mb-4 space-y-1.5">
-            {presetName && (
+              {presetName && (
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <Zap className="w-3 h-3 text-primary shrink-0" />
                 <span className="font-medium text-foreground">{presetName}</span>
                 {leadLimit && <span className="ml-auto text-muted-foreground">{leadLimit} leads/cycle</span>}
+                <span className="flex items-center gap-0.5 ml-1">
+                  {editingConcurrency ? (
+                    <input
+                      type="number" min={1} max={10} autoFocus
+                      value={concurrencyDraft}
+                      className="w-10 text-center text-[10px] bg-background border border-border rounded px-0.5 focus:outline-none"
+                      onChange={e => setConcurrencyDraft(parseInt(e.target.value) || 1)}
+                      onBlur={() => saveConcurrency(concurrencyDraft)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveConcurrency(concurrencyDraft); if (e.key === 'Escape') setEditingConcurrency(false) }}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setEditingConcurrency(true)}
+                      className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Concurrency level – click to edit"
+                    >
+                      <Zap className="w-2.5 h-2.5" />{concurrencyDraft}×
+                    </button>
+                  )}
+                </span>
               </div>
             )}
             {tags.length > 0 && (
@@ -868,6 +903,7 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
                 onStop={handleStop}
                 onRunCycle={handleRunCycle}
                 onDelete={(id, name) => setDeleteTarget({ id, name })}
+                onSettingsChange={loadAgents}
                 busy={!!busy[agent.agentId]}
               />
             </div>

@@ -430,6 +430,9 @@ async function tick() {
         // Sort by createdAt ascending (oldest = index 0)
         queued.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
+        // Skip emails explicitly excluded from batch sending by the user
+        queued = queued.filter(e => !e.batchExcluded);
+
         const toSend = queued.slice(0, remaining);
         if (toSend.length === 0) {
           console.log(`[SCHEDULE PROCESSOR] No queued emails for agent ${agentId}`);

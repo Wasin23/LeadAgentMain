@@ -112,7 +112,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
     industries: [] as string[], jobTitles: [] as string[],
     leadsPerCycle: 10, emailLength: 'medium', callToAction: 'schedule-meeting',
     personalizationLevel: 'high', ccEmails: '', bccEmails: '',
-    followupIntervalDays: 7, enableAutoResponse: true
+    followupIntervalDays: 7, enableAutoResponse: true, concurrencyLevel: 1
   })
   const [presetJson, setPresetJson] = useState('')
   const [useGmail, setUseGmail] = useState(false)
@@ -198,6 +198,9 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         name: agentName,
         type: 'reasoning-lead-agent',
         specialInstructions,
+        useGmail,
+        useOutlook,
+        concurrencyLevel: settings.concurrencyLevel,
         personality: {
           type: personality?.id, name: personality?.name, description: personality?.description,
           avatar: personality?.avatar, emailPrompt: personality?.prompt,
@@ -559,6 +562,27 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 </div>
                 <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
                   <span className="text-gray-700 text-sm">Estimated: ~<span className="text-green-600 font-bold">{Math.ceil(settings.leadsPerCycle * 2 / 3)}</span> credits per cycle</span>
+                </div>
+              </div>
+
+              {/* Research Speed */}
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Research Speed</label>
+                <p className="text-gray-500 text-xs mb-3">Number of leads researched in parallel per cycle. Higher = faster but uses more API credits at once.</p>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range" min={1} max={10} step={1}
+                    value={settings.concurrencyLevel}
+                    onChange={e => setSettings(s => ({ ...s, concurrencyLevel: parseInt(e.target.value) }))}
+                    className="flex-1 accent-blue-500"
+                  />
+                  <span className="w-24 text-center font-bold text-gray-900 text-sm">
+                    {settings.concurrencyLevel === 1 ? '1 (default)' : `${settings.concurrencyLevel} workers`}
+                  </span>
+                </div>
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
+                  ~<span className="text-blue-600 font-bold">{settings.concurrencyLevel}×</span> faster research
+                  {settings.concurrencyLevel > 3 && <span className="ml-2 text-amber-600">⚠ High API usage</span>}
                 </div>
               </div>
 

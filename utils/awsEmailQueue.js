@@ -163,6 +163,9 @@ class AWSEmailQueue {
         queuedAt: timestamp,
         createdAt: timestamp,
         updatedAt: timestamp,
+        // Only persist scheduledAt when explicitly set (manual schedule via ScheduleModal)
+        // Batch emails have no scheduledAt; sendingScheduleProcessor handles those
+        ...(emailData.scheduledAt ? { scheduledAt: emailData.scheduledAt } : {}),
         
         // Metadata
         metadata: emailData.metadata || {},

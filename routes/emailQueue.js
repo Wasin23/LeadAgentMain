@@ -1058,6 +1058,30 @@ router.post('/bulk-edit', async (req, res) => {
   }
 });
 
+// Reset batchExcluded flag on all queued emails for an agent (called when schedule is saved)
+router.post('/reset-batch-excluded', async (req, res) => {
+  try {
+    const { agentId } = req.body;
+    const userId = req.user.userId;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+
+    const queued = agentId
+      ? await awsQueue.getQueuedEmails(userId, agentId)
+      : (await awsQueue.getAllQueuedEmailsForUser(userId, 500, 0)).emails ?? [];
+
+    const excluded = (queued ?? []).filter(e => e.batchExcluded);
+    await Promise.all(excluded.map(e =>
+      awsQueue.updateEmail(userId, e.agentId || agentId, e.id, { batchExcluded: false })
+    ));
+
+    res.json({ success: true, reset: excluded.length });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error resetting batch excluded:', error);
+    res.status(500).json({ error: 'Failed to reset batch excluded emails' });
+  }
+});
+
 // Schedule mass follow-up for all eligible emails
 router.post('/schedule-mass-followup', async (req, res) => {
   try {
