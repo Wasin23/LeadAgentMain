@@ -793,7 +793,7 @@ export function OperationsContent() {
                       )}
                       {(agent.settings?.targeting?.leadLimit || agent.settings?.geographicSettings?.leadLimit) && (
                         <span className="flex items-center gap-0.5 text-[10px] text-primary font-medium ml-auto flex-shrink-0">
-                          <User className="w-3 h-3" />
+                          <RefreshCw className="w-2.5 h-2.5" />
                           {agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit}/cycle
                         </span>
                       )}

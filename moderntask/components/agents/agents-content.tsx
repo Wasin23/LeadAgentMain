@@ -209,15 +209,15 @@ function AgentCard({
         const presetName: string   = agent.settings?.appliedPresetName ?? ''
         const leadLimit: number | null = agent.settings?.geographicSettings?.leadLimit ?? null
         const tags = [...industries.slice(0, 2), ...positions.slice(0, 2)]
-        if (!presetName && tags.length === 0) return null
         return (
           <div className="mb-4 space-y-1.5">
-              {presetName && (
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Zap className="w-3 h-3 text-primary shrink-0" />
-                <span className="font-medium text-foreground">{presetName}</span>
-                {leadLimit && <span className="ml-auto text-muted-foreground">{leadLimit} leads/cycle</span>}
-                <span className="flex items-center gap-0.5 ml-1">
+                {presetName && <>
+                  <Zap className="w-3 h-3 text-primary shrink-0" />
+                  <span className="font-medium text-foreground">{presetName}</span>
+                </>}
+                {leadLimit && <span className={cn('text-muted-foreground', presetName ? 'ml-auto' : '')}>{leadLimit} leads/cycle</span>}
+                <span className="flex items-center gap-0.5 ml-auto">
                   {editingConcurrency ? (
                     <input
                       type="number" min={1} max={10} autoFocus
@@ -233,12 +233,11 @@ function AgentCard({
                       className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                       title="Concurrency level – click to edit"
                     >
-                      <Zap className="w-2.5 h-2.5" />{concurrencyDraft}×
+                      <Cpu className="w-2.5 h-2.5" />{concurrencyDraft}×
                     </button>
                   )}
                 </span>
               </div>
-            )}
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {tags.map(t => (

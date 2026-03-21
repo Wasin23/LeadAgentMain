@@ -251,12 +251,18 @@ async function notifyBatchSent(awsManager, userId, user, agentId, settings, sent
   }
 
   // Load user notification settings
-  const userSettings    = await awsManager.getUserSettings(userId).catch(() => null);
-  const notifPrefs      = userSettings?.notificationSettings || {};
+  const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+  // Preferences are saved as userSettings.preferences.notifPrefs.emailNotifications
+  const notifPrefs = userSettings?.preferences?.notifPrefs || {};
 
-  // 3 — Mailgun email (enabled by default; only skipped if explicitly set to false)
-  if (notifPrefs.emailEnabled !== false) {
+  // 3 — Mailgun email (always send unless user explicitly turned off emailNotifications)
+  // Default: opt-in (send when undefined / true). Only skip when === false.
+  const emailEnabled = notifPrefs.emailNotifications !== false;
+  console.log(`[SCHEDULE PROCESSOR] 📧 Batch notif for agent ${agentId}: emailEnabled=${emailEnabled}, notifPrefs.emailNotifications=${notifPrefs.emailNotifications}`);
+
+  if (emailEnabled) {
     const toEmail = user.email || userSettings?.email;
+    console.log(`[SCHEDULE PROCESSOR] 📧 Sending batch email notif to: ${toEmail || '(none found)'}`);
     if (toEmail) {
       const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
       const recipients = sentEmails.map(e => ({
@@ -273,11 +279,16 @@ async function notifyBatchSent(awsManager, userId, user, agentId, settings, sent
         recipients,
         appUrl,
       });
-      await sendSystemEmail(
+      const result = await sendSystemEmail(
         toEmail,
         `\u{1F4C5} ${agentName}: ${successCount} email${successCount !== 1 ? 's' : ''} auto-sent`,
         html
       );
+      if (!result.success) {
+        console.error(`[SCHEDULE PROCESSOR] ❌ Batch email notif failed for ${toEmail}:`, result.error);
+      }
+    } else {
+      console.warn(`[SCHEDULE PROCESSOR] ⚠️ No email address found for userId ${userId} — skipping email notification`);
     }
   }
 

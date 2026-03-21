@@ -153,7 +153,6 @@ export function SettingsContent() {
   const [notifPrefs, setNotifPrefs] = useState({
     emailNotifications: true,
     agentActivityAlerts: true,
-    weeklyDigest: false,
     leadResponseAlerts: true,
     errorAlerts: true,
   })
@@ -943,7 +942,6 @@ export function SettingsContent() {
                     { key: "agentActivityAlerts", label: "Agent Activity Alerts",  desc: "When agents complete campaigns or hit issues" },
                     { key: "leadResponseAlerts",  label: "Lead Response Alerts",   desc: "When a lead replies to outreach" },
                     { key: "errorAlerts",         label: "Error Alerts",           desc: "Failed sends, API issues" },
-                    { key: "weeklyDigest",        label: "Weekly Digest",          desc: "Performance summary every Monday" },
                   ].map(item => (
                     <div key={item.key} className="flex items-center justify-between py-3 border-b border-border last:border-0">
                       <div>

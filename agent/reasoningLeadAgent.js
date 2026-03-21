@@ -7720,6 +7720,17 @@ Target Positions:`;
   // Execute one reasoning cycle
   async executeReasoningCycle() {
     this.cycleCount++;
+
+    // Refresh settings every cycle so changes (e.g. concurrencyLevel) take effect without restart
+    try {
+      const freshSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
+      if (freshSettings) {
+        this.settings = freshSettings;
+        console.log(`🔄 [CYCLE SETTINGS] Agent ${this.agentId}: concurrencyLevel=${freshSettings.concurrencyLevel ?? 1}`);
+      }
+    } catch (err) {
+      console.warn(`⚠️ [CYCLE SETTINGS] Failed to refresh settings for agent ${this.agentId}:`, err.message);
+    }
     
     // Broadcast cycle start event
     try {
@@ -7942,9 +7953,13 @@ Target Positions:`;
           actionResult?.leads?.length > 0
         ) {
           const concurrencyLevel = this.settings?.concurrencyLevel || 1;
+          console.log(`⚡ [CONCURRENCY] Agent ${this.agentId}: using concurrencyLevel=${concurrencyLevel} (raw setting: ${this.settings?.concurrencyLevel})`);
           if (concurrencyLevel > 1) {
+            console.log(`⚡ [CONCURRENCY] Draining ${actionResult?.leads?.length ?? 0} leads with ${concurrencyLevel} parallel workers`);
             await this.drainQueueConcurrently(concurrencyLevel);
             break; // Queue fully processed — end this cycle
+          } else {
+            console.log(`⚡ [CONCURRENCY] Sequential mode (concurrencyLevel=1) — processing leads one by one`);
           }
         }
         // ──────────────────────────────────────────────────────────────────
