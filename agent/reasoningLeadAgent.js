@@ -6945,8 +6945,17 @@ Target Positions:`;
       await Promise.allSettled(batch.map(lead => this.processLeadPipeline(lead)));
     }
 
-    this.memory.currentCycle.processingPhase = 'complete';
-    this.memory.currentCycle.cycleComplete   = true;
+    // Check if we still need more leads to hit the target
+    const processed = this.memory.currentCycle.leadsProcessed;
+    const target = this.memory.currentCycle.targetLeads;
+    if (this.isRunning && processed < target) {
+      console.log(`⚡ [CONCURRENCY] ${processed}/${target} leads done — searching for ${target - processed} more`);
+      this.memory.currentCycle.processingPhase = 'search';
+      this.memory.currentCycle.cycleComplete   = false;
+    } else {
+      this.memory.currentCycle.processingPhase = 'complete';
+      this.memory.currentCycle.cycleComplete   = true;
+    }
   }
 
   // ============================================================================
@@ -7961,7 +7970,9 @@ Target Positions:`;
           if (concurrencyLevel > 1) {
             console.log(`⚡ [CONCURRENCY] Draining ${actionResult?.leads?.length ?? 0} leads with ${concurrencyLevel} parallel workers`);
             await this.drainQueueConcurrently(concurrencyLevel);
-            break; // Queue fully processed — end this cycle
+            // drainQueueConcurrently sets phase='search' if more leads are needed,
+            // or phase='complete'/cycleComplete=true if target is reached — let the
+            // while loop continue and it will either search again or exit naturally.
           } else {
             console.log(`⚡ [CONCURRENCY] Sequential mode (concurrencyLevel=1) — processing leads one by one`);
           }

@@ -13,6 +13,7 @@
 
 import AWSManager from './awsManager.js';
 import AWSEmailQueue from './awsEmailQueue.js';
+import { leadEmail } from '../tools/leadEmail.js';
 
 class EmailScheduler {
   constructor() {
@@ -107,95 +108,64 @@ class EmailScheduler {
     }
   }
   
-  // Send a scheduled email
+  // Send a scheduled email — direct in-process send (no HTTP self-call needed)
   async sendScheduledEmail(email) {
+    const { id: emailId, userId, agentId, scheduledAt } = email;
     try {
-      const { id: emailId, userId, agentId, scheduledAt } = email;
-      
       console.log(`📧 [EMAIL SCHEDULER] Processing email ${emailId} (scheduled for ${scheduledAt})`);
-      
-      // Use the email queue API endpoint to approve/send the email
-      const axios = (await import('axios')).default;
-      const apiUrl = process.env.API_URL || 'http://localhost:3030';
-      
-      // Get user's JWT token (this is server-side, so we need to handle auth differently)
-      // For now, we'll directly call the approve endpoint
-      const response = await axios.post(
-        `${apiUrl}/api/email-queue/${emailId}/approve`,
-        { agentId, isScheduled: true },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            // Server-side auth bypass for scheduled sends
-            'X-Scheduled-Send': 'true',
-            'X-User-Id': userId
-          },
-          params: { agentId }
-        }
-      ).catch(err => {
-        // If API call fails, try direct send
-        return this.sendEmailDirect(email);
-      });
-      
-      if (response && response.data) {
-        console.log(`✅ [EMAIL SCHEDULER] Email ${emailId} sent successfully`);
-        
-        // Log notification
-        await this.awsManager.addIssue(
-          userId,
-          'info',
-          'Scheduled Email Sent',
-          `Scheduled email to ${email.to || email.emailData?.finalRecipient} was sent successfully.`,
-          {
-            emailId,
-            agentId,
-            to: email.to || email.emailData?.finalRecipient,
-            subject: email.subject || email.emailData?.finalSubject,
-            scheduledTime: scheduledAt,
-            sentTime: new Date().toISOString()
-          }
-        );
+
+      const approvedEmail = await this.awsEmailQueue.approveEmail(userId, agentId, emailId);
+
+      const emailData      = approvedEmail.emailData || {};
+      const finalRecipient = emailData.finalRecipient || approvedEmail.finalRecipient || approvedEmail.to;
+      const finalSubject   = emailData.finalSubject   || approvedEmail.finalSubject   || approvedEmail.subject;
+      const finalBody      = emailData.finalBody      || approvedEmail.finalBody      || approvedEmail.body;
+
+      if (!finalRecipient || !finalSubject || !finalBody) {
+        console.warn(`[EMAIL SCHEDULER] ⚠️ Email ${emailId} missing required fields, skipping`);
+        return;
       }
-      
-    } catch (error) {
-      console.error(`❌ [EMAIL SCHEDULER] Error sending email ${email.id}:`, error);
-      
-      // Log error notification
+
+      const personInfo = approvedEmail.leadDetails?.personInfo || null;
+
+      // Fetch CC / BCC / senderName from agent settings
+      let ccEmails   = approvedEmail.cc   || approvedEmail.emailData?.cc   || null;
+      let bccEmails  = approvedEmail.bcc  || approvedEmail.emailData?.bcc  || null;
+      let senderName = null;
       try {
-        await this.awsManager.addIssue(
-          email.userId,
-          'error',
-          'Scheduled Email Failed',
-          `Failed to send scheduled email: ${error.message}`,
-          {
-            emailId: email.id,
-            agentId: email.agentId,
-            to: email.to || email.emailData?.finalRecipient,
-            subject: email.subject || email.emailData?.finalSubject,
-            scheduledTime: email.scheduledAt,
-            error: error.message
-          }
-        );
-      } catch (issueError) {
-        console.error('[EMAIL SCHEDULER] Failed to log issue:', issueError);
+        const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId);
+        if (agentSettings) {
+          if (!ccEmails  && agentSettings.emailBuilder?.ccEmails)  ccEmails  = agentSettings.emailBuilder.ccEmails;
+          if (!bccEmails && agentSettings.emailBuilder?.bccEmails) bccEmails = agentSettings.emailBuilder.bccEmails;
+          senderName = agentSettings.companyName || agentSettings.emailBuilder?.companyName || null;
+        }
+      } catch { /* non-fatal */ }
+
+      const replyOptions = approvedEmail.replyOptions || null;
+
+      const sendResult = await leadEmail(
+        finalRecipient, finalSubject, finalBody,
+        personInfo, userId, agentId,
+        ccEmails, bccEmails, senderName, replyOptions
+      );
+
+      if (sendResult.success) {
+        await this.awsEmailQueue.markEmailAsSent(userId, agentId, emailId, {
+          id:         sendResult.result?.id,
+          message:    sendResult.result?.message,
+          trackingId: sendResult.result?.trackingId,
+          fromAccount: sendResult.result?.fromAccount || sendResult.result?.sentFrom || null,
+          method:     sendResult.method || 'scheduled',
+          messageId:  sendResult.result?.messageId || null,
+          threadId:   sendResult.result?.threadId  || null,
+        });
+        console.log(`✅ [EMAIL SCHEDULER] Sent ${emailId} → ${finalRecipient}`);
+      } else {
+        console.error(`❌ [EMAIL SCHEDULER] Send failed for ${emailId}:`, sendResult.error);
       }
-    }
-  }
-  
-  // Direct send method (fallback if API unavailable)
-  async sendEmailDirect(email) {
-    try {
-      const { EmailQueue } = await import('../lib/emailQueue.js');
-      const emailQueue = new EmailQueue(email.userId, email.agentId);
-      
-      // Approve and send the email
-      await this.awsEmailQueue.approveEmail(email.userId, email.agentId, email.id);
-      const result = await emailQueue.sendEmail(email.id);
-      
-      return { data: result };
+
     } catch (error) {
-      console.error('[EMAIL SCHEDULER] Direct send failed:', error);
-      throw error;
+      console.error(`❌ [EMAIL SCHEDULER] Error sending email ${emailId}:`, error.message);
     }
   }
   
