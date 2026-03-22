@@ -67,12 +67,6 @@ function getEmailResponsePromptForPersonality(personality) {
   return prompts[personalityType] || prompts.hunter;
 }
 
-// Add debugging middleware to log all auth requests
-router.use((req, res, next) => {
-  console.log(`[AUTH] ${req.method} ${req.path} - Request received`);
-  next();
-});
-
 // Test endpoint to verify auth routes are working
 router.get('/test', (req, res) => {
   console.log('[AUTH] Test endpoint hit');
@@ -347,7 +341,6 @@ router.get('/debug-activity', authenticateToken, async (req, res) => {
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId; // Get from JWT token
-    console.log(`[AUTH] GET /profile - Request received for user: ${userId}`);
     
     // Import AWS manager to get user data
     const { default: AWSManager } = await import('../utils/awsManager.js');
@@ -1236,9 +1229,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
 router.get('/agents', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    
-    console.log(`[AUTH] Getting agents for user: ${userId}`);
-    
+
     // Get user from AWS to fetch their active agents
     const { getUserById } = await import('../lib/userManager.js');
     const user = await getUserById(userId);

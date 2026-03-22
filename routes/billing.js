@@ -71,9 +71,7 @@ const awsManager = new AWSManager();
 router.get('/trial-credits', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🔵 [BILLING] Getting trial credits for user:', userId);
     const creditStatus = await getTrialCreditStatus(userId);
-    console.log('🔵 [BILLING] Trial credit status:', creditStatus);
     
     res.json({
       success: true,

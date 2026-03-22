@@ -176,7 +176,8 @@ class EmailScheduler {
           const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId).catch(() => null);
           const agentName = agentSettings?.name || agentId;
           const userSettings = await this.awsManager.getUserSettings(userId).catch(() => null);
-          const toEmail = userSettings?.email;
+          const user = await this.awsManager.getUserById(userId).catch(() => null);
+          const toEmail = user?.email || userSettings?.email || null;
           const notifPrefs = userSettings?.preferences?.notifPrefs || {};
 
           // In-app notification

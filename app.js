@@ -412,6 +412,11 @@ app.use((req, res, next) => {
     '/api/zilliz-tracking/internal/events',
     '/api/issues',
     '/api/notifications/count',
+    '/api/auth/profile',
+    '/api/auth/agents',
+    '/api/plans/status',
+    '/api/billing/credit-balance',
+    '/api/billing/trial-credits',
     '/api/email-queue/queue',
     '/api/email-queue/sent',
     '/api/email-queue/replied'
