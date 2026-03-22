@@ -146,6 +146,23 @@ const INTRO_SLIDES = [
       rows: ['8 emails queued for today', '2 replies detected', '1 meeting-ready prospect'],
     },
   },
+  {
+    eyebrow: 'What is CRM Auditor?',
+    title: 'It can audit the contacts already in your CRM',
+    description: 'You can convert an agent into a CRM Auditor that reads through your CRM contacts, researches each one, builds outreach, and submits research reports back on every record.',
+    avatars: [PERSONALITY_TYPES[3], PERSONALITY_TYPES[2], PERSONALITY_TYPES[1]],
+    stats: [
+      { label: 'Reads CRM', value: 'Selected' },
+      { label: 'Research', value: 'Per contact' },
+      { label: 'Reports', value: 'Logged' },
+    ],
+    mockup: {
+      badge: 'CRM Auditor',
+      title: 'HubSpot audit run',
+      subtitle: 'The agent works through your saved contacts instead of searching Apollo',
+      rows: ['12 CRM contacts imported', '12 research briefs prepared', '12 personalized emails drafted', '12 contact reports synced'],
+    },
+  },
 ] as const
 
 type Step = 'intro' | 'personality' | 'name-agent' | 'plan' | 'configure' | 'name-preset' | 'email-setup' | 'crm-setup' | 'payment' | 'review' | 'creating'
@@ -508,7 +525,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
 
                 <div className="rounded-[1.75rem] border border-white/20 bg-white/10 p-6 md:p-7 backdrop-blur-sm">
                   <div className="rounded-[1.5rem] border border-white/15 bg-slate-950/25 px-5 py-4 mb-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100/75">Step {introSlide + 1} of 3</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100/75">Step {introSlide + 1} of {INTRO_SLIDES.length}</p>
                     <p className="text-white text-lg font-semibold mt-2 leading-relaxed">{currentIntroSlide.description}</p>
                   </div>
                   <div className="space-y-3">
@@ -516,6 +533,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       'An agent is a reusable AI worker, not just a one-off email.',
                       'Each agent keeps its own targeting, messaging style, and sending settings.',
                       'You can create more agents for more markets as your plan grows.',
+                      'CRM Auditor mode uses your CRM contact list instead of Apollo search.',
                     ].map((item, index) => (
                       <div key={item} className={`rounded-2xl px-4 py-3 text-base ${index === introSlide ? 'bg-white text-blue-700 font-semibold' : 'bg-white/10 text-white/80'}`}>
                         {item}

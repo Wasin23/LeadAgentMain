@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 export interface GettingStartedChecklist {
   hasAgent: boolean
   emailConnected: boolean
-  agentRan: boolean
+  agentStarted: boolean
   gotReply: boolean
+  hasSecondAgent: boolean
 }
 
-const STEPS = [
+const BASE_STEPS = [
   {
     key: "hasAgent" as const,
     title: "Create your first agent",
@@ -27,31 +28,41 @@ const STEPS = [
     cta: "Connect Email",
   },
   {
-    key: "agentRan" as const,
-    title: "Send your first campaign",
-    desc: "Start your agent and let it research leads and send outreach.",
-    href: "/agents",
+    key: "agentStarted" as const,
+    title: "Start your agent",
+    desc: "Open Operations and start your agent so it begins running cycles.",
+    href: "/operations",
     cta: "Start Agent",
-  },
-  {
-    key: "gotReply" as const,
-    title: "Get your first reply",
-    desc: "When a lead responds, Meridian stops follow-ups and surfaces it for you.",
-    href: "/outreach",
-    cta: "View Outreach",
   },
 ]
 
-export function GettingStarted({ checklist }: { checklist: GettingStartedChecklist }) {
-  const router = useRouter()
+const FREE_PLAN_LAST_STEP = {
+  key: "gotReply" as const,
+  title: "Get your first reply",
+  desc: "When a lead responds, Meridian stops follow-ups and surfaces it for you.",
+  href: "/outreach",
+  cta: "View Outreach",
+}
 
-  const completed = STEPS.filter((s) => checklist[s.key]).length
-  const allDone = completed === STEPS.length
+const PAID_PLAN_LAST_STEP = {
+  key: "hasSecondAgent" as const,
+  title: "Create another agent",
+  desc: "Paid plans support multiple agents, so set up another one for a different market or workflow.",
+  href: "/agents",
+  cta: "Create Agent",
+}
+
+export function GettingStarted({ checklist, isPaidPlan = false }: { checklist: GettingStartedChecklist; isPaidPlan?: boolean }) {
+  const router = useRouter()
+  const steps = [...BASE_STEPS, isPaidPlan ? PAID_PLAN_LAST_STEP : FREE_PLAN_LAST_STEP]
+
+  const completed = steps.filter((s) => checklist[s.key]).length
+  const allDone = completed === steps.length
 
   // Vanish permanently once all tasks are done
   if (allDone) return null
 
-  const pct = Math.round((completed / STEPS.length) * 100)
+  const pct = Math.round((completed / steps.length) * 100)
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -61,7 +72,7 @@ export function GettingStarted({ checklist }: { checklist: GettingStartedCheckli
           <div>
             <h2 className="text-sm font-semibold text-foreground">Getting started</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {completed} of {STEPS.length} complete
+              {completed} of {steps.length} complete
             </p>
           </div>
         </div>
@@ -79,10 +90,10 @@ export function GettingStarted({ checklist }: { checklist: GettingStartedCheckli
 
       {/* Steps */}
       <div className="divide-y divide-border">
-        {STEPS.map((step) => {
+        {steps.map((step) => {
           const done = checklist[step.key]
           // Find first incomplete step for special styling
-          const isNext = !done && STEPS.findIndex((s) => !checklist[s.key]) === STEPS.indexOf(step)
+          const isNext = !done && steps.findIndex((s) => !checklist[s.key]) === steps.indexOf(step)
 
           return (
             <div

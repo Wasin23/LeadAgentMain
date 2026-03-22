@@ -7776,6 +7776,7 @@ Target Positions:`;
   // Execute one reasoning cycle
   async executeReasoningCycle() {
     this.cycleCount++;
+    let crmContactsLoadedThisCycle = false;
 
     // Refresh settings every cycle so changes (e.g. concurrencyLevel) take effect without restart
     try {
@@ -7832,6 +7833,7 @@ Target Positions:`;
       this.memory.currentCycle.targetLeads   = crmLeads.length;
       this.memory.currentCycle.processingPhase = 'research'; // Skip apollo_search
       this.crmContactList = null; // Consumed — clear so next cycle uses Apollo normally
+      crmContactsLoadedThisCycle = true;
       console.log(`[CRM MODE] Pre-loaded ${crmLeads.length} contacts from CRM, skipping Apollo search — starting with ${crmLeads[0]?.name}`);
       this.logOperation('📋 CRM Mode', `Processing ${crmLeads.length} contacts imported from CRM`, 'running');
       // Broadcast CRM session start so the frontend knows the full contact list
@@ -7952,6 +7954,37 @@ Target Positions:`;
         }
         if (!context.hasEmailSettings && this.memory.emailSettings?.error) {
           this.logOperation('📧 Email Setup', 'Loading your email preferences...', 'in-progress');
+        }
+
+        if (
+          crmContactsLoadedThisCycle &&
+          (this.settings?.concurrencyLevel || 1) > 1 &&
+          this.memory.currentCycle.processingPhase === 'research' &&
+          (this.memory.currentCycle.currentLead || this.memory.currentCycle.leadQueue.length > 0) &&
+          this.memory.currentCycle.leadsProcessed === 0 &&
+          !this.memory.lastResearch &&
+          !this.memory.currentQualification
+        ) {
+          if (!context.hasUserSettings) {
+            const freshUserSettings = await this.getUserSettings();
+            if (freshUserSettings && !freshUserSettings.error) {
+              this.memory.userSettings = freshUserSettings;
+            }
+          }
+
+          if (!context.hasEmailSettings) {
+            const freshEmailSettings = await this.getEmailSettings();
+            if (freshEmailSettings && !freshEmailSettings.error) {
+              this.memory.emailSettings = freshEmailSettings;
+            }
+          }
+
+          if (this.memory.emailSettings && !this.memory.emailSettings.error) {
+            const concurrencyLevel = this.settings?.concurrencyLevel || 1;
+            console.log(`⚡ [CRM CONCURRENCY] Agent ${this.agentId}: draining CRM contacts with concurrencyLevel=${concurrencyLevel}`);
+            await this.drainQueueConcurrently(concurrencyLevel);
+            continue;
+          }
         }
 
         // Check if agent was stopped before making next decision

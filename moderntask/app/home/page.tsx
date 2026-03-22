@@ -85,9 +85,11 @@ export default function DashboardPage() {
   const [checklist, setChecklist] = useState<GettingStartedChecklist>({
     hasAgent: false,
     emailConnected: false,
-    agentRan: false,
+    agentStarted: false,
     gotReply: false,
+    hasSecondAgent: false,
   })
+  const [isPaidPlan, setIsPaidPlan] = useState(false)
 
   const fetchAll = useCallback(async () => {
     // Fire all requests in parallel; silently handle individual failures
@@ -99,6 +101,7 @@ export default function DashboardPage() {
       scheduledBatchesRes,
       notifsRes,
       notifCountRes,
+      planRes,
     ] = await Promise.allSettled([
       api.get("/api/email-queue/counts?agentId=all"),
       api.get("/api/auth/agents"),
@@ -107,7 +110,13 @@ export default function DashboardPage() {
       api.get("/api/email-queue/scheduled-batches"),
       api.get("/api/notifications/recent", { params: { limit: 6 } }),
       api.get("/api/notifications/count"),
+      api.get("/api/plans/status"),
     ])
+
+    if (planRes.status === "fulfilled") {
+      const planId = planRes.value.data?.plan?.id || "free-trial"
+      setIsPaidPlan(planId !== "free-trial")
+    }
 
     // ── email counts ────────────────────────────────────────────────────
     if (countsRes.status === "fulfilled") {
@@ -122,7 +131,7 @@ export default function DashboardPage() {
       // Update the parts of checklist that depend on counts
       setChecklist((prev) => ({
         ...prev,
-        agentRan: sent > 0,
+        agentStarted: prev.agentStarted,
         gotReply: replied > 0,
       }))
     }
@@ -171,6 +180,8 @@ export default function DashboardPage() {
         ...prev,
         hasAgent: nonOrphanAgents.length > 0,
         emailConnected: anyEmailConnected,
+        agentStarted: nonOrphanAgents.some((a) => a.isRunning === true || a.status === "running" || Boolean(a.lastRun)),
+        hasSecondAgent: nonOrphanAgents.length > 1,
       }))
 
       setAgentProgress(
@@ -318,7 +329,7 @@ export default function DashboardPage() {
         <Header
           title="Home"
           description="Overview of your Meridian agents and outreach activity."
-          actions={<HomeActions checklist={checklist} />}
+          actions={<HomeActions checklist={checklist} isPaidPlan={isPaidPlan} />}
           notificationCount={notifCount}
           userName={userName}
           userEmail={userEmail}

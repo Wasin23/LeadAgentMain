@@ -6,21 +6,25 @@ import { Button } from "@/components/ui/button"
 import { Bot, CheckCircle, Circle, ChevronDown, ArrowRight } from "lucide-react"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 
-const STEPS = [
+const BASE_STEPS = [
   { key: "hasAgent" as const,       title: "Create your first agent",   href: "/agents" },
   { key: "emailConnected" as const,  title: "Connect your email",        href: "/agents" },
-  { key: "agentRan" as const,        title: "Send your first campaign",  href: "/agents" },
-  { key: "gotReply" as const,        title: "Get your first reply",      href: "/outreach" },
+  { key: "agentStarted" as const,    title: "Start your agent",          href: "/operations" },
 ]
+
+const FREE_PLAN_LAST_STEP = { key: "gotReply" as const, title: "Get your first reply", href: "/outreach" }
+const PAID_PLAN_LAST_STEP = { key: "hasSecondAgent" as const, title: "Create another agent", href: "/agents" }
 
 interface Props {
   checklist?: GettingStartedChecklist
+  isPaidPlan?: boolean
 }
 
-export function HomeActions({ checklist }: Props) {
+export function HomeActions({ checklist, isPaidPlan = false }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const steps = [...BASE_STEPS, isPaidPlan ? PAID_PLAN_LAST_STEP : FREE_PLAN_LAST_STEP]
 
   // Close on outside click
   useEffect(() => {
@@ -31,9 +35,9 @@ export function HomeActions({ checklist }: Props) {
     return () => document.removeEventListener("mousedown", handler)
   }, [open])
 
-  const completed = checklist ? STEPS.filter((s) => checklist[s.key]).length : 0
-  const allDone = completed === STEPS.length
-  const remaining = STEPS.length - completed
+  const completed = checklist ? steps.filter((s) => checklist[s.key]).length : 0
+  const allDone = completed === steps.length
+  const remaining = steps.length - completed
 
   return (
     <div className="flex flex-col sm:flex-row gap-2">
@@ -66,7 +70,7 @@ export function HomeActions({ checklist }: Props) {
             {/* Header */}
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground">Getting started</span>
-              <span className="text-xs text-muted-foreground">{completed} / {STEPS.length}</span>
+              <span className="text-xs text-muted-foreground">{completed} / {steps.length}</span>
             </div>
 
             {/* Progress bar */}
@@ -74,16 +78,16 @@ export function HomeActions({ checklist }: Props) {
               <div className="h-1 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full transition-all duration-500"
-                  style={{ width: `${Math.round((completed / STEPS.length) * 100)}%` }}
+                  style={{ width: `${Math.round((completed / steps.length) * 100)}%` }}
                 />
               </div>
             </div>
 
             {/* Steps */}
             <div className="py-1">
-              {STEPS.map((step) => {
+              {steps.map((step) => {
                 const done = checklist ? checklist[step.key] : false
-                const isNext = !done && checklist && STEPS.findIndex((s) => !checklist[s.key]) === STEPS.indexOf(step)
+                const isNext = !done && checklist && steps.findIndex((s) => !checklist[s.key]) === steps.indexOf(step)
                 return (
                   <button
                     key={step.key}

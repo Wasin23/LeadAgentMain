@@ -989,7 +989,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       agentId,
       name: name.trim(),
       type,
-      status: 'active',
+      status: 'idle',
       createdAt: new Date().toISOString(),
       lastRun: null,
       personality: personality || {
@@ -1041,7 +1041,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       userId,
       name: name.trim(),
       type,
-      status: 'active',
+      status: 'idle',
       createdAt: new Date().toISOString(),
       personality: agentData.personality, // Copy personality to agent-settings
       specialInstructions: specialInstructions || '',

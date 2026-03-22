@@ -582,7 +582,7 @@ class AWSManager {
         agentId: agentId,
         name: agentName,
         type: 'reasoning-lead-agent',
-        status: 'active',
+        status: 'idle',
         createdAt: new Date().toISOString(),
         lastRun: null,
         settings: {
@@ -630,7 +630,7 @@ class AWSManager {
         agentId: agentId,
         name: agentName,
         type: agentType,
-        status: 'active',
+        status: 'idle',
         createdAt: new Date().toISOString(),
         lastRun: null,
         settings: {
