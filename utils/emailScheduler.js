@@ -16,7 +16,7 @@ import AWSEmailQueue from './awsEmailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { sendSystemEmail } from '../tools/emailMailgun.js';
 import { sendSMS } from './smsManager.js';
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 class EmailScheduler {
   constructor() {
@@ -87,26 +87,32 @@ class EmailScheduler {
     }
   }
 
-  async getQueuedEmailsForUser(userId) {
+  async scanDueScheduledEmailRefs(now) {
     const items = [];
     let lastEvaluatedKey = null;
 
     do {
-      const queryInput = {
+      const scanInput = {
         TableName: this.awsEmailQueue.tableName,
         IndexName: this.awsEmailQueue.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': `${userId}#QUEUED`
+        FilterExpression: '#status = :queuedStatus AND attribute_exists(scheduledAt) AND scheduledAt <= :now',
+        ExpressionAttributeNames: {
+          '#status': 'status'
         },
-        ScanIndexForward: true,
+        ExpressionAttributeValues: {
+          ':queuedStatus': 'QUEUED',
+          ':now': now
+        },
+        ProjectionExpression: 'id, userId, agentId, scheduledAt',
       };
 
       if (lastEvaluatedKey) {
-        queryInput.ExclusiveStartKey = lastEvaluatedKey;
+        scanInput.ExclusiveStartKey = lastEvaluatedKey;
       }
 
-      const response = await this.awsEmailQueue.dynamodb.send(new QueryCommand(queryInput));
+      const response = await this.awsEmailQueue._retryWithBackoff(async () => {
+        return this.awsEmailQueue.dynamodb.send(new ScanCommand(scanInput));
+      });
 
       items.push(...(response.Items || []));
       lastEvaluatedKey = response.LastEvaluatedKey;
@@ -119,29 +125,7 @@ class EmailScheduler {
   async getScheduledEmailsReadyToSend() {
     try {
       const now = new Date().toISOString();
-      const users = await this.awsManager.getAllUsers();
-      const scheduledEmails = [];
-
-      for (const user of users) {
-        const userId = user.userId || user.id;
-        if (!userId) continue;
-
-        try {
-          const queuedEmails = await this.getQueuedEmailsForUser(userId);
-          const dueEmails = queuedEmails.filter(email =>
-            email.scheduledAt &&
-            email.scheduledAt <= now &&
-            email.status === 'QUEUED'
-          );
-
-          if (dueEmails.length > 0) {
-            console.log(`📊 [EMAIL SCHEDULER] userId=${userId} has ${dueEmails.length} due scheduled email(s)`);
-            scheduledEmails.push(...dueEmails);
-          }
-        } catch (userError) {
-          console.error(`[EMAIL SCHEDULER] Failed to query queued emails for userId=${userId}:`, userError.message);
-        }
-      }
+      const scheduledEmails = await this.scanDueScheduledEmailRefs(now);
 
       scheduledEmails.sort((left, right) => {
         return new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime();
