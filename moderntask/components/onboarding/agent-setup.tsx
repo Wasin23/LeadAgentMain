@@ -498,67 +498,60 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               </div>
 
               <div className="rounded-[1.75rem] border border-white/20 bg-white/95 p-5 md:p-6 text-gray-900">
-                <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr] xl:items-start">
-                  <div>
-                    <div className="rounded-[1.25rem] border border-blue-100 bg-blue-50 px-5 py-4 mb-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Step {introSlide + 1} of {INTRO_SLIDES.length}</p>
-                      <p className="mt-2 text-sm md:text-base font-semibold leading-relaxed text-slate-800">{currentIntroSlide.description}</p>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-3 mb-4">
-                      {[
-                        { title: 'What an agent is', detail: 'A reusable AI worker with its own personality and ICP.' },
-                        { title: 'How it does the work', detail: 'Finds leads, researches them, and writes outreach.' },
-                        { title: 'How cycles work', detail: 'Repeats the full pass of work on each scheduled run.' },
-                      ].map((item, index) => (
-                        <div key={item.title} className={`rounded-2xl border px-4 py-3 ${index === introSlide ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50 text-slate-700'}`}>
-                          <p className={`text-xs uppercase tracking-[0.12em] ${index === introSlide ? 'font-bold' : 'font-semibold text-slate-500'}`}>{item.title}</p>
-                          <p className={`mt-1 text-sm leading-relaxed ${index === introSlide ? 'font-semibold' : ''}`}>{item.detail}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 mb-4 xl:mb-0 xl:justify-end xl:pl-4">
-                    <span className="rounded-full bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">{currentIntroSlide.mockup.badge}</span>
-                    <div className="flex -space-x-2">
-                      {currentIntroSlide.avatars.map((avatar) => (
-                        <div key={avatar.id} className={`w-12 h-12 rounded-full bg-gradient-to-br ${colorGrad[avatar.color]} p-0.5 border-2 border-white`}>
-                          <img src={avatar.avatar} alt={avatar.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(avatar.name)}&background=3b82f6&color=ffffff` }} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <div className="rounded-[1.25rem] border border-blue-100 bg-blue-50 px-5 py-4 mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Step {introSlide + 1} of {INTRO_SLIDES.length}</p>
+                  <p className="mt-2 text-sm md:text-base font-semibold leading-relaxed text-slate-800">{currentIntroSlide.description}</p>
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] xl:items-start">
-                  <div>
-                  <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="grid gap-3 md:grid-cols-3 mb-4">
+                  {[
+                    { title: 'What an agent is', detail: 'A reusable AI worker with its own personality and ICP.' },
+                    { title: 'How it does the work', detail: 'Finds leads, researches them, and writes outreach.' },
+                    { title: 'How cycles work', detail: 'Repeats the full pass of work on each scheduled run.' },
+                  ].map((item) => (
+                    <div key={item.title} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-slate-700">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{item.title}</p>
+                      <p className="mt-1 text-sm leading-relaxed">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-[1.5rem] border border-gray-200 bg-white px-5 py-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="rounded-full bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">{currentIntroSlide.mockup.badge}</span>
+                        <div className="flex -space-x-2">
+                          {currentIntroSlide.avatars.map((avatar) => (
+                            <div key={avatar.id} className={`w-11 h-11 rounded-full bg-gradient-to-br ${colorGrad[avatar.color]} p-0.5 border-2 border-white`}>
+                              <img src={avatar.avatar} alt={avatar.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(avatar.name)}&background=3b82f6&color=ffffff` }} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                       <p className="text-2xl font-bold text-gray-900">{currentIntroSlide.mockup.title}</p>
                       <p className="text-base text-gray-500 mt-1.5">{currentIntroSlide.mockup.subtitle}</p>
                     </div>
+
+                    <div className="grid grid-cols-3 gap-3 w-full lg:w-auto lg:min-w-[340px]">
+                      {currentIntroSlide.stats.map((stat) => (
+                        <div key={stat.label} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
+                          <p className="text-lg font-bold text-gray-900">{stat.value}</p>
+                          <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 mt-1">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    {currentIntroSlide.stats.map((stat) => (
-                      <div key={stat.label} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
-                        <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-                        <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 mt-1">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-3">
                     {currentIntroSlide.mockup.rows.map((row, index) => {
                       const metricMatch = row.match(/^(\d+)\s+(.*)$/)
                       return (
-                        <div key={row} className="flex items-center gap-4 rounded-2xl border border-gray-200 px-4 py-3 md:px-4 md:py-3">
+                        <div key={row} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
                           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{index + 1}</span>
                           {metricMatch ? (
                             <>
-                              <span className="min-w-[3.25rem] text-3xl md:text-[2.2rem] font-bold tracking-tight text-gray-900">{metricMatch[1]}</span>
+                              <span className="min-w-[3rem] text-3xl font-bold tracking-tight text-gray-900">{metricMatch[1]}</span>
                               <span className="text-sm md:text-base text-gray-700 leading-snug">{metricMatch[2]}</span>
                             </>
                           ) : (
