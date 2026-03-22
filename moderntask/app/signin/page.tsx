@@ -370,6 +370,29 @@ export default function SignInPage() {
         .signin-pressable:active:not(:disabled) {
           transform: translateY(1px) scale(0.985);
         }
+        .signin-primary-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 14px 30px rgba(37, 99, 235, 0.24);
+        }
+        .signin-primary-button:active:not(:disabled) {
+          transform: translateY(1px) scale(0.985);
+          box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+        }
+        .signin-tab-trigger {
+          transition: transform 0.14s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+        }
+        .signin-tab-trigger:hover {
+          transform: translateY(-1px);
+        }
+        .signin-tab-trigger:active {
+          transform: translateY(1px) scale(0.985);
+        }
+        .signin-tab-trigger[data-state='active'] {
+          background: white;
+          color: rgb(15, 23, 42);
+          border-color: rgba(148, 163, 184, 0.35);
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
         .google-auth-button:hover:not(:disabled) {
           background: rgba(255, 255, 255, 0.98);
           border-color: rgba(59, 130, 246, 0.95);
@@ -446,8 +469,8 @@ export default function SignInPage() {
           <CardContent>
             <Tabs defaultValue="signin">
               <TabsList className="w-full mb-5">
-                <TabsTrigger value="signin" className="signin-pressable flex-1">Sign In</TabsTrigger>
-                <TabsTrigger value="signup" className="signin-pressable flex-1">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin" className="signin-tab-trigger signin-pressable flex-1">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="signin-tab-trigger signin-pressable flex-1">Sign Up</TabsTrigger>
               </TabsList>
 
               {/* Sign In */}
@@ -479,7 +502,7 @@ export default function SignInPage() {
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" className="signin-pressable w-full" disabled={isLoading}>
+                  <Button type="submit" className="signin-primary-button signin-pressable w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
@@ -544,7 +567,7 @@ export default function SignInPage() {
                       </p>
                     )}
                   </div>
-                  <Button type="submit" className="signin-pressable w-full" disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}>
+                  <Button type="submit" className="signin-primary-button signin-pressable w-full" disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}>
                     {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
@@ -599,7 +622,7 @@ export default function SignInPage() {
             </div>
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="signin-pressable flex-1" onClick={() => setShowForgotModal(false)}>Cancel</Button>
-              <Button type="submit" className="signin-pressable flex-1" disabled={isLoading}>
+              <Button type="submit" className="signin-primary-button signin-pressable flex-1" disabled={isLoading}>
                 {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Send Code
               </Button>
             </div>
@@ -645,7 +668,7 @@ export default function SignInPage() {
                   </p>
                 )}
               </div>
-              <Button type="submit" className="signin-pressable w-full"
+              <Button type="submit" className="signin-primary-button signin-pressable w-full"
                 disabled={isLoading || !codeValidation.isValid || !resetForm.newPassword || resetForm.newPassword !== resetForm.confirmPassword}>
                 {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {isLoading ? 'Resetting...' : 'Reset Password'}
