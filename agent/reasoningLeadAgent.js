@@ -57,6 +57,9 @@ class ReasoningLeadAgent extends EventEmitter {
     this.anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY
     });
+    this.emailGenerationInFlight = 0;
+    this.emailGenerationWaiters = [];
+    this.emailGenerationConcurrency = 1;
     
     // Initialize user-specific file paths and agent-specific email queue
     const userCode = this.userId ? this.userId.substring(0, 8) : 'default';
@@ -234,6 +237,165 @@ class ReasoningLeadAgent extends EventEmitter {
       userId,
       timestamp: new Date().toISOString()
     });
+  }
+
+  async withEmailGenerationSlot(task) {
+    while (this.emailGenerationInFlight >= this.emailGenerationConcurrency) {
+      await new Promise(resolve => this.emailGenerationWaiters.push(resolve));
+    }
+
+    this.emailGenerationInFlight++;
+    try {
+      return await task();
+    } finally {
+      this.emailGenerationInFlight = Math.max(0, this.emailGenerationInFlight - 1);
+      const next = this.emailGenerationWaiters.shift();
+      if (next) next();
+    }
+  }
+
+  async waitForRetryAfter(headers, fallbackMs = 15000) {
+    const retryAfterRaw = headers?.get?.('retry-after') ?? headers?.['retry-after'] ?? null;
+    const retryAfterSeconds = Number.parseInt(retryAfterRaw, 10);
+    const waitMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? retryAfterSeconds * 1000
+      : fallbackMs;
+
+    console.warn(`⏳ [EMAIL BUILDER] Waiting ${Math.ceil(waitMs / 1000)}s before retrying email generation`);
+    await new Promise(resolve => setTimeout(resolve, waitMs));
+  }
+
+  truncateForPrompt(value, maxLength = 500) {
+    if (!value) return '';
+    const text = String(value).replace(/\s+/g, ' ').trim();
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, Math.max(0, maxLength - 3)).trim()}...`;
+  }
+
+  estimateTokenCount(value) {
+    if (!value) return 0;
+    const chars = String(value).length;
+    return Math.ceil(chars / 4);
+  }
+
+  logEmailPromptMetrics({ companyName, contactName, systemPrompt, userPrompt }) {
+    const systemChars = systemPrompt?.length || 0;
+    const userChars = userPrompt?.length || 0;
+    const totalChars = systemChars + userChars;
+    const systemTokens = this.estimateTokenCount(systemPrompt);
+    const userTokens = this.estimateTokenCount(userPrompt);
+    const totalTokens = systemTokens + userTokens;
+
+    console.log(
+      `📏 [EMAIL PROMPT SIZE] ${contactName} @ ${companyName} | ` +
+      `chars(system=${systemChars}, user=${userChars}, total=${totalChars}) | ` +
+      `estTokens(system=${systemTokens}, user=${userTokens}, total=${totalTokens})`
+    );
+
+    return {
+      systemChars,
+      userChars,
+      totalChars,
+      systemTokens,
+      userTokens,
+      totalTokens
+    };
+  }
+
+  scoreEmailFact(text = '', companyName = '') {
+    const lower = text.toLowerCase();
+    const company = companyName.toLowerCase();
+    let score = 0;
+
+    if (company && lower.includes(company)) score += 8;
+    if (lower.startsWith('[linkedin]')) score += 7;
+    if (/\b(raised|funding|hiring|launch|launched|expanding|expansion|opened|acquired|announced|rolled out|partnership|posted|migration|modernization|initiative)\b/i.test(text)) score += 6;
+    if (/\b(january|february|march|april|may|june|july|august|september|october|november|december|q1|q2|q3|q4|2025|2026|2027)\b/i.test(text)) score += 4;
+    if (/[$%\d]/.test(text)) score += 3;
+    if (text.length > 40 && text.length < 220) score += 2;
+
+    return score;
+  }
+
+  selectTopEmailFacts(aiReport, companyName, maxFacts = 3) {
+    const hookFacts = (aiReport?.emailHooks || [])
+      .filter(Boolean)
+      .map(text => ({ text, source: 'hook' }));
+
+    const citedFacts = (aiReport?.allCitedFacts || [])
+      .filter(fact => fact?.text)
+      .map(fact => ({ text: fact.text, source: fact.sourceTitle || fact.source || 'research' }));
+
+    const seen = new Set();
+    const ranked = [...hookFacts, ...citedFacts]
+      .map(fact => {
+        const cleaned = this.truncateForPrompt(String(fact.text).replace(/^\[LinkedIn\]\s*/i, ''), 180);
+        return {
+          text: cleaned,
+          score: this.scoreEmailFact(cleaned, companyName) + (fact.source === 'hook' ? 5 : 0)
+        };
+      })
+      .filter(fact => {
+        if (!fact.text) return false;
+        const key = fact.text.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => b.score - a.score);
+
+    return ranked.slice(0, maxFacts).map(fact => fact.text);
+  }
+
+  summarizeResearchForEmail(researchData, companyName, maxItems = 3) {
+    if (!researchData?.searches?.length) return [];
+
+    const items = [];
+    for (const search of researchData.searches) {
+      const organic = search?.results?.organic || [];
+      const webpageInsights = search?.webpageInsights || [];
+
+      for (const result of organic.slice(0, 2)) {
+        if (result?.snippet) items.push(result.snippet);
+      }
+      for (const insight of webpageInsights.slice(0, 2)) {
+        if (insight?.insights && !insight.insights.includes('NO RELEVANT DATA')) items.push(insight.insights);
+      }
+    }
+
+    const seen = new Set();
+    return items
+      .map(text => this.truncateForPrompt(text, 180))
+      .filter(text => {
+        if (!text) return false;
+        const key = text.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => this.scoreEmailFact(b, companyName) - this.scoreEmailFact(a, companyName))
+      .slice(0, maxItems);
+  }
+
+  summarizeCompanyProofPoints(raw, maxItems = 2) {
+    if (!raw) return [];
+
+    const candidates = String(raw)
+      .split(/\n+/)
+      .flatMap(line => line.split(/(?<=[.!?])\s+/))
+      .map(line => this.truncateForPrompt(line, 160))
+      .filter(Boolean);
+
+    const seen = new Set();
+    return candidates
+      .filter(text => {
+        const key = text.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return /[$%\d]|\b(reduce|improve|increase|save|faster|automation|pipeline|conversion|reply|deliverability)\b/i.test(text);
+      })
+      .sort((a, b) => this.scoreEmailFact(b) - this.scoreEmailFact(a))
+      .slice(0, maxItems);
   }
 
   // === CAMPAIGN PLAN CONVERSION ===
@@ -3938,30 +4100,10 @@ Format as:
       } else {
       }
       
-      // Extract cited facts for personalization
-      let citedFactsContext = '';
-      
-      // Prefer qualification-extracted emailHooks (already filtered for specificity)
-      const emailHooks = aiReport?.emailHooks || [];
-      if (emailHooks.length > 0) {
-        citedFactsContext = `\nEMAIL HOOKS (specific facts extracted from research — use these to anchor para 1):\n${
-          emailHooks.map((hook, i) => `${i + 1}. ${hook}`).join('\n')
-        }`;
-      } else if (aiReport?.allCitedFacts && aiReport.allCitedFacts.length > 0) {
-        const topFacts = aiReport.allCitedFacts.slice(0, 10);
-        citedFactsContext = `\nVERIFIED RESEARCH FACTS (use these naturally in the email - do NOT include source citations):\n${
-          topFacts.map((fact, i) => `${i + 1}. "${fact.text}"`).join('\n')
-        }`;
-      }
-      
-      // Surface LinkedIn-sourced facts as high-priority personal opener hooks
-      const allFactsForLinkedin = aiReport?.allCitedFacts || [];
-      const linkedInFacts = allFactsForLinkedin.filter(f => f.text?.startsWith('[LinkedIn]'));
-      if (linkedInFacts.length > 0) {
-        citedFactsContext += `\n\n🔗 LINKEDIN ACTIVITY (${personName} publicly posted/discussed this — HIGH VALUE for opener):\n${
-          linkedInFacts.map((f, i) => `${i + 1}. ${f.text.replace('[LinkedIn] ', '')}`).join('\n')
-        }\n→ If a LinkedIn topic is relevant to your pitch, open with it: "I noticed you recently posted about X..." — this is the strongest personalisation signal available.`;
-      }
+      const topEmailFacts = this.selectTopEmailFacts(aiReport, companyName, tier === 'HIGHLY_QUALIFIED' ? 4 : 3);
+      const compactResearchFacts = this.summarizeResearchForEmail(researchData, companyName, 3);
+      const companyProofPoints = this.summarizeCompanyProofPoints(this.memory.platformMetrics?.raw, 2);
+      const ragFacts = (this.memory.industryFactsFromRAG || []).slice(0, 2).map(fact => this.truncateForPrompt(fact, 140));
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🧠 SALES STRATEGIST: Forced pre-write reasoning chain
@@ -3970,8 +4112,8 @@ Format as:
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       let salesAngle = null;
       try {
-        const ragStats = this.memory.industryFactsFromRAG?.length > 0
-          ? this.memory.industryFactsFromRAG.map((f, i) => `${i + 1}. ${f}`).join('\n')
+        const ragStats = ragFacts.length > 0
+          ? ragFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')
           : 'None available';
 
         const strategistPrompt = [
@@ -3992,7 +4134,9 @@ Format as:
           `Selling company: ${emailSettings.companyBranding?.companyName || 'Unknown'}`,
           ``,
           `━━ COMPANY-SPECIFIC RESEARCH ━━`,
-          citedFactsContext || 'No specific company facts found.',
+          topEmailFacts.length > 0
+            ? topEmailFacts.map((fact, i) => `${i + 1}. ${fact}`).join('\n')
+            : 'No specific company facts found.',
           ``,
           `━━ VERIFIED INDUSTRY STATISTICS (RAG knowledge base) ━━`,
           ragStats,
@@ -4154,210 +4298,68 @@ EMAIL LENGTH: 6-7 sentences`;
       // Replace [SCHEDULING_LINK] placeholder with actual calendar link
       let customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write professional sales emails';
       customPrompt = customPrompt.replace(/\[SCHEDULING_LINK\]/g, calendarLink);
+      customPrompt = this.truncateForPrompt(customPrompt, 500);
       
       // Build campaign-specific messaging if plan exists
       let campaignStrategy = '';
       
       if (this.campaignPlan && this.campaignPlan.emailMessaging) {
         const messaging = this.campaignPlan.emailMessaging;
-        campaignStrategy = `
-CAMPAIGN STRATEGY (use this to guide your messaging):
-Primary Value Proposition: ${messaging.primaryValue}
-Key Points to Emphasize: ${messaging.keyPoints?.join(', ') || 'Standard benefits'}
-Call to Action: ${messaging.callToAction || 'Schedule a call'}
-Tone: ${messaging.tone || 'professional'}`;
+        campaignStrategy = [
+          `Campaign value: ${this.truncateForPrompt(messaging.primaryValue || 'Standard benefits', 140)}`,
+          `Key points: ${this.truncateForPrompt(messaging.keyPoints?.join(', ') || 'Standard benefits', 160)}`,
+          `CTA style: ${this.truncateForPrompt(messaging.callToAction || 'Schedule a call', 80)}`,
+          `Tone: ${messaging.tone || 'professional'}`
+        ].join('\n');
         
       }
       
       // Add SALES ANGLE context — the pre-reasoned argument that drives the entire email
       const buyerMotivationContext = salesAngle
         ? [
-          ``,
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-          `🧠 PRE-WRITE SALES STRATEGY — your email is built FROM this, not padded around it`,
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-          ``,
-          `THE ARGUMENT (one-line angle this email must make):`,
-          salesAngle.oneLineAngle,
-          ``,
-          `THEIR CAREER FEAR (what they're personally afraid of getting wrong):`,
-          salesAngle.careerFear,
-          ``,
-          `THE DECISION THEY'RE DEFERRING (what they're avoiding and why):`,
-          salesAngle.deferredDecision,
-          ``,
-          `WHAT WINNING LOOKS LIKE FOR THEM (the story they tell if they act):`,
-          salesAngle.winningMove,
-          ``,
-          `SHARPEST INTERSECTION — anchor paragraph 1 here, not on a product feature:`,
-          salesAngle.sharpestIntersection,
-          ``,
-          `THEIR TOP OBJECTION TO REPLYING (preempt it without naming it):`,
-          salesAngle.topObjection,
-          ``,
-          `SUBJECT LINE:`,
-          `Type: ${salesAngle.subjectType} — ${
-            salesAngle.subjectType === 'statement'
-              ? 'write a specific claim you can defend with the research above'
-              : salesAngle.subjectType === 'question'
-              ? 'ask something they will genuinely want to answer — not a FOMO hook'
-              : 'no verb needed — the frame alone should create curiosity'
-          }`,
-          `Suggested: "${salesAngle.suggestedSubject}"`,
-          `You may use this or write a better one following the same type. Never default to a generic fear-of-missing-out question.`,
-          ``,
-          `⚠️ STRUCTURE RULE: Paragraph 1 names THE TENSION in their world (sharpest intersection above).`,
-          `Paragraph 2 is where the product appears as the direct answer to that tension — not before.`,
-          `The email argues THEIR WORLD first. Our product is the resolution, not the opening.`,
+          `ANGLE: ${this.truncateForPrompt(salesAngle.oneLineAngle, 180)}`,
+          `TENSION: ${this.truncateForPrompt(salesAngle.sharpestIntersection, 180)}`,
+          `OBJECTION: ${this.truncateForPrompt(salesAngle.topObjection, 140)}`,
+          `WIN: ${this.truncateForPrompt(salesAngle.winningMove, 140)}`,
+          `SUBJECT TYPE: ${salesAngle.subjectType}`,
+          `SUBJECT: ${this.truncateForPrompt(salesAngle.suggestedSubject, 60)}`
         ].join('\n')
-        : [
-          ``,
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-          `🎯 BUYER-SIDE MOTIVATION (USE THIS TO GUIDE YOUR EMAIL):`,
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-          ``,
-          resolvedMotivation,
-          ``,
-          `Frame the opening around their current situation. Connect solution to immediate needs. Demonstrate you understand their context.`,
-        ].join('\n');
+        : `BUYER MOTIVATION: ${this.truncateForPrompt(resolvedMotivation, 220)}`;
       
       
       // Build research findings summary for the prompt
-      let researchFindings = '';
-      if (this.memory.lastResearch && this.memory.lastResearch.searches) {
-        const searches = this.memory.lastResearch.searches;
-        // Extract research context        
-        researchFindings = '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 RESEARCH FINDINGS (USE THESE IN YOUR EMAIL)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ CRITICAL ANTI-HALLUCINATION WARNING:\n- ONLY use facts that explicitly mention the prospect\'s company name\n- If a "fact" could apply to ANY company, it\'s probably hallucinated - DO NOT USE IT\n- When in doubt, skip the fact. Better to be conservative than confidently wrong.\n- NEVER attribute achievements from one company to another\n\n';
-        
-        searches.forEach((search, index) => {
-          
-          if (search.purpose === 'company_overview') {
-            const facts = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
-            if (facts) researchFindings += `📍 ABOUT THE PROSPECT'S COMPANY (${companyName}):\n${facts}\n\n`;
-          } else if (search.purpose === 'recent_developments') {
-            const news = search.results?.organic?.slice(0, 3).map(r => `• ${r.snippet}`).join('\n') || '';
-            if (news) researchFindings += `📰 ${companyName}'S RECENT NEWS (use these for opening hooks):\n${news}\n\n`;
-          } else if (search.purpose === 'industry_statistics') {
-            const stats = search.webpageInsights?.slice(0, 2).map(insight => `• ${insight.insights}`).join('\n') || '';
-            if (stats) researchFindings += `📊 INDUSTRY STATISTICS (neutral third-party data - cite for credibility):\n${stats}\n\n`;
-          } else if (search.purpose === 'user_company_success') {
-            const wins = search.webpageInsights?.filter(w => w.insights && !w.insights.includes('NO RELEVANT DATA')).map(w => w.insights).join('\n') || '';
-            
-            // Only include if we found actual verified wins
-            if (wins.length > 50) {
-              const userCompanyName = this.memory.emailSettings?.companyBranding?.companyName
-                || this.memory.userSettings?.companyName
-                || this.memory.userSettings?.companyProfile?.companyName
-                || 'Your Company';
-              researchFindings += `🏆 ${userCompanyName.toUpperCase()}'S RECENT WINS (about YOUR company - NOT the prospect):\n${wins}\n⚠️ Use ONLY if truly impressive and relevant. DO NOT confuse these with ${companyName}'s achievements.\n\n`;
-            } else {
-            }
-          }
-        });
-        
-        if (researchFindings.length > 200) {
-        } else {
-        }
-      } else {
-      }
-      
-      // Pre-compute RAG facts block to avoid triple-nested backtick syntax issues
-      const ragFactsBlock = this.memory.industryFactsFromRAG?.length > 0
-        ? '📊 VERIFIED INDUSTRY STATS (sourced from research — real numbers, not invented):\n' +
-          this.memory.industryFactsFromRAG.map((f, i) => `${i + 1}. ${f}`).join('\n') + '\n\n' +
-          'If paragraph 1 opens with a GENERIC industry observation (no company-specific event or signal), pick the SINGLE most relevant stat above and use it to sharpen the argument — paraphrase it naturally, do not quote it verbatim.\n' +
-          'If paragraph 1 already opens with a SPECIFIC company signal (news, funding, job posts, product launch, conference), do NOT add a stat — the specific signal is stronger alone.\n' +
-          '❌ Do not use more than one stat. Do not invent stats beyond this list.'
-        : 'No pre-verified stats available. If RESEARCH FINDINGS contains an INDUSTRY STATISTICS section with a specific number, you may use it. Otherwise make the case qualitatively — do NOT invent a percentage or timeframe.';
+      const researchFindings = compactResearchFacts.length > 0
+        ? compactResearchFacts.map((fact, i) => `${i + 1}. ${fact}`).join('\n')
+        : 'No extra research facts.';
+
+      const ragFactsBlock = ragFacts.length > 0
+        ? ragFacts.map((fact, i) => `${i + 1}. ${fact}`).join('\n')
+        : 'No verified industry stats.';
 
       // ── SYSTEM PROMPT (rules — Claude treats these as inviolable constraints) ──────
-      const claudeSystemPrompt = `You are an elite B2B cold email writer. You write one email per task. You follow the rules below without exception.
+      const claudeSystemPrompt = `You write concise B2B cold emails.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WRITING STYLE BY PERSONALITY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 HUNTER: Direct, ROI-focused. CTA: "Worth 15 minutes?"
-💙 RELATIONSHIP: Questions, consultative. CTA: "Curious if this fits?"
-📊 ANALYST: Data-led. CTA: "Happy to share the research"
-🧠 CONSULTANT: Strategic peer. CTA: "Can outline the approach"
-🌐 NETWORKER: Social proof. CTA: "Mind if I share?"
+    Style by personality:
+    - HUNTER: direct, ROI-focused
+    - RELATIONSHIP: consultative, warm
+    - ANALYST: data-led, precise
+    - CONSULTANT: strategic peer
+    - NETWORKER: social-proof aware
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ABSOLUTE RULES — CANNOT BE BROKEN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Open with a specific fact, event, or number from the research provided
-✅ State facts naturally: "I saw your team expanded into 17 markets" not "According to research..."
-✅ Use ONLY numbers that appear in the research data provided. If none exist, argue qualitatively.
-✅ Name specific companies only if they appear in the research provided
-✅ No source citations — state facts as if you know them
+    Rules:
+    - Write exactly 2 short paragraphs plus 1 CTA line. Under 120 words.
+    - Open with a specific fact, event, or tension from the provided brief.
+    - Use only facts provided. Never invent numbers, customers, case studies, or results.
+    - No fluff, no compliments, no bullets, no exclamation marks, no em dash.
+    - Paragraph 1: the specific flaw/tension in their world.
+    - Paragraph 2: one capability that resolves it operationally. No feature dump.
+    - CTA: a direct question tied to the problem or timing. Not a generic demo ask.
+    - If the opener could work for any company, rewrite it.
 
-❌ NO INVENTED STATS — no "30% more effective", "2x faster", "$200K savings" unless in research
-❌ NEVER HALLUCINATE — if a fact doesn't name the prospect's company explicitly, skip it
-❌ NO GENERIC BULLETS — "Feature = Benefit" format is forbidden
-❌ NO FLUFF — no "visionary leader", "imagine a world where", "I hope this finds you well"
-❌ NO CASE STUDIES — we have no published case studies. Never write "Our recent case study showed..."
-❌ NO INVENTED CLIENT RESULTS — no "our clients see X% improvement" unless verbatim in company intel
+    Output exactly:
+    SUBJECT: [subject]
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EMAIL STRUCTURE: FLAW → FIX
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Write exactly 2 paragraphs (2-3 sentences each) + 1 line CTA. Under 120 words total.
-
-PARAGRAPH 1 — THE FLAW:
-Your first sentence MUST name a specific, verifiable tension about THIS company or THIS person — from the SHARPEST INTERSECTION in the pre-write strategy provided.
-
-DISQUALIFYING OPENERS — if your opener matches any pattern below, rewrite it:
-❌ "As the [industry] market sees..." — generic trend
-❌ "In today's competitive landscape..." — filler
-❌ "Your current approach, while effective..." — compliment+hedge
-❌ "Despite [Company's] impressive X, there's a risk of..." — "Despite" doesn't save a compliment opener
-❌ "With [industry] evolving rapidly..." — trend opener
-❌ "[Company] is well-positioned, but..." — compliment setup
-❌ "you risk being perceived as outdated" — FUD framing
-❌ "Without adopting X, you risk..." — conditional fear
-❌ "[Company] faces the risk of falling behind" — FOMO framing
-❌ Any sentence using "might", "could", "may", "perhaps", "potentially" — hedging is weakness
-❌ "[Company] has built a reputation on..." — compliment opener
-❌ "[Company] has established itself as..." — compliment opener
-❌ "Is [Company] ready for..." — condescending question
-❌ "Is [Company] missing..." — condescending question
-❌ "As [Company] continues to grow..." — generic setup
-❌ "[Company]'s growth is impressive, but..." — compliment+pivot
-❌ Starting with a trend, market shift, or industry observation of any kind — these apply to every company, not this one
-
-SPECIFICITY TEST: Would this exact first sentence work for ANY company in this industry?
-If yes → too generic. Rewrite it using something true only about THIS company.
-The first sentence must make a CLAIM that makes them think "how do they know that?"
-
-❌ Never hedge anywhere in the email.
-❌ If you open with a company-specific signal, do NOT add an industry stat in the same paragraph.
-
-PARAGRAPH 2 — THE FIX (one mechanism, not a feature list):
-Name ONE specific capability from the company intel that resolves the flaw from paragraph 1.
-❌ FEATURE DUMP = FAILURE. Listing multiple features reads like a brochure. Examples of what NOT to write:
-  • "seamless platform... vetted properties... rigorous background checks... flexible management... low entry investments"
-  • "allows you to invest in rigorously vetted properties with the flexibility of low entry investments and easy exit strategies"
-Pick the SINGLE most relevant capability. Explain what it DOES operationally — what they stop losing, paying, or start controlling.
-
-CTA — 1 line:
-A direct question tied to the specific problem or their timeline. Not "open to a demo" or "hop on a call."
-Make it feel like a natural next step from the argument, not a sales close.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FORMATTING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Short paragraphs. 1-2 sentences max, line breaks between each
-❌ NO em dashes (—) — they are a dead giveaway of AI-generated text. Use a period or comma instead.
-✅ Open with "Hi [FirstName]," not "Hello"
-✅ No exclamation marks, no corporate buzzwords
-❌ No bullet lists in the body
-❌ No multi-sentence compliments
-
-OUTPUT FORMAT (strictly follow this):
-- Line 1: "SUBJECT: [subject line]"
-- Line 2: blank
-- Line 3+: "BODY: [email starting with Hi [FirstName],]"
-- DO NOT put the subject line inside the body`;
+    BODY: Hi [FirstName], ...`;
 
       // ── USER MESSAGE (lead-specific data + instructions) ─────────────────────────
       const signatureName = emailSettings.emailBuilder?.useCustomSignature
@@ -4368,66 +4370,88 @@ OUTPUT FORMAT (strictly follow this):
         : '';
       const signatureCompany = `${emailSettings.companyBranding?.companyName || 'Our Company'}${!emailSettings.emailBuilder?.useCustomSignature ? ' ' + (emailSettings.companyBranding?.agentTitle || 'Representative') : ''}`;
 
-      const claudeUserPrompt = `IMPORTANT: The current year is ${new Date().getFullYear()}. Do not reference any year earlier than ${new Date().getFullYear()} when mentioning plans, expansions, or timelines.
+      const claudeUserPrompt = `Year: ${new Date().getFullYear()}
 
+WRITING GUIDANCE:
 ${customPrompt}
+
+PROSPECT:
+- Company: ${companyName}
+- Contact: ${leadData.first_name} ${leadData.last_name}
+- Title: ${contactTitle}
+- Industry: ${industry}
+- Employees: ${employeeCount}
+
+BUYER CONTEXT:
 ${buyerMotivationContext}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROSPECT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Company: ${companyName}
-Contact: ${leadData.first_name} ${leadData.last_name}
-Title: ${contactTitle}
-Industry: ${industry}
-Employees: ${employeeCount}${citedFactsContext}${campaignStrategy}${researchFindings}
+TOP FACTS:
+${topEmailFacts.length > 0 ? topEmailFacts.map((fact, i) => `${i + 1}. ${fact}`).join('\n') : 'No top facts available.'}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-YOUR SOLUTION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Product/Service: ${emailSettings.companyBranding?.primaryService || 'Business solutions and services'}
-Key Benefits: ${emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results'}
-Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}${this.memory.platformMetrics?.raw ? `
+EXTRA RESEARCH:
+${researchFindings}
 
-YOUR COMPANY INTEL (extract specific numbers, claims, and proof points from this):
-${this.memory.platformMetrics.raw}` : ''}
-
+INDUSTRY STATS:
 ${ragFactsBlock}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT LINE FOR THIS EMAIL
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${salesAngle
-  ? `Strategy specifies type: "${salesAngle.subjectType}"
-- statement: declarative claim you can defend with research. NO question mark.
-- question: something they genuinely want to answer. NOT generic FOMO.
-- intrigue: no verb, frame alone creates curiosity.
-Suggested: "${salesAngle.suggestedSubject}"
-Use this or write a strictly better one of the same type. Do NOT switch types.`
-  : `Write a subject that names a specific tension, flaw, or claim. No generic FOMO questions.`}
+SOLUTION:
+- Product: ${this.truncateForPrompt(emailSettings.companyBranding?.primaryService || 'Business solutions and services', 120)}
+- Benefits: ${this.truncateForPrompt(emailSettings.companyBranding?.keyAdvantages || 'Improved efficiency, streamlined operations, better results', 180)}
+- Company: ${emailSettings.companyBranding?.companyName || 'Our Company'}
+${companyProofPoints.length > 0 ? `- Proof points:\n${companyProofPoints.map((fact, i) => `  ${i + 1}. ${fact}`).join('\n')}` : ''}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SIGNATURE (use exactly this)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${campaignStrategy ? `CAMPAIGN:\n${campaignStrategy}\n` : ''}SUBJECT:
+${salesAngle
+  ? `Type=${salesAngle.subjectType}; suggested=${this.truncateForPrompt(salesAngle.suggestedSubject, 60)}. Use this or a better subject of the same type.`
+  : 'Write a sharp subject tied to the specific tension.'}
+
+SIGNATURE:
 Best,
 ${signatureName}
 ${signatureTitle}${signatureCompany}
 
-NOW WRITE THE EMAIL. Follow FLAW → FIX structure. First sentence: specific claim about THIS company from the sharpest intersection above.`;
+Write the email now. First sentence must be specific to this company.`;
 
-      const claudeResponse = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 600,
-        temperature: 0.5,
-        system: claudeSystemPrompt,
-        messages: [{ role: 'user', content: claudeUserPrompt }]
+      const promptMetrics = this.logEmailPromptMetrics({
+        companyName,
+        contactName,
+        systemPrompt: claudeSystemPrompt,
+        userPrompt: claudeUserPrompt
       });
+
+      const createClaudeEmail = () => this.withEmailGenerationSlot(() =>
+        this.anthropic.messages.create({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 600,
+          temperature: 0.5,
+          system: claudeSystemPrompt,
+          messages: [{ role: 'user', content: claudeUserPrompt }]
+        })
+      );
+
+      let claudeResponse;
+      try {
+        claudeResponse = await createClaudeEmail();
+      } catch (error) {
+        if (error?.status === 429) {
+          console.warn('⚠️ [EMAIL BUILDER] Anthropic rate limit hit, retrying after cooldown');
+          await this.waitForRetryAfter(error.headers, 15000);
+          claudeResponse = await createClaudeEmail();
+        } else {
+          throw error;
+        }
+      }
 
       const emailContent = claudeResponse.content[0].text;
 
       // Log API usage
       const claudeInputTokens = claudeResponse.usage?.input_tokens || 0;
       const claudeOutputTokens = claudeResponse.usage?.output_tokens || 0;
+      console.log(
+        `📊 [EMAIL PROMPT ACTUAL] ${contactName} @ ${companyName} | ` +
+        `actualInput=${claudeInputTokens} actualOutput=${claudeOutputTokens} | ` +
+        `estimatedInput=${promptMetrics.totalTokens}`
+      );
       await this.awsManager.logApiUsage({
         userId: this.userId,
         agentId: this.agentId,
@@ -4582,7 +4606,7 @@ LEAD DETAILS:
 - Industry: ${industry}
 
 RESEARCH DATA QUALITY:
-${citedFactsContext || 'Limited research data available'}
+${topEmailFacts.length > 0 ? topEmailFacts.join('\n') : 'Limited research data available'}
 
 QUALIFICATION INSIGHTS:
 ${leadData.qualificationScore ? `Qualification Score: ${leadData.qualificationScore}/100` : 'Not scored'}
