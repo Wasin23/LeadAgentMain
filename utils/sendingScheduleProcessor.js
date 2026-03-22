@@ -213,7 +213,7 @@ function buildBatchEmailHTML({ agentName, emailCount, dailyLimit, sendTime, time
  *   4. SMS via Twilio (if user has phone + sms enabled)
  */
 async function notifyBatchSent(awsManager, userId, user, agentId, settings, sentEmails, successCount) {
-  const agentName = settings.name || agentId;
+  const agentName = settings.name || settings.agentName || 'Agent';
   const schedule  = settings.sendingSchedule || {};
   const tz        = schedule.timezone || settings.geographicSettings?.timezone || 'America/New_York';
 
@@ -244,6 +244,7 @@ async function notifyBatchSent(awsManager, userId, user, agentId, settings, sent
     broadcastNotification(userId, {
       title:   `\u{1F4C5} ${agentName}: ${successCount} email${successCount !== 1 ? 's' : ''} sent`,
       message: `Scheduled batch complete \u2014 ${successCount} email${successCount !== 1 ? 's' : ''} sent at ${sendTimeStr} (${tz})`,
+      agentName,
       agentId,
     });
   } catch (err) {

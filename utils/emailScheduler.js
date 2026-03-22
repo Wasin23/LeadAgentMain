@@ -258,7 +258,7 @@ class EmailScheduler {
         // Fire notification (non-fatal)
         try {
           const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId).catch(() => null);
-          const agentName = agentSettings?.name || agentId;
+          const agentName = agentSettings?.name || approvedEmail.agentName || 'Agent';
           const userSettings = await this.awsManager.getUserSettings(userId).catch(() => null);
           const user = await this.awsManager.getUserById(userId).catch(() => null);
           const toEmail = user?.email || userSettings?.email || null;

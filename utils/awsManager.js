@@ -2279,6 +2279,7 @@ class AWSManager {
           message: title,
           details: message,
           agentId: otherMetadata.agentId,
+          agentName: otherMetadata.agentName,
           userId: userId,
           timestamp: Date.now()
         });

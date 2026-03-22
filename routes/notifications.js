@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
         message: issue.message,
         timestamp: issue.timestamp,
         read: issue.read || false,
-        data: issue.data || {}
+        data: issue.metadata || issue.data || {}
       });
     });
     
