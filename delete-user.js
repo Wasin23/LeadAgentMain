@@ -3,7 +3,7 @@ import AWSManager from './utils/awsManager.js';
 
 dotenv.config();
 
-const userEmail = 'colton.fidd@gmail.com'; // Match exact case from registration
+const userEmail = 'coltonfidelman@g.ucla.edu'; // Match exact case from registration
 
 async function deleteUser() {
   const awsManager = new AWSManager();

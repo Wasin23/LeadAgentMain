@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { memo, useEffect, useRef } from 'react'
 
-export default function GlobeBackground() {
+const GlobeBackground = memo(function GlobeBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -135,4 +135,6 @@ export default function GlobeBackground() {
       style={{ zIndex: 0 }}
     />
   )
-}
+})
+
+export default GlobeBackground
