@@ -2,7 +2,7 @@
  * EMAIL SCHEDULER
  * 
  * Processes scheduled emails from the queue and sends them at specified times.
- * Checks queue every 5 minutes for emails ready to send.
+ * Checks queue every minute for emails ready to send.
  * 
  * IMPLEMENTATION STATUS: ACTIVE
  * 
@@ -16,16 +16,18 @@ import AWSEmailQueue from './awsEmailQueue.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { sendSystemEmail } from '../tools/emailMailgun.js';
 import { sendSMS } from './smsManager.js';
+import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 class EmailScheduler {
   constructor() {
     this.checkInterval = null;
     this.isRunning = false;
+    this.processingEmails = new Set();
     this.awsManager = new AWSManager();
     this.awsEmailQueue = new AWSEmailQueue();
     
-    // Check every 5 minutes
-    this.CHECK_INTERVAL_MS = 5 * 60 * 1000;
+    // Check every minute so scheduled sends are not delayed.
+    this.CHECK_INTERVAL_MS = 60 * 1000;
   }
   
   // Start the scheduler
@@ -35,13 +37,13 @@ class EmailScheduler {
       return;
     }
     
-    console.log('📅 [EMAIL SCHEDULER] Starting email scheduler (checks every 5 minutes)');
+    console.log('📅 [EMAIL SCHEDULER] Starting email scheduler (checks every minute)');
     this.isRunning = true;
     
     // Check immediately on start
     this.checkAndSend();
     
-    // Then check every 5 minutes
+    // Then check every minute
     this.checkInterval = setInterval(() => {
       this.checkAndSend();
     }, this.CHECK_INTERVAL_MS);
@@ -84,26 +86,60 @@ class EmailScheduler {
       console.error('❌ [EMAIL SCHEDULER] Error during check:', error);
     }
   }
+
+  async getQueuedEmailsForUser(userId) {
+    const items = [];
+    let lastEvaluatedKey = null;
+
+    do {
+      const response = await this.awsEmailQueue.dynamodb.send(new QueryCommand({
+        TableName: this.awsEmailQueue.tableName,
+        IndexName: this.awsEmailQueue.gsiName,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        ExpressionAttributeValues: {
+          ':gsipk': `${userId}#QUEUED`
+        },
+        ExclusiveStartKey: lastEvaluatedKey,
+        ScanIndexForward: true,
+      }));
+
+      items.push(...(response.Items || []));
+      lastEvaluatedKey = response.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    return items;
+  }
   
   // Get all scheduled emails that are ready to send
   async getScheduledEmailsReadyToSend() {
     try {
-      const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
       const now = new Date().toISOString();
-      
-      const response = await this.awsEmailQueue.dynamodb.send(new ScanCommand({
-        TableName: this.awsEmailQueue.tableName,
-        IndexName: this.awsEmailQueue.gsiName,
-        FilterExpression: 'contains(GSIPK, :queued) AND attribute_exists(scheduledAt) AND scheduledAt <= :now',
-        ExpressionAttributeValues: {
-          ':queued': '#QUEUED',
-          ':now': now
-        },
-        Limit: 100
-      }));
+      const users = await this.awsManager.getAllUsers();
+      const scheduledEmails = [];
 
-      console.log(`📊 [EMAIL SCHEDULER] Scan found ${response.Items?.length ?? 0} item(s) with scheduledAt <= ${now}`);
-      return response.Items || [];
+      for (const user of users) {
+        const userId = user.userId || user.id;
+        if (!userId) continue;
+
+        const queuedEmails = await this.getQueuedEmailsForUser(userId);
+        const dueEmails = queuedEmails.filter(email =>
+          email.scheduledAt &&
+          email.scheduledAt <= now &&
+          email.status === 'QUEUED'
+        );
+
+        if (dueEmails.length > 0) {
+          console.log(`📊 [EMAIL SCHEDULER] userId=${userId} has ${dueEmails.length} due scheduled email(s)`);
+          scheduledEmails.push(...dueEmails);
+        }
+      }
+
+      scheduledEmails.sort((left, right) => {
+        return new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime();
+      });
+
+      console.log(`📊 [EMAIL SCHEDULER] Query found ${scheduledEmails.length} item(s) with scheduledAt <= ${now}`);
+      return scheduledEmails;
     } catch (error) {
       console.error('[EMAIL SCHEDULER] Error fetching scheduled emails:', error);
       return [];
@@ -113,6 +149,12 @@ class EmailScheduler {
   // Send a scheduled email — direct in-process send (no HTTP self-call needed)
   async sendScheduledEmail(email) {
     const { id: emailId, userId, agentId, scheduledAt } = email;
+    if (this.processingEmails.has(emailId)) {
+      console.log(`⚠️ [EMAIL SCHEDULER] Skipping duplicate in-flight send for ${emailId}`);
+      return;
+    }
+
+    this.processingEmails.add(emailId);
     console.log(`📧 [EMAIL SCHEDULER] sendScheduledEmail start — id=${emailId} userId=${userId} agentId=${agentId} scheduledAt=${scheduledAt}`);
     try {
       const approvedEmail = await this.awsEmailQueue.approveEmail(userId, agentId, emailId);
@@ -211,6 +253,8 @@ class EmailScheduler {
     } catch (error) {
       console.error(`❌ [EMAIL SCHEDULER] Error sending email ${emailId}:`, error.message);
       console.error(`❌ [EMAIL SCHEDULER] Stack:`, error.stack);
+    } finally {
+      this.processingEmails.delete(emailId);
     }
   }
   

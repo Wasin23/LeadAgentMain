@@ -730,9 +730,9 @@ const server = app.listen(PORT, async () => {
   startSendingScheduleProcessor();
   console.log('✅ [SCHEDULE PROCESSOR] Sending schedule processor started');
   
-  // Start email scheduler (checks every 5 minutes for scheduled sends)
+  // Start email scheduler (checks every minute for scheduled sends)
   startEmailScheduler();
-  console.log('✅ [EMAIL SCHEDULER] Email scheduler started - checks every 5 minutes');
+  console.log('✅ [EMAIL SCHEDULER] Email scheduler started - checks every minute');
   
   // Start rebump checker (runs every 6 hours)
   try {
