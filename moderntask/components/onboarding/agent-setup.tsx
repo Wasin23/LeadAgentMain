@@ -132,7 +132,7 @@ const INTRO_SLIDES = [
   {
     eyebrow: 'What happens next?',
     title: 'It keeps cycling until you stop it',
-    description: 'Once started, the agent keeps running in cycles until you stop it: queueing outreach, monitoring replies, and surfacing qualified opportunities back to you.',
+    description: 'Once started, the agent keeps running in cycles until you stop it. A cycle is one full pass of work: the agent checks for leads to process, researches them, writes or queues outreach, and reviews any reply activity. Then it waits for the next scheduled run and does it again until you stop it.',
     avatars: [PERSONALITY_TYPES[4], PERSONALITY_TYPES[1], PERSONALITY_TYPES[0]],
     stats: [
       { label: 'Runs in cycles', value: 'Ongoing' },
@@ -143,13 +143,13 @@ const INTRO_SLIDES = [
       badge: 'Outcome',
       title: 'Pipeline moving',
       subtitle: 'Your agent keeps the queue active until you tell it to stop',
-      rows: ['8 emails queued for today', '2 replies detected', '1 meeting-ready prospect'],
+      rows: ['42 emails queued for today', '7 replies detected', '3 meeting-ready prospects'],
     },
   },
   {
     eyebrow: 'What is CRM Auditor?',
     title: 'It can audit the contacts already in your CRM',
-    description: 'You can convert an agent into a CRM Auditor that reads through your CRM contacts, researches each one, builds outreach, and submits research reports back on every record.',
+    description: 'You can convert an agent into a CRM Auditor that works through your existing CRM contacts instead of searching Apollo. It researches each contact, builds outreach, and submits research reports back on every record.',
     avatars: [PERSONALITY_TYPES[3], PERSONALITY_TYPES[2], PERSONALITY_TYPES[1]],
     stats: [
       { label: 'Reads CRM', value: 'Selected' },
@@ -421,7 +421,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
 
         {/* INTRO */}
         {step === 'intro' && (
-          <div className={showIntroSlideshow ? 'max-w-6xl mx-auto' : 'text-center max-w-2xl mx-auto'}>
+          <div className={showIntroSlideshow ? 'max-w-7xl mx-auto' : 'text-center max-w-2xl mx-auto'}>
             {!showIntroSlideshow ? (
               <>
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/30">
@@ -433,14 +433,50 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <p className="text-xl text-white/70 mb-8">Your agent will automatically find leads, write personalized emails, and track responses for you.</p>
                 <div className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-8 text-left space-y-3">
                   {[
-                    { icon: '🔍', text: 'Find qualified leads based on your criteria' },
-                    { icon: '✉️', text: 'Write personalized emails for each contact' },
-                    { icon: '📊', text: 'Research and write reports into your CRM' },
-                    { icon: '📅', text: 'Track responses and book meetings' },
+                    {
+                      text: 'Find qualified leads based on your criteria',
+                      icon: (
+                        <svg className="h-5 w-5 text-blue-100" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <circle cx="8.5" cy="8.5" r="4.75" />
+                          <path strokeLinecap="round" d="M12 12l4.25 4.25" />
+                        </svg>
+                      )
+                    },
+                    {
+                      text: 'Write personalized emails for each contact',
+                      icon: (
+                        <svg className="h-5 w-5 text-blue-100" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <rect x="2.75" y="4.25" width="14.5" height="11.5" rx="2" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.25L10 10.25l5.5-4" />
+                        </svg>
+                      )
+                    },
+                    {
+                      text: 'Research and write reports into your CRM',
+                      icon: (
+                        <svg className="h-5 w-5 text-blue-100" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 3.5h6l3 3V16a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 015 16V5A1.5 1.5 0 016.5 3.5z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.75V6.5h2.75" />
+                          <path strokeLinecap="round" d="M7.5 10h5M7.5 13h5" />
+                        </svg>
+                      )
+                    },
+                    {
+                      text: 'Track responses and book meetings',
+                      icon: (
+                        <svg className="h-5 w-5 text-blue-100" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <rect x="3" y="4.5" width="14" height="12" rx="2" />
+                          <path strokeLinecap="round" d="M6.5 2.75v3.5M13.5 2.75v3.5M3 8h14" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l1.5 1.5L12.5 9.5" />
+                        </svg>
+                      )
+                    },
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3 text-white/80">
-                      <span>{item.icon}</span>
-                      <span>{item.text}</span>
+                      <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/10">
+                        {item.icon}
+                      </span>
+                      <span className="pt-2">{item.text}</span>
                     </div>
                   ))}
                 </div>
@@ -459,7 +495,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   <h1 className="text-5xl font-bold text-white mb-4">Create Your First AI Agent</h1>
                   <p className="text-2xl text-white/70">Here&apos;s how your agent works before you start configuring it.</p>
                 </div>
-                <div className="bg-white/10 border border-white/20 rounded-[2rem] p-6 md:p-8 mb-8 text-left shadow-2xl shadow-blue-900/15">
+                <div className="bg-white/10 border border-white/20 rounded-[2rem] p-5 md:p-6 mb-8 text-left shadow-2xl shadow-blue-900/15">
               <div className="flex items-center justify-between gap-3 mb-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-100/80">{currentIntroSlide.eyebrow}</p>
@@ -478,8 +514,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 </div>
               </div>
 
-              <div className="grid gap-5 lg:grid-cols-[1.35fr_0.85fr]">
-                <div className="rounded-[1.75rem] border border-white/20 bg-white/95 p-6 md:p-7 text-gray-900">
+              <div className="grid gap-4 lg:grid-cols-[1.6fr_0.72fr] xl:grid-cols-[1.72fr_0.68fr]">
+                <div className="rounded-[1.75rem] border border-white/20 bg-white/95 p-5 md:p-6 text-gray-900">
                   <div className="flex items-center justify-between gap-3 mb-4">
                     <span className="rounded-full bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">{currentIntroSlide.mockup.badge}</span>
                     <div className="flex -space-x-2">
@@ -503,19 +539,19 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                     ))}
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
                     {currentIntroSlide.mockup.rows.map((row, index) => {
                       const metricMatch = row.match(/^(\d+)\s+(.*)$/)
                       return (
-                        <div key={row} className="flex items-center gap-4 rounded-2xl border border-gray-200 px-4 py-3 md:px-5 md:py-4">
+                        <div key={row} className="flex items-center gap-4 rounded-2xl border border-gray-200 px-4 py-3 md:px-4 md:py-3">
                           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{index + 1}</span>
                           {metricMatch ? (
                             <>
-                              <span className="min-w-[2.75rem] text-3xl md:text-4xl font-bold tracking-tight text-gray-900">{metricMatch[1]}</span>
-                              <span className="text-base md:text-lg text-gray-700">{metricMatch[2]}</span>
+                              <span className="min-w-[3.25rem] text-3xl md:text-[2.2rem] font-bold tracking-tight text-gray-900">{metricMatch[1]}</span>
+                              <span className="text-sm md:text-base text-gray-700 leading-snug">{metricMatch[2]}</span>
                             </>
                           ) : (
-                            <span className="text-base md:text-lg text-gray-700">{row}</span>
+                            <span className="text-sm md:text-base text-gray-700 leading-snug">{row}</span>
                           )}
                         </div>
                       )
@@ -523,29 +559,23 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   </div>
                 </div>
 
-                <div className="rounded-[1.75rem] border border-white/20 bg-white/10 p-6 md:p-7 backdrop-blur-sm">
+                <div className="rounded-[1.75rem] border border-white/20 bg-white/10 p-5 md:p-6 backdrop-blur-sm">
                   <div className="rounded-[1.5rem] border border-white/15 bg-slate-950/25 px-5 py-4 mb-5">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100/75">Step {introSlide + 1} of {INTRO_SLIDES.length}</p>
                     <p className="text-white text-lg font-semibold mt-2 leading-relaxed">{currentIntroSlide.description}</p>
                   </div>
                   <div className="space-y-3">
                     {[
-                      'An agent is a reusable AI worker, not just a one-off email.',
-                      'Each agent keeps its own targeting, messaging style, and sending settings.',
-                      'You can create more agents for more markets as your plan grows.',
-                      'CRM Auditor mode uses your CRM contact list instead of Apollo search.',
+                      { title: 'What an agent is', detail: 'A reusable AI worker with its own personality and ICP.' },
+                      { title: 'How it does the work', detail: 'Finds leads, researches them, and writes outreach.' },
+                      { title: 'How cycles work', detail: 'Repeats the full pass of work on each scheduled run.' },
+                      { title: 'How CRM Auditor works', detail: 'Uses your CRM contact list instead of Apollo search.' },
                     ].map((item, index) => (
-                      <div key={item} className={`rounded-2xl px-4 py-3 text-base ${index === introSlide ? 'bg-white text-blue-700 font-semibold' : 'bg-white/10 text-white/80'}`}>
-                        {item}
+                      <div key={item.title} className={`rounded-2xl px-4 py-3 ${index === introSlide ? 'bg-white text-blue-700' : 'bg-white/10 text-white/80'}`}>
+                        <p className={`text-sm uppercase tracking-[0.12em] ${index === introSlide ? 'font-bold' : 'font-semibold text-white/65'}`}>{item.title}</p>
+                        <p className={`mt-1 text-sm md:text-base leading-relaxed ${index === introSlide ? 'font-semibold' : ''}`}>{item.detail}</p>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="mt-5 rounded-[1.5rem] border border-white/15 bg-white/10 px-5 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100/75">What a cycle means</p>
-                    <p className="mt-2 text-sm md:text-base text-white/85 leading-relaxed">
-                      A cycle is one full pass of work. In a cycle, the agent checks for leads to process, researches them, writes or queues outreach, and reviews any reply activity. Then it waits for the next scheduled run and does it again until you stop it.
-                    </p>
                   </div>
                 </div>
               </div>
