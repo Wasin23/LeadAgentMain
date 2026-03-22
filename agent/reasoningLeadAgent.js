@@ -2097,9 +2097,10 @@ Respond in JSON format:
    * Uses full research data and campaign plan for comprehensive scoring
    */
   async qualifyLead(parameters) {
-    // Get data from current cycle state (NOT from parameters - GPT-3.5 calls with empty {})
-    const leadData = this.memory.currentCycle.currentLead;
-    const researchData = this.memory.lastResearch;
+    // Prefer explicit parameters so concurrent workers do not clobber each other.
+    // Fall back to shared cycle state for the sequential path.
+    const leadData = parameters?.leadData || this.memory.currentCycle.currentLead;
+    const researchData = parameters?.researchData || this.memory.lastResearch;
     const emailSettings = this.memory.emailSettings;
     const primaryService = emailSettings?.companyBranding?.primaryService || '';
     const coreOffering = emailSettings?.companyBranding?.coreOffering || '';
@@ -3830,7 +3831,7 @@ Format as:
       // IMPORTANT: parameters.leadData takes priority so concurrent workers don't clobber each other.
       const leadData = parameters?.leadData || this.memory.currentCycle.currentLead;
       // Capture qualification snapshot at call-time (concurrent-safe)
-      const _localQualification = this.memory.currentQualification;
+      const _localQualification = parameters?.qualificationData || this.memory.currentQualification;
 
       // Query industry facts RAG with prospect-specific context for maximum relevance
       // This runs regardless of whether phase 3 was cached — always get the best stat for THIS lead
@@ -6532,7 +6533,7 @@ Target Positions:`;
         confidenceLevel: leadData.confidenceLevel,
         
         // AI Report (NEW - for verification and UI display)
-        aiReport: this.memory.currentQualification?.aiReport || null,
+        aiReport: leadData.aiReport || this.memory.currentQualification?.aiReport || null,
         
         // Lead information
         leadInfo: {
@@ -6817,6 +6818,22 @@ Target Positions:`;
         return { success: false, leadName, company: companyName };
       }
 
+      // 1.5 ─ Qualification / AI report
+      const qualification = await this.qualifyLead({
+        leadData: lead,
+        researchData: research
+      });
+
+      if (!qualification?.success) {
+        this.logOperation('⏭️ Qualification Failed', `Skipping ${leadName} — qualification returned no decision`, 'warning');
+        return { success: false, leadName, company: companyName };
+      }
+
+      if (qualification.tier === 'REJECT' || qualification.qualified === false) {
+        this.logOperation('⏭️ Lead Rejected', `Skipping ${leadName} at ${companyName} — qualification tier ${qualification.tier || 'REJECT'}`, 'info');
+        return { success: false, leadName, company: companyName, rejected: true };
+      }
+
       // 2 ─ Email unlock (skip if email already present)
       let emailAddress = lead.email || null;
       if (!emailAddress) {
@@ -6860,6 +6877,7 @@ Target Positions:`;
       const personalizedEmail = await this.buildPersonalizedEmail({
         leadData:      lead,
         researchData:  research,
+        qualificationData: qualification,
         emailSettings: this.memory.emailSettings
       });
 
@@ -6878,6 +6896,7 @@ Target Positions:`;
         confidenceReport: personalizedEmail.confidenceReport,
         confidenceLevel:  personalizedEmail.confidenceLevel,
         salesAngle:       personalizedEmail.salesAngle || null,
+        aiReport:         qualification.aiReport || null,
         emailUnlockStatus: 'success'
       };
 

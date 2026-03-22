@@ -1140,6 +1140,9 @@ export function EmailQueueContent() {
   const [fontSize, setFontSize]           = useState(12)
   const [showSchedule, setShowSchedule]   = useState(false)
   const [savedSchedule, setSavedSchedule] = useState<SendingSchedule | null>(null)
+  const activeScheduledAgentsCount = agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length
+  const hasAnyActiveSchedules = activeScheduledAgentsCount > 0
+  const hasSelectedAgentSchedule = !!savedSchedule?.activeDays?.length
 
   const agentMap: Record<string, Agent> = {}
   agents.forEach(a => { agentMap[a.agentId] = a })
@@ -1220,16 +1223,20 @@ export function EmailQueueContent() {
           {queuedCount > 0 && (
             <span className="px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">{queuedCount}</span>
           )}
-          {selectedAgent === 'all' && queuedCount > 0 && agents.some(a => a.settings?.sendingSchedule?.activeDays?.length) && (
+          {selectedAgent === 'all' && hasAnyActiveSchedules && (
             <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
               <Clock className="w-2.5 h-2.5" />
-              {queuedCount} email{queuedCount !== 1 ? 's' : ''} auto-sending across {agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length} agent{agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length !== 1 ? 's' : ''}
+              {queuedCount > 0
+                ? `${queuedCount} email${queuedCount !== 1 ? 's' : ''} auto-sending across ${activeScheduledAgentsCount} agent${activeScheduledAgentsCount !== 1 ? 's' : ''}`
+                : `Auto-send schedule active across ${activeScheduledAgentsCount} agent${activeScheduledAgentsCount !== 1 ? 's' : ''} — waiting for queued emails`}
             </span>
           )}
-          {selectedAgent !== 'all' && savedSchedule && queuedCount > 0 && (
+          {selectedAgent !== 'all' && hasSelectedAgentSchedule && (
             <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
               <Clock className="w-2.5 h-2.5" />
-              {queuedCount} email{queuedCount !== 1 ? 's' : ''} auto-sending
+              {queuedCount > 0
+                ? `${queuedCount} email${queuedCount !== 1 ? 's' : ''} auto-sending`
+                : 'Auto-send schedule active'}
               {' '}on {savedSchedule.activeDays.map(d => DAY_LABELS[d]).join(', ')}
               {' '}at {(() => {
                 const [h, m] = savedSchedule.sendTime.split(':').map(Number)
