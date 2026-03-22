@@ -17,6 +17,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 // ── types ──────────────────────────────────────────────────────────────────
 interface Agent {
@@ -74,6 +75,12 @@ interface TodayStats {
   replied: number
 }
 
+interface PlanStatus {
+  plan?: {
+    maxConcurrency?: number
+  }
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────
 const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu
 function stripEmoji(s: string) { return s.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim() }
@@ -124,6 +131,12 @@ export function OperationsContent() {
   const [sseConnected, setSseConnected] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({})
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
+  const [editingLeadLimit, setEditingLeadLimit] = useState<string | null>(null)
+  const [editingConcurrency, setEditingConcurrency] = useState<string | null>(null)
+  const [leadLimitDrafts, setLeadLimitDrafts] = useState<Record<string, number>>({})
+  const [concurrencyDrafts, setConcurrencyDrafts] = useState<Record<string, number>>({})
+  const [savingInline, setSavingInline] = useState<Record<string, boolean>>({})
+  const [planStatus, setPlanStatus] = useState<PlanStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const logsRef = useRef<HTMLDivElement>(null)
 
@@ -186,6 +199,65 @@ export function OperationsContent() {
       const res = await api.get('/api/monitoring/ai-summary')
       if (res.data?.summary) setAiSummary(res.data.summary)
     } catch { /* silent */ }
+  }, [])
+
+  const fetchPlanStatus = useCallback(async () => {
+    try {
+      const res = await api.get('/api/plans/status')
+      if (res.data?.success) {
+        setPlanStatus(res.data)
+      }
+    } catch { /* silent */ }
+  }, [])
+
+  const saveAgentInlineSetting = useCallback(async (agentId: string, updates: { leadLimit?: number; concurrencyLevel?: number }) => {
+    const saveKey = `${agentId}-${updates.leadLimit !== undefined ? 'leadLimit' : 'concurrency'}`
+    setSavingInline(prev => ({ ...prev, [saveKey]: true }))
+    try {
+      const currentRes = await api.get(`/api/lead-agent/settings?agentId=${agentId}`)
+      const currentSettings = currentRes.data?.settings || {}
+      const nextLeadLimit = updates.leadLimit ?? currentSettings.geographicSettings?.leadLimit ?? currentSettings.targeting?.leadLimit ?? 0
+      const payload = {
+        ...currentSettings,
+        agentId,
+        geographicSettings: {
+          ...(currentSettings.geographicSettings || {}),
+          leadLimit: nextLeadLimit,
+        },
+        targeting: {
+          ...(currentSettings.targeting || {}),
+          leadLimit: nextLeadLimit,
+        },
+        ...(updates.concurrencyLevel !== undefined ? { concurrencyLevel: updates.concurrencyLevel } : {}),
+      }
+
+      await api.post('/api/lead-agent/settings', payload)
+
+      setAgents(prev => prev.map(agent => {
+        if (agent.agentId !== agentId) return agent
+        return {
+          ...agent,
+          settings: {
+            ...(agent.settings || {}),
+            geographicSettings: {
+              ...(agent.settings?.geographicSettings || {}),
+              leadLimit: nextLeadLimit,
+            },
+            targeting: {
+              ...(agent.settings?.targeting || {}),
+              leadLimit: nextLeadLimit,
+            },
+            ...(updates.concurrencyLevel !== undefined ? { concurrencyLevel: updates.concurrencyLevel } : {}),
+          },
+        }
+      }))
+
+      toast.success('Agent updated')
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || 'Failed to update agent')
+    } finally {
+      setSavingInline(prev => ({ ...prev, [saveKey]: false }))
+    }
   }, [])
 
   // ── SSE ──────────────────────────────────────────────────────────────────
@@ -263,6 +335,7 @@ export function OperationsContent() {
 
   useEffect(() => { fetchAgents() }, [fetchAgents])
   useEffect(() => { fetchPrevDay() }, [fetchPrevDay])
+  useEffect(() => { fetchPlanStatus() }, [fetchPlanStatus])
   useEffect(() => {
     fetchSummary()
     const id = setInterval(fetchSummary, 5000)
@@ -305,6 +378,7 @@ export function OperationsContent() {
   const filteredLogs = selectedAgent === 'all'
     ? activityLogs
     : activityLogs.filter(l => l.agentId === selectedAgent)
+  const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 30
 
   const avatarUrl = (agent: Agent) => {
     if (agent.avatar || agent.personality?.avatar) return agent.avatar ?? agent.personality?.avatar
@@ -705,6 +779,10 @@ export function OperationsContent() {
                 const isRunning = agent.status === 'running' || agent.status === 'active'
                 const activity = agentActivities[agent.agentId]
                 const displayName = agent.name || agent.agentName || 'Agent'
+                const leadLimit = agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit ?? 0
+                const concurrencyLevel = agent.settings?.concurrencyLevel ?? 1
+                const isSavingLeadLimit = !!savingInline[`${agent.agentId}-leadLimit`]
+                const isSavingConcurrency = !!savingInline[`${agent.agentId}-concurrency`]
 
                 return (
                   <div
@@ -792,17 +870,86 @@ export function OperationsContent() {
                           </span>
                         </>
                       )}
-                      {(agent.settings?.targeting?.leadLimit || agent.settings?.geographicSettings?.leadLimit) && (
-                        <span className="flex items-center gap-0.5 text-[10px] text-primary font-medium ml-auto flex-shrink-0">
-                          <RefreshCw className="w-2.5 h-2.5" />
-                          {agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit}/cycle
-                        </span>
-                      )}
-                      {(agent.settings?.concurrencyLevel ?? 1) > 1 && (
-                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground flex-shrink-0" title="Concurrency level">
-                          <Cpu className="w-2.5 h-2.5" />{agent.settings?.concurrencyLevel}×
-                        </span>
-                      )}
+                      <div className="ml-auto flex items-center gap-1 flex-shrink-0">
+                        {editingLeadLimit === agent.agentId ? (
+                          <form
+                            className="flex items-center gap-1"
+                            onClick={e => e.stopPropagation()}
+                            onSubmit={async e => {
+                              e.preventDefault()
+                              const nextValue = Math.max(1, Math.min(200, Math.floor(leadLimitDrafts[agent.agentId] ?? leadLimit ?? 1)))
+                              await saveAgentInlineSetting(agent.agentId, { leadLimit: nextValue })
+                              setEditingLeadLimit(null)
+                            }}
+                          >
+                            <RefreshCw className={cn('w-2.5 h-2.5 text-primary', isSavingLeadLimit && 'animate-spin')} />
+                            <input
+                              type="number"
+                              min={1}
+                              max={200}
+                              value={leadLimitDrafts[agent.agentId] ?? leadLimit ?? 1}
+                              onChange={e => setLeadLimitDrafts(prev => ({ ...prev, [agent.agentId]: parseInt(e.target.value) || 1 }))}
+                              onClick={e => e.stopPropagation()}
+                              className="h-5 w-14 rounded border border-primary/30 bg-background px-1 text-[10px] text-foreground"
+                              autoFocus
+                            />
+                          </form>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation()
+                              setLeadLimitDrafts(prev => ({ ...prev, [agent.agentId]: leadLimit || 1 }))
+                              setEditingLeadLimit(agent.agentId)
+                              setEditingConcurrency(null)
+                            }}
+                            className="flex items-center gap-0.5 text-[10px] text-primary font-medium rounded px-1 py-0.5 hover:bg-primary/10"
+                            title="Edit lead limit"
+                          >
+                            <RefreshCw className="w-2.5 h-2.5" />
+                            {leadLimit}/cycle
+                          </button>
+                        )}
+
+                        {editingConcurrency === agent.agentId ? (
+                          <form
+                            className="flex items-center gap-1"
+                            onClick={e => e.stopPropagation()}
+                            onSubmit={async e => {
+                              e.preventDefault()
+                              const nextValue = Math.max(1, Math.min(maxConcurrency, Math.floor(concurrencyDrafts[agent.agentId] ?? concurrencyLevel ?? 1)))
+                              await saveAgentInlineSetting(agent.agentId, { concurrencyLevel: nextValue })
+                              setEditingConcurrency(null)
+                            }}
+                          >
+                            <Cpu className={cn('w-2.5 h-2.5 text-muted-foreground', isSavingConcurrency && 'animate-pulse')} />
+                            <input
+                              type="number"
+                              min={1}
+                              max={maxConcurrency}
+                              value={concurrencyDrafts[agent.agentId] ?? concurrencyLevel ?? 1}
+                              onChange={e => setConcurrencyDrafts(prev => ({ ...prev, [agent.agentId]: Math.min(maxConcurrency, parseInt(e.target.value) || 1) }))}
+                              onClick={e => e.stopPropagation()}
+                              className="h-5 w-10 rounded border border-border bg-background px-1 text-[10px] text-foreground"
+                              autoFocus
+                            />
+                          </form>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation()
+                              setConcurrencyDrafts(prev => ({ ...prev, [agent.agentId]: Math.min(maxConcurrency, concurrencyLevel || 1) }))
+                              setEditingConcurrency(agent.agentId)
+                              setEditingLeadLimit(null)
+                            }}
+                            className="flex items-center gap-0.5 text-[10px] text-muted-foreground rounded px-1 py-0.5 hover:bg-muted"
+                            title="Edit concurrency"
+                          >
+                            <Cpu className="w-2.5 h-2.5" />{concurrencyLevel}×
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Email stats */}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -50,6 +51,15 @@ interface Agent {
   isCrmMode?: boolean   // true when agent is reserved for Auditor / CRM outreach
 }
 
+interface PlanStatusResponse {
+  plan?: {
+    id?: string
+    name?: string
+    maxAgents?: number
+    maxConcurrency?: number
+  }
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 const PERSONALITY_COLORS: Record<string, string> = {
   hunter:              'border-orange-500/40',
@@ -97,6 +107,7 @@ function AgentCard({
   onDelete,
   onSettingsChange,
   busy,
+  maxConcurrencyLimit,
 }: {
   agent: Agent
   onStart: (id: string) => void
@@ -105,6 +116,7 @@ function AgentCard({
   onDelete: (id: string, name: string) => void
   onSettingsChange: (id: string) => void
   busy: boolean
+  maxConcurrencyLimit: number
 }) {
   const personalityType = agent.personality?.type ?? 'hunter'
   const avatar = agent.personality?.avatar ?? '🤖'
@@ -118,7 +130,7 @@ function AgentCard({
   const [editingConcurrency, setEditingConcurrency] = useState(false)
   const [concurrencyDraft, setConcurrencyDraft] = useState(agent.settings?.concurrencyLevel ?? 1)
   const saveConcurrency = async (val: number) => {
-    const clamped = Math.min(30, Math.max(1, val || 1))
+    const clamped = Math.min(maxConcurrencyLimit, Math.max(1, val || 1))
     setConcurrencyDraft(clamped)
     setEditingConcurrency(false)
     try {
@@ -222,10 +234,10 @@ function AgentCard({
                 <span className="flex items-center gap-0.5 ml-auto">
                   {editingConcurrency ? (
                     <input
-                      type="number" min={1} max={10} autoFocus
+                      type="number" min={1} max={maxConcurrencyLimit} autoFocus
                       value={concurrencyDraft}
                       className="w-10 text-center text-[10px] bg-background border border-border rounded px-0.5 focus:outline-none"
-                      onChange={e => setConcurrencyDraft(parseInt(e.target.value) || 1)}
+                      onChange={e => setConcurrencyDraft(Math.min(maxConcurrencyLimit, parseInt(e.target.value) || 1))}
                       onBlur={() => saveConcurrency(concurrencyDraft)}
                       onKeyDown={e => { if (e.key === 'Enter') saveConcurrency(concurrencyDraft); if (e.key === 'Escape') setEditingConcurrency(false) }}
                     />
@@ -387,6 +399,7 @@ type PersonalityDef = typeof PERSONALITIES[number]
 
 // ── create agent modal — exact replica of InfoDashboard personality modal ─────
 function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const router = useRouter()
   const [selectedPersonalityId, setSelectedPersonalityId] = useState<string | null>(null)
   const [agentName, setAgentName] = useState('')
   const [showPresetSelection, setShowPresetSelection] = useState(false)
@@ -398,6 +411,32 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const [loadingPresets, setLoadingPresets] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null)
+  const [agentCount, setAgentCount] = useState(0)
+
+  useEffect(() => {
+    Promise.allSettled([
+      api.get('/api/plans/status'),
+      api.get('/api/auth/agents'),
+    ]).then(([planRes, agentsRes]) => {
+      if (planRes.status === 'fulfilled' && planRes.value.data?.success) {
+        setPlanStatus(planRes.value.data)
+      }
+      if (agentsRes.status === 'fulfilled') {
+        setAgentCount((agentsRes.value.data?.agents ?? []).length)
+      }
+    }).catch(() => {})
+  }, [])
+
+  const maxAgents = planStatus?.plan?.maxAgents ?? 0
+  const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 0
+  const planName = planStatus?.plan?.name ?? 'Current plan'
+  const tierRows = [
+    { name: 'Free Trial', agents: 1, concurrency: 5 },
+    { name: 'Starter', agents: 5, concurrency: 5 },
+    { name: 'Professional', agents: 10, concurrency: 10 },
+    { name: 'Enterprise', agents: 30, concurrency: 30 },
+  ]
 
   const fetchPresets = async () => {
     setLoadingPresets(true)
@@ -467,6 +506,35 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-background border border-border rounded-xl shadow-xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+
+        {maxAgents > 0 && (
+          <div className="mb-6 rounded-xl border border-border bg-muted/35 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Current plan limits</p>
+                <h3 className="text-sm font-semibold text-foreground mt-1">{planName}: {agentCount}/{maxAgents} agents used</h3>
+                <p className="text-xs text-muted-foreground mt-1">Each agent is its own AI worker with separate personality, targeting, and outreach settings. Concurrency is how many leads one agent researches in parallel per cycle.</p>
+              </div>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => router.push('/settings?tab=billing&upgrade=plans')}>
+                Upgrade Plan
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-xs text-muted-foreground">
+              <div className="rounded-lg border border-border bg-background px-3 py-2">Your plan: up to {maxAgents} agent{maxAgents === 1 ? '' : 's'} and {maxConcurrency}x concurrency</div>
+              <div className="rounded-lg border border-border bg-background px-3 py-2">Higher tiers unlock more parallel research and more separate agents</div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-xs text-muted-foreground">
+              {tierRows.map((tier) => (
+                <div key={tier.name} className="rounded-lg border border-border bg-background px-3 py-2 flex items-center justify-between gap-3">
+                  <span className="font-medium text-foreground">{tier.name}</span>
+                  <span>{tier.agents} agents · {tier.concurrency}x</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── PHASE 1: personality grid ── */}
         {!selectedPersonalityId && (
@@ -673,12 +741,14 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
 
 // ── main component ────────────────────────────────────────────────────────────
 export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightAgentId?: string; autoOpenCreate?: boolean } = {}) {
+  const router = useRouter()
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<Record<string, boolean>>({})
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -720,7 +790,19 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
     }
   }, [])
 
+  const loadPlanStatus = useCallback(async () => {
+    try {
+      const res = await api.get('/api/plans/status')
+      if (res.data?.success) {
+        setPlanStatus(res.data)
+      }
+    } catch {
+      setPlanStatus(null)
+    }
+  }, [])
+
   useEffect(() => { loadAgents() }, [loadAgents])
+  useEffect(() => { loadPlanStatus() }, [loadPlanStatus])
 
   // auto-open create modal when directed from home page
   useEffect(() => { if (autoOpenCreate) setShowCreate(true) }, [autoOpenCreate])
@@ -787,6 +869,11 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
   const totalQueued  = agents.reduce((acc, a) => acc + (a.queued ?? 0), 0)
   const totalReplied = agents.reduce((acc, a) => acc + (a.replied ?? 0), 0)
   const overallReplyRate = totalSent > 0 ? parseFloat(((totalReplied / totalSent) * 100).toFixed(1)) : 0
+  const maxAgents = planStatus?.plan?.maxAgents ?? 0
+  const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 30
+  const currentPlanName = planStatus?.plan?.name ?? 'Current plan'
+  const hasPlanLimit = maxAgents > 0
+  const atAgentLimit = hasPlanLimit && totalAgents >= maxAgents
 
   const summaryCards = [
     { label: 'Total Agents',   value: loading ? '—' : totalAgents,  icon: Bot,          accent: 'text-primary',    bg: 'bg-primary/10' },
@@ -838,15 +925,39 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
           <h2 className="text-sm font-semibold text-foreground">
             {loading ? 'Loading agents…' : `${totalAgents} Agent${totalAgents !== 1 ? 's' : ''}`}
           </h2>
-          <p className="text-xs text-muted-foreground">{runningCount} currently active</p>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <p className="text-xs text-muted-foreground">{runningCount} currently active</p>
+            {hasPlanLimit && (
+              <>
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                  {currentPlanName}: {totalAgents}/{maxAgents} agents used
+                </Badge>
+                <span className="text-[10px] text-muted-foreground">
+                  Up to {maxConcurrency}x concurrency
+                </span>
+              </>
+            )}
+          </div>
         </div>
-        <Button
-          size="sm"
-          className="h-8 text-xs gap-1.5"
-          onClick={() => setShowCreate(true)}
-        >
-          <Plus className="w-3.5 h-3.5" /> New Agent
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasPlanLimit && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => router.push('/settings?tab=billing&upgrade=plans')}
+            >
+              Upgrade for More
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => atAgentLimit ? router.push('/settings?tab=billing&upgrade=plans') : setShowCreate(true)}
+          >
+            <Plus className="w-3.5 h-3.5" /> {atAgentLimit ? 'Upgrade to Add More' : 'New Agent'}
+          </Button>
+        </div>
       </div>
 
       {/* agent grid */}
@@ -906,6 +1017,7 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
                 onDelete={(id, name) => setDeleteTarget({ id, name })}
                 onSettingsChange={loadAgents}
                 busy={!!busy[agent.agentId]}
+                maxConcurrencyLimit={maxConcurrency}
               />
             </div>
           ))}

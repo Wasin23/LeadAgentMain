@@ -82,6 +82,15 @@ interface AgentSettings {
   };
 }
 
+interface PlanStatusResponse {
+  plan?: {
+    id?: string;
+    name?: string;
+    maxAgents?: number;
+    maxConcurrency?: number;
+  };
+}
+
 const defaultSettings: AgentSettings = {
   specialInstructions: '',
   companyBranding: { agentName: '', companyName: '', agentTitle: '', primaryService: '', coreOffering: '', keyAdvantages: '', expertiseArea: '', companyWebsite: '', companyDescription: '' },
@@ -205,6 +214,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [agentName, setAgentName] = useState('Agent');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedSettings, setLastSavedSettings] = useState<AgentSettings | null>(null);
+  const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null);
   const [presets, setPresets] = useState<any[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [loadingPresets, setLoadingPresets] = useState(false);
@@ -226,7 +236,13 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const fetchSettings = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get(`/api/lead-agent/settings?agentId=${resolvedParams.agentId}`);
+      const [res, planRes] = await Promise.all([
+        api.get(`/api/lead-agent/settings?agentId=${resolvedParams.agentId}`),
+        api.get('/api/plans/status').catch(() => null),
+      ]);
+      if (planRes?.data?.success) {
+        setPlanStatus(planRes.data);
+      }
       if (res.data.settings) {
         const s = res.data.settings;
         const u = s.userSettings || s.leadGeneration || s;
@@ -299,6 +315,16 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
     if (lastSavedSettings) setHasUnsavedChanges(JSON.stringify(settings) !== JSON.stringify(lastSavedSettings));
   }, [settings, lastSavedSettings]);
 
+  useEffect(() => {
+    const allowedConcurrency = planStatus?.plan?.maxConcurrency;
+    if (!allowedConcurrency) return;
+
+    setSettings(prev => {
+      if ((prev.concurrencyLevel ?? 1) <= allowedConcurrency) return prev;
+      return { ...prev, concurrencyLevel: allowedConcurrency };
+    });
+  }, [planStatus?.plan?.maxConcurrency]);
+
   // ── auto-save ──
   const autoSave = useCallback(async () => {
     if (!hasUnsavedChanges || isSaving) return;
@@ -353,6 +379,9 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const updateGeo = (f: string, v: any) => setSettings(p => ({ ...p, geographicSettings: { ...p.geographicSettings, [f]: v } }));
   const updateResearch = (f: string, v: any) => setSettings(p => ({ ...p, researchFocus: { ...p.researchFocus, [f]: v } }));
   const updateEmail = (f: string, v: any) => setSettings(p => ({ ...p, emailBuilder: { ...p.emailBuilder, [f]: v } }));
+  const maxConcurrency = planStatus?.plan?.maxConcurrency || 1;
+  const maxAgents = planStatus?.plan?.maxAgents || 1;
+  const currentPlanName = planStatus?.plan?.name || 'Your plan';
 
   // ─────────────────────────────────────────────────────
   // Loading
@@ -549,9 +578,9 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <Label>Research Speed (Concurrency)</Label>
                 <div className="flex items-center gap-3">
                   <input
-                    type="range" min={1} max={30} step={1}
+                    type="range" min={1} max={maxConcurrency} step={1}
                     value={settings.concurrencyLevel ?? 1}
-                    onChange={e => setSettings(prev => ({ ...prev, concurrencyLevel: parseInt(e.target.value) }))}
+                    onChange={e => setSettings(prev => ({ ...prev, concurrencyLevel: Math.min(maxConcurrency, parseInt(e.target.value) || 1) }))}
                     className="flex-1 accent-primary"
                   />
                   <span className="w-16 text-sm font-semibold text-center tabular-nums">
@@ -559,8 +588,25 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Parallel research workers per cycle. Higher = faster but uses more API credits simultaneously. Your plan limit still applies.
+                  Parallel research workers per cycle. Higher = faster but uses more API credits simultaneously. {currentPlanName} allows up to {maxConcurrency}x concurrency.
                 </p>
+                <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Current plan limits</p>
+                      <p className="text-xs text-muted-foreground">This plan includes up to {maxAgents} agent{maxAgents === 1 ? '' : 's'} and {maxConcurrency}x concurrency.</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => router.push('/settings?tab=billing&upgrade=plans')}>
+                      Upgrade Plan
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                    <div className="rounded-md border border-border bg-background px-3 py-2">Free Trial: 1 agent · 5x concurrency</div>
+                    <div className="rounded-md border border-border bg-background px-3 py-2">Starter: 5 agents · 5x concurrency</div>
+                    <div className="rounded-md border border-border bg-background px-3 py-2">Professional: 10 agents · 10x concurrency</div>
+                    <div className="rounded-md border border-border bg-background px-3 py-2">Enterprise: 30 agents · 30x concurrency</div>
+                  </div>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label>Timezone</Label>

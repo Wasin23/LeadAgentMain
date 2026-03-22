@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Bell, Zap, CheckCircle2, Link2Off, Sparkles } from "lucide-react"
+import { Bell, Zap, CheckCircle2, Link2Off, Sparkles, Bot, Cpu, ArrowRight, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { MobileNav } from "./mobile-nav"
 import { GlobalSearch, type GlobalSearchProps } from "./global-search"
 import type { ReactNode } from "react"
@@ -77,6 +78,15 @@ interface HeaderProps extends GlobalSearchProps {
   userPicture?: string
 }
 
+interface PlanStatusResponse {
+  plan?: {
+    id?: string
+    name?: string
+    maxAgents?: number
+    maxConcurrency?: number
+  }
+}
+
 
 export function Header({
   title = "",
@@ -102,6 +112,7 @@ export function Header({
   const [profilePicture, setProfilePicture] = useState<string>("")
   const [crmName, setCrmName]               = useState<string | null | undefined>(undefined) // undefined = loading
   const [isTrialUser, setIsTrialUser]       = useState(false)
+  const [planStatus, setPlanStatus]         = useState<PlanStatusResponse | null>(null)
 
   // Sync with billing tab credit calculation
   useEffect(() => {
@@ -162,7 +173,10 @@ export function Header({
       let isTrial = false
       try {
         const { data } = await api.get("/api/plans/status")
-        if (data.success) isTrial = (data.plan?.id || "") === "free-trial"
+        if (data.success) {
+          setPlanStatus(data)
+          isTrial = (data.plan?.id || "") === "free-trial"
+        }
       } catch {}
       try {
         const { data } = await api.get("/api/billing/trial-credits")
@@ -183,6 +197,16 @@ export function Header({
     .join("")
     .slice(0, 2)
     .toUpperCase()
+  const totalAgents = Array.isArray(agents) ? agents.length : 0
+  const planName = planStatus?.plan?.name || 'Plan'
+  const maxAgents = planStatus?.plan?.maxAgents ?? 0
+  const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 0
+  const tierRows = [
+    { name: 'Free Trial', agents: 1, concurrency: 5 },
+    { name: 'Starter', agents: 5, concurrency: 5 },
+    { name: 'Professional', agents: 10, concurrency: 10 },
+    { name: 'Enterprise', agents: 30, concurrency: 30 },
+  ]
 
   return (
     <header className="space-y-3 md:space-y-4 animate-slide-in-up relative z-10">
@@ -213,6 +237,75 @@ export function Header({
             <Zap className="w-4 h-4 text-primary flex-shrink-0" />
             <span>{credits.toLocaleString()}</span>
           </Button>
+
+          {maxAgents > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="relative h-8 px-2.5 rounded-md border border-border bg-background/70 text-[11px] font-medium text-foreground hover:bg-secondary transition-colors"
+                  title="View plan limits and what they mean"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/12 text-primary">
+                      <Info className="w-3 h-3" />
+                    </span>
+                    <span className="hidden sm:inline">{planName}</span>
+                    <span className="text-muted-foreground">{totalAgents}/{maxAgents}</span>
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[340px] p-0 overflow-hidden">
+                <div className="border-b border-border bg-muted/40 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{planName} limits</p>
+                      <p className="text-xs text-muted-foreground">{totalAgents}/{maxAgents} agents used · up to {maxConcurrency}x concurrency</p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">Click for limits</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4 px-4 py-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-border bg-background p-3">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Bot className="w-3.5 h-3.5 text-primary" />
+                        <p className="text-xs font-semibold text-foreground">Agent</p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">One AI worker with its own personality, targeting rules, and outreach settings.</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-background p-3">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-primary" />
+                        <p className="text-xs font-semibold text-foreground">Concurrency</p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">How many leads one agent researches in parallel during a cycle. Higher is faster.</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-xs font-semibold text-foreground mb-2">Tier limits</p>
+                    <div className="space-y-1.5">
+                      {tierRows.map((tier) => (
+                        <div key={tier.name} className="flex items-center justify-between gap-3 rounded-md bg-background px-2.5 py-2 text-[11px]">
+                          <span className="font-medium text-foreground">{tier.name}</span>
+                          <span className="text-muted-foreground">{tier.agents} agents · {tier.concurrency}x concurrency</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full h-8 text-xs justify-center gap-1.5"
+                    onClick={() => router.push('/settings?tab=billing&upgrade=plans')}
+                  >
+                    Upgrade Plan <ArrowRight className="w-3 h-3" />
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
           {/* Notifications bell */}
           <Button

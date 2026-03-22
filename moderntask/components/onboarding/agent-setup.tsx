@@ -103,6 +103,7 @@ interface Props {
 
 export default function AgentSetup({ onComplete, onSkip }: Props) {
   const [step, setStep] = useState<Step>('intro')
+  const [introSlide, setIntroSlide] = useState(0)
   const [personality, setPersonality] = useState<typeof PERSONALITY_TYPES[0] | null>(null)
   const [agentName, setAgentName] = useState('')
   const [presetName, setPresetName] = useState('')
@@ -298,6 +299,60 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
 
   const planDetails = plans.find(p => p.id === selectedPlan) || plans[0]
   const highestPlanLimits = plans[plans.length - 1]
+  const introSlides = [
+    {
+      eyebrow: 'What is an agent?',
+      title: 'An agent is your dedicated AI rep',
+      description: 'Each agent has its own personality, targeting rules, and outreach settings. You can run different agents for different markets or campaigns.',
+      avatars: PERSONALITY_TYPES.slice(0, 3),
+      stats: [
+        { label: 'Own personality', value: '1 style' },
+        { label: 'Own targeting', value: '1 ICP' },
+        { label: 'Own workflow', value: '1 loop' },
+      ],
+      mockup: {
+        badge: 'Agent profile',
+        title: 'Series A Outreach Agent',
+        subtitle: 'Targets healthcare startups with a warm follow-up style',
+        rows: ['Personality: Relationship Builder', 'Targeting: CTOs in US healthcare', 'Sending: Gmail + follow-ups on'],
+      },
+    },
+    {
+      eyebrow: 'What does it do?',
+      title: 'It researches leads and writes the outreach',
+      description: 'Your agent finds qualified prospects, gathers context, and drafts personalized emails before they go out.',
+      avatars: [PERSONALITY_TYPES[2], PERSONALITY_TYPES[3], PERSONALITY_TYPES[0]],
+      stats: [
+        { label: 'Find leads', value: 'Auto' },
+        { label: 'Research', value: 'Per lead' },
+        { label: 'Emails', value: 'Custom' },
+      ],
+      mockup: {
+        badge: 'Live cycle',
+        title: 'Research queue',
+        subtitle: 'Agent is enriching leads before writing emails',
+        rows: ['Apollo search → 24 matches', 'Researching latest company context', 'Drafting email with custom CTA'],
+      },
+    },
+    {
+      eyebrow: 'What happens next?',
+      title: 'It keeps cycling until replies come in',
+      description: 'Once started, the agent keeps running your process: queueing outreach, monitoring replies, and handing wins back to you.',
+      avatars: [PERSONALITY_TYPES[4], PERSONALITY_TYPES[1], PERSONALITY_TYPES[0]],
+      stats: [
+        { label: 'Runs in cycles', value: 'Ongoing' },
+        { label: 'Replies tracked', value: 'Live' },
+        { label: 'Meetings', value: 'Faster' },
+      ],
+      mockup: {
+        badge: 'Outcome',
+        title: 'Pipeline moving',
+        subtitle: 'Your agent keeps the queue active while you review the results',
+        rows: ['8 emails queued for today', '2 replies detected', '1 meeting-ready prospect'],
+      },
+    },
+  ]
+  const currentIntroSlide = introSlides[introSlide]
 
   useEffect(() => {
     setSettings(current => {
@@ -348,22 +403,102 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
             </div>
             <h1 className="text-4xl font-bold text-white mb-4">Create Your First AI Agent</h1>
             <p className="text-xl text-white/70 mb-8">Your agent will automatically find leads, write personalized emails, and track responses for you.</p>
-            <div className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-8 text-left space-y-3">
-              {[
-                { icon: '🔍', text: 'Find qualified leads based on your criteria' },
-                { icon: '✉️', text: 'Write personalized emails for each contact' },
-                { icon: '📊', text: 'Research and write reports into your CRM' },
-                { icon: '📅', text: 'Track responses and book meetings' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 text-white/80">
-                  <span>{item.icon}</span>
-                  <span>{item.text}</span>
+            <div className="bg-white/10 border border-white/20 rounded-3xl p-4 md:p-6 mb-8 text-left shadow-2xl shadow-blue-900/15">
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/80">{currentIntroSlide.eyebrow}</p>
+                  <h3 className="text-2xl font-bold text-white mt-1">{currentIntroSlide.title}</h3>
                 </div>
-              ))}
+                <div className="flex items-center gap-1.5">
+                  {introSlides.map((_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => setIntroSlide(index)}
+                      className={`h-2.5 rounded-full transition-all ${index === introSlide ? 'w-7 bg-white' : 'w-2.5 bg-white/35 hover:bg-white/55'}`}
+                      aria-label={`Go to intro slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                <div className="rounded-2xl border border-white/20 bg-white/95 p-5 text-gray-900">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-600">{currentIntroSlide.mockup.badge}</span>
+                    <div className="flex -space-x-2">
+                      {currentIntroSlide.avatars.map((avatar) => (
+                        <div key={avatar.id} className={`w-9 h-9 rounded-full bg-gradient-to-br ${colorGrad[avatar.color]} p-0.5 border border-white`}>
+                          <img src={avatar.avatar} alt={avatar.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(avatar.name)}&background=3b82f6&color=ffffff` }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-lg font-bold text-gray-900">{currentIntroSlide.mockup.title}</p>
+                  <p className="text-sm text-gray-500 mt-1">{currentIntroSlide.mockup.subtitle}</p>
+
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {currentIntroSlide.stats.map((stat) => (
+                      <div key={stat.label} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-center">
+                        <p className="text-sm font-bold text-gray-900">{stat.value}</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-gray-500 mt-1">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {currentIntroSlide.mockup.rows.map((row, index) => (
+                      <div key={row} className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-[11px] font-bold text-blue-600">{index + 1}</span>
+                        <span className="text-sm text-gray-700">{row}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
+                  <div className="rounded-2xl border border-white/15 bg-slate-950/25 px-4 py-3 mb-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/75">Step {introSlide + 1} of 3</p>
+                    <p className="text-white font-semibold mt-1">{currentIntroSlide.description}</p>
+                  </div>
+                  <div className="space-y-2.5">
+                    {[
+                      'An agent is a reusable AI worker, not just a one-off email.',
+                      'Each agent keeps its own targeting, messaging style, and sending settings.',
+                      'You can create more agents for more markets as your plan grows.',
+                    ].map((item, index) => (
+                      <div key={item} className={`rounded-xl px-3 py-2 text-sm ${index === introSlide ? 'bg-white text-blue-700 font-semibold' : 'bg-white/10 text-white/80'}`}>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <button onClick={next} className="px-10 py-4 bg-white text-blue-600 rounded-xl font-bold text-lg hover:shadow-2xl hover:shadow-white/20 hover:scale-105 transition-all">
-              ✨ Let's Create Your Agent →
-            </button>
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setIntroSlide(current => Math.max(0, current - 1))}
+                disabled={introSlide === 0}
+                className="px-6 py-3 rounded-xl font-semibold text-white/90 border border-white/25 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                ← Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (introSlide < introSlides.length - 1) {
+                    setIntroSlide(current => current + 1)
+                    return
+                  }
+                  next()
+                }}
+                className="px-10 py-4 bg-white text-blue-600 rounded-xl font-bold text-lg hover:shadow-2xl hover:shadow-white/20 hover:scale-105 transition-all"
+              >
+                {introSlide < introSlides.length - 1 ? 'Next →' : 'Next: Start Your Agent →'}
+              </button>
+            </div>
           </div>
         )}
 
