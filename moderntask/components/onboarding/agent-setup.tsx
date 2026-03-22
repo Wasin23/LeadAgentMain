@@ -146,23 +146,6 @@ const INTRO_SLIDES = [
       rows: ['42 emails queued for today', '7 replies detected', '3 meeting-ready prospects'],
     },
   },
-  {
-    eyebrow: 'What is CRM Auditor?',
-    title: 'It can audit the contacts already in your CRM',
-    description: 'You can convert an agent into a CRM Auditor that works through your existing CRM contacts instead of searching Apollo. It researches each contact, builds outreach, and submits research reports back on every record.',
-    avatars: [PERSONALITY_TYPES[3], PERSONALITY_TYPES[2], PERSONALITY_TYPES[1]],
-    stats: [
-      { label: 'Reads CRM', value: 'Selected' },
-      { label: 'Research', value: 'Per contact' },
-      { label: 'Reports', value: 'Logged' },
-    ],
-    mockup: {
-      badge: 'CRM Auditor',
-      title: 'HubSpot audit run',
-      subtitle: 'The agent works through your saved contacts instead of searching Apollo',
-      rows: ['12 CRM contacts imported', '12 research briefs prepared', '12 personalized emails drafted', '12 contact reports synced'],
-    },
-  },
 ] as const
 
 type Step = 'intro' | 'personality' | 'name-agent' | 'plan' | 'configure' | 'name-preset' | 'email-setup' | 'crm-setup' | 'payment' | 'review' | 'creating'
@@ -514,9 +497,29 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 </div>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-[1.6fr_0.72fr] xl:grid-cols-[1.72fr_0.68fr]">
-                <div className="rounded-[1.75rem] border border-white/20 bg-white/95 p-5 md:p-6 text-gray-900">
-                  <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="rounded-[1.75rem] border border-white/20 bg-white/95 p-5 md:p-6 text-gray-900">
+                <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr] xl:items-start">
+                  <div>
+                    <div className="rounded-[1.25rem] border border-blue-100 bg-blue-50 px-5 py-4 mb-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Step {introSlide + 1} of {INTRO_SLIDES.length}</p>
+                      <p className="mt-2 text-sm md:text-base font-semibold leading-relaxed text-slate-800">{currentIntroSlide.description}</p>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3 mb-4">
+                      {[
+                        { title: 'What an agent is', detail: 'A reusable AI worker with its own personality and ICP.' },
+                        { title: 'How it does the work', detail: 'Finds leads, researches them, and writes outreach.' },
+                        { title: 'How cycles work', detail: 'Repeats the full pass of work on each scheduled run.' },
+                      ].map((item, index) => (
+                        <div key={item.title} className={`rounded-2xl border px-4 py-3 ${index === introSlide ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50 text-slate-700'}`}>
+                          <p className={`text-xs uppercase tracking-[0.12em] ${index === introSlide ? 'font-bold' : 'font-semibold text-slate-500'}`}>{item.title}</p>
+                          <p className={`mt-1 text-sm leading-relaxed ${index === introSlide ? 'font-semibold' : ''}`}>{item.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 mb-4 xl:mb-0 xl:justify-end xl:pl-4">
                     <span className="rounded-full bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">{currentIntroSlide.mockup.badge}</span>
                     <div className="flex -space-x-2">
                       {currentIntroSlide.avatars.map((avatar) => (
@@ -526,11 +529,18 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       ))}
                     </div>
                   </div>
+                </div>
 
-                  <p className="text-2xl font-bold text-gray-900">{currentIntroSlide.mockup.title}</p>
-                  <p className="text-base text-gray-500 mt-1.5">{currentIntroSlide.mockup.subtitle}</p>
+                <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] xl:items-start">
+                  <div>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{currentIntroSlide.mockup.title}</p>
+                      <p className="text-base text-gray-500 mt-1.5">{currentIntroSlide.mockup.subtitle}</p>
+                    </div>
+                  </div>
 
-                  <div className="grid grid-cols-3 gap-3 mt-5">
+                  <div className="grid grid-cols-3 gap-3">
                     {currentIntroSlide.stats.map((stat) => (
                       <div key={stat.label} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
                         <p className="text-lg font-bold text-gray-900">{stat.value}</p>
@@ -538,8 +548,9 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       </div>
                     ))}
                   </div>
+                  </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-2">
                     {currentIntroSlide.mockup.rows.map((row, index) => {
                       const metricMatch = row.match(/^(\d+)\s+(.*)$/)
                       return (
@@ -556,26 +567,6 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                         </div>
                       )
                     })}
-                  </div>
-                </div>
-
-                <div className="rounded-[1.75rem] border border-white/20 bg-white/10 p-5 md:p-6 backdrop-blur-sm">
-                  <div className="rounded-[1.5rem] border border-white/15 bg-slate-950/25 px-5 py-4 mb-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100/75">Step {introSlide + 1} of {INTRO_SLIDES.length}</p>
-                    <p className="text-white text-lg font-semibold mt-2 leading-relaxed">{currentIntroSlide.description}</p>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      { title: 'What an agent is', detail: 'A reusable AI worker with its own personality and ICP.' },
-                      { title: 'How it does the work', detail: 'Finds leads, researches them, and writes outreach.' },
-                      { title: 'How cycles work', detail: 'Repeats the full pass of work on each scheduled run.' },
-                      { title: 'How CRM Auditor works', detail: 'Uses your CRM contact list instead of Apollo search.' },
-                    ].map((item, index) => (
-                      <div key={item.title} className={`rounded-2xl px-4 py-3 ${index === introSlide ? 'bg-white text-blue-700' : 'bg-white/10 text-white/80'}`}>
-                        <p className={`text-sm uppercase tracking-[0.12em] ${index === introSlide ? 'font-bold' : 'font-semibold text-white/65'}`}>{item.title}</p>
-                        <p className={`mt-1 text-sm md:text-base leading-relaxed ${index === introSlide ? 'font-semibold' : ''}`}>{item.detail}</p>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -1024,6 +1015,41 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               <p className="text-xl text-white/70">Auto-sync researched leads to your CRM (optional)</p>
             </div>
             <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm">
+              <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-5 mb-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-blue-200 shadow-sm">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M7 4v6m10-6v6M5 11h14a1 1 0 011 1v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a1 1 0 011-1z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-900 mb-1">CRM Auditor mode</h3>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      You can convert your agent into a CRM Auditor here. Instead of searching Apollo for new leads, it reads through your CRM contacts, researches each one, builds personalized emails, and submits research reports back onto each record.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 mt-4">
+                  {[
+                    { step: '1', title: 'Pull CRM contacts', detail: 'Use the people already sitting in HubSpot, Salesforce, Pipedrive, or another CRM.' },
+                    { step: '2', title: 'Research every contact', detail: 'The agent enriches each record and prepares a short research brief.' },
+                    { step: '3', title: 'Draft outreach', detail: 'It writes personalized emails for those contacts instead of starting from a cold list.' },
+                    { step: '4', title: 'Sync reports back', detail: 'Research notes and activity can be pushed back into the CRM for your team.' },
+                  ].map((item) => (
+                    <div key={item.step} className="rounded-xl border border-blue-100 bg-white px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{item.step}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-gray-600">{item.detail}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
                 <h3 className="font-bold text-gray-900 mb-2">Why connect a CRM?</h3>
                 <ul className="space-y-1.5 text-sm text-gray-600">
