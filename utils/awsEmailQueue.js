@@ -840,6 +840,9 @@ class AWSEmailQueue {
    */
   async markEmailAsReplied(userId, agentId, emailId, replyData = {}) {
     return this.updateEmailStatus(userId, agentId, emailId, 'SENT', 'REPLIED', {
+        followUpScheduled: false,
+        followUpDate: null,
+        followUpCanceledAt: new Date().toISOString(),
       replyFrom: replyData.from,
       replySubject: replyData.subject,
       replyBody: replyData.body
