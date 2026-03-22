@@ -431,6 +431,7 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const maxAgents = planStatus?.plan?.maxAgents ?? 0
   const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 0
   const planName = planStatus?.plan?.name ?? 'Current plan'
+  const atAgentLimit = maxAgents > 0 && agentCount >= maxAgents
   const tierRows = [
     { name: 'Free Trial', agents: 1, concurrency: 5 },
     { name: 'Starter', agents: 5, concurrency: 5 },
@@ -449,6 +450,10 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
   }
 
   const handleCreate = async () => {
+    if (atAgentLimit) {
+      setError(`You are already using ${agentCount}/${maxAgents} agents on ${planName}. Upgrade your plan to add more.`)
+      return
+    }
     if (!agentName.trim() || !selectedPersonalityId) return
     setIsCreating(true)
     setError(null)
@@ -533,6 +538,12 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
                 </div>
               ))}
             </div>
+
+            {atAgentLimit && (
+              <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                You are at your current agent limit. Upgrade your plan to create another agent.
+              </div>
+            )}
           </div>
         )}
 
@@ -620,10 +631,10 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
               </button>
               <button
                 onClick={() => { if (!agentName.trim()) return; setShowPresetSelection(true); fetchPresets() }}
-                disabled={!agentName.trim()}
+                disabled={!agentName.trim() || atAgentLimit}
                 className="flex-1 px-6 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-all text-sm"
               >
-                Continue
+                {atAgentLimit ? 'Upgrade to Continue' : 'Continue'}
               </button>
             </div>
           </>
@@ -698,12 +709,12 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
                 Back
               </button>
               <button
-                onClick={handleCreate}
+                onClick={() => atAgentLimit ? router.push('/settings?tab=billing&upgrade=plans') : handleCreate()}
                 disabled={isCreating}
                 className="flex-1 px-6 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-all text-sm flex items-center justify-center gap-2"
               >
                 {isCreating && <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />}
-                {isCreating ? 'Creating…' : selectedPreset ? 'Create with Preset' : 'Skip & Create'}
+                {isCreating ? 'Creating…' : atAgentLimit ? 'Upgrade to Add Another Agent' : selectedPreset ? 'Create with Preset' : 'Skip & Create'}
               </button>
             </div>
           </>
@@ -989,6 +1000,14 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
             <p className="text-sm text-muted-foreground max-w-xs">
               Create your first AI outreach agent to start generating leads automatically.
             </p>
+            {hasPlanLimit && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+                <span className="font-medium text-foreground">{currentPlanName}</span>
+                <span>{totalAgents}/{maxAgents} agents used</span>
+                <span>·</span>
+                <span>Up to {maxConcurrency}x concurrency</span>
+              </div>
+            )}
           </div>
           <Button
             size="sm"
